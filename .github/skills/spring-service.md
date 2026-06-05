@@ -19,9 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.StudentRequest;
 import com.cms.dto.StudentResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.Student;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.StudentRepository;
 
 @Service
@@ -29,14 +29,14 @@ import com.cms.repository.StudentRepository;
 public class StudentService {
 
     private final StudentRepository studentRepository;
-    private final DepartmentRepository departmentRepository;
+    private final SpecialityRepository specialityRepository;
 
     // Constructor injection
     public StudentService(
             StudentRepository studentRepository,
-            DepartmentRepository departmentRepository) {
+            SpecialityRepository specialityRepository) {
         this.studentRepository = studentRepository;
-        this.departmentRepository = departmentRepository;
+        this.specialityRepository = specialityRepository;
     }
 
     public Page<StudentResponse> findAll(Pageable pageable) {
@@ -50,17 +50,17 @@ public class StudentService {
         return StudentResponse.fromEntity(student);
     }
 
-    public List<StudentResponse> findByDepartment(Long departmentId) {
-        return studentRepository.findByDepartmentId(departmentId).stream()
+    public List<StudentResponse> findBySpeciality(Long specialityId) {
+        return studentRepository.findBySpecialityId(specialityId).stream()
             .map(StudentResponse::fromEntity)
             .toList();
     }
 
     @Transactional
     public StudentResponse create(StudentRequest request) {
-        // Validate department exists
-        Department department = departmentRepository.findById(request.departmentId())
-            .orElseThrow(() -> new ResourceNotFoundException("Department", "id", request.departmentId()));
+        // Validate speciality exists
+        Speciality speciality = specialityRepository.findById(request.specialityId())
+            .orElseThrow(() -> new ResourceNotFoundException("Speciality", "id", request.specialityId()));
 
         // Check for duplicate email
         if (studentRepository.existsByEmail(request.email())) {
@@ -71,7 +71,7 @@ public class StudentService {
         student.setFirstName(request.firstName());
         student.setLastName(request.lastName());
         student.setEmail(request.email());
-        student.setDepartment(department);
+        student.setSpeciality(speciality);
         student.setEnrollmentDate(LocalDate.now());
 
         Student saved = studentRepository.save(student);
@@ -83,11 +83,11 @@ public class StudentService {
         Student student = studentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));
 
-        // Validate department if changed
-        if (!student.getDepartment().getId().equals(request.departmentId())) {
-            Department department = departmentRepository.findById(request.departmentId())
-                .orElseThrow(() -> new ResourceNotFoundException("Department", "id", request.departmentId()));
-            student.setDepartment(department);
+        // Validate speciality if changed
+        if (!student.getSpeciality().getId().equals(request.specialityId())) {
+            Speciality speciality = specialityRepository.findById(request.specialityId())
+                .orElseThrow(() -> new ResourceNotFoundException("Speciality", "id", request.specialityId()));
+            student.setSpeciality(speciality);
         }
 
         // Check for duplicate email (excluding current student)
@@ -133,7 +133,7 @@ import com.cms.model.Student;
 public interface StudentRepository extends JpaRepository<Student, Long> {
 
     // Query methods using method naming
-    List<Student> findByDepartmentId(Long departmentId);
+    List<Student> findBySpecialityId(Long specialityId);
     
     Optional<Student> findByEmail(String email);
     
@@ -142,16 +142,16 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     List<Student> findByLastNameContainingIgnoreCase(String lastName);
 
     // Custom JPQL query
-    @Query("SELECT s FROM Student s WHERE s.department.name = :departmentName")
-    List<Student> findByDepartmentName(@Param("departmentName") String departmentName);
+    @Query("SELECT s FROM Student s WHERE s.speciality.name = :specialityName")
+    List<Student> findBySpecialityName(@Param("specialityName") String specialityName);
 
     // Native SQL query
     @Query(value = "SELECT * FROM students WHERE enrollment_date >= :date", nativeQuery = true)
     List<Student> findRecentEnrollments(@Param("date") LocalDate date);
 
     // Query with projection
-    @Query("SELECT s.email FROM Student s WHERE s.department.id = :deptId")
-    List<String> findEmailsByDepartment(@Param("deptId") Long departmentId);
+    @Query("SELECT s.email FROM Student s WHERE s.speciality.id = :deptId")
+    List<String> findEmailsBySpeciality(@Param("deptId") Long specialityId);
 }
 ```
 
@@ -195,8 +195,8 @@ public class Student {
     private String email;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id", nullable = false)
-    private Department department;
+    @JoinColumn(name = "speciality_id", nullable = false)
+    private Speciality speciality;
 
     @Column(name = "enrollment_date")
     private LocalDate enrollmentDate;
@@ -231,8 +231,8 @@ public class Student {
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
-    public Department getDepartment() { return department; }
-    public void setDepartment(Department department) { this.department = department; }
+    public Speciality getSpeciality() { return speciality; }
+    public void setSpeciality(Speciality speciality) { this.speciality = speciality; }
 
     public LocalDate getEnrollmentDate() { return enrollmentDate; }
     public void setEnrollmentDate(LocalDate enrollmentDate) { this.enrollmentDate = enrollmentDate; }
@@ -279,8 +279,8 @@ public enum StudentStatus {
 Create migrations in `src/main/resources/db/migration/`:
 
 ```sql
--- V1__create_departments_table.sql
-CREATE TABLE departments (
+-- V1__create_specialities_table.sql
+CREATE TABLE specialities (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     code VARCHAR(10) NOT NULL UNIQUE,
@@ -295,14 +295,14 @@ CREATE TABLE students (
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
-    department_id BIGINT NOT NULL REFERENCES departments(id),
+    speciality_id BIGINT NOT NULL REFERENCES specialities(id),
     enrollment_date DATE,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_students_department ON students(department_id);
+CREATE INDEX idx_students_speciality ON students(speciality_id);
 CREATE INDEX idx_students_email ON students(email);
 ```
 
@@ -357,9 +357,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.StudentRequest;
 import com.cms.dto.StudentResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.Student;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.StudentRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -369,26 +369,26 @@ class StudentServiceTest {
     private StudentRepository studentRepository;
 
     @Mock
-    private DepartmentRepository departmentRepository;
+    private SpecialityRepository specialityRepository;
 
     @InjectMocks
     private StudentService studentService;
 
-    private Department department;
+    private Speciality speciality;
     private Student student;
 
     @BeforeEach
     void setUp() {
-        department = new Department();
-        department.setId(1L);
-        department.setName("Computer Science");
+        speciality = new Speciality();
+        speciality.setId(1L);
+        speciality.setName("Computer Science");
 
         student = new Student();
         student.setId(1L);
         student.setFirstName("John");
         student.setLastName("Doe");
         student.setEmail("john@example.com");
-        student.setDepartment(department);
+        student.setSpeciality(speciality);
     }
 
     @Test
@@ -398,7 +398,7 @@ class StudentServiceTest {
         StudentResponse response = studentService.findById(1L);
 
         assertThat(response.firstName()).isEqualTo("John");
-        assertThat(response.departmentName()).isEqualTo("Computer Science");
+        assertThat(response.specialityName()).isEqualTo("Computer Science");
     }
 
     @Test
@@ -414,7 +414,7 @@ class StudentServiceTest {
     void shouldCreateStudent() {
         StudentRequest request = new StudentRequest("Jane", "Doe", "jane@example.com", 1L);
         
-        when(departmentRepository.findById(1L)).thenReturn(Optional.of(department));
+        when(specialityRepository.findById(1L)).thenReturn(Optional.of(speciality));
         when(studentRepository.existsByEmail("jane@example.com")).thenReturn(false);
         when(studentRepository.save(any())).thenAnswer(invocation -> {
             Student s = invocation.getArgument(0);

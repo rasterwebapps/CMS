@@ -1753,7 +1753,7 @@ tr.mat-mdc-no-data-row {
 .mat-column-title,
 .mat-column-programName,
 .mat-column-courseName,
-.mat-column-departmentName,
+.mat-column-specialityName,
 .mat-column-code,
 .mat-column-email,
 .mat-column-phone,
@@ -2305,7 +2305,7 @@ tr.mat-mdc-no-data-row {
 
 // ── Two-column Form Layout (form left + side panel right) ─────────────
 // Used by master add/edit screens that include a Live Preview card.
-// Mirrors the .dept-form-layout pattern from department-form.
+// Mirrors the .dept-form-layout pattern from speciality-form.
 .entry-form-layout {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
@@ -3910,7 +3910,7 @@ html.dark-theme body::after {
 
 // ── Code Chip — accent-tinted mono badge for table cells ──────
 // More visually refined than the solid .cell-code block; used in
-// department, course, program tables where the code is secondary info.
+// speciality, course, program tables where the code is secondary info.
 .code-chip {
   display: inline-flex;
   align-items: center;
@@ -3930,7 +3930,7 @@ html.dark-theme body::after {
 
 // ══════════════════════════════════════════════════════════════
 // 🎨  MASTER LIST PAGE v2  (mlp-*)
-//     Shared structural classes for the departments-style
+//     Shared structural classes for the specialities-style
 //     dual card+table layout used across all master-entry screens.
 //     Card *content* (badge, name, meta) stays in component SCSS.
 // ══════════════════════════════════════════════════════════════
@@ -4661,7 +4661,7 @@ html.large-text {
 
 // ── Shorthand: all page root selectors that carry a paginated table ──
 // Legacy dedicated classes + .admission-list-fixed-page + .mlp-page screens
-// (detected via :has(.mlp-table-card)) + department (.dept-list-page) +
+// (detected via :has(.mlp-table-card)) + speciality (.dept-list-page) +
 // lab-schedule (.list-page:has(mat-paginator)).
 :is(
   .enq-list-page,

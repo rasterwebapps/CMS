@@ -31,7 +31,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Navigate to `/` or `/dashboard`                  |
-| **Expected**| Dashboard loads with: 4 metric cards (Total Students, Total Faculty, Departments, Active Courses) showing placeholder "—" values, Lab Utilization placeholder widget, Recent Activity placeholder widget |
+| **Expected**| Dashboard loads with: 4 metric cards (Total Students, Total Faculty, Specialities, Active Courses) showing placeholder "—" values, Lab Utilization placeholder widget, Recent Activity placeholder widget |
 
 ---
 

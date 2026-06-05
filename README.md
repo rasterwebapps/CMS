@@ -139,7 +139,7 @@ The **College Management System (CMS)** streamlines and centralizes all institut
 | 2 | **User Management** | Role-based access (Admin, Faculty, Student, Lab In-Charge, Technician, Parent) | ✅ Lab-specific roles |
 | 3 | **Institution Profile** | College details, branding, campus management | ✅ Lab count, lab types per campus |
 | 4 | **Academic Year Management** | Define academic years, semesters, terms | ✅ Lab sessions mapped per semester |
-| 5 | **Department Management** | Create and manage departments | ✅ Department-wise lab assignment |
+| 5 | **Speciality Management** | Create and manage specialities | ✅ Speciality-wise lab assignment |
 | 6 | **Program/Course Management** | Degree programs, streams, specializations | ✅ Lab components per program/course |
 | 7 | **Notification & Alerts** | System-wide alerts, SMS, email, push | ✅ Lab schedule changes, equipment breakdown alerts |
 
@@ -228,7 +228,7 @@ The **College Management System (CMS)** streamlines and centralizes all institut
 
 | # | Feature | Description |
 |---|---------|-------------|
-| 48 | **Lab Registration** | Register labs — name, type, department, location, capacity |
+| 48 | **Lab Registration** | Register labs — name, type, speciality, location, capacity |
 | 49 | **Lab Types Management** | Computer, Physics, Chemistry, Electronics, Biology, Language, etc. |
 | 50 | **Lab Capacity & Layout** | Seating/workstation capacity, floor plan upload |
 | 51 | **Lab In-Charge Assignment** | Assign in-charge, technicians, assistants per lab |
@@ -361,7 +361,7 @@ The **College Management System (CMS)** streamlines and centralizes all institut
 | 126 | **Income & Revenue Reports** | Revenue tracking | ✅ Lab fee revenue tracking |
 | 127 | **Payment Gateway Integration** | Razorpay, Stripe, PayPal | ✅ Lab fee online payment |
 | 128 | **Invoice & Receipt Management** | Auto-generated invoices | ✅ Lab fee receipts |
-| 129 | **Budget Planning** | Departmental budgets | ✅ Lab budget allocation per department |
+| 129 | **Budget Planning** | Specialityal budgets | ✅ Lab budget allocation per speciality |
 | 130 | **Purchase Order Management** | PO creation, tracking | ✅ Lab equipment/consumable POs |
 | 131 | **Asset Depreciation** | Track asset value over time | ✅ Lab equipment depreciation |
 
@@ -426,7 +426,7 @@ The **College Management System (CMS)** streamlines and centralizes all institut
 | # | Module | Description | Lab Integration |
 |---|--------|-------------|-----------------|
 | 158 | **Student Performance Analytics** | Trend analysis, pass/fail rates | ✅ Lab vs. Theory performance comparison |
-| 159 | **Attendance Analytics** | Department/class-wise trends | ✅ Lab attendance analytics |
+| 159 | **Attendance Analytics** | Speciality/class-wise trends | ✅ Lab attendance analytics |
 | 160 | **Financial Reports** | Income, expense summaries | ✅ Lab expense & revenue reports |
 | 161 | **Faculty Performance Reports** | Teaching effectiveness | ✅ Lab teaching effectiveness scores |
 | 162 | **Custom Report Builder** | Custom reports with filters | ✅ Custom lab reports |
@@ -631,7 +631,7 @@ Lab Management **cannot function in isolation**. It touches students, faculty, f
 
 | # | Module | Tasks | Key Deliverables |
 |---|--------|-------|-----------------|
-| 2.1 | **Administration (Module 1)** | Department management; Program/Course management; Academic Year & Calendar setup | Institutional structure defined |
+| 2.1 | **Administration (Module 1)** | Speciality management; Program/Course management; Academic Year & Calendar setup | Institutional structure defined |
 | 2.2 | **Lab Setup (Module 7.1)** | Register physical labs & lab types (Computer, Physics, etc.); Assign Lab In-Charges; Lab capacity & equipment baseline | Lab inventory & ownership established |
 | 2.3 | **Academic & Curriculum (Module 4)** | Curriculum/Syllabus management; **Lab-Curriculum Mapping** — map experiments to Course Outcomes (CO/PO for accreditation) | Experiment-to-outcome traceability |
 | 2.4 | **Faculty (Module 3)** | Faculty profile management; "Lab Expertise" tracking; Lab teaching assignments | Faculty–Lab readiness |
@@ -669,7 +669,7 @@ Lab Management **cannot function in isolation**. It touches students, faculty, f
 | # | Module | Tasks | Key Deliverables |
 |---|--------|-------|-----------------|
 | 5.1 | **Examination (Module 6)** | Practical exam scheduling; Continuous Evaluation (experiment-wise marks); GPA/CGPA calculation with lab components | Complete assessment pipeline |
-| 5.2 | **Analytics & Reports (Module 13)** | NBA/NAAC accreditation report generation; Lab Utilization KPIs & dashboards; Department-wise & program-wise analytics | Accreditation-ready reports & insights |
+| 5.2 | **Analytics & Reports (Module 13)** | NBA/NAAC accreditation report generation; Lab Utilization KPIs & dashboards; Speciality-wise & program-wise analytics | Accreditation-ready reports & insights |
 
 ---
 

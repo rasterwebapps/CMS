@@ -52,7 +52,7 @@ Explicitly left-aligns:
 - `.mat-column-studentName`
 - `.mat-column-programName`
 - `.mat-column-courseName`
-- `.mat-column-departmentName`
+- `.mat-column-specialityName`
 - `.mat-column-description`
 - `.mat-column-date`
 - `.mat-column-enquiryDate`

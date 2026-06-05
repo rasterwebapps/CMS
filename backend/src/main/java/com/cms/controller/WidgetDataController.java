@@ -406,7 +406,7 @@ public class WidgetDataController {
     /**
      * Individual stat card.
      * key = students | faculty | labs | fee-collected | outstanding
-     *     | enquiries | admissions | departments | programs | equipment
+     *     | enquiries | admissions | specialities | programs | equipment
      */
     @GetMapping("/stat/{key}")
     public ResponseEntity<StatCardData> getStat(@PathVariable String key) {
@@ -1093,12 +1093,12 @@ public class WidgetDataController {
         return ResponseEntity.ok(rows);
     }
 
-    /** Student:faculty ratio per department with threshold-based severity. */
+    /** Student:faculty ratio per speciality with threshold-based severity. */
     @GetMapping("/student-faculty-ratio")
     @PreAuthorize("@perm.hasAny('STUDENT_VIEW','FACULTY_VIEW','REPORT_VIEW')")
     public ResponseEntity<List<StudentFacultyRatioRow>> getStudentFacultyRatio() {
-        Map<Long, Speciality> departments = new HashMap<>();
-        specialityRepository.findAll().forEach(d -> departments.put(d.getId(), d));
+        Map<Long, Speciality> specialities = new HashMap<>();
+        specialityRepository.findAll().forEach(d -> specialities.put(d.getId(), d));
 
         Map<Long, Long> studentCounts = new HashMap<>();
         for (Student s : studentRepository.findAll()) {
@@ -1112,7 +1112,7 @@ public class WidgetDataController {
             facultyCounts.merge(f.getSpeciality().getId(), 1L, Long::sum);
         }
 
-        List<StudentFacultyRatioRow> rows = departments.values().stream()
+        List<StudentFacultyRatioRow> rows = specialities.values().stream()
             .map(d -> {
                 long students = studentCounts.getOrDefault(d.getId(), 0L);
                 long faculty = facultyCounts.getOrDefault(d.getId(), 0L);
@@ -1370,7 +1370,7 @@ public class WidgetDataController {
                 String name  = (first + " " + last).trim();
                 if (name.isEmpty()) name = "Faculty #" + f.getId();
                 String role = f.getDesignation() != null
-                    ? formatStatus(f.getDesignation().name()) : "Faculty";
+                    ? f.getDesignation().getName() : "Faculty";
                 return new ConnectionItem(f.getId(), name, buildInitials(name), role, false);
             })
             .toList();
@@ -1496,7 +1496,7 @@ public class WidgetDataController {
             return List.of(
                 new QuickStat("Enquiries",   String.valueOf(newEnq)),
                 new QuickStat("Admission Explorer", String.valueOf(s.totalStudents())),
-                new QuickStat("Departments", String.valueOf(s.totalSpecialities()))
+                new QuickStat("Specialities", String.valueOf(s.totalSpecialities()))
             );
         }
         // Faculty and Student hero stats are built by their own widget components

@@ -5,7 +5,7 @@ INSERT INTO app_roles (name, display_name, hierarchy_level, is_system_role, desc
     ('DEV_ADMIN',      'Developer Admin',    1, TRUE,  'Full system access – development and infrastructure team only', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('SUPPORT_ADMIN',  'Support Admin',      2, TRUE,  'Platform support access – Raster support team only', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('ADMIN',          'Admin',              3, FALSE, 'College-level administrator; manages all college staff and operations', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('COLLEGE_ADMIN',  'College Admin',      4, FALSE, 'Manages day-to-day college operations across all departments', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('COLLEGE_ADMIN',  'College Admin',      4, FALSE, 'Manages day-to-day college operations across all specialities', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('FRONT_OFFICE',   'Front Office',       5, FALSE, 'Handles enquiries, admissions and document submission', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('CASHIER',        'Cashier',            5, FALSE, 'Processes fee collection and views financial summaries', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('FACULTY',        'Faculty',            5, FALSE, 'Academic staff; manages curriculum, attendance and exam results', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
@@ -31,8 +31,8 @@ INSERT INTO permissions (code, display_name, category, created_at) VALUES
 
 -- MASTER
 INSERT INTO permissions (code, display_name, category, created_at) VALUES
-    ('DEPT_VIEW',               'View Departments',       'MASTER', CURRENT_TIMESTAMP),
-    ('DEPT_MANAGE',             'Manage Departments',     'MASTER', CURRENT_TIMESTAMP),
+    ('DEPT_VIEW',               'View Specialities',       'MASTER', CURRENT_TIMESTAMP),
+    ('DEPT_MANAGE',             'Manage Specialities',     'MASTER', CURRENT_TIMESTAMP),
     ('PROGRAM_VIEW',            'View Programs',          'MASTER', CURRENT_TIMESTAMP),
     ('PROGRAM_MANAGE',          'Manage Programs',        'MASTER', CURRENT_TIMESTAMP),
     ('COURSE_VIEW',             'View Courses',           'MASTER', CURRENT_TIMESTAMP),

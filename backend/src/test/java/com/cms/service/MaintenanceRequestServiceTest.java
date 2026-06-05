@@ -21,12 +21,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.MaintenanceRequestDto;
 import com.cms.dto.MaintenanceRequestResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Department;
+import com.cms.model.DesignationMaster;
 import com.cms.model.Equipment;
+import com.cms.model.Speciality;
 import com.cms.model.Faculty;
 import com.cms.model.Lab;
 import com.cms.model.MaintenanceRequest;
-import com.cms.model.enums.Designation;
 import com.cms.model.enums.EquipmentCategory;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.EquipmentStatus;
@@ -60,7 +60,7 @@ class MaintenanceRequestServiceTest {
             maintenanceRequestRepository, equipmentRepository, facultyRepository
         );
 
-        Department dept = new Department("Computer Science", "CS", "CS Dept", "Dr. Smith");
+        Speciality dept = new Speciality("Computer Science", "CS", "CS Dept", null, null);
         dept.setId(1L);
 
         testLab = new Lab("Lab 1", LabType.COMPUTER, dept, "Main Building", "L001", 30, LabStatus.ACTIVE);
@@ -251,13 +251,17 @@ class MaintenanceRequestServiceTest {
 
     @Test
     void shouldCreateWithRequestedByAndAssignedTo() {
-        Department dept = new Department("CS", "CS", "Dept", "Head");
+        Speciality dept = new Speciality("CS", "CS", "Dept", null, null);
         dept.setId(1L);
+        DesignationMaster prof = new DesignationMaster("Professor", "PROFESSOR", null);
+        prof.setId(1L);
+        DesignationMaster asstProf = new DesignationMaster("Assistant Professor", "ASSISTANT_PROFESSOR", null);
+        asstProf.setId(3L);
         Faculty requestedBy = new Faculty("FAC001", "Alice", "Brown", "alice@college.edu", "9999999990",
-            dept, Designation.PROFESSOR, null, null, null, FacultyStatus.ACTIVE);
+            dept, prof, null, null, null, FacultyStatus.ACTIVE);
         requestedBy.setId(2L);
         Faculty assignedTo = new Faculty("FAC002", "Bob", "Green", "bob@college.edu", "9999999991",
-            dept, Designation.ASSISTANT_PROFESSOR, null, null, null, FacultyStatus.ACTIVE);
+            dept, asstProf, null, null, null, FacultyStatus.ACTIVE);
         assignedTo.setId(3L);
 
         MaintenanceRequestDto request = new MaintenanceRequestDto(
@@ -309,13 +313,17 @@ class MaintenanceRequestServiceTest {
 
     @Test
     void shouldUpdateWithRequestedByAndAssignedTo() {
-        Department dept = new Department("CS", "CS", "Dept", "Head");
+        Speciality dept = new Speciality("CS", "CS", "Dept", null, null);
         dept.setId(1L);
+        DesignationMaster prof = new DesignationMaster("Professor", "PROFESSOR", null);
+        prof.setId(1L);
+        DesignationMaster asstProf = new DesignationMaster("Assistant Professor", "ASSISTANT_PROFESSOR", null);
+        asstProf.setId(3L);
         Faculty requestedBy = new Faculty("FAC001", "Alice", "Brown", "alice@college.edu", "9999999990",
-            dept, Designation.PROFESSOR, null, null, null, FacultyStatus.ACTIVE);
+            dept, prof, null, null, null, FacultyStatus.ACTIVE);
         requestedBy.setId(2L);
         Faculty assignedTo = new Faculty("FAC002", "Bob", "Green", "bob@college.edu", "9999999991",
-            dept, Designation.ASSISTANT_PROFESSOR, null, null, null, FacultyStatus.ACTIVE);
+            dept, asstProf, null, null, null, FacultyStatus.ACTIVE);
         assignedTo.setId(3L);
 
         MaintenanceRequest existing = createMaintenanceRequest(1L, testEquipment, "Repair",

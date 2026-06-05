@@ -118,7 +118,7 @@ These cases verify the Profile enhancements added in May 2026: user profile phot
 **Expected Result:**
 - Toast says the profile was updated.
 - Updated fields are visible after save and after refresh.
-- Employee Code, Department, Designation, Joining Date, Status, and Email are not editable in the self-edit form.
+- Employee Code, Speciality, Designation, Joining Date, Status, and Email are not editable in the self-edit form.
 
 **Status:** NOT TESTED
 
@@ -192,7 +192,7 @@ These cases verify the Profile enhancements added in May 2026: user profile phot
 **Steps:**
 1. Call `PUT /api/v1/profile/me/self-info` with valid self-edit fields.
 2. Confirm there is no path or body field for another user ID.
-3. Try changing admin-only fields such as `designation`, `departmentId`, `rollNumber`, or `email` in the request payload.
+3. Try changing admin-only fields such as `designation`, `specialityId`, `rollNumber`, or `email` in the request payload.
 
 **Expected Result:**
 - Backend resolves the user from the JWT only.

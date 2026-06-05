@@ -130,14 +130,14 @@ DB seed: Flyway `V147__seed_tier3_strategic_dashboard_widgets.sql`:
 ## TC-DASH-T3-006: Student : Faculty Ratio
 
 **Preconditions:**
-- Departments have active faculty and active students assigned via specialization department
+- Specialities have active faculty and active students assigned via specialization speciality
 
 **Steps:**
 1. Open `/dashboard` as ADMIN
 2. Locate **Student : Faculty Ratio**
 
 **Expected Result:**
-- Department rows show students, faculty, and ratio.
+- Speciality rows show students, faculty, and ratio.
 - Green ≤ 20:1, amber ≤ 30:1, red > 30:1.
 - Threshold marker is visible on each bar.
 

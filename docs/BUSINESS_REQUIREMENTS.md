@@ -524,7 +524,7 @@ All students created through the enquiry-to-admission process (and other admissi
 1. The Student Explorer provides a searchable, filterable list of all students.
 2. Available filters:
    - **Program** — filter by enrolled program
-   - **Department** — filter by department
+   - **Speciality** — filter by speciality
    - **Academic Year** — filter by admission year
    - **Semester/Year** — filter by current semester or year
    - **Status** — filter by student status (ACTIVE, ON_LEAVE, SUSPENDED, etc.)
@@ -1163,7 +1163,7 @@ The `/api/v1/profile/me/self-info` endpoint resolves the caller exclusively from
 | Blood Group | Yes | Yes | No |
 | Address: postal address/street/city/district/state/pincode | Yes | Yes | No |
 | Profile Photo | Yes | Yes | Yes |
-| Employee Code / Designation / Department / Status / Joining Date | No — admin-only | N/A | N/A |
+| Employee Code / Designation / Speciality / Status / Joining Date | No — admin-only | N/A | N/A |
 | Roll Number / Program / Year of Study / Admission Date | N/A | No — admin-only | N/A |
 | Email / Login Identity | No — SSO/admin-managed | No — SSO/admin-managed | No — SSO/admin-managed |
 
@@ -1280,7 +1280,7 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 | Rule | Detail |
 |------|--------|
-| Add a placeholder/header option when the list is optional | e.g., `"— Select Department —"` as first option |
+| Add a placeholder/header option when the list is optional | e.g., `"— Select Speciality —"` as first option |
 | Hovered item must have a visually distinct background | Different from the selected-item highlight |
 | Selected item must show a check or distinct highlight | Never same style as unselected hover |
 

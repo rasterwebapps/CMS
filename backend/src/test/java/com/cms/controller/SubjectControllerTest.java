@@ -25,7 +25,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.cms.dto.CourseResponse;
-import com.cms.dto.DepartmentResponse;
+import com.cms.dto.SpecialityResponse;
 import com.cms.dto.ProgramResponse;
 import com.cms.dto.SubjectRequest;
 import com.cms.dto.SubjectResponse;
@@ -49,7 +49,7 @@ class SubjectControllerTest {
     private final Instant now = Instant.now();
 
     private SubjectResponse createTestResponse(Long id, String name, String code) {
-        DepartmentResponse dept = new DepartmentResponse(1L, "MSN", "MSN", "Desc", "Dr. X", now, now);
+        SpecialityResponse dept = new SpecialityResponse(1L, "MSN", "MSN", "Desc", "Dr. X", now, now);
         ProgramResponse prog = new ProgramResponse(1L, "B.Sc. Nursing", "BSCN", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, null, now, now);
         CourseResponse courseResp = new CourseResponse(1L, "BSN Course", "BSN",
             "General", null, prog, now, now);
@@ -124,16 +124,16 @@ class SubjectControllerTest {
     }
 
     @Test
-    void shouldFindSubjectsByDepartmentId() throws Exception {
+    void shouldFindSubjectsBySpecialityId() throws Exception {
         SubjectResponse response = createTestResponse(1L, "Anatomy", "ANAT101");
-        when(subjectService.findByDepartmentId(1L)).thenReturn(List.of(response));
+        when(subjectService.findBySpecialityId(1L)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/api/v1/subjects/department/1"))
+        mockMvc.perform(get("/api/v1/subjects/speciality/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].name").value("Anatomy"));
 
-        verify(subjectService).findByDepartmentId(1L);
+        verify(subjectService).findBySpecialityId(1L);
     }
 
     @Test

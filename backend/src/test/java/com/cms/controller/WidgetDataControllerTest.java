@@ -251,12 +251,12 @@ class WidgetDataControllerTest {
     }
 
     @Test
-    void getStatDepartments() throws Exception {
+    void getStatSpecialities() throws Exception {
         when(dashboardService.getSummary()).thenReturn(summary);
 
-        mockMvc.perform(get("/dashboard/data/stat/departments").with(jwt()))
+        mockMvc.perform(get("/dashboard/data/stat/specialities").with(jwt()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.key").value("departments"));
+            .andExpect(jsonPath("$.key").value("specialities"));
     }
 
     @Test

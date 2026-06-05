@@ -55,6 +55,6 @@ export const ONBOARDING_TOUR_STEPS: TourStep[] = [
   {
     id: 'onboarding-complete',
     title: "You're All Set!",
-    body: 'Start by opening Preferences to configure departments, programs, and fee structures. Explore the sidebar to discover every module. Welcome aboard!',
+    body: 'Start by opening Preferences to configure specialities, programs, and fee structures. Explore the sidebar to discover every module. Welcome aboard!',
   },
 ];

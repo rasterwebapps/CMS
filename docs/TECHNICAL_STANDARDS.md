@@ -736,7 +736,7 @@ The backend uses **Spring Profiles** to switch between databases depending on th
 ### 7.2 Guidelines
 
 1. **When to create**: After completing any backend or frontend task from the milestone tracker.
-2. **Where to document**: Create a markdown file in `docs/manual-test-cases/` named after the module or feature (e.g., `docs/manual-test-cases/department-management.md`).
+2. **Where to document**: Create a markdown file in `docs/manual-test-cases/` named after the module or feature (e.g., `docs/manual-test-cases/speciality-management.md`).
 3. **Who creates them**: The developer who completes the task.
 4. **Review**: Manual test cases should be included in the pull request for review.
 
@@ -776,20 +776,20 @@ Each test case must include:
 ### 7.5 Example
 
 ```markdown
-## TC-DEPT-001: Create a new department
+## TC-DEPT-001: Create a new speciality
 
 **Preconditions:**
 - User is logged in with ROLE_ADMIN
 - Application is running
 
 **Steps:**
-1. Send a POST request to `/api/v1/departments` with body: `{"name": "Computer Science", "code": "CS"}`
+1. Send a POST request to `/api/v1/specialities` with body: `{"name": "Computer Science", "code": "CS"}`
 2. Verify the response status is 201 Created
-3. Send a GET request to `/api/v1/departments`
-4. Verify the new department appears in the list
+3. Send a GET request to `/api/v1/specialities`
+4. Verify the new speciality appears in the list
 
 **Expected Result:**
-- Department is created successfully and returned in the list
+- Speciality is created successfully and returned in the list
 
 **Status:** NOT TESTED
 ```

@@ -21,7 +21,7 @@
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Send `GET http://localhost:8080/api/v1/departments` without any authorization header |
+| **Action**  | Send `GET http://localhost:8080/api/v1/specialities` without any authorization header |
 | **Expected**| HTTP 401 Unauthorized                            |
 
 ---

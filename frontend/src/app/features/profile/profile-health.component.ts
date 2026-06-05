@@ -270,7 +270,7 @@ export class ProfileHealthComponent implements OnInit, OnDestroy {
     return [
       { icon: 'badge',          label: 'Employee Code', value: f.employeeCode },
       { icon: 'business',       label: 'Speciality',    value: f.specialityName },
-      { icon: 'work',           label: 'Designation',   value: f.designation.replace(/_/g,' ').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()) },
+      { icon: 'work',           label: 'Designation',   value: f.designationName ?? '—' },
       { icon: 'school',         label: 'Qualification', value: f.highestQualification ? this.qualificationLabel(f.highestQualification) : '' },
       { icon: 'email',          label: 'Email',         value: f.email },
       { icon: 'phone',          label: 'Phone',         value: f.phone ?? '' },

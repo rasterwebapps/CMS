@@ -30,7 +30,7 @@ const TYPE_ICONS: Record<string, string> = {
   STUDENT: 'school',
   FACULTY: 'groups',
   ENQUIRY: 'contact_mail',
-  DEPARTMENT: 'business',
+  SPECIALITY: 'business',
 };
 
 @Component({

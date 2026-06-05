@@ -21,7 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.InventoryItemRequest;
 import com.cms.dto.InventoryItemResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.InventoryItem;
 import com.cms.model.Lab;
 import com.cms.model.enums.LabStatus;
@@ -45,7 +45,7 @@ class InventoryItemServiceTest {
     void setUp() {
         inventoryItemService = new InventoryItemService(inventoryItemRepository, labRepository);
 
-        Department dept = new Department("Computer Science", "CS", "CS Dept", "Dr. Smith");
+        Speciality dept = new Speciality("Computer Science", "CS", "CS Dept", "Dr. Smith");
         dept.setId(1L);
 
         testLab = new Lab("Lab 1", LabType.COMPUTER, dept, "Main Building", "L001", 30, LabStatus.ACTIVE);

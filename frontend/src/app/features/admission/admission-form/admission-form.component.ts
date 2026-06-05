@@ -87,7 +87,7 @@ export class AdmissionFormComponent implements OnInit {
     'dateOfBirth', 'gender', 'aadharNumber',
     'nationality', 'religion', 'communityCategory', 'caste', 'bloodGroup', 'physicalDisability',
     'fatherName', 'fatherPhone', 'fatherEmail',
-    'motherName', 'motherPhone', 'motherEmail', 'parentMobile',
+    'motherName', 'motherPhone', 'motherEmail',
     'address.postalAddress', 'address.street', 'address.city', 'address.pincode',
     'studentId',
   ];
@@ -122,7 +122,6 @@ export class AdmissionFormComponent implements OnInit {
     motherName: [''],
     motherPhone: [''],
     motherEmail: ['', Validators.email],
-    parentMobile: [''],
     address: this.fb.group({
       country: [null as number | null],
       postalAddress: [''],
@@ -293,7 +292,7 @@ export class AdmissionFormComponent implements OnInit {
       this.form.get('motherName')?.setValidators([Validators.required]);
       this.form.get('motherPhone')?.setValidators([Validators.required]);
       this.form.get('motherEmail')?.setValidators([Validators.required, Validators.email]);
-      this.form.get('parentMobile')?.setValidators([Validators.required]);
+
       this.form.get('address.postalAddress')?.setValidators([Validators.required]);
       this.form.get('address.street')?.setValidators([Validators.required]);
       this.form.get('address.city')?.setValidators([Validators.required]);
@@ -379,7 +378,7 @@ export class AdmissionFormComponent implements OnInit {
       motherName: this.nullableStr(v['motherName'] as string),
       motherPhone: this.nullableStr(v['motherPhone'] as string),
       motherEmail: this.nullableStr(v['motherEmail'] as string),
-      parentMobile: this.nullableStr(v['parentMobile'] as string),
+
       address: this.hasValidAddressFields(addr)
         ? {
             countryId: (addr['country'] as number | null) ?? null,

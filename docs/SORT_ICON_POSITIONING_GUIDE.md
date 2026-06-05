@@ -139,7 +139,7 @@ Columns with these names get automatic center-alignment + centered icon:
 #### Left-Aligned (Icon RIGHT - default)
 Columns with these names get automatic left-alignment:
 - `name`, `studentName`, `programName`, `courseName`
-- `departmentName`, `description`
+- `specialityName`, `description`
 - `date`, `enquiryDate`, `paymentDate`, `dueDate`
 
 ### Manual Override

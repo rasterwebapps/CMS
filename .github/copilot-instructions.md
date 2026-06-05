@@ -4,7 +4,7 @@ This document provides context and guidelines for GitHub Copilot when working on
 
 ## Project Overview
 
-The College Management System is a full-stack web application for managing college operations including students, faculty, departments, courses, and lab resources. The system uses a modern tech stack with Angular on the frontend and Spring Boot on the backend.
+The College Management System is a full-stack web application for managing college operations including students, faculty, specialities, courses, and lab resources. The system uses a modern tech stack with Angular on the frontend and Spring Boot on the backend.
 
 ## Technology Stack
 
@@ -259,7 +259,7 @@ CollegeManagementSystem/
 
 ### User Roles
 - `ROLE_ADMIN` - Developer Administrator with full access to all screens
-- `ROLE_COLLEGE_ADMIN` - College Administrator: Departments, Programs, Courses, Academic Years, Semesters, Fee Structures, Faculty, Agents, Referral Types, all Admission Management, all Finance, Admin Dashboard, Reports
+- `ROLE_COLLEGE_ADMIN` - College Administrator: Specialities, Programs, Courses, Academic Years, Semesters, Fee Structures, Faculty, Agents, Referral Types, all Admission Management, all Finance, Admin Dashboard, Reports
 - `ROLE_FRONT_OFFICE` - Front Office staff: all Admission Management screens, Front Office Dashboard
 - `ROLE_CASHIER` - Accountant/Cashier: all Finance screens, Cashier Dashboard
 - `ROLE_FACULTY` - Faculty-specific operations
@@ -363,7 +363,7 @@ The backend supports multiple Spring profiles for database configuration:
 ### Manual Test Case Guidelines
 
 1. **When to create**: After completing any backend or frontend task from the milestone tracker
-2. **Where to document**: Create a markdown file in `docs/manual-test-cases/` named after the module or feature (e.g., `docs/manual-test-cases/department-management.md`)
+2. **Where to document**: Create a markdown file in `docs/manual-test-cases/` named after the module or feature (e.g., `docs/manual-test-cases/speciality-management.md`)
 3. **Format**: Each test case must include:
    - **Test Case ID**: Unique identifier (e.g., `TC-DEPT-001`)
    - **Title**: Short description of what is being tested
@@ -395,20 +395,20 @@ The backend supports multiple Spring profiles for database configuration:
 ### Example
 
 ```markdown
-## TC-DEPT-001: Create a new department
+## TC-DEPT-001: Create a new speciality
 
 **Preconditions:**
 - User is logged in with ROLE_ADMIN
 - Application is running
 
 **Steps:**
-1. Send a POST request to `/api/v1/departments` with body: `{"name": "Computer Science", "code": "CS"}`
+1. Send a POST request to `/api/v1/specialities` with body: `{"name": "Computer Science", "code": "CS"}`
 2. Verify the response status is 201 Created
-3. Send a GET request to `/api/v1/departments`
-4. Verify the new department appears in the list
+3. Send a GET request to `/api/v1/specialities`
+4. Verify the new speciality appears in the list
 
 **Expected Result:**
-- Department is created successfully and returned in the list
+- Speciality is created successfully and returned in the list
 
 **Status:** NOT TESTED
 ```

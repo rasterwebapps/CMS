@@ -17,7 +17,7 @@ export interface Student {
   firstName: string;
   lastName: string;
   email: string;
-  departmentId: number;
+  specialityId: number;
   enrollmentDate: string;
 }
 
@@ -25,7 +25,7 @@ export interface StudentRequest {
   firstName: string;
   lastName: string;
   email: string;
-  departmentId: number;
+  specialityId: number;
 }
 
 export interface PageResponse<T> {
@@ -259,7 +259,7 @@ describe('StudentService', () => {
 
   it('should fetch students', () => {
     const mockStudents: Student[] = [
-      { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', departmentId: 1, enrollmentDate: '2024-01-01' },
+      { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', specialityId: 1, enrollmentDate: '2024-01-01' },
     ];
 
     service.getAll().subscribe(response => {
@@ -272,7 +272,7 @@ describe('StudentService', () => {
   });
 
   it('should create a student', () => {
-    const newStudent = { firstName: 'Jane', lastName: 'Doe', email: 'jane@example.com', departmentId: 1 };
+    const newStudent = { firstName: 'Jane', lastName: 'Doe', email: 'jane@example.com', specialityId: 1 };
     const createdStudent: Student = { ...newStudent, id: 2, enrollmentDate: '2024-01-01' };
 
     service.create(newStudent).subscribe(student => {

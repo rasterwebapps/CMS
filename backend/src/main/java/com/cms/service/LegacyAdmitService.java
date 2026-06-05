@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -312,41 +313,62 @@ public class LegacyAdmitService {
                 }
             }
 
-            // ── Step 7: Historical payment rows ───────────────────────────
+            // ── Step 7: FIFO allocation of historical payments ────────────
+            List<SemesterFee> slots = semesterFeeRepository
+                    .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(savedAllocation.getId());
+
+            int slotIdx = 0;
+            BigDecimal slotRemaining = slots.isEmpty() ? BigDecimal.ZERO : slots.get(0).getAmount();
+
+            String programName = course != null ? course.getName() : program.getName();
+            String feeCategory = studentType == StudentType.HOSTELER ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
+
             for (LegacyPaymentEntry entry : payments) {
-                int semSeq = isYearly ? 1 : entry.semesterSequence();
-                Optional<SemesterFee> sfOpt = semesterFeeRepository
-                        .findByAllocationIdAndYearNumberAndSemesterSequence(
-                                savedAllocation.getId(), entry.yearNumber(), semSeq);
+                if (slotIdx >= slots.size()) break;
 
-                if (sfOpt.isEmpty()) continue; // skip if year/sem doesn't match any fee row
-
-                SemesterFee sf = sfOpt.get();
-                String receiptNumber = (entry.receiptNumber() != null && !entry.receiptNumber().isBlank())
+                BigDecimal pmtRemaining = entry.amount();
+                String receiptNo = (entry.receiptNumber() != null && !entry.receiptNumber().isBlank())
                         ? entry.receiptNumber()
                         : unifiedReceiptService.generateReceiptNumber(entry.paymentDate().getYear());
 
-                FeeInstallment installment = new FeeInstallment(
-                        sf, saved, entry.amount(),
-                        entry.paymentDate(), entry.paymentMode(), receiptNumber
-                );
-                installment.setTransactionReference(entry.transactionReference());
-                installment.setRemarks(entry.remarks());
-                installmentRepository.save(installment);
+                List<String> coveredLabels = new ArrayList<>();
 
-                String programName = course != null ? course.getName() : program.getName();
-                String feeCategory = studentType == StudentType.HOSTELER ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
-                unifiedReceiptService.saveStudentReceipt(
-                        receiptNumber,
-                        saved.getId(), saved.getFullName(), saved.getRollNumber(), saved.getAdmissionNumber(),
-                        programName, entry.amount(),
-                        entry.paymentDate(), entry.paymentMode().name(),
-                        entry.transactionReference(), entry.remarks(),
-                        sf.getSemesterLabel(), performedBy, feeCategory
-                );
+                while (pmtRemaining.compareTo(BigDecimal.ZERO) > 0 && slotIdx < slots.size()) {
+                    SemesterFee sf = slots.get(slotIdx);
+                    BigDecimal apply = pmtRemaining.min(slotRemaining);
+                    pmtRemaining  = pmtRemaining.subtract(apply);
+                    slotRemaining = slotRemaining.subtract(apply);
 
-                paymentRowsCreated++;
-                totalHistoricalPaid = totalHistoricalPaid.add(entry.amount());
+                    FeeInstallment inst = new FeeInstallment(
+                            sf, saved, apply,
+                            entry.paymentDate(), entry.paymentMode(), receiptNo
+                    );
+                    inst.setTransactionReference(entry.transactionReference());
+                    inst.setRemarks(entry.remarks());
+                    installmentRepository.save(inst);
+
+                    coveredLabels.add(sf.getSemesterLabel());
+                    paymentRowsCreated++;
+                    totalHistoricalPaid = totalHistoricalPaid.add(apply);
+
+                    if (slotRemaining.compareTo(BigDecimal.ZERO) <= 0) {
+                        slotIdx++;
+                        slotRemaining = (slotIdx < slots.size())
+                                ? slots.get(slotIdx).getAmount()
+                                : BigDecimal.ZERO;
+                    }
+                }
+
+                if (!coveredLabels.isEmpty()) {
+                    unifiedReceiptService.saveStudentReceipt(
+                            receiptNo,
+                            saved.getId(), saved.getFullName(), saved.getRollNumber(), saved.getAdmissionNumber(),
+                            programName, entry.amount(),
+                            entry.paymentDate(), entry.paymentMode().name(),
+                            entry.transactionReference(), entry.remarks(),
+                            String.join(", ", coveredLabels), performedBy, feeCategory
+                    );
+                }
             }
         }
 

@@ -18,7 +18,7 @@ import {
  * @example
  * ```ts
  * private readonly toast = inject(ToastService);
- * this.toast.success('Department created');
+ * this.toast.success('Speciality created');
  * ```
  */
 @Injectable({ providedIn: 'root' })

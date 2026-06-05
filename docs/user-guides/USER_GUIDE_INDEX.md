@@ -234,11 +234,11 @@ A: Check college bank account to verify transfer. Once confirmed, record payment
 | Issue | Contact |
 |-------|---------|
 | Application login / access | System Administrator |
-| Keycloak role issues | IT Department |
+| Keycloak role issues | IT Speciality |
 | Payment discrepancy | Finance Manager |
 | Document requirements | Principal / INC guidelines |
 | Program eligibility | Academic Coordinator |
-| General system help | Your Department Supervisor |
+| General system help | Your Speciality Supervisor |
 
 ---
 

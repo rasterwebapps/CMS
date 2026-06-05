@@ -1,60 +1,60 @@
 # Manual Test Cases: Duplicate Validation on Master Entry Edit
 
-These test cases verify that editing a master entry (Department, Program, Course, Academic Year,
+These test cases verify that editing a master entry (Speciality, Program, Course, Academic Year,
 Referral Type, Subject, Semester, Lab) is rejected when another entry with the same name or code
 already exists.
 
 ---
 
-## TC-DUP-001: Edit department with a name that already exists
+## TC-DUP-001: Edit speciality with a name that already exists
 
 **Preconditions:**
 - User is logged in with ROLE_ADMIN
-- Two departments exist: "Computer Science" (CS) and "Mathematics" (MATH)
+- Two specialities exist: "Computer Science" (CS) and "Mathematics" (MATH)
 
 **Steps:**
-1. Navigate to Departments and click Edit on "Computer Science"
+1. Navigate to Specialities and click Edit on "Computer Science"
 2. Change the Name field to "Mathematics"
 3. Click Save
 
 **Expected Result:**
-- Save is rejected with an error alert: "A department with the name 'Mathematics' already exists"
-- Department is NOT updated
+- Save is rejected with an error alert: "A speciality with the name 'Mathematics' already exists"
+- Speciality is NOT updated
 
 **Status:** NOT TESTED
 
 ---
 
-## TC-DUP-002: Edit department with a code that already exists
+## TC-DUP-002: Edit speciality with a code that already exists
 
 **Preconditions:**
-- Two departments exist: "Computer Science" (CS) and "Mathematics" (MATH)
+- Two specialities exist: "Computer Science" (CS) and "Mathematics" (MATH)
 
 **Steps:**
-1. Navigate to Departments and click Edit on "Computer Science"
+1. Navigate to Specialities and click Edit on "Computer Science"
 2. Change the Code field to "MATH"
 3. Click Save
 
 **Expected Result:**
-- Save is rejected with an error alert: "A department with the code 'MATH' already exists"
-- Department is NOT updated
+- Save is rejected with an error alert: "A speciality with the code 'MATH' already exists"
+- Speciality is NOT updated
 
 **Status:** NOT TESTED
 
 ---
 
-## TC-DUP-003: Edit department keeping the same name and code (no conflict)
+## TC-DUP-003: Edit speciality keeping the same name and code (no conflict)
 
 **Preconditions:**
-- Department "Computer Science" (CS) exists
+- Speciality "Computer Science" (CS) exists
 
 **Steps:**
-1. Navigate to Departments and click Edit on "Computer Science"
+1. Navigate to Specialities and click Edit on "Computer Science"
 2. Change only the Description field
 3. Click Save
 
 **Expected Result:**
-- Department is updated successfully (name/code unchanged — not treated as a conflict)
+- Speciality is updated successfully (name/code unchanged — not treated as a conflict)
 
 **Status:** NOT TESTED
 
@@ -162,10 +162,10 @@ already exists.
 
 ---
 
-## TC-DUP-010: Edit lab with a name that already exists in the same department
+## TC-DUP-010: Edit lab with a name that already exists in the same speciality
 
 **Preconditions:**
-- Department "Computer Science" has two labs: "Computer Lab 1" and "Computer Lab 2"
+- Speciality "Computer Science" has two labs: "Computer Lab 1" and "Computer Lab 2"
 
 **Steps:**
 1. Edit "Computer Lab 1"
@@ -173,25 +173,25 @@ already exists.
 3. Click Save
 
 **Expected Result:**
-- Save is rejected with an error alert: "A lab with the name 'Computer Lab 2' already exists in this department"
+- Save is rejected with an error alert: "A lab with the name 'Computer Lab 2' already exists in this speciality"
 
 **Status:** NOT TESTED
 
 ---
 
-## TC-DUP-011: Edit lab with a name that exists in a different department (allowed)
+## TC-DUP-011: Edit lab with a name that exists in a different speciality (allowed)
 
 **Preconditions:**
-- Department "Computer Science" has "Computer Lab 1"
-- Department "Electronics" also has "Computer Lab 1"
+- Speciality "Computer Science" has "Computer Lab 1"
+- Speciality "Electronics" also has "Computer Lab 1"
 
 **Steps:**
-1. Edit the "Computer Lab 1" in "Computer Science" department
+1. Edit the "Computer Lab 1" in "Computer Science" speciality
 2. Keep the same name, change only Building
 3. Click Save
 
 **Expected Result:**
-- Update is successful (same name in a different department is not a conflict)
+- Update is successful (same name in a different speciality is not a conflict)
 
 **Status:** NOT TESTED
 

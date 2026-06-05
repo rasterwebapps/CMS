@@ -7,7 +7,7 @@
 - Keycloak running with `cms` realm configured
 - User logged in with `ROLE_ADMIN` or `ROLE_COLLEGE_ADMIN`
 - At least one course exists in the system
-- At least one department exists in the system
+- At least one speciality exists in the system
 
 ---
 
@@ -17,7 +17,7 @@
 
 **Preconditions:**
 - User is logged in with `ROLE_ADMIN` or `ROLE_COLLEGE_ADMIN` (has `COURSE_MANAGE` permission)
-- At least one course and department exist
+- At least one course and speciality exist
 
 **Steps:**
 1. Send POST request to `/api/v1/subjects` with valid payload:
@@ -29,7 +29,7 @@
      "theoryHours": 3,
      "labHours": 2,
      "courseId": 1,
-     "departmentId": 1,
+     "specialityId": 1,
      "semester": 1
    }
    ```
@@ -39,7 +39,7 @@
 
 **Expected Result:**
 - Subject is created successfully
-- Response includes `id`, `name`, `code`, `credits`, `theoryHours`, `labHours`, `course`, `department`, `semester`, `createdAt`, `updatedAt`
+- Response includes `id`, `name`, `code`, `credits`, `theoryHours`, `labHours`, `course`, `speciality`, `semester`, `createdAt`, `updatedAt`
 
 **Status:** NOT TESTED
 
@@ -62,7 +62,7 @@
 
 **Expected Result:**
 - Request is rejected with validation errors
-- Error response includes details about missing `name`, `courseId`, `departmentId`, and `semester` fields
+- Error response includes details about missing `name`, `courseId`, `specialityId`, and `semester` fields
 
 **Status:** NOT TESTED
 
@@ -98,7 +98,7 @@
 
 **Expected Result:**
 - List of all subjects is returned
-- Each subject includes nested `course` and `department` details
+- Each subject includes nested `course` and `speciality` details
 
 **Status:** NOT TESTED
 
@@ -132,7 +132,7 @@
 1. Send GET request to `/api/v1/subjects/1`
 2. Verify response status is `200 OK`
 3. Verify response body contains the subject details
-4. Verify nested `course` and `department` objects are populated
+4. Verify nested `course` and `speciality` objects are populated
 
 **Expected Result:**
 - Subject details are returned with ID 1
@@ -198,34 +198,34 @@
 
 ---
 
-### TC-SUBJ-010: Get Subjects by Department ID — Success
+### TC-SUBJ-010: Get Subjects by Speciality ID — Success
 
 **Preconditions:**
 - User is logged in
-- Department with ID 1 exists
-- At least one subject is mapped to department ID 1
+- Speciality with ID 1 exists
+- At least one subject is mapped to speciality ID 1
 
 **Steps:**
-1. Send GET request to `/api/v1/subjects/department/1`
+1. Send GET request to `/api/v1/subjects/speciality/1`
 2. Verify response status is `200 OK`
 3. Verify response body is an array of subjects
-4. Verify all returned subjects have `department.id` equal to 1
+4. Verify all returned subjects have `speciality.id` equal to 1
 
 **Expected Result:**
-- List of subjects for the specified department is returned
+- List of subjects for the specified speciality is returned
 
 **Status:** NOT TESTED
 
 ---
 
-### TC-SUBJ-011: Get Subjects by Department ID — Empty List
+### TC-SUBJ-011: Get Subjects by Speciality ID — Empty List
 
 **Preconditions:**
 - User is logged in
-- Department with ID 5 exists but has no subjects
+- Speciality with ID 5 exists but has no subjects
 
 **Steps:**
-1. Send GET request to `/api/v1/subjects/department/5`
+1. Send GET request to `/api/v1/subjects/speciality/5`
 2. Verify response status is `200 OK`
 3. Verify response body is an empty array
 
@@ -252,7 +252,7 @@
      "theoryHours": 4,
      "labHours": 2,
      "courseId": 1,
-     "departmentId": 1,
+     "specialityId": 1,
      "semester": 1
    }
    ```
@@ -418,23 +418,23 @@
 
 ## Integration Tests
 
-### TC-SUBJ-021: Subject with Course and Department
+### TC-SUBJ-021: Subject with Course and Speciality
 
 **Preconditions:**
 - User is logged in with `ROLE_ADMIN`
 - Course with ID 1 exists (name: "B.Sc. Nursing", code: "BSCN")
-- Department with ID 1 exists (name: "Nursing", code: "MSN")
+- Speciality with ID 1 exists (name: "Nursing", code: "MSN")
 
 **Steps:**
-1. Create a subject linked to course ID 1 and department ID 1
+1. Create a subject linked to course ID 1 and speciality ID 1
 2. Get the created subject by ID
 3. Verify the response includes nested `course` object with course details
-4. Verify the response includes nested `department` object with department details
+4. Verify the response includes nested `speciality` object with speciality details
 
 **Expected Result:**
-- Subject response includes full course and department details
+- Subject response includes full course and speciality details
 - Course name, code, and program information are populated
-- Department name and code are populated
+- Speciality name and code are populated
 
 **Status:** NOT TESTED
 
@@ -462,22 +462,22 @@
 
 ---
 
-### TC-SUBJ-023: Subject List Filtering by Department
+### TC-SUBJ-023: Subject List Filtering by Speciality
 
 **Preconditions:**
 - User is logged in
-- Multiple subjects exist for different departments
-- Department ID 1 has 5 subjects
-- Department ID 2 has 3 subjects
+- Multiple subjects exist for different specialities
+- Speciality ID 1 has 5 subjects
+- Speciality ID 2 has 3 subjects
 
 **Steps:**
-1. Get all subjects for department ID 1: `GET /subjects/department/1`
+1. Get all subjects for speciality ID 1: `GET /subjects/speciality/1`
 2. Verify 5 subjects are returned
-3. Get all subjects for department ID 2: `GET /subjects/department/2`
+3. Get all subjects for speciality ID 2: `GET /subjects/speciality/2`
 4. Verify 3 subjects are returned
 
 **Expected Result:**
-- Filtering by department ID returns only subjects for that specific department
+- Filtering by speciality ID returns only subjects for that specific speciality
 - Each filtered list contains the correct number of subjects
 
 **Status:** NOT TESTED
@@ -497,8 +497,8 @@
 | TC-SUBJ-007 | CRUD | Get Subject by ID — Not Found | NOT TESTED |
 | TC-SUBJ-008 | CRUD | Get Subjects by Course ID — Success | NOT TESTED |
 | TC-SUBJ-009 | CRUD | Get Subjects by Course ID — Empty List | NOT TESTED |
-| TC-SUBJ-010 | CRUD | Get Subjects by Department ID — Success | NOT TESTED |
-| TC-SUBJ-011 | CRUD | Get Subjects by Department ID — Empty List | NOT TESTED |
+| TC-SUBJ-010 | CRUD | Get Subjects by Speciality ID — Success | NOT TESTED |
+| TC-SUBJ-011 | CRUD | Get Subjects by Speciality ID — Empty List | NOT TESTED |
 | TC-SUBJ-012 | CRUD | Update Subject — Success | NOT TESTED |
 | TC-SUBJ-013 | CRUD | Update Subject — Not Found | NOT TESTED |
 | TC-SUBJ-014 | CRUD | Update Subject — Unauthorized Access | NOT TESTED |
@@ -508,9 +508,9 @@
 | TC-SUBJ-018 | Business Rules | Subject Code Uniqueness | NOT TESTED |
 | TC-SUBJ-019 | Business Rules | Credits Calculation | NOT TESTED |
 | TC-SUBJ-020 | Business Rules | Semester Validation | NOT TESTED |
-| TC-SUBJ-021 | Integration | Subject with Course and Department | NOT TESTED |
+| TC-SUBJ-021 | Integration | Subject with Course and Speciality | NOT TESTED |
 | TC-SUBJ-022 | Integration | Subject List Filtering by Course | NOT TESTED |
-| TC-SUBJ-023 | Integration | Subject List Filtering by Department | NOT TESTED |
+| TC-SUBJ-023 | Integration | Subject List Filtering by Speciality | NOT TESTED |
 
 **Total Test Cases:** 23  
 **Passed:** 0  

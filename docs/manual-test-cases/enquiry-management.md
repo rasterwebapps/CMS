@@ -861,7 +861,7 @@
 1. Navigate to the Student Explorer screen
 2. Verify all students are listed by default
 3. Filter by program → verify only students in that program are shown
-4. Filter by department → verify filtering works
+4. Filter by speciality → verify filtering works
 5. Filter by fee status (PAID/PARTIALLY_PAID/OVERDUE) → verify filtering works
 6. Filter by student status (ACTIVE/ON_LEAVE/etc.) → verify filtering works
 7. Search by name → verify search works

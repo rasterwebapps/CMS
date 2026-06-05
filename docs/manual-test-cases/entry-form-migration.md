@@ -5,36 +5,36 @@ global `entry-form-page` / `entry-form-card` / `field-group` / `field-input` des
 
 ---
 
-## TC-EFM-001: Department — Create a new department
+## TC-EFM-001: Speciality — Create a new speciality
 
 **Preconditions:**
 - User is logged in with ROLE_ADMIN
 - Application is running
 
 **Steps:**
-1. Navigate to Departments → click **Add Department**
+1. Navigate to Specialities → click **Add Speciality**
 2. Verify the page shows the new entry-form layout (white card, no Material card chrome)
 3. Verify there is a page subtitle below the title
-4. Fill in **Name**: `Test Department`
+4. Fill in **Name**: `Test Speciality`
 5. Fill in **Code**: `TD`
 6. Fill in **Description**: `Test Description`
-7. Click **Create Department**
+7. Click **Create Speciality**
 
 **Expected Result:**
-- Form submits successfully; snackbar shows "Department created"
-- User is redirected to the departments list; new department appears
+- Form submits successfully; snackbar shows "Speciality created"
+- User is redirected to the specialities list; new speciality appears
 
 **Status:** NOT TESTED
 
 ---
 
-## TC-EFM-002: Department — Validation errors display correctly
+## TC-EFM-002: Speciality — Validation errors display correctly
 
 **Preconditions:**
-- On the Department create form
+- On the Speciality create form
 
 **Steps:**
-1. Click **Create Department** without filling in any fields
+1. Click **Create Speciality** without filling in any fields
 2. Observe the Name and Code fields
 
 **Expected Result:**
@@ -101,11 +101,11 @@ global `entry-form-page` / `entry-form-card` / `field-group` / `field-input` des
 ## TC-EFM-006: Lab — 2-column rows render correctly
 
 **Preconditions:**
-- At least one Department exists
+- At least one Speciality exists
 - Navigate to Labs → **Add Lab**
 
 **Steps:**
-1. Verify Lab Type/Department, Building/Room Number, Capacity/Status are each in 2-column `field-row` layout
+1. Verify Lab Type/Speciality, Building/Room Number, Capacity/Status are each in 2-column `field-row` layout
 2. Fill in all fields; click **Create Lab**
 
 **Expected Result:**
@@ -204,11 +204,11 @@ global `entry-form-page` / `entry-form-card` / `field-group` / `field-input` des
 ## TC-EFM-012: Faculty — 2-column rows and native date
 
 **Preconditions:**
-- At least one Department exists
+- At least one Speciality exists
 - Navigate to Faculty → **Add Faculty**
 
 **Steps:**
-1. Verify Employee Code/Email, First Name/Last Name, Phone/Department, Designation/Joining Date pairs are in `field-row` layout
+1. Verify Employee Code/Email, First Name/Last Name, Phone/Speciality, Designation/Joining Date pairs are in `field-row` layout
 2. Verify Joining Date is a native `<input type="date">` (not mat-datepicker)
 3. Fill in all required fields; click **Create Faculty**
 

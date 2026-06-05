@@ -19,7 +19,7 @@ import com.cms.repository.FacultyRepository;
 import com.cms.repository.StudentRepository;
 
 /**
- * REST controller providing global search across students, faculty, enquiries, and departments.
+ * REST controller providing global search across students, faculty, enquiries, and specialities.
  */
 @RestController
 @RequestMapping("/search")
@@ -97,7 +97,7 @@ public class SearchController {
         specialityRepository.findAll().stream()
             .filter(d -> d.getName().toLowerCase(Locale.ROOT).contains(term))
             .map(d -> new SearchResultItem(
-                "DEPARTMENT",
+                "SPECIALITY",
                 d.getId(),
                 d.getName(),
                 "",

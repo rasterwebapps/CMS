@@ -7,7 +7,7 @@
 - Application is running
 
 **Steps:**
-1. Send a POST request to `/programs` with body: `{"name": "Bachelor", "code": "BACHELOR", "durationYears": 4, "departmentIds": []}`
+1. Send a POST request to `/programs` with body: `{"name": "Bachelor", "code": "BACHELOR", "durationYears": 4, "specialityIds": []}`
 2. Verify the response status is 201 Created
 3. Verify the response body contains `id`, `name: "Bachelor"`, `code: "BACHELOR"`, `durationYears: 4`
 4. Confirm no `programLevel` field is present in the response
@@ -61,24 +61,24 @@
 1. Navigate to the Programs list page
 
 **Expected Result:**
-- Table columns shown: Code, Name, Duration, Departments, Actions
+- Table columns shown: Code, Name, Duration, Specialities, Actions
 - No "Program Level" column is present
 
 **Status:** NOT TESTED
 
 ---
 
-## TC-PROG-005: Create a program without departments
+## TC-PROG-005: Create a program without specialities
 
 **Preconditions:**
 - User is logged in with ROLE_ADMIN
 
 **Steps:**
-1. Send a POST request to `/programs` with body: `{"name": "Doctoral", "code": "DOCTORAL", "durationYears": 3, "departmentIds": []}`
+1. Send a POST request to `/programs` with body: `{"name": "Doctoral", "code": "DOCTORAL", "durationYears": 3, "specialityIds": []}`
 2. Verify the response status is 201 Created
 
 **Expected Result:**
-- Program is created with empty departments list
+- Program is created with empty specialities list
 
 **Status:** NOT TESTED
 
@@ -90,7 +90,7 @@
 - A program with id=1 exists
 
 **Steps:**
-1. Send a PUT request to `/programs/1` with body: `{"name": "Bachelor Updated", "code": "BACHELOR", "durationYears": 4, "departmentIds": []}`
+1. Send a PUT request to `/programs/1` with body: `{"name": "Bachelor Updated", "code": "BACHELOR", "durationYears": 4, "specialityIds": []}`
 2. Verify the response status is 200 OK
 3. Verify the response body shows the updated name
 
@@ -112,7 +112,7 @@
 2. Inspect the `program` object within each course response
 
 **Expected Result:**
-- Each course's `program` contains: `id`, `name`, `code`, `durationYears`, `departments` — no `programLevel` field
+- Each course's `program` contains: `id`, `name`, `code`, `durationYears`, `specialities` — no `programLevel` field
 
 **Status:** NOT TESTED
 

@@ -35,7 +35,7 @@
 2. Run `scripts/go_live_wipe.sh` with the correct database connection arguments.
 3. Type `WIPE` at the confirmation prompt.
 4. After completion, query preserved masters: `referral_types`, `scholarship_types`, `fee_states`, `communities`, `blood_groups`, `location_countries`, `india_states`, and RBAC tables.
-5. Confirm transactional and structural tables such as `students`, `enquiries`, `fee_structure_groups`, `fee_structures`, `departments`, `programs`, `courses`, and `academic_years` are empty.
+5. Confirm transactional and structural tables such as `students`, `enquiries`, `fee_structure_groups`, `fee_structures`, `specialities`, `programs`, `courses`, and `academic_years` are empty.
 6. Query `app_users` and `app_roles`.
 
 **Expected Result:**
@@ -61,7 +61,7 @@
 1. Log in as `collegeadmin`.
 2. Verify Development Admin and Support Admin roles are not visible/assignable in role or user management flows.
 3. Verify College Admin can create or manage required admission setup masters:
-   - Departments
+   - Specialities
    - Programs
    - Courses
    - Academic Year

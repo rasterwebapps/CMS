@@ -103,8 +103,8 @@ public record StudentRequest(
     @Email(message = "Email must be valid")
     String email,
 
-    @NotNull(message = "Department ID is required")
-    Long departmentId
+    @NotNull(message = "Speciality ID is required")
+    Long specialityId
 ) {}
 ```
 
@@ -120,8 +120,8 @@ public record StudentResponse(
     String firstName,
     String lastName,
     String email,
-    Long departmentId,
-    String departmentName,
+    Long specialityId,
+    String specialityName,
     LocalDate enrollmentDate
 ) {
     // Factory method to create from entity
@@ -131,8 +131,8 @@ public record StudentResponse(
             student.getFirstName(),
             student.getLastName(),
             student.getEmail(),
-            student.getDepartment().getId(),
-            student.getDepartment().getName(),
+            student.getSpeciality().getId(),
+            student.getSpeciality().getName(),
             student.getEnrollmentDate()
         );
     }

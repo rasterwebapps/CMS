@@ -25,7 +25,7 @@ import com.cms.model.ReferralType;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AttendanceRepository;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EquipmentRepository;
@@ -43,7 +43,7 @@ class DashboardServiceTest {
 
     @Mock private StudentRepository studentRepository;
     @Mock private FacultyRepository facultyRepository;
-    @Mock private DepartmentRepository departmentRepository;
+    @Mock private SpecialityRepository specialityRepository;
     @Mock private SubjectRepository subjectRepository;
     @Mock private ProgramRepository programRepository;
     @Mock private LabRepository labRepository;
@@ -61,7 +61,7 @@ class DashboardServiceTest {
     @BeforeEach
     void setUp() {
         dashboardService = new DashboardService(
-            studentRepository, facultyRepository, departmentRepository,
+            studentRepository, facultyRepository, specialityRepository,
             subjectRepository, programRepository, labRepository,
             equipmentRepository, examinationRepository, feePaymentRepository,
             maintenanceRequestRepository, attendanceRepository,
@@ -73,7 +73,7 @@ class DashboardServiceTest {
     void shouldReturnSummaryWithCounts() {
         when(studentRepository.count()).thenReturn(10L);
         when(facultyRepository.count()).thenReturn(10L);
-        when(departmentRepository.count()).thenReturn(10L);
+        when(specialityRepository.count()).thenReturn(10L);
         when(subjectRepository.count()).thenReturn(10L);
         when(programRepository.count()).thenReturn(10L);
         when(labRepository.count()).thenReturn(10L);
@@ -95,7 +95,7 @@ class DashboardServiceTest {
 
         assertThat(response.totalStudents()).isEqualTo(10L);
         assertThat(response.totalFaculty()).isEqualTo(10L);
-        assertThat(response.totalDepartments()).isEqualTo(10L);
+        assertThat(response.totalSpecialities()).isEqualTo(10L);
         assertThat(response.totalSubjects()).isEqualTo(10L);
         assertThat(response.totalPrograms()).isEqualTo(10L);
         assertThat(response.totalLabs()).isEqualTo(10L);
@@ -111,14 +111,14 @@ class DashboardServiceTest {
         assertThat(response.enquiryFunnel()).isEmpty();
         verify(studentRepository).count();
         verify(facultyRepository).count();
-        verify(departmentRepository).count();
+        verify(specialityRepository).count();
     }
 
     @Test
     void shouldReturnZeroCounts() {
         when(studentRepository.count()).thenReturn(0L);
         when(facultyRepository.count()).thenReturn(0L);
-        when(departmentRepository.count()).thenReturn(0L);
+        when(specialityRepository.count()).thenReturn(0L);
         when(subjectRepository.count()).thenReturn(0L);
         when(programRepository.count()).thenReturn(0L);
         when(labRepository.count()).thenReturn(0L);
@@ -140,7 +140,7 @@ class DashboardServiceTest {
 
         assertThat(response.totalStudents()).isZero();
         assertThat(response.totalFaculty()).isZero();
-        assertThat(response.totalDepartments()).isZero();
+        assertThat(response.totalSpecialities()).isZero();
     }
 
     @Test

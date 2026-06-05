@@ -19,22 +19,22 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_agents_name_ci
     ON agents (lower(trim(name)))
     WHERE name IS NOT NULL AND trim(name) <> '';
 
--- Departments: globally unique names and codes.
+-- Specialities: globally unique names and codes.
 WITH ranked AS (
     SELECT id, ROW_NUMBER() OVER (PARTITION BY lower(trim(name)) ORDER BY id) AS rn
-    FROM departments WHERE name IS NOT NULL AND trim(name) <> ''
+    FROM specialities WHERE name IS NOT NULL AND trim(name) <> ''
 )
-UPDATE departments d SET name = d.name || ' #' || d.id FROM ranked r WHERE d.id = r.id AND r.rn > 1;
+UPDATE specialities d SET name = d.name || ' #' || d.id FROM ranked r WHERE d.id = r.id AND r.rn > 1;
 WITH ranked AS (
     SELECT id, ROW_NUMBER() OVER (PARTITION BY lower(trim(code)) ORDER BY id) AS rn
-    FROM departments WHERE code IS NOT NULL AND trim(code) <> ''
+    FROM specialities WHERE code IS NOT NULL AND trim(code) <> ''
 )
-UPDATE departments d SET code = d.code || '_' || d.id FROM ranked r WHERE d.id = r.id AND r.rn > 1;
-CREATE UNIQUE INDEX IF NOT EXISTS ux_departments_name_ci
-    ON departments (lower(trim(name)))
+UPDATE specialities d SET code = d.code || '_' || d.id FROM ranked r WHERE d.id = r.id AND r.rn > 1;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_specialities_name_ci
+    ON specialities (lower(trim(name)))
     WHERE name IS NOT NULL AND trim(name) <> '';
-CREATE UNIQUE INDEX IF NOT EXISTS ux_departments_code_ci
-    ON departments (lower(trim(code)))
+CREATE UNIQUE INDEX IF NOT EXISTS ux_specialities_code_ci
+    ON specialities (lower(trim(code)))
     WHERE code IS NOT NULL AND trim(code) <> '';
 
 -- Programs: globally unique names and codes.
@@ -119,14 +119,14 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_faculty_email_ci
     ON faculty (lower(trim(email)))
     WHERE email IS NOT NULL AND trim(email) <> '';
 
--- Labs: names are unique within a department.
+-- Labs: names are unique within a speciality.
 WITH ranked AS (
-    SELECT id, ROW_NUMBER() OVER (PARTITION BY department_id, lower(trim(name)) ORDER BY id) AS rn
+    SELECT id, ROW_NUMBER() OVER (PARTITION BY speciality_id, lower(trim(name)) ORDER BY id) AS rn
     FROM labs WHERE name IS NOT NULL AND trim(name) <> ''
 )
 UPDATE labs l SET name = l.name || ' #' || l.id FROM ranked r WHERE l.id = r.id AND r.rn > 1;
-CREATE UNIQUE INDEX IF NOT EXISTS ux_labs_department_name_ci
-    ON labs (department_id, lower(trim(name)))
+CREATE UNIQUE INDEX IF NOT EXISTS ux_labs_speciality_name_ci
+    ON labs (speciality_id, lower(trim(name)))
     WHERE name IS NOT NULL AND trim(name) <> '';
 
 -- Communities: globally unique names and codes.

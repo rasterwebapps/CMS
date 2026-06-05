@@ -6,7 +6,7 @@ This directory contains manual test case documentation for each completed featur
 
 Each file corresponds to a module or feature area:
 
-- `{module-name}.md` — e.g., `department-management.md`, `student-management.md`
+- `{module-name}.md` — e.g., `speciality-management.md`, `student-management.md`
 
 ## Template
 

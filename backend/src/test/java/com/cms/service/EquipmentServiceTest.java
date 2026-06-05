@@ -22,7 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.EquipmentRequest;
 import com.cms.dto.EquipmentResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.Equipment;
 import com.cms.model.Lab;
 import com.cms.model.enums.EquipmentCategory;
@@ -48,7 +48,7 @@ class EquipmentServiceTest {
     void setUp() {
         equipmentService = new EquipmentService(equipmentRepository, labRepository);
 
-        Department dept = new Department("Computer Science", "CS", "CS Dept", "Dr. Smith");
+        Speciality dept = new Speciality("Computer Science", "CS", "CS Dept", "Dr. Smith");
         dept.setId(1L);
 
         testLab = new Lab("Lab 1", LabType.COMPUTER, dept, "Main Building", "L001", 30, LabStatus.ACTIVE);

@@ -28,7 +28,7 @@
 - At least one card-view list can be filtered to zero results.
 
 **Steps:**
-1. Open a card-view list screen that uses the shared empty-state component, such as Departments or Courses.
+1. Open a card-view list screen that uses the shared empty-state component, such as Specialities or Courses.
 2. Apply a search that returns no records.
 3. Verify the empty-state panel color and spacing.
 4. Click the empty-state action button if present.

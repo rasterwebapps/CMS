@@ -38,7 +38,7 @@
 2. Wait for the application to finish starting
 3. Verify the logs show Flyway connecting to PostgreSQL
 4. Verify the logs do not show H2 startup or local demo data seeding
-5. Send a GET request to `http://localhost:8080/api/v1/departments` without an access token
+5. Send a GET request to `http://localhost:8080/api/v1/specialities` without an access token
 6. Verify the response status is `401 Unauthorized`
 
 **Expected Result:**
@@ -65,7 +65,7 @@
 4. Verify the logs show PostgreSQL/Flyway startup for the 209 database
 5. Send a GET request to `http://localhost:8080/api/v1/health`
 6. Verify the response status is `200 OK`
-7. Send a GET request to `http://localhost:8080/api/v1/departments` without an access token
+7. Send a GET request to `http://localhost:8080/api/v1/specialities` without an access token
 8. Verify the response status is `401 Unauthorized`
 
 **Expected Result:**
@@ -91,7 +91,7 @@
 4. Verify the logs show PostgreSQL/Flyway startup for the 243 database
 5. Send a GET request to `http://localhost:8080/api/v1/health`
 6. Verify the response status is `200 OK`
-7. Send a GET request to `http://localhost:8080/api/v1/departments` without an access token
+7. Send a GET request to `http://localhost:8080/api/v1/specialities` without an access token
 8. Verify the response status is `401 Unauthorized`
 
 **Expected Result:**

@@ -6,7 +6,7 @@
 - Backend running at `http://localhost:8080`
 - Keycloak running with `cms` realm configured
 - User logged in as admin
-- At least one department and program exist in the system
+- At least one speciality and program exist in the system
 - At least one student exists for admission test cases
 
 ---

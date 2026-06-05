@@ -25,8 +25,9 @@ import com.cms.dto.LabScheduleResponse;
 import com.cms.dto.ScheduleConflictResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
-import com.cms.model.Department;
+import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
+import com.cms.model.Speciality;
 import com.cms.model.Lab;
 import com.cms.model.LabSchedule;
 import com.cms.model.LabSlot;
@@ -34,7 +35,6 @@ import com.cms.model.Program;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.DayOfWeek;
-import com.cms.model.enums.Designation;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.LabStatus;
 import com.cms.model.enums.TermInstanceStatus;
@@ -63,7 +63,7 @@ class LabScheduleServiceTest {
     private Faculty testFaculty;
     private LabSlot testLabSlot;
     private TermInstance testTermInstance;
-    private Department testDepartment;
+    private Speciality testSpeciality;
     private Program testProgram;
 
     @BeforeEach
@@ -73,22 +73,24 @@ class LabScheduleServiceTest {
             facultyRepository, labSlotRepository, termInstanceRepository
         );
 
-        testDepartment = new Department("Computer Science", "CS", "CS Dept", "Dr. Smith");
-        testDepartment.setId(1L);
+        testSpeciality = new Speciality("Computer Science", "CS", "CS Dept", null, null);
+        testSpeciality.setId(1L);
 
         testProgram = new Program();
         testProgram.setId(1L);
         testProgram.setName("B.Tech CS");
 
-        testLab = new Lab("Lab 1", com.cms.model.enums.LabType.COMPUTER, testDepartment,
+        testLab = new Lab("Lab 1", com.cms.model.enums.LabType.COMPUTER, testSpeciality,
             "Main Building", "L001", 30, LabStatus.ACTIVE);
         testLab.setId(1L);
 
         testCourse = new Subject("Data Structures Lab", "CS201L", 3, 0, 3, null, null, 3);
         testCourse.setId(1L);
 
+        DesignationMaster asstProf = new DesignationMaster("Assistant Professor", "ASSISTANT_PROFESSOR", null);
+        asstProf.setId(2L);
         testFaculty = new Faculty("EMP001", "John", "Doe", "john@college.edu", "1234567890",
-            testDepartment, Designation.ASSISTANT_PROFESSOR, "Computer Science", "Programming", null, FacultyStatus.ACTIVE);
+            testSpeciality, asstProf, "Computer Science", "Programming", null, FacultyStatus.ACTIVE);
         testFaculty.setId(1L);
 
         testLabSlot = new LabSlot("Slot 1", LocalTime.of(9, 0), LocalTime.of(10, 30), 1, true);

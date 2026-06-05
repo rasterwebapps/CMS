@@ -25,7 +25,7 @@ Four operational roles have been defined and provisioned in this system.
 2. Verify the sidebar shows all menu groups: Preferences, Admission Management, Curriculum & Academics, Examinations, Finance, Lab & Infrastructure, Reports
 3. Verify all Preferences sub-items are visible including Settings, Labs, Equipment, Academic Calendar
 4. Verify Dashboard shows the Admin Dashboard
-5. Navigate to `/departments` — verify access
+5. Navigate to `/specialities` — verify access
 6. Navigate to `/reports` — verify access
 7. Navigate to `/labs` — verify access
 
@@ -47,7 +47,7 @@ Four operational roles have been defined and provisioned in this system.
 **Steps:**
 1. Log in as `collegeadmin` / `College@123`
 2. Verify the sidebar shows: Preferences, Admission Management, Finance, Reports
-3. Verify Preferences shows: Departments, Programs, Courses, Academic Years, Academic Calendar, Fee Structures, Faculty, Agents, Referral Types
+3. Verify Preferences shows: Specialities, Programs, Courses, Academic Years, Academic Calendar, Fee Structures, Faculty, Agents, Referral Types
 4. Verify Preferences does NOT show: Settings, Labs, Equipment, Academic Calendar
 5. Verify Admission Management shows all items: Enquiries, Submit Documents, Complete Admission, Admissions, Students, Roll Number Assignment
 6. Verify Finance shows: Student Fees, Fee Payments, Fee Finalization
@@ -73,8 +73,8 @@ Four operational roles have been defined and provisioned in this system.
 - Valid JWT token for `collegeadmin` obtained from Keycloak
 
 **Steps:**
-1. Send `POST /api/v1/departments` with College Admin JWT — verify `201 Created`
-2. Send `PUT /api/v1/departments/{id}` with College Admin JWT — verify `200 OK`
+1. Send `POST /api/v1/specialities` with College Admin JWT — verify `201 Created`
+2. Send `PUT /api/v1/specialities/{id}` with College Admin JWT — verify `200 OK`
 3. Send `POST /api/v1/programs` with College Admin JWT — verify `201 Created`
 4. Send `POST /api/v1/faculty` with College Admin JWT — verify `201 Created`
 5. Send `POST /api/v1/agents` with College Admin JWT — verify `201 Created`
@@ -128,7 +128,7 @@ Four operational roles have been defined and provisioned in this system.
 2. Send `PUT /api/v1/enquiries/{id}` with Front Office JWT — verify `200 OK`
 3. Send `POST /api/v1/admissions` with Front Office JWT — verify `201 Created`
 4. Send `GET /api/v1/dashboard/front-office` with Front Office JWT — verify `200 OK`
-5. Send `POST /api/v1/departments` with Front Office JWT — verify `403 Forbidden`
+5. Send `POST /api/v1/specialities` with Front Office JWT — verify `403 Forbidden`
 6. Send `GET /api/v1/reports/lab-utilization` with Front Office JWT — verify `403 Forbidden`
 
 **Expected Result:**
@@ -172,7 +172,7 @@ Four operational roles have been defined and provisioned in this system.
 1. Send `POST /api/v1/student-fees/{studentId}/collect` with Cashier JWT — verify `201 Created`
 2. Send `POST /api/v1/student-fees/finalize` with Cashier JWT — verify `201 Created`
 3. Send `GET /api/v1/dashboard/summary` with Cashier JWT — verify `200 OK`
-4. Send `POST /api/v1/departments` with Cashier JWT — verify `403 Forbidden`
+4. Send `POST /api/v1/specialities` with Cashier JWT — verify `403 Forbidden`
 5. Send `POST /api/v1/admissions` with Cashier JWT — verify `403 Forbidden`
 6. Send `GET /api/v1/dashboard/front-office` with Cashier JWT — verify `403 Forbidden`
 

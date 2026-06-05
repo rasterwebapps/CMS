@@ -27,7 +27,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Attendance;
 import com.cms.model.Course;
 import com.cms.model.Subject;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.enums.AttendanceStatus;
@@ -57,8 +57,8 @@ class AttendanceServiceTest {
     void setUp() {
         attendanceService = new AttendanceService(attendanceRepository, studentRepository, subjectRepository);
 
-        Department department = new Department("Computer Science", "CS", "CS Dept", "Dr. Smith");
-        department.setId(1L);
+        Speciality speciality = new Speciality("Computer Science", "CS", "CS Dept", "Dr. Smith");
+        speciality.setId(1L);
 
         testProgram = new Program();
         testProgram.setId(1L);

@@ -18,7 +18,7 @@ class LabTest {
         assertThat(lab.getId()).isNull();
         assertThat(lab.getName()).isNull();
         assertThat(lab.getLabType()).isNull();
-        assertThat(lab.getDepartment()).isNull();
+        assertThat(lab.getSpeciality()).isNull();
         assertThat(lab.getBuilding()).isNull();
         assertThat(lab.getRoomNumber()).isNull();
         assertThat(lab.getCapacity()).isNull();
@@ -29,11 +29,11 @@ class LabTest {
 
     @Test
     void shouldCreateLabWithAllArgsConstructor() {
-        Department department = new Department("CS", "CS", "CS Dept", "Dr. John");
+        Speciality speciality = new Speciality("CS", "CS", "CS Dept", "Dr. John");
         Lab lab = new Lab(
             "Computer Lab 1",
             LabType.COMPUTER,
-            department,
+            speciality,
             "Main Building",
             "101",
             30,
@@ -42,7 +42,7 @@ class LabTest {
 
         assertThat(lab.getName()).isEqualTo("Computer Lab 1");
         assertThat(lab.getLabType()).isEqualTo(LabType.COMPUTER);
-        assertThat(lab.getDepartment()).isEqualTo(department);
+        assertThat(lab.getSpeciality()).isEqualTo(speciality);
         assertThat(lab.getBuilding()).isEqualTo("Main Building");
         assertThat(lab.getRoomNumber()).isEqualTo("101");
         assertThat(lab.getCapacity()).isEqualTo(30);
@@ -74,12 +74,12 @@ class LabTest {
     }
 
     @Test
-    void shouldSetAndGetDepartment() {
+    void shouldSetAndGetSpeciality() {
         Lab lab = new Lab();
-        Department department = new Department("Physics", "PHY", "Physics Dept", "Dr. Einstein");
-        lab.setDepartment(department);
+        Speciality speciality = new Speciality("Physics", "PHY", "Physics Dept", "Dr. Einstein");
+        lab.setSpeciality(speciality);
 
-        assertThat(lab.getDepartment()).isEqualTo(department);
+        assertThat(lab.getSpeciality()).isEqualTo(speciality);
     }
 
     @Test

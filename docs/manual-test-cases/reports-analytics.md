@@ -96,7 +96,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Navigate to the main Dashboard (home page)       |
-| **Expected**| 11 KPI cards display actual counts: Students (10), Faculty (10), Departments (10), Courses (10), Programs (10), Labs (10), Equipment (10), Examinations (10), Fee Payments (10), Maintenance (10), Attendance Records (10) |
+| **Expected**| 11 KPI cards display actual counts: Students (10), Faculty (10), Specialities (10), Courses (10), Programs (10), Labs (10), Equipment (10), Examinations (10), Fee Payments (10), Maintenance (10), Attendance Records (10) |
 
 ---
 

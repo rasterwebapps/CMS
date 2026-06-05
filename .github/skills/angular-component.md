@@ -492,7 +492,7 @@ frontend/src/app/features/
 ├── students/           # Student management
 ├── faculty/            # Faculty management
 ├── courses/            # Course management
-├── departments/        # Department management
+├── specialities/        # Speciality management
 └── labs/               # Lab management
 ```
 

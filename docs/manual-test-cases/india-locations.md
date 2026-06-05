@@ -270,7 +270,7 @@
 6. Repeat in light mode, dark mode, and a 360 x 740 viewport.
 
 **Expected Result:**
-- Location Master action icons are visually consistent with Department / Academic Year master list patterns.
+- Location Master action icons are visually consistent with Speciality / Academic Year master list patterns.
 - Edit, add, and delete controls are clear, aligned, and not oversized or oddly rendered.
 - Mobile layout has no horizontal page scroll, clipped controls, or unreachable primary actions.
 

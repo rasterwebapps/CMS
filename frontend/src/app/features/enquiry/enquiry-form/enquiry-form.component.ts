@@ -25,7 +25,7 @@ interface ProgramInfo {
   name: string;
   code: string;
   durationYears: number;
-  departments: { id: number; name: string }[];
+  specialities: { id: number; name: string }[];
   minimumAgeYears: number | null;
   ageCutoffDay: number | null;
   ageCutoffMonth: number | null;

@@ -14,7 +14,7 @@ export type CmsViewMode = 'card' | 'table';
  * Usage:
  *   <cms-view-toggle
  *     [mode]="viewMode()"
- *     storageKey="department-view"
+ *     storageKey="speciality-view"
  *     (modeChange)="viewMode.set($event)" />
  */
 @Component({

@@ -7,10 +7,10 @@ Feature: Column visibility toggle on all list pages
 ## TC-COL-001: Toggle a column off
 
 **Preconditions:**
-- User is logged in with any role that can view a list page (e.g., navigate to `/departments`)
+- User is logged in with any role that can view a list page (e.g., navigate to `/specialities`)
 
 **Steps:**
-1. Open any list page (e.g., `/departments`)
+1. Open any list page (e.g., `/specialities`)
 2. Click the **Columns** button in the top-right of the command bar
 3. Uncheck one column (e.g., "Code") from the dropdown panel
 
@@ -44,9 +44,9 @@ Feature: Column visibility toggle on all list pages
 - User is on a list page and has hidden at least one column
 
 **Steps:**
-1. Hide column "Code" on the Departments list
+1. Hide column "Code" on the Specialities list
 2. Refresh the browser (F5)
-3. Navigate back to `/departments`
+3. Navigate back to `/specialities`
 
 **Expected Result:**
 - The "Code" column remains hidden after the page reload
@@ -75,15 +75,15 @@ Feature: Column visibility toggle on all list pages
 ## TC-COL-005: Count badge shows filtered count
 
 **Preconditions:**
-- User is on a list page that has a search bar (e.g., `/departments`)
+- User is on a list page that has a search bar (e.g., `/specialities`)
 
 **Steps:**
-1. Note the count badge (e.g., "12 departments")
+1. Note the count badge (e.g., "12 specialities")
 2. Type a search term that matches a subset of rows (e.g., "comp")
 3. Observe the count badge
 
 **Expected Result:**
-- Count badge changes to show "N of M departments" (filtered count of total)
+- Count badge changes to show "N of M specialities" (filtered count of total)
 
 **Status:** NOT TESTED
 
@@ -99,7 +99,7 @@ Feature: Column visibility toggle on all list pages
 2. Observe the count badge
 
 **Expected Result:**
-- Count badge shows just the total number (e.g., "12 departments")
+- Count badge shows just the total number (e.g., "12 specialities")
 
 **Status:** NOT TESTED
 
@@ -111,7 +111,7 @@ Feature: Column visibility toggle on all list pages
 - User is logged in
 
 **Steps:**
-1. On the Departments list, hide the "HOD" column
+1. On the Specialities list, hide the "HOD" column
 2. Navigate to the Students list
 3. Observe that the Students list still shows all columns
 

@@ -6,7 +6,7 @@
 - Backend running at `http://localhost:8080`
 - Keycloak running with `cms` realm configured
 - User logged in as admin
-- At least one department exists in the system
+- At least one speciality exists in the system
 
 ---
 
@@ -15,7 +15,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Click "Faculty" in the sidebar navigation        |
-| **Expected**| Faculty list page loads with columns: Employee Code, Name, Email, Department, Actions |
+| **Expected**| Faculty list page loads with columns: Employee Code, Name, Email, Speciality, Actions |
 
 ---
 
@@ -42,7 +42,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Click "Add Faculty" button                       |
-| **Expected**| Faculty form loads with title "Add Faculty"; Department dropdown populated |
+| **Expected**| Faculty form loads with title "Add Faculty"; Speciality dropdown populated |
 
 ---
 
@@ -51,7 +51,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Submit the form without filling required fields  |
-| **Expected**| Validation errors shown for Employee Code, First Name, Last Name, Email, and Department fields |
+| **Expected**| Validation errors shown for Employee Code, First Name, Last Name, Email, and Speciality fields |
 
 ---
 
@@ -59,7 +59,7 @@
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Fill in Employee Code, First Name, Last Name, Email, select Department; click Create |
+| **Action**  | Fill in Employee Code, First Name, Last Name, Email, select Speciality; click Create |
 | **Expected**| Snackbar shows "Created"; redirected to faculty list; new entry visible |
 
 ---
@@ -69,7 +69,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Click on a faculty name or detail icon in the faculty list |
-| **Expected**| Faculty detail page loads showing personal information, department, and assigned courses/labs |
+| **Expected**| Faculty detail page loads showing personal information, speciality, and assigned courses/labs |
 
 ---
 
@@ -129,7 +129,7 @@
 2. Observe the table columns
 
 **Expected Result:**
-- The Faculty table shows **Phone** and **Email** columns between Name and Department
+- The Faculty table shows **Phone** and **Email** columns between Name and Speciality
 - Faculty members with phone/email show the values; those without show `—`
 
 **Status:** NOT TESTED
@@ -174,7 +174,7 @@
 
 **Expected Result:**
 - Each filter option immediately shows only matching faculty records
-- Clear Filters resets department, status, document-review, and search filters
+- Clear Filters resets speciality, status, document-review, and search filters
 - No extra API request is triggered by changing the filter
 
 **Status:** NOT TESTED
@@ -306,7 +306,7 @@
 
 ---
 
-## TC-FAC-MLP-002: Faculty card shows employee code chip, name, designation, department badge, and status pill
+## TC-FAC-MLP-002: Faculty card shows employee code chip, name, designation, speciality badge, and status pill
 
 **Preconditions:**
 - At least one faculty member exists
@@ -319,7 +319,7 @@
 - Employee code shown as monospace code chip
 - Full name bold and prominent
 - Designation in muted text (title-cased)
-- Department shown as blue badge
+- Speciality shown as blue badge
 - Status shown as coloured pill (green=ACTIVE, amber=ON_LEAVE/SABBATICAL, gray=others)
 
 **Status:** NOT TESTED
@@ -341,14 +341,14 @@
 
 ---
 
-## TC-FAC-MLP-004: Department and status filters work client-side without extra API calls
+## TC-FAC-MLP-004: Speciality and status filters work client-side without extra API calls
 
 **Preconditions:**
-- Multiple faculty members across different departments and statuses
+- Multiple faculty members across different specialities and statuses
 
 **Steps:**
 1. Navigate to Faculty list
-2. Select a department from the department dropdown
+2. Select a speciality from the speciality dropdown
 3. Observe cards/rows filtered immediately
 4. Select a status from the status dropdown
 5. Observe further filtering
@@ -364,14 +364,14 @@
 ## TC-FAC-MLP-005: Clear Filters resets all active filters
 
 **Preconditions:**
-- Department filter, status filter, or search is active
+- Speciality filter, status filter, or search is active
 
 **Steps:**
-1. Apply a department filter and a status filter
+1. Apply a speciality filter and a status filter
 2. Click "Clear Filters" button
 
 **Expected Result:**
-- All filters reset to "All Departments" / "All Statuses"
+- All filters reset to "All Specialities" / "All Statuses"
 - Search input cleared
 - Full faculty list shown again
 

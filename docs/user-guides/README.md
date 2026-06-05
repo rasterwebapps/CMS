@@ -43,7 +43,7 @@ Comprehensive user guides and handbooks have been created for all primary user r
 - Getting started and login
 - Dashboard widgets and functionality
 - Preferences & Settings:
-  - Departments management
+  - Specialities management
   - Programs management
   - Courses management
   - Academic Years
@@ -207,7 +207,7 @@ Comprehensive user guides and handbooks have been created for all primary user r
 - ✅ Support contact information
 
 ### College Admin Guide Includes
-- ✅ Academic structure setup (departments, programs, courses)
+- ✅ Academic structure setup (specialities, programs, courses)
 - ✅ Academic calendar management
 - ✅ Fee structure configuration
 - ✅ Faculty and agent management
@@ -273,7 +273,7 @@ Comprehensive user guides and handbooks have been created for all primary user r
 - [ ] Email User Guide Index to all users
 - [ ] Send role-specific guides based on Keycloak roles
 - [ ] Post guides to internal wiki/knowledge base
-- [ ] Print copies for department offices
+- [ ] Print copies for speciality offices
 - [ ] Add to onboarding checklist for new hires
 - [ ] Announce availability to staff
 

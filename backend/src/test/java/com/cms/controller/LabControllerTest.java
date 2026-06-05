@@ -25,7 +25,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.cms.dto.DepartmentResponse;
+import com.cms.dto.SpecialityResponse;
 import com.cms.dto.LabInChargeAssignmentRequest;
 import com.cms.dto.LabInChargeAssignmentResponse;
 import com.cms.dto.LabRequest;
@@ -63,8 +63,8 @@ class LabControllerTest {
         );
 
         Instant now = Instant.now();
-        DepartmentResponse deptResponse = new DepartmentResponse(
-            1L, "Computer Science", "CS", "CS Department", "Dr. John", now, now
+        SpecialityResponse deptResponse = new SpecialityResponse(
+            1L, "Computer Science", "CS", "CS Speciality", "Dr. John", now, now
         );
         LabResponse response = new LabResponse(
             1L,
@@ -92,7 +92,7 @@ class LabControllerTest {
             .andExpect(jsonPath("$.roomNumber").value("101"))
             .andExpect(jsonPath("$.capacity").value(30))
             .andExpect(jsonPath("$.status").value("ACTIVE"))
-            .andExpect(jsonPath("$.department.id").value(1));
+            .andExpect(jsonPath("$.speciality.id").value(1));
 
         verify(labService).create(any(LabRequest.class));
     }
@@ -120,7 +120,7 @@ class LabControllerTest {
         String jsonRequest = """
             {
                 "name": "Computer Lab 1",
-                "departmentId": 1,
+                "specialityId": 1,
                 "building": "Main Building",
                 "roomNumber": "101",
                 "capacity": 30,
@@ -135,7 +135,7 @@ class LabControllerTest {
     }
 
     @Test
-    void shouldReturnBadRequestWhenDepartmentIdIsNull() throws Exception {
+    void shouldReturnBadRequestWhenSpecialityIdIsNull() throws Exception {
         String jsonRequest = """
             {
                 "name": "Computer Lab 1",
@@ -159,7 +159,7 @@ class LabControllerTest {
             {
                 "name": "Computer Lab 1",
                 "labType": "COMPUTER",
-                "departmentId": 1,
+                "specialityId": 1,
                 "building": "Main Building",
                 "roomNumber": "101",
                 "capacity": 30
@@ -211,8 +211,8 @@ class LabControllerTest {
     @Test
     void shouldFindAllLabs() throws Exception {
         Instant now = Instant.now();
-        DepartmentResponse deptResponse = new DepartmentResponse(
-            1L, "Computer Science", "CS", "CS Department", "Dr. John", now, now
+        SpecialityResponse deptResponse = new SpecialityResponse(
+            1L, "Computer Science", "CS", "CS Speciality", "Dr. John", now, now
         );
         LabResponse lab1 = new LabResponse(
             1L, "Computer Lab 1", LabType.COMPUTER, deptResponse,
@@ -250,8 +250,8 @@ class LabControllerTest {
     @Test
     void shouldFindLabById() throws Exception {
         Instant now = Instant.now();
-        DepartmentResponse deptResponse = new DepartmentResponse(
-            1L, "Computer Science", "CS", "CS Department", "Dr. John", now, now
+        SpecialityResponse deptResponse = new SpecialityResponse(
+            1L, "Computer Science", "CS", "CS Speciality", "Dr. John", now, now
         );
         LabResponse response = new LabResponse(
             1L,
@@ -289,10 +289,10 @@ class LabControllerTest {
     }
 
     @Test
-    void shouldFindLabsByDepartmentId() throws Exception {
+    void shouldFindLabsBySpecialityId() throws Exception {
         Instant now = Instant.now();
-        DepartmentResponse deptResponse = new DepartmentResponse(
-            1L, "Computer Science", "CS", "CS Department", "Dr. John", now, now
+        SpecialityResponse deptResponse = new SpecialityResponse(
+            1L, "Computer Science", "CS", "CS Speciality", "Dr. John", now, now
         );
         LabResponse lab1 = new LabResponse(
             1L, "Computer Lab 1", LabType.COMPUTER, deptResponse,
@@ -303,26 +303,26 @@ class LabControllerTest {
             "Main Building", "102", 25, LabStatus.ACTIVE, now, now
         );
 
-        when(labService.findByDepartmentId(1L)).thenReturn(List.of(lab1, lab2));
+        when(labService.findBySpecialityId(1L)).thenReturn(List.of(lab1, lab2));
 
-        mockMvc.perform(get("/labs/department/1"))
+        mockMvc.perform(get("/labs/speciality/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(2))
             .andExpect(jsonPath("$[0].id").value(1))
             .andExpect(jsonPath("$[1].id").value(2));
 
-        verify(labService).findByDepartmentId(1L);
+        verify(labService).findBySpecialityId(1L);
     }
 
     @Test
-    void shouldReturnNotFoundWhenFindingLabsByNonExistentDepartment() throws Exception {
-        when(labService.findByDepartmentId(999L))
-            .thenThrow(new ResourceNotFoundException("Department not found with id: 999"));
+    void shouldReturnNotFoundWhenFindingLabsByNonExistentSpeciality() throws Exception {
+        when(labService.findBySpecialityId(999L))
+            .thenThrow(new ResourceNotFoundException("Speciality not found with id: 999"));
 
-        mockMvc.perform(get("/labs/department/999"))
+        mockMvc.perform(get("/labs/speciality/999"))
             .andExpect(status().isNotFound());
 
-        verify(labService).findByDepartmentId(999L);
+        verify(labService).findBySpecialityId(999L);
     }
 
     @Test
@@ -338,8 +338,8 @@ class LabControllerTest {
         );
 
         Instant now = Instant.now();
-        DepartmentResponse deptResponse = new DepartmentResponse(
-            1L, "Computer Science", "CS", "CS Department", "Dr. John", now, now
+        SpecialityResponse deptResponse = new SpecialityResponse(
+            1L, "Computer Science", "CS", "CS Speciality", "Dr. John", now, now
         );
         LabResponse response = new LabResponse(
             1L,
@@ -648,8 +648,8 @@ class LabControllerTest {
         );
 
         Instant now = Instant.now();
-        DepartmentResponse deptResponse = new DepartmentResponse(
-            1L, "Computer Science", "CS", "CS Department", "Dr. John", now, now
+        SpecialityResponse deptResponse = new SpecialityResponse(
+            1L, "Computer Science", "CS", "CS Speciality", "Dr. John", now, now
         );
         LabResponse response = new LabResponse(
             1L, "Computer Lab 1", LabType.COMPUTER, deptResponse,

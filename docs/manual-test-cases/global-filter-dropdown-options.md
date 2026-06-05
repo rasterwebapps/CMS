@@ -51,14 +51,14 @@
 
 **Preconditions:**
 - User is logged in with access to academic, finance, faculty, lab, and admission screens.
-- Master data exists for programs, courses, departments, academic years, and fee structures.
+- Master data exists for programs, courses, specialities, academic years, and fee structures.
 
 **Steps:**
 1. Open Course List and verify **All Programs** shows individual programs.
 2. Open Admission List and verify **All Programs** shows admission programs.
 3. Open Fee Structure List and verify **All Academic Years**, **All Programs**, and program-specific **All Courses** options populate.
-4. Open Faculty List and verify **All Departments** shows individual departments.
-5. Open Lab List and verify **All Departments**, **All Types**, and **All Statuses** options populate.
+4. Open Faculty List and verify **All Specialities** shows individual specialities.
+5. Open Lab List and verify **All Specialities**, **All Types**, and **All Statuses** options populate.
 6. Open Document Submission, Document Verification, and Admission Completion lists and verify their program/course/type/status dropdowns show applicable values.
 
 **Expected Result:**

@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - Added manual test cases in `docs/manual-test-cases/admission-number-generation.md`
 - **Subject Management Manual Test Cases** — `docs/manual-test-cases/subject-management.md`
   - 23 comprehensive test cases covering CRUD operations, business rules, and integration scenarios
-  - Includes validation, authorization, filtering by course/department, and error handling tests
+  - Includes validation, authorization, filtering by course/speciality, and error handling tests
 - Initial project documentation structure
 - Technical standards & architecture guide
 - GitHub Copilot skills for Angular, Spring Boot, Flyway, and Keycloak
@@ -108,15 +108,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - `docs/manual-test-cases/app-shell.md` — 8 test cases
 
 ### R1-M2: Core Academic & Lab Mapping
-- **Department Management**
-  - `Department` entity, repository, service, controller with CRUD (`/api/v1/departments`)
-  - `DepartmentRequest` / `DepartmentResponse` DTOs (Java records)
-  - Flyway migration: `V1__create_departments_table.sql`
-  - Frontend: `DepartmentListComponent` (Material table with search/sort/pagination), `DepartmentFormComponent`
+- **Speciality Management**
+  - `Speciality` entity, repository, service, controller with CRUD (`/api/v1/specialities`)
+  - `SpecialityRequest` / `SpecialityResponse` DTOs (Java records)
+  - Flyway migration: `V1__create_specialities_table.sql`
+  - Frontend: `SpecialityListComponent` (Material table with search/sort/pagination), `SpecialityFormComponent`
   - Unit + controller tests (95% coverage)
-  - Manual test cases: `docs/manual-test-cases/department-management.md`
+  - Manual test cases: `docs/manual-test-cases/speciality-management.md`
 - **Program & Course Management**
-  - `Program` entity (`name`, `code`, `degreeType`, `durationYears`, `department`)
+  - `Program` entity (`name`, `code`, `degreeType`, `durationYears`, `speciality`)
   - `Course` entity (`name`, `code`, `credits`, `theoryCredits`, `labCredits`, `program`, `semester`)
   - Full CRUD for programs (`/api/v1/programs`) and courses (`/api/v1/courses`)
   - Flyway migrations: `V2__create_programs_table.sql`, `V5__create_courses_table.sql`
@@ -133,7 +133,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - Unit + controller tests (95% coverage)
   - Manual test cases: `docs/manual-test-cases/academic-year-management.md`
 - **Lab Setup & Configuration**
-  - `Lab` entity (`name`, `labType`, `department`, `building`, `roomNumber`, `capacity`, `status`)
+  - `Lab` entity (`name`, `labType`, `speciality`, `building`, `roomNumber`, `capacity`, `status`)
   - `LabType` enum (COMPUTER, PHYSICS, CHEMISTRY, ELECTRONICS, etc.)
   - `LabInChargeAssignment` entity (faculty/technician → lab mapping)
   - Full CRUD + assign in-charge endpoints (`/api/v1/labs`)
@@ -142,7 +142,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - Unit + controller tests (95% coverage)
   - Manual test cases: `docs/manual-test-cases/lab-setup.md`
 - **Faculty Management**
-  - `Faculty` entity (`employeeCode`, `firstName`, `lastName`, `email`, `department`, `designation`, `specialization`)
+  - `Faculty` entity (`employeeCode`, `firstName`, `lastName`, `email`, `speciality`, `designation`, `specialization`)
   - Full CRUD (`/api/v1/faculty`) with lab teaching assignments
   - Flyway migration: `V6__create_faculty_table.sql`
   - Frontend: list, form, and detail components

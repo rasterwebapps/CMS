@@ -169,7 +169,7 @@ class LabSafetyDtoTest {
         assertThat(req.title()).isEqualTo("Handling Acids");
         assertThat(req.description()).isEqualTo("Always wear PPE");
         assertThat(req.labId()).isEqualTo(2L);
-        assertThat(req.departmentId()).isEqualTo(1L);
+        assertThat(req.specialityId()).isEqualTo(1L);
         assertThat(req.category()).isEqualTo(SafetyGuidelineCategory.CHEMICAL);
         assertThat(req.priority()).isEqualTo(SafetyPriority.HIGH);
         assertThat(req.effectiveDate()).isEqualTo(effective);
@@ -197,8 +197,8 @@ class LabSafetyDtoTest {
         assertThat(resp.description()).isEqualTo("Always wear PPE");
         assertThat(resp.labId()).isEqualTo(2L);
         assertThat(resp.labName()).isEqualTo("Chemistry Lab");
-        assertThat(resp.departmentId()).isEqualTo(1L);
-        assertThat(resp.departmentName()).isEqualTo("Chemistry Dept");
+        assertThat(resp.specialityId()).isEqualTo(1L);
+        assertThat(resp.specialityName()).isEqualTo("Chemistry Dept");
         assertThat(resp.category()).isEqualTo(SafetyGuidelineCategory.CHEMICAL);
         assertThat(resp.priority()).isEqualTo(SafetyPriority.HIGH);
         assertThat(resp.isActive()).isTrue();

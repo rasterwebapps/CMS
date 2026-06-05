@@ -557,8 +557,9 @@
             </div>
 
             <div class="field-group">
-              <label for="conv-postal" class="field-label">Postal Address <span class="field-required">*</span></label>
-              <input id="conv-postal" class="field-input" formControlName="postalAddress" placeholder="Full postal address"
+              <label for="conv-postal" class="field-label">Door No. / Flat / Building <span class="field-required">*</span></label>
+              <input id="conv-postal" class="field-input" formControlName="postalAddress"
+                     placeholder="e.g. 12B, 3rd floor, Green Towers"
                      [class.field-input--error]="form.get('address.postalAddress')?.invalid && form.get('address.postalAddress')?.touched" />
               @if (form.get('address.postalAddress')?.invalid && form.get('address.postalAddress')?.touched) {
                 <p class="field-error">Postal address is required</p>
@@ -590,18 +591,10 @@
                 [countryRequired]="true"
                 [stateRequired]="true"
                 [districtRequired]="true"
+                [showPincode]="true"
+                defaultStateName="Tamil Nadu"
+                defaultDistrictName="Salem"
               />
-            </div>
-
-            <div class="field-row">
-              <div class="field-group">
-                <label for="conv-pincode" class="field-label">Pincode <span class="field-required">*</span></label>
-                <input id="conv-pincode" class="field-input" formControlName="pincode"
-                       [class.field-input--error]="form.get('address.pincode')?.invalid && form.get('address.pincode')?.touched" />
-                @if (form.get('address.pincode')?.invalid && form.get('address.pincode')?.touched) {
-                  <p class="field-error">Pincode is required</p>
-                }
-              </div>
             </div>
           </div>
 

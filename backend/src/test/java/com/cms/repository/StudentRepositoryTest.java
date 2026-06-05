@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.cms.config.JpaConfig;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.enums.StudentStatus;
@@ -35,8 +35,8 @@ class StudentRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        Department department = new Department("Computer Science", "CS", "CS Department", "Dr. Smith");
-        entityManager.persist(department);
+        Speciality speciality = new Speciality("Computer Science", "CS", "CS Speciality", "Dr. Smith");
+        entityManager.persist(speciality);
 
         testProgram = new Program("Bachelor", "BACHELOR", 4);
         entityManager.persist(testProgram);

@@ -126,7 +126,7 @@ These test cases cover the four deliverables completed in this RBAC sprint:
 - `COLLEGE_ADMIN` does NOT have `DEPT_MANAGE` permission
 
 **Steps:**
-1. Send `POST /api/v1/departments` with a valid JWT (which has Keycloak `ROLE_ADMIN` claim).
+1. Send `POST /api/v1/specialities` with a valid JWT (which has Keycloak `ROLE_ADMIN` claim).
 2. Observe the response status.
 
 **Expected Result:**

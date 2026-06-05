@@ -41,7 +41,7 @@ All design decisions must use the existing CSS custom property tokens:
 - **Why:** The token `--cms-font-ui` is defined as `'Sora', 'Inter', system-ui` but the body overrides it with a raw value
 
 ### 1.2 Convert all legacy forms from `mat-form-field` to custom field system
-26 HTML files contain `mat-form-field`. Target conversion pattern (see `department-form.component.html` as the model):
+26 HTML files contain `mat-form-field`. Target conversion pattern (see `speciality-form.component.html` as the model):
 
 | Legacy | New |
 |--------|-----|
@@ -72,7 +72,7 @@ TypeScript: remove `MatFormFieldModule`, `MatInputModule`, `MatSelectModule`, `M
 - `fee-finalization-form.component.html`
 - `fee-payment-form.component.html`
 - `collect-payment-dialog.component.html`
-- Plus others in finance, faculty, department areas
+- Plus others in finance, faculty, speciality areas
 
 ### 1.3 Build `<cms-data-table>` shared component
 A typed wrapper around `mat-table` that provides:
@@ -117,7 +117,7 @@ Already defined in `styles.scss`. Contains:
 
 ### Screens to convert:
 - Enquiry List, Admission List, Student List
-- Faculty List, Department List, Course List, Program List
+- Faculty List, Speciality List, Course List, Program List
 - Lab List, Lab Schedule List
 - Inventory List, Equipment List
 - Examination List, Exam Result List
@@ -238,9 +238,9 @@ Total estimated: ~41 hours of focused frontend work.
 
 ## Reference Components
 
-- `department-form.component.html` — canonical form pattern (field-group/field-label/field-input)
+- `speciality-form.component.html` — canonical form pattern (field-group/field-label/field-input)
 - `enquiry-detail.component.html` — tab pattern, payment section
-- `department-list.component.html` — list + modern-table pattern
+- `speciality-list.component.html` — list + modern-table pattern
 - `page-header.component.ts` — existing shared header component
 - `styles.scss` — all tokens, utilities, component classes
 

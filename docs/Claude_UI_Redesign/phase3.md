@@ -256,10 +256,10 @@
                                                                                                                                                                                                                                    
   - Avatar: initials computed from faculty()!.fullName — same formula as student.                                                                                                                                                  
   - Name: <h1 class="profile-hero__name">{{ faculty()!.fullName }}</h1>.                                                                                                                                                           
-  - Meta badges: <cms-status-badge> for status + cms-badge for designation (human-readable via getDesignationLabel()) + cms-badge for department name.                                                                             
+  - Meta badges: <cms-status-badge> for status + cms-badge for designation (human-readable via getDesignationLabel()) + cms-badge for speciality name.                                                                             
   - Stats bar (4 chips):                                                                                                                                                                                                           
     a. Employee Code — mono font                                                                                                                                                                                                   
-    b. Department name                                                                                                                                                                                                             
+    b. Speciality name                                                                                                                                                                                                             
     c. Joining Date (formatted dd MMM yyyy)                                                                                                                                                                                        
     d. Designation label
                                                                                                                                                                                                                                    
@@ -268,7 +268,7 @@
   The current screen is two side-by-side content-card.info-card elements. Replace with <mat-tab-group> and two tabs (plus two placeholders):                                                                                       
                                                             
   Tab 1 — Profile                                                                                                                                                                                                                  
-  Render the "Basic Information" detail-grid exactly as-is (email, phone, department, designation, status, joining date).
+  Render the "Basic Information" detail-grid exactly as-is (email, phone, speciality, designation, status, joining date).
                                                                                                                                                                                                                                    
   Tab 2 — Professional                                                                                                                                                                                                             
   Render the "Professional Information" content (specialization, lab expertise) as a proper detail-grid instead of the current ad-hoc detail-item elements without a grid wrapper. Use form-section-title labels for sub-sections.

@@ -22,7 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.StudentRequest;
 import com.cms.dto.StudentResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.enums.StudentStatus;
@@ -42,7 +42,7 @@ class StudentServiceTest {
     private com.cms.repository.CourseRepository courseRepository;
 
     @Mock
-    private com.cms.repository.DepartmentRepository departmentRepository;
+    private com.cms.repository.SpecialityRepository specialityRepository;
 
     @Mock
     private com.cms.repository.AdmissionRepository admissionRepository;
@@ -65,7 +65,7 @@ class StudentServiceTest {
 
     @BeforeEach
     void setUp() {
-        studentService = new StudentService(studentRepository, programRepository, courseRepository, departmentRepository,
+        studentService = new StudentService(studentRepository, programRepository, courseRepository, specialityRepository,
             admissionRepository, enquiryDocumentRepository, documentHistoryRepository, transferRepository,
             currentUserResolver);
 
@@ -372,13 +372,13 @@ class StudentServiceTest {
         course.setId(10L);
         course.setName("B.Tech CS");
 
-        com.cms.model.Department dept = new com.cms.model.Department();
+        com.cms.model.Speciality dept = new com.cms.model.Speciality();
         dept.setId(5L);
-        dept.setName("CS Department");
+        dept.setName("CS Speciality");
 
         Student student = createStudent(1L, "CS2401", "Ravi", "Kumar", "ravi@college.edu");
         student.setCourse(course);
-        student.setSpecializationDepartment(dept);
+        student.setSpecializationSpeciality(dept);
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
 
@@ -386,8 +386,8 @@ class StudentServiceTest {
 
         assertThat(response.courseId()).isEqualTo(10L);
         assertThat(response.courseName()).isEqualTo("B.Tech CS");
-        assertThat(response.specializationDepartmentId()).isEqualTo(5L);
-        assertThat(response.specializationDepartmentName()).isEqualTo("CS Department");
+        assertThat(response.specializationSpecialityId()).isEqualTo(5L);
+        assertThat(response.specializationSpecialityName()).isEqualTo("CS Speciality");
     }
 
     @Test

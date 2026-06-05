@@ -105,29 +105,29 @@ Migration V109 enforces database-level uniqueness constraints on master entity n
 
 ---
 
-## TC-V109-004: Verify department name and code uniqueness
+## TC-V109-004: Verify speciality name and code uniqueness
 
 **Preconditions:**
-- Department "Computer Science" with code "CS" exists
+- Speciality "Computer Science" with code "CS" exists
 
 **Steps:**
-1. Attempt duplicate department name via SQL:
+1. Attempt duplicate speciality name via SQL:
    ```sql
-   INSERT INTO departments (name, code, description, hod_name, created_at, updated_at)
-   VALUES ('Computer Science', 'MATH', 'Math Department', 'Dr. Smith', NOW(), NOW());
+   INSERT INTO specialities (name, code, description, hod_name, created_at, updated_at)
+   VALUES ('Computer Science', 'MATH', 'Math Speciality', 'Dr. Smith', NOW(), NOW());
    ```
-2. Verify constraint violation on `ux_departments_name_ci`
-3. Attempt duplicate department code via SQL:
+2. Verify constraint violation on `ux_specialities_name_ci`
+3. Attempt duplicate speciality code via SQL:
    ```sql
-   INSERT INTO departments (name, code, description, hod_name, created_at, updated_at)
-   VALUES ('Mathematics', 'CS', 'Math Department', 'Dr. Smith', NOW(), NOW());
+   INSERT INTO specialities (name, code, description, hod_name, created_at, updated_at)
+   VALUES ('Mathematics', 'CS', 'Math Speciality', 'Dr. Smith', NOW(), NOW());
    ```
-4. Verify constraint violation on `ux_departments_code_ci`
+4. Verify constraint violation on `ux_specialities_code_ci`
 
 **Expected Result:**
 - Both insertions are rejected by database constraints
-- Department names are globally unique (case-insensitive)
-- Department codes are globally unique (case-insensitive)
+- Speciality names are globally unique (case-insensitive)
+- Speciality codes are globally unique (case-insensitive)
 
 **Status:** NOT TESTED
 
@@ -241,13 +241,13 @@ Migration V109 enforces database-level uniqueness constraints on master entity n
 **Steps:**
 1. Attempt duplicate employee code:
    ```sql
-   INSERT INTO faculty (employee_code, first_name, last_name, email, phone, department_id, designation, specialization, joining_date, status, created_at, updated_at)
+   INSERT INTO faculty (employee_code, first_name, last_name, email, phone, speciality_id, designation, specialization, joining_date, status, created_at, updated_at)
    VALUES ('EMP001', 'Jane', 'Smith', 'jane@college.edu', '9876543211', 1, 'LECTURER', 'CS', '2024-01-01', 'ACTIVE', NOW(), NOW());
    ```
 2. Verify constraint violation on `ux_faculty_employee_code_ci`
 3. Attempt duplicate email:
    ```sql
-   INSERT INTO faculty (employee_code, first_name, last_name, email, phone, department_id, designation, specialization, joining_date, status, created_at, updated_at)
+   INSERT INTO faculty (employee_code, first_name, last_name, email, phone, speciality_id, designation, specialization, joining_date, status, created_at, updated_at)
    VALUES ('EMP002', 'Jane', 'Smith', 'john@college.edu', '9876543211', 1, 'LECTURER', 'CS', '2024-01-01', 'ACTIVE', NOW(), NOW());
    ```
 4. Verify constraint violation on `ux_faculty_email_ci`
@@ -260,27 +260,27 @@ Migration V109 enforces database-level uniqueness constraints on master entity n
 
 ---
 
-## TC-V109-010: Verify lab name uniqueness within department
+## TC-V109-010: Verify lab name uniqueness within speciality
 
 **Preconditions:**
-- Lab "Physics Lab" exists in department ID 1
+- Lab "Physics Lab" exists in speciality ID 1
 
 **Steps:**
-1. Attempt duplicate lab name in same department:
+1. Attempt duplicate lab name in same speciality:
    ```sql
-   INSERT INTO labs (name, lab_type, department_id, building, room_number, capacity, status, created_at, updated_at)
+   INSERT INTO labs (name, lab_type, speciality_id, building, room_number, capacity, status, created_at, updated_at)
    VALUES ('Physics Lab', 'PHYSICS', 1, 'Building B', '202', 25, 'ACTIVE', NOW(), NOW());
    ```
-2. Verify constraint violation on `ux_labs_department_name_ci`
-3. Verify same lab name allowed in different department:
+2. Verify constraint violation on `ux_labs_speciality_name_ci`
+3. Verify same lab name allowed in different speciality:
    ```sql
-   INSERT INTO labs (name, lab_type, department_id, building, room_number, capacity, status, created_at, updated_at)
+   INSERT INTO labs (name, lab_type, speciality_id, building, room_number, capacity, status, created_at, updated_at)
    VALUES ('Physics Lab', 'PHYSICS', 2, 'Building C', '301', 30, 'ACTIVE', NOW(), NOW());
    ```
 
 **Expected Result:**
-- Insertion fails for duplicate name in same department
-- Insertion succeeds for same name in different department
+- Insertion fails for duplicate name in same speciality
+- Insertion succeeds for same name in different speciality
 
 **Status:** NOT TESTED
 
@@ -449,8 +449,8 @@ Migration V109 enforces database-level uniqueness constraints on master entity n
 **Expected Result:**
 - All the following indexes exist:
   - `ux_agents_name_ci` on `agents(lower(trim(name)))`
-  - `ux_departments_name_ci` on `departments(lower(trim(name)))`
-  - `ux_departments_code_ci` on `departments(lower(trim(code)))`
+  - `ux_specialities_name_ci` on `specialities(lower(trim(name)))`
+  - `ux_specialities_code_ci` on `specialities(lower(trim(code)))`
   - `ux_programs_name_ci` on `programs(lower(trim(name)))`
   - `ux_programs_code_ci` on `programs(lower(trim(code)))`
   - `ux_courses_name_ci` on `courses(lower(trim(name)))`
@@ -460,7 +460,7 @@ Migration V109 enforces database-level uniqueness constraints on master entity n
   - `ux_referral_types_code_ci` on `referral_types(lower(trim(code)))`
   - `ux_faculty_employee_code_ci` on `faculty(lower(trim(employee_code)))`
   - `ux_faculty_email_ci` on `faculty(lower(trim(email)))`
-  - `ux_labs_department_name_ci` on `labs(department_id, lower(trim(name)))`
+  - `ux_labs_speciality_name_ci` on `labs(speciality_id, lower(trim(name)))`
   - `ux_communities_name_ci` on `communities(lower(trim(name)))`
   - `ux_communities_code_ci` on `communities(lower(trim(code)))`
   - `ux_blood_groups_name_ci` on `blood_groups(lower(trim(name)))`

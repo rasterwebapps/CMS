@@ -12,7 +12,7 @@
 3. [Getting Started & Login](#3-getting-started--login)
 4. [Admin Dashboard](#4-admin-dashboard)
 5. [Preferences — Academic Setup](#5-preferences--academic-setup)
-   - [5.1 Departments](#51-departments)
+   - [5.1 Specialities](#51-specialities)
    - [5.2 Programs](#52-programs)
    - [5.3 Courses (Subjects)](#53-courses-subjects)
    - [5.4 Academic Years](#54-academic-years)
@@ -122,13 +122,13 @@ This section configures the academic and operational backbone of SKS College Of 
 
 ---
 
-### 5.1 Departments
+### 5.1 Specialities
 
-**Navigate**: Sidenav → Preferences → Departments
+**Navigate**: Sidenav → Preferences → Specialities
 
-SKS College Of Nursing organizes its faculty and curriculum into the following departments:
+SKS College Of Nursing organizes its faculty and curriculum into the following specialities:
 
-| Department Name | Code | Description |
+| Speciality Name | Code | Description |
 |----------------|------|-------------|
 | Medical-Surgical Nursing | MSN | Adult inpatient and surgical care nursing |
 | Community Health Nursing | CHN | Public health, epidemiology, and rural health nursing |
@@ -138,15 +138,15 @@ SKS College Of Nursing organizes its faculty and curriculum into the following d
 | Nursing Foundations | NF | Fundamentals of nursing and clinical skills |
 | Basic Sciences | BSC | Anatomy, Physiology, Biochemistry, Microbiology |
 
-#### How to Create a Department
+#### How to Create a Speciality
 
-1. Click **"+ New Department"** button (top-right of the screen)
+1. Click **"+ New Speciality"** button (top-right of the screen)
 2. Fill in:
-   - **Department Name**: e.g., `Medical-Surgical Nursing`
-   - **Department Code**: e.g., `MSN`
+   - **Speciality Name**: e.g., `Medical-Surgical Nursing`
+   - **Speciality Code**: e.g., `MSN`
    - **Description**: Brief description of scope
-3. Click **"Save Department"**
-4. New department appears in the list
+3. Click **"Save Speciality"**
+4. New speciality appears in the list
 
 ---
 
@@ -156,7 +156,7 @@ SKS College Of Nursing organizes its faculty and curriculum into the following d
 
 SKS College Of Nursing offers the following INC-approved programs:
 
-| Program Name | Code | Duration | Intake Seats | Department |
+| Program Name | Code | Duration | Intake Seats | Speciality |
 |-------------|------|----------|--------------|-----------|
 | Bachelor of Science in Nursing | BSC-NUR | 4 Years | 60 | Nursing Foundations |
 | Master of Science in Nursing | MSC-NUR | 2 Years | 30 | Medical-Surgical Nursing |
@@ -171,7 +171,7 @@ SKS College Of Nursing offers the following INC-approved programs:
 2. Fill in:
    - **Program Name**: `Bachelor of Science in Nursing`
    - **Program Code**: `BSC-NUR`
-   - **Department**: `Nursing Foundations`
+   - **Speciality**: `Nursing Foundations`
    - **Duration (Years)**: `4`
    - **Intake Capacity**: `60`
    - **Description**: `INC-approved 4-year nursing degree program`
@@ -323,7 +323,7 @@ SKS College Of Nursing fee structures comply with INC regulations and state gove
 
 #### SKS College Of Nursing — Faculty Register (Sample)
 
-| Name | Designation | Department | Qualification |
+| Name | Designation | Speciality | Qualification |
 |------|-------------|-----------|---------------|
 | Ms. Anita Rao | Principal & Professor | Nursing Foundations | M.Sc Nursing, Ph.D |
 | Dr. Kavitha M | Reader | Medical-Surgical Nursing | M.Sc Nursing (Critical Care) |
@@ -341,7 +341,7 @@ SKS College Of Nursing fee structures comply with INC regulations and state gove
    - **Email**: `kavitha.m@sksnursing.edu.in`
    - **Phone**: `+91-98XXXXXXXX`
    - **Employee ID**: `FAC-001`
-   - **Department**: `Medical-Surgical Nursing`
+   - **Speciality**: `Medical-Surgical Nursing`
    - **Designation**: `Reader`
    - **Specialization**: `Critical Care Nursing`
 3. Click **"Save Faculty"**
@@ -728,7 +728,7 @@ All admitted and enrolled students appear here with their Student IDs (e.g., `SK
 | Enquiry Conversion Report | Enquiry to admission ratio | Marketing analysis |
 | Document Verification Report | Docs verified vs. pending | Pre-registration audit |
 | Faculty Workload Report | Courses per faculty | Semester planning |
-| Department Report | Student count per department | Administrative review |
+| Speciality Report | Student count per speciality | Administrative review |
 
 ### How to Generate a Report
 

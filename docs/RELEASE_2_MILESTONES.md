@@ -52,7 +52,7 @@
 > **Module 7.8** — Safety guidelines, incident reporting, and PPE tracking.
 
 - [ ] **R2-1.1** Backend: Create safety guideline entities and APIs
-  - Safety guidelines management (per lab, per department)
+  - Safety guidelines management (per lab, per speciality)
   - PPE (Personal Protective Equipment) tracking per lab
 - [ ] **R2-1.2** Backend: Create incident reporting entities and APIs
   - Incident report entity (`id`, `lab`, `reportedBy`, `incidentDate`, `description`, `severity`, `status`, `actionTaken`)
@@ -75,8 +75,8 @@
 > **Module 12** — Notice board, internal messaging, and role-specific portals.
 
 - [ ] **R2-2.1** Backend: Create notice board / announcements API
-  - Announcement entity (`id`, `title`, `content`, `targetAudience`, `department`, `publishDate`, `expiryDate`, `createdBy`)
-  - Filter announcements by role, department, date
+  - Announcement entity (`id`, `title`, `content`, `targetAudience`, `speciality`, `publishDate`, `expiryDate`, `createdBy`)
+  - Filter announcements by role, speciality, date
 - [ ] **R2-2.2** Backend: Create internal messaging system
   - Message entity with sender, recipients, subject, body, read status
   - Inbox, sent, and archived message endpoints
@@ -167,7 +167,7 @@
 > **Module 14** — Research projects, publications, patents, and grant management.
 
 - [ ] **R2-6.1** Backend: Create research entities and APIs
-  - `ResearchProject` entity (`id`, `title`, `principalInvestigator`, `coPIs`, `department`, `fundingSource`, `amount` [BigDecimal], `startDate`, `endDate`, `status`)
+  - `ResearchProject` entity (`id`, `title`, `principalInvestigator`, `coPIs`, `speciality`, `fundingSource`, `amount` [BigDecimal], `startDate`, `endDate`, `status`)
   - `Publication` entity (`id`, `title`, `authors`, `journal`, `year`, `doi`, `type` [JOURNAL/CONFERENCE/BOOK_CHAPTER])
   - `Patent` entity (`id`, `title`, `inventors`, `filingDate`, `status`, `patentNumber`)
   - Grant tracking and expenditure management
@@ -207,8 +207,8 @@
 > **Module 17** — Events, clubs, and certificate generation.
 
 - [ ] **R2-8.1** Backend: Create event entities and APIs
-  - `Event` entity (`id`, `name`, `type`, `date`, `venue`, `organizer`, `department`, `budget` [BigDecimal], `status`)
-  - `Club` entity (`id`, `name`, `type`, `faculty_advisor`, `president`, `department`)
+  - `Event` entity (`id`, `name`, `type`, `date`, `venue`, `organizer`, `speciality`, `budget` [BigDecimal], `status`)
+  - `Club` entity (`id`, `name`, `type`, `faculty_advisor`, `president`, `speciality`)
   - `EventRegistration` entity (student ↔ event mapping)
   - Certificate generation endpoints (participation, achievement)
 - [ ] **R2-8.2** Frontend: Create event management components

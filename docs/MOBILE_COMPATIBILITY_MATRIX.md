@@ -52,7 +52,7 @@ All MLP list screens benefit from the global safety nets: toolbar stacks, header
 
 | Screen | Status | Notes |
 |---|---|---|
-| Departments | 🟢 | Card view defaults; table view scrolls. |
+| Specialities | 🟢 | Card view defaults; table view scrolls. |
 | Programs | 🟢 | |
 | Courses | 🟢 | |
 | Academic Years | 🟢 | |
@@ -69,7 +69,7 @@ All MLP list screens benefit from the global safety nets: toolbar stacks, header
 
 | Screen | Status | Notes |
 |---|---|---|
-| Department form | 🟢 | Two-column `entry-form-layout` collapses ≤ 900 px. |
+| Speciality form | 🟢 | Two-column `entry-form-layout` collapses ≤ 900 px. |
 | Program form | 🟢 | |
 | Course form | 🟢 | |
 | Academic Year form | 🟢 | |

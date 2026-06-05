@@ -4,7 +4,7 @@
 This script authenticates against Keycloak using the imported local admin user and
 creates data through the secured `/api/v1` endpoints in a dependency-safe order.
 
-All data reflects an actual Indian Nursing College scenario — departments map to
+All data reflects an actual Indian Nursing College scenario — specialities map to
 nursing specializations, programs cover B.Sc. Nursing / M.Sc. Nursing / GNM,
 subjects follow the Indian Nursing Council (INC) syllabus, and labs represent
 real nursing simulation and skills labs.
@@ -34,18 +34,18 @@ PASSWORD = os.environ.get('CMS_PASSWORD', 'admin123')
 # SKS College of Nursing, Salem — Reference Data
 # ---------------------------------------------------------------------------
 
-DEPARTMENTS = [
-    {'name': 'Medical-Surgical Nursing', 'code': 'MSN', 'description': 'Department of Medical-Surgical Nursing — covers adult health, perioperative care, critical care, and oncology nursing.', 'hodName': 'Dr. S. Tamilarasi'},
-    {'name': 'Community Health Nursing', 'code': 'CHN', 'description': 'Department of Community Health Nursing — focuses on public health, epidemiology, family health, and primary healthcare delivery.', 'hodName': 'Dr. K. Vasanthi'},
-    {'name': 'Child Health (Paediatric) Nursing', 'code': 'CHD', 'description': 'Department of Child Health Nursing — covers neonatal care, growth & development, paediatric diseases, and child nutrition.', 'hodName': 'Dr. R. Meenakshi'},
-    {'name': 'Obstetrics & Gynaecological Nursing', 'code': 'OBG', 'description': 'Department of Obstetrics & Gynaecological Nursing — antenatal, intranatal, postnatal care, reproductive health, and midwifery.', 'hodName': 'Dr. P. Selvarani'},
-    {'name': 'Mental Health (Psychiatric) Nursing', 'code': 'MHN', 'description': 'Department of Mental Health Nursing — psychiatric disorders, therapeutic communication, psychopharmacology, and rehabilitation.', 'hodName': 'Dr. M. Kavitha'},
-    {'name': 'Nursing Foundation', 'code': 'NFD', 'description': 'Department of Nursing Foundation — fundamental nursing skills, nursing ethics, nursing process, and basic patient care.', 'hodName': 'Mrs. L. Jayalakshmi'},
-    {'name': 'Nursing Education & Administration', 'code': 'NEA', 'description': 'Department of Nursing Education & Administration — teaching methodologies, curriculum development, hospital management.', 'hodName': 'Dr. A. Padmavathi'},
+SPECIALITIES = [
+    {'name': 'Medical-Surgical Nursing', 'code': 'MSN', 'description': 'Speciality of Medical-Surgical Nursing — covers adult health, perioperative care, critical care, and oncology nursing.', 'hodName': 'Dr. S. Tamilarasi'},
+    {'name': 'Community Health Nursing', 'code': 'CHN', 'description': 'Speciality of Community Health Nursing — focuses on public health, epidemiology, family health, and primary healthcare delivery.', 'hodName': 'Dr. K. Vasanthi'},
+    {'name': 'Child Health (Paediatric) Nursing', 'code': 'CHD', 'description': 'Speciality of Child Health Nursing — covers neonatal care, growth & development, paediatric diseases, and child nutrition.', 'hodName': 'Dr. R. Meenakshi'},
+    {'name': 'Obstetrics & Gynaecological Nursing', 'code': 'OBG', 'description': 'Speciality of Obstetrics & Gynaecological Nursing — antenatal, intranatal, postnatal care, reproductive health, and midwifery.', 'hodName': 'Dr. P. Selvarani'},
+    {'name': 'Mental Health (Psychiatric) Nursing', 'code': 'MHN', 'description': 'Speciality of Mental Health Nursing — psychiatric disorders, therapeutic communication, psychopharmacology, and rehabilitation.', 'hodName': 'Dr. M. Kavitha'},
+    {'name': 'Nursing Foundation', 'code': 'NFD', 'description': 'Speciality of Nursing Foundation — fundamental nursing skills, nursing ethics, nursing process, and basic patient care.', 'hodName': 'Mrs. L. Jayalakshmi'},
+    {'name': 'Nursing Education & Administration', 'code': 'NEA', 'description': 'Speciality of Nursing Education & Administration — teaching methodologies, curriculum development, hospital management.', 'hodName': 'Dr. A. Padmavathi'},
 ]
 
 PROGRAMS = [
-    # (name, code, programLevel, durationYears, departmentIndices)
+    # (name, code, programLevel, durationYears, specialityIndices)
     ('B.Sc. Nursing', 'BSCN', 'UNDERGRADUATE', 4, [5]),
     ('M.Sc. Nursing — Medical-Surgical', 'MSCMSN', 'POSTGRADUATE', 2, [0]),
     ('M.Sc. Nursing — Community Health', 'MSCCHN', 'POSTGRADUATE', 2, [1]),
@@ -228,7 +228,7 @@ ENQUIRIES = [
 
 @dataclass
 class BatchIds:
-    departments: list[int]
+    specialities: list[int]
     programs: list[int]
     courses: list[int]
     subjects: list[int]
@@ -335,9 +335,9 @@ def main() -> int:
     print('🏥 Seeding SKS College of Nursing, Salem — Demo Data')
     print('=' * 60)
 
-    # 1. Departments
-    departments = create_many(token, '/departments', DEPARTMENTS)
-    print(f'  ✅ Created {len(departments)} departments (nursing specializations)')
+    # 1. Specialities
+    specialities = create_many(token, '/specialities', SPECIALITIES)
+    print(f'  ✅ Created {len(specialities)} specialities (nursing specializations)')
 
     # 2. Academic Years
     academic_year_payloads = [
@@ -352,14 +352,14 @@ def main() -> int:
     academic_years = create_many(token, '/academic-years', academic_year_payloads)
     print(f'  ✅ Created {len(academic_years)} academic years')
 
-    # 3. Programs (programLevel + durationYears + departmentIds)
+    # 3. Programs (programLevel + durationYears + specialityIds)
     program_payloads = [
         {
             'name': p[0],
             'code': p[1],
             'programLevel': p[2],
             'durationYears': p[3],
-            'departmentIds': [departments[di]['id'] for di in p[4]],
+            'specialityIds': [specialities[di]['id'] for di in p[4]],
         }
         for p in PROGRAMS
     ]
@@ -406,7 +406,7 @@ def main() -> int:
             'lastName': fm[2],
             'email': fm[3],
             'phone': fm[4],
-            'departmentId': departments[fm[5]]['id'],
+            'specialityId': specialities[fm[5]]['id'],
             'designation': fm[6],
             'specialization': fm[7],
             'labExpertise': fm[8],
@@ -479,7 +479,7 @@ def main() -> int:
         {
             'name': lab[0],
             'labType': lab[1],
-            'departmentId': departments[lab[2]]['id'],
+            'specialityId': specialities[lab[2]]['id'],
             'building': lab[3],
             'roomNumber': lab[4],
             'capacity': lab[5],
@@ -715,7 +715,7 @@ def main() -> int:
     # Summary
     # -----------------------------------------------------------------------
     ids = BatchIds(
-        departments=[item['id'] for item in departments],
+        specialities=[item['id'] for item in specialities],
         programs=[item['id'] for item in programs],
         courses=[item['id'] for item in courses],
         subjects=[item['id'] for item in subjects],

@@ -14,14 +14,14 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.Enquiry;
 import com.cms.model.Faculty;
 import com.cms.model.Student;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.StudentStatus;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.StudentRepository;
@@ -45,7 +45,7 @@ class SearchControllerTest {
     private EnquiryRepository enquiryRepository;
 
     @MockitoBean
-    private DepartmentRepository departmentRepository;
+    private SpecialityRepository specialityRepository;
 
     @Test
     void shouldReturnEmptyResultsForBlankQuery() throws Exception {
@@ -70,7 +70,7 @@ class SearchControllerTest {
         when(studentRepository.findAll()).thenReturn(List.of(student));
         when(facultyRepository.findAll()).thenReturn(List.of());
         when(enquiryRepository.findAll()).thenReturn(List.of());
-        when(departmentRepository.findAll()).thenReturn(List.of());
+        when(specialityRepository.findAll()).thenReturn(List.of());
 
         mockMvc.perform(get("/search").param("q", "john"))
             .andExpect(status().isOk())
@@ -89,7 +89,7 @@ class SearchControllerTest {
         when(studentRepository.findAll()).thenReturn(List.of(student));
         when(facultyRepository.findAll()).thenReturn(List.of());
         when(enquiryRepository.findAll()).thenReturn(List.of());
-        when(departmentRepository.findAll()).thenReturn(List.of());
+        when(specialityRepository.findAll()).thenReturn(List.of());
 
         mockMvc.perform(get("/search").param("q", "S001"))
             .andExpect(status().isOk())
@@ -98,7 +98,7 @@ class SearchControllerTest {
 
     @Test
     void shouldSearchFacultyByName() throws Exception {
-        Department dept = new Department("Engineering", "ENG", null, null);
+        Speciality dept = new Speciality("Engineering", "ENG", null, null);
         dept.setId(1L);
 
         Faculty faculty = new Faculty("E001", "Alice", "Brown", "alice@test.com",
@@ -109,7 +109,7 @@ class SearchControllerTest {
         when(studentRepository.findAll()).thenReturn(List.of());
         when(facultyRepository.findAll()).thenReturn(List.of(faculty));
         when(enquiryRepository.findAll()).thenReturn(List.of());
-        when(departmentRepository.findAll()).thenReturn(List.of());
+        when(specialityRepository.findAll()).thenReturn(List.of());
 
         mockMvc.perform(get("/search").param("q", "alice"))
             .andExpect(status().isOk())
@@ -127,7 +127,7 @@ class SearchControllerTest {
         when(studentRepository.findAll()).thenReturn(List.of());
         when(facultyRepository.findAll()).thenReturn(List.of());
         when(enquiryRepository.findAll()).thenReturn(List.of(enquiry));
-        when(departmentRepository.findAll()).thenReturn(List.of());
+        when(specialityRepository.findAll()).thenReturn(List.of());
 
         mockMvc.perform(get("/search").param("q", "bob"))
             .andExpect(status().isOk())
@@ -137,20 +137,20 @@ class SearchControllerTest {
     }
 
     @Test
-    void shouldSearchDepartmentsByName() throws Exception {
-        Department dept = new Department("Computer Science", "CS", null, null);
+    void shouldSearchSpecialitiesByName() throws Exception {
+        Speciality dept = new Speciality("Computer Science", "CS", null, null);
         dept.setId(7L);
 
         when(studentRepository.findAll()).thenReturn(List.of());
         when(facultyRepository.findAll()).thenReturn(List.of());
         when(enquiryRepository.findAll()).thenReturn(List.of());
-        when(departmentRepository.findAll()).thenReturn(List.of(dept));
+        when(specialityRepository.findAll()).thenReturn(List.of(dept));
 
         mockMvc.perform(get("/search").param("q", "computer"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.results[0].type").value("DEPARTMENT"))
+            .andExpect(jsonPath("$.results[0].type").value("SPECIALITY"))
             .andExpect(jsonPath("$.results[0].label").value("Computer Science"))
-            .andExpect(jsonPath("$.results[0].route").value("/departments/7"));
+            .andExpect(jsonPath("$.results[0].route").value("/specialities/7"));
     }
 
     @Test
@@ -164,7 +164,7 @@ class SearchControllerTest {
         when(studentRepository.findAll()).thenReturn(students);
         when(facultyRepository.findAll()).thenReturn(List.of());
         when(enquiryRepository.findAll()).thenReturn(List.of());
-        when(departmentRepository.findAll()).thenReturn(List.of());
+        when(specialityRepository.findAll()).thenReturn(List.of());
 
         mockMvc.perform(get("/search").param("q", "alpha").param("limit", "2"))
             .andExpect(status().isOk())
@@ -176,7 +176,7 @@ class SearchControllerTest {
         when(studentRepository.findAll()).thenReturn(List.of());
         when(facultyRepository.findAll()).thenReturn(List.of());
         when(enquiryRepository.findAll()).thenReturn(List.of());
-        when(departmentRepository.findAll()).thenReturn(List.of());
+        when(specialityRepository.findAll()).thenReturn(List.of());
 
         mockMvc.perform(get("/search").param("q", "xy").param("limit", "100"))
             .andExpect(status().isOk())

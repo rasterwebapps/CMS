@@ -29,8 +29,8 @@ class LabInChargeAssignmentTest {
 
     @Test
     void shouldCreateAssignmentWithAllArgsConstructor() {
-        Department department = new Department("CS", "CS", "CS Dept", "Dr. John");
-        Lab lab = new Lab("Computer Lab", LabType.COMPUTER, department, "Building A", "101", 30, LabStatus.ACTIVE);
+        Speciality speciality = new Speciality("CS", "CS", "CS Dept", "Dr. John");
+        Lab lab = new Lab("Computer Lab", LabType.COMPUTER, speciality, "Building A", "101", 30, LabStatus.ACTIVE);
         LocalDate assignedDate = LocalDate.of(2024, 1, 15);
         
         LabInChargeAssignment assignment = new LabInChargeAssignment(
@@ -59,8 +59,8 @@ class LabInChargeAssignmentTest {
     @Test
     void shouldSetAndGetLab() {
         LabInChargeAssignment assignment = new LabInChargeAssignment();
-        Department department = new Department("CS", "CS", "CS Dept", "Dr. John");
-        Lab lab = new Lab("Physics Lab", LabType.PHYSICS, department, "Building B", "201", 25, LabStatus.ACTIVE);
+        Speciality speciality = new Speciality("CS", "CS", "CS Dept", "Dr. John");
+        Lab lab = new Lab("Physics Lab", LabType.PHYSICS, speciality, "Building B", "201", 25, LabStatus.ACTIVE);
         assignment.setLab(lab);
 
         assertThat(assignment.getLab()).isEqualTo(lab);

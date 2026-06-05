@@ -16,7 +16,7 @@
 2. Observe startup logs for the line: `Seeding initial data for local profile...`
 3. Observe the final log line: `Seed data loaded successfully.`
 4. Open the frontend and navigate through the screens in this order:
-   - Departments → verify 5 departments (GN, MO, CHN, MSN, PN)
+   - Specialities → verify 5 specialities (GN, MO, CHN, MSN, PN)
    - Programs → verify 3 programs (B.Sc Nursing, M.Sc Nursing, GNM)
    - Courses → verify 3 courses
    - Academic Years → verify 3 years (2023-24, 2024-25 current, 2025-26)
@@ -54,7 +54,7 @@
 2. Confirm Flyway applies `V45__insert_seed_data.sql` in startup logs
 3. Obtain an admin access token from Keycloak for client `cms-frontend`
 4. Send authenticated GET requests to verify:
-   - `GET /api/v1/departments` → 5 records
+   - `GET /api/v1/specialities` → 5 records
    - `GET /api/v1/programs` → 3 records
    - `GET /api/v1/courses` → 3 records
    - `GET /api/v1/academic-years` → 3 records
@@ -74,7 +74,7 @@
 **Expected Result:**
 - V45 migration inserts all seed data successfully in PostgreSQL
 - All API endpoints return the expected counts
-- Re-running the migration has no effect (skips due to existing departments)
+- Re-running the migration has no effect (skips due to existing specialities)
 
 **Actual Result:**
 
@@ -87,8 +87,8 @@
 - Logged in as admin
 
 **Steps:**
-1. Navigate to **Departments** → click Edit on "General Nursing" → change HOD name → Save → verify change persists
-2. Navigate to **Faculty** → click on "Priya Sharma" detail → verify department, designation, joining date shown
+1. Navigate to **Specialities** → click Edit on "General Nursing" → change HOD name → Save → verify change persists
+2. Navigate to **Faculty** → click on "Priya Sharma" detail → verify speciality, designation, joining date shown
 3. Navigate to **Students** → click on "Aishwarya Rajput" → verify semester, program, personal details shown
 4. Navigate to **Enquiries** → verify status badges show different colors (ENQUIRED, INTERESTED, FEES_FINALIZED, CONVERTED, NOT_INTERESTED, DOCUMENTS_SUBMITTED)
 5. Navigate to **Fee Structures** → click on B.Sc Nursing tuition fee → verify 4-year breakdown (25000, 25000, 25000, 20000)

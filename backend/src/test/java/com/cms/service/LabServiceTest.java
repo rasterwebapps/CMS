@@ -24,13 +24,13 @@ import com.cms.dto.LabInChargeAssignmentResponse;
 import com.cms.dto.LabRequest;
 import com.cms.dto.LabResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Department;
+import com.cms.model.Speciality;
 import com.cms.model.Lab;
 import com.cms.model.LabInChargeAssignment;
 import com.cms.model.enums.LabInChargeRole;
 import com.cms.model.enums.LabStatus;
 import com.cms.model.enums.LabType;
-import com.cms.repository.DepartmentRepository;
+import com.cms.repository.SpecialityRepository;
 import com.cms.repository.LabInChargeAssignmentRepository;
 import com.cms.repository.LabRepository;
 
@@ -41,19 +41,19 @@ class LabServiceTest {
     private LabRepository labRepository;
 
     @Mock
-    private DepartmentRepository departmentRepository;
+    private SpecialityRepository specialityRepository;
 
     @Mock
     private LabInChargeAssignmentRepository assignmentRepository;
 
     private LabService labService;
 
-    private Department department;
+    private Speciality speciality;
 
     @BeforeEach
     void setUp() {
-        labService = new LabService(labRepository, departmentRepository, assignmentRepository);
-        department = createDepartment(1L, "Computer Science", "CS", "CS Department", "Dr. John");
+        labService = new LabService(labRepository, specialityRepository, assignmentRepository);
+        speciality = createSpeciality(1L, "Computer Science", "CS", "CS Speciality", "Dr. John");
     }
 
     @Test
@@ -68,10 +68,10 @@ class LabServiceTest {
             LabStatus.ACTIVE
         );
 
-        Lab savedLab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, department,
+        Lab savedLab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, speciality,
             "Main Building", "101", 30, LabStatus.ACTIVE);
 
-        when(departmentRepository.findById(1L)).thenReturn(Optional.of(department));
+        when(specialityRepository.findById(1L)).thenReturn(Optional.of(speciality));
         when(labRepository.save(any(Lab.class))).thenReturn(savedLab);
 
         LabResponse response = labService.create(request);
@@ -83,7 +83,7 @@ class LabServiceTest {
         assertThat(response.roomNumber()).isEqualTo("101");
         assertThat(response.capacity()).isEqualTo(30);
         assertThat(response.status()).isEqualTo(LabStatus.ACTIVE);
-        assertThat(response.department().id()).isEqualTo(1L);
+        assertThat(response.speciality().id()).isEqualTo(1L);
 
         ArgumentCaptor<Lab> captor = ArgumentCaptor.forClass(Lab.class);
         verify(labRepository).save(captor.capture());
@@ -93,7 +93,7 @@ class LabServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenCreatingLabWithNonExistentDepartment() {
+    void shouldThrowExceptionWhenCreatingLabWithNonExistentSpeciality() {
         LabRequest request = new LabRequest(
             "Computer Lab 1",
             LabType.COMPUTER,
@@ -104,20 +104,20 @@ class LabServiceTest {
             LabStatus.ACTIVE
         );
 
-        when(departmentRepository.findById(999L)).thenReturn(Optional.empty());
+        when(specialityRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> labService.create(request))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Department not found with id: 999");
+            .hasMessage("Speciality not found with id: 999");
 
         verify(labRepository, never()).save(any(Lab.class));
     }
 
     @Test
     void shouldFindAllLabs() {
-        Lab lab1 = createLab(1L, "Computer Lab 1", LabType.COMPUTER, department,
+        Lab lab1 = createLab(1L, "Computer Lab 1", LabType.COMPUTER, speciality,
             "Main Building", "101", 30, LabStatus.ACTIVE);
-        Lab lab2 = createLab(2L, "Physics Lab", LabType.PHYSICS, department,
+        Lab lab2 = createLab(2L, "Physics Lab", LabType.PHYSICS, speciality,
             "Science Building", "201", 25, LabStatus.ACTIVE);
 
         when(labRepository.findAll()).thenReturn(List.of(lab1, lab2));
@@ -142,7 +142,7 @@ class LabServiceTest {
 
     @Test
     void shouldFindLabById() {
-        Lab lab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, department,
+        Lab lab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, speciality,
             "Main Building", "101", 30, LabStatus.ACTIVE);
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(lab));
@@ -167,51 +167,51 @@ class LabServiceTest {
     }
 
     @Test
-    void shouldFindLabsByDepartmentId() {
-        Lab lab1 = createLab(1L, "Computer Lab 1", LabType.COMPUTER, department,
+    void shouldFindLabsBySpecialityId() {
+        Lab lab1 = createLab(1L, "Computer Lab 1", LabType.COMPUTER, speciality,
             "Main Building", "101", 30, LabStatus.ACTIVE);
-        Lab lab2 = createLab(2L, "Computer Lab 2", LabType.COMPUTER, department,
+        Lab lab2 = createLab(2L, "Computer Lab 2", LabType.COMPUTER, speciality,
             "Main Building", "102", 25, LabStatus.ACTIVE);
 
-        when(departmentRepository.existsById(1L)).thenReturn(true);
-        when(labRepository.findByDepartmentId(1L)).thenReturn(List.of(lab1, lab2));
+        when(specialityRepository.existsById(1L)).thenReturn(true);
+        when(labRepository.findBySpecialityId(1L)).thenReturn(List.of(lab1, lab2));
 
-        List<LabResponse> responses = labService.findByDepartmentId(1L);
+        List<LabResponse> responses = labService.findBySpecialityId(1L);
 
         assertThat(responses).hasSize(2);
         assertThat(responses.get(0).name()).isEqualTo("Computer Lab 1");
         assertThat(responses.get(1).name()).isEqualTo("Computer Lab 2");
-        verify(labRepository).findByDepartmentId(1L);
+        verify(labRepository).findBySpecialityId(1L);
     }
 
     @Test
-    void shouldReturnEmptyListWhenNoLabsForDepartment() {
-        when(departmentRepository.existsById(1L)).thenReturn(true);
-        when(labRepository.findByDepartmentId(1L)).thenReturn(List.of());
+    void shouldReturnEmptyListWhenNoLabsForSpeciality() {
+        when(specialityRepository.existsById(1L)).thenReturn(true);
+        when(labRepository.findBySpecialityId(1L)).thenReturn(List.of());
 
-        List<LabResponse> responses = labService.findByDepartmentId(1L);
+        List<LabResponse> responses = labService.findBySpecialityId(1L);
 
         assertThat(responses).isEmpty();
-        verify(labRepository).findByDepartmentId(1L);
+        verify(labRepository).findBySpecialityId(1L);
     }
 
     @Test
-    void shouldThrowExceptionWhenFindingLabsByNonExistentDepartment() {
-        when(departmentRepository.existsById(999L)).thenReturn(false);
+    void shouldThrowExceptionWhenFindingLabsByNonExistentSpeciality() {
+        when(specialityRepository.existsById(999L)).thenReturn(false);
 
-        assertThatThrownBy(() -> labService.findByDepartmentId(999L))
+        assertThatThrownBy(() -> labService.findBySpecialityId(999L))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Department not found with id: 999");
+            .hasMessage("Speciality not found with id: 999");
 
-        verify(labRepository, never()).findByDepartmentId(any());
+        verify(labRepository, never()).findBySpecialityId(any());
     }
 
     @Test
     void shouldUpdateLab() {
-        Lab existingLab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, department,
+        Lab existingLab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, speciality,
             "Main Building", "101", 30, LabStatus.ACTIVE);
 
-        Department newDepartment = createDepartment(2L, "Electronics", "EC", "EC Dept", "Dr. Jane");
+        Speciality newSpeciality = createSpeciality(2L, "Electronics", "EC", "EC Dept", "Dr. Jane");
 
         LabRequest updateRequest = new LabRequest(
             "Electronics Lab Updated",
@@ -223,12 +223,12 @@ class LabServiceTest {
             LabStatus.UNDER_MAINTENANCE
         );
 
-        Lab updatedLab = createLab(1L, "Electronics Lab Updated", LabType.ELECTRONICS, newDepartment,
+        Lab updatedLab = createLab(1L, "Electronics Lab Updated", LabType.ELECTRONICS, newSpeciality,
             "Science Building", "301", 40, LabStatus.UNDER_MAINTENANCE);
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(existingLab));
-        when(departmentRepository.findById(2L)).thenReturn(Optional.of(newDepartment));
-        when(labRepository.existsByNameIgnoreCaseAndDepartmentIdAndIdNot("Electronics Lab Updated", 2L, 1L))
+        when(specialityRepository.findById(2L)).thenReturn(Optional.of(newSpeciality));
+        when(labRepository.existsByNameIgnoreCaseAndSpecialityIdAndIdNot("Electronics Lab Updated", 2L, 1L))
             .thenReturn(false);
         when(labRepository.save(any(Lab.class))).thenReturn(updatedLab);
 
@@ -241,15 +241,15 @@ class LabServiceTest {
         assertThat(response.roomNumber()).isEqualTo("301");
         assertThat(response.capacity()).isEqualTo(40);
         assertThat(response.status()).isEqualTo(LabStatus.UNDER_MAINTENANCE);
-        assertThat(response.department().id()).isEqualTo(2L);
+        assertThat(response.speciality().id()).isEqualTo(2L);
 
         verify(labRepository).findById(1L);
         verify(labRepository).save(any(Lab.class));
     }
 
     @Test
-    void shouldThrowWhenUpdatingLabWithDuplicateNameInSameDepartment() {
-        Lab existingLab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, department,
+    void shouldThrowWhenUpdatingLabWithDuplicateNameInSameSpeciality() {
+        Lab existingLab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, speciality,
             "Main Building", "101", 30, LabStatus.ACTIVE);
 
         LabRequest request = new LabRequest(
@@ -257,8 +257,8 @@ class LabServiceTest {
         );
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(existingLab));
-        when(departmentRepository.findById(1L)).thenReturn(Optional.of(department));
-        when(labRepository.existsByNameIgnoreCaseAndDepartmentIdAndIdNot("Computer Lab 2", 1L, 1L))
+        when(specialityRepository.findById(1L)).thenReturn(Optional.of(speciality));
+        when(labRepository.existsByNameIgnoreCaseAndSpecialityIdAndIdNot("Computer Lab 2", 1L, 1L))
             .thenReturn(true);
 
         assertThatThrownBy(() -> labService.update(1L, request))
@@ -284,18 +284,18 @@ class LabServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenUpdatingWithNonExistentDepartment() {
-        Lab existingLab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, department,
+    void shouldThrowExceptionWhenUpdatingWithNonExistentSpeciality() {
+        Lab existingLab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, speciality,
             "Main Building", "101", 30, LabStatus.ACTIVE);
 
         LabRequest request = new LabRequest("Name", LabType.COMPUTER, 999L, "Building", "101", 30, LabStatus.ACTIVE);
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(existingLab));
-        when(departmentRepository.findById(999L)).thenReturn(Optional.empty());
+        when(specialityRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> labService.update(1L, request))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Department not found with id: 999");
+            .hasMessage("Speciality not found with id: 999");
 
         verify(labRepository, never()).save(any(Lab.class));
     }
@@ -325,7 +325,7 @@ class LabServiceTest {
 
     @Test
     void shouldAssignInCharge() {
-        Lab lab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, department,
+        Lab lab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, speciality,
             "Main Building", "101", 30, LabStatus.ACTIVE);
 
         LabInChargeAssignmentRequest request = new LabInChargeAssignmentRequest(
@@ -374,7 +374,7 @@ class LabServiceTest {
 
     @Test
     void shouldRemoveAssignment() {
-        Lab lab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, department,
+        Lab lab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, speciality,
             "Main Building", "101", 30, LabStatus.ACTIVE);
         LabInChargeAssignment assignment = createAssignment(10L, lab, 100L, "Dr. Smith",
             LabInChargeRole.LAB_INCHARGE, LocalDate.of(2024, 1, 15));
@@ -412,9 +412,9 @@ class LabServiceTest {
 
     @Test
     void shouldThrowExceptionWhenAssignmentDoesNotBelongToLab() {
-        Lab lab1 = createLab(1L, "Computer Lab 1", LabType.COMPUTER, department,
+        Lab lab1 = createLab(1L, "Computer Lab 1", LabType.COMPUTER, speciality,
             "Main Building", "101", 30, LabStatus.ACTIVE);
-        Lab lab2 = createLab(2L, "Computer Lab 2", LabType.COMPUTER, department,
+        Lab lab2 = createLab(2L, "Computer Lab 2", LabType.COMPUTER, speciality,
             "Main Building", "102", 25, LabStatus.ACTIVE);
         LabInChargeAssignment assignment = createAssignment(10L, lab2, 100L, "Dr. Smith",
             LabInChargeRole.LAB_INCHARGE, LocalDate.of(2024, 1, 15));
@@ -431,7 +431,7 @@ class LabServiceTest {
 
     @Test
     void shouldFindAssignmentsByLabId() {
-        Lab lab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, department,
+        Lab lab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, speciality,
             "Main Building", "101", 30, LabStatus.ACTIVE);
         LabInChargeAssignment assignment1 = createAssignment(1L, lab, 100L, "Dr. Smith",
             LabInChargeRole.LAB_INCHARGE, LocalDate.of(2024, 1, 15));
@@ -473,9 +473,9 @@ class LabServiceTest {
         verify(assignmentRepository, never()).findByLabId(any());
     }
 
-    private Department createDepartment(Long id, String name, String code,
+    private Speciality createSpeciality(Long id, String name, String code,
                                         String description, String hodName) {
-        Department dept = new Department(name, code, description, hodName);
+        Speciality dept = new Speciality(name, code, description, hodName);
         dept.setId(id);
         Instant now = Instant.now();
         dept.setCreatedAt(now);
@@ -483,7 +483,7 @@ class LabServiceTest {
         return dept;
     }
 
-    private Lab createLab(Long id, String name, LabType labType, Department dept,
+    private Lab createLab(Long id, String name, LabType labType, Speciality dept,
                           String building, String roomNumber, Integer capacity, LabStatus status) {
         Lab lab = new Lab(name, labType, dept, building, roomNumber, capacity, status);
         lab.setId(id);

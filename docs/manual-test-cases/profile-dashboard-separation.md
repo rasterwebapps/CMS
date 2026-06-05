@@ -15,7 +15,7 @@ as a focused identity + personal-document-vault page.
 
 **Expected Result:**
 - Theme dropdown (top right) is visible and works.
-- Hero strip shows avatar (initials), name, designation chip, department,
+- Hero strip shows avatar (initials), name, designation chip, speciality,
   qualification chip, employee code, email, phone, joining date, and an
   **Edit Profile** button.
 - Bento grid shows exactly two cards: **About** and **Personal Info**.
@@ -57,7 +57,7 @@ as a focused identity + personal-document-vault page.
 **Expected Result:**
 - Hero shows Administrator chip + email + Full System Access pill.
 - Bento shows **About** + **Account Details** cards.
-- The page does **NOT** show: stats row (Students/Faculty/Departments/...),
+- The page does **NOT** show: stats row (Students/Faculty/Specialities/...),
   System Health card, Recent Activity, Quick Access grid, floating dock.
 
 **Status:** NOT TESTED
@@ -117,7 +117,7 @@ as a focused identity + personal-document-vault page.
   Trend + Approvals row, Equipment + Fee row).
 - Below those, a new **System Health + Recent Activity** row.
 - Below that, a new **Team (Colleagues) + Quick Access** row showing 10 admin
-  shortcut tiles (Programs, Departments, Faculty, Students, Enquiries, Admissions,
+  shortcut tiles (Programs, Specialities, Faculty, Students, Enquiries, Admissions,
   Documents, Fees, Users, Reports).
 
 **Status:** NOT TESTED

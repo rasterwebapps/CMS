@@ -23,7 +23,7 @@
 #   Students, faculty, agents, non-bootstrap app_users
 #   Enquiries, admissions, documents
 #   Fee structures, payments, receipts
-#   Departments, programs, courses, academic years
+#   Specialities, programs, courses, academic years
 #   Labs, equipment, inventory, maintenance
 #   Exam, attendance and result records
 #   Scholarship applications and disbursements
@@ -218,7 +218,7 @@ DECLARE
         -- Academic structure (configured fresh after go-live)
         'term_instances', 'curriculum_semester_courses', 'curriculum_versions', 'calendar_events',
         'intake_rules', 'cohorts', 'experiments', 'syllabi', 'subjects', 'program_document_types',
-        'courses', 'programs', 'labs', 'departments', 'academic_years',
+        'courses', 'programs', 'labs', 'specialities', 'academic_years',
 
         -- Number sequences (reset for live)
         'application_number_sequences'
@@ -608,7 +608,7 @@ echo ""
 echo -e "${YELLOW}  This will permanently DELETE all test data including:${NC}"
 echo "    • All students, faculty, agents and non-bootstrap user accounts"
 echo "    • All enquiries, admissions and documents"
-echo "    • All departments, programs, courses and academic years"
+echo "    • All specialities, programs, courses and academic years"
 echo "    • All fee structures, payments and receipts"
 echo "    • All labs, equipment, inventory and maintenance records"
 echo "    • All exam, attendance and result records"
@@ -661,7 +661,7 @@ if [[ $EXIT_CODE -eq 0 ]]; then
     echo ""
     echo -e "${CYAN}Next steps — complete in this order before taking admissions:${NC}"
     echo "  1.  Settings        →  Verify college name, address, email, phone"
-    echo "  2.  Departments     →  Add your college's actual departments"
+    echo "  2.  Specialities     →  Add your college's actual specialities"
     echo "  3.  Programs        →  Add offered programs (B.Sc Nursing, M.Sc, GNM…)"
     echo "  4.  Courses         →  Add specialisations under each program"
     echo "  5.  Academic Year   →  Create 2025-2026, mark it as current"

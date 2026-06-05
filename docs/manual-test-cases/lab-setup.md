@@ -6,7 +6,7 @@
 - Backend running at `http://localhost:8080`
 - Keycloak running with `cms` realm configured
 - User logged in as admin
-- At least one department exists in the system
+- At least one speciality exists in the system
 - At least one faculty member exists for staff assignment test cases
 
 ---
@@ -16,7 +16,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Click "Labs" in the sidebar navigation           |
-| **Expected**| Lab list page loads with columns: Name, Type, Department, Building, Room, Capacity, Status, Actions |
+| **Expected**| Lab list page loads with columns: Name, Type, Speciality, Building, Room, Capacity, Status, Actions |
 
 ---
 
@@ -29,12 +29,12 @@
 
 ---
 
-### TC-LAB-003: Filter Labs by Department
+### TC-LAB-003: Filter Labs by Speciality
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Select a department from the department filter dropdown |
-| **Expected**| Table filters to show only labs belonging to the selected department |
+| **Action**  | Select a speciality from the speciality filter dropdown |
+| **Expected**| Table filters to show only labs belonging to the selected speciality |
 
 ---
 
@@ -61,7 +61,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Click "Add Lab" button; submit without filling required fields |
-| **Expected**| Lab form loads with fields: Name, Lab Type, Department, Building, Room Number, Capacity, Status; validation errors shown for required fields |
+| **Expected**| Lab form loads with fields: Name, Lab Type, Speciality, Building, Room Number, Capacity, Status; validation errors shown for required fields |
 
 ---
 
@@ -69,7 +69,7 @@
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Fill in Name, select Lab Type, select Department, enter Building, Room Number, Capacity, and Status; click Create |
+| **Action**  | Fill in Name, select Lab Type, select Speciality, enter Building, Room Number, Capacity, and Status; click Create |
 | **Expected**| Snackbar shows "Created"; redirected to lab list; new entry visible |
 
 ---

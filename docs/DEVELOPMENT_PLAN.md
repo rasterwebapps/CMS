@@ -45,7 +45,7 @@ The repository currently contains **documentation only**:
 |-------|-------|-----------------|-------------|
 | **Phase 0** | Project Scaffolding | — | Runnable backend + frontend + Docker Compose |
 | **Phase 1** | Foundation & Identity | Module 1 (partial) | Keycloak SSO, secured API, authenticated SPA shell |
-| **Phase 2** | Core Academic & Lab Mapping | Modules 1, 3, 4, 7.1 | Departments, programs, labs, faculty, curriculum |
+| **Phase 2** | Core Academic & Lab Mapping | Modules 1, 3, 4, 7.1 | Specialities, programs, labs, faculty, curriculum |
 | **Phase 3** | Operational Logistics | Modules 2, 5, 7.2 | Students, scheduling, attendance |
 | **Phase 4** | Finance & Asset Management | Modules 7.3, 7.4, 8, 16 | Fees, equipment, inventory, assets |
 | **Phase 5** | Assessment & Reporting | Modules 6, 7.5–7.10, 13 | Exams, lab evaluation, analytics, accreditation |
@@ -160,36 +160,36 @@ The repository currently contains **documentation only**:
 
 ## 🧪 Phase 2: Core Academic & Lab Mapping
 
-> **Goal:** Define the institutional structure — departments, programs, academic years, labs, faculty, and curriculum.
+> **Goal:** Define the institutional structure — specialities, programs, academic years, labs, faculty, and curriculum.
 
-### Milestone 2.1 — Department Management (Module 1)
+### Milestone 2.1 — Speciality Management (Module 1)
 
 **Backend:**
-- [ ] **2.1.1** Create `Department` entity (`id`, `name`, `code`, `description`, `hodName`, `createdAt`, `updatedAt`)
-- [ ] **2.1.2** Create `DepartmentRepository` (JpaRepository)
-- [ ] **2.1.3** Create `DepartmentService` with CRUD operations
-- [ ] **2.1.4** Create `DepartmentController` — REST endpoints:
-  - `POST /api/v1/departments` — Create (ROLE_ADMIN)
-  - `GET /api/v1/departments` — List all (authenticated)
-  - `GET /api/v1/departments/{id}` — Get by ID (authenticated)
-  - `PUT /api/v1/departments/{id}` — Update (ROLE_ADMIN)
-  - `DELETE /api/v1/departments/{id}` — Delete (ROLE_ADMIN)
-- [ ] **2.1.5** Create `DepartmentRequest` and `DepartmentResponse` DTOs (Java records)
-- [ ] **2.1.6** Create Flyway migration: `V1__create_departments_table.sql`
+- [ ] **2.1.1** Create `Speciality` entity (`id`, `name`, `code`, `description`, `hodName`, `createdAt`, `updatedAt`)
+- [ ] **2.1.2** Create `SpecialityRepository` (JpaRepository)
+- [ ] **2.1.3** Create `SpecialityService` with CRUD operations
+- [ ] **2.1.4** Create `SpecialityController` — REST endpoints:
+  - `POST /api/v1/specialities` — Create (ROLE_ADMIN)
+  - `GET /api/v1/specialities` — List all (authenticated)
+  - `GET /api/v1/specialities/{id}` — Get by ID (authenticated)
+  - `PUT /api/v1/specialities/{id}` — Update (ROLE_ADMIN)
+  - `DELETE /api/v1/specialities/{id}` — Delete (ROLE_ADMIN)
+- [ ] **2.1.5** Create `SpecialityRequest` and `SpecialityResponse` DTOs (Java records)
+- [ ] **2.1.6** Create Flyway migration: `V1__create_specialities_table.sql`
 - [ ] **2.1.7** Write unit + controller tests (95% coverage)
-- [ ] **2.1.8** Create manual test cases: `docs/manual-test-cases/department-management.md`
+- [ ] **2.1.8** Create manual test cases: `docs/manual-test-cases/speciality-management.md`
 
 **Frontend:**
-- [ ] **2.1.9** Create `features/department/` folder structure
-- [ ] **2.1.10** Create `DepartmentService` (API calls)
-- [ ] **2.1.11** Create `DepartmentListComponent` — Material table with search, sort, pagination
-- [ ] **2.1.12** Create `DepartmentFormComponent` — Create/Edit form with validation
-- [ ] **2.1.13** Create department routes (lazy-loaded)
+- [ ] **2.1.9** Create `features/speciality/` folder structure
+- [ ] **2.1.10** Create `SpecialityService` (API calls)
+- [ ] **2.1.11** Create `SpecialityListComponent` — Material table with search, sort, pagination
+- [ ] **2.1.12** Create `SpecialityFormComponent` — Create/Edit form with validation
+- [ ] **2.1.13** Create speciality routes (lazy-loaded)
 
 ### Milestone 2.2 — Program & Course Management (Module 1)
 
 **Backend:**
-- [ ] **2.2.1** Create `Program` entity (`id`, `name`, `code`, `programLevel`, `durationYears`, `departments`)
+- [ ] **2.2.1** Create `Program` entity (`id`, `name`, `code`, `programLevel`, `durationYears`, `specialities`)
 - [ ] **2.2.2** Create `Course` entity (`id`, `name`, `code`, `credits`, `theoryCredits`, `labCredits`, `program`, `semester`)
 - [ ] **2.2.3** Create repositories, services, controllers for Program and Course
 - [ ] **2.2.4** Create DTOs (Java records) for Program and Course
@@ -219,7 +219,7 @@ The repository currently contains **documentation only**:
 ### Milestone 2.4 — Lab Setup & Configuration (Module 7.1)
 
 **Backend:**
-- [ ] **2.4.1** Create `Lab` entity (`id`, `name`, `labType`, `department`, `building`, `roomNumber`, `capacity`, `status`)
+- [ ] **2.4.1** Create `Lab` entity (`id`, `name`, `labType`, `speciality`, `building`, `roomNumber`, `capacity`, `status`)
 - [ ] **2.4.2** Create `LabType` enum (`COMPUTER`, `PHYSICS`, `CHEMISTRY`, `ELECTRONICS`, `BIOLOGY`, `LANGUAGE`, `MECHANICAL`, `OTHER`)
 - [ ] **2.4.3** Create `LabInChargeAssignment` entity (map faculty/technician to lab)
 - [ ] **2.4.4** Create repositories, services, controllers
@@ -235,7 +235,7 @@ The repository currently contains **documentation only**:
 
 **Frontend:**
 - [ ] **2.4.8** Create `features/lab/` folder structure
-- [ ] **2.4.9** Create `LabListComponent` — Material table with filters (by department, type, status)
+- [ ] **2.4.9** Create `LabListComponent` — Material table with filters (by speciality, type, status)
 - [ ] **2.4.10** Create `LabFormComponent` — Create/Edit form
 - [ ] **2.4.11** Create `LabDetailComponent` — Lab detail view with assigned staff
 - [ ] **2.4.12** Create lab routes (lazy-loaded)
@@ -243,7 +243,7 @@ The repository currently contains **documentation only**:
 ### Milestone 2.5 — Faculty Management (Module 3)
 
 **Backend:**
-- [ ] **2.5.1** Create `Faculty` entity (`id`, `employeeCode`, `firstName`, `lastName`, `email`, `phone`, `department`, `designation`, `specialization`, `labExpertise`, `joiningDate`)
+- [ ] **2.5.1** Create `Faculty` entity (`id`, `employeeCode`, `firstName`, `lastName`, `email`, `phone`, `speciality`, `designation`, `specialization`, `labExpertise`, `joiningDate`)
 - [ ] **2.5.2** Create repositories, services, controllers
   - CRUD endpoints under `/api/v1/faculty`
   - Lab teaching assignment endpoints
@@ -458,7 +458,7 @@ The repository currently contains **documentation only**:
   - `PATCH /api/v1/enquiries/{id}/documents/{docId}/verify` — Verify document
 - [ ] **4.1b.7** Enhance complete-admission conversion to require DOCUMENTS_VERIFIED status (BR-10)
 - [ ] **4.1b.8** Create student explorer endpoint with filters (BR-11):
-  - `GET /api/v1/students/explorer` — Search with filters (program, department, academicYear, semester, status, feeStatus, search)
+  - `GET /api/v1/students/explorer` — Search with filters (program, speciality, academicYear, semester, status, feeStatus, search)
 - [ ] **4.1b.9** Create DTOs and Flyway migrations for all new fields/tables
 - [ ] **4.1b.10** Write unit + controller tests (95% coverage)
 - [ ] **4.1b.11** Update manual test cases: `docs/manual-test-cases/enquiry-management.md`

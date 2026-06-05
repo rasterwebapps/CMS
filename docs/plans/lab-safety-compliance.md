@@ -17,7 +17,7 @@ Implement **Release 2, Milestone 1** — Lab Safety & Compliance (Module 7.8) co
 |-------|------|-------|
 | `id` | `Long` | `@GeneratedValue(IDENTITY)` |
 | `lab` | `Lab` (FK) | nullable — if null, applies globally |
-| `department` | `Department` (FK) | nullable — if null, applies globally |
+| `speciality` | `Speciality` (FK) | nullable — if null, applies globally |
 | `title` | `String` | `@NotBlank`, max 255 |
 | `description` | `String` | `@Column(columnDefinition = "TEXT")` |
 | `category` | `SafetyGuidelineCategory` (enum) | GENERAL, CHEMICAL, ELECTRICAL, BIOLOGICAL, FIRE, EQUIPMENT, PPE |
@@ -51,7 +51,7 @@ Implement **Release 2, Milestone 1** — Lab Safety & Compliance (Module 7.8) co
 - `PpeCondition`: GOOD, FAIR, POOR, NEEDS_REPLACEMENT
 
 ### 1.3 Repositories
-- `SafetyGuidelineRepository` — `findByLabId`, `findByDepartmentId`, `findByCategory`, `findByIsActiveTrue`
+- `SafetyGuidelineRepository` — `findByLabId`, `findBySpecialityId`, `findByCategory`, `findByIsActiveTrue`
 - `PpeItemRepository` — `findByLabId`, `findByAvailableQuantityLessThanMinimumRequired`, `findByCondition`
 
 ### 1.4 DTOs (Java Records)

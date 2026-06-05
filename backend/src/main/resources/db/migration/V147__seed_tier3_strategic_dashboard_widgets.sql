@@ -6,7 +6,7 @@
 --   • yoy-admissions              — current year vs last two years by month
 --   • refund-cancellation-rate    — refund and withdrawal KPI + trend
 --   • payment-mode-breakdown      — collection mix by payment mode
---   • student-faculty-ratio       — department compliance ratio
+--   • student-faculty-ratio       — speciality compliance ratio
 --   • lab-utilization-heatmap     — day × slot lab schedule density
 --   • cohort-retention            — term-wise cohort retention
 --   • top-line-kpis               — compact daily executive KPI strip

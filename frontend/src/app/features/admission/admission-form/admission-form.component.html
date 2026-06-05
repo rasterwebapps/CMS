@@ -415,33 +415,17 @@
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="field-group">
-              <label for="conv-parent-mobile" class="field-label">Primary Parent Mobile <span class="field-required">*</span></label>
-              <input
-                id="conv-parent-mobile"
-                class="field-input"
-                formControlName="parentMobile"
-                type="tel"
-                inputmode="tel"
-                [class.field-input--error]="form.get('parentMobile')?.invalid && form.get('parentMobile')?.touched"
-              />
-              @if (form.get('parentMobile')?.invalid && form.get('parentMobile')?.touched) {
-                <p class="field-error">Primary parent mobile is required</p>
-              }
-            </div>
-          </div>
-
           <h3 class="section-heading">Address</h3>
 
           <div formGroupName="address">
             <div class="form-row">
               <div class="field-group field-group--full-width">
-                <label for="conv-postal" class="field-label">Postal Address <span class="field-required">*</span></label>
+                <label for="conv-postal" class="field-label">Door No. / Flat / Building <span class="field-required">*</span></label>
                 <input
                   id="conv-postal"
                   class="field-input"
                   formControlName="postalAddress"
+                  placeholder="e.g. 12B, 3rd floor, Green Towers"
                   [class.field-input--error]="form.get('address.postalAddress')?.invalid && form.get('address.postalAddress')?.touched"
                 />
                 @if (form.get('address.postalAddress')?.invalid && form.get('address.postalAddress')?.touched) {
@@ -481,21 +465,10 @@
                 [countryRequired]="true"
                 [stateRequired]="true"
                 [districtRequired]="true"
+                [showPincode]="true"
+                defaultStateName="Tamil Nadu"
+                defaultDistrictName="Salem"
               />
-            </div>
-            <div class="form-row">
-              <div class="field-group">
-                <label for="conv-pincode" class="field-label">Pincode <span class="field-required">*</span></label>
-                <input
-                  id="conv-pincode"
-                  class="field-input"
-                  formControlName="pincode"
-                  [class.field-input--error]="form.get('address.pincode')?.invalid && form.get('address.pincode')?.touched"
-                />
-                @if (form.get('address.pincode')?.invalid && form.get('address.pincode')?.touched) {
-                  <p class="field-error">Pincode is required</p>
-                }
-              </div>
             </div>
           </div>
 

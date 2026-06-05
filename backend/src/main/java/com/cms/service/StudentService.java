@@ -111,7 +111,7 @@ public class StudentService {
         // University identification numbers
         student.setUniversityRegistrationNumber(request.universityRegistrationNumber());
         student.setUmisNumber(request.umisNumber());
-        // Course and specialization department
+        // Course and specialization speciality
         if (request.courseId() != null) {
             Course course = courseRepository.findById(request.courseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
@@ -266,7 +266,7 @@ public class StudentService {
         // University identification numbers
         student.setUniversityRegistrationNumber(request.universityRegistrationNumber());
         student.setUmisNumber(request.umisNumber());
-        // Course and specialization department
+        // Course and specialization speciality
         if (request.courseId() != null) {
             Course course = courseRepository.findById(request.courseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));

@@ -21,7 +21,7 @@ V{version}__{description}.sql
 ### Examples
 
 ```
-V1__create_departments_table.sql
+V1__create_specialities_table.sql
 V2__create_students_table.sql
 V3__add_status_to_students.sql
 V4__create_courses_table.sql
@@ -33,8 +33,8 @@ V5__add_indexes_to_students.sql
 ### Basic Table
 
 ```sql
--- V1__create_departments_table.sql
-CREATE TABLE departments (
+-- V1__create_specialities_table.sql
+CREATE TABLE specialities (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     code VARCHAR(10) NOT NULL,
@@ -42,13 +42,13 @@ CREATE TABLE departments (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
-    CONSTRAINT uq_departments_name UNIQUE (name),
-    CONSTRAINT uq_departments_code UNIQUE (code)
+    CONSTRAINT uq_specialities_name UNIQUE (name),
+    CONSTRAINT uq_specialities_code UNIQUE (code)
 );
 
 -- Add comment for documentation
-COMMENT ON TABLE departments IS 'Academic departments within the college';
-COMMENT ON COLUMN departments.code IS 'Short code for the department (e.g., CS, MATH)';
+COMMENT ON TABLE specialities IS 'Academic specialities within the college';
+COMMENT ON COLUMN specialities.code IS 'Short code for the speciality (e.g., CS, MATH)';
 ```
 
 ### Table with Foreign Key
@@ -60,21 +60,21 @@ CREATE TABLE students (
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL,
-    department_id BIGINT NOT NULL,
+    speciality_id BIGINT NOT NULL,
     enrollment_date DATE,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
     CONSTRAINT uq_students_email UNIQUE (email),
-    CONSTRAINT fk_students_department 
-        FOREIGN KEY (department_id) 
-        REFERENCES departments(id)
+    CONSTRAINT fk_students_speciality 
+        FOREIGN KEY (speciality_id) 
+        REFERENCES specialities(id)
         ON DELETE RESTRICT
 );
 
 -- Create indexes for frequently queried columns
-CREATE INDEX idx_students_department ON students(department_id);
+CREATE INDEX idx_students_speciality ON students(speciality_id);
 CREATE INDEX idx_students_email ON students(email);
 CREATE INDEX idx_students_status ON students(status);
 
@@ -160,7 +160,7 @@ CREATE INDEX idx_students_last_name ON students(last_name);
 CREATE INDEX idx_students_name ON students(last_name, first_name);
 
 -- Partial index (for active records only)
-CREATE INDEX idx_active_students ON students(department_id)
+CREATE INDEX idx_active_students ON students(speciality_id)
     WHERE status = 'ACTIVE';
 
 -- Index for text search
@@ -200,13 +200,13 @@ ALTER TYPE student_status ADD VALUE 'TRANSFERRED';
 ### Insert Reference Data
 
 ```sql
--- V15__seed_departments.sql
-INSERT INTO departments (name, code, description) VALUES
+-- V15__seed_specialities.sql
+INSERT INTO specialities (name, code, description) VALUES
     ('Computer Science', 'CS', 'Computer Science and Engineering'),
-    ('Mathematics', 'MATH', 'Mathematics Department'),
-    ('Physics', 'PHY', 'Physics Department'),
-    ('Chemistry', 'CHEM', 'Chemistry Department'),
-    ('Biology', 'BIO', 'Biology Department')
+    ('Mathematics', 'MATH', 'Mathematics Speciality'),
+    ('Physics', 'PHY', 'Physics Speciality'),
+    ('Chemistry', 'CHEM', 'Chemistry Speciality'),
+    ('Biology', 'BIO', 'Biology Speciality')
 ON CONFLICT (code) DO NOTHING;
 ```
 
@@ -258,9 +258,9 @@ ALTER TABLE students
 
 -- Foreign key constraint
 ALTER TABLE courses
-    ADD CONSTRAINT fk_courses_department
-    FOREIGN KEY (department_id)
-    REFERENCES departments(id);
+    ADD CONSTRAINT fk_courses_speciality
+    FOREIGN KEY (speciality_id)
+    REFERENCES specialities(id);
 ```
 
 ### Drop Constraint
@@ -283,17 +283,17 @@ SELECT
     s.first_name,
     s.last_name,
     s.email,
-    d.name AS department_name,
-    d.code AS department_code,
+    d.name AS speciality_name,
+    d.code AS speciality_code,
     s.status,
     s.enrollment_date,
     COUNT(ce.id) AS enrolled_courses
 FROM students s
-JOIN departments d ON s.department_id = d.id
+JOIN specialities d ON s.speciality_id = d.id
 LEFT JOIN course_enrollments ce ON s.id = ce.student_id
 GROUP BY s.id, d.id;
 
-COMMENT ON VIEW student_summary IS 'Summary view of students with department and enrollment count';
+COMMENT ON VIEW student_summary IS 'Summary view of students with speciality and enrollment count';
 ```
 
 ## Stored Functions
@@ -314,8 +314,8 @@ CREATE TRIGGER trg_students_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at();
 
-CREATE TRIGGER trg_departments_updated_at
-    BEFORE UPDATE ON departments
+CREATE TRIGGER trg_specialities_updated_at
+    BEFORE UPDATE ON specialities
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at();
 ```

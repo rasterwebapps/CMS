@@ -6,7 +6,7 @@
 - Backend running at `http://localhost:8080`
 - Keycloak running with `cms` realm configured
 - User logged in as admin
-- At least one department exists in the system
+- At least one speciality exists in the system
 - At least one program exists for course test cases
 
 ---
@@ -18,7 +18,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Click "Programs" in the sidebar navigation       |
-| **Expected**| Program list page loads with columns: Code, Name, Program Level, Duration (Years), Departments, Actions |
+| **Expected**| Program list page loads with columns: Code, Name, Program Level, Duration (Years), Specialities, Actions |
 
 ---
 
@@ -36,7 +36,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Click "Add Program" button                       |
-| **Expected**| Program form loads with title "Add Program"; Departments multi-select populated |
+| **Expected**| Program form loads with title "Add Program"; Specialities multi-select populated |
 
 ---
 
@@ -45,7 +45,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Submit the form without filling required fields  |
-| **Expected**| Validation errors shown for Name, Code, Program Level, Duration Years, and Departments fields |
+| **Expected**| Validation errors shown for Name, Code, Program Level, Duration Years, and Specialities fields |
 
 ---
 
@@ -53,7 +53,7 @@
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Fill in Name, Code, select Program Level, enter Duration Years (1-10), select Departments; click Create |
+| **Action**  | Fill in Name, Code, select Program Level, enter Duration Years (1-10), select Specialities; click Create |
 | **Expected**| Snackbar shows "Created"; redirected to program list; new entry visible with correct program level and duration |
 
 ---
@@ -63,7 +63,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Click the edit icon on a program row             |
-| **Expected**| Form loads with title "Edit Program"; all fields pre-populated including programLevel, durationYears, and selected departments |
+| **Expected**| Form loads with title "Edit Program"; all fields pre-populated including programLevel, durationYears, and selected specialities |
 
 ---
 

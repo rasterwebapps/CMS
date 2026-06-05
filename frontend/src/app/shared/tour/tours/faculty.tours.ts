@@ -6,7 +6,7 @@ export const FACULTY_LIST_TOUR: TourDefinition = {
       popover: {
         title: '👋 Welcome to Faculty',
         description:
-          'This screen lets you manage faculty members, designations, and department assignments. Quick walkthrough of the controls.',
+          'This screen lets you manage faculty members, designations, and speciality assignments. Quick walkthrough of the controls.',
         side: 'over',
         align: 'center',
       },
@@ -26,7 +26,7 @@ export const FACULTY_LIST_TOUR: TourDefinition = {
       popover: {
         title: 'Add a Faculty Member',
         description:
-          'Click here to register a new faculty member with employee code, contact info, department, designation, and joining date.',
+          'Click here to register a new faculty member with employee code, contact info, speciality, designation, and joining date.',
         side: 'bottom',
         align: 'end',
       },
@@ -34,9 +34,9 @@ export const FACULTY_LIST_TOUR: TourDefinition = {
     {
       element: '#tour-fac-filters',
       popover: {
-        title: 'Filter by Department & Status',
+        title: 'Filter by Speciality & Status',
         description:
-          'Narrow the list by <strong>Department</strong> or <strong>Status</strong> (Active, On Leave, etc.).',
+          'Narrow the list by <strong>Speciality</strong> or <strong>Status</strong> (Active, On Leave, etc.).',
         side: 'bottom',
         align: 'start',
       },
@@ -46,7 +46,7 @@ export const FACULTY_LIST_TOUR: TourDefinition = {
       popover: {
         title: 'Search Faculty',
         description:
-          'Quickly filter by name, employee code, email, or department.',
+          'Quickly filter by name, employee code, email, or speciality.',
         side: 'bottom',
         align: 'start',
       },
@@ -66,7 +66,7 @@ export const FACULTY_LIST_TOUR: TourDefinition = {
       popover: {
         title: 'Faculty Cards',
         description:
-          'Each card shows the employee code, full name, designation, department badge, and current status. Click a card to view full details.',
+          'Each card shows the employee code, full name, designation, speciality badge, and current status. Click a card to view full details.',
         side: 'top',
         align: 'start',
       },
@@ -147,9 +147,9 @@ export const FACULTY_FORM_TOUR: TourDefinition = {
     {
       element: '#fac-dept',
       popover: {
-        title: 'Department',
+        title: 'Speciality',
         description:
-          'Assign the faculty member to a department. Required.',
+          'Assign the faculty member to a speciality. Required.',
         side: 'bottom',
         align: 'start',
       },

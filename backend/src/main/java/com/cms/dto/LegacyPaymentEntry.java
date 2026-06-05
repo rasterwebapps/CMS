@@ -11,8 +11,6 @@ import jakarta.validation.constraints.Positive;
 
 @TransactionReferenceRequired
 public record LegacyPaymentEntry(
-    @NotNull Integer yearNumber,
-    @NotNull Integer semesterSequence,
     @NotNull LocalDate paymentDate,
     @NotNull @Positive BigDecimal amount,
     @NotNull PaymentMode paymentMode,

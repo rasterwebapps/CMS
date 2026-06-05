@@ -107,7 +107,7 @@ Column headers **must mirror** the alignment of the data below them. Right-align
 .mat-column-studentName,
 .mat-column-programName,
 .mat-column-courseName,
-.mat-column-departmentName,
+.mat-column-specialityName,
 .mat-column-description
 ```
 
