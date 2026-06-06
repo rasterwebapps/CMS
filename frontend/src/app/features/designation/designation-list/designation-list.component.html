@@ -7,14 +7,6 @@
         <h1 class="dept-pg-title">Faculty <em>Designations</em></h1>
       </div>
       <p class="dept-pg-sub">Manage designation titles used across faculty profiles</p>
-      @if (!loading()) {
-        <div class="dept-pg-meta">
-          <span class="dept-pg-stat">
-            <span class="dept-stat-dot dept-stat-dot--green"></span>
-            {{ totalCount() }} Designations
-          </span>
-        </div>
-      }
     </div>
     <div class="dept-pg-actions">
       <button class="btn-primary" routerLink="/designations/new" aria-label="Add new designation">

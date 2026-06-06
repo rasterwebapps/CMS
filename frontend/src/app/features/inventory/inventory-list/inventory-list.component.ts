@@ -12,17 +12,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { InventoryService } from '../inventory.service';
 import { InventoryItem } from '../inventory.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
-import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-inventory-list',
   standalone: true,
   imports: [
-    PageHeaderComponent,
-    CmsTourButtonComponent,
     CmsEmptyStateComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],

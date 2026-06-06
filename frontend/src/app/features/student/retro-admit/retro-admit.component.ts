@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, DestroyRef, inject, OnDestroy, OnInit, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -9,7 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
-import { environment } from '../../../../environments/environment';
+import { environment } from '../../../../environments';
 import { ProgramService } from '../../program/program.service';
 import { Program } from '../../program/program.model';
 import { CourseService } from '../../course/course.service';
@@ -44,6 +44,16 @@ interface RetroAdmitResponse {
   totalHistoricalPaid: number;
 }
 
+const RETRO_STEPS = [
+  { label: 'Admission Context', description: 'Program, dates, quota and fee state' },
+  { label: 'Student Details', description: 'Identity, demographics and profile' },
+  { label: 'Family & Address', description: 'Parent contacts and address details' },
+  { label: 'Consent & Declaration', description: 'Required consent confirmations' },
+  { label: 'Referral', description: 'Referral source and commission details' },
+  { label: 'Fee Structure', description: 'Year-wise fees and adjustments' },
+  { label: 'Payment History', description: 'Historical collections and receipts' },
+] as const;
+
 @Component({
   selector: 'app-retro-admit',
   standalone: true,
@@ -55,7 +65,7 @@ interface RetroAdmitResponse {
   templateUrl: './retro-admit.component.html',
   styleUrl: './retro-admit.component.scss',
 })
-export class RetroAdmitComponent implements OnInit {
+export class RetroAdmitComponent implements OnInit, OnDestroy {
 
   private readonly fb              = inject(FormBuilder);
   private readonly router          = inject(Router);
@@ -92,6 +102,20 @@ export class RetroAdmitComponent implements OnInit {
   protected readonly referralCategory = signal<'AGENT' | 'STUDENT' | 'ALUMNI' | 'FACULTY' | 'NONE'>('NONE');
   protected readonly agentSearchTerm  = signal('');
   protected readonly agentSearchOpen  = signal(false);
+
+  protected readonly steps = RETRO_STEPS;
+  protected readonly currentStep = signal(0);
+  protected readonly completedCount = computed(() => this.currentStep());
+
+  protected readonly isStepComplete = computed(() => {
+    const cur = this.currentStep();
+    return (i: number) => i < cur;
+  });
+
+  // ── Scroll-spy ────────────────────────────────────────────────────────────
+  private scrollContainer: Element | null = null;
+  private scrollHandler: (() => void) | null = null;
+  private rafId: number | null = null;
 
   protected readonly selectedProgram = signal<Program | null>(null);
   protected readonly isYearly        = computed(() => this.selectedProgram()?.assessmentPattern === 'YEARLY');
@@ -223,6 +247,7 @@ export class RetroAdmitComponent implements OnInit {
         this.feeStates.set(feeStates);
         this.enforceCounsellingState(feeStates, this.form.get('admissionQuota')?.value);
         this.loading.set(false);
+        setTimeout(() => this.setupScrollSpy(), 100);
       },
       error: () => this.loading.set(false),
     });
@@ -630,7 +655,61 @@ export class RetroAdmitComponent implements OnInit {
     this.router.navigate(['/students', studentId]);
   }
 
-  protected yearOptions(): number[] {
-    return Array.from({ length: this.yearCount() }, (_, i) => i + 1);
+
+  protected scrollToSection(index: number): void {
+    const section = document.getElementById(`retro-section-${index}`);
+    const container = this.scrollContainer ?? document.querySelector('main.app-content');
+    if (!section || !container) { this.currentStep.set(index); return; }
+
+    const containerRect = container.getBoundingClientRect();
+    const sectionRect   = section.getBoundingClientRect();
+    const targetTop     = container.scrollTop + (sectionRect.top - containerRect.top) - 16;
+    container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+    this.currentStep.set(index);
+  }
+
+  private setupScrollSpy(): void {
+    this.scrollContainer = document.querySelector('main.app-content');
+    if (!this.scrollContainer) return;
+
+    this.updateActiveSection();
+
+    const onScroll = () => {
+      if (this.rafId !== null) return;
+      this.rafId = requestAnimationFrame(() => {
+        this.rafId = null;
+        this.updateActiveSection();
+      });
+    };
+
+    this.scrollHandler = onScroll;
+    this.scrollContainer.addEventListener('scroll', onScroll, { passive: true });
+  }
+
+  private updateActiveSection(): void {
+    const container = this.scrollContainer;
+    if (!container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const triggerY      = containerRect.top + containerRect.height * 0.75;
+
+    let active = 0;
+    for (let i = 0; i < this.steps.length; i++) {
+      const el = document.getElementById(`retro-section-${i}`);
+      if (!el) continue;
+      if (el.getBoundingClientRect().top <= triggerY) {
+        active = i;
+      } else {
+        break;
+      }
+    }
+    this.currentStep.set(active);
+  }
+
+  ngOnDestroy(): void {
+    if (this.scrollContainer && this.scrollHandler) {
+      this.scrollContainer.removeEventListener('scroll', this.scrollHandler);
+    }
+    if (this.rafId !== null) cancelAnimationFrame(this.rafId);
   }
 }

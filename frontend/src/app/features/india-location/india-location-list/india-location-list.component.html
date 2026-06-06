@@ -5,22 +5,6 @@
     <div class="mlp-hdr-left">
       <h1 class="mlp-title">Location <em>Master</em></h1>
       <p class="mlp-sub">Manage countries, states / UTs and their districts</p>
-      @if (!loading()) {
-        <div class="mlp-meta">
-          <span class="mlp-stat">
-            <span class="mlp-stat-dot mlp-stat-dot--purple"></span>
-            {{ countryCount() }} {{ countryCount() === 1 ? 'Country' : 'Countries' }}
-          </span>
-          <span class="mlp-stat">
-            <span class="mlp-stat-dot mlp-stat-dot--blue"></span>
-            {{ totalCount() }} States / UTs
-          </span>
-          <span class="mlp-stat">
-            <span class="mlp-stat-dot mlp-stat-dot--green"></span>
-            {{ activeCount() }} Active
-          </span>
-        </div>
-      }
     </div>
     @if (canManage()) {
       <div style="display:flex; gap:8px; flex-wrap:wrap;">

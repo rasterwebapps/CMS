@@ -6,7 +6,7 @@
 .docv-page {
   height: 100%; // fills main.app-content (the flex scroll container in the shell)
   overflow: hidden;
-  padding: 20px var(--cms-page-padding) 0;
+  padding: 16px var(--cms-page-padding) 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -45,59 +45,6 @@
   margin: 4px 0 0;
   font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
-}
-
-// ── Stat cluster ──────────────────────────────────────────────────────────
-.stat-cluster {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  background: var(--cms-bg-card);
-  border: 1px solid var(--cms-border-default);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: var(--cms-shadow-sm);
-  flex-shrink: 0;
-}
-
-.stat-chip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 8px 20px;
-  gap: 1px;
-  position: relative;
-
-  &__num {
-    font-family: var(--cms-font-mono);
-    font-size: 1.25rem;
-    font-weight: 700;
-    line-height: 1;
-    color: var(--cms-text-primary);
-    font-variant-numeric: tabular-nums;
-  }
-
-  &__lbl {
-    font-size: var(--cms-text-xs);
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--cms-text-muted);
-    font-family: var(--cms-font-ui);
-    white-space: nowrap;
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-  }
-
-  &--amber {
-    &::before { background: #f59e0b; }
-    .stat-chip__num { color: #d97706; }
-  }
 }
 
 // ── Toolbar ───────────────────────────────────────────────────────────────

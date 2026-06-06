@@ -1,5 +1,4 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +16,7 @@ type PortalTab = 'active' | 'history' | 'search';
 @Component({
   selector: 'app-library-my-issues',
   standalone: true,
-  imports: [RouterLink, DatePipe, MatIconModule, FormsModule],
+  imports: [DatePipe, MatIconModule, FormsModule],
   templateUrl: './library-my-issues.component.html',
   styleUrl:    './library-my-issues.component.scss',
 })

@@ -5,18 +5,6 @@
     <div class="mlp-hdr-left">
       <h1 class="mlp-title">Blood Group <em>Master</em></h1>
       <p class="mlp-sub">Manage blood group types used in student demographics</p>
-      @if (!loading()) {
-        <div class="mlp-meta">
-          <span class="mlp-stat">
-            <span class="mlp-stat-dot mlp-stat-dot--blue"></span>
-            {{ totalCount() }} Total
-          </span>
-          <span class="mlp-stat">
-            <span class="mlp-stat-dot mlp-stat-dot--green"></span>
-            {{ activeCount() }} Active
-          </span>
-        </div>
-      }
     </div>
     @if (canManage()) {
       <button class="btn-primary" routerLink="/blood-groups/new" aria-label="Add new blood group">

@@ -8,14 +8,6 @@
         <cms-tour-button tourKey="admission-completion-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="adcomp-sub">Candidates with documents verified — ready to be admitted as active students</p>
-      @if (!loading()) {
-        <div class="adcomp-meta">
-          <span class="adcomp-stat">
-            <span class="adcomp-stat-dot adcomp-stat-dot--indigo"></span>
-            {{ totalCount() }} Pending
-          </span>
-        </div>
-      }
     </div>
   </div>
 

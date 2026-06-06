@@ -5,22 +5,6 @@
     <div class="um-hdr-left">
       <h1 class="um-title">User <em>Management</em></h1>
       <p class="um-sub">Create and manage system user accounts and role assignments.</p>
-      <div class="um-meta">
-        <span class="um-stat">
-          <span class="um-stat-dot um-stat-dot--blue"></span>
-          {{ users().length }} Total Users
-        </span>
-        <span class="um-stat">
-          <span class="um-stat-dot um-stat-dot--green"></span>
-          {{ users().filter(u => u.isActive).length }} Active
-        </span>
-        @if (users().filter(u => !u.isActive).length > 0) {
-          <span class="um-stat">
-            <span class="um-stat-dot um-stat-dot--amber"></span>
-            {{ users().filter(u => !u.isActive).length }} Inactive
-          </span>
-        }
-      </div>
     </div>
     @if (canCreate()) {
       <button class="btn-primary" (click)="openCreate()">

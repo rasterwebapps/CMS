@@ -9,7 +9,7 @@
   height: 100%; // fills main.app-content (the flex scroll container in the shell)
   min-height: 0;
   overflow: hidden;
-  padding: 20px var(--cms-page-padding) 12px;
+  padding: 16px var(--cms-page-padding) 12px;
   gap: 8px;
   box-sizing: border-box;
 
@@ -173,7 +173,7 @@
 .payment-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
-  gap: 20px;
+  gap: 16px;
   align-items: start;
 }
 

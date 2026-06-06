@@ -33,7 +33,7 @@
       <div class="hero-stats-strip">
         @for (stat of data()!.quickStats; track stat.label; let i = $index; let last = $last) {
           <div class="hero-stat">
-            <span class="hero-stat__val">{{ animatedStats()[i] ?? stat.value }}</span>
+            <span class="hero-stat__val">{{ animatedStats()[i] }}</span>
             <span class="hero-stat__label">{{ stat.label }}</span>
           </div>
           @if (!last) { <div class="hero-stat-div"></div> }

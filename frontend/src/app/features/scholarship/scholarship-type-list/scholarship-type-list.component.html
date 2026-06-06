@@ -3,11 +3,6 @@
     <div class="mlp-hdr-left">
       <h1 class="mlp-title">Scholarship <em>Types</em></h1>
       <p class="mlp-sub">Manage scholarship master schemes, discount rules and renewal settings.</p>
-      @if (!loading()) {
-        <div class="mlp-meta">
-          <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--blue"></span>{{ scholarships().length }} Total</span>
-        </div>
-      }
     </div>
     <button class="btn-primary" routerLink="/scholarships/new"><mat-icon>add</mat-icon> Add Scholarship</button>
   </div>

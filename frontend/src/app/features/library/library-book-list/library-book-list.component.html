@@ -4,11 +4,6 @@
     <div class="mlp-hdr-left">
       <h1 class="mlp-title">Book <em>Catalogue</em></h1>
       <p class="mlp-sub">Accession Register — complete inventory of library books</p>
-      <div class="mlp-meta">
-        <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--blue"></span>{{ totalCount() }} total</span>
-        <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--green"></span>{{ availableCount() }} available</span>
-        <span class="mlp-stat"><span class="mlp-stat-dot mlp-stat-dot--orange"></span>{{ issuedCount() }} issued</span>
-      </div>
     </div>
     <div class="header-actions">
       @if (canManage()) {

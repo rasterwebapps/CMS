@@ -68,7 +68,7 @@
             <select id="studentId" formControlName="studentId" class="form-select">
               <option [value]="null">— Select Student —</option>
               @for (s of students(); track s.id) {
-                <option [value]="s.id">{{ s.firstName }} {{ s.lastName }} ({{ s.rollNumber ?? s.admissionNumber }})</option>
+                <option [value]="s.id">{{ s.firstName }} {{ s.lastName }} ({{ s.rollNumber }})</option>
               }
             </select>
           </div>

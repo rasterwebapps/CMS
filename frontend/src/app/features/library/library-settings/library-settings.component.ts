@@ -1,5 +1,4 @@
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,7 +9,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 @Component({
   selector: 'app-library-settings',
   standalone: true,
-  imports: [RouterLink, ReactiveFormsModule, MatIconModule],
+  imports: [ReactiveFormsModule, MatIconModule],
   templateUrl: './library-settings.component.html',
   styleUrl:    './library-settings.component.scss',
 })

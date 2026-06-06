@@ -324,6 +324,24 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 | Use `<cms-empty-state>` — never raw empty-state markup | Consistent empty state presentation across all screens |
 | **Never** use focus mode on list screens | Focus mode was removed system-wide; all screens use the regular `mlp-page` layout |
 | View toggle must always be the **last item** in `mlp-toolbar` | `CmsViewToggleComponent` has `:host { margin-left: auto }` which pushes it to the right edge automatically |
+| **Page container padding must use `var(--cms-page-padding)`** | All page containers (`.list-page`, `.detail-page`, `.entry-form-page`) use `padding: 24px var(--cms-page-padding)`. The token is defined as `16px` in `styles.scss`. Never hardcode `32px` or any fixed value for outer page padding. |
+
+---
+
+### 2.5.5 Multi-Section Entry Form Pattern
+
+Forms with 4+ sections (e.g., Enquiry Entry, Enquiry Convert, Retro Admit) use a **stepper sidebar + scroll detection** pattern — never step-gated conditional rendering.
+
+**Rules:**
+- All sections are always rendered; sections are never hidden behind `@if (currentStep === X)`.
+- The scrollable container is `.conv-main` with `overflow-y: auto` and a calculated `max-height`.
+- Each section is wrapped in `.section-wrapper` with a `[data-section]` index attribute.
+- Scroll detection (`onScroll()`) calculates visibility % of each section and sets `currentEnqStep` to the most visible one.
+- Sidebar step items call `scrollToSection(index)` to smoothly scroll the container to the target section.
+- The stepper sidebar is hidden on tablet/mobile (`≤900px`); the form remains fully scrollable without it.
+- A sticky footer (`.entry-form-sticky-footer`) always holds Save/Cancel.
+
+**Do not** bring back the old Next/Back step navigation or hide/show sections by step index.
 
 ---
 

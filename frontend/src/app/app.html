@@ -166,7 +166,7 @@
                      [class.active-link]="isNavItemActive(item)">
                     <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
                     <span matListItemTitle>{{ item.label }}</span>
-                    @if ((navBadgeCounts()[item.route] ?? 0) > 0) {
+                    @if (navBadgeCounts()[item.route] > 0) {
                       <span matListItemMeta class="nav-enquiry-badge">{{ navBadgeCounts()[item.route] }}</span>
                     }
                   </a>
@@ -241,7 +241,7 @@
                    [class.active-link]="isNavItemActive(item)">
                   <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
                   <span matListItemTitle>{{ item.label }}</span>
-                  @if ((navBadgeCounts()[item.route] ?? 0) > 0) {
+                  @if (navBadgeCounts()[item.route] > 0) {
                     <span matListItemMeta class="nav-enquiry-badge">{{ navBadgeCounts()[item.route] }}</span>
                   }
                 </a>

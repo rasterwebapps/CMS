@@ -6,7 +6,7 @@
 .docvd-page {
   height: 100%; // fills main.app-content — it has overflow-y: auto, so detail scrolls naturally
   overflow-y: auto;
-  padding: 20px var(--cms-page-padding) 40px;
+  padding: 16px var(--cms-page-padding) 40px;
   display: flex;
   flex-direction: column;
   gap: 16px;

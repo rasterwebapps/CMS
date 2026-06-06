@@ -8,18 +8,6 @@
         <cms-tour-button tourKey="student-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="stu-sub">View and manage enrolled students across all programs</p>
-      @if (!loading()) {
-        <div class="stu-meta">
-          <span class="stu-stat">
-            <span class="stu-stat-dot stu-stat-dot--blue"></span>
-            {{ totalCount() }} Total
-          </span>
-          <span class="stu-stat">
-            <span class="stu-stat-dot stu-stat-dot--green"></span>
-            {{ activeCount() }} Active
-          </span>
-        </div>
-      }
     </div>
     <button id="tour-stu-add-btn" class="btn-primary" routerLink="/students/new" aria-label="Add new student">
       <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"

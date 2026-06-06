@@ -1,7 +1,6 @@
 import { Component, Input, OnInit, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
-import { InrPipe } from '../../../../shared/pipes/inr.pipe';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import type { ApexNonAxisChartSeries, ApexChart, ApexTooltip,
               ApexLegend, ApexPlotOptions, ApexDataLabels } from 'ng-apexcharts';
@@ -19,7 +18,7 @@ const PALETTE = ['#A78BFA', '#22C55E', '#38BDF8', '#F59E0B', '#EC4899', '#06B6D4
 @Component({
   selector: 'dash-widget-program-revenue-mix',
   standalone: true,
-  imports: [MatIconModule, InrPipe, NgApexchartsModule],
+  imports: [MatIconModule, NgApexchartsModule],
   templateUrl: './program-revenue-mix-widget.component.html',
   styleUrl:    './program-revenue-mix-widget.component.scss',
 })

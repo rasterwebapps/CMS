@@ -12,10 +12,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { CurriculumService } from '../curriculum.service';
 import { Syllabus } from '../curriculum.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
-import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { SYLLABUS_LIST_TOUR } from '../../../shared/tour/tours/syllabus.tours';
 
@@ -23,7 +21,6 @@ import { SYLLABUS_LIST_TOUR } from '../../../shared/tour/tours/syllabus.tours';
   selector: 'app-syllabus-list',
   standalone: true,
   imports: [
-    PageHeaderComponent,
     RouterLink,
     FormsModule,
     MatTableModule,
@@ -34,8 +31,7 @@ import { SYLLABUS_LIST_TOUR } from '../../../shared/tour/tours/syllabus.tours';
     MatProgressSpinnerModule,
     MatDialogModule,
     MatTooltipModule,
-    CmsEmptyStateComponent,
-    CmsTourButtonComponent],
+    CmsEmptyStateComponent],
   templateUrl: './syllabus-list.component.html',
   styleUrl: './syllabus-list.component.scss',
 })

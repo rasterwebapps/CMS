@@ -5,18 +5,6 @@
     <div class="mlp-hdr-left">
       <h1 class="mlp-title">Fee <em>Receipts</em></h1>
       <p class="mlp-sub">All payment receipts — student fee installments and pre-enrollment collections.</p>
-      @if (!loading()) {
-        <div class="mlp-meta">
-          <span class="mlp-stat">
-            <span class="mlp-stat-dot mlp-stat-dot--blue"></span>
-            {{ filteredCount() }} @if (filteredCount() < totalCount()) { of {{ totalCount() }} } receipt{{ filteredCount() === 1 ? '' : 's' }}
-          </span>
-          <span class="mlp-stat">
-            <span class="mlp-stat-dot mlp-stat-dot--green"></span>
-            {{ totalAmount() | inr }} collected
-          </span>
-        </div>
-      }
     </div>
   </div>
 

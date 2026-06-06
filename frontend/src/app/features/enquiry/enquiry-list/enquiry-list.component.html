@@ -8,26 +8,6 @@
         <cms-tour-button tourKey="enquiry-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="enq-pg-sub">Track and manage prospective student enquiries</p>
-      @if (!loading()) {
-        <div class="enq-pg-meta">
-          <span class="enq-pg-stat">
-            <span class="enq-stat-dot enq-stat-dot--blue"></span>
-            {{ totalCount() }} Total
-          </span>
-          <span class="enq-pg-stat">
-            <span class="enq-stat-dot enq-stat-dot--amber"></span>
-            {{ pipelineCount() }} Pipeline
-          </span>
-          <span class="enq-pg-stat">
-            <span class="enq-stat-dot enq-stat-dot--violet"></span>
-            {{ interestedCount() }} Interested
-          </span>
-          <span class="enq-pg-stat">
-            <span class="enq-stat-dot enq-stat-dot--green"></span>
-            {{ admittedCount() }} Admitted
-          </span>
-        </div>
-      }
     </div>
     <div class="enq-pg-actions">
       <button class="btn-export" (click)="exportCsv()" matTooltip="Export to CSV" aria-label="Export CSV">

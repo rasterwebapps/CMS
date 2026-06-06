@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -13,7 +13,6 @@ import { AgentService } from '../../agent/agent.service';
 import { ReferralType } from '../../referral-type/referral-type.model';
 import { ReferralTypeService } from '../../referral-type/referral-type.service';
 import { environment } from '../../../../environments';
-import { LayoutService } from '../../../core/layout/layout.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -57,10 +56,10 @@ interface FeeState {
   sortOrder: number;
 }
 const ENQ_STEPS = [
-  { label: 'Personal'  },
-  { label: 'Location'  },
-  { label: 'Academic'  },
-  { label: 'Details'   },
+  { label: 'Personal Details', description: 'Name, contact and date of birth' },
+  { label: 'Location', description: 'Country, state and district details' },
+  { label: 'Academic Interest', description: 'Program, course, quota and type' },
+  { label: 'Enquiry Details', description: 'Referral source and remarks' },
 ] as const;
 
 const ENQ_STEP_FIELDS: Record<number, string[]> = {
@@ -82,7 +81,10 @@ const ENQ_STEP_FIELDS: Record<number, string[]> = {
   templateUrl: './enquiry-form.component.html',
   styleUrl: './enquiry-form.component.scss',
 })
-export class EnquiryFormComponent implements OnInit {
+export class EnquiryFormComponent implements OnInit, OnDestroy {
+  private scrollListener: (() => void) | null = null;
+  private scrollContainer: Element | null = null;
+  private rafId: number | null = null;
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -91,7 +93,6 @@ export class EnquiryFormComponent implements OnInit {
   private readonly referralTypeService = inject(ReferralTypeService);
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
-  protected readonly layoutService = inject(LayoutService);
   private readonly tourService = inject(TourService);
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -105,6 +106,7 @@ export class EnquiryFormComponent implements OnInit {
     const cur = this.currentEnqStep();
     return (i: number) => i < cur;
   });
+
 
   protected goToNextEnq(): void {
     const step   = this.currentEnqStep();
@@ -133,6 +135,40 @@ export class EnquiryFormComponent implements OnInit {
     this.currentEnqStep.update(s => Math.max(s - 1, 0));
     document.querySelector('main.app-content')?.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  protected scrollToSection(sectionIndex: number): void {
+    const section = document.querySelector(`[data-section="${sectionIndex}"]`) as HTMLElement;
+    if (!section) return;
+    const container = this.scrollContainer ?? document.querySelector('main.app-content');
+    if (!container) { section.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+
+    const containerRect = container.getBoundingClientRect();
+    const sectionRect   = section.getBoundingClientRect();
+    const targetTop     = container.scrollTop + (sectionRect.top - containerRect.top) - 16;
+    container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+    this.currentEnqStep.set(sectionIndex);
+  }
+
+  protected onScroll(): void {
+    const container = this.scrollContainer;
+    if (!container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const triggerY      = containerRect.top + containerRect.height * 0.75;
+
+    const sections = Array.from(document.querySelectorAll('.section-wrapper')) as HTMLElement[];
+    let activeSection = 0;
+    for (let i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top <= triggerY) {
+        activeSection = i;
+      } else {
+        break;
+      }
+    }
+
+    this.currentEnqStep.set(activeSection);
+  }
+
   protected readonly pageTitle = signal('Add Enquiry');
   protected readonly programs = signal<ProgramInfo[]>([]);
   protected readonly courses = signal<CourseInfo[]>([]);
@@ -238,8 +274,27 @@ export class EnquiryFormComponent implements OnInit {
     this.form.patchValue({ studentType: type });
     this.onStudentTypeChange();
   }
+  ngOnDestroy(): void {
+    if (this.scrollContainer && this.scrollListener) {
+      this.scrollContainer.removeEventListener('scroll', this.scrollListener);
+    }
+    if (this.rafId !== null) cancelAnimationFrame(this.rafId);
+    this.scrollListener = null;
+  }
+
   ngOnInit(): void {
     this.tourService.register('enquiry-form', ENQUIRY_FORM_TOUR);
+
+    this.scrollContainer = document.querySelector('main.app-content');
+    const onScroll = () => {
+      if (this.rafId !== null) return;
+      this.rafId = requestAnimationFrame(() => {
+        this.rafId = null;
+        this.onScroll();
+      });
+    };
+    this.scrollListener = onScroll;
+    this.scrollContainer?.addEventListener('scroll', onScroll, { passive: true });
 
     // Re-compute fee whenever the address state changes
     this.form.get('state')?.valueChanges.subscribe(() => this.tryLoadFeeGuideline());

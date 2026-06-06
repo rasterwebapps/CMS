@@ -4,14 +4,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { KeyValuePipe } from '@angular/common';
 import { ReportsService } from '../reports.service';
 import { LabUtilizationReport, AttendanceAnalyticsReport } from '../reports.model';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-reports-dashboard',
   standalone: true,
   imports: [
-    PageHeaderComponent,
     KeyValuePipe,
     MatIconModule,
     MatProgressSpinnerModule],

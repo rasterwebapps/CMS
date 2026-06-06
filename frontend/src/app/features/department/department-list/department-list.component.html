@@ -8,18 +8,6 @@
         <cms-tour-button tourKey="dept-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="dept-pg-sub">Manage specialities and their heads across the college</p>
-      @if (!loading()) {
-        <div class="dept-pg-meta">
-          <span class="dept-pg-stat">
-            <span class="dept-stat-dot dept-stat-dot--green"></span>
-            {{ deptCount() }} Specialities
-          </span>
-          <span class="dept-pg-stat">
-            <span class="dept-stat-dot dept-stat-dot--accent"></span>
-            {{ headsAssigned() }} Heads Assigned
-          </span>
-        </div>
-      }
     </div>
     <div class="dept-pg-actions">
       <button id="tour-dept-add-btn" class="btn-primary" routerLink="/specialities/new" aria-label="Add new speciality">

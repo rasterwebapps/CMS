@@ -12,9 +12,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MaintenanceService } from '../maintenance.service';
 import { MaintenanceRequest } from '../maintenance.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
-import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -22,8 +20,6 @@ import { ToastService } from '../../../core/toast/toast.service';
   selector: 'app-maintenance-list',
   standalone: true,
   imports: [
-    PageHeaderComponent,
-    CmsTourButtonComponent,
     CmsEmptyStateComponent,
     CmsStatusBadgeComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,

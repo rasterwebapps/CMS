@@ -8,20 +8,6 @@
         <cms-tour-button tourKey="roll-number-assignment" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="rna-sub">Assign roll numbers to students who are yet to receive one</p>
-      @if (!loading()) {
-        <div class="rna-meta">
-          <span class="rna-stat">
-            <span class="rna-stat-dot rna-stat-dot--amber"></span>
-            {{ totalCount() }} Pending
-          </span>
-          @if (filledCount() > 0) {
-            <span class="rna-stat">
-              <span class="rna-stat-dot rna-stat-dot--green"></span>
-              {{ filledCount() }} Ready to Save
-            </span>
-          }
-        </div>
-      }
     </div>
     <button id="tour-rollno-save" class="btn-primary" [disabled]="saving() || filledCount() === 0"
             (click)="saveAll()" aria-label="Save all roll numbers">

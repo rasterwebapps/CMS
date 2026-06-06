@@ -10,24 +10,6 @@
       <p class="doc-sub">Collect and verify documents from candidates who have completed fee payment</p>
     </div>
 
-    @if (!loading()) {
-      <div class="stat-cluster">
-        <div class="stat-chip stat-chip--slate">
-          <span class="stat-chip__num">{{ totalCount() }}</span>
-          <span class="stat-chip__lbl">Pending</span>
-        </div>
-        <span class="stat-divider"></span>
-        <div class="stat-chip stat-chip--green">
-          <span class="stat-chip__num">{{ feesPaidCount() }}</span>
-          <span class="stat-chip__lbl">Fees Paid</span>
-        </div>
-        <span class="stat-divider"></span>
-        <div class="stat-chip stat-chip--amber">
-          <span class="stat-chip__num">{{ partiallyPaidCount() }}</span>
-          <span class="stat-chip__lbl">Partial</span>
-        </div>
-      </div>
-    }
   </header>
 
   <!-- ── Toolbar ────────────────────────────────────────────────────────── -->

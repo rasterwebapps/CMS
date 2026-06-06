@@ -5,18 +5,6 @@
     <div class="mlp-hdr-left">
       <h1 class="mlp-title">Community <em>Master</em></h1>
       <p class="mlp-sub">Manage community categories used in student demographics</p>
-      @if (!loading()) {
-        <div class="mlp-meta">
-          <span class="mlp-stat">
-            <span class="mlp-stat-dot mlp-stat-dot--blue"></span>
-            {{ totalCount() }} Total
-          </span>
-          <span class="mlp-stat">
-            <span class="mlp-stat-dot mlp-stat-dot--green"></span>
-            {{ activeCount() }} Active
-          </span>
-        </div>
-      }
     </div>
     @if (canManage()) {
       <button class="btn-primary" routerLink="/communities/new" aria-label="Add new community">

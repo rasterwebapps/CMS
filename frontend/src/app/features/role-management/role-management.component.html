@@ -277,7 +277,7 @@
           </div>
 
           <app-widget-picker
-            [initialWidgets]="widgetEditTarget!.dashboardWidgets ?? []"
+            [initialWidgets]="widgetEditTarget!.dashboardWidgets"
             [saving]="saving()"
             [showReset]="false"
             (saved)="saveWidgets($event)"

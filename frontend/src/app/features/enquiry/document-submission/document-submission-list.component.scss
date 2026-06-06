@@ -7,7 +7,7 @@
 .doc-page {
   height: 100%; // fills main.app-content (the flex scroll container in the shell)
   overflow: hidden;
-  padding: 20px var(--cms-page-padding) 0;
+  padding: 16px var(--cms-page-padding) 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -59,75 +59,6 @@
   color: var(--cms-text-muted);
   font-family: var(--cms-font-ui);
   line-height: 1.4;
-}
-
-// ── Stat cluster ─────────────────────────────────────────────────────────
-.stat-cluster {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  background: var(--cms-bg-card);
-  border: 1px solid var(--cms-border-default);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: var(--cms-shadow-sm);
-  flex-shrink: 0;
-}
-
-.stat-divider {
-  width: 1px;
-  height: 32px;
-  background: var(--cms-border-default);
-  flex-shrink: 0;
-}
-
-.stat-chip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 8px 20px;
-  gap: 1px;
-  position: relative;
-
-  &__num {
-    font-family: var(--cms-font-mono);
-    font-size: 1.25rem;
-    font-weight: 700;
-    line-height: 1;
-    color: var(--cms-text-primary);
-  }
-
-  &__lbl {
-    font-size: var(--cms-text-xs);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: var(--cms-text-muted);
-    font-family: var(--cms-font-ui);
-    white-space: nowrap;
-  }
-
-  // Colored top strip per variant
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    border-radius: 0;
-  }
-
-  &--slate {
-    &::before { background: var(--cms-primary); }
-    .stat-chip__num { color: var(--cms-primary); }
-  }
-  &--green {
-    &::before { background: #22c55e; }
-    .stat-chip__num { color: #16a34a; }
-  }
-  &--amber {
-    &::before { background: #f59e0b; }
-    .stat-chip__num { color: #d97706; }
-  }
 }
 
 // ── Toolbar ───────────────────────────────────────────────────────────────
@@ -614,6 +545,5 @@
 
 @media (max-width: 900px) {
   .doc-hdr { flex-direction: column; align-items: flex-start; }
-  .stat-cluster { align-self: flex-start; }
   .search-bar__input { width: 150px; }
 }

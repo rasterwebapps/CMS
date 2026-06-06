@@ -330,12 +330,12 @@ $dark-text-sec:  rgba(235, 235, 245, 0.8);
 
 // ── Content ───────────────────────────────────────────────────────────────────
 .ph-content {
-  padding: 20px 16px 0;
+  padding: 16px 16px 0;
   max-width: 860px;
   margin: 0 auto;
 
   @media (min-width: 680px) {
-    padding: 24px 24px 0;
+    padding: 16px 24px 0;
   }
 }
 

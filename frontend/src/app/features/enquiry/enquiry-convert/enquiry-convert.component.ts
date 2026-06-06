@@ -171,7 +171,7 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
     if (!container) return;
 
     const containerRect  = container.getBoundingClientRect();
-    const triggerY       = containerRect.top + containerRect.height * 0.35;
+    const triggerY       = containerRect.top + containerRect.height * 0.75;
 
     let active = 0;
     for (let i = 0; i < this.steps.length; i++) {

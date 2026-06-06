@@ -12,7 +12,6 @@ import { RouterLink } from '@angular/router';
 import { AttendanceService } from '../attendance.service';
 import { Attendance } from '../attendance.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -20,7 +19,6 @@ import { ToastService } from '../../../core/toast/toast.service';
   selector: 'app-attendance-list',
   standalone: true,
   imports: [
-    PageHeaderComponent,
     RouterLink,
     FormsModule,
     MatTableModule,
