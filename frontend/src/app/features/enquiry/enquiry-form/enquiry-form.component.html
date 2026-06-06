@@ -21,412 +21,488 @@
       </div>
     </div>
 
-    <!-- ── Form ──────────────────────────────────────────────────────────── -->
-    <form class="enq-form-card anim-rise anim-rise--d1" [formGroup]="form" (ngSubmit)="onSubmit()">
+    <!-- ── Form with stepper ──────────────────────────────────────────────── -->
+    <div class="enq-form-stack">
 
-      <!-- ── Section: Personal Details ──────────────────────────────────── -->
-      <p class="form-section-hdr">Personal Details</p>
-
-      <!-- Name -->
-      <div id="tour-enq-form-basic" class="field-group">
-        <label for="enq-name" class="field-label">Full Name <span class="field-required">*</span></label>
-        <input id="enq-name" class="field-input" formControlName="name"
-               placeholder="e.g., Priya Sharma" autocomplete="name"
-               [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
-        @if (form.get('name')?.invalid && form.get('name')?.touched) {
-          <p class="field-error">Name is required</p>
+      <!-- Step indicator -->
+      <div class="cms-stepper" role="list" aria-label="Form progress">
+        @for (step of enqSteps; track $index) {
+          <div class="cms-step"
+               [class.cms-step--active]="currentEnqStep() === $index"
+               [class.cms-step--completed]="isEnqStepComplete()($index)"
+               role="listitem">
+            <div class="cms-step__circle">
+              @if (isEnqStepComplete()($index)) {
+                <svg class="cms-step__check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="3 8 6.5 11.5 13 5"/>
+                </svg>
+              } @else {
+                <span class="cms-step__num">{{ $index + 1 }}</span>
+              }
+            </div>
+            <span class="cms-step__label">{{ step.label }}</span>
+          </div>
         }
       </div>
 
-      <!-- Email + Phone -->
-      <div class="field-row">
-        <div class="field-group">
-          <label for="enq-email" class="field-label">Email</label>
-          <input id="enq-email" type="email" class="field-input" formControlName="email"
-                 placeholder="student@example.com" autocomplete="email" />
-        </div>
-        <div class="field-group">
-          <label for="enq-phone" class="field-label">Phone <span class="field-required">*</span></label>
-          <input id="enq-phone" class="field-input" formControlName="phone"
-                 placeholder="+91 98765 43210" autocomplete="tel"
-                 [class.field-input--error]="form.get('phone')?.invalid && form.get('phone')?.touched" />
-          @if (form.get('phone')?.invalid && form.get('phone')?.touched) {
-            <p class="field-error">Phone is required</p>
-          }
-        </div>
+      <!-- Compact step label (mobile) -->
+      <div class="cms-stepper-compact">
+        <span class="cms-stepper-compact__badge">{{ currentEnqStep() + 1 }}</span>
+        <span>{{ enqSteps[currentEnqStep()].label }}</span>
+        <span class="cms-step-count">{{ currentEnqStep() + 1 }} / {{ enqSteps.length }}</span>
       </div>
 
-      <!-- DOB + Age + Gender -->
-      <div class="field-row field-row--3">
-        <div class="field-group">
-          <label for="enq-dob" class="field-label">Date of Birth <span class="field-required">*</span></label>
-          <input id="enq-dob" type="date" class="field-input" formControlName="dateOfBirth"
-                 [attr.max]="dobMaxStr" autocomplete="bday"
-                 [class.field-input--error]="form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched" />
-          @if (form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched) {
-            <p class="field-error">Required, must be in the past</p>
-          }
-          @if (ageRestrictionError()) {
-            <p class="field-error">{{ ageRestrictionError() }}</p>
-          }
-        </div>
-        <div class="field-group">
-          <label for="enq-age" class="field-label">Age (years)</label>
-          <input id="enq-age" type="number" class="field-input" formControlName="age"
-                 min="0" max="150" step="1" inputmode="numeric"
-                 placeholder="Auto from DOB" autocomplete="off" />
-        </div>
-        <div class="field-group">
-          <label for="enq-gender" class="field-label">Gender <span class="field-required">*</span></label>
-          <select id="enq-gender" class="field-select" formControlName="gender"
-                  (change)="onDimensionChange()"
-                  [class.field-select--error]="form.get('gender')?.invalid && form.get('gender')?.touched">
-            @for (g of genderOptions; track g.value) {
-              <option [value]="g.value">{{ g.label }}</option>
-            }
-          </select>
-          @if (form.get('gender')?.invalid && form.get('gender')?.touched) {
-            <p class="field-error">Required</p>
-          }
-        </div>
-      </div>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
-      <!-- ── Section: Location ───────────────────────────────────────────── -->
-      <p class="form-section-hdr">Location</p>
-
-      <!-- Country + State + District -->
-      <cms-country-state-district-selector
-        [parentForm]="form"
-        [countryRequired]="true"
-        [stateRequired]="true"
-        defaultStateName="Tamil Nadu"
-        defaultDistrictName="Salem"
-      />
-
-      <!-- ── Section: Academic Interest ────────────────────────────────── -->
-      <div class="form-divider"></div>
-      <p class="form-section-hdr" id="tour-enq-form-programme">Academic Interest</p>
-
-      <!-- Program + Course -->
-      <div class="field-row">
-        <div class="field-group">
-          <label for="enq-program" class="field-label">Program <span class="field-required">*</span></label>
-          <select id="enq-program" class="field-select" formControlName="programId"
-                  (change)="onProgramChange(form.get('programId')?.value)"
-                  [class.field-select--error]="form.get('programId')?.invalid && form.get('programId')?.touched">
-            <option [ngValue]="null" disabled>— Select program —</option>
-            @for (p of programs(); track p.id) {
-              <option [ngValue]="p.id">{{ p.name }}</option>
-            }
-          </select>
-          @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
-            <p class="field-error">Program is required</p>
-          }
-        </div>
-        <div class="field-group">
-          <label for="enq-course" class="field-label">
-            Course
-            @if (courses().length > 0) { <span class="field-required">*</span> }
-          </label>
-          <select id="enq-course" class="field-select" formControlName="courseId"
-                  [disabled]="courses().length === 0"
-                  (change)="onCourseChange(form.get('courseId')?.value)"
-                  [class.field-select--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched">
-            <option [ngValue]="null">{{ courses().length ? '— Select course —' : '— Select program first —' }}</option>
-            @for (c of courses(); track c.id) {
-              <option [ngValue]="c.id">{{ c.name }}</option>
-            }
-          </select>
-          @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
-            <p class="field-error">Course is required</p>
-          }
-        </div>
-      </div>
-
-      <!-- Admission Quota + Student Type (2-col) -->
-      <div class="field-row">
-        <!-- Admission Quota -->
-        <div class="field-group">
-          <label for="enq-quota" class="field-label">Admission Quota <span class="field-required">*</span></label>
-          <select id="enq-quota" class="field-select" formControlName="admissionQuota"
-                  (change)="onDimensionChange()"
-                  [class.field-select--error]="form.get('admissionQuota')?.invalid && form.get('admissionQuota')?.touched">
-            @for (q of quotaOptions; track q.value) {
-              <option [value]="q.value">{{ q.label }}</option>
-            }
-          </select>
-          @if (form.get('admissionQuota')?.invalid && form.get('admissionQuota')?.touched) {
-            <p class="field-error">Quota is required</p>
-          }
-        </div>
-
-        <!-- Student Type toggle -->
-        <div class="field-group">
-          <label class="field-label">Student Type <span class="field-required">*</span></label>
-          <div class="stt-toggle" role="group" aria-label="Student type">
-            <button type="button" class="stt-btn"
-                    [class.stt-btn--active]="form.get('studentType')?.value === 'DAY_SCHOLAR'"
-                    (click)="setStudentType('DAY_SCHOLAR')">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="5"/>
-                <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-              </svg>
-              Day Scholar
-            </button>
-            <button type="button" class="stt-btn"
-                    [class.stt-btn--active]="form.get('studentType')?.value === 'HOSTELER'"
-                    (click)="setStudentType('HOSTELER')">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-              Hosteler
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Estimated Fee banner -->
-      @if (feeLoading()) {
-        <div class="fee-banner fee-banner--loading">
-          <span class="fee-banner-label">Estimated Fee</span>
-          <mat-spinner diameter="18"></mat-spinner>
-        </div>
-      } @else if (feeNotFound()) {
-        <div class="fee-banner fee-banner--not-found" [class.fee-banner--error]="feeError()">
-          <span class="fee-banner-label">Estimated Fee</span>
-          <span class="fee-banner-not-found-msg">
-            No fee structure configured for this combination. Please contact admin.
-          </span>
-        </div>
-      } @else if (totalFees() > 0) {
-        <div class="fee-banner" [class.fee-banner--error]="feeError()">
-          <span class="fee-banner-label">
-            Estimated Fee
-            <span class="fee-banner-tag">{{ form.get('studentType')?.value === 'HOSTELER' ? 'Hosteler' : 'Day Scholar' }}</span>
-          </span>
-          <span class="fee-banner-val">{{ totalFees() | inr }}</span>
-        </div>
-      } @else {
-        <div class="fee-banner fee-banner--empty" [class.fee-banner--error]="feeError()">
-          <span class="fee-banner-label">Estimated Fee</span>
-          <span class="fee-banner-empty-msg">
-            @if (!form.get('state')?.value) { Enter address state. }
-            @else if (!form.get('programId')?.value) { Select a program. }
-            @else if (courses().length > 0 && !form.get('courseId')?.value) { Select a course. }
-            @else { Fee will load automatically. }
-          </span>
-        </div>
-      }
-      @if (feeError()) {
-        <p class="field-error">
-          @if (feeNotFound()) {
-            No fee structure is configured for this combination. Please contact the admin before saving.
-          } @else {
-            Estimated fee is not available. Please select a valid program and course with fee structures configured.
-          }
-        </p>
-      }
-
-      <!-- ── Section: Enquiry Details ───────────────────────────────────── -->
-      <div class="form-divider"></div>
-      <p class="form-section-hdr" id="tour-enq-form-referral">Enquiry Details</p>
-
-      <!-- Date + Referral -->
-      <div class="field-row">
-        <div class="field-group">
-          <label for="enq-date" class="field-label">Enquiry Date <span class="field-required">*</span></label>
-          <input id="enq-date" type="date" class="field-input" formControlName="enquiryDate"
-                 [attr.max]="maxDateStr" required
-                 [class.field-input--error]="form.get('enquiryDate')?.invalid && form.get('enquiryDate')?.touched" />
-          @if (form.get('enquiryDate')?.invalid && form.get('enquiryDate')?.touched) {
-            <p class="field-error">Date is required</p>
-          }
-        </div>
-        <div class="field-group">
-          <label for="enq-referral" class="field-label">Referral Source <span class="field-required">*</span></label>
-          <select id="enq-referral" class="field-select" formControlName="referralTypeId"
-                  (change)="onReferralTypeChange(form.get('referralTypeId')?.value)" required
-                  [class.field-select--error]="form.get('referralTypeId')?.invalid && form.get('referralTypeId')?.touched">
-            <option [ngValue]="null" disabled>Select referral source</option>
-            @for (rt of referralTypes(); track rt.id) {
-              <option [ngValue]="rt.id">{{ rt.name }}</option>
-            }
-          </select>
-          @if (form.get('referralTypeId')?.invalid && form.get('referralTypeId')?.touched) {
-            <p class="field-error">Referral type is required</p>
-          }
-        </div>
-      </div>
-
-      <!-- Agent search (mandatory for AGENT_REFERRAL) -->
-      @if (referralCategory() === 'AGENT') {
-        <div class="field-group enq-person-search">
-          <label class="field-label">Agent <span class="field-required">*</span></label>
-          <div class="person-search-wrap">
-            <input class="field-input" type="text"
-                   placeholder="Search by name or phone…"
-                   [value]="agentSearchTerm()"
-                   (input)="onAgentSearchInput($event)"
-                   (focus)="agentSearchOpen.set(true)"
-                   autocomplete="off"
-                   [class.field-input--error]="form.get('agentId')?.invalid && form.get('agentId')?.touched" />
-            @if (agentSearchTerm()) {
-              <button type="button" class="person-search-clear" (click)="clearAgent()" aria-label="Clear agent">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            }
-            @if (agentSearchOpen() && filteredAgents().length > 0) {
-              <div class="person-search-dropdown">
-                @for (a of filteredAgents(); track a.id) {
-                  <button type="button" class="person-search-item"
-                          (click)="selectAgent(a.id, a.name)">
-                    <span class="person-name">{{ a.name }}</span>
-                    <span class="person-code">{{ a.phone }}</span>
-                  </button>
+        <!-- ── Step 0: Personal Details ────────────────────────────────────── -->
+        @if (currentEnqStep() === 0) {
+          <div class="entry-form-card entry-form-card--sectioned">
+            <div class="entry-form-card__hdr">
+              <div class="entry-form-card__hdr-ico"><mat-icon>person</mat-icon></div>
+              <div>
+                <div class="entry-form-card__hdr-title">Personal Details</div>
+                <div class="entry-form-card__hdr-sub">Name, contact and date of birth</div>
+              </div>
+            </div>
+            <div id="tour-enq-form-basic" class="entry-form-card__body">
+              <div class="field-group">
+                <label for="enq-name" class="field-label">Full Name <span class="field-required">*</span></label>
+                <input id="enq-name" class="field-input" formControlName="name"
+                       placeholder="e.g., Priya Sharma" autocomplete="name"
+                       [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+                @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                  <p class="field-error">Name is required</p>
                 }
               </div>
-            }
-          </div>
-          @if (form.get('agentId')?.invalid && form.get('agentId')?.touched) {
-            <p class="field-error">Agent is required</p>
-          }
-        </div>
-      }
 
-      <!-- Referred-by Active Student search -->
-      @if (referralCategory() === 'STUDENT') {
-        <div class="field-group enq-person-search">
-          <label class="field-label">Referred By (Active Student)</label>
-          <div class="person-search-wrap">
-            <input class="field-input" type="text"
-                   placeholder="Search by name or roll number…"
-                   [value]="personSearchTerm()"
-                   (input)="onPersonSearchInput($event)"
-                   (focus)="personSearchOpen.set(true)"
-                   autocomplete="off" />
-            @if (personSearchTerm()) {
-              <button type="button" class="person-search-clear" (click)="clearPerson()" aria-label="Clear">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            }
-            @if (personSearchOpen() && filteredStudents().length > 0) {
-              <div class="person-search-dropdown">
-                @for (s of filteredStudents(); track s.id) {
-                  <button type="button" class="person-search-item"
-                          (click)="selectPerson(s.id, s.fullName, 'STUDENT')">
-                    <span class="person-name">{{ s.fullName }}</span>
-                    <span class="person-code">{{ s.rollNumber }}</span>
-                  </button>
-                }
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="enq-email" class="field-label">Email</label>
+                  <input id="enq-email" type="email" class="field-input" formControlName="email"
+                         placeholder="student@example.com" autocomplete="email" />
+                </div>
+                <div class="field-group">
+                  <label for="enq-phone" class="field-label">Phone <span class="field-required">*</span></label>
+                  <input id="enq-phone" class="field-input" formControlName="phone"
+                         placeholder="+91 98765 43210" autocomplete="tel"
+                         [class.field-input--error]="form.get('phone')?.invalid && form.get('phone')?.touched" />
+                  @if (form.get('phone')?.invalid && form.get('phone')?.touched) {
+                    <p class="field-error">Phone is required</p>
+                  }
+                </div>
               </div>
-            }
-          </div>
-        </div>
-      }
 
-      <!-- Referred-by Alumni search -->
-      @if (referralCategory() === 'ALUMNI') {
-        <div class="field-group enq-person-search">
-          <label class="field-label">Referred By (Alumni)</label>
-          <div class="person-search-wrap">
-            <input class="field-input" type="text"
-                   placeholder="Search alumni by name or roll number…"
-                   [value]="personSearchTerm()"
-                   (input)="onPersonSearchInput($event)"
-                   (focus)="personSearchOpen.set(true)"
-                   autocomplete="off" />
-            @if (personSearchTerm()) {
-              <button type="button" class="person-search-clear" (click)="clearPerson()" aria-label="Clear">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            }
-            @if (personSearchOpen() && filteredAlumni().length > 0) {
-              <div class="person-search-dropdown">
-                @for (s of filteredAlumni(); track s.id) {
-                  <button type="button" class="person-search-item"
-                          (click)="selectPerson(s.id, s.fullName, 'ALUMNI')">
-                    <span class="person-name">{{ s.fullName }}</span>
-                    <span class="person-code">{{ s.rollNumber }}</span>
-                  </button>
-                }
+              <div class="field-row field-row--3">
+                <div class="field-group">
+                  <label for="enq-dob" class="field-label">Date of Birth <span class="field-required">*</span></label>
+                  <input id="enq-dob" type="date" class="field-input" formControlName="dateOfBirth"
+                         [attr.max]="dobMaxStr" autocomplete="bday"
+                         [class.field-input--error]="form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched" />
+                  @if (form.get('dateOfBirth')?.invalid && form.get('dateOfBirth')?.touched) {
+                    <p class="field-error">Required, must be in the past</p>
+                  }
+                  @if (ageRestrictionError()) {
+                    <p class="field-error">{{ ageRestrictionError() }}</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label for="enq-age" class="field-label">Age (years)</label>
+                  <input id="enq-age" type="number" class="field-input" formControlName="age"
+                         min="0" max="150" step="1" inputmode="numeric"
+                         placeholder="Auto from DOB" autocomplete="off" />
+                </div>
+                <div class="field-group">
+                  <label for="enq-gender" class="field-label">Gender <span class="field-required">*</span></label>
+                  <select id="enq-gender" class="field-select" formControlName="gender"
+                          (change)="onDimensionChange()"
+                          [class.field-select--error]="form.get('gender')?.invalid && form.get('gender')?.touched">
+                    @for (g of genderOptions; track g.value) {
+                      <option [value]="g.value">{{ g.label }}</option>
+                    }
+                  </select>
+                  @if (form.get('gender')?.invalid && form.get('gender')?.touched) {
+                    <p class="field-error">Required</p>
+                  }
+                </div>
               </div>
-            }
-          </div>
-        </div>
-      }
-
-      <!-- Referred-by Faculty search -->
-      @if (referralCategory() === 'FACULTY') {
-        <div class="field-group enq-person-search">
-          <label class="field-label">Referred By (Faculty)</label>
-          <div class="person-search-wrap">
-            <input class="field-input" type="text"
-                   placeholder="Search by name or employee code…"
-                   [value]="personSearchTerm()"
-                   (input)="onPersonSearchInput($event)"
-                   (focus)="personSearchOpen.set(true)"
-                   autocomplete="off" />
-            @if (personSearchTerm()) {
-              <button type="button" class="person-search-clear" (click)="clearPerson()" aria-label="Clear">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </div>
+            <div class="cms-step-nav">
+              <span></span>
+              <button type="button" class="cms-step-nav__next" (click)="goToNextEnq()">
+                Next <mat-icon>arrow_forward</mat-icon>
               </button>
-            }
-            @if (personSearchOpen() && filteredFaculty().length > 0) {
-              <div class="person-search-dropdown">
-                @for (f of filteredFaculty(); track f.id) {
-                  <button type="button" class="person-search-item"
-                          (click)="selectPerson(f.id, f.fullName, 'FACULTY')">
-                    <span class="person-name">{{ f.fullName }}</span>
-                    <span class="person-code">{{ f.employeeCode }}</span>
-                  </button>
-                }
-              </div>
-            }
+            </div>
           </div>
-        </div>
-      }
+        }
 
-      <!-- Referred-by Staff name (free text) -->
-      @if (referralCategory() === 'STAFF') {
-        <div class="field-group">
-          <label for="enq-staff-name" class="field-label">Referred By (Staff Name) <span class="field-required">*</span></label>
-          <input id="enq-staff-name" class="field-input" formControlName="referredStaffName"
-                 placeholder="Enter referring staff member's name"
-                 autocomplete="off"
-                 [class.field-input--error]="form.get('referredStaffName')?.invalid && form.get('referredStaffName')?.touched" />
-          @if (form.get('referredStaffName')?.invalid && form.get('referredStaffName')?.touched) {
-            <p class="field-error">Referring staff member's name is required</p>
-          }
-        </div>
-      }
+        <!-- ── Step 1: Location ────────────────────────────────────────────── -->
+        @if (currentEnqStep() === 1) {
+          <div class="entry-form-card entry-form-card--sectioned">
+            <div class="entry-form-card__hdr">
+              <div class="entry-form-card__hdr-ico"><mat-icon>location_on</mat-icon></div>
+              <div>
+                <div class="entry-form-card__hdr-title">Location</div>
+                <div class="entry-form-card__hdr-sub">Country, state and district</div>
+              </div>
+            </div>
+            <div class="entry-form-card__body">
+              <cms-country-state-district-selector
+                [parentForm]="form"
+                [countryRequired]="true"
+                [stateRequired]="true"
+                defaultStateName="Tamil Nadu"
+                defaultDistrictName="Salem"
+              />
+            </div>
+            <div class="cms-step-nav">
+              <button type="button" class="cms-step-nav__back" (click)="goToPrevEnq()">
+                <mat-icon>arrow_back</mat-icon> Back
+              </button>
+              <button type="button" class="cms-step-nav__next" (click)="goToNextEnq()">
+                Next <mat-icon>arrow_forward</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
 
-      <!-- Status (edit mode only) -->
-      @if (isEditMode()) {
-        <div class="field-group">
-          <label for="enq-status" class="field-label">Status</label>
-          <select id="enq-status" class="field-select" formControlName="status">
-            @for (s of statusOptions; track s) {
-              <option [value]="s">{{ s }}</option>
-            }
-          </select>
-        </div>
-      }
+        <!-- ── Step 2: Academic Interest ────────────────────────────────────── -->
+        @if (currentEnqStep() === 2) {
+          <div class="entry-form-card entry-form-card--sectioned">
+            <div class="entry-form-card__hdr">
+              <div class="entry-form-card__hdr-ico"><mat-icon>school</mat-icon></div>
+              <div id="tour-enq-form-programme">
+                <div class="entry-form-card__hdr-title">Academic Interest</div>
+                <div class="entry-form-card__hdr-sub">Program, course, quota and student type</div>
+              </div>
+            </div>
+            <div class="entry-form-card__body">
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="enq-program" class="field-label">Program <span class="field-required">*</span></label>
+                  <select id="enq-program" class="field-select" formControlName="programId"
+                          (change)="onProgramChange(form.get('programId')?.value)"
+                          [class.field-select--error]="form.get('programId')?.invalid && form.get('programId')?.touched">
+                    <option [ngValue]="null" disabled>— Select program —</option>
+                    @for (p of programs(); track p.id) {
+                      <option [ngValue]="p.id">{{ p.name }}</option>
+                    }
+                  </select>
+                  @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
+                    <p class="field-error">Program is required</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label for="enq-course" class="field-label">
+                    Course
+                    @if (courses().length > 0) { <span class="field-required">*</span> }
+                  </label>
+                  <select id="enq-course" class="field-select" formControlName="courseId"
+                          [disabled]="courses().length === 0"
+                          (change)="onCourseChange(form.get('courseId')?.value)"
+                          [class.field-select--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched">
+                    <option [ngValue]="null">{{ courses().length ? '— Select course —' : '— Select program first —' }}</option>
+                    @for (c of courses(); track c.id) {
+                      <option [ngValue]="c.id">{{ c.name }}</option>
+                    }
+                  </select>
+                  @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
+                    <p class="field-error">Course is required</p>
+                  }
+                </div>
+              </div>
 
-      <!-- Remarks -->
-      <div class="field-group">
-        <label for="enq-remarks" class="field-label">Remarks</label>
-        <textarea id="enq-remarks" class="field-textarea" formControlName="remarks" rows="3"
-                  placeholder="Interests, concerns, follow-up notes…"></textarea>
-      </div>
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="enq-quota" class="field-label">Admission Quota <span class="field-required">*</span></label>
+                  <select id="enq-quota" class="field-select" formControlName="admissionQuota"
+                          (change)="onDimensionChange()"
+                          [class.field-select--error]="form.get('admissionQuota')?.invalid && form.get('admissionQuota')?.touched">
+                    @for (q of quotaOptions; track q.value) {
+                      <option [value]="q.value">{{ q.label }}</option>
+                    }
+                  </select>
+                  @if (form.get('admissionQuota')?.invalid && form.get('admissionQuota')?.touched) {
+                    <p class="field-error">Quota is required</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label class="field-label">Student Type <span class="field-required">*</span></label>
+                  <div class="stt-toggle" role="group" aria-label="Student type">
+                    <button type="button" class="stt-btn"
+                            [class.stt-btn--active]="form.get('studentType')?.value === 'DAY_SCHOLAR'"
+                            (click)="setStudentType('DAY_SCHOLAR')">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                      </svg>
+                      Day Scholar
+                    </button>
+                    <button type="button" class="stt-btn"
+                            [class.stt-btn--active]="form.get('studentType')?.value === 'HOSTELER'"
+                            (click)="setStudentType('HOSTELER')">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                      </svg>
+                      Hosteler
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-      <!-- ── Sticky footer ─────────────────────────────────────────────── -->
-      <div class="enq-form-footer">
-        <a class="btn-cancel" routerLink="/enquiries">Cancel</a>
+              <!-- Estimated Fee banner -->
+              @if (feeLoading()) {
+                <div class="fee-banner fee-banner--loading">
+                  <span class="fee-banner-label">Estimated Fee</span>
+                  <mat-spinner diameter="18"></mat-spinner>
+                </div>
+              } @else if (feeNotFound()) {
+                <div class="fee-banner fee-banner--not-found" [class.fee-banner--error]="feeError()">
+                  <span class="fee-banner-label">Estimated Fee</span>
+                  <span class="fee-banner-not-found-msg">No fee structure configured for this combination. Please contact admin.</span>
+                </div>
+              } @else if (totalFees() > 0) {
+                <div class="fee-banner" [class.fee-banner--error]="feeError()">
+                  <span class="fee-banner-label">
+                    Estimated Fee
+                    <span class="fee-banner-tag">{{ form.get('studentType')?.value === 'HOSTELER' ? 'Hosteler' : 'Day Scholar' }}</span>
+                  </span>
+                  <span class="fee-banner-val">{{ totalFees() | inr }}</span>
+                </div>
+              } @else {
+                <div class="fee-banner fee-banner--empty" [class.fee-banner--error]="feeError()">
+                  <span class="fee-banner-label">Estimated Fee</span>
+                  <span class="fee-banner-empty-msg">
+                    @if (!form.get('state')?.value) { Enter address state. }
+                    @else if (!form.get('programId')?.value) { Select a program. }
+                    @else if (courses().length > 0 && !form.get('courseId')?.value) { Select a course. }
+                    @else { Fee will load automatically. }
+                  </span>
+                </div>
+              }
+              @if (feeError()) {
+                <p class="field-error">
+                  @if (feeNotFound()) {
+                    No fee structure is configured for this combination. Please contact the admin before saving.
+                  } @else {
+                    Estimated fee is not available. Please select a valid program and course with fee structures configured.
+                  }
+                </p>
+              }
+            </div>
+            <div class="cms-step-nav">
+              <button type="button" class="cms-step-nav__back" (click)="goToPrevEnq()">
+                <mat-icon>arrow_back</mat-icon> Back
+              </button>
+              <button type="button" class="cms-step-nav__next" (click)="goToNextEnq()">
+                Next <mat-icon>arrow_forward</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- ── Step 3: Enquiry Details ────────────────────────────────────── -->
+        @if (currentEnqStep() === 3) {
+          <div class="entry-form-card entry-form-card--sectioned">
+            <div class="entry-form-card__hdr">
+              <div class="entry-form-card__hdr-ico"><mat-icon>contact_mail</mat-icon></div>
+              <div id="tour-enq-form-referral">
+                <div class="entry-form-card__hdr-title">Enquiry Details</div>
+                <div class="entry-form-card__hdr-sub">Date, referral source and remarks</div>
+              </div>
+            </div>
+            <div class="entry-form-card__body">
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="enq-date" class="field-label">Enquiry Date <span class="field-required">*</span></label>
+                  <input id="enq-date" type="date" class="field-input" formControlName="enquiryDate"
+                         [attr.max]="maxDateStr" required
+                         [class.field-input--error]="form.get('enquiryDate')?.invalid && form.get('enquiryDate')?.touched" />
+                  @if (form.get('enquiryDate')?.invalid && form.get('enquiryDate')?.touched) {
+                    <p class="field-error">Date is required</p>
+                  }
+                </div>
+                <div class="field-group">
+                  <label for="enq-referral" class="field-label">Referral Source <span class="field-required">*</span></label>
+                  <select id="enq-referral" class="field-select" formControlName="referralTypeId"
+                          (change)="onReferralTypeChange(form.get('referralTypeId')?.value)" required
+                          [class.field-select--error]="form.get('referralTypeId')?.invalid && form.get('referralTypeId')?.touched">
+                    <option [ngValue]="null" disabled>Select referral source</option>
+                    @for (rt of referralTypes(); track rt.id) {
+                      <option [ngValue]="rt.id">{{ rt.name }}</option>
+                    }
+                  </select>
+                  @if (form.get('referralTypeId')?.invalid && form.get('referralTypeId')?.touched) {
+                    <p class="field-error">Referral type is required</p>
+                  }
+                </div>
+              </div>
+
+              @if (referralCategory() === 'AGENT') {
+                <div class="field-group enq-person-search">
+                  <label class="field-label">Agent <span class="field-required">*</span></label>
+                  <div class="person-search-wrap">
+                    <input class="field-input" type="text" placeholder="Search by name or phone…"
+                           [value]="agentSearchTerm()"
+                           (input)="onAgentSearchInput($event)"
+                           (focus)="agentSearchOpen.set(true)"
+                           autocomplete="off"
+                           [class.field-input--error]="form.get('agentId')?.invalid && form.get('agentId')?.touched" />
+                    @if (agentSearchTerm()) {
+                      <button type="button" class="person-search-clear" (click)="clearAgent()" aria-label="Clear agent">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    }
+                    @if (agentSearchOpen() && filteredAgents().length > 0) {
+                      <div class="person-search-dropdown">
+                        @for (a of filteredAgents(); track a.id) {
+                          <button type="button" class="person-search-item" (click)="selectAgent(a.id, a.name)">
+                            <span class="person-name">{{ a.name }}</span>
+                            <span class="person-code">{{ a.phone }}</span>
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+                  @if (form.get('agentId')?.invalid && form.get('agentId')?.touched) {
+                    <p class="field-error">Agent is required</p>
+                  }
+                </div>
+              }
+
+              @if (referralCategory() === 'STUDENT') {
+                <div class="field-group enq-person-search">
+                  <label class="field-label">Referred By (Active Student)</label>
+                  <div class="person-search-wrap">
+                    <input class="field-input" type="text" placeholder="Search by name or roll number…"
+                           [value]="personSearchTerm()"
+                           (input)="onPersonSearchInput($event)"
+                           (focus)="personSearchOpen.set(true)"
+                           autocomplete="off" />
+                    @if (personSearchTerm()) {
+                      <button type="button" class="person-search-clear" (click)="clearPerson()" aria-label="Clear">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    }
+                    @if (personSearchOpen() && filteredStudents().length > 0) {
+                      <div class="person-search-dropdown">
+                        @for (s of filteredStudents(); track s.id) {
+                          <button type="button" class="person-search-item" (click)="selectPerson(s.id, s.fullName, 'STUDENT')">
+                            <span class="person-name">{{ s.fullName }}</span>
+                            <span class="person-code">{{ s.rollNumber }}</span>
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (referralCategory() === 'ALUMNI') {
+                <div class="field-group enq-person-search">
+                  <label class="field-label">Referred By (Alumni)</label>
+                  <div class="person-search-wrap">
+                    <input class="field-input" type="text" placeholder="Search alumni by name or roll number…"
+                           [value]="personSearchTerm()"
+                           (input)="onPersonSearchInput($event)"
+                           (focus)="personSearchOpen.set(true)"
+                           autocomplete="off" />
+                    @if (personSearchTerm()) {
+                      <button type="button" class="person-search-clear" (click)="clearPerson()" aria-label="Clear">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    }
+                    @if (personSearchOpen() && filteredAlumni().length > 0) {
+                      <div class="person-search-dropdown">
+                        @for (s of filteredAlumni(); track s.id) {
+                          <button type="button" class="person-search-item" (click)="selectPerson(s.id, s.fullName, 'ALUMNI')">
+                            <span class="person-name">{{ s.fullName }}</span>
+                            <span class="person-code">{{ s.rollNumber }}</span>
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (referralCategory() === 'FACULTY') {
+                <div class="field-group enq-person-search">
+                  <label class="field-label">Referred By (Faculty)</label>
+                  <div class="person-search-wrap">
+                    <input class="field-input" type="text" placeholder="Search by name or employee code…"
+                           [value]="personSearchTerm()"
+                           (input)="onPersonSearchInput($event)"
+                           (focus)="personSearchOpen.set(true)"
+                           autocomplete="off" />
+                    @if (personSearchTerm()) {
+                      <button type="button" class="person-search-clear" (click)="clearPerson()" aria-label="Clear">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    }
+                    @if (personSearchOpen() && filteredFaculty().length > 0) {
+                      <div class="person-search-dropdown">
+                        @for (f of filteredFaculty(); track f.id) {
+                          <button type="button" class="person-search-item" (click)="selectPerson(f.id, f.fullName, 'FACULTY')">
+                            <span class="person-name">{{ f.fullName }}</span>
+                            <span class="person-code">{{ f.employeeCode }}</span>
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (referralCategory() === 'STAFF') {
+                <div class="field-group">
+                  <label for="enq-staff-name" class="field-label">Referred By (Staff Name) <span class="field-required">*</span></label>
+                  <input id="enq-staff-name" class="field-input" formControlName="referredStaffName"
+                         placeholder="Enter referring staff member's name"
+                         autocomplete="off"
+                         [class.field-input--error]="form.get('referredStaffName')?.invalid && form.get('referredStaffName')?.touched" />
+                  @if (form.get('referredStaffName')?.invalid && form.get('referredStaffName')?.touched) {
+                    <p class="field-error">Referring staff member's name is required</p>
+                  }
+                </div>
+              }
+
+              @if (isEditMode()) {
+                <div class="field-group">
+                  <label for="enq-status" class="field-label">Status</label>
+                  <select id="enq-status" class="field-select" formControlName="status">
+                    @for (s of statusOptions; track s) {
+                      <option [value]="s">{{ s }}</option>
+                    }
+                  </select>
+                </div>
+              }
+
+              <div class="field-group">
+                <label for="enq-remarks" class="field-label">Remarks</label>
+                <textarea id="enq-remarks" class="field-textarea" formControlName="remarks" rows="3"
+                          placeholder="Interests, concerns, follow-up notes…"></textarea>
+              </div>
+            </div>
+            <div class="cms-step-nav">
+              <button type="button" class="cms-step-nav__back" (click)="goToPrevEnq()">
+                <mat-icon>arrow_back</mat-icon> Back
+              </button>
+            </div>
+          </div>
+        }
+
+      </form>
+    </div>
+
+    <!-- ── Sticky footer ──────────────────────────────────────────────────── -->
+    <div class="enq-form-footer">
+      <a class="btn-cancel" routerLink="/enquiries">Cancel</a>
+      @if (currentEnqStep() === enqSteps.length - 1) {
         <button type="button" class="btn-submit" [disabled]="saving()" (click)="onSubmit()">
           @if (saving()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
           @else {
@@ -437,8 +513,8 @@
           }
           {{ isEditMode() ? 'Update Enquiry' : 'Save Enquiry' }}
         </button>
-      </div>
+      }
+    </div>
 
-    </form>
   }
 </div>

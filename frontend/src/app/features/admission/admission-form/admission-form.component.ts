@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -31,6 +31,19 @@ import { ADMISSION_FORM_TOUR } from '../../../shared/tour/tours/admission.tours'
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
 
+
+// Edit-mode stepper (3 steps)
+const ADM_EDIT_STEPS = [
+  { label: 'Student'     },
+  { label: 'Admission'   },
+  { label: 'Declaration' },
+] as const;
+
+const ADM_EDIT_STEP_FIELDS: Record<number, string[]> = {
+  0: ['studentId'],
+  1: ['joiningAcademicYearId', 'applicationDate'],
+  2: ['declarationPlace', 'declarationDate', 'parentConsentGiven', 'applicantConsentGiven'],
+};
 
 @Component({
   selector: 'app-admission-form',
@@ -78,6 +91,33 @@ export class AdmissionFormComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly isEdit = signal(false);
   protected readonly editStudentId = signal<number | null>(null);
+
+  // ── Edit-mode stepper ─────────────────────────────────────────────────────
+  protected readonly editSteps       = ADM_EDIT_STEPS;
+  protected readonly currentEditStep = signal(0);
+
+  protected readonly isEditStepComplete = computed(() => {
+    const cur = this.currentEditStep();
+    return (i: number) => i < cur;
+  });
+
+  protected goToNextEdit(): void {
+    const step   = this.currentEditStep();
+    const fields = ADM_EDIT_STEP_FIELDS[step] ?? [];
+    let valid = true;
+    for (const key of fields) {
+      const ctrl = this.form.get(key);
+      if (ctrl) { ctrl.markAsTouched(); if (ctrl.invalid) valid = false; }
+    }
+    if (!valid) { scrollToFirstInvalid(this.form); return; }
+    this.currentEditStep.update(s => Math.min(s + 1, ADM_EDIT_STEPS.length - 1));
+    document.querySelector('main.app-content')?.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  protected goToPrevEdit(): void {
+    this.currentEditStep.update(s => Math.max(s - 1, 0));
+    document.querySelector('main.app-content')?.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   protected readonly qualificationTypes = QUALIFICATION_TYPES;
   protected readonly genderOptions = ['MALE', 'FEMALE', 'OTHER'] as const;

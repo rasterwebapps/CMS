@@ -622,175 +622,196 @@
              ════════════════════════════════════════════════════════ -->
         @if (isEdit()) {
 
-          <!-- ── Card 1 (edit): Student ─────────────────────────── -->
-          <div class="entry-form-card entry-form-card--sectioned">
-            <div class="entry-form-card__hdr">
-              <div class="entry-form-card__hdr-ico">
-                <mat-icon>person</mat-icon>
-              </div>
-              <div>
-                <div class="entry-form-card__hdr-title">Student</div>
-                <div class="entry-form-card__hdr-sub">The enrolled student for this admission</div>
-              </div>
-            </div>
-            <div class="entry-form-card__body">
-              @if (editStudentId()) {
-                <div class="student-profile-notice">
-                  <div class="student-profile-notice__text">
-                    <mat-icon class="student-profile-notice__icon">info</mat-icon>
-                    <span>Personal details (date of birth, demographics, address, family info) belong to the student profile and cannot be edited here.</span>
-                  </div>
-                  <a
-                    class="student-profile-notice__link"
-                    [routerLink]="['/students', editStudentId(), 'edit']"
-                    target="_blank"
-                  >
-                    <mat-icon>open_in_new</mat-icon>
-                    Edit Student Profile
-                  </a>
-                </div>
-              }
-
-              <div class="field-group">
-                <label for="adm-student" class="field-label">Student <span class="field-required">*</span></label>
-                <select
-                  id="adm-student"
-                  class="field-select"
-                  formControlName="studentId"
-                  [class.field-select--error]="form.get('studentId')?.invalid && form.get('studentId')?.touched"
-                >
-                  <option [ngValue]="null" disabled>Select a student</option>
-                  @for (s of students(); track s.id) {
-                    <option [ngValue]="s.id">{{ s.fullName }}</option>
+          <!-- Step indicator -->
+          <div class="cms-stepper" role="list" aria-label="Form progress">
+            @for (step of editSteps; track $index) {
+              <div class="cms-step"
+                   [class.cms-step--active]="currentEditStep() === $index"
+                   [class.cms-step--completed]="isEditStepComplete()($index)"
+                   role="listitem">
+                <div class="cms-step__circle">
+                  @if (isEditStepComplete()($index)) {
+                    <svg class="cms-step__check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="3 8 6.5 11.5 13 5"/>
+                    </svg>
+                  } @else {
+                    <span class="cms-step__num">{{ $index + 1 }}</span>
                   }
-                </select>
-                @if (form.get('studentId')?.invalid && form.get('studentId')?.touched) {
-                  <p class="field-error">Student is required</p>
-                }
+                </div>
+                <span class="cms-step__label">{{ step.label }}</span>
               </div>
-            </div>
+            }
           </div>
 
-          <!-- ── Card 2 (edit): Admission Details ──────────────── -->
-          <div class="entry-form-card entry-form-card--sectioned">
-            <div class="entry-form-card__hdr">
-              <div class="entry-form-card__hdr-ico">
-                <mat-icon>school</mat-icon>
+          <!-- Compact step label (mobile) -->
+          <div class="cms-stepper-compact">
+            <span class="cms-stepper-compact__badge">{{ currentEditStep() + 1 }}</span>
+            <span>{{ editSteps[currentEditStep()].label }}</span>
+            <span class="cms-step-count">{{ currentEditStep() + 1 }} / {{ editSteps.length }}</span>
+          </div>
+
+          <!-- ── Step 0 (edit): Student ──────────────────────────── -->
+          @if (currentEditStep() === 0) {
+            <div class="entry-form-card entry-form-card--sectioned">
+              <div class="entry-form-card__hdr">
+                <div class="entry-form-card__hdr-ico"><mat-icon>person</mat-icon></div>
+                <div>
+                  <div class="entry-form-card__hdr-title">Student</div>
+                  <div class="entry-form-card__hdr-sub">The enrolled student for this admission</div>
+                </div>
               </div>
-              <div>
-                <div class="entry-form-card__hdr-title">Admission Details</div>
-                <div class="entry-form-card__hdr-sub">Academic year and application date</div>
-              </div>
-            </div>
-            <div class="entry-form-card__body">
-              <div class="form-row">
+              <div class="entry-form-card__body">
+                @if (editStudentId()) {
+                  <div class="student-profile-notice">
+                    <div class="student-profile-notice__text">
+                      <mat-icon class="student-profile-notice__icon">info</mat-icon>
+                      <span>Personal details (date of birth, demographics, address, family info) belong to the student profile and cannot be edited here.</span>
+                    </div>
+                    <a class="student-profile-notice__link" [routerLink]="['/students', editStudentId(), 'edit']" target="_blank">
+                      <mat-icon>open_in_new</mat-icon>
+                      Edit Student Profile
+                    </a>
+                  </div>
+                }
                 <div class="field-group">
-                  <label for="adm-joining-year" class="field-label">Joining Academic Year <span class="field-required">*</span></label>
-                  <select
-                    id="adm-joining-year"
-                    class="field-select"
-                    [value]="selectedAcademicYearId()"
-                    (change)="onAcademicYearSelect($event)"
-                    [class.field-select--error]="form.get('joiningAcademicYearId')?.invalid && form.get('joiningAcademicYearId')?.touched"
-                  >
-                    <option [value]="null" disabled>— Select academic year —</option>
-                    @for (y of academicYears(); track y.id) {
-                      <option [value]="y.id">{{ y.name }}@if (y.isCurrent) { (Current) }</option>
+                  <label for="adm-student" class="field-label">Student <span class="field-required">*</span></label>
+                  <select id="adm-student" class="field-select" formControlName="studentId"
+                          [class.field-select--error]="form.get('studentId')?.invalid && form.get('studentId')?.touched">
+                    <option [ngValue]="null" disabled>Select a student</option>
+                    @for (s of students(); track s.id) {
+                      <option [ngValue]="s.id">{{ s.fullName }}</option>
                     }
                   </select>
-                  @if (form.get('joiningAcademicYearId')?.invalid && form.get('joiningAcademicYearId')?.touched) {
-                    <p class="field-error">Academic year is required</p>
-                  }
-                </div>
-                <div class="field-group">
-                  <label for="adm-app-date" class="field-label">Application Date <span class="field-required">*</span></label>
-                  <input
-                    id="adm-app-date"
-                    class="field-input"
-                    type="date"
-                    formControlName="applicationDate"
-                    [class.field-input--error]="form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched"
-                  />
-                  @if (form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched) {
-                    <p class="field-error">Application date is required</p>
+                  @if (form.get('studentId')?.invalid && form.get('studentId')?.touched) {
+                    <p class="field-error">Student is required</p>
                   }
                 </div>
               </div>
+              <div class="cms-step-nav">
+                <span></span>
+                <button type="button" class="cms-step-nav__next" (click)="goToNextEdit()">
+                  Next <mat-icon>arrow_forward</mat-icon>
+                </button>
+              </div>
             </div>
-          </div>
+          }
 
-          <!-- ── Card 3 (edit): Declaration & Consent ───────────── -->
-          <div class="entry-form-card entry-form-card--sectioned">
-            <div class="entry-form-card__hdr">
-              <div class="entry-form-card__hdr-ico">
-                <mat-icon>verified</mat-icon>
+          <!-- ── Step 1 (edit): Admission Details ───────────────── -->
+          @if (currentEditStep() === 1) {
+            <div class="entry-form-card entry-form-card--sectioned">
+              <div class="entry-form-card__hdr">
+                <div class="entry-form-card__hdr-ico"><mat-icon>school</mat-icon></div>
+                <div>
+                  <div class="entry-form-card__hdr-title">Admission Details</div>
+                  <div class="entry-form-card__hdr-sub">Academic year and application date</div>
+                </div>
               </div>
-              <div>
-                <div class="entry-form-card__hdr-title">Declaration &amp; Consent</div>
-                <div class="entry-form-card__hdr-sub">Confirmation of details and signatures</div>
+              <div class="entry-form-card__body">
+                <div class="form-row">
+                  <div class="field-group">
+                    <label for="adm-joining-year" class="field-label">Joining Academic Year <span class="field-required">*</span></label>
+                    <select id="adm-joining-year" class="field-select"
+                            [value]="selectedAcademicYearId()"
+                            (change)="onAcademicYearSelect($event)"
+                            [class.field-select--error]="form.get('joiningAcademicYearId')?.invalid && form.get('joiningAcademicYearId')?.touched">
+                      <option [value]="null" disabled>— Select academic year —</option>
+                      @for (y of academicYears(); track y.id) {
+                        <option [value]="y.id">{{ y.name }}@if (y.isCurrent) { (Current) }</option>
+                      }
+                    </select>
+                    @if (form.get('joiningAcademicYearId')?.invalid && form.get('joiningAcademicYearId')?.touched) {
+                      <p class="field-error">Academic year is required</p>
+                    }
+                  </div>
+                  <div class="field-group">
+                    <label for="adm-app-date" class="field-label">Application Date <span class="field-required">*</span></label>
+                    <input id="adm-app-date" class="field-input" type="date" formControlName="applicationDate"
+                           [class.field-input--error]="form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched" />
+                    @if (form.get('applicationDate')?.invalid && form.get('applicationDate')?.touched) {
+                      <p class="field-error">Application date is required</p>
+                    }
+                  </div>
+                </div>
+              </div>
+              <div class="cms-step-nav">
+                <button type="button" class="cms-step-nav__back" (click)="goToPrevEdit()">
+                  <mat-icon>arrow_back</mat-icon> Back
+                </button>
+                <button type="button" class="cms-step-nav__next" (click)="goToNextEdit()">
+                  Next <mat-icon>arrow_forward</mat-icon>
+                </button>
               </div>
             </div>
-            <div class="entry-form-card__body">
-              <div class="form-row">
-                <div class="field-group">
-                  <label for="adm-decl-place" class="field-label">Declaration Place <span class="field-required">*</span></label>
-                  <input
-                    id="adm-decl-place"
-                    class="field-input"
-                    formControlName="declarationPlace"
-                    placeholder="City"
-                    [class.field-input--error]="form.get('declarationPlace')?.invalid && form.get('declarationPlace')?.touched"
-                  />
-                  @if (form.get('declarationPlace')?.invalid && form.get('declarationPlace')?.touched) {
-                    <p class="field-error">Declaration place is required</p>
-                  }
-                </div>
-                <div class="field-group">
-                  <label for="adm-decl-date" class="field-label">Declaration Date <span class="field-required">*</span></label>
-                  <input
-                    id="adm-decl-date"
-                    class="field-input"
-                    type="date"
-                    formControlName="declarationDate"
-                    [class.field-input--error]="form.get('declarationDate')?.invalid && form.get('declarationDate')?.touched"
-                  />
-                  @if (form.get('declarationDate')?.invalid && form.get('declarationDate')?.touched) {
-                    <p class="field-error">Declaration date is required</p>
-                  }
-                </div>
-              </div>
+          }
 
-              <div class="consent-row">
-                <div class="consent-item">
-                  <mat-checkbox formControlName="parentConsentGiven">Parent Consent Given <span class="field-required">*</span></mat-checkbox>
-                  @if (form.get('parentConsentGiven')?.invalid && form.get('parentConsentGiven')?.touched) {
-                    <p class="field-error consent-error">Parent consent is required</p>
-                  }
-                </div>
-                <div class="consent-item">
-                  <mat-checkbox formControlName="applicantConsentGiven">Applicant Consent Given <span class="field-required">*</span></mat-checkbox>
-                  @if (form.get('applicantConsentGiven')?.invalid && form.get('applicantConsentGiven')?.touched) {
-                    <p class="field-error consent-error">Applicant consent is required</p>
-                  }
+          <!-- ── Step 2 (edit): Declaration & Consent ───────────── -->
+          @if (currentEditStep() === 2) {
+            <div class="entry-form-card entry-form-card--sectioned">
+              <div class="entry-form-card__hdr">
+                <div class="entry-form-card__hdr-ico"><mat-icon>verified</mat-icon></div>
+                <div>
+                  <div class="entry-form-card__hdr-title">Declaration &amp; Consent</div>
+                  <div class="entry-form-card__hdr-sub">Confirmation of details and signatures</div>
                 </div>
               </div>
+              <div class="entry-form-card__body">
+                <div class="form-row">
+                  <div class="field-group">
+                    <label for="adm-decl-place" class="field-label">Declaration Place <span class="field-required">*</span></label>
+                    <input id="adm-decl-place" class="field-input" formControlName="declarationPlace" placeholder="City"
+                           [class.field-input--error]="form.get('declarationPlace')?.invalid && form.get('declarationPlace')?.touched" />
+                    @if (form.get('declarationPlace')?.invalid && form.get('declarationPlace')?.touched) {
+                      <p class="field-error">Declaration place is required</p>
+                    }
+                  </div>
+                  <div class="field-group">
+                    <label for="adm-decl-date" class="field-label">Declaration Date <span class="field-required">*</span></label>
+                    <input id="adm-decl-date" class="field-input" type="date" formControlName="declarationDate"
+                           [class.field-input--error]="form.get('declarationDate')?.invalid && form.get('declarationDate')?.touched" />
+                    @if (form.get('declarationDate')?.invalid && form.get('declarationDate')?.touched) {
+                      <p class="field-error">Declaration date is required</p>
+                    }
+                  </div>
+                </div>
+                <div class="consent-row">
+                  <div class="consent-item">
+                    <mat-checkbox formControlName="parentConsentGiven">Parent Consent Given <span class="field-required">*</span></mat-checkbox>
+                    @if (form.get('parentConsentGiven')?.invalid && form.get('parentConsentGiven')?.touched) {
+                      <p class="field-error consent-error">Parent consent is required</p>
+                    }
+                  </div>
+                  <div class="consent-item">
+                    <mat-checkbox formControlName="applicantConsentGiven">Applicant Consent Given <span class="field-required">*</span></mat-checkbox>
+                    @if (form.get('applicantConsentGiven')?.invalid && form.get('applicantConsentGiven')?.touched) {
+                      <p class="field-error consent-error">Applicant consent is required</p>
+                    }
+                  </div>
+                </div>
+              </div>
+              <div class="cms-step-nav">
+                <button type="button" class="cms-step-nav__back" (click)="goToPrevEdit()">
+                  <mat-icon>arrow_back</mat-icon> Back
+                </button>
+              </div>
             </div>
-          </div>
+          }
 
         }
 
       </div><!-- /.adm-section-stack -->
 
-      <!-- Sticky footer — always visible at viewport bottom -->
+      <!-- Sticky footer — Cancel always visible; Submit only on final step -->
       <div class="entry-form-sticky-footer">
         <button type="button" class="btn-cancel" routerLink="/admissions">Cancel</button>
-        <button type="submit" class="btn-submit" [disabled]="saving()">
-          @if (saving()) {
-            <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-          } @else {
-            {{ !isEdit() ? 'Create Admission' : 'Save Changes' }}
-          }
-        </button>
+        @if (!isEdit() || currentEditStep() === editSteps.length - 1) {
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ !isEdit() ? 'Create Admission' : 'Save Changes' }}
+            }
+          </button>
+        }
       </div>
 
     </form>

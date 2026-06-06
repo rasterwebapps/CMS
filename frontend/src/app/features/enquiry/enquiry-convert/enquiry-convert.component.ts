@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, AfterViewInit, OnDestroy } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -35,6 +35,31 @@ interface SuccessState {
   academicYearName: string;
 }
 
+// Step definitions
+const CONV_STEPS = [
+  { label: 'Student Details', description: 'Name, contact & dates'     },
+  { label: 'Academic Year',   description: 'Year & program'            },
+  { label: 'Personal Info',   description: 'DOB, gender & Aadhar'      },
+  { label: 'Demographics',    description: 'Nationality & community'   },
+  { label: 'Family',          description: 'Parents & contacts'        },
+  { label: 'Address',         description: 'Residential address'       },
+  { label: 'Declaration',     description: 'Consent & signatures'      },
+  { label: 'Documents',       description: 'Uploads (optional)'        },
+] as const;
+
+// Form fields required for each section (for validation and completion tracking)
+const CONV_STEP_FIELDS: Record<number, string[]> = {
+  0: ['firstName', 'lastName', 'email', 'phone', 'admissionDate', 'applicationDate'],
+  1: [], // academic year uses selectedAcademicYearId signal
+  2: ['dateOfBirth', 'gender', 'aadharNumber'],
+  3: ['nationality', 'religion', 'communityCategory', 'caste', 'bloodGroup'],
+  4: ['fatherName', 'fatherPhone', 'fatherEmail', 'motherName', 'motherPhone', 'motherEmail'],
+  5: ['address.postalAddress', 'address.street', 'address.city',
+      'address.country', 'address.state', 'address.district'],
+  6: ['declarationPlace', 'declarationDate', 'parentConsentGiven', 'applicantConsentGiven'],
+  7: [], // consent documents are optional
+};
+
 @Component({
   selector: 'app-enquiry-convert',
   standalone: true,
@@ -51,7 +76,7 @@ interface SuccessState {
   templateUrl: './enquiry-convert.component.html',
   styleUrl: './enquiry-convert.component.scss',
 })
-export class EnquiryConvertComponent implements OnInit {
+export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly route             = inject(ActivatedRoute);
   private readonly router            = inject(Router);
   private readonly fb                = inject(FormBuilder);
@@ -67,6 +92,101 @@ export class EnquiryConvertComponent implements OnInit {
   private readonly bloodGroupService = inject(BloodGroupService);
   private readonly settingsService   = inject(SettingsService);
 
+  // ── Stepper state ────────────────────────────────────────────────────────
+  protected readonly steps           = CONV_STEPS;
+  protected readonly currentStep     = signal(0);
+  protected readonly academicYearTouched = signal(false);
+
+  // Bumped by form.valueChanges / statusChanges subscriptions to keep computeds fresh
+  private readonly formVersion       = signal(0);
+
+  protected readonly isStepComplete = computed(() => {
+    this.formVersion();
+    return (i: number) => {
+      const fields = CONV_STEP_FIELDS[i] ?? [];
+      if (i === 1) return !!this.selectedAcademicYearId();
+      if (fields.length === 0) return true; // documents step is always optional/complete
+      return fields.every(key => {
+        const ctrl = this.form.get(key);
+        return ctrl ? ctrl.valid : true;
+      });
+    };
+  });
+
+  protected readonly isStepError = computed(() => {
+    this.formVersion();
+    return (i: number) => {
+      const fields = CONV_STEP_FIELDS[i] ?? [];
+      if (i === 1) return this.academicYearTouched() && !this.selectedAcademicYearId();
+      return fields.some(key => {
+        const ctrl = this.form.get(key);
+        return ctrl ? ctrl.invalid && ctrl.touched : false;
+      });
+    };
+  });
+
+  protected readonly completedCount = computed(() => {
+    this.formVersion();
+    const check = this.isStepComplete();
+    return this.steps.filter((_, i) => check(i)).length;
+  });
+
+  // ── Scroll-spy (rAF-throttled scroll listener) ────────────────────────────
+  private scrollContainer: Element | null = null;
+  private scrollHandler: (() => void) | null = null;
+  private rafId: number | null = null;
+
+  protected scrollToSection(index: number): void {
+    const section = document.getElementById(`conv-section-${index}`);
+    const container = this.scrollContainer ?? document.querySelector('main.app-content');
+    if (!section || !container) { this.currentStep.set(index); return; }
+
+    const containerRect = container.getBoundingClientRect();
+    const sectionRect   = section.getBoundingClientRect();
+    const targetTop     = container.scrollTop + (sectionRect.top - containerRect.top) - 16;
+    container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+    this.currentStep.set(index);
+  }
+
+  private setupScrollSpy(): void {
+    this.scrollContainer = document.querySelector('main.app-content');
+    if (!this.scrollContainer) return;
+
+    this.updateActiveSection();
+
+    const onScroll = () => {
+      if (this.rafId !== null) return;
+      this.rafId = requestAnimationFrame(() => {
+        this.rafId = null;
+        this.updateActiveSection();
+      });
+    };
+
+    this.scrollHandler = onScroll;
+    this.scrollContainer.addEventListener('scroll', onScroll, { passive: true });
+  }
+
+  private updateActiveSection(): void {
+    const container = this.scrollContainer;
+    if (!container) return;
+
+    const containerRect  = container.getBoundingClientRect();
+    const triggerY       = containerRect.top + containerRect.height * 0.35;
+
+    let active = 0;
+    for (let i = 0; i < this.steps.length; i++) {
+      const el = document.getElementById(`conv-section-${i}`);
+      if (!el) continue;
+      if (el.getBoundingClientRect().top <= triggerY) {
+        active = i;
+      } else {
+        break;
+      }
+    }
+    this.currentStep.set(active);
+  }
+
+  // ── Data ─────────────────────────────────────────────────────────────────
   protected readonly enquiry               = signal<Enquiry | null>(null);
   protected readonly prefill               = signal<EnquiryConversionPrefillResponse | null>(null);
   protected readonly academicYears         = signal<AcademicYear[]>([]);
@@ -89,11 +209,9 @@ export class EnquiryConvertComponent implements OnInit {
   private readonly collegePhone     = signal<string | null>(null);
   private readonly collegeEmail     = signal<string | null>(null);
 
-  /** Document verification status — loaded alongside the enquiry. */
   protected readonly docVerification  = signal<DocumentVerificationStatus | null>(null);
   protected readonly docsNotVerified  = signal(false);
 
-  // Consent document files
   protected readonly parentConsentFile    = signal<File | null>(null);
   protected readonly applicantConsentFile = signal<File | null>(null);
 
@@ -108,7 +226,6 @@ export class EnquiryConvertComponent implements OnInit {
 
     applicationDate: ['', Validators.required],
 
-    // Always 1 for new admissions — hidden from UI
     yearOfStudy: [1, [Validators.required, Validators.min(1)]],
 
     dateOfBirth:       ['', Validators.required],
@@ -142,7 +259,6 @@ export class EnquiryConvertComponent implements OnInit {
     applicantConsentGiven: [false, Validators.requiredTrue],
   });
 
-  /** Expose the nested address FormGroup for cms-state-district-selector */
   get addressForm(): FormGroup {
     return this.form.get('address') as FormGroup;
   }
@@ -152,6 +268,21 @@ export class EnquiryConvertComponent implements OnInit {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (id) this.load(id);
     this.loadBranding();
+
+    // Keep reactive completion/error indicators in sync with form state
+    this.form.valueChanges.subscribe(() => this.formVersion.update(v => v + 1));
+    this.form.statusChanges.subscribe(() => this.formVersion.update(v => v + 1));
+  }
+
+  ngAfterViewInit(): void {
+    // Scroll spy is activated after data loads (see load() success handler)
+  }
+
+  ngOnDestroy(): void {
+    if (this.scrollContainer && this.scrollHandler) {
+      this.scrollContainer.removeEventListener('scroll', this.scrollHandler);
+    }
+    if (this.rafId !== null) cancelAnimationFrame(this.rafId);
   }
 
   private loadBranding(): void {
@@ -204,13 +335,11 @@ export class EnquiryConvertComponent implements OnInit {
         this.docVerification.set(verification);
         this.docsNotVerified.set(!verification.allVerified);
 
-        // Sort years newest-first for the dropdown
         const sorted = [...years].sort((a, b) =>
           new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
         );
         this.academicYears.set(sorted);
 
-        // Auto-select the academic year that matches the suggested year
         const match = sorted.find(y =>
           new Date(y.startDate).getFullYear() === prefill.suggestedAcademicYearFrom
         ) ?? sorted.find(y => y.isCurrent) ?? sorted[0];
@@ -241,6 +370,9 @@ export class EnquiryConvertComponent implements OnInit {
         });
 
         this.loading.set(false);
+
+        // Activate scroll-spy once the form sections are in the DOM
+        setTimeout(() => this.setupScrollSpy(), 100);
       },
       error: () => {
         this.toast.error('Failed to load admission data');
@@ -285,7 +417,7 @@ export class EnquiryConvertComponent implements OnInit {
           this.seatWarningSoft.set(false);
         }
       },
-      error: () => { /* non-blocking — backend will hard-stop on submit */ },
+      error: () => { /* non-blocking */ },
     });
   }
 
@@ -300,7 +432,10 @@ export class EnquiryConvertComponent implements OnInit {
   }
 
   protected onSubmit(): void {
-    if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
+    // Touch academic year signal so its error shows in the stepper
+    this.academicYearTouched.set(true);
+    this.formVersion.update(v => v + 1);
+
     if (this.enquiry()?.status !== 'DOCUMENTS_VERIFIED') {
       this.toast.warning('Complete Admission is allowed only for Documents Verified enquiries.');
       return;
@@ -309,18 +444,21 @@ export class EnquiryConvertComponent implements OnInit {
       this.toast.warning('All mandatory documents must be verified before completing admission.');
       return;
     }
+
+    // Validate the whole form at once — scrolls to and focuses first invalid field
+    if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
+
     if (!this.selectedAcademicYearId()) {
-      this.toast.warning('Please select an academic year before creating admission.');
+      this.scrollToSection(1);
       return;
     }
+
     const id = this.enquiry()?.id;
     if (!id) return;
     this.saving.set(true);
 
     this.enquiryService.convertEnquiry(id, this.buildRequest()).subscribe({
-      next: (enquiry) => {
-        this.uploadConsentDocs(id, enquiry);
-      },
+      next: (enquiry) => { this.uploadConsentDocs(id, enquiry); },
       error: (error: HttpErrorResponse) => {
         this.toast.error(this.getErrorMessage(error, 'Failed to create admission'));
         this.saving.set(false);

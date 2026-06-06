@@ -56,6 +56,20 @@ interface FeeState {
   isFallback: boolean;
   sortOrder: number;
 }
+const ENQ_STEPS = [
+  { label: 'Personal'  },
+  { label: 'Location'  },
+  { label: 'Academic'  },
+  { label: 'Details'   },
+] as const;
+
+const ENQ_STEP_FIELDS: Record<number, string[]> = {
+  0: ['name', 'phone', 'dateOfBirth', 'gender'],
+  1: ['country', 'state'],
+  2: ['programId', 'admissionQuota', 'studentType'],
+  3: ['enquiryDate', 'referralTypeId'],
+};
+
 @Component({
   selector: 'app-enquiry-form',
   standalone: true,
@@ -82,6 +96,43 @@ export class EnquiryFormComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
+
+  // ── Stepper ──────────────────────────────────────────────────────────────
+  protected readonly enqSteps       = ENQ_STEPS;
+  protected readonly currentEnqStep = signal(0);
+
+  protected readonly isEnqStepComplete = computed(() => {
+    const cur = this.currentEnqStep();
+    return (i: number) => i < cur;
+  });
+
+  protected goToNextEnq(): void {
+    const step   = this.currentEnqStep();
+    const fields = ENQ_STEP_FIELDS[step] ?? [];
+    let valid = true;
+    for (const key of fields) {
+      const ctrl = this.form.get(key);
+      if (ctrl) { ctrl.markAsTouched(); if (ctrl.invalid) valid = false; }
+    }
+    // Step 3: validate conditional referral fields
+    if (step === 3) {
+      const cat = this.referralCategory();
+      if (cat === 'AGENT') {
+        const c = this.form.get('agentId'); c?.markAsTouched(); if (c?.invalid) valid = false;
+      }
+      if (cat === 'STAFF') {
+        const c = this.form.get('referredStaffName'); c?.markAsTouched(); if (c?.invalid) valid = false;
+      }
+    }
+    if (!valid) { scrollToFirstInvalid(this.form); return; }
+    this.currentEnqStep.update(s => Math.min(s + 1, ENQ_STEPS.length - 1));
+    document.querySelector('main.app-content')?.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  protected goToPrevEnq(): void {
+    this.currentEnqStep.update(s => Math.max(s - 1, 0));
+    document.querySelector('main.app-content')?.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   protected readonly pageTitle = signal('Add Enquiry');
   protected readonly programs = signal<ProgramInfo[]>([]);
   protected readonly courses = signal<CourseInfo[]>([]);
