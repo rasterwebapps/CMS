@@ -23,11 +23,12 @@
 // ── Panel shell ─────────────────────────────────────────────────────────────
 .rcp-panel {
   position: fixed;
-  top: 0;
+  // 91px = 56px app toolbar + 35px breadcrumb/header strip
+  top: 91px;
   right: 0;
   width: 440px;
   max-width: 100vw;
-  height: 100dvh;
+  height: calc(100dvh - 91px);
   background: var(--cms-bg-card, #ffffff);
   border-left: 1px solid var(--cms-border-default, #e5e7eb);
   box-shadow: -8px 0 40px rgba(0, 0, 0, 0.15);
@@ -366,6 +367,7 @@
 
   .rcp-panel {
     position: static;
+    top: auto;
     width: 100%;
     height: auto;
     box-shadow: none;
@@ -387,6 +389,8 @@
 @media (max-width: 480px) {
   .rcp-panel {
     width: 100vw;
+    top: 0;
+    height: 100dvh;
   }
 }
 

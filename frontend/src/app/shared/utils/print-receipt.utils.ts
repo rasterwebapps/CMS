@@ -34,7 +34,8 @@ function buildReceiptCss(): string {
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
     width: 210mm;
-    height: 148mm;
+    min-height: 148mm;
+    overflow: visible;
   }
   body {
     font-family: 'Times New Roman', Times, serif;
@@ -52,14 +53,16 @@ function buildReceiptCss(): string {
   /* ── Page shell: adds a safe top inset so PDF viewers never crop the header ── */
   .receipt-page {
     width: 100%;
-    height: 135mm;
-    padding-top: 2mm;
+    min-height: 135mm;
+    padding-top: 3mm;
+    display: flex;
+    align-items: stretch;
   }
 
-  /* ── Outer card — 133mm + 2mm top inset keeps everything on one page ── */
+  /* ── Outer card — min-height keeps the header safe from crop rounding ── */
   .receipt {
     width: 100%;
-    height: 133mm;
+    min-height: 132mm;
     border: 3px double #1a237e;
     padding: 8px 14px 10px;
     display: flex;
@@ -299,8 +302,9 @@ async function generateReceiptPdfBlob(data: ReceiptPrintData): Promise<Blob> {
   //   210 mm − 2 × 5 mm = 200 mm
   const container = document.createElement('div');
   container.style.cssText =
-    'position:fixed;left:-9999px;top:0;width:200mm;background:#fff;' +
-    'overflow:visible;z-index:-9999;';
+    'position:fixed;left:0;top:0;width:200mm;background:#fff;' +
+    'overflow:visible;pointer-events:none;z-index:-9999;';
+  container.setAttribute('aria-hidden', 'true');
   container.innerHTML = `<style>${buildReceiptCss()}</style>${buildReceiptBodyHtml(data)}`;
   document.body.appendChild(container);
 
@@ -309,6 +313,8 @@ async function generateReceiptPdfBlob(data: ReceiptPrintData): Promise<Blob> {
     document.body.removeChild(container);
     throw new Error('Receipt element not found for PDF generation');
   }
+
+  const rect = captureEl.getBoundingClientRect();
 
   const opt = {
     margin: [5, 5, 5, 5], // top, right, bottom, left (mm)
@@ -320,8 +326,10 @@ async function generateReceiptPdfBlob(data: ReceiptPrintData): Promise<Blob> {
       logging: false,
       scrollX: 0,
       scrollY: 0,
-      windowWidth: captureEl.scrollWidth,
-      windowHeight: captureEl.scrollHeight,
+      width: Math.ceil(rect.width),
+      height: Math.ceil(rect.height),
+      windowWidth: Math.ceil(rect.width),
+      windowHeight: Math.ceil(rect.height),
     },
     jsPDF: { unit: 'mm' as const, format: 'a5', orientation: 'landscape' as const },
     pagebreak: { mode: [] as string[] }, // never break across pages
