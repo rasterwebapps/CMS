@@ -7,6 +7,7 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { DecimalPipe } from '@angular/common';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { forkJoin } from 'rxjs';
 import { EnquiryService } from '../../enquiry/enquiry.service';
@@ -46,6 +47,7 @@ export interface FeeEntry {
   standalone: true,
   imports: [
     AppDatePipe,
+    DecimalPipe,
     InrPipe,
     ReactiveFormsModule,
     MatIconModule, MatProgressSpinnerModule,

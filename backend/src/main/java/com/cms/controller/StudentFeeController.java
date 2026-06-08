@@ -18,6 +18,11 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cms.dto.CollectPaymentRequest;
 import com.cms.dto.CollectPaymentResponse;
 import com.cms.dto.FeeExplorerResponse;
+import com.cms.dto.FeeRefundApprovalRequest;
+import com.cms.dto.FeeRefundRejectionRequest;
+import com.cms.dto.FeeRefundRequest;
+import com.cms.dto.FeeRefundResponse;
+import com.cms.dto.FeeRefundSummaryResponse;
 import com.cms.dto.PenaltyResponse;
 import com.cms.dto.ReceiptResponse;
 import com.cms.dto.ReceiptSummaryResponse;
@@ -26,6 +31,7 @@ import com.cms.dto.StudentFeeAllocationResponse;
 import com.cms.dto.YearFeeFromEnquiry;
 import com.cms.service.FeeExplorerService;
 import com.cms.service.FeeFinalizationService;
+import com.cms.service.FeeRefundService;
 import com.cms.service.PaymentCollectionService;
 import com.cms.service.PenaltyCalculationService;
 
@@ -39,15 +45,18 @@ public class StudentFeeController {
     private final PaymentCollectionService paymentCollectionService;
     private final PenaltyCalculationService penaltyCalculationService;
     private final FeeExplorerService feeExplorerService;
+    private final FeeRefundService feeRefundService;
 
     public StudentFeeController(FeeFinalizationService feeFinalizationService,
                                  PaymentCollectionService paymentCollectionService,
                                  PenaltyCalculationService penaltyCalculationService,
-                                 FeeExplorerService feeExplorerService) {
+                                 FeeExplorerService feeExplorerService,
+                                 FeeRefundService feeRefundService) {
         this.feeFinalizationService = feeFinalizationService;
         this.paymentCollectionService = paymentCollectionService;
         this.penaltyCalculationService = penaltyCalculationService;
         this.feeExplorerService = feeExplorerService;
+        this.feeRefundService = feeRefundService;
     }
 
     @PostMapping("/finalize")
@@ -102,6 +111,49 @@ public class StudentFeeController {
             @RequestParam(required = false) String search) {
         FeeExplorerResponse response = feeExplorerService.search(search);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{studentId}/refund")
+    @PreAuthorize("@perm.has('FEE_REFUND')")
+    public ResponseEntity<FeeRefundResponse> initiateRefund(
+            @PathVariable Long studentId,
+            @Valid @RequestBody FeeRefundRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : null;
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            feeRefundService.initiateRefund(studentId, request, username));
+    }
+
+    @GetMapping("/refunds")
+    @PreAuthorize("@perm.has('FEE_REFUND_APPROVE')")
+    public ResponseEntity<List<FeeRefundSummaryResponse>> getAllRefunds() {
+        return ResponseEntity.ok(feeRefundService.getAllRefunds());
+    }
+
+    @GetMapping("/refunds/pending")
+    @PreAuthorize("@perm.has('FEE_REFUND_APPROVE')")
+    public ResponseEntity<List<FeeRefundSummaryResponse>> getPendingRefunds() {
+        return ResponseEntity.ok(feeRefundService.getPendingRefunds());
+    }
+
+    @PostMapping("/refunds/{refundId}/approve")
+    @PreAuthorize("@perm.has('FEE_REFUND_APPROVE')")
+    public ResponseEntity<FeeRefundSummaryResponse> approveRefund(
+            @PathVariable Long refundId,
+            @Valid @RequestBody FeeRefundApprovalRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : null;
+        return ResponseEntity.ok(feeRefundService.approveRefund(refundId, request, username));
+    }
+
+    @PostMapping("/refunds/{refundId}/reject")
+    @PreAuthorize("@perm.has('FEE_REFUND_APPROVE')")
+    public ResponseEntity<FeeRefundSummaryResponse> rejectRefund(
+            @PathVariable Long refundId,
+            @Valid @RequestBody FeeRefundRejectionRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : null;
+        return ResponseEntity.ok(feeRefundService.rejectRefund(refundId, request, username));
     }
 
     @GetMapping("/receipts")

@@ -8,6 +8,8 @@ import {
   CollectPaymentRequest, CollectPaymentResponse,
   PenaltyResponse, FeeExplorerResult, Receipt, ReceiptSummary, BulkFeeStructureRequest,
   GroupedFeeStructure, EnquiryYearFee, CreateAllocationRequest, UnifiedReceiptSummary,
+  FeeRefundRequest, FeeRefundResponse, FeeRefundSummary,
+  FeeRefundApprovalRequest, FeeRefundRejectionRequest,
 } from './finance.model';
 
 @Injectable({
@@ -154,5 +156,32 @@ export class FinanceService {
   /** Returns a single receipt by its receipt number. Backed by GET /api/v1/receipts/{receiptNumber}. */
   getReceiptByNumber(receiptNumber: string): Observable<UnifiedReceiptSummary> {
     return this.http.get<UnifiedReceiptSummary>(`${environment.apiUrl}/receipts/${encodeURIComponent(receiptNumber)}`);
+  }
+
+  /** Step 1 — submit a refund request (creates PENDING, does not reverse balance yet). */
+  createRefund(studentId: number, request: FeeRefundRequest): Observable<FeeRefundResponse> {
+    return this.http.post<FeeRefundResponse>(`${this.studentFeeUrl}/${studentId}/refund`, request);
+  }
+
+  /** Returns all refunds — PENDING first (403 if caller lacks FEE_REFUND_APPROVE). */
+  getAllRefunds(): Observable<FeeRefundSummary[]> {
+    return this.http.get<FeeRefundSummary[]>(`${this.studentFeeUrl}/refunds`);
+  }
+
+  /** Returns all PENDING refund requests (403 if caller lacks FEE_REFUND_APPROVE). */
+  getPendingRefunds(): Observable<FeeRefundSummary[]> {
+    return this.http.get<FeeRefundSummary[]>(`${this.studentFeeUrl}/refunds/pending`);
+  }
+
+  /** Step 2a — approve a pending refund and record payment details. */
+  approveRefund(refundId: number, request: FeeRefundApprovalRequest): Observable<FeeRefundSummary> {
+    return this.http.post<FeeRefundSummary>(
+      `${this.studentFeeUrl}/refunds/${refundId}/approve`, request);
+  }
+
+  /** Step 2b — reject a pending refund request. */
+  rejectRefund(refundId: number, request: FeeRefundRejectionRequest): Observable<FeeRefundSummary> {
+    return this.http.post<FeeRefundSummary>(
+      `${this.studentFeeUrl}/refunds/${refundId}/reject`, request);
   }
 }

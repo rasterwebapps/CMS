@@ -326,11 +326,63 @@ export interface UnifiedReceiptSummary {
   programName: string | null;
   amountPaid: number;
   paymentDate: string;
-  paymentMode: string;
+  paymentMode: string | null;
   transactionReference: string | null;
   remarks: string | null;
   installmentsCovered: string | null;
   collectedBy: string | null;
   feeCategory: 'TUITION_ONLY' | 'TUITION_AND_HOSTEL' | null;
   createdAt: string;
+  /** PAYMENT = original receipt; REFUND = reversal record */
+  receiptType: 'PAYMENT' | 'REFUND';
+}
+
+export interface FeeRefundRequest {
+  receiptNumber: string;
+  reason: string;
+}
+
+/** Returned when a refund request is initiated (status always = PENDING). */
+export interface FeeRefundResponse {
+  id: number;
+  originalReceiptNumber: string;
+  refundAmount: number;
+  reason: string;
+  studentName: string;
+  rollNumber: string | null;
+  status: string;
+}
+
+/** One refund request shown in the approval list. */
+export interface FeeRefundSummary {
+  id: number;
+  originalReceiptNumber: string;
+  studentName: string;
+  rollNumber: string | null;
+  admissionNumber: string | null;
+  programName: string | null;
+  refundAmount: number;
+  reason: string;
+  requestedBy: string | null;
+  requestedAt: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  // Populated after APPROVED
+  refundNumber: string | null;
+  paymentMode: string | null;
+  paymentDate: string | null;
+  transactionReference: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  // Populated after REJECTED
+  rejectionReason: string | null;
+}
+
+export interface FeeRefundApprovalRequest {
+  paymentMode: string;
+  paymentDate: string;  // ISO date yyyy-MM-dd
+  transactionReference?: string;
+}
+
+export interface FeeRefundRejectionRequest {
+  rejectionReason: string;
 }

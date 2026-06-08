@@ -97,9 +97,8 @@ function buildReceiptCss(): string {
   .meta-row {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
-    margin: 6px 0 2px;
-    padding-bottom: 3px;
+    align-items: center;
+    padding: 5px 0;
     border-bottom: 1px solid #c5cae9;
   }
   .receipt-no { font-size: 12.5px; }
@@ -168,6 +167,7 @@ function buildReceiptCss(): string {
   .sig-space { height: 42px; }
   .sig-line-rule { border-top: 1px solid #000; }
   .sig-text { font-size: 10px; padding-top: 3px; }
+  .fill-label--mid { padding-left: 18px; flex-shrink: 0; }
   `;
 }
 
@@ -191,18 +191,16 @@ function buildReceiptBodyHtml(data: ReceiptPrintData): string {
             .join(', ')
         : 'Fee Payment';
 
-  // ID row: roll number takes priority; admission number shown only when no roll number yet
-  const idRow = data.payerIdentifier
+  const rollNoInline = data.payerIdentifier
+    ? `<span class="fill-label fill-label--mid">Roll No.</span>
+      <span class="fill-blank"><span class="fill-value">${data.payerIdentifier}</span></span>`
+    : '';
+  const admissionRow = data.admissionNumber
     ? `<div class="fill-row">
-      <span class="fill-label">Roll No.</span>
-      <span class="fill-blank"><span class="fill-value">${data.payerIdentifier}</span></span>
-    </div>`
-    : data.admissionNumber
-      ? `<div class="fill-row">
       <span class="fill-label">Admission No.</span>
       <span class="fill-blank"><span class="fill-value">${data.admissionNumber}</span></span>
     </div>`
-      : '';
+    : '';
 
   const courseRow = data.programName
     ? `<div class="fill-row">
@@ -246,8 +244,9 @@ function buildReceiptBodyHtml(data: ReceiptPrintData): string {
     <div class="fill-row">
       <span class="fill-label">Received with thanks from</span>
       <span class="fill-blank"><span class="fill-value">${data.payerName}</span></span>
+      ${rollNoInline}
     </div>
-    ${idRow}
+    ${admissionRow}
     ${courseRow}
     <div class="fill-row">
       <span class="fill-label">the sum of Rupees</span>
@@ -336,7 +335,12 @@ async function generateReceiptPdfBlob(data: ReceiptPrintData): Promise<Blob> {
   };
 
   try {
-    return (await h2p().set(opt).from(captureEl).outputPdf('blob')) as Blob;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return await h2p().set(opt).from(captureEl).toPdf().get('pdf').then((pdf: any) => {
+      const pages = pdf.internal.getNumberOfPages();
+      for (let i = pages; i > 1; i--) pdf.deletePage(i);
+      return pdf.output('blob') as Blob;
+    });
   } finally {
     document.body.removeChild(container);
   }
@@ -409,4 +413,368 @@ export async function shareReceiptPdf(
   } catch {
     /* User cancelled or share API error — silently ignore */
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REVERSAL VOUCHER — printed for fee refund / reversal entries
+// ══════════════════════════════════════════════════════════════════════════════
+
+export interface RefundVoucherData {
+  refundNumber: string;
+  originalReceiptNumber: string;
+  payerName: string;
+  payerIdentifier?: string | null;
+  admissionNumber?: string | null;
+  programName?: string | null;
+  refundAmount: number;
+  refundDate: string;
+  reason: string;
+  /** How the money was physically returned to the student */
+  paymentMode?: string | null;
+  paymentDate?: string | null;
+  transactionReference?: string | null;
+}
+
+function buildRefundVoucherCss(): string {
+  return `
+  @page { size: A5 landscape; margin: 5mm; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 210mm;
+    height: 138mm;
+    overflow: hidden;
+    page-break-after: avoid;
+  }
+  body {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 12.5px;
+    background: #fff;
+    color: #000;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .receipt-page { page-break-after: avoid; page-break-inside: avoid; }
+  @media screen {
+    html { background: #888; display: flex; justify-content: center; align-items: flex-start; padding: 16px; }
+    body { box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
+  }
+
+  .receipt-page {
+    width: 100%;
+    height: 138mm;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .receipt {
+    width: 100%;
+    height: 138mm;
+    border: 3px double #c2410c;
+    padding: 6px 14px 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1.5px solid #c2410c;
+  }
+  .logo { width: 52px; height: 52px; flex-shrink: 0; object-fit: contain; }
+  .header-center { flex: 1; }
+  .college-name {
+    font-size: 19px; font-weight: 900; color: #c2410c;
+    letter-spacing: 0.4px; text-transform: uppercase; line-height: 1.15;
+  }
+  .college-sub { font-size: 10px; color: #333; margin-top: 2px; line-height: 1.5; }
+  .receipt-badge {
+    border: 2px solid #c2410c; padding: 5px 14px;
+    font-size: 11px; font-weight: 800; letter-spacing: 2px;
+    text-transform: uppercase; color: #c2410c;
+    align-self: center; white-space: nowrap;
+    height: 52px;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+  }
+
+  .meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid #fca5a5;
+  }
+  .receipt-no { font-size: 12.5px; }
+  .receipt-no strong { font-size: 15px; }
+  .meta-date { font-size: 12px; font-weight: 600; }
+
+  .body { margin-top: 7px; }
+  .fill-row {
+    display: flex;
+    align-items: flex-end;
+    margin-bottom: 6px;
+    font-size: 12.5px;
+    line-height: 1;
+  }
+  .fill-label {
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding-right: 6px;
+    padding-bottom: 6px;
+  }
+  .fill-blank {
+    flex: 1;
+    border-bottom: 1.5px dotted #555;
+    min-width: 60px;
+    padding-bottom: 6px;
+  }
+  .fill-value {
+    font-weight: 700;
+    white-space: nowrap;
+    padding-left: 0.45in;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .reason-value {
+    font-weight: 700;
+    display: block;
+    margin-bottom: 4px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .amount-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    margin-top: 6px;
+    margin-bottom: 2px;
+    gap: 0;
+  }
+  .amount-box {
+    border: 2px solid #c2410c;
+    padding: 5px 16px;
+    text-align: center;
+    min-width: 130px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .amount-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #c2410c; }
+  .amount-value { font-size: 20px; font-weight: 900; margin-top: 2px; color: #c2410c; }
+
+  .footer-divider { border-top: 1.5px solid #c2410c; margin-top: auto; margin-bottom: 5px; }
+  .footer { display: flex; justify-content: flex-end; align-items: flex-end; }
+  .sig-block { text-align: center; min-width: 190px; }
+  .for-word { font-size: 10px; margin-bottom: 1px; }
+  .for-college { font-size: 11.5px; font-weight: 800; letter-spacing: 0.4px; }
+  .sig-space { height: 28px; }
+  .sig-line-rule { border-top: 1px solid #000; }
+  .sig-text { font-size: 10px; padding-top: 3px; }
+  .fill-label--mid { padding-left: 18px; flex-shrink: 0; }
+  `;
+}
+
+function buildRefundVoucherBodyHtml(data: RefundVoucherData): string {
+  const amountWords = numberToWords(data.refundAmount);
+  const formattedDate = new Date(data.refundDate + 'T00:00:00').toLocaleDateString('en-IN', {
+    day: '2-digit', month: 'long', year: 'numeric',
+  });
+  const formattedAmount = formatCurrency(data.refundAmount, 'en-IN', '₹', 'INR', '1.0-0');
+
+  // Roll No. shares a line with Against Receipt No.; Admission No. falls back to its own row
+  const rollNoInline = data.payerIdentifier
+    ? `<span class="fill-label fill-label--mid">Roll No.</span>
+      <span class="fill-blank"><span class="fill-value">${data.payerIdentifier}</span></span>`
+    : '';
+  const admissionRow = data.admissionNumber
+    ? `<div class="fill-row">
+      <span class="fill-label">Admission No.</span>
+      <span class="fill-blank"><span class="fill-value">${data.admissionNumber}</span></span>
+    </div>`
+    : '';
+
+  const courseRow = data.programName
+    ? `<div class="fill-row">
+      <span class="fill-label">Course</span>
+      <span class="fill-blank"><span class="fill-value">${data.programName}</span></span>
+    </div>`
+    : '';
+
+  const refundModeRow = (() => {
+    if (!data.paymentMode) return '';
+    const modeLabel = getPaymentModeLabel(data.paymentMode);
+    const refPayDate = data.paymentDate
+      ? new Date(data.paymentDate + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
+      : '';
+    const refRow = data.transactionReference
+      ? `<div class="fill-row">
+        <span class="fill-label">Reference No.</span>
+        <span class="fill-blank"><span class="fill-value">${data.transactionReference}</span></span>
+      </div>`
+      : '';
+    return `<div class="fill-row">
+      <span class="fill-label">Refund Mode</span>
+      <span class="fill-blank"><span class="fill-value">${modeLabel}${refPayDate ? ' — ' + refPayDate : ''}</span></span>
+    </div>${refRow}`;
+  })();
+
+  return `
+<div class="receipt-page">
+<div class="receipt">
+
+  <!-- Header -->
+  <div class="header">
+    <img class="logo" src="${SKS_LOGO_DATA_URL}" alt="SKS Logo" />
+    <div class="header-center">
+      <div class="college-name">SKS College Of Nursing</div>
+      <div class="college-sub">
+        Run By VS Educational Trust (Regn. No. 579 / 1997)<br/>
+        No.31, Neikkarapatti, Salem &ndash; 636 010.
+      </div>
+    </div>
+    <div class="receipt-badge">REFUND<br/>VOUCHER</div>
+  </div>
+
+  <!-- Refund No (left) + Date (right) -->
+  <div class="meta-row">
+    <div class="receipt-no">Refund No. <strong>${data.refundNumber}</strong></div>
+    <div class="meta-date">Date : ${formattedDate}</div>
+  </div>
+
+  <!-- Fill-in rows -->
+  <div class="body">
+    <div class="fill-row">
+      <span class="fill-label">Against Receipt No.</span>
+      <span class="fill-blank"><span class="fill-value">${data.originalReceiptNumber}</span></span>
+      ${rollNoInline}
+    </div>
+    ${admissionRow}
+    <div class="fill-row">
+      <span class="fill-label">Student Name</span>
+      <span class="fill-blank"><span class="fill-value">${data.payerName}</span></span>
+    </div>
+    ${courseRow}
+    <div class="fill-row">
+      <span class="fill-label">Amount Reversed (Rupees)</span>
+      <span class="fill-blank"><span class="fill-value">${amountWords}</span></span>
+    </div>
+    <div class="fill-row">
+      <span class="fill-label">Reason</span>
+      <span class="fill-blank"><span class="reason-value">${data.reason}</span></span>
+    </div>
+    ${refundModeRow}
+  </div>
+
+  <!-- Amount box -->
+  <div class="amount-row">
+    <div class="amount-box">
+      <div class="amount-label">Amount Reversed</div>
+      <div class="amount-value">${formattedAmount} /-</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-divider"></div>
+  <div class="footer">
+    <div class="sig-block">
+      <div class="for-word">For</div>
+      <div class="for-college">SKS COLLEGE OF NURSING</div>
+      <div class="sig-space"></div>
+      <div class="sig-line-rule"></div>
+      <div class="sig-text">Authorised Signature</div>
+    </div>
+  </div>
+
+</div>
+</div>`;
+}
+
+async function generateRefundVoucherPdfBlob(data: RefundVoucherData): Promise<Blob> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const h2p: (...args: unknown[]) => any = await import('html2pdf.js').then(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (m: any) => m.default ?? m,
+  );
+
+  const container = document.createElement('div');
+  container.style.cssText =
+    'position:fixed;left:0;top:0;width:200mm;height:138mm;background:#fff;' +
+    'overflow:hidden;pointer-events:none;z-index:-9999;';
+  container.setAttribute('aria-hidden', 'true');
+  container.innerHTML = `<style>${buildRefundVoucherCss()}</style>${buildRefundVoucherBodyHtml(data)}`;
+  document.body.appendChild(container);
+
+  const captureEl = container.querySelector<HTMLElement>('.receipt-page');
+  if (!captureEl) {
+    document.body.removeChild(container);
+    throw new Error('Voucher element not found for PDF generation');
+  }
+
+  const rect = captureEl.getBoundingClientRect();
+  // Clamp height to A5 landscape usable area (138mm at 96dpi ≈ 521px) to prevent page 2 bleed
+  const captureWidth  = Math.ceil(rect.width);
+  const captureHeight = Math.min(Math.ceil(rect.height), Math.round(138 * 3.7795));
+
+  const opt = {
+    margin: [5, 5, 5, 5],
+    filename: `Refund-${data.refundNumber}.pdf`,
+    image: { type: 'jpeg' as const, quality: 0.99 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      width: captureWidth,
+      height: captureHeight,
+      windowWidth: captureWidth,
+      windowHeight: captureHeight,
+    },
+    jsPDF: { unit: 'mm' as const, format: 'a5', orientation: 'landscape' as const },
+    pagebreak: { mode: [] as string[] },
+  };
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return await h2p().set(opt).from(captureEl).toPdf().get('pdf').then((pdf: any) => {
+      const pages = pdf.internal.getNumberOfPages();
+      for (let i = pages; i > 1; i--) pdf.deletePage(i);
+      return pdf.output('blob') as Blob;
+    });
+  } finally {
+    document.body.removeChild(container);
+  }
+}
+
+/** Opens the reversal voucher PDF in a new browser tab. */
+export async function printRefundVoucher(data: RefundVoucherData): Promise<void> {
+  const blob = await generateRefundVoucherPdfBlob(data);
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if (!win) {
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `Refund-${data.refundNumber}.pdf`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/** Saves the reversal voucher as a .pdf file. */
+export async function downloadRefundVoucher(data: RefundVoucherData): Promise<void> {
+  const blob = await generateRefundVoucherPdfBlob(data);
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `Refund-${data.refundNumber}.pdf`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  setTimeout(() => URL.revokeObjectURL(url), 5_000);
 }

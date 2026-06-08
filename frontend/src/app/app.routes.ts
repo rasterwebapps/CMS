@@ -396,6 +396,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'refund-approvals',
+    canActivate: withPermission('FEE_REFUND_APPROVE'),
+    loadComponent: () =>
+      import('./features/finance/fee-refund-list/fee-refund-list.component').then(
+        (m) => m.FeeRefundListComponent
+      ),
+  },
+  {
     path: 'equipment',
     canActivate: withPermission('EQUIPMENT_VIEW', 'EQUIPMENT_MANAGE'),
     loadComponent: () =>
