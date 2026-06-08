@@ -175,7 +175,7 @@ export class App implements OnInit, AfterViewInit {
       items: [
         { label: 'Fee Explorer',       icon: 'account_balance_wallet', route: '/student-fees',       permissions: ['STUDENT_FEE_VIEW', 'STUDENT_FEE_MANAGE'] },
         { label: 'Receipts',          icon: 'receipt_long',           route: '/receipts',           permissions: ['RECEIPT_VIEW'] },
-        { label: 'Refund Approvals',  icon: 'assignment_return',      route: '/refund-approvals',   permissions: ['FEE_REFUND_APPROVE'] },
+        { label: 'Refunds',           icon: 'assignment_return',      route: '/refund-approvals',   permissions: ['FEE_REFUND_APPROVE'] },
       ],
     },
     // 5. Academics

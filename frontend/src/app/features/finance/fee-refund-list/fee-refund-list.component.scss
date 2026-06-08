@@ -35,7 +35,7 @@ tr.rfl-row--pending:hover td {
 .mat-column-refundAmount        { width: 100px; min-width: 90px; text-align: right; }
 .mat-column-requestedBy         { width: 120px; min-width: 100px; }
 .mat-column-status              { width: 96px;  min-width: 80px; }
-.mat-column-actions             { width: 88px;  min-width: 88px; text-align: right; }
+.mat-column-actions             { width: 120px; min-width: 110px; text-align: right; }
 
 // Sticky separator
 .mat-column-requestedAt {
@@ -158,29 +158,53 @@ tr.rfl-row--pending:hover td {
   :root[data-theme="dark"] & { color: #fbbf24; }
 }
 
-// ── Date inputs in toolbar ────────────────────────────────────────────────────
-.mlp-date-input {
-  height: var(--cms-list-filter-height);
-  padding: 0 10px;
-  font-size: 0.775rem;
-  font-family: var(--cms-font-ui);
-  color: var(--cms-text-primary);
+// ── Date range filter ─────────────────────────────────────────────────────────
+.date-range-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   background: var(--cms-bg-card);
   border: 1px solid var(--cms-border-default);
   border-radius: var(--cms-list-filter-radius);
-  outline: none;
-  cursor: pointer;
+  padding: 0 10px;
+  height: var(--cms-list-filter-height);
+  color: var(--cms-text-muted);
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:hover { border-color: var(--cms-border-hover); }
-  &:focus { border-color: var(--cms-primary); box-shadow: 0 0 0 3px var(--cms-primary-ring); }
+  &:focus-within { border-color: var(--cms-primary); box-shadow: 0 0 0 3px var(--cms-primary-ring); }
+
+  svg { flex-shrink: 0; }
 }
 
-// ── Count label ──────────────────────────────────────────────────────────────
-.mlp-count-label {
-  font-size: 0.775rem;
+.date-range-label {
+  font-size: var(--cms-text-xs);
+  font-weight: 500;
   color: var(--cms-text-muted);
-  margin-left: auto;
   white-space: nowrap;
+}
+
+.date-input {
+  border: none;
+  background: transparent;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-primary);
+  font-family: var(--cms-font-ui);
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  width: 96px;
+}
+
+.date-sep { color: var(--cms-text-muted); font-size: var(--cms-text-xs); }
+
+// ── Loading box ───────────────────────────────────────────────────────────────
+.loading-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
 }
 
 // ── Backdrop ──────────────────────────────────────────────────────────────────

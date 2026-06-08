@@ -659,7 +659,7 @@ function buildRefundVoucherBodyHtml(data: RefundVoucherData): string {
     </div>
     ${courseRow}
     <div class="fill-row">
-      <span class="fill-label">Amount Reversed (Rupees)</span>
+      <span class="fill-label">Amount Refunded (Rupees)</span>
       <span class="fill-blank"><span class="fill-value">${amountWords}</span></span>
     </div>
     <div class="fill-row">
@@ -672,7 +672,7 @@ function buildRefundVoucherBodyHtml(data: RefundVoucherData): string {
   <!-- Amount box -->
   <div class="amount-row">
     <div class="amount-box">
-      <div class="amount-label">Amount Reversed</div>
+      <div class="amount-label">Amount Refunded</div>
       <div class="amount-value">${formattedAmount} /-</div>
     </div>
   </div>

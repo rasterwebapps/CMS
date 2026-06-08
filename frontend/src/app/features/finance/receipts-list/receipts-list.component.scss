@@ -30,7 +30,7 @@ tr.table-row:hover td.mat-mdc-table-sticky {
 .mat-column-paymentMode       { width: 112px; min-width: 100px; }
 .mat-column-transactionReference { width: 110px; min-width: 90px; }
 .mat-column-amountPaid        { width: 88px;  min-width: 88px;  }
-.mat-column-actions           { width: 52px;  min-width: 52px;  }
+.mat-column-actions           { width: 90px;  min-width: 90px;  }
 
 // ── Sticky column separators ───────────────────────────────────────────────
 // Right edge of the last left-sticky column; left edge of first right-sticky.
@@ -61,7 +61,6 @@ tr.table-row:hover td.mat-mdc-table-sticky {
   margin-top: 1px;
   line-height: 1.3;
 }
-
 
 .cell-code-sub {
   font-family: var(--cms-font-mono);
@@ -144,7 +143,7 @@ tr.table-row:hover td.mat-mdc-table-sticky {
 
 .date-sep { color: var(--cms-text-muted); font-size: var(--cms-text-xs); }
 
-// Type badge variants (reused from fee-collection)
+// Type badge variants
 .type-badge {
   display: inline-block;
   font-size: var(--cms-text-xs);
@@ -161,6 +160,131 @@ tr.table-row:hover td.mat-mdc-table-sticky {
     border-color: #bfdbfe;
   }
 }
+
+// Refund action button (for initiation from receipts list)
+.action-btn--refund {
+  color: var(--cms-text-muted);
+
+  &:hover {
+    color: #c2410c;
+    background: #fff7ed;
+  }
+}
+
+// ── Refund initiation overlay ──────────────────────────────────────────────
+
+.refund-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.refund-dialog {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 480px;
+  padding: 24px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    color: var(--cms-text-primary);
+
+    svg { flex-shrink: 0; color: #c2410c; }
+
+    h3 {
+      margin: 0;
+      font-size: var(--cms-text-lg);
+      font-weight: 600;
+    }
+  }
+
+  &__summary {
+    background: var(--cms-bg-surface);
+    border: 1px solid var(--cms-border-default);
+    border-radius: var(--cms-radius-md);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+
+  &__notice {
+    font-size: var(--cms-text-sm);
+    color: var(--cms-text-muted);
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: var(--cms-radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding-top: 16px;
+  }
+}
+
+.refund-summary-row {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 4px 0;
+
+  &:not(:last-child) { border-bottom: 1px solid var(--cms-border-subtle); }
+}
+
+.refund-summary-label {
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  color: var(--cms-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  min-width: 64px;
+  flex-shrink: 0;
+}
+
+.refund-summary-value {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-primary);
+  word-break: break-word;
+}
+
+.refund-amount {
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: var(--cms-radius-sm);
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: var(--cms-primary);
+  color: #fff;
+  transition: background 0.15s ease;
+
+  &:hover:not(:disabled) { background: var(--cms-primary-dark, #1e40af); }
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+
+.btn-spinner { --mdc-circular-progress-active-indicator-color: #fff; }
 
 .loading-box {
   display: flex;

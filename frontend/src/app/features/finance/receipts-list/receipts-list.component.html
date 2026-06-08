@@ -1,5 +1,77 @@
 <div class="mlp-page">
 
+  <!-- ── Refund initiation overlay ─────────────────────────────────────────── -->
+  @if (refundTarget()) {
+    <div class="refund-overlay" role="dialog" aria-modal="true" aria-labelledby="refund-dialog-title">
+      <div class="refund-dialog">
+        <div class="refund-dialog__header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+          <h3 id="refund-dialog-title">Request Refund</h3>
+        </div>
+
+        <div class="refund-dialog__summary">
+          <div class="refund-summary-row">
+            <span class="refund-summary-label">Receipt</span>
+            <span class="refund-summary-value cell-code">{{ refundTarget()!.receiptNumber }}</span>
+          </div>
+          <div class="refund-summary-row">
+            <span class="refund-summary-label">Student</span>
+            <span class="refund-summary-value">{{ refundTarget()!.payerName }}</span>
+          </div>
+          <div class="refund-summary-row">
+            <span class="refund-summary-label">Amount</span>
+            <span class="refund-summary-value refund-amount">{{ refundTarget()!.amountPaid | inr }}</span>
+          </div>
+          <div class="refund-summary-row">
+            <span class="refund-summary-label">Towards</span>
+            <span class="refund-summary-value">{{ refundTarget()!.installmentsCovered || '—' }}</span>
+          </div>
+        </div>
+
+        <p class="refund-dialog__notice">
+          This will submit a refund request for approval. The outstanding balance will be restored only after an authorised approver confirms the refund.
+        </p>
+
+        <form [formGroup]="refundForm" (ngSubmit)="confirmRefund()">
+          <div class="field-group">
+            <label class="field-label" for="refund-reason">
+              Reason for Refund <span class="field-required">*</span>
+            </label>
+            <textarea
+              id="refund-reason"
+              class="field-textarea"
+              formControlName="reason"
+              rows="3"
+              placeholder="Explain why this receipt is being reversed…"
+              [class.field-input--error]="refundForm.get('reason')?.invalid && refundForm.get('reason')?.touched"
+            ></textarea>
+            @if (refundForm.get('reason')?.invalid && refundForm.get('reason')?.touched) {
+              <p class="field-error">Reason is required (min. 5 characters)</p>
+            }
+          </div>
+
+          <div class="refund-dialog__actions">
+            <button type="button" class="btn-cancel" (click)="cancelRefund()" [disabled]="refunding()">
+              Cancel
+            </button>
+            <button type="submit" class="btn-primary" [disabled]="refunding()">
+              @if (refunding()) {
+                <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+              } @else {
+                Submit for Approval
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
@@ -166,7 +238,11 @@
         <ng-container matColumnDef="paymentMode">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Mode</th>
           <td mat-cell *matCellDef="let row">
-            <span class="cms-badge cms-badge--gray">{{ row.paymentMode | paymentModeLabel }}</span>
+            @if (row.paymentMode) {
+              <span class="cms-badge cms-badge--gray">{{ row.paymentMode | paymentModeLabel }}</span>
+            } @else {
+              <span class="cell-muted">—</span>
+            }
           </td>
         </ng-container>
 
@@ -216,6 +292,21 @@
                   <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
               </button>
+              @if (row.payerType === 'STUDENT') {
+                <button
+                  class="action-btn action-btn--refund"
+                  matTooltip="Request Refund"
+                  (click)="startRefund(row)"
+                  aria-label="Request refund for this receipt">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
+                       viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                       aria-hidden="true">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                  </svg>
+                </button>
+              }
             </div>
           </td>
         </ng-container>

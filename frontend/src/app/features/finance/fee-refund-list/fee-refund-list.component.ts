@@ -18,6 +18,7 @@ import { CashDenominationComponent } from '../../../shared/cash-denomination/cas
 import { ToastService } from '../../../core/toast/toast.service';
 import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
+import { printRefundVoucher, downloadRefundVoucher, RefundVoucherData } from '../../../shared/utils/print-receipt.utils';
 
 type PanelMode = 'view' | 'approve' | 'reject';
 
@@ -231,6 +232,31 @@ export class FeeRefundListComponent implements OnInit {
         this.toast.error(this.apiError(err, 'Failed to reject refund. Please try again.'));
       },
     });
+  }
+
+  protected viewVoucher(r: FeeRefundSummary): void {
+    void printRefundVoucher(this.toVoucherData(r));
+  }
+
+  protected downloadVoucher(r: FeeRefundSummary): void {
+    void downloadRefundVoucher(this.toVoucherData(r));
+  }
+
+  private toVoucherData(r: FeeRefundSummary): RefundVoucherData {
+    return {
+      refundNumber:          r.refundNumber ?? '',
+      originalReceiptNumber: r.originalReceiptNumber,
+      payerName:             r.studentName,
+      payerIdentifier:       r.rollNumber,
+      admissionNumber:       r.admissionNumber,
+      programName:           r.programName,
+      refundAmount:          r.refundAmount,
+      refundDate:            r.paymentDate ?? r.requestedAt.substring(0, 10),
+      reason:                r.reason,
+      paymentMode:           r.paymentMode,
+      paymentDate:           r.paymentDate,
+      transactionReference:  r.transactionReference,
+    };
   }
 
   private apiError(err: HttpErrorResponse, fallback: string): string {
