@@ -23,7 +23,8 @@
     <#elseif client?? && client.baseUrl?has_content>
       <a href="${client.baseUrl}" class="btn-primary">Return to application</a>
     <#else>
-      <a href="${url.loginUrl}" class="btn-primary">Back to sign in</a>
+      <#assign signInUrl = (url.loginRestartFlowUrl!url.loginUrl)>
+      <a href="${signInUrl}" class="btn-primary">Back to sign in</a>
     </#if>
   </#if>
 

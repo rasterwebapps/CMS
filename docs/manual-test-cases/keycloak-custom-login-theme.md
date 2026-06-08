@@ -92,11 +92,13 @@
 
 **Steps:**
 1. Click the **Forgot password?** link on the right panel
+2. On reset page, click **← Back to sign in**
 
 **Expected Result:**
-- Browser navigates to the custom **Reset Password** page
-- Page shows the same split-screen layout with left branding panel
+- Step 1: browser navigates to the custom **Reset Password** page
+- Reset page shows the same split-screen layout with left branding panel
 - Right panel shows: "Reset password" heading, "Enter your account email…" subtitle, a single email/username input field, a **Submit** button, and a **← Back to sign in** ghost button
+- Step 2: browser navigates to a fresh sign-in screen (no stale-cookie loop)
 
 **Status:** NOT TESTED
 
@@ -191,3 +193,22 @@
 
 **Status:** NOT TESTED
 
+---
+
+## TC-LOGIN-011: Error/info "Back to sign in" restarts login flow
+
+**Preconditions:**
+- Custom theme is active
+- Frontend login flow is reachable
+
+**Steps:**
+1. Trigger a "cookie not found" auth error by opening an expired or tampered login action URL in a new tab
+2. On the error page, click **Back to sign in**
+3. Trigger an `info.ftl` screen (e.g., submit forgot-password form), then click **Back to sign in** when shown
+
+**Expected Result:**
+- Both clicks navigate to a fresh sign-in screen
+- No loop back to the same error screen
+- New login attempt can be started normally
+
+**Status:** NOT TESTED
