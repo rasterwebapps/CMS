@@ -18,7 +18,7 @@ public interface FeeInstallmentRepository extends JpaRepository<FeeInstallment, 
     List<FeeInstallment> findByReceiptNumber(String receiptNumber);
 
     @Query("SELECT COALESCE(SUM(fi.amountPaid), 0) FROM FeeInstallment fi " +
-           "WHERE fi.semesterFee.id = :semesterFeeId")
+           "WHERE fi.semesterFee.id = :semesterFeeId AND fi.refundedAt IS NULL")
     BigDecimal sumAmountPaidBySemesterFeeId(@Param("semesterFeeId") Long semesterFeeId);
 
     @Query("SELECT fi FROM FeeInstallment fi WHERE fi.student.id = :studentId " +

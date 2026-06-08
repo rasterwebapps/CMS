@@ -515,6 +515,26 @@
 
 ---
 
+## TC-PAY-009: Fully paid enquiry cannot be collected again
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_FRONT_OFFICE
+- At least one enquiry exists with status FEES_FINALIZED and total outstanding amount = ₹0
+
+**Steps:**
+1. Navigate to `/student-fees/collect-payment`
+2. Verify the fully paid enquiry is not shown in the list, or its Collect Balance action is disabled if opened from a stale link
+3. Attempt to open the payment form from any zero-outstanding row if it is visible
+
+**Expected Result:**
+- Fully paid records are not available for collection
+- The UI shows a friendly "No outstanding balance available" message instead of submitting a payment request
+- No backend exception is shown to the user
+
+**Status:** NOT TESTED
+
+---
+
 ## TC-PAY-008: Payment collection API endpoint works correctly
 
 **Preconditions:**

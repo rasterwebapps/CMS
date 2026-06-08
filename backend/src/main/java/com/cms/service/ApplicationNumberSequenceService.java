@@ -17,6 +17,7 @@ public class ApplicationNumberSequenceService {
 
     public static final String ADMISSION_SERIES = "ADMISSION_NUMBER";
     public static final String RECEIPT_SERIES = "RECEIPT_NUMBER";
+    public static final String REFUND_SERIES = "REFUND_NUMBER";
 
     private final ApplicationNumberSequenceRepository sequenceRepository;
 
@@ -68,6 +69,19 @@ public class ApplicationNumberSequenceService {
             "RCP",
             5,
             "Global receipt number generated for every payment receipt"
+        );
+    }
+
+    @Transactional
+    public String nextRefundNumber(int year) {
+        return nextNumber(
+            REFUND_SERIES,
+            "Refund Number",
+            "CALENDAR_YEAR",
+            String.valueOf(year),
+            "RFD",
+            5,
+            "Global refund number generated for every payment reversal"
         );
     }
 

@@ -2,6 +2,8 @@ package com.cms.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -9,7 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.UnifiedReceiptResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.FeeRefund;
 import com.cms.model.PaymentReceipt;
+import com.cms.repository.FeeRefundRepository;
 import com.cms.repository.PaymentReceiptRepository;
 
 @Service
@@ -17,11 +21,14 @@ import com.cms.repository.PaymentReceiptRepository;
 public class UnifiedReceiptService {
 
     private final PaymentReceiptRepository receiptRepository;
+    private final FeeRefundRepository refundRepository;
     private final ApplicationNumberSequenceService numberSequenceService;
 
     public UnifiedReceiptService(PaymentReceiptRepository receiptRepository,
+                                  FeeRefundRepository refundRepository,
                                   ApplicationNumberSequenceService numberSequenceService) {
         this.receiptRepository = receiptRepository;
+        this.refundRepository = refundRepository;
         this.numberSequenceService = numberSequenceService;
     }
 
@@ -38,6 +45,16 @@ public class UnifiedReceiptService {
     @Transactional
     public String generateReceiptNumber(int year) {
         return numberSequenceService.nextReceiptNumber(year);
+    }
+
+    @Transactional
+    public String generateRefundNumber() {
+        return generateRefundNumber(LocalDate.now().getYear());
+    }
+
+    @Transactional
+    public String generateRefundNumber(int year) {
+        return numberSequenceService.nextRefundNumber(year);
     }
 
     /**
@@ -81,17 +98,24 @@ public class UnifiedReceiptService {
         receiptRepository.save(receipt);
     }
 
-    /** Return all receipts ordered newest first. */
+    /** Return all receipts (payments + refunds) ordered newest first. */
     public List<UnifiedReceiptResponse> getAllReceipts() {
-        return receiptRepository.findAllByOrderByCreatedAtDescIdDesc().stream()
-            .map(this::toResponse)
-            .toList();
+        List<UnifiedReceiptResponse> merged = new ArrayList<>();
+        receiptRepository.findAllByOrderByCreatedAtDescIdDesc().stream()
+            .map(r -> toResponse(r, "PAYMENT"))
+            .forEach(merged::add);
+        refundRepository.findByStatusOrderByCreatedAtDescIdDesc("APPROVED").stream()
+            .map(this::toRefundResponse)
+            .forEach(merged::add);
+        merged.sort(Comparator.comparing(UnifiedReceiptResponse::createdAt).reversed()
+            .thenComparingLong(r -> -r.id()));
+        return merged;
     }
 
     /** Return a single receipt by receipt number. */
     public UnifiedReceiptResponse getReceiptByNumber(String receiptNumber) {
         return receiptRepository.findByReceiptNumber(receiptNumber)
-            .map(this::toResponse)
+            .map(r -> toResponse(r, "PAYMENT"))
             .orElseThrow(() -> new ResourceNotFoundException("Receipt not found: " + receiptNumber));
     }
 
@@ -100,18 +124,30 @@ public class UnifiedReceiptService {
         return receiptRepository
             .findByPayerTypeAndPayerIdOrderByCreatedAtDesc(payerType, payerId)
             .stream()
-            .map(this::toResponse)
+            .map(r -> toResponse(r, "PAYMENT"))
             .toList();
     }
 
-    private UnifiedReceiptResponse toResponse(PaymentReceipt r) {
+    private UnifiedReceiptResponse toResponse(PaymentReceipt r, String receiptType) {
         return new UnifiedReceiptResponse(
             r.getId(), r.getReceiptNumber(),
             r.getPayerType(), r.getPayerId(), r.getPayerName(),
             r.getPayerIdentifier(), r.getAdmissionNumber(), r.getProgramName(),
             r.getAmountPaid(), r.getPaymentDate(), r.getPaymentMode(),
             r.getTransactionReference(), r.getRemarks(),
-            r.getInstallmentsCovered(), r.getCollectedBy(), r.getFeeCategory(), r.getCreatedAt());
+            r.getInstallmentsCovered(), r.getCollectedBy(), r.getFeeCategory(),
+            r.getCreatedAt(), receiptType);
+    }
+
+    private UnifiedReceiptResponse toRefundResponse(FeeRefund r) {
+        return new UnifiedReceiptResponse(
+            r.getId(), r.getRefundNumber(),
+            "STUDENT", r.getStudentId(), r.getStudentName(),
+            r.getRollNumber(), r.getAdmissionNumber(), r.getProgramName(),
+            r.getRefundAmount(), r.getPaymentDate(), r.getPaymentMode(),
+            r.getTransactionReference(), r.getReason(),
+            "Refund of " + r.getOriginalReceiptNumber(), r.getApprovedBy(), null,
+            r.getCreatedAt(), "REFUND");
     }
 }
 

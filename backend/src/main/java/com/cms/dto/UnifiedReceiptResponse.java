@@ -22,5 +22,7 @@ public record UnifiedReceiptResponse(
     String collectedBy,
     /** TUITION_ONLY | TUITION_AND_HOSTEL — null for pre-enrollment receipts */
     String feeCategory,
-    Instant createdAt
+    Instant createdAt,
+    /** PAYMENT | REFUND — distinguishes original receipts from reversal records */
+    String receiptType
 ) {}

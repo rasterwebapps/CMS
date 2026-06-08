@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.springframework.lang.Nullable;
 
 import com.cms.model.enums.PaymentMode;
 
@@ -57,6 +58,16 @@ public class FeeInstallment {
     private String transactionReference;
 
     private String remarks;
+
+    /** Set when this installment is reversed by a refund; null = active payment. */
+    @Nullable
+    @Column(name = "refunded_at")
+    private Instant refundedAt;
+
+    /** The RFD-... refund number that reversed this installment; null = active payment. */
+    @Nullable
+    @Column(name = "refund_number", length = 50)
+    private String refundNumber;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -150,6 +161,12 @@ public class FeeInstallment {
     public void setRemarks(String remarks) {
         this.remarks = remarks;
     }
+
+    public Instant getRefundedAt() { return refundedAt; }
+    public void setRefundedAt(Instant refundedAt) { this.refundedAt = refundedAt; }
+
+    public String getRefundNumber() { return refundNumber; }
+    public void setRefundNumber(String refundNumber) { this.refundNumber = refundNumber; }
 
     public Instant getCreatedAt() {
         return createdAt;

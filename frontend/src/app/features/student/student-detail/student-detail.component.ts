@@ -418,7 +418,7 @@ export class StudentDetailComponent implements OnInit {
           programName:          r.programName,
           amountPaid:           r.amountPaid,
           paymentDate:          r.paymentDate,
-          paymentMode:          r.paymentMode,
+          paymentMode:          r.paymentMode ?? '',
           transactionReference: r.transactionReference,
           remarks:              r.remarks,
           installmentsCovered:  r.installmentsCovered ?? entry.termLabel,
