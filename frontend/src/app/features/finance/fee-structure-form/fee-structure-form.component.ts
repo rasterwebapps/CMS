@@ -1,7 +1,7 @@
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -66,6 +66,9 @@ export class FeeStructureFormComponent implements OnInit {
   protected readonly saving    = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Fee Structures');
+  protected readonly finalizedCount = signal(0);
+  protected readonly reasonCtrl = new FormControl('');
+  protected readonly showReasonField = computed(() => this.isEditMode() && this.finalizedCount() > 0);
 
   // ── Replication options (create mode only) ────────────────────────────────
   protected readonly replicateAllGenders = signal(false);
@@ -310,6 +313,10 @@ export class FeeStructureFormComponent implements OnInit {
 
       const program = this.programs().find(p => p.id === pId);
       if (program) this.selectedProgramDuration.set(program.durationYears);
+
+      this.http.get<{ count: number }>(`${environment.apiUrl}/fee-structures/finalized-count`, {
+        params: { programId: pId, quota: quota!, feeStateId: Number(feeStateId), gender: gender! },
+      }).subscribe({ next: r => this.finalizedCount.set(r.count) });
 
       this.financeService.getGroupedFeeStructures({ programId: pId, academicYearId: ayId, courseId: cId }).subscribe({
         next: groups => {
@@ -572,6 +579,11 @@ export class FeeStructureFormComponent implements OnInit {
       return;
     }
 
+    if (this.showReasonField() && !this.reasonCtrl.value?.trim()) {
+      this.toast.warning('A reason is required — students are already finalized against this fee structure');
+      return;
+    }
+
     const rv = rawForm;
     const normalizedItems: NormalizedFeeStructureItemValue[] = (rv.items as RawFeeStructureItemValue[]).map(item => {
       if (item.yearAmounts?.length > 0) {
@@ -610,6 +622,7 @@ export class FeeStructureFormComponent implements OnInit {
       feeStateId: rv.feeStateId,
       gender: rv.gender as 'MALE' | 'FEMALE' | 'OTHER',
       items,
+      reason: this.reasonCtrl.value?.trim() || undefined,
     };
 
     this.saving.set(true);

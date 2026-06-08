@@ -451,6 +451,26 @@
           </div>
         }
 
+        <!-- ── Finalized students warning + reason ──────────────────── -->
+        @if (showReasonField()) {
+          <div class="finalized-warning">
+            <div class="finalized-warning__body">
+              <span class="finalized-warning__icon">⚠</span>
+              <span><strong>{{ finalizedCount() }} student(s)</strong> have already been finalized against this fee structure. Changes will not automatically update their finalized amounts — they must be re-finalized manually.</span>
+            </div>
+            <div class="finalized-warning__reason">
+              <label class="reason-label" for="changeReason">Reason for change <span class="required">*</span></label>
+              <input
+                id="changeReason"
+                class="reason-input"
+                type="text"
+                placeholder="e.g. Fee revision approved by management on 08-Jun-2026"
+                [formControl]="reasonCtrl"
+              />
+            </div>
+          </div>
+        }
+
         <!-- ── Actions ─────────────────────────────────────────────── -->
         <div id="tour-fs-submit" class="form-actions">
           <button mat-stroked-button type="button" class="cancel-btn" routerLink="/fee-structures">

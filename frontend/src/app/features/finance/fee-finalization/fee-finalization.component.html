@@ -51,6 +51,18 @@
         <option value="COUNSELLING">Counselling</option>
       </select>
 
+      <select
+        class="mlp-filter-select"
+        [value]="selectedAcademicYearId() ?? ''"
+        (change)="onAcademicYearFilter(+$any($event.target).value || null)"
+        aria-label="Filter by academic year"
+      >
+        <option value="">All Years</option>
+        @for (y of academicYears(); track y.id) {
+          <option [value]="y.id">{{ y.name }}</option>
+        }
+      </select>
+
       @if (hasActiveFilters) {
         <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear filters">
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>

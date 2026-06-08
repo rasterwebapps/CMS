@@ -504,17 +504,16 @@
             <div>
               <div class="entry-form-card__hdr-title">
                 Fee Structure
-                <span class="la-optional-badge">Optional</span>
                 @if (feeGuidelineLoading()) {
                   <mat-spinner diameter="14" class="la-fee-spinner"></mat-spinner>
                 }
               </div>
-              <div class="entry-form-card__hdr-sub">Auto-loaded from the fee master for the selected joining year. Adjust master fee and discount to reflect what was actually finalised.</div>
+              <div class="entry-form-card__hdr-sub">Guideline fees are auto-loaded as a reference. You must enter the actual fee finalised for each year — this field is required.</div>
             </div>
           </div>
           <div class="entry-form-card__body">
             @if (feeGuidelineEmpty()) {
-              <p class="la-fee-empty-hint">No fee structure found for this combination — enter fees manually below.</p>
+              <p class="la-fee-empty-hint">No guideline fee found for this combination — enter the actual fee for each year below.</p>
             }
             <div class="la-table-scroll">
               <table class="la-fee-table" formArrayName="yearFees">
@@ -522,7 +521,7 @@
                   <tr>
                     <th>Year</th>
                     <th>Guideline Fee (₹)</th>
-                    <th>Actual Fee Finalized (₹)</th>
+                    <th>Actual Fee Finalized (₹) <span class="la-required-star">*</span></th>
                     <th>Discount (₹)</th>
                     <th>Collected (₹)</th>
                   </tr>

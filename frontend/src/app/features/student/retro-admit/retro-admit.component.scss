@@ -365,6 +365,12 @@
   outline: none;
 
   &:focus { border-color: var(--cms-primary); box-shadow: 0 0 0 3px var(--cms-primary-ring); }
+  &.ng-invalid.ng-touched { border-color: var(--cms-error, #dc2626); }
+}
+
+.la-required-star {
+  color: var(--cms-error, #dc2626);
+  margin-left: 2px;
 }
 
 .la-fee-computed {

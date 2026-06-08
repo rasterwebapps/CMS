@@ -462,6 +462,65 @@ All dates **must** use the shared `AppDatePipe` — never use Angular's `date` p
   ```
 - **Why standardized**: Single global format ensures consistency across all screens. DD-MM-YYYY matches Indian regional expectations. See `docs/DATE_FORMATTING_STANDARD.md` for complete guide.
 
+#### 2.6.5 Date Field Validation Standard
+
+All date inputs **must** use the centralized `DateValidationService` — never write inline past/future checks in components.
+
+**Validation types:**
+
+| Type | Rule | Datepicker | Error key |
+|------|------|------------|-----------|
+| **A** | Past dates only (today or earlier) | Disables future dates | `pastDateOnly` |
+| **B** | Future dates only (today or later) | Disables past dates | `futureDateOnly` |
+| **C** | Any date — no restriction | All dates enabled | *(none)* |
+
+**Field → type mapping** (defined in `frontend/src/app/shared/validators/date-validation.config.ts`):
+
+| Entity | Field | Type |
+|--------|-------|------|
+| Student | dateOfBirth, admissionDate | A |
+| Enquiry | dateOfBirth, enquiryDate | A |
+| Admission | applicationDate, declarationDate | A |
+| Faculty | dateOfBirth | A |
+| Faculty | joiningDate | C |
+| FeePayment | paymentDate | A |
+| ScholarshipDisbursement | disbursementDate | C |
+| AcademicYear / TermInstance / CalendarEvent | startDate, endDate | C |
+| Examination | date | B |
+| MaintenanceRequest | requestDate, scheduledDate | B |
+| MaintenanceRequest | completionDate | A |
+
+**Component setup (3 steps):**
+
+```typescript
+// 1. Inject
+constructor(private dateValidationService: DateValidationService) {}
+
+// 2. Build form
+this.form = this.fb.group({ dateOfBirth: ['', Validators.required] });
+
+// 3. Apply after form init
+this.dateValidationService.applyFormDateValidations(this.form, [
+  { entity: 'Student', field: 'dateOfBirth' }  // config resolves type automatically
+]);
+```
+
+**Template pattern:**
+
+```html
+<input matInput formControlName="dateOfBirth"
+  [matDatepicker]="picker"
+  [matDatepickerFilter]="dateValidationService.getDatepickerFilter('A')">
+<mat-datepicker-toggle matSuffix [for]="picker" />
+<mat-datepicker #picker />
+
+@if (form.get('dateOfBirth')?.hasError('pastDateOnly')) {
+  <mat-error>Date must be in the past (today or earlier)</mat-error>
+}
+```
+
+**Adding a new date field:** edit `DATE_VALIDATION_CONFIG` in `date-validation.config.ts` — add `{ module, entity, field, type, description }`. No other code changes needed.
+
 ---
 
 ## 3. Backend (Java 21 & Spring Boot 3.x)

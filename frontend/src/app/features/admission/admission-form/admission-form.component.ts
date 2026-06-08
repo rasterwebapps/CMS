@@ -82,6 +82,7 @@ export class AdmissionFormComponent implements OnInit {
   protected readonly students = signal<Student[]>([]);
   protected readonly pendingEnquiries = signal<Enquiry[]>([]);
   protected readonly academicYears = signal<AcademicYear[]>([]);
+  protected readonly currentAcademicYears = computed(() => this.academicYears().filter(y => y.isCurrent));
   protected readonly communities = signal<Community[]>([]);
   protected readonly bloodGroups = signal<BloodGroup[]>([]);
   protected readonly selectedAcademicYearId = signal<number | null>(null);

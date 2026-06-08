@@ -2,10 +2,13 @@ package com.cms.controller;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,9 +50,22 @@ public class FeeStructureController {
 
     @PutMapping("/bulk")
     @PreAuthorize("@perm.has('FEE_STRUCTURE_MANAGE')")
-    public ResponseEntity<List<FeeStructureResponse>> bulkUpdate(@Valid @RequestBody BulkFeeStructureRequest request) {
-        List<FeeStructureResponse> responses = feeStructureService.bulkUpdate(request);
+    public ResponseEntity<List<FeeStructureResponse>> bulkUpdate(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody BulkFeeStructureRequest request) {
+        String actor = jwt != null ? jwt.getClaimAsString("preferred_username") : "system";
+        List<FeeStructureResponse> responses = feeStructureService.bulkUpdate(request, actor);
         return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/finalized-count")
+    public ResponseEntity<Map<String, Long>> getFinalizedCount(
+            @RequestParam Long programId,
+            @RequestParam AdmissionQuota quota,
+            @RequestParam Long feeStateId,
+            @RequestParam Gender gender) {
+        long count = feeStructureService.getFinalizedEnquiryCount(programId, quota, feeStateId, gender);
+        return ResponseEntity.ok(Map.of("count", count));
     }
 
     /**

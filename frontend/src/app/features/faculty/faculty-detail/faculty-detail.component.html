@@ -13,6 +13,7 @@
       </div>
     </div>
   } @else if (faculty()) {
+    <div class="detail-card">
     <!-- ── Hero ────────────────────────────────────────── -->
     <header class="profile-hero">
       <div class="profile-hero__avatar" aria-hidden="true">{{ initials() }}</div>
@@ -167,6 +168,7 @@
         </div>
       </mat-tab>
     </mat-tab-group>
+    </div>
   } @else {
     <p>Faculty not found</p>
   }

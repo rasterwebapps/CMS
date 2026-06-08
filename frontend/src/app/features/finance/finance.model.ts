@@ -24,6 +24,7 @@ export interface BulkFeeStructureRequest {
   feeStateId: number;
   gender: 'MALE' | 'FEMALE' | 'OTHER';
   items: FeeStructureItemRequest[];
+  reason?: string;
 }
 
 export interface FeeStructure {

@@ -215,7 +215,7 @@
     color: #fff;
   }
 }
-.tab-content { display: flex; flex-direction: column; gap: 16px; }
+.tab-content { display: flex; flex-direction: column; gap: 16px; padding: 16px 0; }
 // ── Overview ─────────────────────────────────────────────────
 .overview-grid {
   display: grid;

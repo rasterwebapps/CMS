@@ -205,8 +205,8 @@
                     [class.field-select--error]="form.get('joiningAcademicYearId')?.invalid && form.get('joiningAcademicYearId')?.touched"
                   >
                     <option [value]="null" disabled>— Select academic year —</option>
-                    @for (y of academicYears(); track y.id) {
-                      <option [value]="y.id">{{ y.name }}@if (y.isCurrent) { (Current) }</option>
+                    @for (y of currentAcademicYears(); track y.id) {
+                      <option [value]="y.id">{{ y.name }} (Current)</option>
                     }
                   </select>
                   @if (form.get('joiningAcademicYearId')?.invalid && form.get('joiningAcademicYearId')?.touched) {

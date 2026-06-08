@@ -10,7 +10,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.cms.model.Enquiry;
+import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.model.enums.Gender;
 
 public interface EnquiryRepository extends JpaRepository<Enquiry, Long> {
 
@@ -41,4 +43,12 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long> {
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate,
             @Param("terminalStatuses") Collection<EnquiryStatus> terminalStatuses);
+
+    @Query("SELECT COUNT(e) FROM Enquiry e WHERE e.program.id = :programId AND e.admissionQuota = :quota AND e.feeState.id = :feeStateId AND e.gender = :gender AND e.status IN :statuses")
+    long countByFeeGroupParams(
+            @Param("programId") Long programId,
+            @Param("quota") AdmissionQuota quota,
+            @Param("feeStateId") Long feeStateId,
+            @Param("gender") Gender gender,
+            @Param("statuses") Collection<EnquiryStatus> statuses);
 }

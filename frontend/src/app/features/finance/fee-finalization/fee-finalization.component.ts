@@ -61,11 +61,13 @@ export class FeeFinalizationComponent implements OnInit {
   protected readonly authoritativeProposedFeeByEnquiryId = signal<Record<number, number>>({});
 
   // ── List filters ────────────────────────────────────────────────────────────
-  protected readonly searchValue        = signal('');
-  protected readonly selectedProgramId  = signal<number | null>(null);
-  protected readonly selectedQuota      = signal<'MANAGEMENT' | 'COUNSELLING' | null>(null);
-  protected readonly programs           = signal<Program[]>([]);
-  protected readonly allEnquiries       = signal<Enquiry[]>([]);
+  protected readonly searchValue           = signal('');
+  protected readonly selectedProgramId     = signal<number | null>(null);
+  protected readonly selectedQuota         = signal<'MANAGEMENT' | 'COUNSELLING' | null>(null);
+  protected readonly selectedAcademicYearId = signal<number | null>(null);
+  protected readonly programs              = signal<Program[]>([]);
+  protected readonly academicYears         = signal<{ id: number; name: string; isCurrent: boolean }[]>([]);
+  protected readonly allEnquiries          = signal<Enquiry[]>([]);
 
   protected readonly filteredEnquiries = computed(() => {
     const search = this.searchValue().toLowerCase().trim();
@@ -144,6 +146,13 @@ export class FeeFinalizationComponent implements OnInit {
     this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({
       next: (d) => this.programs.set(d),
     });
+    this.http.get<{ id: number; name: string; isCurrent: boolean }[]>(`${environment.apiUrl}/academic-years`).subscribe({
+      next: (years) => {
+        this.academicYears.set(years);
+        const current = years.find(y => y.isCurrent);
+        if (current) this.selectedAcademicYearId.set(current.id);
+      },
+    });
 
     const enquiryId = this.route.snapshot.queryParamMap.get('enquiryId');
     if (enquiryId) {
@@ -195,6 +204,8 @@ export class FeeFinalizationComponent implements OnInit {
       });
       if (enquiry.courseId) params.set('courseId', enquiry.courseId.toString());
       if (enquiry.studentType) params.set('studentType', enquiry.studentType);
+      const ayId = this.selectedAcademicYearId();
+      if (ayId != null) params.set('academicYearId', ayId.toString());
 
       this.http.get<{ totalFee: number }>(`${environment.apiUrl}/fee-structures/guideline?${params.toString()}`).subscribe({
         next: (response) => this.setAuthoritativeProposedFee(enquiry.id, response.totalFee),
@@ -225,14 +236,25 @@ export class FeeFinalizationComponent implements OnInit {
     this.selectedQuota.set(v || null);
   }
 
+  protected onAcademicYearFilter(id: number | null): void {
+    this.selectedAcademicYearId.set(id);
+    // Re-hydrate proposed fees for the newly selected year
+    this.hydrateAuthoritativeProposedFees(this.allEnquiries());
+  }
+
   protected clearFilters(): void {
     this.searchValue.set('');
     this.selectedProgramId.set(null);
     this.selectedQuota.set(null);
+    const current = this.academicYears().find(y => y.isCurrent);
+    this.selectedAcademicYearId.set(current?.id ?? null);
+    this.hydrateAuthoritativeProposedFees(this.allEnquiries());
   }
 
   protected get hasActiveFilters(): boolean {
-    return !!this.searchValue() || this.selectedProgramId() != null || this.selectedQuota() != null;
+    const current = this.academicYears().find(y => y.isCurrent);
+    return !!this.searchValue() || this.selectedProgramId() != null || this.selectedQuota() != null
+      || (this.selectedAcademicYearId() != null && this.selectedAcademicYearId() !== current?.id);
   }
 
   protected selectEnquiry(enquiry: Enquiry): void {
@@ -255,6 +277,8 @@ export class FeeFinalizationComponent implements OnInit {
         studentType: enquiry.studentType,
       });
       if (enquiry.courseId) params.set('courseId', enquiry.courseId.toString());
+      const ayId = this.selectedAcademicYearId();
+      if (ayId != null) params.set('academicYearId', ayId.toString());
 
       this.http.get<{ totalFee: number; items: { feeType: string; amount: number; yearAmounts: { yearNumber: number; amount: number }[] }[] }>(
         `${environment.apiUrl}/fee-structures/guideline?${params.toString()}`

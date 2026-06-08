@@ -331,7 +331,7 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
       arr.push(this.fb.group({
         yearNumber: [i],
         masterFee:  [null as number | null],
-        actualFee:  [null as number | null],
+        actualFee:  [null as number | null, [Validators.required, Validators.min(0.01)]],
       }));
     }
     this.tryLoadFeeGuideline();
@@ -555,10 +555,9 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
     const v = this.form.value;
 
     const yearFees = (v.yearFees as { yearNumber: number; masterFee: number | null; actualFee: number | null }[])
-      .filter(yf => (yf.actualFee ?? yf.masterFee ?? 0) > 0)
       .map(yf => ({
         yearNumber: yf.yearNumber,
-        totalFee:   yf.actualFee ?? yf.masterFee ?? 0,
+        totalFee:   yf.actualFee ?? 0,
       }));
 
     const payments = (v.payments as {
@@ -655,15 +654,27 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
     this.router.navigate(['/students', studentId]);
   }
 
+  private getRenderedStepIndexes(): number[] {
+    const rendered: number[] = [];
+    for (let i = 0; i < this.steps.length; i++) {
+      if (document.getElementById(`retro-section-${i}`)) {
+        rendered.push(i);
+      }
+    }
+    return rendered;
+  }
+
 
   protected scrollToSection(index: number): void {
     const section = document.getElementById(`retro-section-${index}`);
     const container = this.scrollContainer ?? document.querySelector('main.app-content');
-    if (!section || !container) { this.currentStep.set(index); return; }
+    if (!section || !container) {
+      return;
+    }
 
     const containerRect = container.getBoundingClientRect();
-    const sectionRect   = section.getBoundingClientRect();
-    const targetTop     = container.scrollTop + (sectionRect.top - containerRect.top) - 16;
+    const sectionRect = section.getBoundingClientRect();
+    const targetTop = container.scrollTop + (sectionRect.top - containerRect.top) - 16;
     container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
     this.currentStep.set(index);
   }
@@ -690,19 +701,48 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
     const container = this.scrollContainer;
     if (!container) return;
 
-    const containerRect = container.getBoundingClientRect();
-    const triggerY      = containerRect.top + containerRect.height * 0.75;
+    const renderedSteps = this.getRenderedStepIndexes();
+    if (renderedSteps.length === 0) {
+      this.currentStep.set(0);
+      return;
+    }
 
-    let active = 0;
-    for (let i = 0; i < this.steps.length; i++) {
-      const el = document.getElementById(`retro-section-${i}`);
+    const containerRect = container.getBoundingClientRect();
+    const footerEl = document.querySelector('.conv-form-footer') as HTMLElement | null;
+    const footerHeight = footerEl?.getBoundingClientRect().height ?? 0;
+
+    const effectiveTop = containerRect.top;
+    const effectiveBottom = containerRect.bottom - footerHeight;
+    const effectiveHeight = Math.max(1, effectiveBottom - effectiveTop);
+
+    const firstSection = document.getElementById(`retro-section-${renderedSteps[0]}`);
+    const lastStepIndex = renderedSteps[renderedSteps.length - 1];
+    const lastSection = document.getElementById(`retro-section-${lastStepIndex}`);
+
+    if (firstSection && firstSection.getBoundingClientRect().top >= effectiveTop - 8) {
+      this.currentStep.set(renderedSteps[0]);
+      return;
+    }
+
+    // If the final section is visibly in the lower viewport, force it active.
+    if (lastSection && lastSection.getBoundingClientRect().top <= effectiveBottom - 24) {
+      this.currentStep.set(lastStepIndex);
+      return;
+    }
+
+    const triggerY = effectiveTop + Math.min(Math.max(effectiveHeight * 0.72, 180), 460);
+
+    let active = renderedSteps[0];
+    for (const index of renderedSteps) {
+      const el = document.getElementById(`retro-section-${index}`);
       if (!el) continue;
       if (el.getBoundingClientRect().top <= triggerY) {
-        active = i;
+        active = index;
       } else {
         break;
       }
     }
+
     this.currentStep.set(active);
   }
 

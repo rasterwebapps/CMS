@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,11 +28,13 @@ import com.cms.model.FeeStructureGroup;
 import com.cms.model.FeeStructureYearAmount;
 import com.cms.model.Program;
 import com.cms.model.enums.AdmissionQuota;
+import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.FeeType;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.CourseRepository;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeePaymentRepository;
 import com.cms.repository.FeeStateRepository;
 import com.cms.repository.FeeStructureGroupRepository;
@@ -56,6 +59,9 @@ public class FeeStructureService {
         FeeType.LATE_FEE
     );
 
+    private static final List<EnquiryStatus> FINALIZED_STATUSES = List.of(
+        EnquiryStatus.FEES_FINALIZED, EnquiryStatus.PARTIALLY_PAID, EnquiryStatus.ADMITTED);
+
     private final FeeStructureRepository feeStructureRepository;
     private final FeeStructureGroupRepository groupRepository;
     private final FeeStateRepository feeStateRepository;
@@ -64,6 +70,8 @@ public class FeeStructureService {
     private final FeeStructureYearAmountRepository yearAmountRepository;
     private final CourseRepository courseRepository;
     private final FeePaymentRepository feePaymentRepository;
+    private final EnquiryRepository enquiryRepository;
+    private final AuditLogService auditLogService;
 
     public FeeStructureService(FeeStructureRepository feeStructureRepository,
                                 FeeStructureGroupRepository groupRepository,
@@ -72,7 +80,9 @@ public class FeeStructureService {
                                 AcademicYearRepository academicYearRepository,
                                 FeeStructureYearAmountRepository yearAmountRepository,
                                 CourseRepository courseRepository,
-                                FeePaymentRepository feePaymentRepository) {
+                                FeePaymentRepository feePaymentRepository,
+                                EnquiryRepository enquiryRepository,
+                                AuditLogService auditLogService) {
         this.feeStructureRepository = feeStructureRepository;
         this.groupRepository = groupRepository;
         this.feeStateRepository = feeStateRepository;
@@ -81,6 +91,8 @@ public class FeeStructureService {
         this.yearAmountRepository = yearAmountRepository;
         this.courseRepository = courseRepository;
         this.feePaymentRepository = feePaymentRepository;
+        this.enquiryRepository = enquiryRepository;
+        this.auditLogService = auditLogService;
     }
 
     // ── Bulk create ──────────────────────────────────────────────────────────
@@ -111,7 +123,7 @@ public class FeeStructureService {
     // ── Bulk update (upsert items, delete removed fee types) ─────────────────
 
     @Transactional
-    public List<FeeStructureResponse> bulkUpdate(BulkFeeStructureRequest request) {
+    public List<FeeStructureResponse> bulkUpdate(BulkFeeStructureRequest request, String actor) {
         validateNoDuplicateFeeTypes(request.items());
         validateCourseTotalGreaterThanZero(request.items());
 
@@ -123,7 +135,22 @@ public class FeeStructureService {
         ).orElseThrow(() -> new ResourceNotFoundException(
             "No fee structure group found for the given combination"));
 
+        long finalizedCount = enquiryRepository.countByFeeGroupParams(
+            group.getProgram().getId(), group.getQuota(),
+            group.getFeeState().getId(), group.getGender(), FINALIZED_STATUSES);
+
+        if (finalizedCount > 0 && (request.reason() == null || request.reason().isBlank())) {
+            throw new IllegalStateException(
+                finalizedCount + " student(s) are already finalized against this fee structure. " +
+                "Provide a reason to proceed.");
+        }
+
         List<FeeStructure> existingItems = feeStructureRepository.findByFeeStructureGroupId(group.getId());
+
+        // Snapshot old amounts for audit before any mutation
+        String oldAmounts = existingItems.stream()
+            .map(fs -> fs.getFeeType().name() + "=" + fs.getAmount())
+            .collect(Collectors.joining(", "));
 
         Map<FeeType, FeeStructure> existingByType = new EnumMap<>(FeeType.class);
         for (FeeStructure fs : existingItems) {
@@ -177,7 +204,24 @@ public class FeeStructureService {
             }
         }
 
+        if (finalizedCount > 0) {
+            String newAmounts = responses.stream()
+                .map(r -> r.feeType().name() + "=" + r.amount())
+                .collect(Collectors.joining(", "));
+            String detail = "Affected finalized enquiries: " + finalizedCount +
+                ". Reason: " + request.reason() +
+                ". Before: {" + oldAmounts + "}. After: {" + newAmounts + "}";
+            auditLogService.record(actor, "FEE_STRUCTURE_UPDATED", "FeeStructureGroup",
+                String.valueOf(group.getId()), detail);
+        }
+
         return responses;
+    }
+
+    public long getFinalizedEnquiryCount(Long programId, AdmissionQuota quota,
+                                          Long feeStateId, Gender gender) {
+        return enquiryRepository.countByFeeGroupParams(programId, quota, feeStateId, gender,
+            FINALIZED_STATUSES);
     }
 
     // ── Single-item CRUD (for completeness; bulk endpoints are the main path) ─

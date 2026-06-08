@@ -29,5 +29,7 @@ public record BulkFeeStructureRequest(
 
     @NotNull(message = "Fee items are required")
     @Size(min = 1, message = "At least one fee item is required")
-    List<@Valid FeeStructureItemRequest> items
+    List<@Valid FeeStructureItemRequest> items,
+
+    String reason
 ) {}
