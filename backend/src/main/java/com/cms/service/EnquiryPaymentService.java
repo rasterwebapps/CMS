@@ -45,7 +45,7 @@ public class EnquiryPaymentService {
         new TypeReference<>() {};
 
     private static final Set<String> PAYMENT_BLOCKED_STATUSES = Set.of(
-        "NOT_INTERESTED", "CANCELLED", "CLOSED", "ADMITTED", "CONVERTED"
+        "NOT_INTERESTED", "CANCELLED", "CLOSED", "CONVERTED"
     );
 
     private static final Set<EnquiryStatus> PAYMENT_ELIGIBLE_STATUSES = Set.of(
@@ -53,7 +53,8 @@ public class EnquiryPaymentService {
         EnquiryStatus.PARTIALLY_PAID,
         EnquiryStatus.FEES_PAID,
         EnquiryStatus.DOCUMENTS_SUBMITTED,
-        EnquiryStatus.DOCUMENTS_VERIFIED
+        EnquiryStatus.DOCUMENTS_VERIFIED,
+        EnquiryStatus.ADMITTED
     );
 
     private static final Set<EnquiryStatus> PAYMENT_STATUS_FLOW_STATUSES = Set.of(
@@ -91,9 +92,12 @@ public class EnquiryPaymentService {
 
         validatePaymentEligibility(enquiry);
 
+        // Use the installment-based total when available — it matches what the UI displays.
+        // finalizedNetFee may differ if the fee schedule was revised after finalization.
+        BigDecimal effectiveTotalFee = computeEffectiveTotalFee(enquiry);
         BigDecimal totalPaidBefore = Optional.ofNullable(enquiryPaymentRepository.sumAmountPaidByEnquiryId(enquiryId))
             .orElse(BigDecimal.ZERO);
-        BigDecimal outstandingBefore = enquiry.getFinalizedNetFee().subtract(totalPaidBefore).max(BigDecimal.ZERO);
+        BigDecimal outstandingBefore = effectiveTotalFee.subtract(totalPaidBefore).max(BigDecimal.ZERO);
         if (request.amountPaid().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalStateException("Payment amount must be greater than zero");
         }
@@ -102,7 +106,7 @@ public class EnquiryPaymentService {
         }
         if (request.amountPaid().compareTo(outstandingBefore) > 0) {
             throw new IllegalStateException(
-                "Payment amount cannot exceed outstanding balance: " + outstandingBefore
+                "Payment amount (" + request.amountPaid() + ") exceeds outstanding balance: " + outstandingBefore
             );
         }
 
@@ -124,7 +128,7 @@ public class EnquiryPaymentService {
         BigDecimal totalPaid = totalPaidBefore.add(request.amountPaid());
 
         EnquiryStatus oldStatus = enquiry.getStatus();
-        EnquiryStatus newStatus = resolvePostPaymentStatus(oldStatus, enquiry.getFinalizedNetFee(), totalPaid);
+        EnquiryStatus newStatus = resolvePostPaymentStatus(oldStatus, effectiveTotalFee, totalPaid);
 
         if (newStatus != oldStatus) {
             enquiry.setStatus(newStatus);
@@ -313,6 +317,30 @@ public class EnquiryPaymentService {
         BigDecimal totalOutstanding = totalFee.subtract(totalPaid.min(totalFee));
         return new EnquiryYearWiseFeeStatusResponse(
             enquiryId, totalFee, totalPaid, totalOutstanding, yearBreakdown, installmentBreakdown);
+    }
+
+    /**
+     * Returns the effective total fee for payment validation.
+     * Prefers the sum of the installment / year-wise fee JSON entries (the same source
+     * the UI uses) over {@code finalizedNetFee}, so that excess spillover from a previous
+     * payment does not prevent collecting the next instalment's full amount.
+     */
+    private BigDecimal computeEffectiveTotalFee(Enquiry enquiry) {
+        List<TermWiseFeeEntry> termEntries = parseTermWiseFees(enquiry.getSemesterWiseFees());
+        if (!termEntries.isEmpty()) {
+            BigDecimal sum = termEntries.stream()
+                .map(TermWiseFeeEntry::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (sum.compareTo(BigDecimal.ZERO) > 0) return sum;
+        }
+        List<YearWiseFeeEntry> yearEntries = parseYearWiseFees(enquiry.getYearWiseFees());
+        if (!yearEntries.isEmpty()) {
+            BigDecimal sum = yearEntries.stream()
+                .map(YearWiseFeeEntry::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (sum.compareTo(BigDecimal.ZERO) > 0) return sum;
+        }
+        return enquiry.getFinalizedNetFee() != null ? enquiry.getFinalizedNetFee() : BigDecimal.ZERO;
     }
 
     private List<YearWiseFeeEntry> parseYearWiseFees(String json) {

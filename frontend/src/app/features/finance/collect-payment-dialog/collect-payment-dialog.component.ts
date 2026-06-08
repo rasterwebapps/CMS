@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -30,7 +30,7 @@ import { printFeeReceipt } from '../../../shared/utils/print-receipt.utils';
 export class CollectPaymentDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(MatDialogRef<CollectPaymentDialogComponent>);
-  private readonly data: { studentId: number } = inject(MAT_DIALOG_DATA);
+  private readonly data: { studentId: number; totalOutstanding: number } = inject(MAT_DIALOG_DATA);
   private readonly financeService = inject(FinanceService);
   private readonly toast = inject(ToastService);
 
@@ -40,9 +40,10 @@ export class CollectPaymentDialogComponent {
 
   protected readonly paymentModes = PAYMENT_MODES;
   protected readonly getPaymentModeLabel = getPaymentModeLabel;
+  protected readonly amountMax = this.data.totalOutstanding;
 
   protected readonly form: FormGroup = this.fb.group({
-    amount:               [null, [Validators.required, Validators.min(1)]],
+    amount:               [null, [Validators.required, Validators.min(1), this.maxOutstandingValidator(this.amountMax)]],
     paymentDate:          ['',   Validators.required],
     paymentMode:          ['',   Validators.required],
     transactionReference: [''],
@@ -51,6 +52,13 @@ export class CollectPaymentDialogComponent {
 
   protected isCashMode(): boolean {
     return this.form.get('paymentMode')?.value === 'CASH';
+  }
+
+  protected getAmountMaxError(): string | null {
+    const maxError = this.form.get('amount')?.errors?.['amountExceedsOutstanding'];
+    if (!maxError) return null;
+
+    return `Amount cannot exceed total outstanding of ₹${Number(maxError.max).toLocaleString('en-IN')}`;
   }
 
   protected onSubmit(): void {
@@ -110,5 +118,26 @@ export class CollectPaymentDialogComponent {
   protected isTransactionRefRequired(): boolean {
     const mode = this.form.get('paymentMode')?.value;
     return ['UPI', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT'].includes(mode);
+  }
+
+  private maxOutstandingValidator(max: number): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const rawValue = control.value;
+      if (rawValue === null || rawValue === '' || rawValue === undefined) {
+        return null;
+      }
+
+      const numericValue = Number(rawValue);
+      if (Number.isNaN(numericValue) || numericValue <= max) {
+        return null;
+      }
+
+      return {
+        amountExceedsOutstanding: {
+          max,
+          actual: numericValue,
+        },
+      };
+    };
   }
 }

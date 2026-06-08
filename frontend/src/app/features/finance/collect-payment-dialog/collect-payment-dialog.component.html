@@ -66,11 +66,19 @@
           type="number"
           formControlName="amount"
           min="1"
+          [attr.max]="amountMax"
           placeholder="0"
           [class.field-input--error]="form.get('amount')?.invalid && form.get('amount')?.touched"
         />
+        <p class="field-hint">
+          You can collect across future installments, but never above total outstanding · Max now: {{ amountMax | inr:false:false }}
+        </p>
         @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
-          <p class="field-error">Valid amount is required</p>
+          @if (form.get('amount')?.errors?.['required'] || form.get('amount')?.errors?.['min']) {
+            <p class="field-error">Valid amount is required</p>
+          } @else if (getAmountMaxError(); as amountMaxError) {
+            <p class="field-error">{{ amountMaxError }}</p>
+          }
         }
       </div>
 
@@ -153,7 +161,7 @@
   <mat-dialog-actions align="end">
     <button mat-stroked-button (click)="onCancel()">Cancel</button>
     <button mat-flat-button color="primary" (click)="onSubmit()"
-            [disabled]="saving || (isCashMode() && !denominationValid)">
+            [disabled]="saving || form.invalid || (isCashMode() && !denominationValid)">
       @if (saving) {
         <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
       } @else {

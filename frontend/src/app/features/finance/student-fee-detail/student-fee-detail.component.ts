@@ -78,7 +78,10 @@ export class StudentFeeDetailComponent implements OnInit {
   protected openCollectPaymentDialog(): void {
     const ref = this.dialog.open(CollectPaymentDialogComponent, {
       width: '520px',
-      data: { studentId: this.studentId },
+      data: {
+        studentId: this.studentId,
+        totalOutstanding: this.totalOutstanding(),
+      },
     });
     ref.afterClosed().subscribe((result) => {
       if (result) {

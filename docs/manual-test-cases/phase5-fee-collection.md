@@ -393,3 +393,52 @@
 - Payment panel remains usable on mobile, Save/Cancel actions stay reachable, and transaction reference validation is shown for non-cash payment modes.
 
 **Status:** NOT TESTED
+
+---
+
+## TC-FEE5-021: Frontend — Enquiry excess payment input is handled without generic failure
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN, ROLE_COLLEGE_ADMIN, or ROLE_CASHIER
+- An enquiry with outstanding balance is available in `/fee-collection`
+- The enquiry has `finalizedNetFee` outstanding lower than the installment-table visual total (data mismatch scenario)
+
+**Steps:**
+1. Navigate to `/fee-collection` and open Collect Payment for the enquiry.
+2. Enter an Amount greater than the enquiry outstanding (for example, outstanding + 1).
+3. Enter valid Payment Date, Payment Mode, and Transaction Reference (if required by mode).
+4. Click **Collect Balance**.
+5. Repeat with an actually invalid request scenario (for example, payment for an ineligible status via stale tab) and submit again.
+
+**Expected Result:**
+- The app does not fail with a generic "Failed to collect payment" toast for valid spillover amounts.
+- If the entered amount is above the current installment outstanding but within total outstanding, collection is allowed and applied across installments in order.
+- If the entered amount is above total outstanding, the UI blocks submission before the API call is made.
+- For real API rejection cases, the backend-provided error message is shown in the toast.
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FEE5-022: Frontend — Amount cannot exceed total outstanding in fee collection
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN, ROLE_COLLEGE_ADMIN, or ROLE_CASHIER
+- A fee collection record exists with multiple remaining installments
+- Installment details are visible in the payment panel
+
+**Steps:**
+1. Navigate to `/fee-collection` and open Collect Payment for a record with more than one pending installment.
+2. Enter an Amount greater than the current installment outstanding but less than or equal to the total outstanding.
+3. Verify the Amount field stays valid and the Collect Balance button remains enabled.
+4. Enter an Amount greater than the total outstanding shown in the installment footer.
+5. Verify the Amount field shows a validation error before submit.
+6. Verify the Collect Balance button becomes disabled.
+
+**Expected Result:**
+- Cashier can collect an amount that spills into future installments.
+- Cashier cannot enter or submit an amount greater than total outstanding.
+- Final-installment overpayment is blocked in the UI before the API call is made.
+
+**Status:** NOT TESTED
+

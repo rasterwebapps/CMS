@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -21,6 +21,7 @@ import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/paymen
 import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
 import { FeeReceiptDialogComponent } from '../../../shared/fee-receipt-dialog/fee-receipt-dialog.component';
 import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
+import { HttpErrorResponse } from '@angular/common/http';
 
 export type FilterType   = 'ALL' | 'ENQUIRY' | 'STUDENT';
 export type FilterStatus = 'ALL' | 'OVERDUE' | 'OUTSTANDING';
@@ -108,10 +109,6 @@ export class FeeCollectionComponent implements OnInit {
     });
   });
 
-  protected readonly totalOutstandingSum = computed(() =>
-    this.feeEntries().reduce((s, e) => s + e.totalOutstanding, 0)
-  );
-
   protected readonly paymentModes = PAYMENT_MODES;
   protected readonly getPaymentModeLabel = getPaymentModeLabel;
 
@@ -160,6 +157,17 @@ export class FeeCollectionComponent implements OnInit {
   protected readonly totalFee         = computed(() => this.semesterRows().reduce((s, r) => s + r.fee, 0));
   protected readonly totalPaid        = computed(() => this.semesterRows().reduce((s, r) => s + r.paid, 0));
   protected readonly totalOutstanding = computed(() => this.semesterRows().reduce((s, r) => s + r.outstanding, 0));
+  protected readonly amountMax = computed<number | null>(() => {
+    const rows = this.semesterRows();
+    if (rows.length > 0) {
+      return this.totalOutstanding();
+    }
+    return null;
+  });
+  protected readonly installmentDataReady = computed(() => {
+    const entry = this.selectedEntry();
+    return !entry || this.semesterRows().length > 0;
+  });
 
   protected get hasActiveFilters(): boolean {
     return !!this.searchTerm() || this.filterType() !== 'ALL' || this.filterStatus() !== 'ALL';
@@ -169,6 +177,12 @@ export class FeeCollectionComponent implements OnInit {
     effect(() => {
       this.dataSource.data = this.filteredEntries();
       if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+    });
+
+    effect(() => {
+      this.selectedEntry();
+      this.semesterRows();
+      this.updateAmountValidators();
     });
 
     // Trigger validation update when payment mode changes
@@ -231,7 +245,14 @@ export class FeeCollectionComponent implements OnInit {
     // ADMITTED  = student record created but fee allocation may not exist yet; keep on enquiry side.
     const blockedStatuses = ['NOT_INTERESTED', 'CANCELLED', 'CLOSED', 'CONVERTED'];
     return enquiry.finalizedNetFee !== null && enquiry.finalizedNetFee !== undefined &&
-      !blockedStatuses.includes(enquiry.status);
+      !blockedStatuses.includes(enquiry.status) &&
+      this.getEnquiryOutstanding(enquiry) > 0;
+  }
+
+  private getEnquiryOutstanding(enquiry: Enquiry): number {
+    const totalFee = enquiry.finalizedNetFee ?? 0;
+    const totalPaid = enquiry.totalPaidAmount ?? 0;
+    return Math.max(0, totalFee - totalPaid);
   }
 
   private enquiryToEntry(e: Enquiry): FeeEntry {
@@ -258,10 +279,17 @@ export class FeeCollectionComponent implements OnInit {
   }
 
   protected selectEntry(entry: FeeEntry): void {
+    if (entry.totalOutstanding <= 0) {
+      this.toast.info('No outstanding balance available for this record');
+      return;
+    }
+
     this.selectedEntry.set(entry);
     this.feeStatus.set(null);
     this.studentSemesters.set([]);
     this.receipt.set(null);
+    this.denominationValid.set(false);
+    this.form.reset();
     this.form.patchValue({ paymentDate: new Date().toISOString().split('T')[0] });
 
     if (entry.type === 'ENQUIRY') {
@@ -313,8 +341,16 @@ export class FeeCollectionComponent implements OnInit {
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     if (this.isCashMode() && !this.denominationValid()) return;
+    if (!this.installmentDataReady()) {
+      this.toast.info('Please wait for installment details to finish loading');
+      return;
+    }
     const entry = this.selectedEntry();
     if (!entry) return;
+    if (entry.totalOutstanding <= 0) {
+      this.toast.info('No outstanding balance available for this record');
+      return;
+    }
 
     const v = this.form.value;
     this.saving.set(true);
@@ -348,7 +384,10 @@ export class FeeCollectionComponent implements OnInit {
             installmentBreakdown: [{ label: towardsLabel, amount: Number(res.amountPaid) }],
           });
         },
-        error: () => { this.toast.error('Failed to collect payment'); this.saving.set(false); },
+        error: (err: unknown) => {
+          this.toast.error(this.getApiErrorMessage(err, 'Failed to collect payment'));
+          this.saving.set(false);
+        },
       });
     } else {
       this.financeService.collectPayment(entry.id, {
@@ -376,7 +415,10 @@ export class FeeCollectionComponent implements OnInit {
             })),
           });
         },
-        error: () => { this.toast.error('Failed to collect payment'); this.saving.set(false); },
+        error: (err: unknown) => {
+          this.toast.error(this.getApiErrorMessage(err, 'Failed to collect payment'));
+          this.saving.set(false);
+        },
       });
     }
   }
@@ -412,5 +454,53 @@ export class FeeCollectionComponent implements OnInit {
   protected isTransactionRefRequired(): boolean {
     const mode = this.form.get('paymentMode')?.value;
     return ['UPI', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT'].includes(mode);
+  }
+
+  protected getAmountMaxError(): string | null {
+    const amountControl = this.form.get('amount');
+    const maxError = amountControl?.errors?.['amountExceedsOutstanding'];
+    if (!maxError) return null;
+
+    return `Amount cannot exceed total outstanding of ₹${Number(maxError.max).toLocaleString('en-IN')}`;
+  }
+
+  private getApiErrorMessage(error: unknown, fallback: string): string {
+    const httpError = error as HttpErrorResponse;
+    return (httpError?.error?.message as string) || fallback;
+  }
+
+  private updateAmountValidators(): void {
+    const amountControl = this.form.get('amount');
+    if (!amountControl) return;
+
+    const validators = [Validators.required, Validators.min(1)];
+    const max = this.amountMax();
+    if (max !== null) {
+      validators.push(this.maxOutstandingValidator(max));
+    }
+
+    amountControl.setValidators(validators);
+    amountControl.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private maxOutstandingValidator(max: number): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const rawValue = control.value;
+      if (rawValue === null || rawValue === '' || rawValue === undefined) {
+        return null;
+      }
+
+      const numericValue = Number(rawValue);
+      if (Number.isNaN(numericValue) || numericValue <= max) {
+        return null;
+      }
+
+      return {
+        amountExceedsOutstanding: {
+          max,
+          actual: numericValue,
+        },
+      };
+    };
   }
 }

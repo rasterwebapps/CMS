@@ -144,7 +144,13 @@
               <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
               <td mat-cell *matCellDef="let row" class="cell-align-center">
                 <div class="row-actions">
-                  <button class="btn-primary collect-action-btn" (click)="selectEntry(row)" aria-label="Collect balance">
+                  <button class="btn-primary collect-action-btn"
+                          type="button"
+                          (click)="selectEntry(row)"
+                          [disabled]="row.totalOutstanding <= 0"
+                          [matTooltip]="row.totalOutstanding <= 0 ? 'No outstanding balance available' : 'Collect balance'"
+                          matTooltipPosition="left"
+                          aria-label="Collect balance">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     Collect Balance
                   </button>
@@ -267,11 +273,21 @@
 
           <div class="field-group">
             <label class="field-label">Amount (₹) <span class="field-required">*</span></label>
-            <input class="field-input" type="number" formControlName="amount" min="1" placeholder="0"
+            <input class="field-input" type="number" formControlName="amount" min="1" [attr.max]="amountMax()"
+                   placeholder="0"
                    [class.field-input--error]="form.get('amount')?.invalid && form.get('amount')?.touched" />
-            <p class="field-hint">Pre-filled with current installment outstanding · any amount fills installments in order</p>
+            <p class="field-hint">
+              Pre-filled with current installment outstanding · you can collect across future installments, but never above total outstanding
+              @if (amountMax() !== null) {
+                <span> · Max now: ₹{{ amountMax()! | number:'1.0-0' }}</span>
+              }
+            </p>
             @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
-              <p class="field-error">Valid amount is required</p>
+              @if (form.get('amount')?.errors?.['required'] || form.get('amount')?.errors?.['min']) {
+                <p class="field-error">Valid amount is required</p>
+              } @else if (getAmountMaxError(); as amountMaxError) {
+                <p class="field-error">{{ amountMaxError }}</p>
+              }
             }
           </div>
 
@@ -333,7 +349,7 @@
           <div class="form-footer entry-form-sticky-footer">
             <button type="button" class="btn-cancel" (click)="backToList()">Cancel</button>
             <button type="submit" class="btn-submit"
-                    [disabled]="saving() || (isCashMode() && !denominationValid())">
+                    [disabled]="saving() || !installmentDataReady() || form.invalid || (isCashMode() && !denominationValid())">
               @if (saving()) {
                 <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
               } @else {

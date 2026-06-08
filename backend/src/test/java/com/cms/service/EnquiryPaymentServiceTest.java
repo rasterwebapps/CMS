@@ -214,18 +214,28 @@ class EnquiryPaymentServiceTest {
     }
 
     @Test
-    void shouldRejectPaymentForAdmittedStatus() {
+    void shouldCollectPaymentForAdmittedStatusWithoutRegressingStatus() {
         testEnquiry.setStatus(EnquiryStatus.ADMITTED);
 
         EnquiryPaymentRequest request = new EnquiryPaymentRequest(
             new BigDecimal("50000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null
         );
 
-        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        EnquiryPayment savedPayment = createPayment(1L, testEnquiry, new BigDecimal("50000.00"), "RCP-20240701-ADMT0001");
+        savedPayment.setCreatedAt(Instant.now());
 
-        assertThatThrownBy(() -> enquiryPaymentService.collectPayment(1L, request, "cashier"))
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("Payment cannot be collected for enquiry status: ADMITTED");
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(BigDecimal.ZERO);
+        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
+        when(enquiryPaymentRepository.save(any(EnquiryPayment.class))).thenReturn(savedPayment);
+
+        EnquiryPaymentResponse response = enquiryPaymentService.collectPayment(1L, request, "cashier");
+
+        assertThat(response.amountPaid()).isEqualByComparingTo(new BigDecimal("50000.00"));
+        assertThat(response.newStatus()).isEqualTo(EnquiryStatus.ADMITTED.name());
+        assertThat(testEnquiry.getStatus()).isEqualTo(EnquiryStatus.ADMITTED);
+        verify(enquiryRepository, never()).save(any(Enquiry.class));
+        verify(statusHistoryRepository, never()).save(any());
     }
 
     @Test
@@ -239,8 +249,51 @@ class EnquiryPaymentServiceTest {
 
         assertThatThrownBy(() -> enquiryPaymentService.collectPayment(1L, request, "cashier"))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("Payment amount cannot exceed outstanding balance");
+            .hasMessageContaining("exceeds outstanding balance");
         verify(enquiryPaymentRepository, never()).save(any(EnquiryPayment.class));
+    }
+
+    @Test
+    void shouldAllowPaymentExceedingNextInstallmentOutstandingWhenWithinInstallmentTotal() {
+        // Scenario: Year 1 First Installment (55 000) was paid, plus ₹1 spilled into Year 1 Second.
+        // Second installment outstanding = 54 999, but the user wants to pay 55 000 (full instalment amount).
+        // With the semesterWiseFees JSON total = 110 000, effective outstanding = 54 999.
+        // 55 000 > 54 999 → should still be rejected (overpayment of the TOTAL remaining).
+        //
+        // BUT if year-total = 330 000 and only 55 001 has been paid, effective outstanding = 274 999.
+        // Paying 55 000 < 274 999 → should be ALLOWED.
+        testEnquiry.setSemesterWiseFees(
+            "[{\"termNumber\":1,\"installmentLabel\":\"Year 1 - First Installment\",\"amount\":55000}," +
+            "{\"termNumber\":2,\"installmentLabel\":\"Year 1 - Second Installment\",\"amount\":55000}," +
+            "{\"termNumber\":3,\"installmentLabel\":\"Year 2 - Third Installment\",\"amount\":55000}," +
+            "{\"termNumber\":4,\"installmentLabel\":\"Year 2 - Fourth Installment\",\"amount\":55000}," +
+            "{\"termNumber\":5,\"installmentLabel\":\"Year 3 - Fifth Installment\",\"amount\":0}," +
+            "{\"termNumber\":6,\"installmentLabel\":\"Year 3 - Sixth Installment\",\"amount\":0}," +
+            "{\"termNumber\":7,\"installmentLabel\":\"Year 4 - Seventh Installment\",\"amount\":55000}," +
+            "{\"termNumber\":8,\"installmentLabel\":\"Year 4 - Eighth Installment\",\"amount\":55000}]"
+        );
+        // finalizedNetFee = 100 000 on testEnquiry (does NOT match the JSON total of 330 000)
+        // totalPaid = 55 001 (first instalment + ₹1 spillover)
+        // Effective total from JSON = 330 000, so effective outstanding = 330 000 - 55 001 = 274 999
+        // User pays 55 000 ≤ 274 999 → ALLOWED
+
+        EnquiryPaymentRequest request = new EnquiryPaymentRequest(
+            new BigDecimal("55000.00"), LocalDate.of(2026, 6, 8), PaymentMode.UPI, "TXN-TEST", null
+        );
+
+        EnquiryPayment savedPayment = createPayment(1L, testEnquiry, new BigDecimal("55000.00"), "RCP-2026-00002");
+        savedPayment.setCreatedAt(java.time.Instant.now());
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(new BigDecimal("55001.00"));
+        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00002");
+        when(enquiryPaymentRepository.save(any(EnquiryPayment.class))).thenReturn(savedPayment);
+        when(enquiryRepository.save(any(Enquiry.class))).thenReturn(testEnquiry);
+
+        EnquiryPaymentResponse response = enquiryPaymentService.collectPayment(1L, request, "cashier");
+
+        assertThat(response.amountPaid()).isEqualByComparingTo(new BigDecimal("55000.00"));
+        assertThat(response.newStatus()).isEqualTo(EnquiryStatus.PARTIALLY_PAID.name());
     }
 
     @Test

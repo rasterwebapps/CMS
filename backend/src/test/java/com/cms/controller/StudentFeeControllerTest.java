@@ -70,8 +70,8 @@ class StudentFeeControllerTest {
             "Merit scholarship",
             new BigDecimal("5000.00"),
             List.of(
-                new StudentFeeAllocationRequest.YearFee(1, new BigDecimal("100000.00"), LocalDate.of(2025, 6, 1)),
-                new StudentFeeAllocationRequest.YearFee(2, new BigDecimal("100000.00"), LocalDate.of(2026, 6, 1))
+                new StudentFeeAllocationRequest.YearFee(1, new BigDecimal("100000.00")),
+                new StudentFeeAllocationRequest.YearFee(2, new BigDecimal("100000.00"))
             )
         );
 
@@ -148,7 +148,8 @@ class StudentFeeControllerTest {
             LocalDate.of(2025, 1, 15),
             PaymentMode.UPI,
             "TXN-UPI-12345",
-            "First installment"
+            "First installment",
+            null
         );
 
         CollectPaymentResponse response = createCollectPaymentResponse();
@@ -177,6 +178,7 @@ class StudentFeeControllerTest {
             new BigDecimal("50000.00"),
             LocalDate.of(2025, 1, 15),
             PaymentMode.CASH,
+            null,
             null,
             null
         );
@@ -382,7 +384,9 @@ class StudentFeeControllerTest {
             List.of(new com.cms.dto.SemesterPaymentDetail(
                 "Year 1 - Semester 1", 1, 1, new BigDecimal("50000.00")
             )),
-            Instant.now()
+            null,
+            Instant.now(),
+            BigDecimal.ZERO
         );
     }
 

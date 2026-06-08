@@ -3,9 +3,11 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -32,6 +34,8 @@ import com.cms.model.StudentFeeAllocation;
 import com.cms.model.enums.FeeAllocationStatus;
 import com.cms.model.enums.PaymentMode;
 import com.cms.model.enums.StudentStatus;
+import com.cms.repository.EnquiryPaymentRepository;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
@@ -44,6 +48,8 @@ class PaymentCollectionServiceTest {
     @Mock private SemesterFeeRepository semesterFeeRepository;
     @Mock private FeeInstallmentRepository installmentRepository;
     @Mock private StudentRepository studentRepository;
+    @Mock private EnquiryRepository enquiryRepository;
+    @Mock private EnquiryPaymentRepository enquiryPaymentRepository;
     @Mock private UnifiedReceiptService unifiedReceiptService;
 
     private PaymentCollectionService service;
@@ -57,7 +63,8 @@ class PaymentCollectionServiceTest {
     @BeforeEach
     void setUp() {
         service = new PaymentCollectionService(allocationRepository, semesterFeeRepository,
-            installmentRepository, studentRepository, unifiedReceiptService);
+            installmentRepository, studentRepository, enquiryRepository, enquiryPaymentRepository, unifiedReceiptService);
+        lenient().when(enquiryRepository.findByConvertedStudentId(anyLong())).thenReturn(Optional.empty());
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -87,7 +94,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldCollectPaymentForSingleSemester() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("100000"), LocalDate.now(), PaymentMode.UPI, "TXN001", null
+            new BigDecimal("100000"), LocalDate.now(), PaymentMode.UPI, "TXN001", null, null
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
@@ -110,7 +117,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldCarryForwardExcessPaymentWithSameReceiptNumber() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("300000"), LocalDate.now(), PaymentMode.CASH, null, null
+            new BigDecimal("300000"), LocalDate.now(), PaymentMode.CASH, null, null, null
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
@@ -137,9 +144,50 @@ class PaymentCollectionServiceTest {
     }
 
     @Test
+    void shouldRejectPaymentWhenItExceedsTotalOutstanding() {
+        CollectPaymentRequest request = new CollectPaymentRequest(
+            new BigDecimal("50001"), LocalDate.now(), PaymentMode.CASH, null, null, null
+        );
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(new BigDecimal("200000"));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(new BigDecimal("150000"));
+
+        assertThatThrownBy(() -> service.collectPayment(1L, request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("exceeds total outstanding balance");
+    }
+
+    @Test
+    void shouldAllowPaymentUpToExactFinalOutstanding() {
+        CollectPaymentRequest request = new CollectPaymentRequest(
+            new BigDecimal("50000"), LocalDate.now(), PaymentMode.CASH, null, null, null
+        );
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(new BigDecimal("200000"));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(new BigDecimal("150000"));
+        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
+        when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CollectPaymentResponse response = service.collectPayment(1L, request);
+
+        assertThat(response.amountPaid()).isEqualByComparingTo("50000");
+        assertThat(response.surplusAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(response.installmentBreakdown()).hasSize(1);
+        assertThat(response.installmentBreakdown().getFirst().installmentLabel()).isEqualTo("Year 1 - Semester 2");
+    }
+
+    @Test
     void shouldReturnSemesterBreakdownInResponse() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("350000"), LocalDate.now(), PaymentMode.UPI, "TXN001", null
+            new BigDecimal("350000"), LocalDate.now(), PaymentMode.UPI, "TXN001", null, null
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
@@ -163,7 +211,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldSkipFullyPaidSemesters() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null
+            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
@@ -186,7 +234,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldThrowWhenStudentNotFound() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null
+            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null
         );
         when(studentRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -197,7 +245,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldThrowWhenAllocationNotFound() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null
+            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null
         );
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.empty());
@@ -210,7 +258,7 @@ class PaymentCollectionServiceTest {
     void shouldThrowWhenAllocationNotFinalized() {
         testAllocation.setStatus(FeeAllocationStatus.DRAFT);
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null
+            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null
         );
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
@@ -223,7 +271,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldThrowWhenNoPendingFees() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null
+            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null
         );
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));

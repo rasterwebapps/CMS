@@ -80,6 +80,16 @@ public class PaymentCollectionService {
             .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
             .orElse(BigDecimal.ZERO);
 
+        BigDecimal totalOutstanding = calculateTotalOutstanding(semesterFees, remainingEnquiryCredit);
+        if (totalOutstanding.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("No pending fees found for student: " + student.getRollNumber());
+        }
+        if (request.amount().compareTo(totalOutstanding) > 0) {
+            throw new IllegalStateException(
+                "Payment amount (" + request.amount() + ") exceeds total outstanding balance: " + totalOutstanding
+            );
+        }
+
         BigDecimal remaining = request.amount();
         List<String> allocationDetails = new ArrayList<>();
         List<SemesterPaymentDetail> installmentBreakdown = new ArrayList<>();
@@ -154,6 +164,26 @@ public class PaymentCollectionService {
             java.time.Instant.now(),
             remaining.max(BigDecimal.ZERO)
         );
+    }
+
+    private BigDecimal calculateTotalOutstanding(List<SemesterFee> semesterFees, BigDecimal enquiryCredit) {
+        BigDecimal totalOutstanding = BigDecimal.ZERO;
+        BigDecimal remainingEnquiryCredit = enquiryCredit;
+
+        for (SemesterFee sf : semesterFees) {
+            BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+            BigDecimal maxCredit = sf.getAmount().subtract(alreadyPaid).max(BigDecimal.ZERO);
+            BigDecimal creditForThis = remainingEnquiryCredit.min(maxCredit);
+            remainingEnquiryCredit = remainingEnquiryCredit.subtract(creditForThis);
+
+            BigDecimal pendingForSemester = sf.getAmount()
+                .subtract(alreadyPaid)
+                .subtract(creditForThis)
+                .max(BigDecimal.ZERO);
+            totalOutstanding = totalOutstanding.add(pendingForSemester);
+        }
+
+        return totalOutstanding;
     }
 
     public List<ReceiptResponse> getReceipts(Long studentId) {
