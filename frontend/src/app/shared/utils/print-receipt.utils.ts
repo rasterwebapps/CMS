@@ -49,10 +49,17 @@ function buildReceiptCss(): string {
     body { box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
   }
 
-  /* ── Outer card — 135mm keeps floating-point rounding from spilling to page 2 ── */
-  .receipt {
+  /* ── Page shell: adds a safe top inset so PDF viewers never crop the header ── */
+  .receipt-page {
     width: 100%;
     height: 135mm;
+    padding-top: 2mm;
+  }
+
+  /* ── Outer card — 133mm + 2mm top inset keeps everything on one page ── */
+  .receipt {
+    width: 100%;
+    height: 133mm;
     border: 3px double #1a237e;
     padding: 8px 14px 10px;
     display: flex;
@@ -209,6 +216,7 @@ function buildReceiptBodyHtml(data: ReceiptPrintData): string {
     : '';
 
   return `
+<div class="receipt-page">
 <div class="receipt">
 
   <!-- Header -->
@@ -272,6 +280,7 @@ function buildReceiptBodyHtml(data: ReceiptPrintData): string {
     </div>
   </div>
 
+</div>
 </div>`;
 }
 
@@ -291,30 +300,35 @@ async function generateReceiptPdfBlob(data: ReceiptPrintData): Promise<Blob> {
   const container = document.createElement('div');
   container.style.cssText =
     'position:fixed;left:-9999px;top:0;width:200mm;background:#fff;' +
-    'overflow:hidden;z-index:-9999;';
+    'overflow:visible;z-index:-9999;';
   container.innerHTML = `<style>${buildReceiptCss()}</style>${buildReceiptBodyHtml(data)}`;
   document.body.appendChild(container);
 
-  const receiptEl = container.querySelector<HTMLElement>('.receipt');
-  if (!receiptEl) {
+  const captureEl = container.querySelector<HTMLElement>('.receipt-page');
+  if (!captureEl) {
     document.body.removeChild(container);
     throw new Error('Receipt element not found for PDF generation');
   }
-
-  // Capture exact element height so html2pdf never spills onto a second page
-  const elHeight = receiptEl.offsetHeight;
 
   const opt = {
     margin: [5, 5, 5, 5], // top, right, bottom, left (mm)
     filename: `Receipt-${data.receiptNumber}.pdf`,
     image: { type: 'jpeg' as const, quality: 0.99 },
-    html2canvas: { scale: 2, useCORS: true, logging: false, height: elHeight },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: captureEl.scrollWidth,
+      windowHeight: captureEl.scrollHeight,
+    },
     jsPDF: { unit: 'mm' as const, format: 'a5', orientation: 'landscape' as const },
     pagebreak: { mode: [] as string[] }, // never break across pages
   };
 
   try {
-    return (await h2p().set(opt).from(receiptEl).outputPdf('blob')) as Blob;
+    return (await h2p().set(opt).from(captureEl).outputPdf('blob')) as Blob;
   } finally {
     document.body.removeChild(container);
   }
