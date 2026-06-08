@@ -23,12 +23,12 @@
 // ── Panel shell ─────────────────────────────────────────────────────────────
 .rcp-panel {
   position: fixed;
-  // 91px = 56px app toolbar + 35px breadcrumb/header strip
-  top: 91px;
+  // Keep the panel flush under the global app toolbar (no extra breadcrumb gap)
+  top: 56px;
   right: 0;
   width: 440px;
   max-width: 100vw;
-  height: calc(100dvh - 91px);
+  height: calc(100dvh - 56px);
   background: var(--cms-bg-card, #ffffff);
   border-left: 1px solid var(--cms-border-default, #e5e7eb);
   box-shadow: -8px 0 40px rgba(0, 0, 0, 0.15);
