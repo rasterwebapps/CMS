@@ -4,6 +4,48 @@
 
 ---
 
+## TC-ENQ-AGE-001: Age restriction error clears after age field is corrected
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_COLLEGE_ADMIN`
+- At least one program has minimum-age configuration enabled
+
+**Steps:**
+1. Navigate to `/enquiries/new`
+2. Select the age-restricted program
+3. Enter a DOB/age combination that shows the minimum-age validation error
+4. Clear the age field, then enter a valid age that satisfies the minimum-age rule
+5. Verify the DOB is re-derived and observe the validation message area
+
+**Expected Result:**
+- Age-restriction error is removed immediately after valid age entry updates DOB
+- Form no longer shows stale minimum-age error text
+
+**Status:** NOT TESTED
+
+---
+
+## TC-ENQ-AGE-002: Gender defaults to Female on new enquiry form
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_COLLEGE_ADMIN`
+
+**Steps:**
+1. Navigate to `/enquiries/new`
+2. Observe the Gender dropdown before any interaction
+3. Verify `Female` is already selected
+4. Change Gender to `Male` or `Other`
+5. Verify fee banner recalculates on gender change
+
+**Expected Result:**
+- Gender defaults to `Female` on create form load
+- User can still change Gender manually
+- Fee lookup reacts to the changed gender value
+
+**Status:** NOT TESTED
+
+---
+
 ## TC-ENQ-BR30-001: Create enquiry with admission quota — fee resolved correctly
 
 **Preconditions:**

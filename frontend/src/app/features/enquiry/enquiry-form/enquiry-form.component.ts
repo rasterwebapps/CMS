@@ -234,7 +234,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
     referredStaffName: [null as string | null],
     dateOfBirth:    ['', Validators.required],
     age:            [null as number | null, [Validators.min(0), Validators.max(150)]],
-    gender:         ['FEMALE', Validators.required],
+    gender:         ['FEMALE' as 'FEMALE' | 'MALE' | 'OTHER', Validators.required],
   });
   /** Tracks which referral-related sub-form to show; updated imperatively in onReferralTypeChange. */
   protected readonly referralCategory = signal<'AGENT' | 'STUDENT' | 'ALUMNI' | 'FACULTY' | 'STAFF' | 'NONE'>('NONE');
@@ -315,6 +315,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
       this.dobAgeSyncing = true;
       this.form.get('dateOfBirth')?.setValue(dob, { emitEvent: false });
       this.dobAgeSyncing = false;
+      this.recomputeAgeRestrictionError();
     });
     this.http.get<ProgramInfo[]>(`${environment.apiUrl}/programs`).subscribe({
       next: (data) => this.programs.set(data),

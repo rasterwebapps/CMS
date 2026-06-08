@@ -138,6 +138,7 @@
                     <select id="enq-gender" class="field-select" formControlName="gender"
                             (change)="onDimensionChange()"
                             [class.field-select--error]="form.get('gender')?.invalid && form.get('gender')?.touched">
+                      <option [ngValue]="null" disabled>— Select gender —</option>
                       @for (g of genderOptions; track g.value) {
                         <option [value]="g.value">{{ g.label }}</option>
                       }
