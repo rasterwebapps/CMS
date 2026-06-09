@@ -1,11 +1,13 @@
 package com.cms.service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -13,16 +15,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.CollectPaymentRequest;
 import com.cms.dto.CollectPaymentResponse;
+import com.cms.dto.EnquiryCreditApplicationDto;
 import com.cms.dto.ReceiptResponse;
 import com.cms.dto.ReceiptSummaryResponse;
 import com.cms.dto.SemesterPaymentDetail;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.Enquiry;
+import com.cms.model.EnquiryCreditApplication;
 import com.cms.model.FeeInstallment;
 import com.cms.model.FeeRefund;
 import com.cms.model.SemesterFee;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
 import com.cms.model.enums.FeeAllocationStatus;
+import com.cms.repository.EnquiryCreditApplicationRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
@@ -43,6 +49,7 @@ public class PaymentCollectionService {
     private final EnquiryPaymentRepository enquiryPaymentRepository;
     private final FeeRefundRepository refundRepository;
     private final UnifiedReceiptService unifiedReceiptService;
+    private final EnquiryCreditApplicationRepository creditApplicationRepository;
 
     public PaymentCollectionService(StudentFeeAllocationRepository allocationRepository,
                                      SemesterFeeRepository semesterFeeRepository,
@@ -51,7 +58,8 @@ public class PaymentCollectionService {
                                      EnquiryRepository enquiryRepository,
                                      EnquiryPaymentRepository enquiryPaymentRepository,
                                      FeeRefundRepository refundRepository,
-                                     UnifiedReceiptService unifiedReceiptService) {
+                                     UnifiedReceiptService unifiedReceiptService,
+                                     EnquiryCreditApplicationRepository creditApplicationRepository) {
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
         this.installmentRepository = installmentRepository;
@@ -60,6 +68,7 @@ public class PaymentCollectionService {
         this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.refundRepository = refundRepository;
         this.unifiedReceiptService = unifiedReceiptService;
+        this.creditApplicationRepository = creditApplicationRepository;
     }
 
     @Transactional
@@ -80,8 +89,8 @@ public class PaymentCollectionService {
             .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
 
         // Enquiry payments act as pre-payment credit — distribute in installment order before accepting new payment.
-        BigDecimal remainingEnquiryCredit = enquiryRepository
-            .findByConvertedStudentId(studentId)
+        Optional<Enquiry> sourceEnquiry = enquiryRepository.findByConvertedStudentId(studentId);
+        BigDecimal remainingEnquiryCredit = sourceEnquiry
             .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
             .orElse(BigDecimal.ZERO);
 
@@ -113,6 +122,11 @@ public class PaymentCollectionService {
             BigDecimal maxCredit = sf.getAmount().subtract(alreadyPaid).max(BigDecimal.ZERO);
             BigDecimal creditForThis = remainingEnquiryCredit.min(maxCredit);
             remainingEnquiryCredit = remainingEnquiryCredit.subtract(creditForThis);
+
+            if (creditForThis.compareTo(BigDecimal.ZERO) > 0 && sourceEnquiry.isPresent()) {
+                creditApplicationRepository.save(new EnquiryCreditApplication(
+                    sourceEnquiry.get(), student, sf, creditForThis, receiptNumber, Instant.now()));
+            }
 
             BigDecimal pendingForSemester = sf.getAmount().subtract(alreadyPaid).subtract(creditForThis).max(BigDecimal.ZERO);
 
@@ -291,6 +305,35 @@ public class PaymentCollectionService {
             fi.getAmountPaid(), fi.getPaymentDate(), fi.getPaymentMode().name(),
             fi.getTransactionReference(), fi.getRemarks(), fi.getCreatedAt(),
             "PAYMENT", null
+        );
+    }
+
+    public List<EnquiryCreditApplicationDto> getCreditApplicationsByStudent(Long studentId) {
+        if (!studentRepository.existsById(studentId)) {
+            throw new ResourceNotFoundException("Student not found with id: " + studentId);
+        }
+        return creditApplicationRepository.findByStudentIdOrderByAppliedAtDesc(studentId)
+            .stream().map(this::toCreditApplicationDto).toList();
+    }
+
+    public List<EnquiryCreditApplicationDto> getCreditApplicationsByEnquiry(Long enquiryId) {
+        return creditApplicationRepository.findByEnquiryIdOrderByAppliedAtDesc(enquiryId)
+            .stream().map(this::toCreditApplicationDto).toList();
+    }
+
+    private EnquiryCreditApplicationDto toCreditApplicationDto(EnquiryCreditApplication a) {
+        return new EnquiryCreditApplicationDto(
+            a.getId(),
+            a.getEnquiry().getId(),
+            a.getEnquiry().getName(),
+            a.getStudent().getId(),
+            a.getStudent().getFullName(),
+            a.getStudent().getRollNumber(),
+            a.getSemesterFee().getId(),
+            a.getSemesterFee().getSemesterLabel(),
+            a.getAmountApplied(),
+            a.getReceiptNumber(),
+            a.getAppliedAt()
         );
     }
 

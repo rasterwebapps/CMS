@@ -163,9 +163,11 @@ public class UnifiedReceiptService {
     }
 
     private UnifiedReceiptResponse toRefundResponse(FeeRefund r) {
+        String entityType = r.getEntityType() != null ? r.getEntityType() : "STUDENT";
+        Long payerId = "ENQUIRY".equals(entityType) ? r.getEnquiryId() : r.getStudentId();
         return new UnifiedReceiptResponse(
             r.getId(), r.getRefundNumber(),
-            "STUDENT", r.getStudentId(), r.getStudentName(),
+            entityType, payerId, r.getStudentName(),
             r.getRollNumber(), r.getAdmissionNumber(), r.getProgramName(),
             r.getRefundAmount(), r.getPaymentDate(), r.getPaymentMode(),
             r.getTransactionReference(), r.getReason(),

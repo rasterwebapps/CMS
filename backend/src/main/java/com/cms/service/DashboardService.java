@@ -22,7 +22,6 @@ import com.cms.dto.FrontOfficeEnquiryItem;
 import com.cms.model.Attendance;
 import com.cms.model.EnquiryPayment;
 import com.cms.model.Equipment;
-import com.cms.model.FeePayment;
 import com.cms.model.MaintenanceRequest;
 import com.cms.model.Student;
 import com.cms.model.enums.AdmissionStatus;
@@ -35,9 +34,9 @@ import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EquipmentRepository;
 import com.cms.repository.ExaminationRepository;
 import com.cms.repository.FacultyRepository;
-import com.cms.repository.FeePaymentRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.MaintenanceRequestRepository;
+import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.SubjectRepository;
@@ -57,7 +56,7 @@ public class DashboardService {
     private final LabRepository labRepository;
     private final EquipmentRepository equipmentRepository;
     private final ExaminationRepository examinationRepository;
-    private final FeePaymentRepository feePaymentRepository;
+    private final PaymentReceiptRepository paymentReceiptRepository;
     private final MaintenanceRequestRepository maintenanceRequestRepository;
     private final AttendanceRepository attendanceRepository;
     private final EnquiryRepository enquiryRepository;
@@ -72,7 +71,7 @@ public class DashboardService {
                             LabRepository labRepository,
                             EquipmentRepository equipmentRepository,
                             ExaminationRepository examinationRepository,
-                            FeePaymentRepository feePaymentRepository,
+                            PaymentReceiptRepository paymentReceiptRepository,
                             MaintenanceRequestRepository maintenanceRequestRepository,
                             AttendanceRepository attendanceRepository,
                             EnquiryRepository enquiryRepository,
@@ -86,7 +85,7 @@ public class DashboardService {
         this.labRepository = labRepository;
         this.equipmentRepository = equipmentRepository;
         this.examinationRepository = examinationRepository;
-        this.feePaymentRepository = feePaymentRepository;
+        this.paymentReceiptRepository = paymentReceiptRepository;
         this.maintenanceRequestRepository = maintenanceRequestRepository;
         this.attendanceRepository = attendanceRepository;
         this.enquiryRepository = enquiryRepository;
@@ -106,7 +105,7 @@ public class DashboardService {
         long totalLabs = labRepository.count();
         long totalEquipment = equipmentRepository.count();
         long totalExaminations = examinationRepository.count();
-        long totalFeePayments = feePaymentRepository.count();
+        long totalFeePayments = paymentReceiptRepository.count();
         long totalMaintenanceRequests = maintenanceRequestRepository.count();
         long totalAttendanceRecords = attendanceRepository.count();
 
@@ -151,9 +150,8 @@ public class DashboardService {
 
             LocalDate start = ym.atDay(1);
             LocalDate end = ym.atEndOfMonth();
-            List<FeePayment> payments = feePaymentRepository.findByPaymentDateBetween(start, end);
-            BigDecimal monthlyFees = payments.stream()
-                .map(FeePayment::getAmountPaid)
+            BigDecimal monthlyFees = paymentReceiptRepository.findByPaymentDateBetween(start, end).stream()
+                .map(com.cms.model.PaymentReceipt::getAmountPaid)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
             feeCollectionTrend.add(new DashboardTrendPoint(label, monthlyFees.longValue()));
         }
@@ -214,8 +212,8 @@ public class DashboardService {
         YearMonth current = YearMonth.now();
         LocalDate start = current.atDay(1);
         LocalDate end = LocalDate.now();
-        return feePaymentRepository.findByPaymentDateBetween(start, end).stream()
-            .map(FeePayment::getAmountPaid)
+        return paymentReceiptRepository.findByPaymentDateBetween(start, end).stream()
+            .map(com.cms.model.PaymentReceipt::getAmountPaid)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 

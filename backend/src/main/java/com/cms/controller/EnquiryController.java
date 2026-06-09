@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.EnquiryCreditApplicationDto;
 import com.cms.dto.EnquiryConversionPrefillResponse;
 import com.cms.dto.EnquiryConversionRequest;
 import com.cms.dto.EnquiryDocumentResponse;
@@ -37,6 +38,7 @@ import com.cms.model.enums.EnquiryStatus;
 import com.cms.service.EnquiryDocumentService;
 import com.cms.service.EnquiryPaymentService;
 import com.cms.service.EnquiryService;
+import com.cms.service.PaymentCollectionService;
 
 import jakarta.validation.Valid;
 
@@ -47,13 +49,16 @@ public class EnquiryController {
     private final EnquiryService enquiryService;
     private final EnquiryDocumentService enquiryDocumentService;
     private final EnquiryPaymentService enquiryPaymentService;
+    private final PaymentCollectionService paymentCollectionService;
 
     public EnquiryController(EnquiryService enquiryService,
                               EnquiryDocumentService enquiryDocumentService,
-                              EnquiryPaymentService enquiryPaymentService) {
+                              EnquiryPaymentService enquiryPaymentService,
+                              PaymentCollectionService paymentCollectionService) {
         this.enquiryService = enquiryService;
         this.enquiryDocumentService = enquiryDocumentService;
         this.enquiryPaymentService = enquiryPaymentService;
+        this.paymentCollectionService = paymentCollectionService;
     }
 
     @GetMapping("/document-pending")
@@ -214,6 +219,12 @@ public class EnquiryController {
     @PreAuthorize("@perm.has('FEE_COLLECT')")
     public ResponseEntity<List<EnquiryPaymentResponse>> getPayments(@PathVariable Long id) {
         return ResponseEntity.ok(enquiryPaymentService.getPaymentsByEnquiryId(id));
+    }
+
+    @GetMapping("/{id}/credit-applications")
+    @PreAuthorize("@perm.has('ENQUIRY_VIEW')")
+    public ResponseEntity<List<EnquiryCreditApplicationDto>> getCreditApplications(@PathVariable Long id) {
+        return ResponseEntity.ok(paymentCollectionService.getCreditApplicationsByEnquiry(id));
     }
 
     @DeleteMapping("/{id}")

@@ -91,30 +91,6 @@ export interface YearAmountRequest {
   amount: number;
 }
 
-export interface FeePayment {
-  id: number;
-  studentId: number;
-  studentName: string;
-  feeStructureId: number;
-  feeStructureName: string;
-  amountPaid: number;
-  paymentDate: string;
-  paymentMethod: string;
-  transactionId?: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface FeePaymentRequest {
-  studentId: number;
-  feeStructureId: number;
-  amountPaid: number;
-  paymentDate: string;
-  paymentMethod: string;
-  transactionId?: string;
-  status?: string;
-}
 
 // Student Fee Allocation
 export interface StudentFeeAllocation {
@@ -363,6 +339,7 @@ export interface FeeRefundResponse {
 export interface FeeRefundSummary {
   id: number;
   originalReceiptNumber: string;
+  entityType: 'STUDENT' | 'ENQUIRY';
   studentName: string;
   rollNumber: string | null;
   admissionNumber: string | null;
@@ -391,4 +368,18 @@ export interface FeeRefundApprovalRequest {
 
 export interface FeeRefundRejectionRequest {
   rejectionReason: string;
+}
+
+export interface EnquiryCreditApplication {
+  id: number;
+  enquiryId: number;
+  enquiryName: string;
+  studentId: number;
+  studentName: string;
+  rollNumber: string;
+  semesterFeeId: number;
+  semesterLabel: string;
+  amountApplied: number;
+  receiptNumber: string;
+  appliedAt: string;
 }

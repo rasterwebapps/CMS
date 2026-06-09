@@ -35,7 +35,6 @@ const SEGMENT_LABELS: Record<string, string> = {
   'lab-schedules': 'Lab Schedules',
   reports: 'Reports',
   'student-fees': 'Student Fees',
-  'fee-payments': 'Fee Payments',
   inventory: 'Inventory',
   maintenance: 'Maintenance',
   new: 'New',

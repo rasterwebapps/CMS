@@ -285,4 +285,38 @@
     </div>
 
   }
+
+  @if (creditApplications().length > 0) {
+    <div class="cms-card sfd-section">
+      <div class="sfd-section__hdr">
+        <h3 class="sfd-section__title">Pre-enrollment Credit Applied</h3>
+        <span class="receipt-count">{{ creditApplications().length }} application(s)</span>
+      </div>
+      <table class="cms-table sfd-credit-table">
+        <thead>
+          <tr>
+            <th>Receipt No.</th>
+            <th>Semester</th>
+            <th>Amount Applied</th>
+            <th>Applied On</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (ca of creditApplications(); track ca.id) {
+            <tr>
+              <td><span class="receipt-no">{{ ca.receiptNumber }}</span></td>
+              <td>{{ ca.semesterLabel }}</td>
+              <td class="sfd-credit-amount">{{ ca.amountApplied | inr }}</td>
+              <td>{{ ca.appliedAt | date:'dd MMM yyyy, hh:mm a' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <div class="sfd-credit-note">
+        <span class="cms-badge cms-badge--blue">Pre-enrollment</span>
+        Amounts above were automatically applied from pre-admission payments made during the enquiry stage.
+      </div>
+    </div>
+  }
+
 </div>

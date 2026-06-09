@@ -43,6 +43,7 @@ import com.cms.model.enums.TermType;
 import com.cms.repository.FeeDemandRepository;
 import com.cms.repository.TermBillingScheduleRepository;
 import com.cms.repository.TermFeePaymentRepository;
+import org.mockito.Mockito;
 
 @ExtendWith(MockitoExtension.class)
 class TermFeePaymentServiceImplTest {
@@ -53,6 +54,8 @@ class TermFeePaymentServiceImplTest {
     private FeeDemandRepository feeDemandRepository;
     @Mock
     private TermBillingScheduleRepository billingScheduleRepository;
+    @Mock
+    private UnifiedReceiptService unifiedReceiptService;
 
     private TermFeePaymentServiceImpl service;
 
@@ -67,8 +70,10 @@ class TermFeePaymentServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        Mockito.lenient().when(unifiedReceiptService.generateReceiptNumber(Mockito.anyInt()))
+            .thenReturn("RCP-2026-00001");
         service = new TermFeePaymentServiceImpl(
-            paymentRepository, feeDemandRepository, billingScheduleRepository
+            paymentRepository, feeDemandRepository, billingScheduleRepository, unifiedReceiptService
         );
 
         academicYear = new AcademicYear("2026-2027",
@@ -88,7 +93,6 @@ class TermFeePaymentServiceImplTest {
 
         cohort = new Cohort();
         cohort.setId(200L);
-        cohort.setProgram(program);
         cohort.setCohortCode("BSCN-2026-2030");
 
         student = new Student();
@@ -147,7 +151,7 @@ class TermFeePaymentServiceImplTest {
         });
         when(feeDemandRepository.save(any(FeeDemand.class))).thenReturn(demand);
 
-        TermFeePaymentDto dto = service.recordPayment(request);
+        TermFeePaymentDto dto = service.recordPayment(request, "testUser");
 
         assertThat(dto.lateFeeApplied()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(dto.amountPaid()).isEqualByComparingTo(new BigDecimal("50000.00"));
@@ -175,7 +179,7 @@ class TermFeePaymentServiceImplTest {
         });
         when(feeDemandRepository.save(any(FeeDemand.class))).thenReturn(demand);
 
-        TermFeePaymentDto dto = service.recordPayment(request);
+        TermFeePaymentDto dto = service.recordPayment(request, "testUser");
 
         // late fee = flat 500 (due=Jul 31, grace=7 → effective Jul 31+7=Aug 7, payment Aug 15 > Aug 7)
         assertThat(dto.lateFeeApplied()).isEqualByComparingTo(new BigDecimal("500.00"));
@@ -206,7 +210,7 @@ class TermFeePaymentServiceImplTest {
         });
         when(feeDemandRepository.save(any(FeeDemand.class))).thenReturn(demand);
 
-        TermFeePaymentDto dto = service.recordPayment(request);
+        TermFeePaymentDto dto = service.recordPayment(request, "testUser");
 
         // 5 days late * 100/day = 500
         assertThat(dto.lateFeeApplied()).isEqualByComparingTo(new BigDecimal("500.00"));
@@ -234,7 +238,7 @@ class TermFeePaymentServiceImplTest {
         });
         when(feeDemandRepository.save(any(FeeDemand.class))).thenReturn(demand);
 
-        TermFeePaymentDto dto = service.recordPayment(request);
+        TermFeePaymentDto dto = service.recordPayment(request, "testUser");
 
         assertThat(dto.demandStatus()).isEqualTo(DemandStatus.PARTIAL);
         ArgumentCaptor<FeeDemand> captor = ArgumentCaptor.forClass(FeeDemand.class);
@@ -252,7 +256,7 @@ class TermFeePaymentServiceImplTest {
             800L, LocalDate.now(), new BigDecimal("1000.00"), PaymentMode.CASH, null
         );
 
-        assertThatThrownBy(() -> service.recordPayment(request))
+        assertThatThrownBy(() -> service.recordPayment(request, "testUser"))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("already fully paid");
     }
@@ -265,7 +269,7 @@ class TermFeePaymentServiceImplTest {
             999L, LocalDate.now(), new BigDecimal("1000.00"), PaymentMode.CASH, null
         );
 
-        assertThatThrownBy(() -> service.recordPayment(request))
+        assertThatThrownBy(() -> service.recordPayment(request, "testUser"))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessageContaining("999");
     }

@@ -5,7 +5,8 @@ import java.math.BigDecimal;
 public record FeeRefundSummaryResponse(
     Long id,
     String originalReceiptNumber,
-    String studentName,
+    String entityType,            // STUDENT | ENQUIRY
+    String studentName,           // payee display name (student full name or enquiry person name)
     String rollNumber,
     String admissionNumber,
     String programName,

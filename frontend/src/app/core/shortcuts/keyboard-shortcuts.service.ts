@@ -19,7 +19,6 @@ const GO_SHORTCUTS: Record<string, string> = {
   a: '/admissions',
   s: '/students',
   f: '/faculty',
-  p: '/fee-payments',
 };
 
 const LEADER_TIMEOUT_MS = 1500;

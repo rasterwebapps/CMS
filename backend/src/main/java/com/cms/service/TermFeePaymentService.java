@@ -9,7 +9,7 @@ import java.time.LocalDate;
 
 public interface TermFeePaymentService {
 
-    TermFeePaymentDto recordPayment(TermFeePaymentRequest request);
+    TermFeePaymentDto recordPayment(TermFeePaymentRequest request, String collectedBy);
 
     List<TermFeePaymentDto> getPaymentsByDemand(Long demandId);
 

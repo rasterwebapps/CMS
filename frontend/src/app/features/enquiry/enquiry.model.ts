@@ -273,3 +273,17 @@ export interface EnquiryYearWiseFeeStatusResponse {
   yearBreakdown: YearFeeStatus[];
   installmentBreakdown: InstallmentFeeStatus[];
 }
+
+export interface EnquiryCreditApplication {
+  id: number;
+  enquiryId: number;
+  enquiryName: string;
+  studentId: number;
+  studentName: string;
+  rollNumber: string;
+  semesterFeeId: number;
+  semesterLabel: string;
+  amountApplied: number;
+  receiptNumber: string;
+  appliedAt: string;
+}

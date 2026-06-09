@@ -2,7 +2,6 @@ package com.cms.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -13,6 +12,7 @@ import com.cms.dto.TermFeePaymentDto;
 import com.cms.dto.TermFeePaymentRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.FeeDemand;
+import com.cms.model.Student;
 import com.cms.model.TermBillingSchedule;
 import com.cms.model.TermFeePayment;
 import com.cms.model.enums.DemandStatus;
@@ -28,18 +28,21 @@ public class TermFeePaymentServiceImpl implements TermFeePaymentService {
     private final TermFeePaymentRepository paymentRepository;
     private final FeeDemandRepository feeDemandRepository;
     private final TermBillingScheduleRepository billingScheduleRepository;
+    private final UnifiedReceiptService unifiedReceiptService;
 
     public TermFeePaymentServiceImpl(TermFeePaymentRepository paymentRepository,
                                       FeeDemandRepository feeDemandRepository,
-                                      TermBillingScheduleRepository billingScheduleRepository) {
+                                      TermBillingScheduleRepository billingScheduleRepository,
+                                      UnifiedReceiptService unifiedReceiptService) {
         this.paymentRepository = paymentRepository;
         this.feeDemandRepository = feeDemandRepository;
         this.billingScheduleRepository = billingScheduleRepository;
+        this.unifiedReceiptService = unifiedReceiptService;
     }
 
     @Override
     @Transactional
-    public TermFeePaymentDto recordPayment(TermFeePaymentRequest request) {
+    public TermFeePaymentDto recordPayment(TermFeePaymentRequest request, String collectedBy) {
         FeeDemand demand = feeDemandRepository.findById(request.feeDemandId())
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Fee demand not found with id: " + request.feeDemandId()));
@@ -60,7 +63,7 @@ public class TermFeePaymentServiceImpl implements TermFeePaymentService {
 
         BigDecimal lateFee = computeLateFee(billingSchedule, demand.getDueDate(), request.paymentDate());
 
-        String receiptNumber = generateReceiptNumber(request.paymentDate());
+        String receiptNumber = unifiedReceiptService.generateReceiptNumber(request.paymentDate().getYear());
 
         TermFeePayment payment = new TermFeePayment();
         payment.setFeeDemand(demand);
@@ -84,6 +87,22 @@ public class TermFeePaymentServiceImpl implements TermFeePaymentService {
             demand.setStatus(DemandStatus.UNPAID);
         }
         feeDemandRepository.save(demand);
+
+        // Write to unified receipt ledger
+        Student student = demand.getStudentTermEnrollment().getStudent();
+        String programName = student.getCourse() != null ? student.getCourse().getName()
+            : student.getProgram() != null ? student.getProgram().getName() : null;
+        String termLabel = demand.getTermInstance().getTermType()
+            + " - " + demand.getAcademicYear().getName();
+
+        unifiedReceiptService.saveStudentReceipt(
+            receiptNumber,
+            student.getId(), student.getFullName(), student.getRollNumber(), student.getAdmissionNumber(),
+            programName,
+            payment.getTotalCollected(),
+            request.paymentDate(), request.paymentMode().name(),
+            request.transactionReference(), request.remarks(),
+            termLabel, collectedBy, null);
 
         return toDto(payment);
     }
@@ -125,7 +144,6 @@ public class TermFeePaymentServiceImpl implements TermFeePaymentService {
 
     @Override
     public List<TermFeePaymentDto> getPaymentsWithLateFeeByTermInstance(Long termInstanceId) {
-        // Load all demands for the term, then filter payments with late fee > 0
         return feeDemandRepository.findByTermInstanceId(termInstanceId)
             .stream()
             .flatMap(demand -> paymentRepository.findByFeeDemandId(demand.getId()).stream())
@@ -151,13 +169,6 @@ public class TermFeePaymentServiceImpl implements TermFeePaymentService {
             long daysLate = ChronoUnit.DAYS.between(effectiveDue, paymentDate);
             return schedule.getLateFeeAmount().multiply(BigDecimal.valueOf(daysLate));
         }
-    }
-
-    private String generateReceiptNumber(LocalDate date) {
-        String dateStr = date.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        long count = paymentRepository.countByPaymentDate(date);
-        String seq = String.format("%04d", count + 1);
-        return "RCP-" + dateStr + "-" + seq;
     }
 
     private TermFeePaymentDto toDto(TermFeePayment p) {

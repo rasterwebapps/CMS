@@ -7,6 +7,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,8 +36,10 @@ public class TermFeePaymentController {
     @PostMapping
     @PreAuthorize("@perm.has('FEE_COLLECT')")
     public ResponseEntity<TermFeePaymentDto> recordPayment(
-            @Valid @RequestBody TermFeePaymentRequest request) {
-        TermFeePaymentDto dto = termFeePaymentService.recordPayment(request);
+            @Valid @RequestBody TermFeePaymentRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String collectedBy = jwt != null ? jwt.getClaimAsString("preferred_username") : null;
+        TermFeePaymentDto dto = termFeePaymentService.recordPayment(request, collectedBy);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 

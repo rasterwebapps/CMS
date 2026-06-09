@@ -35,7 +35,6 @@ import com.cms.model.enums.StudentType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.EnquiryRepository;
-import com.cms.repository.FeePaymentRepository;
 import com.cms.repository.FeeStateRepository;
 import com.cms.repository.FeeStructureGroupRepository;
 import com.cms.repository.FeeStructureRepository;
@@ -69,7 +68,6 @@ public class FeeStructureService {
     private final AcademicYearRepository academicYearRepository;
     private final FeeStructureYearAmountRepository yearAmountRepository;
     private final CourseRepository courseRepository;
-    private final FeePaymentRepository feePaymentRepository;
     private final EnquiryRepository enquiryRepository;
     private final AuditLogService auditLogService;
 
@@ -80,7 +78,6 @@ public class FeeStructureService {
                                 AcademicYearRepository academicYearRepository,
                                 FeeStructureYearAmountRepository yearAmountRepository,
                                 CourseRepository courseRepository,
-                                FeePaymentRepository feePaymentRepository,
                                 EnquiryRepository enquiryRepository,
                                 AuditLogService auditLogService) {
         this.feeStructureRepository = feeStructureRepository;
@@ -90,7 +87,6 @@ public class FeeStructureService {
         this.academicYearRepository = academicYearRepository;
         this.yearAmountRepository = yearAmountRepository;
         this.courseRepository = courseRepository;
-        this.feePaymentRepository = feePaymentRepository;
         this.enquiryRepository = enquiryRepository;
         this.auditLogService = auditLogService;
     }
@@ -160,16 +156,6 @@ public class FeeStructureService {
         Set<FeeType> incomingTypes = new HashSet<>();
         for (FeeStructureItemRequest item : request.items()) {
             incomingTypes.add(item.feeType());
-        }
-
-        // Fail fast: cannot remove a fee type that has recorded payments
-        for (FeeStructure fs : existingItems) {
-            if (!incomingTypes.contains(fs.getFeeType())
-                    && feePaymentRepository.existsByFeeStructureId(fs.getId())) {
-                throw new IllegalStateException(
-                    "Cannot remove fee type '" + fs.getFeeType()
-                    + "' because payments have been recorded against it.");
-            }
         }
 
         List<FeeStructureResponse> responses = new ArrayList<>();
@@ -330,10 +316,6 @@ public class FeeStructureService {
         if (!feeStructureRepository.existsById(id)) {
             throw new ResourceNotFoundException("Fee structure not found with id: " + id);
         }
-        if (feePaymentRepository.existsByFeeStructureId(id)) {
-            throw new IllegalStateException(
-                "Cannot delete fee structure because payments have been recorded against it.");
-        }
         yearAmountRepository.deleteByFeeStructureId(id);
         feeStructureRepository.deleteById(id);
     }
@@ -400,12 +382,6 @@ public class FeeStructureService {
             "No fee structure group found for the given combination"));
 
         List<FeeStructure> items = feeStructureRepository.findByFeeStructureGroupId(group.getId());
-        for (FeeStructure fs : items) {
-            if (feePaymentRepository.existsByFeeStructureId(fs.getId())) {
-                throw new IllegalStateException(
-                    "Cannot delete group because payments exist against fee type '" + fs.getFeeType() + "'.");
-            }
-        }
         for (FeeStructure fs : items) {
             yearAmountRepository.deleteByFeeStructureId(fs.getId());
         }

@@ -58,6 +58,13 @@ public class EnquiryPayment {
     @Column(name = "collected_by")
     private String collectedBy;
 
+    /** Null = active payment; set = this payment has been reversed by a refund. */
+    @Column(name = "refunded_at")
+    private Instant refundedAt;
+
+    @Column(name = "refund_number", length = 50)
+    private String refundNumber;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -153,6 +160,12 @@ public class EnquiryPayment {
     public void setCollectedBy(String collectedBy) {
         this.collectedBy = collectedBy;
     }
+
+    public Instant getRefundedAt() { return refundedAt; }
+    public void setRefundedAt(Instant refundedAt) { this.refundedAt = refundedAt; }
+
+    public String getRefundNumber() { return refundNumber; }
+    public void setRefundNumber(String refundNumber) { this.refundNumber = refundNumber; }
 
     public Instant getCreatedAt() {
         return createdAt;

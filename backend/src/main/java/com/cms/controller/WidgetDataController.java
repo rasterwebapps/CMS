@@ -29,7 +29,7 @@ import com.cms.model.AppUser;
 import com.cms.model.AuditLog;
 import com.cms.model.Speciality;
 import com.cms.model.FeeDemand;
-import com.cms.model.FeePayment;
+import com.cms.model.FeeRefund;
 import com.cms.model.Faculty;
 import com.cms.model.LabSchedule;
 import com.cms.model.PaymentReceipt;
@@ -45,7 +45,6 @@ import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.PaymentMode;
-import com.cms.model.enums.PaymentStatus;
 import com.cms.model.enums.ProgramStatus;
 import com.cms.model.enums.StudentStatus;
 import com.cms.repository.AcademicYearRepository;
@@ -60,7 +59,7 @@ import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.FeeDemandRepository;
-import com.cms.repository.FeePaymentRepository;
+import com.cms.repository.FeeRefundRepository;
 import com.cms.repository.LabScheduleRepository;
 import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.ProgramRepository;
@@ -95,7 +94,7 @@ public class WidgetDataController {
     private final AgentRepository                   agentRepository;
     private final StudentFeeAllocationRepository    studentFeeAllocationRepository;
     private final EnquiryDocumentRepository         enquiryDocumentRepository;
-    private final FeePaymentRepository              feePaymentRepository;
+    private final FeeRefundRepository                feeRefundRepository;
     private final SpecialityRepository              specialityRepository;
     private final FacultyRepository                 facultyRepository;
     private final LabScheduleRepository             labScheduleRepository;
@@ -117,7 +116,7 @@ public class WidgetDataController {
                                 AgentRepository agentRepository,
                                 StudentFeeAllocationRepository studentFeeAllocationRepository,
                                 EnquiryDocumentRepository enquiryDocumentRepository,
-                                FeePaymentRepository feePaymentRepository,
+                                FeeRefundRepository feeRefundRepository,
                                 SpecialityRepository specialityRepository,
                                 FacultyRepository facultyRepository,
                                 LabScheduleRepository labScheduleRepository,
@@ -138,7 +137,7 @@ public class WidgetDataController {
         this.agentRepository                  = agentRepository;
         this.studentFeeAllocationRepository   = studentFeeAllocationRepository;
         this.enquiryDocumentRepository        = enquiryDocumentRepository;
-        this.feePaymentRepository             = feePaymentRepository;
+        this.feeRefundRepository              = feeRefundRepository;
         this.specialityRepository             = specialityRepository;
         this.facultyRepository                = facultyRepository;
         this.labScheduleRepository            = labScheduleRepository;
@@ -1038,21 +1037,21 @@ public class WidgetDataController {
     @GetMapping("/refund-cancellation-rate")
     @PreAuthorize("@perm.hasAny('STUDENT_FEE_VIEW','STUDENT_VIEW','REPORT_VIEW')")
     public ResponseEntity<RefundCancellationData> getRefundCancellationRate() {
-        List<FeePayment> payments = feePaymentRepository.findAll();
+        List<PaymentReceipt> receipts = paymentReceiptRepository.findAllByOrderByCreatedAtDescIdDesc();
+        List<FeeRefund> approvedRefunds = feeRefundRepository.findByStatusIn(java.util.List.of("APPROVED"));
         List<Student> students = studentRepository.findAll();
-        long refunded = payments.stream().filter(p -> p.getStatus() == PaymentStatus.REFUNDED).count();
+        long refunded = approvedRefunds.size();
         long withdrawn = students.stream().filter(s -> s.getStatus() == StudentStatus.WITHDRAWN).count();
 
         YearMonth now = YearMonth.now();
         List<MonthlyRatePoint> trend = new ArrayList<>();
         for (int back = 11; back >= 0; back--) {
             YearMonth ym = now.minusMonths(back);
-            long totalForMonth = payments.stream()
+            long totalForMonth = receipts.stream()
                 .filter(p -> p.getPaymentDate() != null && YearMonth.from(p.getPaymentDate()).equals(ym))
                 .count();
-            long refundedForMonth = payments.stream()
-                .filter(p -> p.getPaymentDate() != null && YearMonth.from(p.getPaymentDate()).equals(ym)
-                          && p.getStatus() == PaymentStatus.REFUNDED)
+            long refundedForMonth = approvedRefunds.stream()
+                .filter(r -> r.getPaymentDate() != null && YearMonth.from(r.getPaymentDate()).equals(ym))
                 .count();
             long admittedForMonth = students.stream()
                 .filter(s -> s.getAdmissionDate() != null && YearMonth.from(s.getAdmissionDate()).equals(ym))
@@ -1067,7 +1066,7 @@ public class WidgetDataController {
         }
 
         return ResponseEntity.ok(new RefundCancellationData(
-            payments.size(), refunded, pctOfNullable(refunded, Math.max(1L, payments.size())),
+            receipts.size(), refunded, pctOfNullable(refunded, Math.max(1L, receipts.size())),
             students.size(), withdrawn, pctOfNullable(withdrawn, Math.max(1L, students.size())), trend));
     }
 

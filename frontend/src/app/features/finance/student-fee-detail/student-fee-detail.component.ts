@@ -2,10 +2,10 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { formatCurrency } from '@angular/common';
+import { DatePipe, formatCurrency } from '@angular/common';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { FinanceService } from '../finance.service';
-import { StudentFeeAllocation, InstallmentFeeDetail, Receipt } from '../finance.model';
+import { StudentFeeAllocation, InstallmentFeeDetail, Receipt, EnquiryCreditApplication } from '../finance.model';
 import { CollectPaymentDialogComponent } from '../collect-payment-dialog/collect-payment-dialog.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -27,7 +27,7 @@ export interface ReceiptGroup {
   selector: 'app-student-fee-detail',
   standalone: true,
   imports: [
-    PaymentModeLabelPipe, InrPipe, RouterLink,
+    PaymentModeLabelPipe, InrPipe, RouterLink, DatePipe,
     MatDialogModule, MatTooltipModule, CmsStatusBadgeComponent,
   ],
   templateUrl: './student-fee-detail.component.html',
@@ -39,11 +39,12 @@ export class StudentFeeDetailComponent implements OnInit {
   private readonly toast   = inject(ToastService);
   private readonly dialog  = inject(MatDialog);
 
-  protected readonly loading      = signal(true);
-  protected readonly initializing = signal(false);
-  protected readonly initError    = signal(false);
-  protected readonly allocation   = signal<StudentFeeAllocation | null>(null);
-  protected readonly receiptGroups = signal<ReceiptGroup[]>([]);
+  protected readonly loading             = signal(true);
+  protected readonly initializing        = signal(false);
+  protected readonly initError           = signal(false);
+  protected readonly allocation          = signal<StudentFeeAllocation | null>(null);
+  protected readonly receiptGroups       = signal<ReceiptGroup[]>([]);
+  protected readonly creditApplications  = signal<EnquiryCreditApplication[]>([]);
 
   // ── Computed totals ──────────────────────────────────────────────────────────
   protected readonly totalFee = computed(() =>
@@ -123,6 +124,10 @@ export class StudentFeeDetailComponent implements OnInit {
 
     this.finance.getReceipts(this.studentId).subscribe({
       next: (data) => this.receiptGroups.set(this.groupReceipts(data)),
+    });
+
+    this.finance.getCreditApplications(this.studentId).subscribe({
+      next: (data) => this.creditApplications.set(data),
     });
   }
 

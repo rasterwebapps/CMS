@@ -16,6 +16,7 @@ import {
   EnquiryConversionPrefillResponse,
   EnquiryYearWiseFeeStatusResponse,
   DocumentVerificationStatus,
+  EnquiryCreditApplication,
 } from './enquiry.model';
 
 @Injectable({
@@ -221,5 +222,9 @@ export class EnquiryService {
       `${this.baseUrl}/${enquiryId}/documents/${documentId}/reject`,
       { rejectionComment },
     );
+  }
+
+  getCreditApplications(enquiryId: number): Observable<EnquiryCreditApplication[]> {
+    return this.http.get<EnquiryCreditApplication[]>(`${this.baseUrl}/${enquiryId}/credit-applications`);
   }
 }

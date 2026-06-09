@@ -3,13 +3,13 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
-  FeeState, FeeStructure, FeeStructureRequest, FeePayment, FeePaymentRequest,
+  FeeState, FeeStructure, FeeStructureRequest,
   StudentFeeAllocation, StudentFeeAllocationRequest,
   CollectPaymentRequest, CollectPaymentResponse,
   PenaltyResponse, FeeExplorerResult, Receipt, ReceiptSummary, BulkFeeStructureRequest,
   GroupedFeeStructure, EnquiryYearFee, CreateAllocationRequest, UnifiedReceiptSummary,
   FeeRefundRequest, FeeRefundResponse, FeeRefundSummary,
-  FeeRefundApprovalRequest, FeeRefundRejectionRequest,
+  FeeRefundApprovalRequest, FeeRefundRejectionRequest, EnquiryCreditApplication,
 } from './finance.model';
 
 @Injectable({
@@ -18,7 +18,7 @@ import {
 export class FinanceService {
   private readonly http = inject(HttpClient);
   private readonly feeStructureUrl = `${environment.apiUrl}/fee-structures`;
-  private readonly feePaymentUrl = `${environment.apiUrl}/fee-payments`;
+
   private readonly studentFeeUrl = `${environment.apiUrl}/student-fees`;
 
   getFeeStates(): Observable<FeeState[]> {
@@ -83,22 +83,6 @@ export class FinanceService {
     return this.http.get<FeeStructure[]>(`${this.feeStructureUrl}?programId=${programId}&courseId=${courseId}`);
   }
 
-  getPayments(): Observable<FeePayment[]> {
-    return this.http.get<FeePayment[]>(this.feePaymentUrl);
-  }
-
-  getPaymentsByStudent(studentId: number): Observable<FeePayment[]> {
-    return this.http.get<FeePayment[]>(`${this.feePaymentUrl}?studentId=${studentId}`);
-  }
-
-  createPayment(request: FeePaymentRequest): Observable<FeePayment> {
-    return this.http.post<FeePayment>(this.feePaymentUrl, request);
-  }
-
-  deletePayment(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.feePaymentUrl}/${id}`);
-  }
-
   finalizeStudentFee(request: StudentFeeAllocationRequest): Observable<StudentFeeAllocation> {
     return this.http.post<StudentFeeAllocation>(`${this.studentFeeUrl}/finalize`, request);
   }
@@ -158,9 +142,9 @@ export class FinanceService {
     return this.http.get<UnifiedReceiptSummary>(`${environment.apiUrl}/receipts/${encodeURIComponent(receiptNumber)}`);
   }
 
-  /** Step 1 — submit a refund request (creates PENDING, does not reverse balance yet). */
-  createRefund(studentId: number, request: FeeRefundRequest): Observable<FeeRefundResponse> {
-    return this.http.post<FeeRefundResponse>(`${this.studentFeeUrl}/${studentId}/refund`, request);
+  /** Unified refund initiation — works for STUDENT and ENQUIRY receipts. */
+  createRefund(request: FeeRefundRequest): Observable<FeeRefundResponse> {
+    return this.http.post<FeeRefundResponse>(`${this.studentFeeUrl}/refunds`, request);
   }
 
   /** Returns all refunds — PENDING first (403 if caller lacks FEE_REFUND_APPROVE). */
@@ -183,5 +167,10 @@ export class FinanceService {
   rejectRefund(refundId: number, request: FeeRefundRejectionRequest): Observable<FeeRefundSummary> {
     return this.http.post<FeeRefundSummary>(
       `${this.studentFeeUrl}/refunds/${refundId}/reject`, request);
+  }
+
+  /** Returns all pre-enrollment credit applications for a converted student. */
+  getCreditApplications(studentId: number): Observable<EnquiryCreditApplication[]> {
+    return this.http.get<EnquiryCreditApplication[]>(`${this.studentFeeUrl}/${studentId}/credit-applications`);
   }
 }

@@ -53,7 +53,7 @@ class TermFeePaymentControllerTest {
             1L, LocalDate.now(), BigDecimal.valueOf(5000), PaymentMode.CASH, "notes");
 
         TermFeePaymentDto response = buildPayment(1L, "RCP-001");
-        when(termFeePaymentService.recordPayment(any(TermFeePaymentRequest.class))).thenReturn(response);
+        when(termFeePaymentService.recordPayment(any(TermFeePaymentRequest.class), any())).thenReturn(response);
 
         mockMvc.perform(post("/api/term-fee-payments")
                 .contentType(MediaType.APPLICATION_JSON)

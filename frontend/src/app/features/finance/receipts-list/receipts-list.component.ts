@@ -107,7 +107,7 @@ export class ReceiptsListComponent implements OnInit {
   }
 
   protected canInitiateRefund(r: UnifiedReceiptSummary): boolean {
-    return r.payerType === 'STUDENT' && !r.refunded && !r.refundStatus;
+    return !r.refunded && !r.refundStatus;
   }
 
   protected getRefundBlockReason(r: UnifiedReceiptSummary): string {
@@ -141,7 +141,7 @@ export class ReceiptsListComponent implements OnInit {
     if (!target) return;
 
     this.refunding.set(true);
-    this.financeService.createRefund(target.payerId, {
+    this.financeService.createRefund({
       receiptNumber: target.receiptNumber,
       reason: this.refundForm.value.reason,
     }).subscribe({

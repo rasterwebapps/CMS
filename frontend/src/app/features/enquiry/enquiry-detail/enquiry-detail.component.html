@@ -308,6 +308,41 @@
               </div>
             </div>
           }
+
+          @if (creditApplications().length > 0) {
+            <div class="content-card payment-table-card" style="margin-top: 1.5rem;">
+              <div class="payment-section-hdr">
+                <strong>Pre-enrollment Credit Applied to Student Account</strong>
+                <span class="cms-badge cms-badge--blue" style="margin-left: 0.5rem;">{{ creditApplications().length }} application(s)</span>
+              </div>
+              <table class="fee-payments-table">
+                <thead>
+                  <tr>
+                    <th>Receipt No.</th>
+                    <th>Student</th>
+                    <th>Semester</th>
+                    <th class="amount-col">Amount Applied (₹)</th>
+                    <th>Applied On</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ca of creditApplications(); track ca.id) {
+                    <tr>
+                      <td><span class="code-value">{{ ca.receiptNumber }}</span></td>
+                      <td>{{ ca.studentName }} <span class="code-value" style="font-size:0.75rem">{{ ca.rollNumber }}</span></td>
+                      <td>{{ ca.semesterLabel }}</td>
+                      <td class="amount-col cell-currency">{{ ca.amountApplied | inr:false:false }}</td>
+                      <td>{{ ca.appliedAt | appDate }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+              <div class="payment-total">
+                <span>Total Credit Applied</span>
+                <strong>{{ totalCreditApplied() | inr }}</strong>
+              </div>
+            </div>
+          }
         </div>
       </mat-tab>
 

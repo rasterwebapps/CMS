@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.CollectPaymentRequest;
 import com.cms.dto.CollectPaymentResponse;
+import com.cms.dto.EnquiryCreditApplicationDto;
 import com.cms.dto.FeeExplorerResponse;
 import com.cms.dto.FeeRefundApprovalRequest;
 import com.cms.dto.FeeRefundRejectionRequest;
@@ -113,15 +114,15 @@ public class StudentFeeController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{studentId}/refund")
+    /** Unified refund initiation — auto-detects entity type (STUDENT or ENQUIRY) from the receipt. */
+    @PostMapping("/refunds")
     @PreAuthorize("@perm.has('FEE_REFUND')")
     public ResponseEntity<FeeRefundResponse> initiateRefund(
-            @PathVariable Long studentId,
             @Valid @RequestBody FeeRefundRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         String username = jwt != null ? jwt.getClaimAsString("preferred_username") : null;
         return ResponseEntity.status(HttpStatus.CREATED).body(
-            feeRefundService.initiateRefund(studentId, request, username));
+            feeRefundService.initiateRefund(request, username));
     }
 
     @GetMapping("/refunds")
@@ -174,5 +175,11 @@ public class StudentFeeController {
             @PathVariable Long receiptId) {
         ReceiptResponse receipt = paymentCollectionService.getReceiptById(studentId, receiptId);
         return ResponseEntity.ok(receipt);
+    }
+
+    @GetMapping("/{studentId}/credit-applications")
+    @PreAuthorize("@perm.has('STUDENT_FEE_VIEW')")
+    public ResponseEntity<List<EnquiryCreditApplicationDto>> getCreditApplications(@PathVariable Long studentId) {
+        return ResponseEntity.ok(paymentCollectionService.getCreditApplicationsByStudent(studentId));
     }
 }

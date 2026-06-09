@@ -31,10 +31,20 @@ public class FeeRefund {
     @Column(name = "original_receipt_number", nullable = false, length = 50)
     private String originalReceiptNumber;
 
-    @Column(name = "student_id", nullable = false)
+    /** STUDENT | ENQUIRY — determines which entity this refund belongs to. */
+    @Column(name = "entity_type", nullable = false, length = 10)
+    private String entityType = "STUDENT";
+
+    /** Set when entity_type = STUDENT; null for ENQUIRY. */
+    @Column(name = "student_id")
     private Long studentId;
 
-    @Column(name = "student_name", nullable = false, length = 255)
+    /** Set when entity_type = ENQUIRY; null for STUDENT. */
+    @Column(name = "enquiry_id")
+    private Long enquiryId;
+
+    /** Display name — student full name or enquiry person name. */
+    @Column(name = "student_name", length = 255)
     private String studentName;
 
     @Column(name = "roll_number", length = 50)
@@ -99,8 +109,14 @@ public class FeeRefund {
     public String getOriginalReceiptNumber() { return originalReceiptNumber; }
     public void setOriginalReceiptNumber(String v) { this.originalReceiptNumber = v; }
 
+    public String getEntityType() { return entityType; }
+    public void setEntityType(String entityType) { this.entityType = entityType; }
+
     public Long getStudentId() { return studentId; }
     public void setStudentId(Long studentId) { this.studentId = studentId; }
+
+    public Long getEnquiryId() { return enquiryId; }
+    public void setEnquiryId(Long enquiryId) { this.enquiryId = enquiryId; }
 
     public String getStudentName() { return studentName; }
     public void setStudentName(String studentName) { this.studentName = studentName; }

@@ -372,22 +372,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'fee-payments',
-    canActivate: withPermission('FEE_COLLECT'),
-    loadComponent: () =>
-      import('./features/finance/fee-collection/fee-collection.component').then(
-        (m) => m.FeeCollectionComponent
-      ),
-  },
-  {
-    path: 'fee-payments/new',
-    canActivate: withPermission('FEE_COLLECT'),
-    loadComponent: () =>
-      import('./features/finance/fee-payment-form/fee-payment-form.component').then(
-        (m) => m.FeePaymentFormComponent
-      ),
-  },
-  {
     path: 'receipts',
     canActivate: withPermission('RECEIPT_VIEW'),
     loadComponent: () =>

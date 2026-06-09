@@ -14,6 +14,7 @@ import {
   EnquiryDocument,
   EnquiryPaymentResponse,
   EnquiryStatusHistoryResponse,
+  EnquiryCreditApplication,
 } from '../enquiry.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
@@ -55,12 +56,13 @@ export class EnquiryDetailComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
 
-  protected readonly enquiry = signal<Enquiry | null>(null);
-  protected readonly documents = signal<EnquiryDocument[]>([]);
-  protected readonly payments = signal<EnquiryPaymentResponse[]>([]);
-  protected readonly statusHistory = signal<EnquiryStatusHistoryResponse[]>([]);
-  protected readonly loading = signal(true);
-  protected readonly selectedReceipt = signal<ReceiptDisplayData | null>(null);
+  protected readonly enquiry              = signal<Enquiry | null>(null);
+  protected readonly documents            = signal<EnquiryDocument[]>([]);
+  protected readonly payments             = signal<EnquiryPaymentResponse[]>([]);
+  protected readonly statusHistory        = signal<EnquiryStatusHistoryResponse[]>([]);
+  protected readonly creditApplications   = signal<EnquiryCreditApplication[]>([]);
+  protected readonly loading              = signal(true);
+  protected readonly selectedReceipt      = signal<ReceiptDisplayData | null>(null);
 
   protected readonly selectedTabIndex = signal(0);
 
@@ -74,6 +76,9 @@ export class EnquiryDetailComponent implements OnInit {
   });
   protected readonly totalPaid = computed(() =>
     this.payments().reduce((sum, p) => sum + (p.amountPaid ?? 0), 0),
+  );
+  protected readonly totalCreditApplied = computed(() =>
+    this.creditApplications().reduce((sum, c) => sum + (c.amountApplied ?? 0), 0),
   );
   protected readonly outstandingAmount = computed(() => {
     const netFee = this.enquiry()?.finalizedNetFee;
@@ -98,6 +103,7 @@ export class EnquiryDetailComponent implements OnInit {
         this.loading.set(false);
         this.enquiryService.getDocuments(id).subscribe({ next: (d) => this.documents.set(d) });
         this.enquiryService.getPayments(id).subscribe({ next: (p) => this.payments.set(p) });
+        this.enquiryService.getCreditApplications(id).subscribe({ next: (c) => this.creditApplications.set(c) });
         this.enquiryService
           .getStatusHistory(id)
           .subscribe({ next: (h) => this.statusHistory.set(h) });
