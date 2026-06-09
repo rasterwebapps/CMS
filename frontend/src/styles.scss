@@ -3188,6 +3188,52 @@ tr.mat-mdc-no-data-row {
   }
 }
 
+// Outlined danger button — matches the "remove photo" icon-button danger pattern.
+// Use for destructive secondary actions (Reject, Delete confirmation, etc.)
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 18px;
+  background: var(--cms-bg-card);
+  color: #ef4444;
+  border: 1.5px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--cms-transition);
+  white-space: nowrap;
+
+  svg, mat-icon { flex-shrink: 0; }
+
+  &:hover:not(:disabled) {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #dc2626;
+  }
+
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  &:focus-visible {
+    outline: 2px solid #ef4444;
+    outline-offset: 2px;
+  }
+}
+
+[data-theme="dark"] .btn-danger {
+  color: #f87171;
+  background: var(--cms-bg-card);
+
+  &:hover:not(:disabled) {
+    background: rgba(248, 113, 113, 0.1);
+    border-color: rgba(248, 113, 113, 0.5);
+    color: #fca5a5;
+  }
+}
+
 // ── Spinner inside a button ───────────────────────
 .btn-spinner {
   display: inline-flex;

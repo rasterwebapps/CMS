@@ -48,25 +48,27 @@
       </div>
 
       <!-- Panel body -->
-      <div class="rfl-panel__body">
+      <div class="rfl-panel__body" #panelBody>
 
         <!-- Always-visible summary block -->
         <div class="rfl-detail-block">
           <div class="rfl-detail-row rfl-detail-row--highlight">
             <span class="rfl-detail-label">{{ selectedRefund()!.entityType === 'ENQUIRY' ? 'Enquiry' : 'Student' }}</span>
             <span class="rfl-detail-value">
-              {{ selectedRefund()!.studentName }}
-              @if (selectedRefund()!.entityType === 'ENQUIRY') {
-                <span class="cms-badge cms-badge--blue rfl-sub-id">Pre-enroll</span>
-              } @else if (selectedRefund()!.admissionNumber) {
-                <span class="rfl-sub-id">{{ selectedRefund()!.admissionNumber }}</span>
-              }
+              <span class="rfl-name-stack">
+                <span>{{ selectedRefund()!.studentName }}</span>
+                @if (selectedRefund()!.entityType === 'ENQUIRY') {
+                  <span class="cms-badge cms-badge--blue">Pre-enroll</span>
+                } @else if (selectedRefund()!.admissionNumber) {
+                  <span class="rfl-sub-id">{{ selectedRefund()!.admissionNumber }}</span>
+                }
+              </span>
             </span>
           </div>
           @if (selectedRefund()!.rollNumber) {
             <div class="rfl-detail-row">
               <span class="rfl-detail-label">Roll No.</span>
-              <span class="rfl-detail-value cell-code">{{ selectedRefund()!.rollNumber }}</span>
+              <span class="rfl-detail-value"><span class="cell-code">{{ selectedRefund()!.rollNumber }}</span></span>
             </div>
           }
           @if (selectedRefund()!.programName) {
@@ -77,7 +79,7 @@
           }
           <div class="rfl-detail-row">
             <span class="rfl-detail-label">Receipt</span>
-            <span class="rfl-detail-value cell-code">{{ selectedRefund()!.originalReceiptNumber }}</span>
+            <span class="rfl-detail-value"><span class="cell-code">{{ selectedRefund()!.originalReceiptNumber }}</span></span>
           </div>
           <div class="rfl-detail-row">
             <span class="rfl-detail-label">Amount</span>
@@ -112,7 +114,7 @@
             <div class="rfl-block-title">Approval Details</div>
             <div class="rfl-detail-row">
               <span class="rfl-detail-label">Refund No.</span>
-              <span class="rfl-detail-value cell-code">{{ selectedRefund()!.refundNumber || '—' }}</span>
+              <span class="rfl-detail-value"><span class="cell-code">{{ selectedRefund()!.refundNumber || '—' }}</span></span>
             </div>
             <div class="rfl-detail-row">
               <span class="rfl-detail-label">Payment Mode</span>
@@ -125,7 +127,7 @@
             @if (selectedRefund()!.transactionReference) {
               <div class="rfl-detail-row">
                 <span class="rfl-detail-label">Ref. / Cheque</span>
-                <span class="rfl-detail-value cell-code">{{ selectedRefund()!.transactionReference }}</span>
+                <span class="rfl-detail-value"><span class="cell-code">{{ selectedRefund()!.transactionReference }}</span></span>
               </div>
             }
             <div class="rfl-detail-row">
@@ -248,7 +250,7 @@
 
               <div class="rfl-form-actions">
                 <button type="button" class="btn-cancel" (click)="backToView()" [disabled]="rejecting()">Back</button>
-                <button type="submit" class="btn-primary btn-primary--reject" [disabled]="rejecting()">
+                <button type="submit" class="btn-danger" [disabled]="rejecting()">
                   @if (rejecting()) { <span class="btn-spinner"></span> Rejecting… }
                   @else { Confirm Reject }
                 </button>
@@ -260,6 +262,14 @@
         <!-- PENDING action buttons -->
         @if (selectedRefund()!.status === 'PENDING' && panelMode() === 'view') {
           <div class="rfl-panel__pending-actions">
+            <button class="btn-danger" (click)="startReject()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="2.5"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+              Reject
+            </button>
             <button class="btn-primary btn-primary--approve" (click)="startApprove()">
               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
                    fill="none" stroke="currentColor" stroke-width="2.5"
@@ -267,14 +277,6 @@
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
               Approve
-            </button>
-            <button class="btn-primary btn-primary--reject" (click)="startReject()">
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
-                   fill="none" stroke="currentColor" stroke-width="2.5"
-                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-              Reject
             </button>
           </div>
         }
@@ -452,10 +454,11 @@
                 @if (r.status === 'PENDING') {
                   <button class="rfl-action-btn" (click)="openPanel(r)"
                           matTooltip="Review & Approve / Reject">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                          fill="none" stroke="currentColor" stroke-width="2"
                          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
                     </svg>
                     Review
                   </button>

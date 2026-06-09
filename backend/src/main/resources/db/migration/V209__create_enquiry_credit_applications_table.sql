@@ -6,7 +6,7 @@ CREATE TABLE enquiry_credit_applications (
     id              BIGSERIAL        PRIMARY KEY,
     enquiry_id      BIGINT           NOT NULL REFERENCES enquiries(id),
     student_id      BIGINT           NOT NULL REFERENCES students(id),
-    semester_fee_id BIGINT           NOT NULL REFERENCES semester_fees(id),
+    semester_fee_id BIGINT           NOT NULL REFERENCES installment_fees(id),
     amount_applied  NUMERIC(12, 2)   NOT NULL,
     receipt_number  VARCHAR(50)      NOT NULL,
     applied_at      TIMESTAMP        NOT NULL DEFAULT NOW()

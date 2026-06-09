@@ -224,6 +224,12 @@ public class FeeRefundService {
     }
 
     private FeeRefundSummaryResponse toSummaryResponse(FeeRefund r) {
+        // For PENDING refunds paymentMode is null; pre-fill with the original receipt's
+        // payment mode so the approval form can default to it.
+        String effectivePaymentMode = r.getPaymentMode() != null ? r.getPaymentMode()
+            : receiptRepository.findByReceiptNumber(r.getOriginalReceiptNumber())
+                .map(PaymentReceipt::getPaymentMode)
+                .orElse(null);
         return new FeeRefundSummaryResponse(
             r.getId(), r.getOriginalReceiptNumber(),
             r.getEntityType() != null ? r.getEntityType() : "STUDENT",
@@ -232,7 +238,7 @@ public class FeeRefundService {
             r.getRequestedAt() != null ? r.getRequestedAt().toString() : null,
             r.getStatus(),
             r.getRefundNumber(),
-            r.getPaymentMode(),
+            effectivePaymentMode,
             r.getPaymentDate() != null ? r.getPaymentDate().toString() : null,
             r.getTransactionReference(),
             r.getApprovedBy(),

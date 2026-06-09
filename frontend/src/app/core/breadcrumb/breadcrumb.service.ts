@@ -51,6 +51,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   'document-config': 'Document Config',
   'admission-completion': 'Complete Admission',
   'year-wise-fee-status': 'Year-wise Fee Status',
+  'refund-approvals': 'Refund Approvals',
 };
 
 @Injectable({ providedIn: 'root' })

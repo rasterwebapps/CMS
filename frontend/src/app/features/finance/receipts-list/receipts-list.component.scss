@@ -273,24 +273,6 @@ tr.table-row:hover td.mat-mdc-table-sticky {
   color: #dc2626;
 }
 
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 18px;
-  border-radius: var(--cms-radius-sm);
-  font-size: var(--cms-text-sm);
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  background: var(--cms-primary);
-  color: #fff;
-  transition: background 0.15s ease;
-
-  &:hover:not(:disabled) { background: var(--cms-primary-dark, #1e40af); }
-  &:disabled { opacity: 0.55; cursor: not-allowed; }
-}
-
 .btn-spinner { --mdc-circular-progress-active-indicator-color: #fff; }
 
 .loading-box {

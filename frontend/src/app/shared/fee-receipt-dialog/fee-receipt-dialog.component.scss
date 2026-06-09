@@ -45,7 +45,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: var(--cms-gradient-brand, linear-gradient(135deg, var(--cms-primary) 0%, var(--cms-primary-hover) 100%));
   flex-shrink: 0;
 }
 

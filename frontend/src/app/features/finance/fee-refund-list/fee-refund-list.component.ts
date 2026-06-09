@@ -1,5 +1,5 @@
 import {
-  Component, computed, effect, inject, OnInit, signal, ViewChild,
+  Component, computed, effect, inject, ElementRef, OnInit, signal, ViewChild,
 } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -42,6 +42,7 @@ export class FeeRefundListComponent implements OnInit {
 
   @ViewChild(MatPaginator) set paginator(v: MatPaginator) { if (v) this.dataSource.paginator = v; }
   @ViewChild(MatSort)      set sort(v: MatSort)           { if (v) this.dataSource.sort = v; }
+  @ViewChild('panelBody')  private panelBody!: ElementRef<HTMLElement>;
 
   protected readonly displayedColumns = [
     'requestedAt', 'originalReceiptNumber', 'student', 'programName',
@@ -148,6 +149,7 @@ export class FeeRefundListComponent implements OnInit {
     this.approvalForm.reset({ paymentMode: '', paymentDate: this.today, transactionReference: '' });
     this.rejectionForm.reset();
     this.denominationValid.set(false);
+    this.scrollPanelTop();
   }
 
   protected closePanel(): void {
@@ -156,11 +158,26 @@ export class FeeRefundListComponent implements OnInit {
   }
 
   protected startApprove(): void {
+    this.approvalForm.patchValue({ paymentMode: this.selectedRefund()?.paymentMode ?? '' });
     this.panelMode.set('approve');
+    this.scrollPanelTop();
   }
 
   protected startReject(): void {
     this.panelMode.set('reject');
+    this.scrollPanelTop();
+  }
+
+  private scrollPanelTop(): void {
+    // Two rAF passes ensure Angular + child components (e.g. cash-denomination) have
+    // fully rendered before we reset the scroll position.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (this.panelBody?.nativeElement) {
+          this.panelBody.nativeElement.scrollTop = 0;
+        }
+      });
+    });
   }
 
   protected backToView(): void {
@@ -168,6 +185,7 @@ export class FeeRefundListComponent implements OnInit {
     this.approvalForm.reset({ paymentMode: '', paymentDate: this.today, transactionReference: '' });
     this.rejectionForm.reset();
     this.denominationValid.set(false);
+    this.scrollPanelTop();
   }
 
   protected isApprovalCashMode(): boolean {
