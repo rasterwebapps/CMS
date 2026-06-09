@@ -86,7 +86,6 @@ import com.cms.repository.ExamResultRepository;
 import com.cms.repository.ExperimentRepository;
 import com.cms.repository.DesignationRepository;
 import com.cms.repository.FacultyRepository;
-import com.cms.repository.FeePaymentRepository;
 import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.FeeStructureYearAmountRepository;
 import com.cms.repository.InventoryItemRepository;
