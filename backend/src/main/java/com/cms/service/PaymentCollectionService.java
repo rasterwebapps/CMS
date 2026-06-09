@@ -2,6 +2,7 @@ package com.cms.service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,8 +17,8 @@ import com.cms.dto.ReceiptResponse;
 import com.cms.dto.ReceiptSummaryResponse;
 import com.cms.dto.SemesterPaymentDetail;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.EnquiryPayment;
 import com.cms.model.FeeInstallment;
+import com.cms.model.FeeRefund;
 import com.cms.model.SemesterFee;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
@@ -25,6 +26,7 @@ import com.cms.model.enums.FeeAllocationStatus;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
+import com.cms.repository.FeeRefundRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
@@ -39,6 +41,7 @@ public class PaymentCollectionService {
     private final StudentRepository studentRepository;
     private final EnquiryRepository enquiryRepository;
     private final EnquiryPaymentRepository enquiryPaymentRepository;
+    private final FeeRefundRepository refundRepository;
     private final UnifiedReceiptService unifiedReceiptService;
 
     public PaymentCollectionService(StudentFeeAllocationRepository allocationRepository,
@@ -47,6 +50,7 @@ public class PaymentCollectionService {
                                      StudentRepository studentRepository,
                                      EnquiryRepository enquiryRepository,
                                      EnquiryPaymentRepository enquiryPaymentRepository,
+                                     FeeRefundRepository refundRepository,
                                      UnifiedReceiptService unifiedReceiptService) {
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
@@ -54,6 +58,7 @@ public class PaymentCollectionService {
         this.studentRepository = studentRepository;
         this.enquiryRepository = enquiryRepository;
         this.enquiryPaymentRepository = enquiryPaymentRepository;
+        this.refundRepository = refundRepository;
         this.unifiedReceiptService = unifiedReceiptService;
     }
 
@@ -196,24 +201,29 @@ public class PaymentCollectionService {
             .map(this::toReceiptResponse)
             .collect(Collectors.toCollection(ArrayList::new));
 
-        // Append enquiry payment receipts at the end — they pre-date student fee collections
-        enquiryRepository.findByConvertedStudentId(studentId).ifPresent(enquiry ->
-            enquiryPaymentRepository.findByEnquiryIdOrderByPaymentDateDesc(enquiry.getId())
-                .stream()
-                .map(ep -> toEnquiryReceiptResponse(ep, studentId))
-                .forEach(studentReceipts::add)
+        // Student fee payment history includes approved refund vouchers as reversal rows.
+        studentReceipts.addAll(refundRepository.findByStudentIdAndStatusOrderByPaymentDateDescIdDesc(studentId, "APPROVED")
+            .stream()
+            .map(this::toRefundReceiptResponse)
+            .toList());
+
+        studentReceipts.sort(
+            Comparator.comparing(ReceiptResponse::paymentDate, Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(ReceiptResponse::createdAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(ReceiptResponse::id, Comparator.nullsLast(Comparator.reverseOrder()))
         );
 
         return studentReceipts;
     }
 
-    private ReceiptResponse toEnquiryReceiptResponse(EnquiryPayment ep, Long studentId) {
+    private ReceiptResponse toRefundReceiptResponse(FeeRefund refund) {
         return new ReceiptResponse(
-            ep.getId(), ep.getReceiptNumber(),
-            studentId, null, null,
-            null, "Admission Payment", null,
-            ep.getAmountPaid(), ep.getPaymentDate(), ep.getPaymentMode(),
-            ep.getTransactionReference(), ep.getRemarks(), ep.getCreatedAt()
+            refund.getId(), refund.getRefundNumber(),
+            refund.getStudentId(), refund.getStudentName(), refund.getRollNumber(),
+            null, "Refund against " + refund.getOriginalReceiptNumber(), null,
+            refund.getRefundAmount().negate(), refund.getPaymentDate(), refund.getPaymentMode(),
+            refund.getTransactionReference(), refund.getReason(), refund.getApprovedAt(),
+            "REFUND", refund.getOriginalReceiptNumber()
         );
     }
 
@@ -237,9 +247,8 @@ public class PaymentCollectionService {
                 .collect(Collectors.groupingBy(
                     FeeInstallment::getReceiptNumber, LinkedHashMap::new, Collectors.toList()));
 
-        return grouped.entrySet().stream().map(e -> {
-            List<FeeInstallment> items = e.getValue();
-            FeeInstallment first = items.get(0);
+        return grouped.values().stream().map(items -> {
+            FeeInstallment first = items.getFirst();
 
             BigDecimal total = items.stream()
                 .map(FeeInstallment::getAmountPaid)
@@ -279,8 +288,9 @@ public class PaymentCollectionService {
             fi.getStudent().getId(), fi.getStudent().getFullName(), fi.getStudent().getRollNumber(),
             fi.getSemesterFee().getId(), fi.getSemesterFee().getSemesterLabel(),
             fi.getSemesterFee().getYearNumber(),
-            fi.getAmountPaid(), fi.getPaymentDate(), fi.getPaymentMode(),
-            fi.getTransactionReference(), fi.getRemarks(), fi.getCreatedAt()
+            fi.getAmountPaid(), fi.getPaymentDate(), fi.getPaymentMode().name(),
+            fi.getTransactionReference(), fi.getRemarks(), fi.getCreatedAt(),
+            "PAYMENT", null
         );
     }
 

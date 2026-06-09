@@ -106,7 +106,26 @@ export class ReceiptsListComponent implements OnInit {
     this.dateTo.set('');
   }
 
+  protected canInitiateRefund(r: UnifiedReceiptSummary): boolean {
+    return r.payerType === 'STUDENT' && !r.refunded && !r.refundStatus;
+  }
+
+  protected getRefundBlockReason(r: UnifiedReceiptSummary): string {
+    if (r.refunded || r.refundStatus === 'APPROVED') {
+      return 'Already refunded';
+    }
+    if (r.refundStatus === 'PENDING') {
+      return 'Refund approval pending';
+    }
+    return '';
+  }
+
   protected startRefund(r: UnifiedReceiptSummary): void {
+    if (!this.canInitiateRefund(r)) {
+      const reason = this.getRefundBlockReason(r);
+      if (reason) this.toast.info(`Refund unavailable: ${reason}`);
+      return;
+    }
     this.refundForm.reset();
     this.refundTarget.set(r);
   }
@@ -130,6 +149,7 @@ export class ReceiptsListComponent implements OnInit {
         this.refunding.set(false);
         this.toast.success('Refund request submitted — pending approval');
         this.cancelRefund();
+        this.load();
       },
       error: (err) => {
         this.refunding.set(false);

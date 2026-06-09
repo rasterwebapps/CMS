@@ -16,6 +16,12 @@ public interface FeeRefundRepository extends JpaRepository<FeeRefund, Long> {
     /** True if a PENDING or APPROVED request already exists for the receipt (excludes REJECTED). */
     boolean existsByOriginalReceiptNumberAndStatusNot(String originalReceiptNumber, String status);
 
+    /** Used by unified receipts to mark payment rows with active refund workflow state. */
+    List<FeeRefund> findByStatusIn(List<String> statuses);
+
+    /** Approved refund vouchers shown in student fee payment history. */
+    List<FeeRefund> findByStudentIdAndStatusOrderByPaymentDateDescIdDesc(Long studentId, String status);
+
     /** All refunds — PENDING first, then by requestedAt desc. */
     @Query("SELECT r FROM FeeRefund r ORDER BY CASE r.status WHEN 'PENDING' THEN 0 ELSE 1 END ASC, r.requestedAt DESC, r.id DESC")
     List<FeeRefund> findAllOrderedByStatusAndDate();

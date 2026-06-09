@@ -24,5 +24,9 @@ public record UnifiedReceiptResponse(
     String feeCategory,
     Instant createdAt,
     /** PAYMENT | REFUND — distinguishes original receipts from reversal records */
-    String receiptType
+    String receiptType,
+    /** True when the original payment receipt has already been refunded (APPROVED). */
+    boolean refunded,
+    /** PENDING | APPROVED for payment receipts with active refund workflow; otherwise null. */
+    String refundStatus
 ) {}

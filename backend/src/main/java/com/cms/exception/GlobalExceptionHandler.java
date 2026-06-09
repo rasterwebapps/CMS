@@ -92,6 +92,8 @@ public class GlobalExceptionHandler {
         } else if (causeMsg.contains("uq_fee_structure_group_fee_type")) {
             message = "A fee entry with this fee type already exists in this group. "
                 + "Each fee type can appear only once per combination.";
+        } else if (causeMsg.contains("uq_fee_refunds_active_receipt")) {
+            message = "An active refund request already exists for this receipt.";
         } else {
             message = "A record with the same name or code already exists.";
         }

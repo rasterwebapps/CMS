@@ -212,56 +212,70 @@
         </div>
       } @else {
         <div class="receipt-list">
-          @for (group of receiptGroups(); track group.receiptNumber; let gi = $index) {
+          @for (group of receiptGroups(); track group.receiptNumber) {
             <div class="receipt-group">
               <div class="receipt-group__hdr">
                 <div class="receipt-group__left">
-                  <span class="receipt-no">{{ group.receiptNumber }}</span>
+                  <span class="receipt-no">
+                    {{ group.receiptNumber }}
+                    @if (isRefundGroup(group)) {
+                      <span class="cms-badge cms-badge--amber receipt-type-chip">Refund Voucher</span>
+                    }
+                  </span>
                   <span class="receipt-meta">
                     {{ group.paymentDate }} &bull; {{ group.paymentMode | paymentModeLabel }}
                     @if (group.transactionReference) {
                       &bull; Ref: {{ group.transactionReference }}
                     }
+                    @if (group.originalReceiptNumber) {
+                      &bull; Against: {{ group.originalReceiptNumber }}
+                    }
                   </span>
                 </div>
                 <div class="receipt-group__right">
-                  <span class="receipt-total">{{ group.totalAmount | inr }}</span>
-                  <div class="receipt-actions">
-                    <button
-                      class="action-btn action-btn--primary"
-                      matTooltip="View / Print Receipt"
-                      (click)="viewReceipt(group)"
-                      aria-label="View receipt PDF">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                           viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                           stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                           aria-hidden="true">
-                        <polyline points="6 9 6 2 18 2 18 9"/>
-                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                        <rect x="6" y="14" width="12" height="8"/>
-                      </svg>
-                    </button>
-                    <button
-                      class="action-btn"
-                      matTooltip="Download Receipt PDF"
-                      (click)="downloadReceipt(group)"
-                      aria-label="Download receipt PDF">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                           viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                           stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                           aria-hidden="true">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                      </svg>
-                    </button>
-                  </div>
+                  <span class="receipt-total" [class.receipt-total--refund]="isRefundGroup(group)">
+                    {{ group.totalAmount | inr }}
+                  </span>
+                  @if (!isRefundGroup(group)) {
+                    <div class="receipt-actions">
+                      <button
+                        class="action-btn action-btn--primary"
+                        matTooltip="View / Print Receipt"
+                        (click)="viewReceipt(group)"
+                        aria-label="View receipt PDF">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                             aria-hidden="true">
+                          <polyline points="6 9 6 2 18 2 18 9"/>
+                          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                          <rect x="6" y="14" width="12" height="8"/>
+                        </svg>
+                      </button>
+                      <button
+                        class="action-btn"
+                        matTooltip="Download Receipt PDF"
+                        (click)="downloadReceipt(group)"
+                        aria-label="Download receipt PDF">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                             aria-hidden="true">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                          <polyline points="7 10 12 15 17 10"/>
+                          <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                      </button>
+                    </div>
+                  }
                 </div>
               </div>
               @for (line of group.lines; track line.id) {
                 <div class="receipt-line">
                   <span class="receipt-line__sem">{{ line.installmentLabel }}</span>
-                  <span class="receipt-line__amt mono">{{ line.amountPaid | inr }}</span>
+                  <span class="receipt-line__amt mono" [class.receipt-line__amt--refund]="line.receiptType === 'REFUND'">
+                    {{ line.amountPaid | inr }}
+                  </span>
                 </div>
               }
             </div>

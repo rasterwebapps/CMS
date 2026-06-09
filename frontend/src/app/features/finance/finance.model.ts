@@ -266,10 +266,12 @@ export interface Receipt {
   yearNumber: number | null;
   amountPaid: number;
   paymentDate: string;
-  paymentMode: string;
-  transactionReference: string;
-  remarks: string;
+  paymentMode: string | null;
+  transactionReference: string | null;
+  remarks: string | null;
   createdAt: string;
+  receiptType: 'PAYMENT' | 'ENQUIRY_PAYMENT' | 'REFUND';
+  originalReceiptNumber: string | null;
 }
 
 export interface ReceiptSummary {
@@ -335,6 +337,10 @@ export interface UnifiedReceiptSummary {
   createdAt: string;
   /** PAYMENT = original receipt; REFUND = reversal record */
   receiptType: 'PAYMENT' | 'REFUND';
+  /** True when this original payment receipt has already been refunded (APPROVED). */
+  refunded: boolean;
+  /** PENDING or APPROVED when refund flow is active for this original receipt; null otherwise. */
+  refundStatus: 'PENDING' | 'APPROVED' | null;
 }
 
 export interface FeeRefundRequest {

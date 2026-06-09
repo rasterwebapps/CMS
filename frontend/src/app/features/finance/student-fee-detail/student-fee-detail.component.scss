@@ -328,9 +328,18 @@ $amber:  #F59E0B;
 
 .receipt-no {
   font-family: var(--cms-font-mono);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: var(--cms-text-base); font-weight: 700;
   color: var(--cms-primary);
   letter-spacing: 0.02em;
+}
+
+.receipt-type-chip {
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 2px 8px;
 }
 
 .receipt-meta {
@@ -340,8 +349,13 @@ $amber:  #F59E0B;
 
 .receipt-total {
   font-family: var(--cms-font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--cms-text-base); font-weight: 800;
   color: var(--cms-text-primary);
+}
+
+.receipt-total--refund {
+  color: #dc2626;
 }
 
 .receipt-line {
@@ -353,7 +367,17 @@ $amber:  #F59E0B;
   &:last-child { border-bottom: none; }
 
   &__sem { color: var(--cms-text-secondary); }
-  &__amt { font-family: var(--cms-font-mono); font-size: var(--cms-text-base); font-weight: 600; color: var(--cms-text-primary); }
+  &__amt {
+    font-family: var(--cms-font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--cms-text-base);
+    font-weight: 600;
+    color: var(--cms-text-primary);
+  }
+
+  &__amt--refund {
+    color: #dc2626;
+  }
 }
 
 .empty-receipts {

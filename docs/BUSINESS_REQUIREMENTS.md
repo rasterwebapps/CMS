@@ -375,6 +375,7 @@ Once fees are finalized, balance collection is allowed at any pre-admission stag
 6. Upon partial payment, the enquiry status transitions to **PARTIALLY_PAID**.
 7. Payments are currently tracked against the **enquiry** record. Student record creation happens at explicit conversion (BR-10).
 8. Supported payment modes: `CASH`, `CARD`, `UPI`, `BANK_TRANSFER`, `CHEQUE`.
+9. In the **student fee collection** payment history, approved refund vouchers are shown as negative reversal entries (`refundNumber`) and include the linked original receipt number for traceability.
 
 ### Payment Status Tracking
 
@@ -1376,6 +1377,7 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-06-09 | BR-7 | Student fee payment history now includes approved refund vouchers as negative reversal entries (with original receipt reference) so cashflow and reversals are visible in one timeline. | — |
 | 2026-06-03 | BR-31 | **Student Data Import — Legacy Migration:** Added full BR for bulk student migration. Documents 9-item pre-conditions checklist (programs, courses, academic years, cohorts + seat allocations, fee structures, fee states, WALK_IN referral type, country seed); recommended course-wise import strategy with step-by-step workflow and rationale (error isolation, cohort verification, fee structure uniformity per course); fee history multi-payment row explanation (`year_1_fee`..`year_6_fee` = annual fee split per programme year, not per-payment; subsequent rows per student leave fee structure columns blank); 44-column Students sheet with all personal/demographic/family/address/registration/classification fields; Qualifications sheet (8 fields); Fee History sheet (16 fields); Step 2 defaults panel including `admission_category`; cohort assignment logic (error if cohort missing for course+AY); fee state inference from address state; boolean strict-format rule (`TRUE`/`FALSE` only); unique number conflict check for 4 registration numbers; 3-pass import execution flow; post-import state; and permissions (`IMPORT_DATA`). | — |
 | 2026-05-25 | BR-10 | Admission/student document screens now prioritize missing required documents at the top, allow uploading newly required documents for existing admissions, and preserve previously collected documents that were later removed from program requirements as "not currently required" records. | — |
 | 2026-05-25 | BR-10 | Admission printable template updated for one-page A4 print preview: Academic Qualifications are excluded from official View/Print/Download output, print text readability is improved, the document checklist remains two-column, and the submitted `PASSPORT_PHOTO` document is the source for the admission-form passport photo. | — |

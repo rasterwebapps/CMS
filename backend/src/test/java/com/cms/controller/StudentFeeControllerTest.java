@@ -290,6 +290,7 @@ class StudentFeeControllerTest {
             .andExpect(jsonPath("$[0].studentId").value(1))
             .andExpect(jsonPath("$[0].studentName").value("John Doe"))
             .andExpect(jsonPath("$[0].amountPaid").value(50000.00))
+            .andExpect(jsonPath("$[0].receiptType").value("PAYMENT"))
             .andExpect(jsonPath("$[1].id").value(2))
             .andExpect(jsonPath("$[1].receiptNumber").value("RCP-2025-0002"));
 
@@ -336,6 +337,7 @@ class StudentFeeControllerTest {
             .andExpect(jsonPath("$.yearNumber").value(1))
             .andExpect(jsonPath("$.amountPaid").value(50000.00))
             .andExpect(jsonPath("$.paymentMode").value("UPI"))
+            .andExpect(jsonPath("$.receiptType").value("PAYMENT"))
             .andExpect(jsonPath("$.transactionReference").value("TXN-UPI-12345"));
 
         verify(paymentCollectionService).getReceiptById(1L, 1L);
@@ -422,9 +424,9 @@ class StudentFeeControllerTest {
         return new ReceiptResponse(
             id, receiptNumber, 1L, "John Doe", "CS2024001",
             10L, "Year 1", 1,
-            new BigDecimal("50000.00"), LocalDate.of(2025, 1, 15),
-            PaymentMode.UPI, "TXN-UPI-12345", "Installment payment",
-            Instant.now()
+            new BigDecimal("50000.00"), LocalDate.of(2025, 1, 15), "UPI",
+            "TXN-UPI-12345", "Installment payment", Instant.now(),
+            "PAYMENT", null
         );
     }
 }

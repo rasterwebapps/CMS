@@ -27,6 +27,7 @@ import com.cms.dto.CollectPaymentResponse;
 import com.cms.dto.ReceiptResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.FeeInstallment;
+import com.cms.model.FeeRefund;
 import com.cms.model.Program;
 import com.cms.model.SemesterFee;
 import com.cms.model.Student;
@@ -37,6 +38,7 @@ import com.cms.model.enums.StudentStatus;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
+import com.cms.repository.FeeRefundRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
@@ -50,6 +52,7 @@ class PaymentCollectionServiceTest {
     @Mock private StudentRepository studentRepository;
     @Mock private EnquiryRepository enquiryRepository;
     @Mock private EnquiryPaymentRepository enquiryPaymentRepository;
+    @Mock private FeeRefundRepository refundRepository;
     @Mock private UnifiedReceiptService unifiedReceiptService;
 
     private PaymentCollectionService service;
@@ -63,8 +66,11 @@ class PaymentCollectionServiceTest {
     @BeforeEach
     void setUp() {
         service = new PaymentCollectionService(allocationRepository, semesterFeeRepository,
-            installmentRepository, studentRepository, enquiryRepository, enquiryPaymentRepository, unifiedReceiptService);
+            installmentRepository, studentRepository, enquiryRepository, enquiryPaymentRepository,
+            refundRepository, unifiedReceiptService);
         lenient().when(enquiryRepository.findByConvertedStudentId(anyLong())).thenReturn(Optional.empty());
+        lenient().when(refundRepository.findByStudentIdAndStatusOrderByPaymentDateDescIdDesc(anyLong(), any()))
+            .thenReturn(List.of());
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -299,6 +305,43 @@ class PaymentCollectionServiceTest {
 
         assertThat(receipts).hasSize(1);
         assertThat(receipts.getFirst().receiptNumber()).isEqualTo("RCP-001");
+        assertThat(receipts.getFirst().receiptType()).isEqualTo("PAYMENT");
+    }
+
+    @Test
+    void shouldIncludeApprovedRefundInStudentReceipts() {
+        FeeInstallment installment = new FeeInstallment(semesterFee1, testStudent,
+            new BigDecimal("50000"), LocalDate.of(2026, 4, 10), PaymentMode.UPI, "RCP-001");
+        installment.setId(1L);
+        installment.setCreatedAt(Instant.parse("2026-04-10T08:00:00Z"));
+
+        FeeRefund refund = new FeeRefund();
+        refund.setId(9L);
+        refund.setRefundNumber("RFND-2026-0001");
+        refund.setOriginalReceiptNumber("RCP-001");
+        refund.setStudentId(1L);
+        refund.setStudentName("John Doe");
+        refund.setRollNumber("CS2024001");
+        refund.setRefundAmount(new BigDecimal("50000"));
+        refund.setPaymentDate(LocalDate.of(2026, 4, 12));
+        refund.setPaymentMode("UPI");
+        refund.setTransactionReference("RF-TXN-1");
+        refund.setReason("Duplicate collection");
+        refund.setApprovedAt(Instant.parse("2026-04-12T10:30:00Z"));
+
+        when(studentRepository.existsById(1L)).thenReturn(true);
+        when(installmentRepository.findByStudentIdOrderByPaymentDateDesc(1L)).thenReturn(List.of(installment));
+        when(refundRepository.findByStudentIdAndStatusOrderByPaymentDateDescIdDesc(1L, "APPROVED"))
+            .thenReturn(List.of(refund));
+
+        List<ReceiptResponse> receipts = service.getReceipts(1L);
+
+        assertThat(receipts).hasSize(2);
+        assertThat(receipts.getFirst().receiptType()).isEqualTo("REFUND");
+        assertThat(receipts.getFirst().receiptNumber()).isEqualTo("RFND-2026-0001");
+        assertThat(receipts.getFirst().amountPaid()).isEqualByComparingTo("-50000");
+        assertThat(receipts.getFirst().originalReceiptNumber()).isEqualTo("RCP-001");
+        assertThat(receipts.get(1).receiptType()).isEqualTo("PAYMENT");
     }
 
     @Test

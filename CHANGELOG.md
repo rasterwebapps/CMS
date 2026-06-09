@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- **Student Fee Payment History Refund Timeline**
+  - `GET /api/v1/student-fees/{studentId}/receipts` now includes approved refund vouchers as negative entries
+  - Student fee detail payment history shows refund vouchers with original receipt traceability
+  - Added manual test cases in `docs/manual-test-cases/student-fee-refund-history.md`
 - **Admission Number Generation** — permanent academic-year admission references in format `ADM-2526-0001`
   - Generated only after successful admission completion/confirmation and stored on student records
   - Added reusable number-sequence registry and read-only Number Sequences screen

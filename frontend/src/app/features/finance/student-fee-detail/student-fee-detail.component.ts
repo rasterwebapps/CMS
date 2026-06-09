@@ -15,9 +15,11 @@ import { printFeeReceipt, downloadFeeReceipt } from '../../../shared/utils/print
 export interface ReceiptGroup {
   receiptNumber: string;
   paymentDate: string;
-  paymentMode: string;
-  transactionReference: string;
+  paymentMode: string | null;
+  transactionReference: string | null;
   totalAmount: number;
+  receiptType: 'PAYMENT' | 'ENQUIRY_PAYMENT' | 'REFUND';
+  originalReceiptNumber: string | null;
   lines: Receipt[];
 }
 
@@ -166,6 +168,10 @@ export class StudentFeeDetailComponent implements OnInit {
     void downloadFeeReceipt(this.toReceiptPrintData(group));
   }
 
+  protected isRefundGroup(group: ReceiptGroup): boolean {
+    return group.receiptType === 'REFUND';
+  }
+
   private toReceiptPrintData(group: ReceiptGroup) {
     const alloc = this.allocation();
     return {
@@ -175,12 +181,12 @@ export class StudentFeeDetailComponent implements OnInit {
       programName:          alloc?.programName ?? '',
       amountPaid:           group.totalAmount,
       paymentDate:          group.paymentDate,
-      paymentMode:          group.paymentMode,
+      paymentMode:          group.paymentMode ?? '',
       transactionReference: group.transactionReference || null,
       feeCategory:          null as null,
       installmentBreakdown: group.lines.map(l => ({
         installmentLabel: l.installmentLabel ?? '',
-        amountApplied:    l.amountPaid,
+            amountApplied:    Math.abs(l.amountPaid),
       })),
     };
   }
@@ -199,6 +205,8 @@ export class StudentFeeDetailComponent implements OnInit {
           paymentMode: r.paymentMode,
           transactionReference: r.transactionReference,
           totalAmount: r.amountPaid,
+          receiptType: r.receiptType,
+          originalReceiptNumber: r.originalReceiptNumber,
           lines: [r],
         });
       }

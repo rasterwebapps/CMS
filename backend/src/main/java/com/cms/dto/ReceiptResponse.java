@@ -4,8 +4,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
-import com.cms.model.enums.PaymentMode;
-
 public record ReceiptResponse(
     Long id,
     String receiptNumber,
@@ -17,8 +15,10 @@ public record ReceiptResponse(
     Integer yearNumber,
     BigDecimal amountPaid,
     LocalDate paymentDate,
-    PaymentMode paymentMode,
+    String paymentMode,
     String transactionReference,
     String remarks,
-    Instant createdAt
+    Instant createdAt,
+    String receiptType,
+    String originalReceiptNumber
 ) {}

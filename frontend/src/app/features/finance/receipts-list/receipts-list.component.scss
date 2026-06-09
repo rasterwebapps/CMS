@@ -22,7 +22,7 @@ tr.table-row:hover td.mat-mdc-table-sticky {
 // Explicit widths prevent Material from over-allocating space.
 
 .mat-column-paymentDate       { width: 78px;  min-width: 78px;  }
-.mat-column-receiptNumber     { width: 148px; min-width: 148px; }
+.mat-column-receiptNumber     { width: 168px; min-width: 168px; }
 .mat-column-payer             { width: 160px; min-width: 140px; }
 .mat-column-payerId           { width: 148px; min-width: 120px; }
 .mat-column-payerType         { width: 84px;  min-width: 84px;  }
@@ -169,6 +169,13 @@ tr.table-row:hover td.mat-mdc-table-sticky {
     color: #c2410c;
     background: #fff7ed;
   }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    color: var(--cms-text-subtle);
+    background: transparent;
+  }
 }
 
 // ── Refund initiation overlay ──────────────────────────────────────────────
@@ -292,3 +299,18 @@ tr.table-row:hover td.mat-mdc-table-sticky {
   justify-content: center;
   padding: 60px 24px;
 }
+
+.receipt-code-cell {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.receipt-status-chip {
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+

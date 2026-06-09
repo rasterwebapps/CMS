@@ -4,7 +4,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -101,12 +103,16 @@ public class UnifiedReceiptService {
     /** Return all receipts (payments + refunds) ordered newest first. */
     public List<UnifiedReceiptResponse> getAllReceipts() {
         List<UnifiedReceiptResponse> merged = new ArrayList<>();
+        Map<String, String> refundStatusByReceipt = getActiveRefundStatusByReceipt();
+
         receiptRepository.findAllByOrderByCreatedAtDescIdDesc().stream()
-            .map(r -> toResponse(r, "PAYMENT"))
+            .map(r -> toResponse(r, "PAYMENT", refundStatusByReceipt.get(r.getReceiptNumber())))
             .forEach(merged::add);
+
         refundRepository.findByStatusOrderByCreatedAtDescIdDesc("APPROVED").stream()
             .map(this::toRefundResponse)
             .forEach(merged::add);
+
         merged.sort(Comparator.comparing(UnifiedReceiptResponse::createdAt).reversed()
             .thenComparingLong(r -> -r.id()));
         return merged;
@@ -114,21 +120,36 @@ public class UnifiedReceiptService {
 
     /** Return a single receipt by receipt number. */
     public UnifiedReceiptResponse getReceiptByNumber(String receiptNumber) {
+        String refundStatus = getActiveRefundStatusByReceipt().get(receiptNumber);
         return receiptRepository.findByReceiptNumber(receiptNumber)
-            .map(r -> toResponse(r, "PAYMENT"))
+            .map(r -> toResponse(r, "PAYMENT", refundStatus))
             .orElseThrow(() -> new ResourceNotFoundException("Receipt not found: " + receiptNumber));
     }
 
     /** Return all receipts for a specific payer. */
     public List<UnifiedReceiptResponse> getReceiptsForPayer(String payerType, Long payerId) {
+        Map<String, String> refundStatusByReceipt = getActiveRefundStatusByReceipt();
         return receiptRepository
             .findByPayerTypeAndPayerIdOrderByCreatedAtDesc(payerType, payerId)
             .stream()
-            .map(r -> toResponse(r, "PAYMENT"))
+            .map(r -> toResponse(r, "PAYMENT", refundStatusByReceipt.get(r.getReceiptNumber())))
             .toList();
     }
 
-    private UnifiedReceiptResponse toResponse(PaymentReceipt r, String receiptType) {
+    private Map<String, String> getActiveRefundStatusByReceipt() {
+        Map<String, String> statusByReceipt = new HashMap<>();
+        refundRepository.findByStatusIn(List.of("PENDING", "APPROVED")).forEach(refund -> {
+            // Prefer PENDING if stale duplicates exist from older data.
+            statusByReceipt.merge(
+                refund.getOriginalReceiptNumber(),
+                refund.getStatus(),
+                (current, incoming) -> "PENDING".equals(current) || "PENDING".equals(incoming) ? "PENDING" : incoming
+            );
+        });
+        return statusByReceipt;
+    }
+
+    private UnifiedReceiptResponse toResponse(PaymentReceipt r, String receiptType, String refundStatus) {
         return new UnifiedReceiptResponse(
             r.getId(), r.getReceiptNumber(),
             r.getPayerType(), r.getPayerId(), r.getPayerName(),
@@ -136,7 +157,9 @@ public class UnifiedReceiptService {
             r.getAmountPaid(), r.getPaymentDate(), r.getPaymentMode(),
             r.getTransactionReference(), r.getRemarks(),
             r.getInstallmentsCovered(), r.getCollectedBy(), r.getFeeCategory(),
-            r.getCreatedAt(), receiptType);
+            r.getCreatedAt(), receiptType,
+            "APPROVED".equals(refundStatus),
+            refundStatus);
     }
 
     private UnifiedReceiptResponse toRefundResponse(FeeRefund r) {
@@ -147,7 +170,8 @@ public class UnifiedReceiptService {
             r.getRefundAmount(), r.getPaymentDate(), r.getPaymentMode(),
             r.getTransactionReference(), r.getReason(),
             "Refund of " + r.getOriginalReceiptNumber(), r.getApprovedBy(), null,
-            r.getCreatedAt(), "REFUND");
+            r.getCreatedAt(), "REFUND",
+            false,
+            null);
     }
 }
-
