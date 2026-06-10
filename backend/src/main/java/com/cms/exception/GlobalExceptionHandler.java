@@ -94,8 +94,16 @@ public class GlobalExceptionHandler {
                 + "Each fee type can appear only once per combination.";
         } else if (causeMsg.contains("uq_fee_refunds_active_receipt")) {
             message = "An active refund request already exists for this receipt.";
+        } else if (causeMsg.contains("roll_number")) {
+            message = "A student with this Roll Number already exists. Please verify the roll number and try again.";
+        } else if (causeMsg.contains("university_registration_number")) {
+            message = "A student with this University Registration Number already exists. Please verify the URN and try again.";
+        } else if (causeMsg.contains("umis_number")) {
+            message = "A student with this UMIS Number already exists. Please verify the UMIS number and try again.";
+        } else if (causeMsg.contains("admission_number")) {
+            message = "A student with this Admission Number already exists. Please contact the administrator.";
         } else {
-            message = "A record with the same name or code already exists.";
+            message = "A record with the same value already exists. Please check for duplicates and try again.";
         }
         ErrorResponse error = new ErrorResponse(
             HttpStatus.CONFLICT.value(),

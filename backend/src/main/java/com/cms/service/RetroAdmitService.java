@@ -124,6 +124,16 @@ public class RetroAdmitService {
         if (studentRepository.existsByEmail(request.email())) {
             throw new IllegalStateException("A student with this email already exists: " + request.email());
         }
+        if (studentRepository.existsByRollNumber(request.rollNumber())) {
+            throw new IllegalStateException("A student with Roll Number " + request.rollNumber() + " already exists. Please verify the roll number.");
+        }
+        if (studentRepository.existsByUniversityRegistrationNumber(request.universityRegistrationNumber())) {
+            throw new IllegalStateException("A student with University Registration Number " + request.universityRegistrationNumber() + " already exists. Please verify the URN.");
+        }
+        if (request.umisNumber() != null && !request.umisNumber().isBlank()
+                && studentRepository.existsByUmisNumber(request.umisNumber())) {
+            throw new IllegalStateException("A student with UMIS Number " + request.umisNumber() + " already exists. Please verify the UMIS number.");
+        }
 
         // ── Step 2: Create Student ─────────────────────────────────────────
         AdmissionQuota quota = request.admissionQuota() != null ? request.admissionQuota() : AdmissionQuota.MANAGEMENT;
