@@ -237,7 +237,7 @@ public class PaymentCollectionService {
             null, "Refund against " + refund.getOriginalReceiptNumber(), null,
             refund.getRefundAmount().negate(), refund.getPaymentDate(), refund.getPaymentMode(),
             refund.getTransactionReference(), refund.getReason(), refund.getApprovedAt(),
-            "REFUND", refund.getOriginalReceiptNumber()
+            "REFUND", refund.getOriginalReceiptNumber(), null
         );
     }
 
@@ -297,6 +297,8 @@ public class PaymentCollectionService {
     }
 
     private ReceiptResponse toReceiptResponse(FeeInstallment fi) {
+        String feeCategory = fi.getSemesterFee().getAllocation().isHasHostelFee()
+            ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
         return new ReceiptResponse(
             fi.getId(), fi.getReceiptNumber(),
             fi.getStudent().getId(), fi.getStudent().getFullName(), fi.getStudent().getRollNumber(),
@@ -304,7 +306,7 @@ public class PaymentCollectionService {
             fi.getSemesterFee().getYearNumber(),
             fi.getAmountPaid(), fi.getPaymentDate(), fi.getPaymentMode().name(),
             fi.getTransactionReference(), fi.getRemarks(), fi.getCreatedAt(),
-            "PAYMENT", null
+            "PAYMENT", null, feeCategory
         );
     }
 

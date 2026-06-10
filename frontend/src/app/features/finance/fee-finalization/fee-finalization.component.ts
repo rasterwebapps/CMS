@@ -11,6 +11,8 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { PercentPipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
+import { TourService } from '../../../shared/tour/tour.service';
+import { FEE_FINALIZATION_TOUR } from '../../../shared/tour/tours/finance.tours';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { Enquiry, FeeFinalizationRequest } from '../../enquiry/enquiry.model';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
@@ -45,6 +47,7 @@ export class FeeFinalizationComponent implements OnInit {
   private readonly http     = inject(HttpClient);
   private readonly enquiryService = inject(EnquiryService);
   private readonly toast    = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -143,6 +146,7 @@ export class FeeFinalizationComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('fee-finalization', FEE_FINALIZATION_TOUR);
     this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({
       next: (d) => this.programs.set(d),
     });
@@ -431,5 +435,9 @@ export class FeeFinalizationComponent implements OnInit {
 
   private paiseToAmount(value: number): number {
     return value / 100;
+  }
+
+  protected startTour(): void {
+    this.tourService.start('fee-finalization');
   }
 }

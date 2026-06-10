@@ -224,3 +224,78 @@ export const ROLL_NUMBER_ASSIGNMENT_TOUR: TourDefinition = {
   ],
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Retro Admit
+// ─────────────────────────────────────────────────────────────────────────────
+export const RETRO_ADMIT_TOUR: TourDefinition = {
+  steps: [
+    {
+      popover: {
+        title: '🔄 Retroactive Admission',
+        description:
+          'Add students who were admitted in previous years but lack admission records in the system. This includes capturing historical payments and fees.',
+        side: 'over',
+        align: 'center',
+      },
+    },
+    {
+      element: '#tour-retro-stepper',
+      popover: {
+        title: 'Seven-Step Workflow',
+        description:
+          'Follow the flow from admission context through family details, fees, and payment history. Use the steps to navigate and track progress.',
+        side: 'right',
+        align: 'start',
+      },
+    },
+    {
+      element: '#retro-section-0',
+      popover: {
+        title: '📋 Step 1: Admission Context',
+        description:
+          'Select the program, academic year, and quota. Set the student\'s year of study and fee state.',
+        side: 'top',
+        align: 'start',
+      },
+    },
+    {
+      element: '#retro-section-1',
+      popover: {
+        title: '👤 Step 2: Student Details',
+        description:
+          'Enter the student\'s identity — name, email, phone, roll number, and academic registration numbers (University Registration Number, UMIS).',
+        side: 'top',
+        align: 'start',
+      },
+    },
+    {
+      element: '#retro-section-5',
+      popover: {
+        title: '💵 Step 6: Fee Structure',
+        description:
+          'Define year-wise fees. The system fetches guideline fees and lets you enter the actual fees charged to this student for each year.',
+        side: 'top',
+        align: 'start',
+      },
+    },
+    {
+      element: '#retro-section-6',
+      popover: {
+        title: '💰 Step 7: Payment History',
+        description:
+          'Add all historical payments with dates, amounts, modes (cash/cheque/UPI/etc.), and optional receipt/transaction references.',
+        side: 'top',
+        align: 'start',
+      },
+    },
+    {
+      popover: {
+        title: '✅ Save the admission',
+        description:
+          'At the end, click <strong>Save</strong> to create the student record with all historical fees and payments captured.',
+        side: 'over',
+        align: 'center',
+      },
+    },
+  ],
+};

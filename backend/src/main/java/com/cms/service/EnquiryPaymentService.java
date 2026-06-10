@@ -278,7 +278,7 @@ public class EnquiryPaymentService {
             BigDecimal semRem = totalPaid;
 
             for (YearWiseFeeEntry entry : yearEntries) {
-                BigDecimal sem1Amount = entry.amount().divide(BigDecimal.TWO, 2, RoundingMode.FLOOR);
+                BigDecimal sem1Amount = entry.amount().divide(BigDecimal.TWO, 0, RoundingMode.FLOOR);
                 BigDecimal sem2Amount = entry.amount().subtract(sem1Amount);
 
                 int sem1Seq = (entry.yearNumber() - 1) * 2 + 1;

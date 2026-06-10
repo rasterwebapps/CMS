@@ -51,7 +51,7 @@
 } @else {
 
   <!-- ── Form ───────────────────────────────────────────────────── -->
-  <div class="conv-hdr anim-rise">
+    <div class="conv-hdr anim-rise">
       <a class="back-btn" routerLink="/students" aria-label="Back to students">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -59,7 +59,10 @@
         </svg>
       </a>
       <div class="conv-hdr-text">
-        <h1 class="conv-title">Retro <em>Admit</em></h1>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+          <h1 class="conv-title">Retro <em>Admit</em></h1>
+          <cms-tour-button tourKey="retro-admit" [iconOnly]="true" iconVariant="info-circle" />
+        </div>
         <p class="conv-sub">Admit a historical student, bypassing the normal enquiry pipeline.</p>
       </div>
     </div>
@@ -75,7 +78,7 @@
             <div class="stepper-hdr__fill" [style.width.%]="(completedCount() / steps.length) * 100"></div>
           </div>
         </div>
-        <nav class="conv-stepper-nav" aria-label="Retro admit sections">
+        <nav id="tour-retro-stepper" class="conv-stepper-nav" aria-label="Retro admit sections">
           @for (step of steps; track $index; let last = $last) {
             <div class="conv-step-item"
                  [class.conv-step-item--active]="currentStep() === $index"
@@ -520,28 +523,44 @@
                 <thead>
                   <tr>
                     <th>Year</th>
-                    <th>Guideline Fee (₹)</th>
-                    <th>Actual Fee Finalized (₹) <span class="la-required-star">*</span></th>
-                    <th>Discount (₹)</th>
-                    <th>Collected (₹)</th>
+                    <th class="la-th-right">Guideline Fee (₹)</th>
+                    <th class="la-th-right">Actual Fee Finalized (₹) <span class="la-required-star">*</span></th>
+                    <th class="la-th-right">Discount (₹)</th>
+                    <th class="la-th-right">Collected (₹)</th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (ctrl of yearFeesArray.controls; track $index) {
                     <tr [formGroup]="$any(ctrl)">
                       <td class="la-fee-year-label">Year {{ $index + 1 }}</td>
-                      <td class="la-fee-computed la-fee-guideline">
-                        {{ ctrl.get('masterFee')?.value ? (ctrl.get('masterFee')?.value | inr) : '—' }}
+                      <td class="la-fee-computed la-fee-guideline la-td-right">
+                        {{ ctrl.get('masterFee')?.value ? (ctrl.get('masterFee')?.value | inr:false:false) : '—' }}
                       </td>
-                      <td>
-                        <input type="number" class="la-fee-input" [formControl]="$any(ctrl.get('actualFee'))"
-                               placeholder="Enter actual fee" min="0" step="0.01" />
+                      <td class="la-td-right">
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                          <input type="number" class="la-fee-input"
+                                 [formControl]="$any(ctrl.get('actualFee'))"
+                                 [class.la-fee-input--error]="ctrl.get('actualFee')?.hasError('actualFeeExceedsGuideline')"
+                                 placeholder="Enter actual fee" min="0" step="0.01" />
+                          @if (ctrl.get('actualFee')?.hasError('actualFeeExceedsGuideline')) {
+                            <span style="font-size: 0.65rem; color: #dc2626; line-height: 1;">Cannot exceed guideline</span>
+                          }
+                        </div>
                       </td>
-                      <td class="la-fee-computed">{{ discountForYear($index) | inr }}</td>
-                      <td class="la-fee-collected">{{ collectedForYear($index + 1) | inr }}</td>
+                      <td class="la-fee-computed la-td-right">{{ discountForYear($index) | inr:false:false }}</td>
+                      <td class="la-fee-collected la-td-right">{{ collectedForYear($index + 1) | inr:false:false }}</td>
                     </tr>
                   }
                 </tbody>
+                <tfoot>
+                  <tr class="la-fee-total-row">
+                    <td class="la-fee-total-label">Total</td>
+                    <td class="la-fee-total-cell la-td-right la-fee-guideline">{{ totalGuidelineFee | inr:false:false }}</td>
+                    <td class="la-fee-total-cell la-td-right">{{ totalActualFee | inr:false:false }}</td>
+                    <td class="la-fee-total-cell la-td-right">{{ totalDiscount | inr:false:false }}</td>
+                    <td class="la-fee-total-cell la-td-right la-fee-collected">{{ totalCollected | inr:false:false }}</td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>
@@ -607,6 +626,15 @@
                   }
                 </tbody>
               </table>
+              </div>
+            }
+            @if (paymentsArray.hasError('paymentsExceedActualFee')) {
+              <div class="la-pt-error" role="alert" aria-live="polite">
+                <mat-icon>error</mat-icon>
+                <span>
+                  Total payments cannot exceed total actual fee.
+                  Excess: {{ (paymentsArray.getError('paymentsExceedActualFee')?.excessAmount ?? 0) | inr }}
+                </span>
               </div>
             }
             <div class="la-add-payment-row">

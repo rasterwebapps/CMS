@@ -10,7 +10,17 @@
       Back
     </a>
     <div class="sfd-hdr-text">
-      <h1 class="sfd-title">Student Fee <em>Collection</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <h1 class="sfd-title">Student Fee <em>Collection</em></h1>
+        <button type="button" class="btn-toolbar" (click)="startTour()" aria-label="Take a Tour" title="Take a Tour">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4"/>
+            <path d="M12 8h.01"/>
+          </svg>
+        </button>
+      </div>
       <p class="sfd-sub">Installment-wise fee tracking and payment collection</p>
     </div>
   </div>
@@ -41,7 +51,7 @@
 
     <!-- Student summary -->
     @if (allocation(); as alloc) {
-      <div class="content-card student-summary">
+      <div id="tour-student-summary" class="content-card student-summary">
         <div class="student-summary__info">
           <h3 class="student-summary__name">
             {{ alloc.studentName }}
@@ -79,7 +89,7 @@
     }
 
     <!-- Installment fee collection table -->
-    <div class="content-card">
+    <div id="tour-student-installments" class="content-card">
       <div class="card-hdr">
         <div class="card-hdr__title">
           <svg class="card-hdr__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
@@ -186,7 +196,7 @@
     </div>
 
     <!-- Receipt history -->
-    <div class="content-card">
+    <div id="tour-student-history" class="content-card">
       <div class="card-hdr">
         <div class="card-hdr__title">
           <svg class="card-hdr__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
@@ -212,7 +222,7 @@
         </div>
       } @else {
         <div class="receipt-list">
-          @for (group of receiptGroups(); track group.receiptNumber) {
+          @for (group of receiptGroupsWithBalance(); track group.receiptNumber) {
             <div class="receipt-group">
               <div class="receipt-group__hdr">
                 <div class="receipt-group__left">
@@ -233,9 +243,23 @@
                   </span>
                 </div>
                 <div class="receipt-group__right">
-                  <span class="receipt-total" [class.receipt-total--refund]="isRefundGroup(group)">
-                    {{ group.totalAmount | inr }}
-                  </span>
+                  <div class="receipt-amount-block">
+                    <div class="receipt-amount-row">
+                      <span class="receipt-total" [class.receipt-total--refund]="isRefundGroup(group)">
+                        {{ group.totalAmount | inr }}
+                      </span>
+                      <span class="cms-badge receipt-dir-chip"
+                            [class.cms-badge--soft-green]="!isRefundGroup(group)"
+                            [class.cms-badge--soft-red]="isRefundGroup(group)">
+                        {{ isRefundGroup(group) ? 'OUTWARD' : 'INWARD' }}
+                      </span>
+                    </div>
+                    @if (group.runningBalance !== null) {
+                      <span class="receipt-running-balance">
+                        Balance: <strong [class.text-red]="group.runningBalance > 0">{{ group.runningBalance | inr }}</strong>
+                      </span>
+                    }
+                  </div>
                   @if (!isRefundGroup(group)) {
                     <div class="receipt-actions">
                       <button

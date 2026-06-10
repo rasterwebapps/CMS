@@ -1,7 +1,7 @@
 import { Component, DestroyRef, inject, OnDestroy, OnInit, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 
@@ -32,6 +32,9 @@ import { FinanceService } from '../../finance/finance.service';
 import { FeeState } from '../../finance/finance.model';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { RETRO_ADMIT_TOUR } from '../../../shared/tour/tours/student.tours';
 
 interface RetroAdmitResponse {
   studentId: number;
@@ -61,6 +64,7 @@ const RETRO_STEPS = [
     ReactiveFormsModule, RouterLink,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     InrPipe, CmsCountryStateDistrictSelectorComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './retro-admit.component.html',
   styleUrl: './retro-admit.component.scss',
@@ -81,6 +85,7 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
   private readonly studentSvc      = inject(StudentService);
   private readonly facultySvc      = inject(FacultyService);
   private readonly financeSvc      = inject(FinanceService);
+  private readonly tourService     = inject(TourService);
 
   protected readonly loading             = signal(true);
   protected readonly saving              = signal(false);
@@ -228,6 +233,12 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
   get addressGroup():  FormGroup  { return this.form.get('address') as FormGroup; }
 
   ngOnInit(): void {
+    this.tourService.register('retro-admit', RETRO_ADMIT_TOUR);
+
+    // Enforce aggregate payment cap against total actual fee.
+    this.paymentsArray.setValidators(this.paymentsDoNotExceedActualFeeValidator());
+    this.paymentsArray.updateValueAndValidity({ emitEvent: false });
+
     forkJoin({
       programs:     this.programSvc.getAll(),
       years:        this.academicYearSvc.getAllAcademicYears(),
@@ -268,7 +279,10 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
 
     this.paymentsArray.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.recomputeFifo());
+      .subscribe(() => {
+        this.recomputeFifo();
+        this.paymentsArray.updateValueAndValidity({ emitEvent: false });
+      });
 
     this.form.get('joiningAcademicYearId')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -278,7 +292,10 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
 
     this.yearFeesArray.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.recomputeFifo());
+      .subscribe(() => {
+        this.recomputeFifo();
+        this.paymentsArray.updateValueAndValidity({ emitEvent: false });
+      });
   }
 
   private computeYearOfStudy(joiningAcademicYearId: number | null): number {
@@ -332,9 +349,45 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
         yearNumber: [i],
         masterFee:  [null as number | null],
         actualFee:  [null as number | null, [Validators.required, Validators.min(0.01)]],
-      }));
+      }, { validators: this.actualFeeNotGreaterThanGuideline }));
     }
     this.tryLoadFeeGuideline();
+  }
+
+  private actualFeeNotGreaterThanGuideline(group: AbstractControl) {
+    if (!(group instanceof FormGroup)) return null;
+    const actualFee = +(group.get('actualFee')?.value || 0);
+    const masterFee = +(group.get('masterFee')?.value || 0);
+    if (masterFee > 0 && actualFee > masterFee) {
+      group.get('actualFee')?.setErrors({ ...group.get('actualFee')?.errors, actualFeeExceedsGuideline: true });
+      return { actualFeeExceedsGuideline: { actual: actualFee, guideline: masterFee } };
+    } else {
+      const err = group.get('actualFee')?.errors;
+      if (err && 'actualFeeExceedsGuideline' in err) {
+        delete err['actualFeeExceedsGuideline'];
+        group.get('actualFee')?.setErrors(Object.keys(err).length > 0 ? err : null);
+      }
+    }
+    return null;
+  }
+
+  private paymentsDoNotExceedActualFeeValidator() {
+    return (_: AbstractControl): ValidationErrors | null => {
+      const totalPaid = this.paymentsArray.controls.reduce((sum, ctrl) => sum + +(ctrl.get('amount')?.value || 0), 0);
+      const totalActualFee = this.yearFeesArray.controls.reduce((sum, ctrl) => sum + +(ctrl.get('actualFee')?.value || 0), 0);
+
+      if (totalPaid <= totalActualFee) {
+        return null;
+      }
+
+      return {
+        paymentsExceedActualFee: {
+          totalPaid,
+          totalActualFee,
+          excessAmount: totalPaid - totalActualFee,
+        },
+      };
+    };
   }
 
   private tryLoadFeeGuideline(): void {
@@ -537,6 +590,24 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
     return this.fifoCollected().get(yearNumber) ?? 0;
   }
 
+  protected get totalGuidelineFee(): number {
+    return this.yearFeesArray.controls.reduce((sum, ctrl) => sum + +(ctrl.get('masterFee')?.value || 0), 0);
+  }
+
+  protected get totalActualFee(): number {
+    return this.yearFeesArray.controls.reduce((sum, ctrl) => sum + +(ctrl.get('actualFee')?.value || 0), 0);
+  }
+
+  protected get totalDiscount(): number {
+    return this.yearFeesArray.controls.reduce((sum, _, i) => sum + this.discountForYear(i), 0);
+  }
+
+  protected get totalCollected(): number {
+    let sum = 0;
+    this.fifoCollected().forEach(v => (sum += v));
+    return sum;
+  }
+
   protected submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -544,8 +615,20 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
         const firstInvalid = document.querySelector<HTMLElement>(
           'input.ng-invalid, select.ng-invalid, textarea.ng-invalid'
         );
-        firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        firstInvalid?.focus({ preventScroll: true });
+        if (firstInvalid) {
+          firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstInvalid.focus({ preventScroll: true });
+
+          // Move the stepper cursor to the section that contains the first invalid field,
+          // so the user immediately knows which part of the form needs attention.
+          const sectionEl = firstInvalid.closest<HTMLElement>('[id^="retro-section-"]');
+          if (sectionEl) {
+            const idx = parseInt(sectionEl.id.replace('retro-section-', ''), 10);
+            if (!isNaN(idx)) {
+              this.currentStep.set(idx);
+            }
+          }
+        }
       }, 50);
       return;
     }
@@ -577,9 +660,9 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
       email:      v.email,      phone:    v.phone,
       rollNumber: v.rollNumber,
       universityRegistrationNumber: v.universityRegistrationNumber,
-      umisNumber: v.umisNumber || null,
+      umisNumber: v.umisNumber || undefined,
       programId:             v.programId,
-      courseId:              v.courseId,
+      courseId:              v.courseId || undefined,
       joiningAcademicYearId: v.joiningAcademicYearId,
       admissionDate:         v.admissionDate,
       applicationDate:       v.applicationDate,
@@ -588,7 +671,7 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
       studentType:           v.studentType,
       dateOfBirth:           v.dateOfBirth,
       gender:                v.gender,
-      aadharNumber:          v.aadharNumber || null,
+      aadharNumber:          v.aadharNumber || undefined,
       nationality:           v.nationality,
       religion:              v.religion,
       communityCategory:     v.communityCategory,
@@ -597,26 +680,26 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
       physicalDisability:    v.physicalDisability,
       fatherName:            v.fatherName,
       fatherPhone:           v.fatherPhone,
-      fatherEmail:           v.fatherEmail || null,
+      fatherEmail:           v.fatherEmail || undefined,
       motherName:            v.motherName,
       motherPhone:           v.motherPhone,
-      motherEmail:           v.motherEmail || null,
+      motherEmail:           v.motherEmail || undefined,
       address: {
         countryId:     v.address.country ?? 1,
         postalAddress: v.address.postalAddress,
         street:        v.address.street,
         city:          v.address.city,
-        district:      v.address.district || null,
-        state:         v.address.state || null,
+        district:      v.address.district || undefined,
+        state:         v.address.state || undefined,
         pincode:       v.address.pincode,
       },
-      declarationPlace:      v.declarationPlace || null,
-      declarationDate:       v.declarationDate || null,
-      referralTypeId:        v.referralTypeId,
-      agentId:               v.agentId,
-      commissionAmount:      v.commissionAmount,
-      referredStudentId:     v.referredStudentId,
-      referredFacultyId:     v.referredFacultyId,
+      declarationPlace:      v.declarationPlace || undefined,
+      declarationDate:       v.declarationDate || undefined,
+      referralTypeId:        v.referralTypeId || undefined,
+      agentId:               v.agentId || undefined,
+      commissionAmount:      v.commissionAmount || undefined,
+      referredStudentId:     v.referredStudentId || undefined,
+      referredFacultyId:     v.referredFacultyId || undefined,
       yearFees,
       payments,
     };
@@ -743,6 +826,20 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
       }
     }
 
+    // The triggerY threshold (72 %) can leave a dead zone for near-bottom sections:
+    // a section is clearly visible in the lower viewport but its top hasn't crossed
+    // the trigger line yet (e.g. Fee Structure when Payment History is still off-screen).
+    // Check whether the section immediately after the trigger-detected active one is
+    // already visible, and if so promote it — this fixes the Fee Structure step.
+    const activePos = renderedSteps.indexOf(active);
+    if (activePos >= 0 && activePos + 1 < renderedSteps.length) {
+      const nextIdx = renderedSteps[activePos + 1];
+      const nextEl = document.getElementById(`retro-section-${nextIdx}`);
+      if (nextEl && nextEl.getBoundingClientRect().top < effectiveBottom - 24) {
+        active = nextIdx;
+      }
+    }
+
     this.currentStep.set(active);
   }
 
@@ -753,3 +850,4 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
     if (this.rafId !== null) cancelAnimationFrame(this.rafId);
   }
 }
+

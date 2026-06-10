@@ -1,15 +1,25 @@
 <div class="docv-page">
 
   <!-- ── Page Header ─────────────────────────────────────────────────────── -->
-  <header class="docv-hdr anim-rise">
+  <header id="tour-docverif-header" class="docv-hdr anim-rise">
     <div class="docv-hdr__left">
-      <h1 class="docv-title">Verify <em>Documents</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <h1 class="docv-title">Verify <em>Documents</em></h1>
+        <button type="button" class="btn-toolbar" (click)="startTour()" aria-label="Take a Tour" title="Take a Tour">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4"/>
+            <path d="M12 8h.01"/>
+          </svg>
+        </button>
+      </div>
       <p class="docv-sub">Review and verify submitted documents for candidates awaiting admission</p>
     </div>
   </header>
 
   <!-- ── Toolbar ──────────────────────────────────────────────────────────── -->
-  <div class="docv-toolbar anim-rise anim-rise--d1">
+  <div id="tour-docverif-toolbar" class="docv-toolbar anim-rise anim-rise--d1">
     <div class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -105,7 +115,7 @@
   </div>
 
   <!-- ── Content Card ────────────────────────────────────────────────────── -->
-  <div class="content-card docv-table-card">
+  <div id="tour-docverif-content" class="content-card docv-table-card">
 
     @if (loading()) {
       <div class="docv-skeleton">

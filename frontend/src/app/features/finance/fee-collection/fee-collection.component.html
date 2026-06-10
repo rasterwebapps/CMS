@@ -13,14 +13,17 @@
   @if (!selectedEntry()) {
     <div class="mlp-hdr anim-rise">
       <div class="mlp-hdr-left">
-        <h1 class="mlp-title">Fee <em>Collection</em></h1>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+          <h1 class="mlp-title">Fee <em>Collection</em></h1>
+          <cms-tour-button tourKey="fee-collection" [iconOnly]="true" iconVariant="info-circle" />
+        </div>
         <p class="mlp-sub">All outstanding fees — enquiries and students — in one place.</p>
       </div>
     </div>
 
     <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
-    <div class="mlp-toolbar anim-rise anim-rise--d1">
-      <div class="search-bar" role="search">
+    <div id="tour-feecol-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
+      <div id="tour-feecol-search" class="search-bar" role="search">
         <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input
           class="search-bar__input"
@@ -79,7 +82,7 @@
 
 
   } @else if (!selectedEntry()) {
-    <div class="content-card mlp-table-card">
+    <div id="tour-feecol-table" class="content-card mlp-table-card">
       <div class="table-wrapper">
         <table mat-table [dataSource]="dataSource" matSort class="modern-table fee-collection-table">
 
@@ -179,20 +182,21 @@
       </div>
     </div>
 
-  } @else {
-    <!-- Payment Panel -->
-    <div class="payment-topbar anim-rise">
-      <button type="button" class="entry-form-back-btn" (click)="backToList()" aria-label="Back to fee collection list">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
-        </svg>
-      </button>
-      <div class="payment-topbar__text">
-        <h2>Collect <em>Balance</em></h2>
-        <p>Review installment status and record the payment details.</p>
-      </div>
-    </div>
+   } @else {
+     <!-- Payment Panel -->
+     <div class="payment-topbar anim-rise">
+       <button type="button" class="entry-form-back-btn" (click)="backToList()" aria-label="Back to fee collection list">
+         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+           <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
+         </svg>
+       </button>
+       <div class="payment-topbar__text">
+         <h2>Collect <em>Balance</em></h2>
+         <p>Review installment status and record the payment details.</p>
+       </div>
+       <cms-tour-button tourKey="collect-balance" [iconOnly]="true" iconVariant="info-circle" />
+     </div>
 
     <div class="payment-layout anim-rise anim-rise--d1">
       <!-- Left: Fee Status -->
@@ -209,9 +213,9 @@
           </span>
         </div>
 
-        <!-- Installment Table -->
-        @if (semesterRows().length > 0) {
-          <div class="sem-table">
+         <!-- Installment Table -->
+         @if (semesterRows().length > 0) {
+           <div id="tour-collect-summary" class="sem-table">
             <div class="sem-head">
               <span>#</span>
               <span>Installment</span>
@@ -266,10 +270,10 @@
         }
       </div>
 
-      <!-- Right: Payment Form -->
-      <div class="form-col">
-        <h3 class="form-title">Payment Details</h3>
-        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+       <!-- Right: Payment Form -->
+       <div id="tour-collect-form" class="form-col">
+         <h3 class="form-title">Payment Details</h3>
+         <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
           <div class="field-group">
             <label class="field-label">Amount (₹) <span class="field-required">*</span></label>

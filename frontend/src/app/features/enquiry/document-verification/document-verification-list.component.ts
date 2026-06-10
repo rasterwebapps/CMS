@@ -8,6 +8,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { DOCUMENT_VERIFICATION_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry } from '../enquiry.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
@@ -31,6 +33,7 @@ export class DocumentVerificationListComponent implements OnInit {
   private readonly permissionService = inject(PermissionService);
   private readonly router            = inject(Router);
   private readonly toast             = inject(ToastService);
+  private readonly tourService       = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(v: MatPaginator) { if (v) this.dataSource.paginator = v; }
   @ViewChild(MatSort)      set sort(v: MatSort)           { if (v) this.dataSource.sort = v; }
@@ -69,6 +72,7 @@ export class DocumentVerificationListComponent implements OnInit {
   protected readonly computeInitials = computeInitials;
 
   ngOnInit(): void {
+    this.tourService.register('document-verification-list', DOCUMENT_VERIFICATION_LIST_TOUR);
     this.dataSource.filterPredicate = (row: Enquiry, _filter: string) => {
       const program     = this.filterProgram();
       const course      = this.filterCourse();
@@ -158,4 +162,8 @@ export class DocumentVerificationListComponent implements OnInit {
 
   protected viewEnquiry(item: Enquiry): void     { void this.router.navigate(['/enquiries', item.id]); }
   protected verifyDocuments(item: Enquiry): void  { void this.router.navigate(['/enquiries/document-verification', item.id]); }
+
+  protected startTour(): void {
+    this.tourService.start('document-verification-list');
+  }
 }

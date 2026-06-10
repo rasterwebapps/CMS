@@ -20,5 +20,7 @@ public record ReceiptResponse(
     String remarks,
     Instant createdAt,
     String receiptType,
-    String originalReceiptNumber
+    String originalReceiptNumber,
+    /** TUITION_ONLY | TUITION_AND_HOSTEL — null for refund rows */
+    String feeCategory
 ) {}

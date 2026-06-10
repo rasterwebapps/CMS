@@ -372,3 +372,48 @@ export const ENQUIRY_CONVERT_TOUR: TourDefinition = {
   ],
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Document Verification List
+// ─────────────────────────────────────────────────────────────────────────────
+export const DOCUMENT_VERIFICATION_LIST_TOUR: TourDefinition = {
+  steps: [
+    {
+      popover: {
+        title: '✅ Verify Documents',
+        description:
+          'Review and approve all submitted documents from candidates. Only candidates with fully verified documentation can complete their admission.',
+        side: 'over',
+        align: 'center',
+      },
+    },
+    {
+      element: '#tour-docverif-toolbar',
+      popover: {
+        title: 'Filter & Search',
+        description:
+          'Filter by program or course, search by candidate name to quickly locate documents awaiting verification.',
+        side: 'bottom',
+        align: 'start',
+      },
+    },
+    {
+      element: '#tour-docverif-content',
+      popover: {
+        title: 'Verification Queue',
+        description:
+          'Each row shows a candidate pending verification. Click to open their profile and review/approve each document they submitted.',
+        side: 'top',
+        align: 'start',
+      },
+    },
+    {
+      popover: {
+        title: '✅ All set',
+        description:
+          'Once all candidate documents are verified, they\'ll automatically appear in <em>Complete Admission</em> to finalize enrollment.',
+        side: 'over',
+        align: 'center',
+      },
+    },
+  ],
+};

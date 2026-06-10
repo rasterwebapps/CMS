@@ -285,21 +285,24 @@
     </aside>
   }
 
-  <!-- ── Page header ──────────────────────────────────────────────────────── -->
-  <div class="mlp-hdr anim-rise">
-    <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Fee <em>Refunds</em></h1>
-      <p class="mlp-sub">
-        All refund requests — pending approval sorted to the top.
-        @if (pendingCount() > 0) {
-          <span class="rfl-pending-badge">{{ pendingCount() }} pending</span>
-        }
-      </p>
-    </div>
-  </div>
+   <!-- ── Page header ──────────────────────────────────────────────────────── -->
+   <div class="mlp-hdr anim-rise">
+     <div class="mlp-hdr-left">
+       <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+         <h1 class="mlp-title">Fee <em>Refunds</em></h1>
+         <cms-tour-button tourKey="fee-refund-list" [iconOnly]="true" iconVariant="info-circle" />
+       </div>
+       <p class="mlp-sub">
+         All refund requests — pending approval sorted to the top.
+         @if (pendingCount() > 0) {
+           <span class="rfl-pending-badge">{{ pendingCount() }} pending</span>
+         }
+       </p>
+     </div>
+   </div>
 
-  <!-- ── Filters toolbar ─────────────────────────────────────────────────── -->
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+   <!-- ── Filters toolbar ─────────────────────────────────────────────────── -->
+   <div id="tour-refund-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <div class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -378,9 +381,9 @@
       <div class="loading-box">
         <mat-spinner diameter="36" aria-label="Loading refunds"></mat-spinner>
       </div>
-    } @else {
-      <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table rfl-table">
+     } @else {
+       <div class="table-wrapper">
+         <table id="tour-refund-table" mat-table [dataSource]="dataSource" matSort class="modern-table rfl-table">
 
           <!-- Requested At -->
           <ng-container matColumnDef="requestedAt" sticky>

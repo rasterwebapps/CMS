@@ -34,6 +34,7 @@ public class StudentScholarshipEligibilityService {
         this.studentScholarshipService = studentScholarshipService;
     }
 
+    @Transactional
     public ScholarshipEligibilityResponse getEligibility(Long studentId) {
         StudentScholarshipEligibility eligibility = getOrCreate(studentId);
         return toResponse(eligibility, studentScholarshipService.getEligibleScholarships(studentId));

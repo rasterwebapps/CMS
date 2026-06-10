@@ -305,7 +305,7 @@ public class RetroAdmitService {
                             1
                     ));
                 } else {
-                    BigDecimal sem1 = yearFee.totalFee().divide(BigDecimal.TWO, 2, RoundingMode.FLOOR);
+                    BigDecimal sem1 = yearFee.totalFee().divide(BigDecimal.TWO, 0, RoundingMode.FLOOR);
                     BigDecimal sem2 = yearFee.totalFee().subtract(sem1);
                     int globalSem1 = (yearFee.yearNumber() - 1) * 2 + 1;
                     int globalSem2 = globalSem1 + 1;

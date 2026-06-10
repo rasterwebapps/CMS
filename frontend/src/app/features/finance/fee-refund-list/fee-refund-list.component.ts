@@ -15,6 +15,9 @@ import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.p
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { FEE_REFUND_LIST_TOUR } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
@@ -28,7 +31,7 @@ type PanelMode = 'view' | 'approve' | 'reject';
   imports: [
     FormsModule, ReactiveFormsModule,
     InrPipe, PaymentModeLabelPipe, AppDatePipe,
-    CmsEmptyStateComponent, CashDenominationComponent,
+    CmsEmptyStateComponent, CashDenominationComponent, CmsTourButtonComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
   ],
@@ -39,6 +42,7 @@ export class FeeRefundListComponent implements OnInit {
   private readonly financeService = inject(FinanceService);
   private readonly toast          = inject(ToastService);
   private readonly fb             = inject(FormBuilder);
+  private readonly tourService    = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(v: MatPaginator) { if (v) this.dataSource.paginator = v; }
   @ViewChild(MatSort)      set sort(v: MatSort)           { if (v) this.dataSource.sort = v; }
@@ -120,7 +124,10 @@ export class FeeRefundListComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.tourService.register('fee-refund-list', FEE_REFUND_LIST_TOUR);
+    this.load();
+  }
 
   private get today(): string {
     return new Date().toISOString().split('T')[0];

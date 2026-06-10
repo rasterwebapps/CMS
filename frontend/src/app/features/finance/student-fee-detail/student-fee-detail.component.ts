@@ -11,6 +11,8 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { ToastService } from '../../../core/toast/toast.service';
 import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 import { printFeeReceipt, downloadFeeReceipt } from '../../../shared/utils/print-receipt.utils';
+import { TourService } from '../../../shared/tour/tour.service';
+import { STUDENT_FEE_DETAIL_TOUR } from '../../../shared/tour/tours/finance.tours';
 
 export interface ReceiptGroup {
   receiptNumber: string;
@@ -22,6 +24,8 @@ export interface ReceiptGroup {
   originalReceiptNumber: string | null;
   lines: Receipt[];
 }
+
+export type ReceiptGroupWithBalance = ReceiptGroup & { runningBalance: number | null };
 
 @Component({
   selector: 'app-student-fee-detail',
@@ -38,6 +42,7 @@ export class StudentFeeDetailComponent implements OnInit {
   private readonly finance = inject(FinanceService);
   private readonly toast   = inject(ToastService);
   private readonly dialog  = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading             = signal(true);
   protected readonly initializing        = signal(false);
@@ -45,6 +50,24 @@ export class StudentFeeDetailComponent implements OnInit {
   protected readonly allocation          = signal<StudentFeeAllocation | null>(null);
   protected readonly receiptGroups       = signal<ReceiptGroup[]>([]);
   protected readonly creditApplications  = signal<EnquiryCreditApplication[]>([]);
+
+  protected readonly receiptGroupsWithBalance = computed<ReceiptGroupWithBalance[]>(() => {
+    const groups = this.receiptGroups();
+    const fee    = this.totalFee();
+    if (groups.length === 0) return [];
+
+    const sorted = [...groups].sort((a, b) =>
+      new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime()
+    );
+
+    let runningNetPaid = 0;
+    const enriched = sorted.map(g => {
+      runningNetPaid += g.totalAmount;
+      return { ...g, runningBalance: fee > 0 ? fee - runningNetPaid : null };
+    });
+
+    return enriched.reverse();
+  });
 
   // ── Computed totals ──────────────────────────────────────────────────────────
   protected readonly totalFee = computed(() =>
@@ -188,7 +211,7 @@ export class StudentFeeDetailComponent implements OnInit {
       paymentDate:          group.paymentDate,
       paymentMode:          group.paymentMode ?? '',
       transactionReference: group.transactionReference || null,
-      feeCategory:          null as null,
+      feeCategory:          group.lines[0]?.feeCategory ?? null,
       installmentBreakdown: group.lines.map(l => ({
         installmentLabel: l.installmentLabel ?? '',
             amountApplied:    Math.abs(l.amountPaid),
@@ -217,5 +240,10 @@ export class StudentFeeDetailComponent implements OnInit {
       }
     }
     return Array.from(map.values());
+  }
+
+  protected startTour(): void {
+    this.tourService.register('student-fee-detail', STUDENT_FEE_DETAIL_TOUR);
+    this.tourService.start('student-fee-detail');
   }
 }

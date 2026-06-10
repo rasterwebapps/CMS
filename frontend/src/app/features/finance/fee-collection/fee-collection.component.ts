@@ -15,6 +15,9 @@ import { FinanceService } from '../finance.service';
 import { Enquiry, EnquiryPaymentRequest, EnquiryYearWiseFeeStatusResponse } from '../../enquiry/enquiry.model';
 import { StudentFeeSummary, InstallmentFeeDetail, ReceiptDisplayData } from '../finance.model';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { FEE_COLLECTION_TOUR, COLLECT_BALANCE_TOUR } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
@@ -53,6 +56,7 @@ export interface FeeEntry {
     MatIconModule, MatProgressSpinnerModule,
     MatTableModule, MatPaginatorModule, MatSortModule, MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsTourButtonComponent,
     CashDenominationComponent,
     FeeReceiptDialogComponent,
   ],
@@ -65,6 +69,7 @@ export class FeeCollectionComponent implements OnInit {
   private readonly financeService = inject(FinanceService);
   private readonly toast          = inject(ToastService);
   private readonly fb             = inject(FormBuilder);
+  private readonly tourService    = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -133,6 +138,7 @@ export class FeeCollectionComponent implements OnInit {
       const fs = this.feeStatus();
       if (!fs) return [];
       const sems = fs.installmentBreakdown;
+      const immediatePayableIndex = sems.findIndex(s => s.outstanding > 0);
       return sems.map((s, i) => ({
         label:       s.installmentLabel,
         fee:         s.allocatedFee,
@@ -140,10 +146,11 @@ export class FeeCollectionComponent implements OnInit {
         outstanding: s.outstanding,
         dueDate:     s.dueDate,
         isPaid:      s.outstanding === 0,
-        isNext:      s.outstanding > 0 && (i === 0 || sems[i - 1].outstanding === 0),
+        isNext:      i === immediatePayableIndex,
       }));
     } else {
       const sems = this.studentSemesters();
+      const immediatePayableIndex = sems.findIndex(s => s.pendingAmount > 0);
       return sems.map((s, i) => ({
         label:       s.installmentLabel,
         fee:         s.amount,
@@ -151,7 +158,7 @@ export class FeeCollectionComponent implements OnInit {
         outstanding: s.pendingAmount,
         dueDate:     s.dueDate,
         isPaid:      s.pendingAmount === 0,
-        isNext:      s.pendingAmount > 0 && (i === 0 || sems[i - 1].pendingAmount === 0),
+        isNext:      i === immediatePayableIndex,
       }));
     }
   });
@@ -194,6 +201,8 @@ export class FeeCollectionComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('fee-collection', FEE_COLLECTION_TOUR);
+    this.tourService.register('collect-balance', COLLECT_BALANCE_TOUR);
     this.loadAll(() => this.applyDeepLink());
   }
 
@@ -299,7 +308,7 @@ export class FeeCollectionComponent implements OnInit {
         next: (fs) => {
           this.feeStatus.set(fs);
           const sems = fs.installmentBreakdown;
-          const nextSem = sems.find((s, i) => s.outstanding > 0 && (i === 0 || sems[i - 1].outstanding === 0));
+          const nextSem = sems.find(s => s.outstanding > 0);
           const prefill = nextSem ? nextSem.outstanding : fs.totalOutstanding;
           if (!this.form.get('amount')?.value) {
             this.form.patchValue({ amount: prefill > 0 ? prefill : null });
@@ -314,7 +323,7 @@ export class FeeCollectionComponent implements OnInit {
         next: (alloc) => {
           this.studentSemesters.set(alloc.installmentFees);
           const sems = alloc.installmentFees;
-          const nextSem = sems.find((s, i) => s.pendingAmount > 0 && (i === 0 || sems[i - 1].pendingAmount === 0));
+          const nextSem = sems.find(s => s.pendingAmount > 0);
           const prefill = nextSem ? nextSem.pendingAmount : sems.reduce((acc, sf) => acc + sf.pendingAmount, 0);
           if (!this.form.get('amount')?.value) {
             this.form.patchValue({ amount: prefill > 0 ? prefill : null });

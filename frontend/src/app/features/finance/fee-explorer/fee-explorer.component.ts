@@ -9,6 +9,9 @@ import { StudentFeeSummary } from '../finance.model';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { FEE_EXPLORER_TOUR } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { computeInitials } from '../../../shared/utils/initials';
 
@@ -17,7 +20,7 @@ import { computeInitials } from '../../../shared/utils/initials';
   standalone: true,
   imports: [
     InrPipe, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatTooltipModule, CmsEmptyStateComponent, CmsStatusBadgeComponent,
+    MatTooltipModule, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent,
   ],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',
@@ -26,6 +29,7 @@ export class FeeExplorerComponent implements OnInit {
   private readonly financeService = inject(FinanceService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -44,6 +48,7 @@ export class FeeExplorerComponent implements OnInit {
   protected readonly computeInitials = computeInitials;
 
   ngOnInit(): void {
+    this.tourService.register('fee-explorer', FEE_EXPLORER_TOUR);
     this.dataSource.filterPredicate = (row: StudentFeeSummary, filter: string) => {
       if (!filter) return true;
       return row.studentName.toLowerCase().includes(filter) ||

@@ -72,16 +72,19 @@
     </div>
   }
 
-  <!-- ── Header ─────────────────────────────────────────────────────────── -->
-  <div class="mlp-hdr anim-rise">
-    <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Fee <em>Receipts</em></h1>
-      <p class="mlp-sub">All payment receipts — student fee installments and pre-enrollment collections.</p>
-    </div>
-  </div>
+   <!-- ── Header ─────────────────────────────────────────────────────────── -->
+   <div class="mlp-hdr anim-rise">
+     <div class="mlp-hdr-left">
+       <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+         <h1 class="mlp-title">Fee <em>Receipts</em></h1>
+         <cms-tour-button tourKey="receipts-list" [iconOnly]="true" iconVariant="info-circle" />
+       </div>
+       <p class="mlp-sub">All payment receipts — student fee installments and pre-enrollment collections.</p>
+     </div>
+   </div>
 
-  <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+   <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+   <div id="tour-receipts-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <div class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -172,9 +175,9 @@
       <div class="loading-box">
         <mat-spinner diameter="36" aria-label="Loading receipts"></mat-spinner>
       </div>
-    } @else {
-      <div class="table-wrapper">
-      <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+     } @else {
+       <div class="table-wrapper">
+       <table id="tour-receipts-table" mat-table [dataSource]="dataSource" matSort class="modern-table">
 
         <ng-container matColumnDef="receiptNumber" sticky>
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Receipt No.</th>

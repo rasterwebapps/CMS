@@ -164,7 +164,7 @@ public class StudentController {
     }
 
     @GetMapping("/{id}/program-transfers")
-    @PreAuthorize("@perm.has('STUDENT_VIEW', 'STUDENT_EDIT')")
+    @PreAuthorize("@perm.hasAny('STUDENT_VIEW', 'STUDENT_EDIT')")
     public ResponseEntity<List<ProgramTransferRecord>> getTransferHistory(@PathVariable Long id) {
         return ResponseEntity.ok(studentService.getTransferHistory(id));
     }

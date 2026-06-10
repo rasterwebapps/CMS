@@ -248,6 +248,7 @@ export interface Receipt {
   createdAt: string;
   receiptType: 'PAYMENT' | 'ENQUIRY_PAYMENT' | 'REFUND';
   originalReceiptNumber: string | null;
+  feeCategory: 'TUITION_ONLY' | 'TUITION_AND_HOSTEL' | null;
 }
 
 export interface ReceiptSummary {

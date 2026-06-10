@@ -168,7 +168,7 @@ public class FeeReportService {
 
         List<SemesterFeePreview> previews = new ArrayList<>();
         for (YearFeeFromEnquiry yearFee : yearFees) {
-            BigDecimal firstAmount = yearFee.amount().divide(BigDecimal.TWO, 2, RoundingMode.FLOOR);
+            BigDecimal firstAmount = yearFee.amount().divide(BigDecimal.TWO, 0, RoundingMode.FLOOR);
             BigDecimal secondAmount = yearFee.amount().subtract(firstAmount);
             int firstSequence = (yearFee.yearNumber() - 1) * 2 + 1;
             int secondSequence = firstSequence + 1;

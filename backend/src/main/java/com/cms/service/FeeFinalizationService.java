@@ -181,7 +181,7 @@ public class FeeFinalizationService {
 
         List<SemesterFee> semesterFees = new ArrayList<>();
         for (StudentFeeAllocationRequest.YearFee yearFee : request.yearFees()) {
-            BigDecimal sem1Amount = yearFee.amount().divide(BigDecimal.TWO, 2, RoundingMode.FLOOR);
+            BigDecimal sem1Amount = yearFee.amount().divide(BigDecimal.TWO, 0, RoundingMode.FLOOR);
             BigDecimal sem2Amount = yearFee.amount().subtract(sem1Amount);
 
             int targetStartYear = joiningStartYear + (yearFee.yearNumber() - 1);

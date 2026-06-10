@@ -551,7 +551,11 @@ $ctrl-h: var(--cms-list-filter-height);
 // ── Legacy Direct Admit badge ────────────────────────────────────
 
 .status-cell {
-  display: flex;
+  text-align: center;
+}
+
+.status-cell-content {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
