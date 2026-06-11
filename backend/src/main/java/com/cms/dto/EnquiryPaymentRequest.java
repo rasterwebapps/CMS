@@ -7,10 +7,11 @@ import com.cms.model.enums.PaymentMode;
 import com.cms.validation.TransactionReferenceRequired;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 @TransactionReferenceRequired
 public record EnquiryPaymentRequest(
-    @NotNull BigDecimal amountPaid,
+    @NotNull @Positive BigDecimal amountPaid,
     @NotNull LocalDate paymentDate,
     @NotNull PaymentMode paymentMode,
     String transactionReference,

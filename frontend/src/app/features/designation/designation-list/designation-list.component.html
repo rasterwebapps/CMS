@@ -1,10 +1,11 @@
 <div class="dept-list-page">
 
   <!-- ── Page Header ─────────────────────────────────────────── -->
-  <div class="dept-pg-hdr anim-rise">
+  <div id="tour-dsg-header" class="dept-pg-hdr anim-rise">
     <div class="dept-pg-left">
       <div class="page-title-row">
         <h1 class="dept-pg-title">Faculty <em>Designations</em></h1>
+        <cms-tour-button tourKey="designation-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="dept-pg-sub">Manage designation titles used across faculty profiles</p>
     </div>
@@ -18,7 +19,7 @@
 
   <!-- ── Toolbar ───────────────────────────────────────────────── -->
   <div class="dept-toolbar anim-rise anim-rise--d1">
-    <div class="search-bar" role="search">
+    <div id="tour-dsg-search" class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input
         class="search-bar__input"
@@ -34,10 +35,12 @@
         </button>
       }
     </div>
-    <div style="margin-left:auto">
+    <div id="tour-dsg-view-toggle" style="margin-left:auto">
       <cms-view-toggle [mode]="viewMode()" storageKey="designation-view" (modeChange)="setViewMode($event)" />
     </div>
   </div>
+
+  <div id="tour-dsg-content">
 
   <!-- ── Loading ───────────────────────────────────────────────── -->
   @if (loading()) {
@@ -129,5 +132,6 @@
       </div>
     }
   }
+  </div>
 
 </div>

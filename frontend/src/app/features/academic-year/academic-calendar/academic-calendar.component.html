@@ -1,6 +1,7 @@
 <div class="list-page" #calendarPrintArea>
   <app-page-header title="Academic Calendar" subtitle="Term timeline, events and holidays">
-    <div actions class="header-actions">
+    <div id="tour-cal-header" actions class="header-actions">
+      <cms-tour-button tourKey="academic-calendar" [iconOnly]="true" iconVariant="info-circle" />
       <!-- Year Selector -->
       @if (allAcademicYears().length > 1) {
         <select class="year-select" [value]="selectedAcademicYear()?.id" (change)="selectYearFromEvent($event)">
@@ -49,7 +50,7 @@
   } @else {
     <!-- ── Stats Strip ── -->
     @if (stats(); as s) {
-      <div class="stats-strip">
+      <div id="tour-cal-stats" class="stats-strip">
         <div class="stat-card c-accent">
           <span class="stat-value font-mono">{{ s.totalWeeks }}</span>
           <span class="stat-label">Total Weeks</span>
@@ -70,6 +71,7 @@
     }
 
     <!-- ── Upcoming Events Alert ── -->
+    <div id="tour-cal-events">
     @if (upcomingEvents().length > 0) {
       <div class="upcoming-banner">
         <mat-icon class="upcoming-icon">notifications_active</mat-icon>
@@ -88,6 +90,7 @@
         </div>
       </div>
     }
+    </div>
 
     <!-- ── Current Year Card ── -->
     <div class="content-card current-year-card">
@@ -109,7 +112,7 @@
     </div>
 
     <!-- ── View Toggle ── -->
-    <div class="view-bar">
+    <div id="tour-cal-view-toggle" class="view-bar">
       <h3 class="section-title">Terms</h3>
       <div class="view-toggle" role="group" aria-label="Toggle calendar view">
         <button type="button" class="view-toggle__btn" [class.view-toggle__btn--active]="viewMode() === 'timeline'" (click)="viewMode.set('timeline')">
@@ -132,7 +135,7 @@
           />
         </div>
       } @else {
-        <div class="semester-timeline">
+        <div id="tour-cal-terms" class="semester-timeline">
           @for (term of termInstances(); track term.id; let i = $index) {
             <div class="timeline-item" [class.is-current]="getTermStatus(term) === 'ONGOING'">
               <!-- Marker -->

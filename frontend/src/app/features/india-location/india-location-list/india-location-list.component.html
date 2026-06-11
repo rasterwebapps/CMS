@@ -1,9 +1,12 @@
 <div class="mlp-page">
 
   <!-- Header -->
-  <div class="mlp-hdr anim-rise">
+  <div id="tour-location-header" class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Location <em>Master</em></h1>
+      <div class="page-title-row">
+        <h1 class="mlp-title">Location <em>Master</em></h1>
+        <cms-tour-button tourKey="india-location-list" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">Manage countries, states / UTs and their districts</p>
     </div>
     @if (canManage()) {
@@ -28,7 +31,7 @@
 
   <!-- Toolbar -->
   <div class="mlp-toolbar anim-rise anim-rise--d1">
-    <div class="search-bar" role="search" style="flex:1; min-width:200px; max-width:380px;">
+    <div id="tour-location-search" class="search-bar" role="search" style="flex:1; min-width:200px; max-width:380px;">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -45,7 +48,9 @@
         </button>
       }
     </div>
-    <cms-view-toggle [mode]="viewMode()" storageKey="india-location-list-view-mode" (modeChange)="setViewMode($event)" />
+    <div id="tour-location-tabs">
+      <cms-view-toggle [mode]="viewMode()" storageKey="india-location-list-view-mode" (modeChange)="setViewMode($event)" />
+    </div>
   </div>
 
   @if (loading()) {
@@ -55,6 +60,7 @@
       }
     </div>
   } @else {
+    <div id="tour-location-table">
 
     <!-- Card view: Country → State → District accordion -->
     @if (viewMode() === 'card') {
@@ -334,6 +340,7 @@
         <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="25" showFirstLastButtons />
       </div>
     }
+    </div>
   }
 
 </div>

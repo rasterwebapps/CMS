@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Student Management tour coverage**
   - Added `Take a Tour` support to `Scholarship Applications` and `Data Import`, covering every submenu item under the Student Management navigation group
   - Added guided tour definitions and stable tour anchors for the scholarship approval queue and the four-step student import workflow
+- **Preferences frequent screens tour coverage**
+  - Added `Take a Tour` support and stable tour anchors for Academic Calendar, Number Sequences, Faculty Document Config, Scholarship Types, and Location Master
+  - Completed tour-button integration and selector wiring for Designations, Communities, Blood Groups, and Blood Group form screens
 - **Student Fee Payment History Refund Timeline**
   - `GET /api/v1/student-fees/{studentId}/receipts` now includes approved refund vouchers as negative entries
   - Student fee detail payment history shows refund vouchers with original receipt traceability

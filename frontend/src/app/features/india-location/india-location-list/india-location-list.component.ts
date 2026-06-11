@@ -17,6 +17,9 @@ import { Country, IndiaState, IndiaDistrict } from '../india-location.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { INDIA_LOCATION_LIST_TOUR } from '../../../shared/tour/tours/india-location.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 
@@ -32,6 +35,7 @@ import { PermissionService } from '../../../core/permissions/permission.service'
     MatTooltipModule,
     CmsEmptyStateComponent,
     CmsViewToggleComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './india-location-list.component.html',
   styleUrl: './india-location-list.component.scss',
@@ -42,6 +46,7 @@ export class IndiaLocationListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly permissionService = inject(PermissionService);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(v: MatPaginator) {
     if (v) this.dataSource.paginator = v;
@@ -92,6 +97,7 @@ export class IndiaLocationListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('india-location-list', INDIA_LOCATION_LIST_TOUR);
     this.load();
   }
 

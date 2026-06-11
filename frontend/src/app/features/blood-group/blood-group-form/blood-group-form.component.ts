@@ -47,6 +47,7 @@ export class BloodGroupFormComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly http = inject(HttpClient);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -99,6 +100,7 @@ export class BloodGroupFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('blood-group-form', BLOOD_GROUP_FORM_TOUR);
     const id = this.route.snapshot.paramMap.get('id');
     if (id && id !== 'new') {
       this.itemId = Number(id);

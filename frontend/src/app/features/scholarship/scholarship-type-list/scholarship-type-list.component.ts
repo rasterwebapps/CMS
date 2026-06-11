@@ -7,13 +7,16 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { SCHOLARSHIP_TYPE_LIST_TOUR } from '../../../shared/tour/tours/scholarship.tours';
 import { ScholarshipType } from '../scholarship.model';
 import { ScholarshipService } from '../scholarship.service';
 
 @Component({
   selector: 'app-scholarship-type-list',
   standalone: true,
-  imports: [RouterLink, MatIconModule, MatProgressSpinnerModule, MatTableModule, MatSortModule, InrPipe, CmsEmptyStateComponent],
+  imports: [RouterLink, MatIconModule, MatProgressSpinnerModule, MatTableModule, MatSortModule, InrPipe, CmsEmptyStateComponent, CmsTourButtonComponent],
   templateUrl: './scholarship-type-list.component.html',
   styleUrl: './scholarship-type-list.component.scss',
 })
@@ -21,6 +24,7 @@ export class ScholarshipTypeListComponent implements OnInit {
   private readonly scholarshipService = inject(ScholarshipService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
@@ -38,6 +42,7 @@ export class ScholarshipTypeListComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('scholarship-type-list', SCHOLARSHIP_TYPE_LIST_TOUR);
     this.load();
   }
 

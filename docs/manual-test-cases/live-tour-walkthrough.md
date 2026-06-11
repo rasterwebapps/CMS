@@ -294,6 +294,27 @@ built on Angular CDK Overlay (`TourService`, `TourSpotlightComponent`, `TourTool
 
 ---
 
+## TC-TOUR-023: Frequently used Preferences screens expose and launch Take a Tour
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or another role that can access Preferences screens.
+- Application is running.
+
+**Steps:**
+1. Open each frequently used Preferences screen: Designations, Academic Calendar, Number Sequences, Faculty Document Config, Scholarship Types, Communities, Blood Groups, and Location Master.
+2. Verify a **Take a Tour** button is visible in each screen header area.
+3. Click **Take a Tour** on each screen and step through all tour steps.
+4. Open Blood Group create/edit form and verify the form also exposes **Take a Tour**.
+
+**Expected Result:**
+- Every listed screen launches its own tour without console errors.
+- Tour steps highlight stable anchors for header, search/filter controls, view toggle/content areas, and screen-specific sections.
+- Blood Group form tour highlights name, code, active toggle, and submit action.
+
+**Status:** NOT TESTED
+
+---
+
 ## TC-TOUR-013: Event-driven step (Step 3) — "Next" is disabled until interaction
 
 **Preconditions:**

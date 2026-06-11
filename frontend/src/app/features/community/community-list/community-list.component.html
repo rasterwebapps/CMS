@@ -1,9 +1,12 @@
 <div class="mlp-page">
 
   <!-- Header -->
-  <div class="mlp-hdr anim-rise">
+  <div id="tour-community-header" class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Community <em>Master</em></h1>
+      <div class="page-title-row">
+        <h1 class="mlp-title">Community <em>Master</em></h1>
+        <cms-tour-button tourKey="community-list" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">Manage community categories used in student demographics</p>
     </div>
     @if (canManage()) {
@@ -19,7 +22,7 @@
 
   <!-- Toolbar -->
   <div class="mlp-toolbar anim-rise anim-rise--d1">
-    <div class="search-bar" role="search" style="flex:1; min-width:200px; max-width:380px;">
+    <div id="tour-community-search" class="search-bar" role="search" style="flex:1; min-width:200px; max-width:380px;">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -35,8 +38,12 @@
         </button>
       }
     </div>
-    <cms-view-toggle [mode]="viewMode()" storageKey="community-list-view-mode" (modeChange)="setViewMode($event)" />
+    <div id="tour-community-view-toggle">
+      <cms-view-toggle [mode]="viewMode()" storageKey="community-list-view-mode" (modeChange)="setViewMode($event)" />
+    </div>
   </div>
+
+  <div id="tour-community-content">
 
   <!-- Loading / content -->
   @if (loading()) {
@@ -172,6 +179,7 @@
     </div>
     }
   }
+  </div>
 
 </div>
 

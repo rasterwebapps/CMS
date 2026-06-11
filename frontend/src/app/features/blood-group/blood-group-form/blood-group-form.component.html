@@ -20,6 +20,7 @@
     <div class="entry-form-hdr-text">
       <div class="page-title-row">
         <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Blood Group</em></h1>
+        <cms-tour-button tourKey="blood-group-form" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="page-subtitle">
         {{
@@ -110,7 +111,7 @@
               </div>
             </div>
 
-            <div class="field-group" style="margin-bottom: 0">
+            <div id="tour-bg-active" class="field-group" style="margin-bottom: 0">
               <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
               <p class="field-hint">
                 Inactive blood groups are hidden from new student forms but kept for historical
@@ -121,7 +122,7 @@
 
           <div class="entry-form-card__footer">
             <button type="button" class="btn-cancel" routerLink="/blood-groups">Cancel</button>
-            <button type="submit" class="btn-submit" [disabled]="saving()">
+            <button id="tour-bg-submit" type="submit" class="btn-submit" [disabled]="saving()">
               @if (saving()) {
                 <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
               } @else {

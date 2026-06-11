@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -13,6 +14,8 @@ import com.cms.model.Enquiry;
 import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.Gender;
+
+import jakarta.persistence.LockModeType;
 
 public interface EnquiryRepository extends JpaRepository<Enquiry, Long> {
 
@@ -25,6 +28,11 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long> {
     List<Enquiry> findByAgentId(Long agentId);
 
     Optional<Enquiry> findByConvertedStudentId(Long studentId);
+
+    /** Acquires a row-level write lock — use only inside a write @Transactional. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT e FROM Enquiry e WHERE e.id = :id")
+    Optional<Enquiry> findByIdForUpdate(@Param("id") Long id);
 
     List<Enquiry> findByEnquiryDateBetween(LocalDate fromDate, LocalDate toDate);
 

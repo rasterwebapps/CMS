@@ -7,7 +7,10 @@
       </a>
     </div>
     <div class="page-header__content">
-      <h1 class="page-title">Faculty Document Requirements</h1>
+      <div class="page-title-row">
+        <h1 class="page-title">Faculty Document Requirements</h1>
+        <cms-tour-button tourKey="faculty-doc-config" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         Define which documents are required from faculty based on their designation,
         speciality, or highest qualification. A document becomes required when
@@ -17,7 +20,7 @@
   </div>
 
   <!-- Add Rule Form -->
-  <div class="card add-rule-card">
+  <div id="tour-fdoc-add-form" class="card add-rule-card">
     <h2 class="section-title">Add Requirement Rule</h2>
     <p class="section-hint">
       Select a document type and at least one criterion (designation, speciality, or qualification).
@@ -81,7 +84,7 @@
   </div>
 
   <!-- Rules Table -->
-  <div class="card">
+  <div id="tour-fdoc-table" class="card">
     <h2 class="section-title">
       Configured Rules
       @if (!loading()) {

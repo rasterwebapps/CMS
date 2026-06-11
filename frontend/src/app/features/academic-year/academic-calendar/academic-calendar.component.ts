@@ -35,6 +35,9 @@ import { PrintService } from '../../../core/print/print.service';
 import { CsvExporterService } from '../../../core/export/csv-exporter.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { ACADEMIC_CALENDAR_TOUR } from '../../../shared/tour/tours/academic-calendar.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 export type CalendarViewMode = 'timeline' | 'grid';
@@ -92,6 +95,7 @@ const EVENT_TYPE_ICONS: Record<CalendarEventType, string> = {
     MatTooltipModule,
     PageHeaderComponent,
     CmsEmptyStateComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './academic-calendar.component.html',
   styleUrl: './academic-calendar.component.scss',
@@ -103,6 +107,7 @@ export class AcademicCalendarComponent implements OnInit {
   private readonly printService = inject(PrintService);
   private readonly csvExporter = inject(CsvExporterService);
   protected readonly permissionService = inject(PermissionService);
+  private readonly tourService = inject(TourService);
 
   @ViewChild('calendarPrintArea') calendarPrintArea!: ElementRef<HTMLElement>;
 
@@ -210,6 +215,7 @@ export class AcademicCalendarComponent implements OnInit {
   );
 
   ngOnInit(): void {
+    this.tourService.register('academic-calendar', ACADEMIC_CALENDAR_TOUR);
     this.loadAll();
   }
 

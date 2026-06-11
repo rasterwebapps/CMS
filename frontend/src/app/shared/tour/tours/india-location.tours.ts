@@ -26,7 +26,7 @@ export const INDIA_LOCATION_LIST_TOUR: TourDefinition = {
       popover: {
         title: 'Search Locations',
         description:
-          'Type a state name, country, or district to instantly filter across all tabs.',
+          'Type a state name, country, or code to instantly filter the list.',
         side: 'bottom',
         align: 'start',
       },
@@ -34,9 +34,9 @@ export const INDIA_LOCATION_LIST_TOUR: TourDefinition = {
     {
       element: '#tour-location-tabs',
       popover: {
-        title: 'States / Districts / Countries Tabs',
+        title: 'Card / Table View Toggle',
         description:
-          'Switch between <strong>States</strong>, <strong>Districts</strong>, and <strong>Countries</strong> tabs to manage each level of the location hierarchy independently.',
+          'Switch between <strong>Card view</strong> (country to state to district hierarchy) and <strong>Table view</strong> (flat state list). Your preference is saved.',
         side: 'bottom',
         align: 'start',
       },
@@ -46,7 +46,7 @@ export const INDIA_LOCATION_LIST_TOUR: TourDefinition = {
       popover: {
         title: 'Location Table',
         description:
-          'Each row shows the entry\'s name, code, and parent (where applicable). Admins can use the action icons to <strong>Edit</strong> or <strong>Delete</strong> an entry.',
+          'This content area shows the managed location hierarchy. Admins can add, edit, or delete countries, states, and districts from card or table view.',
         side: 'top',
         align: 'start',
       },

@@ -76,7 +76,7 @@ public class PaymentCollectionService {
         Student student = studentRepository.findById(studentId)
             .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
 
-        StudentFeeAllocation allocation = allocationRepository.findByStudentId(studentId)
+        StudentFeeAllocation allocation = allocationRepository.findByStudentIdForUpdate(studentId)
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Fee allocation not found for student: " + student.getRollNumber()));
 

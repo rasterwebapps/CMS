@@ -1,14 +1,17 @@
 <div class="mlp-page">
-  <div class="mlp-hdr anim-rise">
+  <div id="tour-scholarship-header" class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Scholarship <em>Types</em></h1>
+      <div class="page-title-row">
+        <h1 class="mlp-title">Scholarship <em>Types</em></h1>
+        <cms-tour-button tourKey="scholarship-type-list" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">Manage scholarship master schemes, discount rules and renewal settings.</p>
     </div>
     <button class="btn-primary" routerLink="/scholarships/new"><mat-icon>add</mat-icon> Add Scholarship</button>
   </div>
 
   <div class="mlp-toolbar anim-rise anim-rise--d1">
-    <div class="search-bar" role="search">
+    <div id="tour-scholarship-search" class="search-bar" role="search">
       <span class="search-bar__icon">⌕</span>
       <input class="search-bar__input" [value]="searchValue()" (input)="applySearch($event)" placeholder="Search scholarships…" />
       @if (searchValue()) { <button class="search-bar__clear" (click)="clearSearch()">×</button> }
@@ -20,7 +23,7 @@
   } @else if (filteredScholarships().length === 0) {
     <cms-empty-state icon="school" title="No scholarships found" subtitle="Create a scholarship type to get started." actionLabel="Add Scholarship" />
   } @else {
-    <div class="content-card mlp-table-card">
+    <div id="tour-scholarship-table" class="content-card mlp-table-card">
       <div class="table-wrapper">
       <table mat-table [dataSource]="filteredScholarships()" matSort (matSortChange)="onSort($event)" class="modern-table">
         <ng-container matColumnDef="code">

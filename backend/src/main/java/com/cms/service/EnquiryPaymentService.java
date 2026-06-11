@@ -92,7 +92,7 @@ public class EnquiryPaymentService {
 
     @Transactional
     public EnquiryPaymentResponse collectPayment(Long enquiryId, EnquiryPaymentRequest request, String collectedBy) {
-        Enquiry enquiry = enquiryRepository.findById(enquiryId)
+        Enquiry enquiry = enquiryRepository.findByIdForUpdate(enquiryId)
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
 
         validatePaymentEligibility(enquiry);

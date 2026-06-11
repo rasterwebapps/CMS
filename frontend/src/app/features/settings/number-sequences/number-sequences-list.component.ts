@@ -7,6 +7,9 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { NUMBER_SEQUENCES_TOUR } from '../../../shared/tour/tours/number-sequences.tours';
 import { NumberSequence } from './number-sequence.model';
 import { NumberSequenceService } from './number-sequence.service';
 
@@ -17,6 +20,7 @@ import { NumberSequenceService } from './number-sequence.service';
     FormsModule,
     AppDatePipe,
     CmsEmptyStateComponent,
+    CmsTourButtonComponent,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
@@ -28,6 +32,7 @@ import { NumberSequenceService } from './number-sequence.service';
 export class NumberSequencesListComponent implements OnInit {
   private readonly numberSequenceService = inject(NumberSequenceService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -81,6 +86,7 @@ export class NumberSequencesListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('number-sequences-list', NUMBER_SEQUENCES_TOUR);
     this.load();
   }
 

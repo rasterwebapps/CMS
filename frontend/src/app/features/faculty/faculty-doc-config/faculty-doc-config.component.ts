@@ -25,6 +25,9 @@ import { DocumentTypeInfo } from '../../program/program.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { FACULTY_DOC_CONFIG_TOUR } from '../../../shared/tour/tours/faculty-doc-config.tours';
 
 @Component({
   selector: 'app-faculty-doc-config',
@@ -41,6 +44,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
     MatDialogModule,
     MatProgressSpinnerModule,
     CmsEmptyStateComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './faculty-doc-config.component.html',
   styleUrl: './faculty-doc-config.component.scss',
@@ -52,6 +56,7 @@ export class FacultyDocConfigComponent implements OnInit {
   private readonly programService = inject(ProgramService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -95,6 +100,7 @@ export class FacultyDocConfigComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('faculty-doc-config', FACULTY_DOC_CONFIG_TOUR);
     this.loadAll();
   }
 

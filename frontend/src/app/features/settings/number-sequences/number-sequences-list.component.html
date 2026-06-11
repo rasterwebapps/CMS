@@ -1,13 +1,16 @@
 <div class="mlp-page">
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Number <em>Sequences</em></h1>
+      <div class="page-title-row">
+        <h1 class="mlp-title">Number <em>Sequences</em></h1>
+        <cms-tour-button tourKey="number-sequences-list" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">View reusable application-wide generated number series.</p>
     </div>
   </div>
 
   <div class="mlp-toolbar anim-rise anim-rise--d1">
-    <div class="search-bar" role="search">
+    <div id="tour-numseq-search" class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -33,7 +36,7 @@
     </div>
   </div>
 
-  <div class="content-card mlp-table-card">
+  <div id="tour-numseq-table" class="content-card mlp-table-card">
     @if (loading()) {
       <div class="loading-box">
         <mat-spinner diameter="36" aria-label="Loading number sequences"></mat-spinner>

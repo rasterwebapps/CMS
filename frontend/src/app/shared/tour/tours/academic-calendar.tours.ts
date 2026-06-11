@@ -26,7 +26,7 @@ export const ACADEMIC_CALENDAR_TOUR: TourDefinition = {
       popover: {
         title: 'Stats Strip',
         description:
-          'At a glance: total weeks, number of terms, teaching days, holidays, and exam days in the selected academic year.',
+          'At a glance: total weeks, number of terms, days left in the current term, and total calendar events for the selected academic year.',
         side: 'bottom',
         align: 'start',
       },
@@ -36,7 +36,7 @@ export const ACADEMIC_CALENDAR_TOUR: TourDefinition = {
       popover: {
         title: 'Term Timeline',
         description:
-          'Each term is shown with its start and end dates, status (Upcoming / Ongoing / Completed), and a visual progress bar. Admins can add term instances via the <strong>Add Term</strong> button.',
+          'Each term is shown with start and end dates, status (Upcoming / Ongoing / Completed), and progress. Related events appear under each term in timeline mode.',
         side: 'top',
         align: 'start',
       },
@@ -56,7 +56,7 @@ export const ACADEMIC_CALENDAR_TOUR: TourDefinition = {
       popover: {
         title: 'Events & Holidays',
         description:
-          'Each event is colour-coded by type — <em>holiday</em>, <em>exam</em>, <em>institute event</em>, <em>term start/end</em>. Admins can edit or delete events using the action icons.',
+          'Upcoming events are highlighted and all events are colour-coded by type (holiday, exam, cultural, sports, workshop, other). Admins can edit or delete events using the action icons.',
         side: 'top',
         align: 'start',
       },
