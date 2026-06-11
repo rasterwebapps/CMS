@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.cms.model.enums.DemandStatus;
+import com.cms.dto.PaymentRowDto;
 
 public record StudentFeeLedgerDto(
     Long studentId,
@@ -19,6 +20,6 @@ public record StudentFeeLedgerDto(
         BigDecimal outstandingAmount,
         LocalDate dueDate,
         DemandStatus status,
-        List<TermFeePaymentDto> payments
+        List<PaymentRowDto> payments
     ) {}
 }

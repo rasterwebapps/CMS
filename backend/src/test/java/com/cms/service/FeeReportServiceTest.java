@@ -18,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.FeeCollectionSummaryDto;
 import com.cms.dto.StudentFeeLedgerDto;
-import com.cms.dto.TermFeePaymentDto;
 import com.cms.dto.YearFeeFromEnquiry;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
@@ -30,12 +29,10 @@ import com.cms.model.SemesterFee;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
 import com.cms.model.StudentTermEnrollment;
-import com.cms.model.TermFeePayment;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.DemandStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FeeAllocationStatus;
-import com.cms.model.enums.PaymentMode;
 import com.cms.model.enums.ProgramStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
@@ -46,15 +43,12 @@ import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
-import com.cms.repository.TermFeePaymentRepository;
 
 @ExtendWith(MockitoExtension.class)
 class FeeReportServiceTest {
 
     @Mock
     private FeeDemandRepository feeDemandRepository;
-    @Mock
-    private TermFeePaymentRepository paymentRepository;
     @Mock
     private StudentRepository studentRepository;
     @Mock
@@ -84,7 +78,7 @@ class FeeReportServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new FeeReportService(feeDemandRepository, paymentRepository,
+        service = new FeeReportService(feeDemandRepository,
             studentRepository, feeDemandService, allocationRepository, semesterFeeRepository,
             installmentRepository, enquiryRepository, enquiryPaymentRepository, feeFinalizationService);
 
@@ -181,37 +175,11 @@ class FeeReportServiceTest {
     }
 
     @Test
-    void shouldGetLateFeeCollection() {
-        TermFeePayment latePayment = buildPayment(new BigDecimal("500.00"));
-        when(feeDemandRepository.findByTermInstanceId(10L)).thenReturn(List.of(demand));
-        when(paymentRepository.findByFeeDemandId(800L)).thenReturn(List.of(latePayment));
-
-        List<TermFeePaymentDto> result = service.getLateFeeCollection(10L);
-
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).lateFeeApplied())
-            .isEqualByComparingTo(new BigDecimal("500.00"));
-    }
-
-    @Test
-    void shouldExcludeZeroLateFeePaymentsFromCollection() {
-        TermFeePayment noLatePayment = buildPayment(BigDecimal.ZERO);
-        when(feeDemandRepository.findByTermInstanceId(10L)).thenReturn(List.of(demand));
-        when(paymentRepository.findByFeeDemandId(800L)).thenReturn(List.of(noLatePayment));
-
-        List<TermFeePaymentDto> result = service.getLateFeeCollection(10L);
-
-        assertThat(result).isEmpty();
-    }
-
-    @Test
     void shouldGetStudentLedger() {
-        TermFeePayment payment = buildPayment(BigDecimal.ZERO);
         when(studentRepository.findById(300L)).thenReturn(Optional.of(student));
         when(allocationRepository.findByStudentId(300L)).thenReturn(Optional.empty());
         when(feeDemandRepository.findByStudentTermEnrollmentStudentId(300L))
             .thenReturn(List.of(demand));
-        when(paymentRepository.findByFeeDemandId(800L)).thenReturn(List.of(payment));
 
         StudentFeeLedgerDto ledger = service.getStudentLedger(300L);
 
@@ -220,7 +188,7 @@ class FeeReportServiceTest {
         assertThat(ledger.entries()).hasSize(1);
         StudentFeeLedgerDto.LedgerEntry entry = ledger.entries().get(0);
         assertThat(entry.demandId()).isEqualTo(800L);
-        assertThat(entry.payments()).hasSize(1);
+        assertThat(entry.payments()).isEmpty();
     }
 
     @Test
@@ -295,19 +263,5 @@ class FeeReportServiceTest {
         d.setCreatedAt(Instant.now());
         d.setUpdatedAt(Instant.now());
         return d;
-    }
-
-    private TermFeePayment buildPayment(BigDecimal lateFee) {
-        TermFeePayment p = new TermFeePayment();
-        p.setId(1000L);
-        p.setFeeDemand(demand);
-        p.setPaymentDate(LocalDate.of(2026, 7, 30));
-        p.setAmountPaid(new BigDecimal("50000.00"));
-        p.setLateFeeApplied(lateFee);
-        p.setPaymentMode(PaymentMode.CASH);
-        p.setReceiptNumber("RCP-20260730-0001");
-        p.setCreatedAt(Instant.now());
-        p.setUpdatedAt(Instant.now());
-        return p;
     }
 }

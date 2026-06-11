@@ -2,7 +2,6 @@ package com.cms.validation;
 
 import com.cms.dto.CollectPaymentRequest;
 import com.cms.dto.EnquiryPaymentRequest;
-import com.cms.dto.TermFeePaymentRequest;
 import com.cms.model.enums.PaymentMode;
 
 import jakarta.validation.ConstraintValidator;
@@ -26,9 +25,6 @@ public class TransactionReferenceValidator
 
         // Extract fields based on the DTO type
         if (value instanceof EnquiryPaymentRequest req) {
-            paymentMode = req.paymentMode();
-            transactionReference = req.transactionReference();
-        } else if (value instanceof TermFeePaymentRequest req) {
             paymentMode = req.paymentMode();
             transactionReference = req.transactionReference();
         } else if (value instanceof CollectPaymentRequest req) {

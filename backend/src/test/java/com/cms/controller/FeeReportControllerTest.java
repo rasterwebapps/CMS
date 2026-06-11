@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -20,9 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.cms.dto.FeeCollectionSummaryDto;
 import com.cms.dto.FeeDemandDto;
 import com.cms.dto.StudentFeeLedgerDto;
-import com.cms.dto.TermFeePaymentDto;
 import com.cms.model.enums.DemandStatus;
-import com.cms.model.enums.PaymentMode;
 import com.cms.service.FeeReportService;
 
 @WebMvcTest(controllers = FeeReportController.class)
@@ -64,20 +61,6 @@ class FeeReportControllerTest {
     }
 
     @Test
-    void shouldGetLateFeeCollection() throws Exception {
-        TermFeePaymentDto payment = new TermFeePaymentDto(1L, 1L, "Student A",
-            LocalDate.now(), BigDecimal.valueOf(5000), BigDecimal.valueOf(200),
-            BigDecimal.valueOf(5200), PaymentMode.CASH, "RCP-001",
-            "Late payment", DemandStatus.PAID, Instant.now(), Instant.now());
-        when(feeReportService.getLateFeeCollection(1L)).thenReturn(List.of(payment));
-
-        mockMvc.perform(get("/api/fee-reports/late-fee-collection").param("termInstanceId", "1"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].receiptNumber").value("RCP-001"));
-    }
-
-    @Test
     void shouldGetStudentLedger() throws Exception {
         StudentFeeLedgerDto ledger = new StudentFeeLedgerDto(1L, "Student A", List.of());
         when(feeReportService.getStudentLedger(1L)).thenReturn(ledger);
@@ -88,4 +71,3 @@ class FeeReportControllerTest {
             .andExpect(jsonPath("$.studentName").value("Student A"));
     }
 }
-

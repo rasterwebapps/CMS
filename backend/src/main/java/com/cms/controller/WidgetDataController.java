@@ -37,7 +37,7 @@ import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
 import com.cms.model.StudentTermEnrollment;
-import com.cms.model.TermFeePayment;
+import com.cms.model.FeeInstallment;
 import com.cms.model.enums.AdmissionCategory;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.EnrollmentStatus;
@@ -66,7 +66,7 @@ import com.cms.repository.ProgramRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
-import com.cms.repository.TermFeePaymentRepository;
+import com.cms.repository.FeeInstallmentRepository;
 import com.cms.service.DashboardService;
 
 /**
@@ -88,7 +88,7 @@ public class WidgetDataController {
     private final AdmissionRepository  admissionRepository;
     private final EnquiryRepository    enquiryRepository;
     private final FeeDemandRepository       feeDemandRepository;
-    private final TermFeePaymentRepository  termFeePaymentRepository;
+    private final FeeInstallmentRepository  feeInstallmentRepository;
     private final ProgramRepository         programRepository;
     private final StudentRepository         studentRepository;
     private final AgentRepository                   agentRepository;
@@ -110,7 +110,7 @@ public class WidgetDataController {
                                 AdmissionRepository admissionRepository,
                                 EnquiryRepository enquiryRepository,
                                 FeeDemandRepository feeDemandRepository,
-                                TermFeePaymentRepository termFeePaymentRepository,
+                                FeeInstallmentRepository feeInstallmentRepository,
                                 ProgramRepository programRepository,
                                 StudentRepository studentRepository,
                                 AgentRepository agentRepository,
@@ -131,7 +131,7 @@ public class WidgetDataController {
         this.admissionRepository = admissionRepository;
         this.enquiryRepository   = enquiryRepository;
         this.feeDemandRepository       = feeDemandRepository;
-        this.termFeePaymentRepository  = termFeePaymentRepository;
+        this.feeInstallmentRepository  = feeInstallmentRepository;
         this.programRepository         = programRepository;
         this.studentRepository         = studentRepository;
         this.agentRepository                  = agentRepository;
@@ -722,7 +722,7 @@ public class WidgetDataController {
     /**
      * Fee collection vs target (current month).
      * Target = sum of FeeDemand.totalAmount whose due-date falls in the current month.
-     * Collected = sum of TermFeePayment.amountPaid whose payment-date falls in the current month.
+     * Collected = sum of FeeInstallment.amountPaid whose payment-date falls in the current month.
      */
     @GetMapping("/fee-collection-target")
     @PreAuthorize("@perm.hasAny('STUDENT_FEE_VIEW','FEE_COLLECT','REPORT_VIEW')")
@@ -734,8 +734,8 @@ public class WidgetDataController {
         LocalDate prevStart = prev.atDay(1);
         LocalDate prevEnd   = prev.atEndOfMonth();
 
-        List<FeeDemand>       demands  = feeDemandRepository.findAll();
-        List<TermFeePayment>  payments = termFeePaymentRepository.findAll();
+        List<FeeDemand>      demands      = feeDemandRepository.findAll();
+        List<FeeInstallment> installments = feeInstallmentRepository.findAll();
 
         BigDecimal target = demands.stream()
             .filter(d -> d.getDueDate() != null
@@ -745,19 +745,19 @@ public class WidgetDataController {
             .filter(java.util.Objects::nonNull)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal collected = payments.stream()
+        BigDecimal collected = installments.stream()
             .filter(p -> p.getPaymentDate() != null
                       && !p.getPaymentDate().isBefore(nowStart)
                       && !p.getPaymentDate().isAfter(nowEnd))
-            .map(TermFeePayment::getAmountPaid)
+            .map(FeeInstallment::getAmountPaid)
             .filter(java.util.Objects::nonNull)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal lastMonth = payments.stream()
+        BigDecimal lastMonth = installments.stream()
             .filter(p -> p.getPaymentDate() != null
                       && !p.getPaymentDate().isBefore(prevStart)
                       && !p.getPaymentDate().isAfter(prevEnd))
-            .map(TermFeePayment::getAmountPaid)
+            .map(FeeInstallment::getAmountPaid)
             .filter(java.util.Objects::nonNull)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -1076,7 +1076,7 @@ public class WidgetDataController {
     public ResponseEntity<List<PaymentModeSlice>> getPaymentModeBreakdown() {
         Map<PaymentMode, BigDecimal> amountByMode = new LinkedHashMap<>();
         Map<PaymentMode, Long> countByMode = new LinkedHashMap<>();
-        for (TermFeePayment p : termFeePaymentRepository.findAll()) {
+        for (FeeInstallment p : feeInstallmentRepository.findAll()) {
             PaymentMode mode = p.getPaymentMode();
             if (mode == null) continue;
             amountByMode.merge(mode, orZero(p.getAmountPaid()), BigDecimal::add);
@@ -1202,9 +1202,9 @@ public class WidgetDataController {
         Instant tomorrowStart = today.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
         Instant thirtyDaysAgo = today.minusDays(30).atStartOfDay().toInstant(ZoneOffset.UTC);
 
-        BigDecimal todayCollection = termFeePaymentRepository.findAll().stream()
+        BigDecimal todayCollection = feeInstallmentRepository.findAll().stream()
             .filter(p -> today.equals(p.getPaymentDate()))
-            .map(TermFeePayment::getAmountPaid).filter(java.util.Objects::nonNull)
+            .map(FeeInstallment::getAmountPaid).filter(java.util.Objects::nonNull)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
         long todayAdmissions = studentRepository.findAll().stream().filter(s -> today.equals(s.getAdmissionDate())).count();
         long pendingDocs = enquiryDocumentRepository.findAll().stream()

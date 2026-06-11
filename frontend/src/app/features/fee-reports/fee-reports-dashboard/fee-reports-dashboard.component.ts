@@ -11,7 +11,6 @@ import {
   FeeCollectionSummary,
   FeeDemandReport,
   StudentFeeLedgerReport,
-  TermFeePaymentReport,
 } from '../fee-reports.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
@@ -52,7 +51,6 @@ export class FeeReportsDashboardComponent {
 
   protected readonly outstandingDemands = signal<FeeDemandReport[]>([]);
   protected readonly collectionSummary = signal<FeeCollectionSummary[]>([]);
-  protected readonly lateFeePayments = signal<TermFeePaymentReport[]>([]);
   protected readonly ledger = signal<StudentFeeLedgerReport | null>(null);
 
   protected readonly loading = signal(false);
@@ -111,22 +109,6 @@ export class FeeReportsDashboardComponent {
       },
       error: () => {
         this.toast.error('Failed to load collection summary');
-        this.loading.set(false);
-      },
-    });
-  }
-
-  loadLateFees(): void {
-    const termId = this.termFilterForm.value.termInstanceId;
-    if (!termId) return;
-    this.loading.set(true);
-    this.feeReportsService.getLateFeeCollection(Number(termId)).subscribe({
-      next: (data) => {
-        this.lateFeePayments.set(data);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.toast.error('Failed to load late fee collection');
         this.loading.set(false);
       },
     });

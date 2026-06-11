@@ -14,8 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.FeeDemandDto;
 import com.cms.dto.FeeCollectionSummaryDto;
+import com.cms.dto.PaymentRowDto;
 import com.cms.dto.StudentFeeLedgerDto;
-import com.cms.dto.TermFeePaymentDto;
 import com.cms.dto.YearFeeFromEnquiry;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.EnquiryPayment;
@@ -23,7 +23,6 @@ import com.cms.model.FeeDemand;
 import com.cms.model.FeeInstallment;
 import com.cms.model.SemesterFee;
 import com.cms.model.Student;
-import com.cms.model.TermFeePayment;
 import com.cms.model.enums.DemandStatus;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
@@ -32,14 +31,12 @@ import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
-import com.cms.repository.TermFeePaymentRepository;
 
 @Service
 @Transactional(readOnly = true)
 public class FeeReportService {
 
     private final FeeDemandRepository feeDemandRepository;
-    private final TermFeePaymentRepository paymentRepository;
     private final StudentRepository studentRepository;
     private final FeeDemandService feeDemandService;
     private final StudentFeeAllocationRepository allocationRepository;
@@ -50,7 +47,6 @@ public class FeeReportService {
     private final FeeFinalizationService feeFinalizationService;
 
     public FeeReportService(FeeDemandRepository feeDemandRepository,
-                             TermFeePaymentRepository paymentRepository,
                              StudentRepository studentRepository,
                              FeeDemandService feeDemandService,
                              StudentFeeAllocationRepository allocationRepository,
@@ -60,7 +56,6 @@ public class FeeReportService {
                              EnquiryPaymentRepository enquiryPaymentRepository,
                              FeeFinalizationService feeFinalizationService) {
         this.feeDemandRepository = feeDemandRepository;
-        this.paymentRepository = paymentRepository;
         this.studentRepository = studentRepository;
         this.feeDemandService = feeDemandService;
         this.allocationRepository = allocationRepository;
@@ -78,7 +73,6 @@ public class FeeReportService {
     public List<FeeCollectionSummaryDto> getCollectionSummary(Long termInstanceId) {
         List<FeeDemand> demands = feeDemandRepository.findByTermInstanceId(termInstanceId);
 
-        // Group by program
         Map<Long, ProgramAccumulator> accMap = new LinkedHashMap<>();
         for (FeeDemand demand : demands) {
             Long programId = demand.getStudentTermEnrollment().getCohort().getProgram().getId();
@@ -92,21 +86,6 @@ public class FeeReportService {
         return accMap.values().stream().map(ProgramAccumulator::toDto).toList();
     }
 
-    public List<TermFeePaymentDto> getLateFeeCollection(Long termInstanceId) {
-        List<FeeDemand> demands = feeDemandRepository.findByTermInstanceId(termInstanceId);
-        List<TermFeePaymentDto> result = new ArrayList<>();
-        for (FeeDemand demand : demands) {
-            List<TermFeePayment> payments = paymentRepository.findByFeeDemandId(demand.getId());
-            for (TermFeePayment p : payments) {
-                if (p.getLateFeeApplied() != null
-                        && p.getLateFeeApplied().compareTo(BigDecimal.ZERO) > 0) {
-                    result.add(toPaymentDto(p));
-                }
-            }
-        }
-        return result;
-    }
-
     public StudentFeeLedgerDto getStudentLedger(Long studentId) {
         Student student = studentRepository.findById(studentId)
             .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
@@ -118,17 +97,14 @@ public class FeeReportService {
 
         List<FeeDemand> demands = feeDemandRepository.findByStudentTermEnrollmentStudentId(studentId);
         if (!demands.isEmpty()) {
-            // Old FeeDemand-based flow — keep existing behaviour
             List<StudentFeeLedgerDto.LedgerEntry> entries = new ArrayList<>();
             for (FeeDemand demand : demands) {
                 String termLabel = demand.getTermInstance().getAcademicYear().getName()
                     + " " + demand.getTermInstance().getTermType();
-                List<TermFeePayment> payments = paymentRepository.findByFeeDemandId(demand.getId());
-                List<TermFeePaymentDto> paymentDtos = payments.stream().map(this::toPaymentDto).toList();
                 entries.add(new StudentFeeLedgerDto.LedgerEntry(
                     demand.getId(), termLabel,
                     demand.getTotalAmount(), demand.getPaidAmount(), demand.getOutstandingAmount(),
-                    demand.getDueDate(), demand.getStatus(), paymentDtos
+                    demand.getDueDate(), demand.getStatus(), List.of()
                 ));
             }
             return new StudentFeeLedgerDto(student.getId(), student.getFullName(), entries);
@@ -139,8 +115,6 @@ public class FeeReportService {
     }
 
     private Optional<StudentFeeLedgerDto> buildAllocationLedger(Student student) {
-        // New flow: StudentFeeAllocation is the single source of truth whenever present.
-        // Enquiry payments are distributed across installments in order.
         Long studentId = student.getId();
         return allocationRepository.findByStudentId(studentId)
             .flatMap(allocation -> {
@@ -207,8 +181,8 @@ public class FeeReportService {
             else if (creditForThis.compareTo(BigDecimal.ZERO) > 0) status = DemandStatus.PARTIAL;
             else status = DemandStatus.UNPAID;
 
-            List<TermFeePaymentDto> paymentDtos = creditForThis.compareTo(BigDecimal.ZERO) > 0
-                ? enquiryPayments.stream().map(ep -> enquiryPaymentToDto(ep, status)).toList()
+            List<PaymentRowDto> paymentDtos = creditForThis.compareTo(BigDecimal.ZERO) > 0
+                ? enquiryPayments.stream().map(ep -> enquiryPaymentToDto(ep)).toList()
                 : List.of();
 
             entries.add(new StudentFeeLedgerDto.LedgerEntry(
@@ -247,16 +221,14 @@ public class FeeReportService {
             else if (totalPaid.compareTo(BigDecimal.ZERO) > 0)  status = DemandStatus.PARTIAL;
             else                                               status = DemandStatus.UNPAID;
 
-            // Build payment rows from FeeInstallment records for this semester
             List<FeeInstallment> installments = installmentRepository.findBySemesterFeeId(sf.getId());
-            List<TermFeePaymentDto> paymentDtos = installments.stream()
-                .map(fi -> installmentToPaymentDto(fi, student.getFullName(), status))
+            List<PaymentRowDto> paymentDtos = installments.stream()
+                .map(fi -> installmentToPaymentDto(fi))
                 .collect(Collectors.toCollection(ArrayList::new));
 
-            // Prepend enquiry payment receipts that were credited to this installment
             if (creditForThis.compareTo(BigDecimal.ZERO) > 0) {
-                List<TermFeePaymentDto> enquiryPaymentDtos = enquiryPayments.stream()
-                    .map(ep -> enquiryPaymentToDto(ep, status))
+                List<PaymentRowDto> enquiryPaymentDtos = enquiryPayments.stream()
+                    .map(ep -> enquiryPaymentToDto(ep))
                     .toList();
                 paymentDtos.addAll(0, enquiryPaymentDtos);
             }
@@ -284,46 +256,34 @@ public class FeeReportService {
 
     private record SemesterFeePreview(Long id, String label, BigDecimal amount, java.time.LocalDate dueDate) {}
 
-    private TermFeePaymentDto installmentToPaymentDto(FeeInstallment fi, String studentName, DemandStatus status) {
-        return new TermFeePaymentDto(
-            fi.getId(), null, studentName,
-            fi.getPaymentDate(), fi.getAmountPaid(), BigDecimal.ZERO, fi.getAmountPaid(),
-            fi.getPaymentMode(), fi.getReceiptNumber(), fi.getTransactionReference(),
-            status, fi.getCreatedAt(), fi.getCreatedAt()
+    private PaymentRowDto installmentToPaymentDto(FeeInstallment fi) {
+        return new PaymentRowDto(
+            fi.getId(),
+            fi.getPaymentDate(),
+            fi.getAmountPaid(),
+            BigDecimal.ZERO,
+            fi.getAmountPaid(),
+            fi.getPaymentMode(),
+            fi.getReceiptNumber(),
+            fi.getTransactionReference(),
+            fi.getRemarks()
         );
     }
 
-    private TermFeePaymentDto enquiryPaymentToDto(EnquiryPayment ep, DemandStatus status) {
-        return new TermFeePaymentDto(
-            ep.getId(), null, null,
-            ep.getPaymentDate(), ep.getAmountPaid(), BigDecimal.ZERO, ep.getAmountPaid(),
-            ep.getPaymentMode(), ep.getReceiptNumber(), ep.getTransactionReference(),
-            status, ep.getCreatedAt(), ep.getCreatedAt()
+    private PaymentRowDto enquiryPaymentToDto(EnquiryPayment ep) {
+        return new PaymentRowDto(
+            ep.getId(),
+            ep.getPaymentDate(),
+            ep.getAmountPaid(),
+            BigDecimal.ZERO,
+            ep.getAmountPaid(),
+            ep.getPaymentMode(),
+            ep.getReceiptNumber(),
+            ep.getTransactionReference(),
+            null
         );
     }
 
-    private TermFeePaymentDto toPaymentDto(TermFeePayment p) {
-        FeeDemand demand = p.getFeeDemand();
-        String studentName = demand.getStudentTermEnrollment().getStudent().getFullName();
-        return new TermFeePaymentDto(
-            p.getId(),
-            demand.getId(),
-            studentName,
-            p.getPaymentDate(),
-            p.getAmountPaid(),
-            p.getLateFeeApplied(),
-            p.getTotalCollected(),
-            p.getPaymentMode(),
-            p.getReceiptNumber(),
-            p.getTransactionReference(),
-            p.getRemarks(),
-            demand.getStatus(),
-            p.getCreatedAt(),
-            p.getUpdatedAt()
-        );
-    }
-
-    /** Internal accumulator for summary grouping. */
     private static class ProgramAccumulator {
         final String programName;
         final String programCode;

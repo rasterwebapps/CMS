@@ -6,7 +6,6 @@ import {
   FeeCollectionSummary,
   FeeDemandReport,
   StudentFeeLedgerReport,
-  TermFeePaymentReport,
 } from './fee-reports.model';
 
 @Injectable({
@@ -29,13 +28,6 @@ export class FeeReportsService {
   getCollectionSummary(termInstanceId: number): Observable<FeeCollectionSummary[]> {
     return this.http.get<FeeCollectionSummary[]>(
       `${this.baseUrl}/api/fee-reports/collection-summary`,
-      { params: new HttpParams().set('termInstanceId', termInstanceId.toString()) },
-    );
-  }
-
-  getLateFeeCollection(termInstanceId: number): Observable<TermFeePaymentReport[]> {
-    return this.http.get<TermFeePaymentReport[]>(
-      `${this.baseUrl}/api/fee-reports/late-fee-collection`,
       { params: new HttpParams().set('termInstanceId', termInstanceId.toString()) },
     );
   }

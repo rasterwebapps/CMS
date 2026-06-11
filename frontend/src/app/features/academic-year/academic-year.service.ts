@@ -22,8 +22,6 @@ import {
   DemandStatus,
   SeatAvailabilityResponse,
   StudentTermEnrollment,
-  TermFeePayment,
-  TermFeePaymentRequest,
   TermInstance,
   TermInstanceUpdateRequest,
   TermBillingSchedule,
@@ -242,15 +240,5 @@ export class AcademicYearService {
     );
   }
 
-  recordFeePayment(request: TermFeePaymentRequest): Observable<TermFeePayment> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
-    return this.http.post<TermFeePayment>(`${baseUrl}/api/term-fee-payments`, request);
-  }
-
-  getPaymentsByDemand(demandId: number): Observable<TermFeePayment[]> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
-    return this.http.get<TermFeePayment[]>(
-      `${baseUrl}/api/term-fee-payments?demandId=${demandId}`,
-    );
-  }
 }
+

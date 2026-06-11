@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cms.dto.FeeDemandDto;
 import com.cms.dto.FeeCollectionSummaryDto;
 import com.cms.dto.StudentFeeLedgerDto;
-import com.cms.dto.TermFeePaymentDto;
 import com.cms.service.FeeReportService;
 
 @RestController
@@ -37,13 +36,6 @@ public class FeeReportController {
     public ResponseEntity<List<FeeCollectionSummaryDto>> getCollectionSummary(
             @RequestParam Long termInstanceId) {
         return ResponseEntity.ok(feeReportService.getCollectionSummary(termInstanceId));
-    }
-
-    @PreAuthorize("@perm.has('FEE_REPORT_VIEW')")
-    @GetMapping("/late-fee-collection")
-    public ResponseEntity<List<TermFeePaymentDto>> getLateFeeCollection(
-            @RequestParam Long termInstanceId) {
-        return ResponseEntity.ok(feeReportService.getLateFeeCollection(termInstanceId));
     }
 
     @PreAuthorize("@perm.has('FEE_REPORT_VIEW')")

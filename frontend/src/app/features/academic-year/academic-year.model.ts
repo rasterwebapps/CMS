@@ -235,29 +235,4 @@ export type PaymentMode =
   | 'BANK_TRANSFER'
   | 'SCHOLARSHIP';
 
-export interface TermFeePaymentRequest {
-  feeDemandId: number;
-  paymentDate: string;
-  amountPaid: number;
-  paymentMode: PaymentMode;
-  transactionReference?: string;
-  remarks?: string;
-}
-
-export interface TermFeePayment {
-  id: number;
-  feeDemandId: number;
-  studentName: string;
-  paymentDate: string;
-  amountPaid: number;
-  lateFeeApplied: number;
-  totalCollected: number;
-  paymentMode: PaymentMode;
-  receiptNumber: string;
-  transactionReference?: string;
-  remarks?: string;
-  demandStatus: DemandStatus;
-  createdAt: string;
-  updatedAt: string;
-}
 

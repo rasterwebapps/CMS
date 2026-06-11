@@ -182,83 +182,7 @@
       </div>
     </mat-tab>
 
-    <!-- Tab 3: Late Fee Collection -->
-    <mat-tab label="Late Fees">
-      <div class="tab-content">
-        <div class="report-filter-bar">
-          <form [formGroup]="termFilterForm" class="filter-row">
-            <div class="field-group field-group--inline">
-              <label class="field-label">Academic Year</label>
-              <select class="field-input field-input--narrow"
-                formControlName="academicYearId"
-                (change)="onAcademicYearChange($any($event.target).value)">
-                <option value="">Select AY</option>
-                @for (ay of academicYears(); track ay.id) {
-                  <option [value]="ay.id">{{ ay.name }}</option>
-                }
-              </select>
-            </div>
-            <div class="field-group field-group--inline">
-              <label class="field-label">Term</label>
-              <select class="field-input field-input--narrow" formControlName="termInstanceId">
-                <option value="">Select Term</option>
-                @for (term of termInstances(); track term.id) {
-                  <option [value]="term.id">{{ term.termType }} – {{ term.status }}</option>
-                }
-              </select>
-            </div>
-            <button type="button" class="btn-primary" (click)="loadLateFees()"
-              [disabled]="termFilterForm.invalid || loading()">
-              @if (loading()) {
-                <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
-              } @else {
-                Load Report
-              }
-            </button>
-          </form>
-          @if (lateFeePayments().length > 0) {
-            <div class="report-actions">
-              <button class="btn-secondary" (click)="printReport()">
-                <mat-icon>print</mat-icon> Print
-              </button>
-            </div>
-          }
-        </div>
-
-        @if (lateFeePayments().length === 0) {
-          <p class="no-data">No late fee payments found, or select a term and click "Load Report".</p>
-        } @else {
-          <div class="report-table-wrapper">
-            <table class="enrollments-table">
-              <thead>
-                <tr>
-                  <th>Receipt</th>
-                  <th>Student</th>
-                  <th>Payment Date</th>
-                  <th>Amount (₹)</th>
-                  <th>Late Fee (₹)</th>
-                  <th>Mode</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (p of lateFeePayments(); track p.id) {
-                  <tr>
-                    <td><span class="code-value">{{ p.receiptNumber }}</span></td>
-                    <td>{{ p.studentName }}</td>
-                    <td>{{ p.paymentDate | appDate }}</td>
-                    <td>{{ p.amountPaid | number:'1.2-2' }}</td>
-                    <td class="late-fee-cell">{{ p.lateFeeApplied | number:'1.2-2' }}</td>
-                    <td>{{ p.paymentMode | paymentModeLabel }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-      </div>
-    </mat-tab>
-
-    <!-- Tab 4: Student Ledger -->
+    <!-- Tab 3: Student Ledger -->
     <mat-tab label="Student Ledger">
       <div class="tab-content">
         <form [formGroup]="studentLedgerForm" class="filter-row">
@@ -315,7 +239,6 @@
                       <th>Receipt</th>
                       <th>Date</th>
                       <th>Amount (₹)</th>
-                      <th>Late Fee (₹)</th>
                       <th>Mode</th>
                     </tr>
                   </thead>
@@ -325,7 +248,6 @@
                         <td><span class="code-value">{{ p.receiptNumber }}</span></td>
                         <td>{{ p.paymentDate | appDate }}</td>
                         <td>{{ p.amountPaid | number:'1.2-2' }}</td>
-                        <td>{{ p.lateFeeApplied > 0 ? (p.lateFeeApplied | number:'1.2-2') : '—' }}</td>
                         <td>{{ p.paymentMode | paymentModeLabel }}</td>
                       </tr>
                     }

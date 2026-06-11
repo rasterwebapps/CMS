@@ -29,18 +29,16 @@ export interface FeeCollectionSummary {
   unpaidCount: number;
 }
 
-export interface TermFeePaymentReport {
+export interface PaymentRow {
   id: number;
-  feeDemandId: number;
-  studentName: string;
   paymentDate: string;
   amountPaid: number;
   lateFeeApplied: number;
   totalCollected: number;
   paymentMode: string;
   receiptNumber: string;
+  transactionReference?: string;
   remarks?: string;
-  demandStatus: DemandStatus;
 }
 
 export interface StudentLedgerEntry {
@@ -51,7 +49,7 @@ export interface StudentLedgerEntry {
   outstandingAmount: number;
   dueDate: string;
   status: DemandStatus;
-  payments: TermFeePaymentReport[];
+  payments: PaymentRow[];
 }
 
 export interface StudentFeeLedgerReport {
