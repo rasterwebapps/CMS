@@ -103,6 +103,7 @@ export class StudentDetailComponent implements OnInit {
   protected readonly loadingScholarships = signal(false);
 
   protected readonly admissionId = signal<number | null>(null);
+  protected readonly passportPhotoUrl = signal<string | null>(null);
   protected readonly transferHistory = signal<ProgramTransferRecord[]>([]);
   protected readonly allPrograms = signal<Program[]>([]);
   protected readonly selectedTabIndex = signal(0);
@@ -316,7 +317,30 @@ export class StudentDetailComponent implements OnInit {
 
   private loadAdmission(studentId: number): void {
     this.admissionService.getByStudent(studentId).subscribe({
-      next: (admission) => this.admissionId.set(admission.id),
+      next: (admission) => {
+        this.admissionId.set(admission.id);
+        this.loadPassportPhoto(admission.id);
+      },
+      error: () => {},
+    });
+  }
+
+  private loadPassportPhoto(admissionId: number): void {
+    this.admissionService.getDocuments(admissionId).subscribe({
+      next: (docs) => {
+        const photoDoc = docs.find((d) => d.documentType === 'PASSPORT_PHOTO' && d.hasFile);
+        if (!photoDoc) return;
+        this.admissionService.downloadDocumentBlob(photoDoc.id).subscribe({
+          next: (response) => {
+            const blob = response.body;
+            if (!blob) return;
+            const reader = new FileReader();
+            reader.onload = () => this.passportPhotoUrl.set(reader.result as string);
+            reader.readAsDataURL(blob);
+          },
+          error: () => {},
+        });
+      },
       error: () => {},
     });
   }

@@ -1,21 +1,16 @@
-$green:  #22C55E;
-$red:    #EF4444;
-$amber:  #F59E0B;
+$green: #22C55E;
+$red:   #EF4444;
 
 .sfd-page { display: flex; flex-direction: column; gap: 16px; }
 
-// ── Back nav header ────────────────────────────────────────────────────────────
+// ── Back nav header ───────────────────────────────────────────────────────────
 .sfd-hdr {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-.sfd-hdr-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.sfd-hdr-text { display: flex; flex-direction: column; gap: 2px; }
 
 .sfd-title {
   margin: 0;
@@ -23,7 +18,6 @@ $amber:  #F59E0B;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--cms-text-primary);
-
   em { font-style: normal; color: var(--cms-primary); }
 }
 
@@ -35,7 +29,7 @@ $amber:  #F59E0B;
 
 .sfd-skeleton { display: flex; flex-direction: column; gap: 12px; }
 
-// ── No-allocation / init-error banner ────────────────────────────────────────
+// ── Error banner ──────────────────────────────────────────────────────────────
 .no-alloc-banner {
   display: flex;
   align-items: flex-start;
@@ -49,14 +43,12 @@ $amber:  #F59E0B;
   line-height: 1.5;
 
   &__icon { color: #3b82f6; flex-shrink: 0; margin-top: 1px; }
-
-  strong { color: var(--cms-text-primary); display: block; margin-bottom: 3px; font-size: var(--cms-text-base); }
-  p { margin: 0 0 10px; }
+  strong  { color: var(--cms-text-primary); display: block; margin-bottom: 3px; font-size: var(--cms-text-base); }
+  p       { margin: 0 0 10px; }
 
   &--error {
     background: rgba(239,68,68,0.07);
     border-color: rgba(239,68,68,0.22);
-
     .no-alloc-banner__icon { color: #ef4444; }
   }
 }
@@ -70,31 +62,7 @@ $amber:  #F59E0B;
   font-family: var(--cms-font-ui); font-size: var(--cms-text-base); font-weight: 600;
   cursor: pointer;
   transition: background 0.18s;
-
   &:hover { background: var(--cms-bg-muted); }
-}
-
-// ── Card header (shared) ──────────────────────────────────────────────────────
-.card-hdr {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 48px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--cms-line);
-  background: var(--cms-bg-subtle);
-  border-radius: var(--cms-radius-lg) var(--cms-radius-lg) 0 0;
-
-  &__title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: var(--cms-text-base);
-    font-weight: 700;
-    color: var(--cms-text-primary);
-
-    .card-hdr__icon { color: var(--cms-primary); flex-shrink: 0; }
-  }
 }
 
 // ── Student summary strip ─────────────────────────────────────────────────────
@@ -129,120 +97,135 @@ $amber:  #F59E0B;
   border-radius: 10px; min-width: 100px; text-align: center;
 
   &--danger { border-color: rgba($red,0.3); background: rgba($red,0.05); }
-
-  &__label { font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cms-text-muted); margin-bottom: 3px; }
+  &__label  { font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cms-text-muted); margin-bottom: 3px; }
   &__val    { font-size: var(--cms-text-base); font-weight: 700; color: var(--cms-text-primary); }
 }
 
-// ── Semester table ────────────────────────────────────────────────────────────
-.table-wrap { overflow-x: auto; }
-
-.sem-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--cms-text-base);
-
-  th {
-    padding: 9px 14px;
-    text-align: left;
-    font-size: 0.625rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.06em;
-    color: var(--cms-text-muted);
-    border-bottom: 1px solid var(--cms-line);
-    background: var(--cms-bg-subtle);
-    white-space: nowrap;
-  }
-  th:nth-child(2), th:nth-child(3), th:nth-child(4) { text-align: right; }
-
-  td {
-    padding: 11px 14px;
-    color: var(--cms-text-secondary);
-    border-bottom: 1px solid var(--cms-line);
-    vertical-align: middle;
-  }
-  td:nth-child(2), td:nth-child(3), td:nth-child(4) { text-align: right; }
-
-  tfoot td {
-    border-top: 2px solid var(--cms-line-strong);
-    border-bottom: none;
-    padding: 11px 14px;
-    background: var(--cms-bg-subtle);
-  }
-
-  tr:last-child td { border-bottom: none; }
-
-  // Next-payment highlight row
-  .row--next td { background: rgba(var(--cms-primary-rgb), 0.04); }
-  .row--next td:first-child { border-left: 3px solid var(--cms-primary); padding-left: 11px; }
-
-  // Fully paid rows dim slightly
-  .row--paid td { opacity: 0.6; }
-
-  // Overdue rows
-  .row--overdue td { background: rgba($red, 0.04); }
-  .row--overdue td:first-child { border-left: 3px solid $red; padding-left: 11px; }
+// ── Payment split layout ──────────────────────────────────────────────────────
+.payment-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+  gap: 16px;
+  align-items: start;
 }
 
-.sem-cell {
+.summary-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
+// ── Installment table card ────────────────────────────────────────────────────
+.sem-table-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-line);
+  border-radius: 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sem-card-hdr {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.seq-badge {
-  display: inline-flex;
-  align-items: center; justify-content: center;
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  background: var(--cms-bg-surface-3);
-  color: var(--cms-text-muted);
-  font-size: var(--cms-text-xs); font-weight: 800;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--cms-line);
+  background: var(--cms-bg-subtle);
+  border-radius: 14px 14px 0 0;
   flex-shrink: 0;
-}
-.row--next .seq-badge {
-  background: rgba(var(--cms-primary-rgb), 0.15);
-  color: var(--cms-primary);
-}
 
-.sem-info { display: flex; flex-direction: column; gap: 2px; }
-.sem-label { font-weight: 600; color: var(--cms-text-primary); font-size: var(--cms-text-base); }
-
-.next-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: var(--cms-text-xs); font-weight: 700;
-  color: var(--cms-primary);
-
-  &__icon { flex-shrink: 0; }
-}
-
-.overdue-tag {
-  display: inline-block;
-  font-size: 0.625rem; font-weight: 800;
-  letter-spacing: 0.07em;
-  color: $red;
-  background: rgba($red, 0.10);
-  border-radius: 4px;
-  padding: 2px 6px;
-}
-
-.sem-progress {
-  margin-top: 5px;
-  height: 3px;
-  background: var(--cms-bg-surface-3);
-  border-radius: 4px;
-  overflow: hidden;
-  width: 60px;
-
-  &__fill {
-    height: 100%;
-    background: linear-gradient(90deg, $green, #4ade80);
-    border-radius: 4px;
-    transition: width 0.6s;
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--cms-text-base);
+    font-weight: 700;
+    color: var(--cms-text-primary);
+    svg { color: var(--cms-primary); flex-shrink: 0; }
   }
 }
 
+// Grid columns: # | label | due date | fee | paid | outstanding | status
+$sem-cols: 32px 1fr 110px 100px 100px 110px 80px;
+
+.sem-head {
+  display: grid;
+  grid-template-columns: $sem-cols;
+  padding: 8px 14px;
+  background: var(--cms-bg-subtle);
+  border-bottom: 1px solid var(--cms-line-strong);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cms-text-muted);
+  min-width: 680px;
+}
+
+.sem-row {
+  display: grid;
+  grid-template-columns: $sem-cols;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--cms-line);
+  font-size: var(--cms-text-base);
+  transition: background 0.12s;
+  min-width: 680px;
+
+  &:last-of-type { border-bottom: none; }
+  &:hover        { background: rgba(var(--cms-primary-rgb), 0.03); }
+  &--paid        { background: rgba(16,185,129,0.03); }
+  &--next        { background: rgba(var(--cms-primary-rgb), 0.04); }
+  &--overdue     { background: rgba($red,0.04); }
+}
+
+.sem-footer {
+  display: grid;
+  grid-template-columns: $sem-cols;
+  padding: 9px 14px;
+  background: var(--cms-bg-subtle);
+  border-top: 2px solid var(--cms-line-strong);
+  font-size: var(--cms-text-base);
+  min-width: 680px;
+}
+
+.sem-seq {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--cms-bg-muted);
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  color: var(--cms-text-muted);
+
+  &--next {
+    background: rgba(var(--cms-primary-rgb), 0.15);
+    color: var(--cms-primary);
+  }
+}
+
+.sem-label { display: flex; align-items: center; gap: 6px; font-weight: 500; flex-wrap: wrap; }
+.next-pill    { padding: 1px 7px; border-radius: 20px; background: rgba(var(--cms-primary-rgb),0.12); color: var(--cms-primary);  font-size: 0.625rem; font-weight: 700; }
+.overdue-pill { padding: 1px 7px; border-radius: 20px; background: rgba($red,0.10); color: $red; font-size: 0.625rem; font-weight: 700; }
+
+.sem-badge {
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  align-self: center;
+  justify-self: center;
+
+  &--paid    { background: rgba(16,185,129,0.12); color: #059669; }
+  &--partial { background: rgba(245,158,11,0.12);  color: #D97706; }
+  &--overdue { background: rgba($red,0.10);         color: $red;    }
+  &--pending { background: var(--cms-bg-muted);    color: var(--cms-text-muted); }
+}
+
+// ── Cascade note ──────────────────────────────────────────────────────────────
 .cascade-note {
   display: flex;
   align-items: flex-start;
@@ -255,8 +238,85 @@ $amber:  #F59E0B;
   font-size: var(--cms-text-base);
   color: var(--cms-text-secondary);
   line-height: 1.4;
-
   svg { color: var(--cms-primary); }
+}
+
+// ── Inline payment form column ────────────────────────────────────────────────
+.form-col {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-line);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  position: sticky;
+  top: 16px;
+}
+
+.form-title {
+  font-size: var(--cms-text-base);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  margin: 0 0 4px;
+}
+
+.field-group   { display: flex; flex-direction: column; gap: 5px; }
+.field-label   { font-size: var(--cms-text-sm); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cms-text-muted); }
+.field-required { color: $red; }
+
+.field-input, .field-select, .field-textarea {
+  border: 1.5px solid var(--cms-line-strong);
+  border-radius: 9px;
+  padding: 9px 14px;
+  font-family: var(--cms-font-ui), sans-serif;
+  font-size: var(--cms-text-base);
+  min-height: 40px;
+  color: var(--cms-text-primary);
+  background: var(--cms-bg-card);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.18s, box-shadow 0.18s;
+
+  &:focus  { border-color: var(--cms-primary); box-shadow: 0 0 0 3px rgba(var(--cms-primary-rgb), 0.12); }
+  &--error { border-color: $red; &:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.12); } }
+}
+
+.field-hint  { font-size: var(--cms-text-xs); color: var(--cms-text-muted); margin: 0; }
+.field-error { font-size: var(--cms-text-sm); color: $red; margin: 0; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-footer {
+  margin-top: 8px;
+}
+
+// ── Card header (receipt history card) ───────────────────────────────────────
+.card-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--cms-line);
+  background: var(--cms-bg-subtle);
+  border-radius: var(--cms-radius-lg) var(--cms-radius-lg) 0 0;
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--cms-text-base);
+    font-weight: 700;
+    color: var(--cms-text-primary);
+    .card-hdr__icon { color: var(--cms-primary); flex-shrink: 0; }
+  }
 }
 
 // ── Receipt history ───────────────────────────────────────────────────────────
@@ -279,23 +339,11 @@ $amber:  #F59E0B;
     background: var(--cms-bg-surface-2);
     border-bottom: 1px solid var(--cms-line);
   }
-  &__left { display: flex; flex-direction: column; gap: 2px; }
-
-  // Right side: amount + action buttons grouped together
-  &__right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-  }
+  &__left  { display: flex; flex-direction: column; gap: 2px; }
+  &__right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 }
 
-// ── Receipt action buttons ────────────────────────────────────────────────────
-.receipt-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
+.receipt-actions { display: flex; align-items: center; gap: 4px; }
 
 .action-btn {
   display: inline-flex;
@@ -309,76 +357,41 @@ $amber:  #F59E0B;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 
-  &:hover {
-    background: var(--cms-bg-muted);
-    color: var(--cms-text-primary);
-    border-color: var(--cms-text-muted);
-  }
+  &:hover { background: var(--cms-bg-muted); color: var(--cms-text-primary); border-color: var(--cms-text-muted); }
 
   &--primary {
     border-color: rgba(var(--cms-primary-rgb), 0.35);
     color: var(--cms-primary);
-
-    &:hover {
-      background: rgba(var(--cms-primary-rgb), 0.08);
-      border-color: var(--cms-primary);
-    }
+    &:hover { background: rgba(var(--cms-primary-rgb), 0.08); border-color: var(--cms-primary); }
   }
 }
 
 .receipt-no {
   font-family: var(--cms-font-mono);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  display: inline-flex; align-items: center; gap: 8px;
   font-size: var(--cms-text-base); font-weight: 700;
-  color: var(--cms-primary);
-  letter-spacing: 0.02em;
+  color: var(--cms-primary); letter-spacing: 0.02em;
 }
 
-.receipt-type-chip {
-  font-size: 11px;
-  line-height: 1.2;
-  padding: 2px 8px;
-}
+.receipt-type-chip { font-size: 11px; line-height: 1.2; padding: 2px 8px; }
 
-.receipt-meta {
-  font-size: var(--cms-text-sm);
-  color: var(--cms-text-muted);
-}
+.receipt-meta { font-size: var(--cms-text-sm); color: var(--cms-text-muted); }
 
 .receipt-total {
   font-family: var(--cms-font-mono);
   font-variant-numeric: tabular-nums;
   font-size: var(--cms-text-base); font-weight: 800;
   color: var(--cms-text-primary);
+  &--refund { color: #dc2626; }
 }
 
-.receipt-total--refund {
-  color: #dc2626;
-}
-
-.receipt-amount-block {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-}
-
-.receipt-amount-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.receipt-amount-block { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.receipt-amount-row   { display: flex; align-items: center; gap: 8px; }
 
 .receipt-dir-chip {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 4px;
-  line-height: 1.4;
+  font-size: 10px; font-weight: 800;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 4px; line-height: 1.4;
 }
 
 .receipt-running-balance {
@@ -387,8 +400,7 @@ $amber:  #F59E0B;
   font-family: var(--cms-font-mono);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-
-  strong { color: var(--cms-text-primary); font-weight: 700; }
+  strong        { color: var(--cms-text-primary); font-weight: 700; }
   strong.text-red { color: #dc2626; }
 }
 
@@ -397,37 +409,103 @@ $amber:  #F59E0B;
   padding: 9px 14px;
   font-size: var(--cms-text-base);
   border-bottom: 1px solid var(--cms-line);
-
   &:last-child { border-bottom: none; }
-
   &__sem { color: var(--cms-text-secondary); }
   &__amt {
     font-family: var(--cms-font-mono);
     font-variant-numeric: tabular-nums;
-    font-size: var(--cms-text-base);
-    font-weight: 600;
+    font-size: var(--cms-text-base); font-weight: 600;
     color: var(--cms-text-primary);
-  }
-
-  &__amt--refund {
-    color: #dc2626;
+    &--refund { color: #dc2626; }
   }
 }
 
 .empty-receipts {
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   padding: 40px 20px; color: var(--cms-text-muted);
-
   p { margin: 0; font-size: var(--cms-text-base); }
 }
 
-// ── Shared utilities ──────────────────────────────────────────────────────────
-.text-right { text-align: right; }
-.text-green { color: $green; }
-.text-red   { color: $red; }
-.text-muted { color: var(--cms-text-muted); font-weight: 400; }
-.mono       { font-family: var(--cms-font-mono); font-weight: 500; }
-.mono-sm    { font-family: var(--cms-font-mono); font-size: var(--cms-text-sm); }
+// ── Flat payment history tables ───────────────────────────────────────────────
+.ph-section-label {
+  padding: 10px 16px 6px;
+  font-size: var(--cms-text-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--cms-text-muted);
+  border-top: 1px solid var(--cms-line);
+  &:first-of-type { border-top: none; }
+  &--refund { color: #dc2626; }
+}
+
+.ph-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--cms-text-base);
+  margin-bottom: 4px;
+
+  th {
+    text-align: left;
+    padding: 8px 20px;
+    font-size: var(--cms-text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cms-text-table-header);
+    background: var(--cms-bg-subtle);
+    border-bottom: 1px solid var(--cms-line);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--cms-line);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--cms-bg-hover); }
+
+  .amount-col { text-align: right; }
+  .actions-col { text-align: center; width: 96px; white-space: nowrap; }
+  .notes-col { max-width: 200px; word-break: break-word; }
+}
+
+.receipt-actions { display: flex; align-items: center; justify-content: center; gap: 4px; }
+
+.action-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  border: 1.5px solid var(--cms-line-strong);
+  border-radius: 8px;
+  background: var(--cms-bg-card);
+  color: var(--cms-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+
+  &:hover { background: var(--cms-bg-muted); color: var(--cms-text-primary); border-color: var(--cms-text-muted); }
+
+  &--primary {
+    border-color: rgba(var(--cms-primary-rgb), 0.35);
+    color: var(--cms-primary);
+    &:hover { background: rgba(var(--cms-primary-rgb), 0.08); border-color: var(--cms-primary); }
+  }
+}
+
+// ── Pre-enrollment credits section ────────────────────────────────────────────
+.sfd-section {
+  &__hdr   { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--cms-line); }
+  &__title { margin: 0; font-size: var(--cms-text-base); font-weight: 700; color: var(--cms-text-primary); }
+}
+
+.sfd-credit-table { width: 100%; }
+.sfd-credit-amount { font-family: var(--cms-font-mono); font-variant-numeric: tabular-nums; font-weight: 600; }
+.sfd-credit-note {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px;
+  font-size: var(--cms-text-sm); color: var(--cms-text-muted);
+}
 
 // ── Buttons ───────────────────────────────────────────────────────────────────
 .btn-primary {
@@ -440,10 +518,7 @@ $amber:  #F59E0B;
   box-shadow: 0 4px 20px rgba(var(--cms-primary-rgb), 0.35);
   transition: transform 0.18s, box-shadow 0.18s, opacity 0.18s;
 
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 28px rgba(var(--cms-primary-rgb), 0.45);
-  }
+  &:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(var(--cms-primary-rgb), 0.45); }
   &:disabled { opacity: 0.55; cursor: not-allowed; }
 }
 
@@ -456,31 +531,71 @@ $amber:  #F59E0B;
   font-family: var(--cms-font-ui); font-size: var(--cms-text-base); font-weight: 600;
   text-decoration: none; cursor: pointer;
   transition: background 0.18s, color 0.18s;
-
   &:hover { background: var(--cms-bg-muted); color: var(--cms-text-primary); }
 }
 
-// ── CSS spinners (no mat-spinner dependency) ──────────────────────────────────
-.card-spinner {
-  display: inline-block;
-  width: 18px; height: 18px;
-  border: 2px solid var(--cms-line);
-  border-top-color: var(--cms-primary);
-  border-radius: 50%;
-  animation: btn-spin 0.7s linear infinite;
+.btn-cancel {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 20px;
+  border: 1.5px solid var(--cms-line-strong);
+  border-radius: 10px; background: transparent;
+  color: var(--cms-text-secondary);
+  font-family: var(--cms-font-ui), sans-serif;
+  font-size: var(--cms-text-base); font-weight: 600;
+  cursor: pointer; transition: background 0.18s;
+  &:hover { background: var(--cms-bg-muted); }
 }
 
+.btn-submit {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 22px;
+  border: none; border-radius: 10px;
+  background: var(--cms-primary); color: #fff;
+  font-family: var(--cms-font-ui), sans-serif;
+  font-size: var(--cms-text-base); font-weight: 600;
+  cursor: pointer; transition: opacity 0.18s;
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+
+.btn-toolbar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  border: 1.5px solid var(--cms-line-strong);
+  border-radius: 8px; background: transparent;
+  color: var(--cms-text-muted); cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  &:hover { background: var(--cms-bg-muted); color: var(--cms-text-primary); }
+}
+
+// ── Spinners ──────────────────────────────────────────────────────────────────
 .btn-spinner {
   display: inline-block;
   width: 16px; height: 16px;
   border: 2px solid rgba(255,255,255,0.35);
   border-top-color: #fff;
   border-radius: 50%;
-  animation: btn-spin 0.7s linear infinite;
+  animation: spin 0.7s linear infinite;
 }
 
-@keyframes btn-spin {
-  to { transform: rotate(360deg); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+.align-right    { text-align: right; }
+.align-center   { text-align: center; }
+.mono           { font-family: var(--cms-font-mono), monospace; font-variant-numeric: tabular-nums; }
+.text-green     { color: $green; }
+.text-red       { color: $red; }
+.text-muted     { color: var(--cms-text-muted); font-weight: 400; }
+.outstanding-zero { color: #10B981 !important; }
+.total-paid       { color: #10B981; }
+.total-outstanding { color: $red; }
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 1100px) {
+  .payment-layout { grid-template-columns: 1fr; }
+  .form-col { position: static; }
 }
 
-.btn-spinner { display: inline-block; }
+@media (max-width: 640px) {
+  .form-row { grid-template-columns: 1fr; }
+}

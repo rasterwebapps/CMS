@@ -20,5 +20,8 @@ public record EnquiryPaymentResponse(
     /** TUITION_ONLY | TUITION_AND_HOSTEL */
     String feeCategory,
     String newStatus,
-    Instant createdAt
+    Instant createdAt,
+    /** PAYMENT | REFUND */
+    String receiptType,
+    String originalReceiptNumber
 ) {}

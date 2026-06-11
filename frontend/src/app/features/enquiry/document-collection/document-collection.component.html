@@ -177,7 +177,7 @@
                     <mat-icon>lock</mat-icon> Locked
                   </span>
                 } @else if (canManageDocuments()) {
-                  @if (row.documentType === rejectingDocumentType()) {
+                  @if (verifyMode() && row.documentType === rejectingDocumentType()) {
                     <!-- Inline rejection-reason prompt -->
                     <div class="reject-reason-panel">
                       <input
@@ -203,12 +203,14 @@
                           [disabled]="row.status === 'UPLOADED' || (row.isMandatory && !row.document?.hasFile)"
                           aria-label="Mark uploaded"><mat-icon>upload_file</mat-icon></button>
                       }
-                      <button type="button" class="status-btn" [class.status-btn--active-green]="row.status === 'VERIFIED'"
-                        [matTooltip]="row.isMandatory && !row.document?.hasFile ? 'Upload a file first' : 'Mark as verified'"
-                        (click)="saveRow(row, 'VERIFIED')"
-                        [disabled]="row.status === 'VERIFIED' || (row.isMandatory && !row.document?.hasFile)"
-                        aria-label="Mark verified"><mat-icon>verified</mat-icon></button>
-                      <button type="button" class="status-btn" [class.status-btn--active-red]="row.status === 'REJECTED'" matTooltip="Mark as rejected" (click)="startReject(row)" [disabled]="row.status === 'REJECTED'" aria-label="Mark rejected"><mat-icon>cancel</mat-icon></button>
+                      @if (verifyMode()) {
+                        <button type="button" class="status-btn" [class.status-btn--active-green]="row.status === 'VERIFIED'"
+                          [matTooltip]="row.isMandatory && !row.document?.hasFile ? 'Upload a file first' : 'Mark as verified'"
+                          (click)="saveRow(row, 'VERIFIED')"
+                          [disabled]="row.status === 'VERIFIED' || (row.isMandatory && !row.document?.hasFile)"
+                          aria-label="Mark verified"><mat-icon>verified</mat-icon></button>
+                        <button type="button" class="status-btn" [class.status-btn--active-red]="row.status === 'REJECTED'" matTooltip="Mark as rejected" (click)="startReject(row)" [disabled]="row.status === 'REJECTED'" aria-label="Mark rejected"><mat-icon>cancel</mat-icon></button>
+                      }
                       @if (row.document) {
                         <button type="button" class="status-btn status-btn--danger" matTooltip="Clear document record" (click)="removeRow(row)" aria-label="Clear document"><mat-icon>delete_outline</mat-icon></button>
                       }

@@ -270,33 +270,50 @@
                     <th>Date</th>
                     <th class="amount-col">Amount (₹)</th>
                     <th>Mode</th>
+                    <th>Notes</th>
                     <th>Reference</th>
-                    <th>Collected By</th>
+                    <th>By</th>
                     <th class="actions-col">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   @for (p of payments(); track p.id) {
                     <tr>
-                      <td><span class="code-value">{{ p.receiptNumber }}</span></td>
+                      <td>
+                        <span class="code-value">{{ p.receiptNumber }}</span>
+                        @if (p.receiptType === 'REFUND') {
+                          <span class="cms-badge cms-badge--amber" style="margin-left:5px;font-size:0.68rem;">Refund</span>
+                        }
+                      </td>
                       <td>{{ p.paymentDate | appDate }}</td>
-                      <td class="amount-col cell-currency">{{ p.amountPaid | inr:false:false }}</td>
+                      <td class="amount-col cell-currency" [class.text-red]="p.receiptType === 'REFUND'">
+                        {{ p.amountPaid | inr:false:false }}
+                      </td>
                       <td>{{ p.paymentMode | paymentModeLabel }}</td>
+                      <td class="notes-col">
+                        @if (p.receiptType === 'REFUND' && p.originalReceiptNumber) {
+                          <span class="text-muted" style="font-size:0.78rem;">Against: <span class="code-value">{{ p.originalReceiptNumber }}</span></span>
+                        } @else {
+                          <span class="text-muted">—</span>
+                        }
+                      </td>
                       <td><span class="code-value">{{ p.transactionReference || '—' }}</span></td>
                       <td>{{ p.collectedBy || '—' }}</td>
                       <td class="actions-col">
-                        <div class="receipt-actions">
-                          <button class="receipt-action-btn" type="button"
-                                  (click)="viewReceipt(p)"
-                                  matTooltip="View receipt">
-                            <mat-icon>visibility</mat-icon>
-                          </button>
-                          <button class="receipt-action-btn" type="button"
-                                  (click)="printReceiptDirect(p)"
-                                  matTooltip="Print receipt">
-                            <mat-icon>print</mat-icon>
-                          </button>
-                        </div>
+                        @if (p.receiptType !== 'REFUND') {
+                          <div class="receipt-actions">
+                            <button class="receipt-action-btn" type="button"
+                                    (click)="viewReceipt(p)"
+                                    matTooltip="View receipt">
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                            <button class="receipt-action-btn" type="button"
+                                    (click)="printReceiptDirect(p)"
+                                    matTooltip="Print receipt">
+                              <mat-icon>print</mat-icon>
+                            </button>
+                          </div>
+                        }
                       </td>
                     </tr>
                   }

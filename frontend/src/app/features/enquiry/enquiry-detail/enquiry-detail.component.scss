@@ -436,6 +436,11 @@
     width: 96px;
     white-space: nowrap;
   }
+
+  .notes-col {
+    max-width: 180px;
+    word-break: break-word;
+  }
 }
 
 .receipt-actions {

@@ -12,6 +12,9 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { BLOOD_GROUP_LIST_TOUR } from '../../../shared/tour/tours/blood-group.tours';
 
 @Component({
   selector: 'app-blood-group-list',
@@ -25,6 +28,7 @@ import { PermissionService } from '../../../core/permissions/permission.service'
     MatTooltipModule,
     CmsEmptyStateComponent,
     CmsViewToggleComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './blood-group-list.component.html',
   styleUrl: './blood-group-list.component.scss',
@@ -35,6 +39,7 @@ export class BloodGroupListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly permissionService = inject(PermissionService);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -66,6 +71,7 @@ export class BloodGroupListComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('blood-group-list', BLOOD_GROUP_LIST_TOUR);
     this.load();
   }
 

@@ -1,18 +1,25 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DatePipe, formatCurrency } from '@angular/common';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
-import { FinanceService } from '../finance.service';
-import { StudentFeeAllocation, InstallmentFeeDetail, Receipt, EnquiryCreditApplication } from '../finance.model';
-import { CollectPaymentDialogComponent } from '../collect-payment-dialog/collect-payment-dialog.component';
-import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
-import { ToastService } from '../../../core/toast/toast.service';
+import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
+import { FinanceService } from '../finance.service';
+import { StudentFeeAllocation, InstallmentFeeDetail, Receipt, EnquiryCreditApplication, ReceiptDisplayData, CollectPaymentRequest } from '../finance.model';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
+import { FeeReceiptDialogComponent } from '../../../shared/fee-receipt-dialog/fee-receipt-dialog.component';
+import { ToastService } from '../../../core/toast/toast.service';
 import { printFeeReceipt, downloadFeeReceipt } from '../../../shared/utils/print-receipt.utils';
 import { TourService } from '../../../shared/tour/tour.service';
 import { STUDENT_FEE_DETAIL_TOUR } from '../../../shared/tour/tours/finance.tours';
+import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
+import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { HttpErrorResponse } from '@angular/common/http';
 
 export interface ReceiptGroup {
   receiptNumber: string;
@@ -25,104 +32,225 @@ export interface ReceiptGroup {
   lines: Receipt[];
 }
 
-export type ReceiptGroupWithBalance = ReceiptGroup & { runningBalance: number | null };
 
 @Component({
   selector: 'app-student-fee-detail',
   standalone: true,
   imports: [
-    PaymentModeLabelPipe, InrPipe, RouterLink, DatePipe,
-    MatDialogModule, MatTooltipModule, CmsStatusBadgeComponent,
+    AppDatePipe, PaymentModeLabelPipe, InrPipe, RouterLink, DatePipe, DecimalPipe,
+    ReactiveFormsModule, MatTooltipModule, MatProgressSpinnerModule,
+    CmsStatusBadgeComponent, CashDenominationComponent, FeeReceiptDialogComponent,
   ],
   templateUrl: './student-fee-detail.component.html',
   styleUrl: './student-fee-detail.component.scss',
 })
 export class StudentFeeDetailComponent implements OnInit {
-  private readonly route   = inject(ActivatedRoute);
-  private readonly finance = inject(FinanceService);
-  private readonly toast   = inject(ToastService);
-  private readonly dialog  = inject(MatDialog);
+  private readonly route       = inject(ActivatedRoute);
+  private readonly finance     = inject(FinanceService);
+  private readonly toast       = inject(ToastService);
+  private readonly fb          = inject(FormBuilder);
   private readonly tourService = inject(TourService);
 
-  protected readonly loading             = signal(true);
-  protected readonly initializing        = signal(false);
-  protected readonly initError           = signal(false);
-  protected readonly allocation          = signal<StudentFeeAllocation | null>(null);
-  protected readonly receiptGroups       = signal<ReceiptGroup[]>([]);
-  protected readonly creditApplications  = signal<EnquiryCreditApplication[]>([]);
+  // ── Data signals ──────────────────────────────────────────────────────────────
+  protected readonly loading            = signal(true);
+  protected readonly initializing       = signal(false);
+  protected readonly initError          = signal(false);
+  protected readonly allocation         = signal<StudentFeeAllocation | null>(null);
+  protected readonly receiptGroups      = signal<ReceiptGroup[]>([]);
+  protected readonly creditApplications = signal<EnquiryCreditApplication[]>([]);
 
-  protected readonly receiptGroupsWithBalance = computed<ReceiptGroupWithBalance[]>(() => {
-    const groups = this.receiptGroups();
-    const fee    = this.totalFee();
-    if (groups.length === 0) return [];
+  // ── Payment form signals ──────────────────────────────────────────────────────
+  protected readonly showPaymentForm   = signal(false);
+  protected readonly saving            = signal(false);
+  protected readonly denominationValid = signal(false);
+  protected readonly receipt           = signal<ReceiptDisplayData | null>(null);
 
-    const sorted = [...groups].sort((a, b) =>
-      new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime()
-    );
+  protected readonly paymentModes = PAYMENT_MODES;
+  protected readonly getPaymentModeLabel = getPaymentModeLabel;
 
-    let runningNetPaid = 0;
-    const enriched = sorted.map(g => {
-      runningNetPaid += g.totalAmount;
-      return { ...g, runningBalance: fee > 0 ? fee - runningNetPaid : null };
-    });
-
-    return enriched.reverse();
+  protected readonly form: FormGroup = this.fb.group({
+    amount:               [null, [Validators.required, Validators.min(1)]],
+    paymentDate:          ['',   Validators.required],
+    paymentMode:          ['',   Validators.required],
+    transactionReference: ['',   [transactionReferenceRequiredValidator('paymentMode')]],
+    remarks:              [''],
   });
 
-  // ── Computed totals ──────────────────────────────────────────────────────────
+  // ── Computed: installment rows (flat, for the grid table) ─────────────────────
+  protected readonly semesterRows = computed(() => {
+    const sems = this.allocation()?.installmentFees ?? [];
+    const nextIndex = sems.findIndex(s => s.pendingAmount > 0);
+    return sems.map((s, i) => ({
+      label:       s.installmentLabel,
+      fee:         s.amount,
+      paid:        s.amountPaid,
+      outstanding: s.pendingAmount,
+      dueDate:     s.dueDate,
+      isPaid:      s.pendingAmount === 0,
+      isNext:      i === nextIndex,
+    }));
+  });
+
+  // ── Computed: totals ──────────────────────────────────────────────────────────
   protected readonly totalFee = computed(() =>
-    this.allocation()?.installmentFees.reduce((s, sf) => s + sf.amount, 0) ?? 0
+    this.semesterRows().reduce((s, r) => s + r.fee, 0)
   );
   protected readonly totalPaid = computed(() =>
-    this.allocation()?.installmentFees.reduce((s, sf) => s + sf.amountPaid, 0) ?? 0
+    this.semesterRows().reduce((s, r) => s + r.paid, 0)
   );
   protected readonly totalOutstanding = computed(() =>
-    this.allocation()?.installmentFees.reduce((s, sf) => s + sf.pendingAmount, 0) ?? 0
+    this.semesterRows().reduce((s, r) => s + r.outstanding, 0)
   );
-
-  /** The first installment with a pending balance — next to receive payment. */
+  protected readonly amountMax = computed<number | null>(() =>
+    this.semesterRows().length > 0 ? this.totalOutstanding() : null
+  );
   protected readonly nextDueSemester = computed(() =>
     this.allocation()?.installmentFees.find(sf => sf.pendingAmount > 0) ?? null
   );
 
+  protected readonly paymentGroups = computed<ReceiptGroup[]>(() =>
+    this.receiptGroups().filter(g => g.receiptType !== 'REFUND')
+      .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+  );
+
+  protected readonly refundGroups = computed<ReceiptGroup[]>(() =>
+    this.receiptGroups().filter(g => g.receiptType === 'REFUND')
+      .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+  );
+
+  protected stageLabelFor(g: ReceiptGroup): string {
+    return g.receiptType === 'ENQUIRY_PAYMENT' ? 'Pre-Admission' : 'Post-Admission';
+  }
+
+  protected installmentSummaryFor(g: ReceiptGroup): string {
+    if (g.receiptType === 'ENQUIRY_PAYMENT') return 'Pre-Admission Payment';
+    const labels = g.lines.map(l => l.installmentLabel).filter(Boolean);
+    return labels.length > 0 ? labels.join(', ') : '—';
+  }
+
   private studentId!: number;
+
+  constructor() {
+    effect(() => {
+      this.semesterRows();
+      this.updateAmountValidators();
+    });
+
+    this.form.get('paymentMode')?.valueChanges.subscribe(() => {
+      this.form.get('transactionReference')?.updateValueAndValidity();
+    });
+  }
 
   ngOnInit(): void {
     this.studentId = Number(this.route.snapshot.paramMap.get('studentId'));
+    this.tourService.register('student-fee-detail', STUDENT_FEE_DETAIL_TOUR);
     this.loadAll();
   }
 
-  protected isOverdue(sem: InstallmentFeeDetail): boolean {
-    return sem.pendingAmount > 0 && new Date(sem.dueDate) < new Date();
+  protected isOverdue(dueDate: string | null): boolean {
+    return !!dueDate && new Date(dueDate) < new Date();
   }
 
-  protected isNextDue(sem: InstallmentFeeDetail): boolean {
-    return this.nextDueSemester()?.id === sem.id;
+  // ── Payment form ──────────────────────────────────────────────────────────────
+  protected openPaymentForm(): void {
+    this.showPaymentForm.set(true);
+    this.form.reset();
+    this.denominationValid.set(false);
+    const nextSem = this.semesterRows().find(r => r.outstanding > 0);
+    const prefill = nextSem ? nextSem.outstanding : this.totalOutstanding();
+    this.form.patchValue({
+      paymentDate: new Date().toISOString().split('T')[0],
+      amount:      prefill > 0 ? prefill : null,
+    });
   }
 
-  // ── Payment dialog ────────────────────────────────────────────────────────────
-  protected openCollectPaymentDialog(): void {
-    const ref = this.dialog.open(CollectPaymentDialogComponent, {
-      width: '520px',
-      data: {
-        studentId: this.studentId,
-        totalOutstanding: this.totalOutstanding(),
+  protected closePaymentForm(): void {
+    this.showPaymentForm.set(false);
+    this.form.reset();
+    this.denominationValid.set(false);
+  }
+
+  protected isCashMode(): boolean {
+    return this.form.get('paymentMode')?.value === 'CASH';
+  }
+
+  protected isTransactionRefRequired(): boolean {
+    const mode = this.form.get('paymentMode')?.value;
+    return ['UPI', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT'].includes(mode);
+  }
+
+  protected getAmountMaxError(): string | null {
+    const maxError = this.form.get('amount')?.errors?.['amountExceedsOutstanding'];
+    if (!maxError) return null;
+    return `Amount cannot exceed total outstanding of ₹${Number(maxError.max).toLocaleString('en-IN')}`;
+  }
+
+  protected onSubmit(): void {
+    if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
+    if (this.isCashMode() && !this.denominationValid()) return;
+
+    const v = this.form.value;
+    const req: CollectPaymentRequest = {
+      amount:               v.amount,
+      paymentDate:          v.paymentDate,
+      paymentMode:          v.paymentMode,
+      transactionReference: v.transactionReference?.trim() || undefined,
+      remarks:              v.remarks?.trim() || undefined,
+    };
+
+    this.saving.set(true);
+    this.finance.collectPayment(this.studentId, req).subscribe({
+      next: (res) => {
+        this.saving.set(false);
+        const alloc = this.allocation();
+        this.receipt.set({
+          receiptNumber:        res.receiptNumber,
+          payerType:            'STUDENT',
+          payerName:            res.studentName,
+          payerIdentifier:      res.rollNumber,
+          programName:          alloc?.programName ?? null,
+          amountPaid:           Number(res.amountPaid),
+          paymentDate:          String(res.paymentDate),
+          paymentMode:          String(res.paymentMode),
+          transactionReference: res.transactionReference,
+          remarks:              res.remarks,
+          installmentsCovered:  res.installmentBreakdown.map(i => i.installmentLabel).join(', '),
+          installmentBreakdown: res.installmentBreakdown.map(i => ({
+            label:  i.installmentLabel,
+            amount: Number(i.amountApplied),
+          })),
+        });
+      },
+      error: (err: unknown) => {
+        const httpError = err as HttpErrorResponse;
+        this.toast.error((httpError?.error?.message as string) || 'Failed to collect payment');
+        this.saving.set(false);
       },
     });
-    ref.afterClosed().subscribe((result) => {
-      if (result) {
-        const breakdown = result.installmentBreakdown
-          ?.map((s: any) => `${s.installmentLabel}: ${formatCurrency(s.amountApplied, 'en-IN', '₹', 'INR', '1.0-0')}`)
-          .join(', ') ?? result.allocationSummary;
-        this.toast.success(`Receipt ${result.receiptNumber} — ${breakdown}`);
-        this.loadAll();
-      }
-    });
+  }
+
+  protected doneWithReceipt(): void {
+    this.receipt.set(null);
+    this.closePaymentForm();
+    this.loadAll();
   }
 
   protected retryInit(): void {
     this.initError.set(false);
     this.autoInitializeAllocation();
+  }
+
+  // ── Receipt actions ───────────────────────────────────────────────────────────
+  protected viewReceipt(group: ReceiptGroup): void {
+    void printFeeReceipt(this.toReceiptPrintData(group));
+  }
+
+  protected downloadReceipt(group: ReceiptGroup): void {
+    void downloadFeeReceipt(this.toReceiptPrintData(group));
+  }
+
+  protected startTour(): void {
+    this.tourService.start('student-fee-detail');
   }
 
   // ── Data loading ──────────────────────────────────────────────────────────────
@@ -186,20 +314,6 @@ export class StudentFeeDetailComponent implements OnInit {
     });
   }
 
-  // ── Receipt actions ───────────────────────────────────────────────────────────
-
-  protected viewReceipt(group: ReceiptGroup): void {
-    void printFeeReceipt(this.toReceiptPrintData(group));
-  }
-
-  protected downloadReceipt(group: ReceiptGroup): void {
-    void downloadFeeReceipt(this.toReceiptPrintData(group));
-  }
-
-  protected isRefundGroup(group: ReceiptGroup): boolean {
-    return group.receiptType === 'REFUND';
-  }
-
   private toReceiptPrintData(group: ReceiptGroup) {
     const alloc = this.allocation();
     return {
@@ -214,7 +328,7 @@ export class StudentFeeDetailComponent implements OnInit {
       feeCategory:          group.lines[0]?.feeCategory ?? null,
       installmentBreakdown: group.lines.map(l => ({
         installmentLabel: l.installmentLabel ?? '',
-            amountApplied:    Math.abs(l.amountPaid),
+        amountApplied:    Math.abs(l.amountPaid),
       })),
     };
   }
@@ -228,12 +342,12 @@ export class StudentFeeDetailComponent implements OnInit {
         existing.totalAmount += r.amountPaid;
       } else {
         map.set(r.receiptNumber, {
-          receiptNumber: r.receiptNumber,
-          paymentDate: r.paymentDate,
-          paymentMode: r.paymentMode,
-          transactionReference: r.transactionReference,
-          totalAmount: r.amountPaid,
-          receiptType: r.receiptType,
+          receiptNumber:         r.receiptNumber,
+          paymentDate:           r.paymentDate,
+          paymentMode:           r.paymentMode,
+          transactionReference:  r.transactionReference,
+          totalAmount:           r.amountPaid,
+          receiptType:           r.receiptType,
           originalReceiptNumber: r.originalReceiptNumber,
           lines: [r],
         });
@@ -242,8 +356,25 @@ export class StudentFeeDetailComponent implements OnInit {
     return Array.from(map.values());
   }
 
-  protected startTour(): void {
-    this.tourService.register('student-fee-detail', STUDENT_FEE_DETAIL_TOUR);
-    this.tourService.start('student-fee-detail');
+  private updateAmountValidators(): void {
+    const amountControl = this.form.get('amount');
+    if (!amountControl) return;
+
+    const validators = [Validators.required, Validators.min(1)];
+    const max = this.amountMax();
+    if (max !== null) validators.push(this.maxOutstandingValidator(max));
+
+    amountControl.setValidators(validators);
+    amountControl.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private maxOutstandingValidator(max: number): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const raw = control.value;
+      if (raw === null || raw === '' || raw === undefined) return null;
+      const n = Number(raw);
+      if (Number.isNaN(n) || n <= max) return null;
+      return { amountExceedsOutstanding: { max, actual: n } };
+    };
   }
 }

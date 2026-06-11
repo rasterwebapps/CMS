@@ -1,28 +1,38 @@
 <div class="imp-page">
 
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
-  <div class="imp-hdr anim-rise">
+  <div id="tour-import-header" class="imp-hdr anim-rise">
     <div class="imp-hdr-left">
-      <h1 class="imp-title">Import <em>Student Data</em></h1>
+      <div class="page-title-row">
+        <h1 class="imp-title">Import <em>Student Data</em></h1>
+        <button type="button" class="btn-toolbar" (click)="startTour()" aria-label="Take a Tour" title="Take a Tour">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4"/>
+            <path d="M12 8h.01"/>
+          </svg>
+        </button>
+      </div>
       <p class="imp-sub">Migrate existing students, qualifications and fee history from a spreadsheet.</p>
     </div>
   </div>
 
   <!-- ── Step nav ───────────────────────────────────────────────────────── -->
-  <div class="step-nav anim-rise anim-rise--d1">
-    <button class="step-btn" [class.step-btn--active]="activeStep() === 'template'" (click)="goToStep('template')">
+  <div id="tour-import-nav" class="step-nav anim-rise anim-rise--d1">
+    <button id="tour-import-step-template-btn" class="step-btn" [class.step-btn--active]="activeStep() === 'template'" (click)="goToStep('template')">
       <span class="step-num">1</span> Download Template
     </button>
     <span class="step-arrow">→</span>
-    <button class="step-btn" [class.step-btn--active]="activeStep() === 'defaults'" (click)="goToStep('defaults')">
+    <button id="tour-import-step-defaults-btn" class="step-btn" [class.step-btn--active]="activeStep() === 'defaults'" (click)="goToStep('defaults')">
       <span class="step-num">2</span> Set Defaults
     </button>
     <span class="step-arrow">→</span>
-    <button class="step-btn" [class.step-btn--active]="activeStep() === 'upload'" (click)="goToStep('upload')">
+    <button id="tour-import-step-upload-btn" class="step-btn" [class.step-btn--active]="activeStep() === 'upload'" (click)="goToStep('upload')">
       <span class="step-num">3</span> Upload &amp; Validate
     </button>
     <span class="step-arrow">→</span>
-    <button class="step-btn" [class.step-btn--active]="activeStep() === 'result'" (click)="goToStep('result')" [disabled]="!validationResult() && !executeResult()">
+    <button id="tour-import-step-result-btn" class="step-btn" [class.step-btn--active]="activeStep() === 'result'" (click)="goToStep('result')" [disabled]="!validationResult() && !executeResult()">
       <span class="step-num">4</span> Results
     </button>
   </div>

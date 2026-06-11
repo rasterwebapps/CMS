@@ -18,7 +18,13 @@
     <header id="tour-stu-detail-hero" class="profile-hero">
       <div class="profile-hero__top">
         <div class="profile-hero__identity">
-          <div class="profile-hero__avatar" aria-hidden="true">{{ initials() }}</div>
+          @if (passportPhotoUrl()) {
+            <div class="profile-hero__avatar profile-hero__avatar--photo" aria-hidden="true">
+              <img [src]="passportPhotoUrl()!" alt="" class="profile-hero__avatar-img" />
+            </div>
+          } @else {
+            <div class="profile-hero__avatar" aria-hidden="true">{{ initials() }}</div>
+          }
           <div class="profile-hero__body">
             <div class="page-title-row">
               <h1 class="profile-hero__name">{{ student()!.fullName }}</h1>

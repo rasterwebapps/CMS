@@ -17,10 +17,10 @@ public interface EnquiryPaymentRepository extends JpaRepository<EnquiryPayment, 
 
     List<EnquiryPayment> findByEnquiryIdOrderByPaymentDateDesc(Long enquiryId);
 
-    @Query("SELECT COALESCE(SUM(p.amountPaid), 0) FROM EnquiryPayment p WHERE p.enquiry.id = :enquiryId")
+    @Query("SELECT COALESCE(SUM(p.amountPaid), 0) FROM EnquiryPayment p WHERE p.enquiry.id = :enquiryId AND p.refundedAt IS NULL")
     BigDecimal sumAmountPaidByEnquiryId(@Param("enquiryId") Long enquiryId);
 
-    @Query("SELECT p.enquiry.id, COALESCE(SUM(p.amountPaid), 0) FROM EnquiryPayment p WHERE p.enquiry.id IN :ids GROUP BY p.enquiry.id")
+    @Query("SELECT p.enquiry.id, COALESCE(SUM(p.amountPaid), 0) FROM EnquiryPayment p WHERE p.enquiry.id IN :ids AND p.refundedAt IS NULL GROUP BY p.enquiry.id")
     List<Object[]> sumAmountPaidGroupedByEnquiryIds(@Param("ids") List<Long> ids);
 
     default Map<Long, BigDecimal> paidTotalsForIds(List<Long> ids) {

@@ -8,6 +8,8 @@ import { ImportDefaults, ImportRowError, ImportValidationResult, ImportExecuteRe
 import { AcademicYearService } from '../academic-year/academic-year.service';
 import { AcademicYear } from '../academic-year/academic-year.model';
 import { ToastService } from '../../core/toast/toast.service';
+import { TourService } from '../../shared/tour/tour.service';
+import { STUDENT_DATA_IMPORT_TOUR } from '../../shared/tour/tours/student.tours';
 
 type Step = 'template' | 'defaults' | 'upload' | 'result';
 type Phase = 'idle' | 'validating' | 'importing' | 'done';
@@ -23,6 +25,7 @@ export class ImportComponent implements OnInit {
   private readonly importService     = inject(ImportService);
   private readonly academicYearSvc   = inject(AcademicYearService);
   private readonly toast             = inject(ToastService);
+  private readonly tourService       = inject(TourService);
 
   protected readonly academicYears   = signal<AcademicYear[]>([]);
   protected readonly selectedFile    = signal<File | null>(null);
@@ -33,13 +36,6 @@ export class ImportComponent implements OnInit {
 
   protected readonly STUDENT_TYPES        = ['DAY_SCHOLAR', 'HOSTELER'];
   protected readonly ADMISSION_CATEGORIES = ['MANAGEMENT', 'COUNSELLING'];
-  protected readonly SHEET_INFO = [
-    { name: 'Students',       desc: 'One row per student — personal, demographic and address details' },
-    { name: 'Qualifications', desc: 'Academic history — link by student email, multiple rows allowed' },
-    { name: 'Fee History',    desc: 'Total fee + historical payment records per student' },
-    { name: 'Reference',      desc: 'Valid codes and enum values from your system (read-only, for dropdown validation)' },
-  ];
-
   protected defaults: ImportDefaults = {
     defaultJoiningAcademicYearId: null,
     defaultStudentType: 'DAY_SCHOLAR',
@@ -50,20 +46,8 @@ export class ImportComponent implements OnInit {
     skipErroredRows: true,
   };
 
-  protected readonly hasErrors = computed(() => {
-    const vr = this.validationResult();
-    const er = this.executeResult();
-    const errors = vr ? vr.errors.filter(e => e.severity === 'ERROR') : [];
-    const exErrors = er ? er.errors.filter(e => e.severity === 'ERROR') : [];
-    return errors.length + exErrors.length;
-  });
-
-  protected readonly hasWarnings = computed(() => {
-    const vr = this.validationResult();
-    return vr ? vr.warnings.length : 0;
-  });
-
   ngOnInit(): void {
+    this.tourService.register('student-data-import', STUDENT_DATA_IMPORT_TOUR);
     this.academicYearSvc.getAllAcademicYears().subscribe({
       next: (years) => {
         const sorted = [...years].sort((a, b) =>
@@ -74,6 +58,10 @@ export class ImportComponent implements OnInit {
         if (current) this.defaults = { ...this.defaults, defaultJoiningAcademicYearId: current.id };
       },
     });
+  }
+
+  protected startTour(): void {
+    this.tourService.start('student-data-import');
   }
 
   protected downloadTemplate(): void {
@@ -148,13 +136,6 @@ export class ImportComponent implements OnInit {
     this.activeStep.set(step);
   }
 
-  protected errorsBySheet(errors: ImportRowError[], sheet: string): ImportRowError[] {
-    return errors.filter(e => e.sheet === sheet && e.severity === 'ERROR');
-  }
-
-  protected warnsBySheet(errors: ImportRowError[], sheet: string): ImportRowError[] {
-    return errors.filter(e => e.sheet === sheet && e.severity === 'WARNING');
-  }
 
   protected allErrors(result: ImportValidationResult | ImportExecuteResult | null): ImportRowError[] {
     if (!result) return [];

@@ -22,6 +22,9 @@ public interface FeeRefundRepository extends JpaRepository<FeeRefund, Long> {
     /** Approved refund vouchers shown in student fee payment history. */
     List<FeeRefund> findByStudentIdAndStatusOrderByPaymentDateDescIdDesc(Long studentId, String status);
 
+    /** Approved refund vouchers shown in enquiry payment history. */
+    List<FeeRefund> findByEnquiryIdAndStatusOrderByPaymentDateDescIdDesc(Long enquiryId, String status);
+
     /** All refunds — PENDING first, then by requestedAt desc. */
     @Query("SELECT r FROM FeeRefund r ORDER BY CASE r.status WHEN 'PENDING' THEN 0 ELSE 1 END ASC, r.requestedAt DESC, r.id DESC")
     List<FeeRefund> findAllOrderedByStatusAndDate();

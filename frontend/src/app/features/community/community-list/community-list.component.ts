@@ -12,6 +12,9 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { COMMUNITY_LIST_TOUR } from '../../../shared/tour/tours/community.tours';
 
 @Component({
   selector: 'app-community-list',
@@ -25,6 +28,7 @@ import { PermissionService } from '../../../core/permissions/permission.service'
     MatTooltipModule,
     CmsEmptyStateComponent,
     CmsViewToggleComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './community-list.component.html',
   styleUrl: './community-list.component.scss',
@@ -35,6 +39,7 @@ export class CommunityListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly permissionService = inject(PermissionService);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -68,6 +73,7 @@ export class CommunityListComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('community-list', COMMUNITY_LIST_TOUR);
     this.load();
   }
 

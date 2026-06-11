@@ -13,6 +13,9 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { DESIGNATION_FORM_TOUR } from '../../../shared/tour/tours/designation.tours';
 
 @Component({
   selector: 'app-designation-form',
@@ -23,6 +26,7 @@ import { uniqueFieldValidator } from '../../../shared/validators/unique-field.va
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    CmsTourButtonComponent,
   ],
   templateUrl: './designation-form.component.html',
   styleUrl: './designation-form.component.scss',
@@ -35,6 +39,7 @@ export class DesignationFormComponent implements OnInit {
   private readonly toast               = inject(ToastService);
   private readonly destroyRef          = inject(DestroyRef);
   private readonly http                = inject(HttpClient);
+  private readonly tourService         = inject(TourService);
 
   protected readonly loading   = signal(false);
   protected readonly saving    = signal(false);
@@ -67,6 +72,7 @@ export class DesignationFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('designation-form', DESIGNATION_FORM_TOUR);
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.designationId = Number(idParam);

@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -65,6 +65,7 @@ export interface FeeEntry {
 })
 export class FeeCollectionComponent implements OnInit {
   private readonly route          = inject(ActivatedRoute);
+  private readonly router         = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
   private readonly financeService = inject(FinanceService);
   private readonly toast          = inject(ToastService);
@@ -292,6 +293,11 @@ export class FeeCollectionComponent implements OnInit {
   protected selectEntry(entry: FeeEntry): void {
     if (entry.totalOutstanding <= 0) {
       this.toast.info('No outstanding balance available for this record');
+      return;
+    }
+
+    if (entry.type === 'STUDENT') {
+      void this.router.navigate(['/student-fees', entry.id]);
       return;
     }
 

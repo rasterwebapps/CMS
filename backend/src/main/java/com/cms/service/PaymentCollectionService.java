@@ -210,31 +210,55 @@ public class PaymentCollectionService {
             throw new ResourceNotFoundException("Student not found with id: " + studentId);
         }
 
-        List<ReceiptResponse> studentReceipts = installmentRepository
+        List<ReceiptResponse> receipts = installmentRepository
             .findByStudentIdOrderByPaymentDateDesc(studentId).stream()
             .map(this::toReceiptResponse)
             .collect(Collectors.toCollection(ArrayList::new));
 
-        // Student fee payment history includes approved refund vouchers as reversal rows.
-        studentReceipts.addAll(refundRepository.findByStudentIdAndStatusOrderByPaymentDateDescIdDesc(studentId, "APPROVED")
+        // Approved student refund vouchers
+        refundRepository.findByStudentIdAndStatusOrderByPaymentDateDescIdDesc(studentId, "APPROVED")
             .stream()
-            .map(this::toRefundReceiptResponse)
-            .toList());
+            .map(r -> toRefundReceiptResponse(r, studentId))
+            .forEach(receipts::add);
 
-        studentReceipts.sort(
+        // Enquiry-stage payments for the converted student
+        enquiryRepository.findByConvertedStudentId(studentId).ifPresent(enquiry -> {
+            enquiryPaymentRepository.findByEnquiryIdOrderByPaymentDateDesc(enquiry.getId()).stream()
+                .map(p -> toEnquiryPaymentReceiptResponse(p, studentId))
+                .forEach(receipts::add);
+            refundRepository.findByEnquiryIdAndStatusOrderByPaymentDateDescIdDesc(enquiry.getId(), "APPROVED")
+                .stream()
+                .map(r -> toRefundReceiptResponse(r, studentId))
+                .forEach(receipts::add);
+        });
+
+        receipts.sort(
             Comparator.comparing(ReceiptResponse::paymentDate, Comparator.nullsLast(Comparator.reverseOrder()))
                 .thenComparing(ReceiptResponse::createdAt, Comparator.nullsLast(Comparator.reverseOrder()))
                 .thenComparing(ReceiptResponse::id, Comparator.nullsLast(Comparator.reverseOrder()))
         );
 
-        return studentReceipts;
+        return receipts;
     }
 
-    private ReceiptResponse toRefundReceiptResponse(FeeRefund refund) {
+    private ReceiptResponse toEnquiryPaymentReceiptResponse(com.cms.model.EnquiryPayment p, Long studentId) {
+        String feeCategory = p.getEnquiry().getStudentType() == com.cms.model.enums.StudentType.HOSTELER
+            ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
+        return new ReceiptResponse(
+            p.getId(), p.getReceiptNumber(),
+            studentId, p.getEnquiry().getName(), null,
+            null, null, null,
+            p.getAmountPaid(), p.getPaymentDate(), p.getPaymentMode().name(),
+            p.getTransactionReference(), p.getRemarks(), p.getCreatedAt(),
+            "ENQUIRY_PAYMENT", null, feeCategory
+        );
+    }
+
+    private ReceiptResponse toRefundReceiptResponse(FeeRefund refund, Long studentId) {
         return new ReceiptResponse(
             refund.getId(), refund.getRefundNumber(),
-            refund.getStudentId(), refund.getStudentName(), refund.getRollNumber(),
-            null, "Refund against " + refund.getOriginalReceiptNumber(), null,
+            studentId, refund.getStudentName(), refund.getRollNumber(),
+            null, null, null,
             refund.getRefundAmount().negate(), refund.getPaymentDate(), refund.getPaymentMode(),
             refund.getTransactionReference(), refund.getReason(), refund.getApprovedAt(),
             "REFUND", refund.getOriginalReceiptNumber(), null

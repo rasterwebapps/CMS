@@ -20,6 +20,9 @@ import {
 } from '../../../shared/validators/cms-validators';
 import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { COMMUNITY_FORM_TOUR } from '../../../shared/tour/tours/community.tours';
 
 @Component({
   selector: 'app-community-form',
@@ -31,6 +34,7 @@ import { uniqueFieldValidator } from '../../../shared/validators/unique-field.va
     MatSlideToggleModule,
     CmsPreviewCardComponent,
     CmsTipsCardComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './community-form.component.html',
   styleUrl: './community-form.component.scss',
@@ -43,6 +47,7 @@ export class CommunityFormComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly http = inject(HttpClient);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -98,6 +103,7 @@ export class CommunityFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('community-form', COMMUNITY_FORM_TOUR);
     const id = this.route.snapshot.paramMap.get('id');
     if (id && id !== 'new') {
       this.itemId = Number(id);

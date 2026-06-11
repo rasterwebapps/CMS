@@ -8,6 +8,8 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { SCHOLARSHIP_APPLICATIONS_TOUR } from '../../../shared/tour/tours/student.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { ScholarshipApplication } from '../scholarship.model';
 import { ScholarshipService } from '../scholarship.service';
@@ -26,6 +28,7 @@ export class ScholarshipApplicationsListComponent implements OnInit {
   private readonly scholarshipService = inject(ScholarshipService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly applications = signal<ScholarshipApplication[]>([]);
@@ -33,7 +36,14 @@ export class ScholarshipApplicationsListComponent implements OnInit {
   protected readonly sortState = signal<Sort>({ active: '', direction: '' });
   protected readonly sortedApplications = computed(() => this.sortRows(this.applications(), this.sortState()));
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.tourService.register('scholarship-applications', SCHOLARSHIP_APPLICATIONS_TOUR);
+    this.load();
+  }
+
+  protected startTour(): void {
+    this.tourService.start('scholarship-applications');
+  }
 
   protected onSort(sort: Sort): void { this.sortState.set(sort); }
 

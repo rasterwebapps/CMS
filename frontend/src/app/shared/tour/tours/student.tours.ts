@@ -299,3 +299,136 @@ export const RETRO_ADMIT_TOUR: TourDefinition = {
     },
   ],
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scholarship Applications
+// ─────────────────────────────────────────────────────────────────────────────
+export const SCHOLARSHIP_APPLICATIONS_TOUR: TourDefinition = {
+  steps: [
+    {
+      popover: {
+        title: '🎓 Scholarship Applications',
+        description:
+          'Review student scholarship requests waiting for approval. This screen helps you approve, reject, and monitor the final approved amount.',
+        side: 'over',
+        align: 'center',
+      },
+    },
+    {
+      element: '#tour-schapp-header',
+      popover: {
+        title: 'Applications Queue',
+        description:
+          'The header confirms you are in the scholarship approval workspace used by authorised staff to process pending student requests.',
+        side: 'bottom',
+        align: 'start',
+      },
+    },
+    {
+      element: '#tour-schapp-content',
+      popover: {
+        title: 'Application Review Workspace',
+        description:
+          'This area shows the current scholarship approval queue. Depending on data, you will see the review table, a loading state, or an empty state message for pending requests.',
+        side: 'top',
+        align: 'start',
+      },
+    },
+    {
+      popover: {
+        title: '✅ Ready to review',
+        description:
+          'Open pending applications from the table and complete the approval workflow with the correct sanctioned amount or rejection reason.',
+        side: 'over',
+        align: 'center',
+      },
+    },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Student Data Import
+// ─────────────────────────────────────────────────────────────────────────────
+export const STUDENT_DATA_IMPORT_TOUR: TourDefinition = {
+  steps: [
+    {
+      popover: {
+        title: '📥 Student Data Import',
+        description:
+          'Use this workflow to migrate legacy student records, qualifications, and fee history from the Excel template into the system.',
+        side: 'over',
+        align: 'center',
+      },
+    },
+    {
+      element: '#tour-import-header',
+      popover: {
+        title: 'Import Overview',
+        description:
+          'This header introduces the migration workspace and provides the Take a Tour action whenever users need guidance again.',
+        side: 'bottom',
+        align: 'start',
+      },
+    },
+    {
+      element: '#tour-import-nav',
+      popover: {
+        title: 'Four-Step Workflow',
+        description:
+          'Move through the process in order: download the template, set default values, upload and validate the file, then review the results before import.',
+        side: 'bottom',
+        align: 'start',
+      },
+    },
+    {
+      element: '#tour-import-step-template-btn',
+      popover: {
+        title: 'Template Download',
+        description:
+          'Start at the Template step to download the live workbook with required sheets, reference values, and spreadsheet validation support.',
+        side: 'bottom',
+        align: 'start',
+      },
+    },
+    {
+      element: '#tour-import-step-defaults-btn',
+      popover: {
+        title: 'Set Defaults',
+        description:
+          'Use the Defaults step to prefill joining year, student type, admission category, and other fallback values for blank spreadsheet cells.',
+        side: 'bottom',
+        align: 'center',
+      },
+    },
+    {
+      element: '#tour-import-step-upload-btn',
+      popover: {
+        title: 'Upload, Validate, and Import',
+        description:
+          'After filling the template, move to Upload & Validate. Validate first to review issues, then run the import once the file is ready.',
+        side: 'bottom',
+        align: 'center',
+      },
+    },
+    {
+      element: '#tour-import-step-result-btn',
+      popover: {
+        title: 'Review Results',
+        description:
+          'The Results step summarizes imported records, skipped rows, warnings, and errors so you can confirm the migration outcome clearly.',
+        side: 'bottom',
+        align: 'center',
+      },
+    },
+    {
+      popover: {
+        title: '✅ Import with confidence',
+        description:
+          'Follow the steps carefully and always validate before importing to catch spreadsheet issues early and keep student data clean.',
+        side: 'over',
+        align: 'center',
+      },
+    },
+  ],
+};
+

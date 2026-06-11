@@ -14,6 +14,9 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { DESIGNATION_LIST_TOUR } from '../../../shared/tour/tours/designation.tours';
 
 @Component({
   selector: 'app-designation-list',
@@ -28,6 +31,7 @@ import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.
     MatTooltipModule,
     CmsEmptyStateComponent,
     CmsViewToggleComponent,
+    CmsTourButtonComponent,
     SlicePipe,
   ],
   templateUrl: './designation-list.component.html',
@@ -38,6 +42,7 @@ export class DesignationListComponent implements OnInit {
   private readonly router             = inject(Router);
   private readonly toast              = inject(ToastService);
   private readonly dialog             = inject(MatDialog);
+  private readonly tourService        = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -66,6 +71,7 @@ export class DesignationListComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('designation-list', DESIGNATION_LIST_TOUR);
     this.loadDesignations();
   }
 

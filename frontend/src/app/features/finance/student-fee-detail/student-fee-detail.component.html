@@ -1,5 +1,14 @@
 <div class="sfd-page">
 
+  <!-- Receipt overlay -->
+  @if (receipt()) {
+    <cms-fee-receipt-dialog
+      [receipt]="receipt()"
+      (closed)="doneWithReceipt()"
+      (printed)="doneWithReceipt()"
+    />
+  }
+
   <!-- ── Back nav header ──────────────────────────────────────────────────── -->
   <div class="sfd-hdr anim-rise">
     <a class="btn-secondary" routerLink="/student-fees">
@@ -33,7 +42,6 @@
     </div>
 
   } @else if (initError()) {
-    <!-- ── Auto-init failed ── -->
     <div class="no-alloc-banner no-alloc-banner--error">
       <svg class="no-alloc-banner__icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -47,7 +55,6 @@
     </div>
 
   } @else {
-    <!-- ── Allocation exists — normal collection view ── -->
 
     <!-- Student summary -->
     @if (allocation(); as alloc) {
@@ -88,114 +95,198 @@
       </div>
     }
 
-    <!-- Installment fee collection table -->
-    <div id="tour-student-installments" class="content-card">
-      <div class="card-hdr">
-        <div class="card-hdr__title">
-          <svg class="card-hdr__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-          </svg>
-          Installment-wise Fee Status
+    <!-- Main content: installment table + optional inline payment form -->
+    <div [class.payment-layout]="showPaymentForm()">
+
+      <!-- Left / full: installment table -->
+      <div [class.summary-col]="showPaymentForm()">
+        <div id="tour-student-installments" class="sem-table-card">
+
+          <!-- Card header -->
+          <div class="sem-card-hdr">
+            <div class="sem-card-hdr__title">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+              </svg>
+              Installment-wise Fee Status
+            </div>
+            @if (!showPaymentForm()) {
+              <button class="btn-primary"
+                      (click)="openPaymentForm()"
+                      [disabled]="totalOutstanding() === 0"
+                      [matTooltip]="totalOutstanding() === 0 ? 'All fees have been collected' : ''"
+                      matTooltipPosition="left">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                Collect Payment
+              </button>
+            }
+          </div>
+
+          <!-- Grid-based installment table -->
+          <div class="sem-head">
+            <span>#</span>
+            <span>Installment</span>
+            <span class="align-right">Due Date</span>
+            <span class="align-right">Fee (₹)</span>
+            <span class="align-right">Paid (₹)</span>
+            <span class="align-right">Outstanding (₹)</span>
+            <span class="align-center">Status</span>
+          </div>
+
+          @for (row of semesterRows(); track row.label; let i = $index) {
+            <div class="sem-row"
+                 [class.sem-row--paid]="row.isPaid"
+                 [class.sem-row--next]="row.isNext"
+                 [class.sem-row--overdue]="!row.isPaid && isOverdue(row.dueDate)">
+              <span class="sem-seq" [class.sem-seq--next]="row.isNext">{{ i + 1 }}</span>
+              <span class="sem-label">
+                {{ row.label }}
+                @if (row.isNext) { <span class="next-pill">Next →</span> }
+                @if (!row.isPaid && isOverdue(row.dueDate)) { <span class="overdue-pill">Overdue</span> }
+              </span>
+              <span class="sem-due align-right mono">{{ row.dueDate ? (row.dueDate | appDate:'short') : '—' }}</span>
+              <span class="sem-fee align-right mono">{{ row.fee | inr:false:false }}</span>
+              <span class="sem-paid align-right mono text-green">{{ row.paid | inr:false:false }}</span>
+              <span class="sem-outstanding align-right mono" [class.outstanding-zero]="row.outstanding === 0"
+                    [class.text-red]="row.outstanding > 0">
+                {{ row.outstanding | inr:false:false }}
+              </span>
+              <span class="sem-badge align-center"
+                    [class.sem-badge--paid]="row.isPaid"
+                    [class.sem-badge--partial]="!row.isPaid && row.paid > 0"
+                    [class.sem-badge--overdue]="!row.isPaid && isOverdue(row.dueDate)"
+                    [class.sem-badge--pending]="!row.isPaid && row.paid === 0 && !isOverdue(row.dueDate)">
+                {{ row.isPaid ? 'Paid' : row.paid > 0 ? 'Partial' : isOverdue(row.dueDate) ? 'Overdue' : 'Pending' }}
+              </span>
+            </div>
+          }
+
+          <div class="sem-footer">
+            <span></span>
+            <span><strong>Total</strong></span>
+            <span></span>
+            <span class="align-right mono"><strong>{{ totalFee() | inr:false:false }}</strong></span>
+            <span class="total-paid align-right mono"><strong>{{ totalPaid() | inr:false:false }}</strong></span>
+            <span class="total-outstanding align-right mono" [class.outstanding-zero]="totalOutstanding() === 0">
+              <strong>{{ totalOutstanding() | inr:false:false }}</strong>
+            </span>
+            <span></span>
+          </div>
+
+          <!-- Cascade note -->
+          @if (totalOutstanding() > 0) {
+            <div class="cascade-note">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:1px;">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Any payment will automatically fill
+              <strong>{{ nextDueSemester()?.installmentLabel }}</strong> first,
+              then cascade to subsequent installments if the amount exceeds its balance.
+            </div>
+          }
+
         </div>
-        <button class="btn-primary"
-                (click)="openCollectPaymentDialog()"
-                [disabled]="totalOutstanding() === 0"
-                [matTooltip]="totalOutstanding() === 0 ? 'All fees have been collected' : ''"
-                matTooltipPosition="left">
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-          </svg>
-          Collect Payment
-        </button>
       </div>
 
-      @if (allocation(); as alloc) {
-        <div class="table-wrap">
-          <table class="sem-table">
-            <thead>
-              <tr>
-                <th>Installment</th>
-                <th class="text-right">Fee Amount (₹)</th>
-                <th class="text-right">Paid (₹)</th>
-                <th class="text-right">Outstanding (₹)</th>
-                <th>Due Date</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (sem of alloc.installmentFees; track sem.id) {
-                <tr [class.row--next]="isNextDue(sem)"
-                    [class.row--paid]="sem.paymentStatus === 'PAID'"
-                    [class.row--overdue]="isOverdue(sem)">
-                  <td class="sem-cell">
-                    <!-- Cascade order badge -->
-                    <span class="seq-badge">{{ $index + 1 }}</span>
-                    <div class="sem-info">
-                      <span class="sem-label">{{ sem.installmentLabel }}</span>
-                      @if (isNextDue(sem)) {
-                        <span class="next-tag">
-                          <svg class="next-tag__icon" xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
-                               fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-                          </svg>Next payment
-                        </span>
-                      }
-                      @if (isOverdue(sem)) {
-                        <span class="overdue-tag">OVERDUE</span>
-                      }
-                    </div>
-                  </td>
-                  <td class="text-right mono">{{ sem.amount | inr:false:false }}</td>
-                  <td class="text-right mono text-green">{{ sem.amountPaid | inr:false:false }}</td>
-                  <td class="text-right mono" [class.text-red]="sem.pendingAmount > 0">
-                    {{ sem.pendingAmount | inr:false:false }}
-                  </td>
-                  <td class="mono-sm">{{ sem.dueDate }}</td>
-                  <td>
-                    <cms-status-badge [status]="sem.paymentStatus" />
-                    <!-- Progress bar inside the row -->
-                    @if (sem.paymentStatus !== 'PAID' && sem.amountPaid > 0) {
-                      <div class="sem-progress">
-                        <div class="sem-progress__fill"
-                             [style.width.%]="(sem.amountPaid / sem.amount) * 100"></div>
-                      </div>
-                    }
-                  </td>
-                </tr>
+      <!-- Right: inline payment form (only when showPaymentForm) -->
+      @if (showPaymentForm()) {
+        <div id="tour-collect-form" class="form-col">
+          <h3 class="form-title">Payment Details</h3>
+          <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+            <div class="field-group">
+              <label class="field-label">Amount (₹) <span class="field-required">*</span></label>
+              <input class="field-input" type="number" formControlName="amount" min="1"
+                     placeholder="0"
+                     [class.field-input--error]="form.get('amount')?.invalid && form.get('amount')?.touched" />
+              <p class="field-hint">
+                Pre-filled with current installment outstanding · max: ₹{{ amountMax()! | number:'1.0-0' }}
+              </p>
+              @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
+                @if (form.get('amount')?.errors?.['required'] || form.get('amount')?.errors?.['min']) {
+                  <p class="field-error">Valid amount is required</p>
+                } @else if (getAmountMaxError(); as amountMaxError) {
+                  <p class="field-error">{{ amountMaxError }}</p>
+                }
               }
-            </tbody>
-            <tfoot>
-              <tr class="total-row">
-                <td><strong>Total</strong></td>
-                <td class="text-right mono"><strong>{{ totalFee() | inr:false:false }}</strong></td>
-                <td class="text-right mono text-green"><strong>{{ totalPaid() | inr:false:false }}</strong></td>
-                <td class="text-right mono" [class.text-red]="totalOutstanding() > 0">
-                  <strong>{{ totalOutstanding() | inr:false:false }}</strong>
-                </td>
-                <td colspan="2"></td>
-              </tr>
-            </tfoot>
-          </table>
+            </div>
+
+            <div class="form-row">
+              <div class="field-group">
+                <label class="field-label">Payment Date <span class="field-required">*</span></label>
+                <input class="field-input" type="date" formControlName="paymentDate"
+                       [class.field-input--error]="form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched" />
+                @if (form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched) {
+                  <p class="field-error">Payment date is required</p>
+                }
+              </div>
+              <div class="field-group">
+                <label class="field-label">Payment Mode <span class="field-required">*</span></label>
+                <select class="field-select" formControlName="paymentMode"
+                        [class.field-input--error]="form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched">
+                  <option value="" disabled>Select mode</option>
+                  @for (mode of paymentModes; track mode) {
+                    <option [value]="mode">{{ getPaymentModeLabel(mode) }}</option>
+                  }
+                </select>
+                @if (form.get('paymentMode')?.invalid && form.get('paymentMode')?.touched) {
+                  <p class="field-error">Payment mode is required</p>
+                }
+              </div>
+            </div>
+
+            @if (isCashMode()) {
+              <div class="field-group">
+                <label class="field-label">Denomination Breakdown <span class="field-required">*</span></label>
+                <app-cash-denomination
+                  [expectedAmount]="form.get('amount')?.value || 0"
+                  (validChange)="denominationValid.set($event)" />
+              </div>
+            }
+
+            <div class="field-group">
+              <label class="field-label">
+                Transaction Reference
+                @if (isTransactionRefRequired()) { <span class="field-required">*</span> }
+              </label>
+              <input class="field-input" formControlName="transactionReference" placeholder="UTR / Cheque No."
+                     [class.field-input--error]="form.get('transactionReference')?.invalid && form.get('transactionReference')?.touched" />
+              @if (isTransactionRefRequired()) {
+                <p class="field-hint">Required for UPI, Bank Transfer, Cheque, and DD payments</p>
+              }
+              @if (form.get('transactionReference')?.invalid && form.get('transactionReference')?.touched) {
+                <p class="field-error">Transaction reference is required for this payment mode</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">Remarks</label>
+              <textarea class="field-textarea" formControlName="remarks" rows="3" placeholder="Optional notes"></textarea>
+            </div>
+
+            <div class="form-footer entry-form-sticky-footer">
+              <button type="button" class="btn-cancel" (click)="closePaymentForm()">Cancel</button>
+              <button type="submit" class="btn-submit"
+                      [disabled]="saving() || form.invalid || (isCashMode() && !denominationValid())">
+                @if (saving()) {
+                  <span class="btn-spinner"></span>
+                } @else {
+                  Collect Payment
+                }
+              </button>
+            </div>
+          </form>
         </div>
-
-        <!-- Cascade note -->
-        @if (totalOutstanding() > 0) {
-          <div class="cascade-note">
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:1px;">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            Any payment will automatically fill
-            <strong>{{ nextDueSemester()?.installmentLabel }}</strong> first,
-            then cascade to subsequent installments if the amount exceeds its balance.
-          </div>
-        }
       }
-    </div>
 
-    <!-- Receipt history -->
+    </div><!-- /.payment-layout -->
+
+    <!-- Payment history -->
     <div id="tour-student-history" class="content-card">
       <div class="card-hdr">
         <div class="card-hdr__title">
@@ -221,90 +312,104 @@
           <p>No payments recorded yet</p>
         </div>
       } @else {
-        <div class="receipt-list">
-          @for (group of receiptGroupsWithBalance(); track group.receiptNumber) {
-            <div class="receipt-group">
-              <div class="receipt-group__hdr">
-                <div class="receipt-group__left">
-                  <span class="receipt-no">
-                    {{ group.receiptNumber }}
-                    @if (isRefundGroup(group)) {
-                      <span class="cms-badge cms-badge--amber receipt-type-chip">Refund Voucher</span>
+
+        <!-- Payments table -->
+        @if (paymentGroups().length > 0) {
+          <div class="ph-section-label">Payments</div>
+          <table class="fee-payments-table ph-table">
+            <thead>
+              <tr>
+                <th>Receipt</th>
+                <th>Stage</th>
+                <th>Date</th>
+                <th class="amount-col">Amount (₹)</th>
+                <th>Mode</th>
+                <th>Installment(s)</th>
+                <th>Reference</th>
+                <th class="actions-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (g of paymentGroups(); track g.receiptNumber) {
+                <tr>
+                  <td><span class="code-value">{{ g.receiptNumber }}</span></td>
+                  <td>
+                    <span class="cms-badge"
+                          [class.cms-badge--blue]="g.receiptType === 'ENQUIRY_PAYMENT'"
+                          [class.cms-badge--soft-green]="g.receiptType === 'PAYMENT'">
+                      {{ stageLabelFor(g) }}
+                    </span>
+                  </td>
+                  <td>{{ g.paymentDate | appDate }}</td>
+                  <td class="amount-col cell-currency">{{ g.totalAmount | inr:false:false }}</td>
+                  <td>{{ g.paymentMode | paymentModeLabel }}</td>
+                  <td class="notes-col text-muted" style="font-size:0.82rem;">{{ installmentSummaryFor(g) }}</td>
+                  <td><span class="code-value">{{ g.transactionReference || '—' }}</span></td>
+                  <td class="actions-col">
+                    @if (g.receiptType !== 'ENQUIRY_PAYMENT') {
+                      <div class="receipt-actions">
+                        <button class="action-btn action-btn--primary" matTooltip="View / Print Receipt"
+                                (click)="viewReceipt(g)" aria-label="View receipt PDF">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="6 9 6 2 18 2 18 9"/>
+                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                            <rect x="6" y="14" width="12" height="8"/>
+                          </svg>
+                        </button>
+                        <button class="action-btn" matTooltip="Download Receipt PDF"
+                                (click)="downloadReceipt(g)" aria-label="Download receipt PDF">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                          </svg>
+                        </button>
+                      </div>
                     }
-                  </span>
-                  <span class="receipt-meta">
-                    {{ group.paymentDate }} &bull; {{ group.paymentMode | paymentModeLabel }}
-                    @if (group.transactionReference) {
-                      &bull; Ref: {{ group.transactionReference }}
-                    }
-                    @if (group.originalReceiptNumber) {
-                      &bull; Against: {{ group.originalReceiptNumber }}
-                    }
-                  </span>
-                </div>
-                <div class="receipt-group__right">
-                  <div class="receipt-amount-block">
-                    <div class="receipt-amount-row">
-                      <span class="receipt-total" [class.receipt-total--refund]="isRefundGroup(group)">
-                        {{ group.totalAmount | inr }}
-                      </span>
-                      <span class="cms-badge receipt-dir-chip"
-                            [class.cms-badge--soft-green]="!isRefundGroup(group)"
-                            [class.cms-badge--soft-red]="isRefundGroup(group)">
-                        {{ isRefundGroup(group) ? 'OUTWARD' : 'INWARD' }}
-                      </span>
-                    </div>
-                    @if (group.runningBalance !== null) {
-                      <span class="receipt-running-balance">
-                        Balance: <strong [class.text-red]="group.runningBalance > 0">{{ group.runningBalance | inr }}</strong>
-                      </span>
-                    }
-                  </div>
-                  @if (!isRefundGroup(group)) {
-                    <div class="receipt-actions">
-                      <button
-                        class="action-btn action-btn--primary"
-                        matTooltip="View / Print Receipt"
-                        (click)="viewReceipt(group)"
-                        aria-label="View receipt PDF">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                             viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                             aria-hidden="true">
-                          <polyline points="6 9 6 2 18 2 18 9"/>
-                          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                          <rect x="6" y="14" width="12" height="8"/>
-                        </svg>
-                      </button>
-                      <button
-                        class="action-btn"
-                        matTooltip="Download Receipt PDF"
-                        (click)="downloadReceipt(group)"
-                        aria-label="Download receipt PDF">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                             viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                             aria-hidden="true">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                          <polyline points="7 10 12 15 17 10"/>
-                          <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                      </button>
-                    </div>
-                  }
-                </div>
-              </div>
-              @for (line of group.lines; track line.id) {
-                <div class="receipt-line">
-                  <span class="receipt-line__sem">{{ line.installmentLabel }}</span>
-                  <span class="receipt-line__amt mono" [class.receipt-line__amt--refund]="line.receiptType === 'REFUND'">
-                    {{ line.amountPaid | inr }}
-                  </span>
-                </div>
+                  </td>
+                </tr>
               }
-            </div>
-          }
-        </div>
+            </tbody>
+          </table>
+        }
+
+        <!-- Refunds table -->
+        @if (refundGroups().length > 0) {
+          <div class="ph-section-label ph-section-label--refund">Refunds</div>
+          <table class="fee-payments-table ph-table">
+            <thead>
+              <tr>
+                <th>Refund Voucher</th>
+                <th>Stage</th>
+                <th>Date</th>
+                <th class="amount-col">Amount (₹)</th>
+                <th>Mode</th>
+                <th>Against Receipt</th>
+                <th>Reference</th>
+                <th>Approved By</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (g of refundGroups(); track g.receiptNumber) {
+                <tr>
+                  <td><span class="code-value">{{ g.receiptNumber }}</span></td>
+                  <td>
+                    <span class="cms-badge cms-badge--amber" style="font-size:0.68rem;">Refund</span>
+                  </td>
+                  <td>{{ g.paymentDate | appDate }}</td>
+                  <td class="amount-col cell-currency text-red">{{ g.totalAmount | inr:false:false }}</td>
+                  <td>{{ g.paymentMode | paymentModeLabel }}</td>
+                  <td><span class="code-value">{{ g.originalReceiptNumber || '—' }}</span></td>
+                  <td><span class="code-value">{{ g.transactionReference || '—' }}</span></td>
+                  <td class="text-muted">{{ g.lines[0]?.studentName || '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
       }
     </div>
 

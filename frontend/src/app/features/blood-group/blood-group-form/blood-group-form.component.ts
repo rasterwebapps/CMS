@@ -20,6 +20,9 @@ import {
 } from '../../../shared/validators/cms-validators';
 import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { BLOOD_GROUP_FORM_TOUR } from '../../../shared/tour/tours/blood-group.tours';
 
 @Component({
   selector: 'app-blood-group-form',
@@ -31,6 +34,7 @@ import { uniqueFieldValidator } from '../../../shared/validators/unique-field.va
     MatSlideToggleModule,
     CmsPreviewCardComponent,
     CmsTipsCardComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './blood-group-form.component.html',
   styleUrl: './blood-group-form.component.scss',

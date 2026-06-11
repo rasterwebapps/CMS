@@ -151,6 +151,8 @@ export interface EnquiryPaymentResponse {
   feeCategory: 'TUITION_ONLY' | 'TUITION_AND_HOSTEL' | null;
   newStatus: string;
   createdAt: string;
+  receiptType: 'PAYMENT' | 'REFUND';
+  originalReceiptNumber: string | null;
 }
 
 export interface EnquiryStatusHistoryResponse {

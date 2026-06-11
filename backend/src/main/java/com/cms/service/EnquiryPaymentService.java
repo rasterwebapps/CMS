@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.EnquiryPaymentRequest;
+import com.cms.model.FeeRefund;
 import com.cms.dto.EnquiryPaymentResponse;
 import com.cms.dto.EnquiryYearWiseFeeStatusResponse;
 import com.cms.dto.EnquiryYearWiseFeeStatusResponse.InstallmentFeeStatus;
@@ -30,6 +31,7 @@ import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
+import com.cms.repository.FeeRefundRepository;
 import com.cms.repository.TermBillingScheduleRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -68,6 +70,7 @@ public class EnquiryPaymentService {
     private final UnifiedReceiptService unifiedReceiptService;
     private final AcademicYearRepository academicYearRepository;
     private final TermBillingScheduleRepository billingScheduleRepository;
+    private final FeeRefundRepository feeRefundRepository;
 
     public EnquiryPaymentService(EnquiryPaymentRepository enquiryPaymentRepository,
                                   EnquiryRepository enquiryRepository,
@@ -75,7 +78,8 @@ public class EnquiryPaymentService {
                                   ObjectMapper objectMapper,
                                   UnifiedReceiptService unifiedReceiptService,
                                   AcademicYearRepository academicYearRepository,
-                                  TermBillingScheduleRepository billingScheduleRepository) {
+                                  TermBillingScheduleRepository billingScheduleRepository,
+                                  FeeRefundRepository feeRefundRepository) {
         this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.enquiryRepository = enquiryRepository;
         this.statusHistoryRepository = statusHistoryRepository;
@@ -83,6 +87,7 @@ public class EnquiryPaymentService {
         this.unifiedReceiptService = unifiedReceiptService;
         this.academicYearRepository = academicYearRepository;
         this.billingScheduleRepository = billingScheduleRepository;
+        this.feeRefundRepository = feeRefundRepository;
     }
 
     @Transactional
@@ -191,9 +196,31 @@ public class EnquiryPaymentService {
         if (!enquiryRepository.existsById(enquiryId)) {
             throw new ResourceNotFoundException("Enquiry not found with id: " + enquiryId);
         }
-        return enquiryPaymentRepository.findByEnquiryIdOrderByPaymentDateDesc(enquiryId).stream()
-            .map(p -> toResponse(p, null))
-            .toList();
+        List<EnquiryPaymentResponse> result = new ArrayList<>(
+            enquiryPaymentRepository.findByEnquiryIdOrderByPaymentDateDesc(enquiryId).stream()
+                .map(p -> toResponse(p, null))
+                .toList()
+        );
+        feeRefundRepository.findByEnquiryIdAndStatusOrderByPaymentDateDescIdDesc(enquiryId, "APPROVED")
+            .stream()
+            .map(this::toRefundResponse)
+            .forEach(result::add);
+        result.sort(Comparator.comparing(EnquiryPaymentResponse::paymentDate,
+            Comparator.nullsLast(Comparator.reverseOrder())));
+        return result;
+    }
+
+    private EnquiryPaymentResponse toRefundResponse(FeeRefund refund) {
+        return new EnquiryPaymentResponse(
+            refund.getId(), null, refund.getStudentName(),
+            refund.getRefundAmount().negate(), refund.getPaymentDate(),
+            refund.getPaymentMode() != null
+                ? com.cms.model.enums.PaymentMode.valueOf(refund.getPaymentMode()) : null,
+            refund.getTransactionReference(), refund.getReason(),
+            refund.getRefundNumber(), refund.getApprovedBy(),
+            null, null, refund.getApprovedAt(),
+            "REFUND", refund.getOriginalReceiptNumber()
+        );
     }
 
     public EnquiryPaymentResponse getReceipt(Long enquiryId, Long paymentId) {
@@ -381,7 +408,8 @@ public class EnquiryPaymentService {
             payment.getCollectedBy(),
             feeCategory,
             newStatus != null ? newStatus.name() : null,
-            payment.getCreatedAt()
+            payment.getCreatedAt(),
+            "PAYMENT", null
         );
     }
 

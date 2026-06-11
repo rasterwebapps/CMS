@@ -33,6 +33,7 @@ import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
+import com.cms.repository.FeeRefundRepository;
 import com.cms.repository.TermBillingScheduleRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -57,6 +58,9 @@ class EnquiryPaymentServiceTest {
     @Mock
     private TermBillingScheduleRepository billingScheduleRepository;
 
+    @Mock
+    private FeeRefundRepository feeRefundRepository;
+
     private EnquiryPaymentService enquiryPaymentService;
 
     private Enquiry testEnquiry;
@@ -65,7 +69,8 @@ class EnquiryPaymentServiceTest {
     void setUp() {
         enquiryPaymentService = new EnquiryPaymentService(
             enquiryPaymentRepository, enquiryRepository, statusHistoryRepository,
-            new ObjectMapper(), unifiedReceiptService, academicYearRepository, billingScheduleRepository
+            new ObjectMapper(), unifiedReceiptService, academicYearRepository, billingScheduleRepository,
+            feeRefundRepository
         );
 
         testEnquiry = new Enquiry("Ravi Kumar", "ravi@email.com", "9876543210", null,
@@ -303,6 +308,7 @@ class EnquiryPaymentServiceTest {
 
         when(enquiryRepository.existsById(1L)).thenReturn(true);
         when(enquiryPaymentRepository.findByEnquiryIdOrderByPaymentDateDesc(1L)).thenReturn(List.of(payment));
+        when(feeRefundRepository.findByEnquiryIdAndStatusOrderByPaymentDateDescIdDesc(1L, "APPROVED")).thenReturn(List.of());
 
         List<EnquiryPaymentResponse> responses = enquiryPaymentService.getPaymentsByEnquiryId(1L);
 
