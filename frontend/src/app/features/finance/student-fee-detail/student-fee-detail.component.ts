@@ -60,7 +60,8 @@ export class StudentFeeDetailComponent implements OnInit {
   protected readonly creditApplications = signal<EnquiryCreditApplication[]>([]);
 
   // ── Payment form signals ──────────────────────────────────────────────────────
-  protected readonly showPaymentForm   = signal(false);
+  protected readonly showConfirmModal  = signal(false);
+  protected readonly historyOpen   = signal(false);
   protected readonly saving            = signal(false);
   protected readonly denominationValid = signal(false);
   protected readonly receipt           = signal<ReceiptDisplayData | null>(null);
@@ -118,6 +119,28 @@ export class StudentFeeDetailComponent implements OnInit {
       .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
   );
 
+  protected readonly grossPaid = computed<number>(() =>
+    this.paymentGroups().reduce((s, g) => s + g.totalAmount, 0)
+  );
+
+  protected readonly refundTotal = computed<number>(() =>
+    this.refundGroups().reduce((s, g) => s + Math.abs(g.totalAmount), 0)
+  );
+
+  protected readonly allReceiptGroupsSorted = computed<ReceiptGroup[]>(() =>
+    [...this.receiptGroups()].sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+  );
+
+  protected readonly totalsTooltip = computed<string>(() => {
+    if (!this.refundGroups().length) return '';
+    const fmt = (n: number) => '₹' + n.toLocaleString('en-IN');
+    return `Paid: +${fmt(this.grossPaid())}  ·  Refund: −${fmt(this.refundTotal())}`;
+  });
+
+  protected absAmount(g: ReceiptGroup): number {
+    return Math.abs(g.totalAmount);
+  }
+
   protected stageLabelFor(g: ReceiptGroup): string {
     return g.receiptType === 'ENQUIRY_PAYMENT' ? 'Pre-Admission' : 'Post-Admission';
   }
@@ -152,22 +175,10 @@ export class StudentFeeDetailComponent implements OnInit {
   }
 
   // ── Payment form ──────────────────────────────────────────────────────────────
-  protected openPaymentForm(): void {
-    this.showPaymentForm.set(true);
+  protected cancelForm(): void {
     this.form.reset();
     this.denominationValid.set(false);
-    const nextSem = this.semesterRows().find(r => r.outstanding > 0);
-    const prefill = nextSem ? nextSem.outstanding : this.totalOutstanding();
-    this.form.patchValue({
-      paymentDate: new Date().toISOString().split('T')[0],
-      amount:      prefill > 0 ? prefill : null,
-    });
-  }
-
-  protected closePaymentForm(): void {
-    this.showPaymentForm.set(false);
-    this.form.reset();
-    this.denominationValid.set(false);
+    this.prefillForm();
   }
 
   protected isCashMode(): boolean {
@@ -188,7 +199,10 @@ export class StudentFeeDetailComponent implements OnInit {
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     if (this.isCashMode() && !this.denominationValid()) return;
+    this.showConfirmModal.set(true);
+  }
 
+  protected confirmAndCollect(): void {
     const v = this.form.value;
     const req: CollectPaymentRequest = {
       amount:               v.amount,
@@ -199,6 +213,8 @@ export class StudentFeeDetailComponent implements OnInit {
     };
 
     this.saving.set(true);
+    this.showConfirmModal.set(false);
+
     this.finance.collectPayment(this.studentId, req).subscribe({
       next: (res) => {
         this.saving.set(false);
@@ -231,7 +247,8 @@ export class StudentFeeDetailComponent implements OnInit {
 
   protected doneWithReceipt(): void {
     this.receipt.set(null);
-    this.closePaymentForm();
+    this.form.reset();
+    this.denominationValid.set(false);
     this.loadAll();
   }
 
@@ -254,6 +271,15 @@ export class StudentFeeDetailComponent implements OnInit {
   }
 
   // ── Data loading ──────────────────────────────────────────────────────────────
+  private prefillForm(): void {
+    const nextSem = this.semesterRows().find(r => r.outstanding > 0);
+    const prefill = nextSem ? nextSem.outstanding : this.totalOutstanding();
+    this.form.patchValue({
+      paymentDate: new Date().toISOString().split('T')[0],
+      amount: prefill > 0 ? prefill : null,
+    });
+  }
+
   private loadAll(): void {
     this.loading.set(true);
     this.initError.set(false);
@@ -262,6 +288,7 @@ export class StudentFeeDetailComponent implements OnInit {
       next: (data) => {
         this.allocation.set(data);
         this.loading.set(false);
+        this.prefillForm();
       },
       error: (err) => {
         this.loading.set(false);
@@ -321,7 +348,7 @@ export class StudentFeeDetailComponent implements OnInit {
       payerName:            alloc?.studentName ?? group.lines[0]?.studentName ?? '',
       payerIdentifier:      alloc?.rollNumber  ?? group.lines[0]?.rollNumber  ?? '',
       programName:          alloc?.programName ?? '',
-      amountPaid:           group.totalAmount,
+      amountPaid:           Math.abs(group.totalAmount),
       paymentDate:          group.paymentDate,
       paymentMode:          group.paymentMode ?? '',
       transactionReference: group.transactionReference || null,
