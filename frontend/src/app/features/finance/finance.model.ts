@@ -209,6 +209,8 @@ export interface StudentFeeSummary {
   totalPending: number;
   totalPenalty: number;
   allocationStatus: string;
+  yearOfStudy?: number;
+  academicYearName?: string;
 }
 
 export interface EnquiryYearFee {

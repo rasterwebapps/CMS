@@ -51,6 +51,15 @@ export class FeeStructureListComponent implements OnInit {
 
   private readonly VIEW_MODE_KEY = 'fee-structure-view-mode';
 
+  protected moreFiltersOpen = false;
+
+  protected get moreFiltersCount(): number {
+    return (this.selectedCourseId()   !== null ? 1 : 0)
+         + (this.selectedQuota()      !== null ? 1 : 0)
+         + (this.selectedGender()     !== null ? 1 : 0)
+         + (this.selectedFeeStateId() !== null ? 1 : 0);
+  }
+
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
   }

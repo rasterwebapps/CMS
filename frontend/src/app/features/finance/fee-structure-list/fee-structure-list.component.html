@@ -59,56 +59,21 @@
       }
     </select>
 
-    @if (courses().length > 0) {
-      <select
-        class="mlp-filter-select"
-        [value]="selectedCourseId() ?? ''"
-        (change)="onCourseChange(+$any($event.target).value || null)"
-        aria-label="Filter by course"
-      >
-        <option value="">All Courses</option>
-        @for (c of courses(); track c.id) {
-          <option [value]="c.id">{{ c.name }}</option>
-        }
-      </select>
-    }
-
-    <select
-      class="mlp-filter-select"
-      [value]="selectedQuota() ?? ''"
-      (change)="onQuotaChange($any($event.target).value || null)"
-      aria-label="Filter by quota"
+    <button
+      class="btn-toolbar"
+      [class.btn-toolbar--active]="moreFiltersOpen || moreFiltersCount > 0"
+      (click)="moreFiltersOpen = !moreFiltersOpen"
+      aria-label="Toggle more filters"
     >
-      <option value="">All Quotas</option>
-      <option value="MANAGEMENT">Management</option>
-      <option value="COUNSELLING">Counselling</option>
-    </select>
-
-    <select
-      class="mlp-filter-select"
-      [value]="selectedGender() ?? ''"
-      (change)="onGenderChange($any($event.target).value || null)"
-      aria-label="Filter by gender"
-    >
-      <option value="">All Genders</option>
-      <option value="FEMALE">Female</option>
-      <option value="MALE">Male</option>
-      <option value="OTHER">Other</option>
-    </select>
-
-    @if (feeStates().length > 0) {
-      <select
-        class="mlp-filter-select"
-        [value]="selectedFeeStateId() ?? ''"
-        (change)="onFeeStateChange(+$any($event.target).value || null)"
-        aria-label="Filter by fee state"
-      >
-        <option value="">All States</option>
-        @for (s of feeStates(); track s.id) {
-          <option [value]="s.id">{{ s.name }}</option>
-        }
-      </select>
-    }
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+      </svg>
+      More Filters
+      @if (moreFiltersCount > 0) {
+        <span class="more-filters-badge">{{ moreFiltersCount }}</span>
+      }
+    </button>
 
     @if (hasActiveFilters()) {
       <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear filters">
@@ -128,6 +93,59 @@
       </button>
     </div>
   </div>
+
+  <!-- ── More Filters row ─────────────────────────────────────────────────── -->
+  @if (moreFiltersOpen) {
+    <div class="more-filters-bar" (click)="$event.stopPropagation()">
+      @if (courses().length > 0) {
+        <select
+          class="mlp-filter-select"
+          [value]="selectedCourseId() ?? ''"
+          (change)="onCourseChange(+$any($event.target).value || null)"
+          aria-label="Filter by course"
+        >
+          <option value="">All Courses</option>
+          @for (c of courses(); track c.id) {
+            <option [value]="c.id">{{ c.name }}</option>
+          }
+        </select>
+      }
+      <select
+        class="mlp-filter-select"
+        [value]="selectedQuota() ?? ''"
+        (change)="onQuotaChange($any($event.target).value || null)"
+        aria-label="Filter by quota"
+      >
+        <option value="">All Quotas</option>
+        <option value="MANAGEMENT">Management</option>
+        <option value="COUNSELLING">Counselling</option>
+      </select>
+      <select
+        class="mlp-filter-select"
+        [value]="selectedGender() ?? ''"
+        (change)="onGenderChange($any($event.target).value || null)"
+        aria-label="Filter by gender"
+      >
+        <option value="">All Genders</option>
+        <option value="FEMALE">Female</option>
+        <option value="MALE">Male</option>
+        <option value="OTHER">Other</option>
+      </select>
+      @if (feeStates().length > 0) {
+        <select
+          class="mlp-filter-select"
+          [value]="selectedFeeStateId() ?? ''"
+          (change)="onFeeStateChange(+$any($event.target).value || null)"
+          aria-label="Filter by fee state"
+        >
+          <option value="">All States</option>
+          @for (s of feeStates(); track s.id) {
+            <option [value]="s.id">{{ s.name }}</option>
+          }
+        </select>
+      }
+    </div>
+  }
 
   <!-- ── Loading skeleton ────────────────────────────────────────────────── -->
   @if (loading()) {

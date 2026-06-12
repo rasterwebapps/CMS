@@ -1,5 +1,6 @@
 package com.cms.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +15,8 @@ public interface AdmissionRepository extends JpaRepository<Admission, Long> {
     Optional<Admission> findByEnquiryId(Long enquiryId);
 
     List<Admission> findByJoiningAcademicYearId(Long joiningAcademicYearId);
+
+    List<Admission> findByStudentIdIn(Collection<Long> studentIds);
 
     boolean existsByStudentId(Long studentId);
 }

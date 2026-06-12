@@ -131,6 +131,17 @@
       <option value="ENQUIRY">Pre-enrollment</option>
     </select>
 
+    <select
+      class="mlp-filter-select"
+      [value]="selectedProgram()"
+      (change)="selectedProgram.set($any($event.target).value)"
+      aria-label="Filter by program">
+      <option value="">All Programs</option>
+      @for (p of programs(); track p) {
+        <option [value]="p">{{ p }}</option>
+      }
+    </select>
+
     <div class="date-range-group">
       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

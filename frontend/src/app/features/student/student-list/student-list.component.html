@@ -54,41 +54,20 @@
       }
     </select>
 
-    <select class="mlp-filter-select" [value]="filterSemester()"
-            (change)="filterSemester.set($any($event.target).value); onFilterChange()" aria-label="Filter by year of study">
-      <option value="ALL">All Semesters</option>
-      @for (sem of semesters(); track sem) {
-        <option [value]="sem">Sem {{ sem }}</option>
+    <!-- More Filters toggle -->
+    <button class="btn-toolbar"
+            [class.btn-toolbar--active]="moreFiltersOpen || moreFiltersCount > 0"
+            (click)="moreFiltersOpen = !moreFiltersOpen"
+            aria-label="Toggle more filters">
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+      </svg>
+      More Filters
+      @if (moreFiltersCount > 0) {
+        <span class="more-filters-badge">{{ moreFiltersCount }}</span>
       }
-    </select>
-
-    @if (specialities().length > 0) {
-      <select class="mlp-filter-select" [value]="filterSpeciality()"
-              (change)="filterSpeciality.set($any($event.target).value); onFilterChange()" aria-label="Filter by speciality">
-        <option value="ALL">All Specialities</option>
-        @for (speciality of specialities(); track speciality) {
-          <option [value]="speciality">{{ speciality }}</option>
-        }
-      </select>
-    }
-
-    @if (academicYears().length > 0) {
-      <select class="mlp-filter-select" [value]="filterAcademicYear()"
-              (change)="filterAcademicYear.set($any($event.target).value); onFilterChange()" aria-label="Filter by academic year">
-        <option value="ALL">All Batches</option>
-        @for (ay of academicYears(); track ay) {
-          <option [value]="ay">{{ ay }}</option>
-        }
-      </select>
-    }
-
-    <select class="mlp-filter-select" [value]="filterFeeStatus()"
-            (change)="filterFeeStatus.set($any($event.target).value); onFilterChange()" aria-label="Filter by fee status">
-      <option value="ALL">All Fee Status</option>
-      @for (fs of FEE_STATUSES; track fs.value) {
-        <option [value]="fs.value">{{ fs.label }}</option>
-      }
-    </select>
+    </button>
 
     <div class="toolbar-right">
       @if (hasActiveFilters()) {
@@ -138,6 +117,45 @@
       </div>
     </div>
   </div>
+
+  <!-- ── More Filters row (collapsible) ──────────────────────────── -->
+  @if (moreFiltersOpen) {
+    <div class="more-filters-bar">
+      <select class="mlp-filter-select" [value]="filterSemester()"
+              (change)="filterSemester.set($any($event.target).value); onFilterChange()" aria-label="Filter by semester">
+        <option value="ALL">All Semesters</option>
+        @for (sem of semesters(); track sem) {
+          <option [value]="sem">Sem {{ sem }}</option>
+        }
+      </select>
+
+      @if (specialities().length > 0) {
+        <select class="mlp-filter-select" [value]="filterSpeciality()"
+                (change)="filterSpeciality.set($any($event.target).value); onFilterChange()" aria-label="Filter by speciality">
+          <option value="ALL">All Specialities</option>
+          @for (speciality of specialities(); track speciality) {
+            <option [value]="speciality">{{ speciality }}</option>
+          }
+        </select>
+      }
+
+      <select class="mlp-filter-select" [value]="filterAcademicYear()"
+              (change)="filterAcademicYear.set($any($event.target).value); onFilterChange()" aria-label="Filter by academic year">
+        <option value="ALL">All Batches</option>
+        @for (ay of academicYears(); track ay) {
+          <option [value]="ay">{{ ay }}</option>
+        }
+      </select>
+
+      <select class="mlp-filter-select" [value]="filterFeeStatus()"
+              (change)="filterFeeStatus.set($any($event.target).value); onFilterChange()" aria-label="Filter by fee status">
+        <option value="ALL">All Fee Status</option>
+        @for (fs of FEE_STATUSES; track fs.value) {
+          <option [value]="fs.value">{{ fs.label }}</option>
+        }
+      </select>
+    </div>
+  }
 
   <!-- ── Content card ──────────────────────────────────────────── -->
   <div class="content-card stu-table-card">

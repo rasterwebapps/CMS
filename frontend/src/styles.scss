@@ -1270,6 +1270,38 @@ app-root {
   }
 }
 
+// ── More Filters collapsible row ─────────────────
+.more-filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 7px 0 1px;
+  border-top: 1px solid var(--cms-border-default);
+  animation: moreFiltersIn 0.14s ease;
+}
+
+@keyframes moreFiltersIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.more-filters-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--cms-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 // ── Content Card ─────────────────────────────────
 .content-card {
   background: var(--cms-bg-card);

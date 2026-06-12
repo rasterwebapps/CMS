@@ -67,13 +67,27 @@ export class EnquiryListComponent implements OnInit {
   protected readonly dataSource      = new MatTableDataSource<Enquiry>([]);
   protected readonly loading         = signal(false);
   protected readonly searchValue     = signal('');
-  protected readonly selectedStatuses = signal<Set<string>>(new Set());
-  protected readonly selectedProgramId = signal<number | null>(null);
-  protected readonly selectedCourseId  = signal<number | null>(null);
+  protected readonly selectedStatuses      = signal<Set<string>>(new Set());
+  protected readonly selectedProgramId     = signal<number | null>(null);
+  protected readonly selectedCourseId      = signal<number | null>(null);
+  protected readonly selectedStudentType   = signal<string | null>(null);
+  protected readonly selectedReferralType  = signal<string | null>(null);
+  protected readonly selectedAdmissionQuota = signal<string | null>(null);
+  protected readonly selectedAgent         = signal<string | null>(null);
+  protected readonly selectedAdmissionSource = signal<string | null>(null);
   protected readonly computeInitials  = computeInitials;
   protected readonly STATUS_LABELS    = STATUS_LABELS;
-  protected statusMenuOpen  = false;
-  protected colMenuOpen     = false;
+  protected statusMenuOpen    = false;
+  protected colMenuOpen       = false;
+  protected moreFiltersOpen   = false;
+
+  protected get moreFiltersCount(): number {
+    return (this.selectedStudentType()     !== null ? 1 : 0)
+         + (this.selectedReferralType()    !== null ? 1 : 0)
+         + (this.selectedAdmissionQuota()  !== null ? 1 : 0)
+         + (this.selectedAgent()           !== null ? 1 : 0)
+         + (this.selectedAdmissionSource() !== null ? 1 : 0);
+  }
 
   // ── Unique program/course lists derived from loaded data ──────────────────
   protected readonly programOptions = computed(() => {
@@ -97,6 +111,22 @@ export class EnquiryListComponent implements OnInit {
       }
     }
     return [...seen.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  });
+
+  protected readonly referralTypeOptions = computed(() => {
+    const seen = new Set<string>();
+    return this.allEnquiries()
+      .map(e => e.referralTypeName)
+      .filter((n): n is string => !!n && !seen.has(n) && !!seen.add(n))
+      .sort();
+  });
+
+  protected readonly agentOptions = computed(() => {
+    const seen = new Set<string>();
+    return this.allEnquiries()
+      .map(e => e.agentName)
+      .filter((n): n is string => !!n && !seen.has(n) && !!seen.add(n))
+      .sort();
   });
 
   // ── Column visibility ─────────────────────────────────────────────────────
@@ -154,31 +184,46 @@ export class EnquiryListComponent implements OnInit {
     this.dateFrom = this.toDateString(new Date(now.getFullYear(), now.getMonth(), 1));
     this.dateTo   = this.toDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 
-    // Combined filter: "<search>|<STATUS1,STATUS2>|<programId>|<courseId>"
-    this.dataSource.filterPredicate = (row, filter) => {
-      const parts    = filter.split('|');
-      const search   = parts[0] ?? '';
-      const statuses = new Set((parts[1] ?? '').split(',').filter(Boolean));
-      const progId   = parts[2] ? Number(parts[2]) : null;
-      const courseId = parts[3] ? Number(parts[3]) : null;
+    // filterPredicate reads signals directly; the filter string is just a trigger
+    this.dataSource.filterPredicate = (row, _filter) => {
+      const search          = this.searchValue().toLowerCase().trim();
+      const statuses        = this.selectedStatuses();
+      const progId          = this.selectedProgramId();
+      const courseId        = this.selectedCourseId();
+      const studentType     = this.selectedStudentType();
+      const referralType    = this.selectedReferralType();
+      const quota           = this.selectedAdmissionQuota();
+      const agent           = this.selectedAgent();
+      const source          = this.selectedAdmissionSource();
 
-      const matchSearch = !search ||
-        row.name.toLowerCase().includes(search) ||
-        (row.phone ?? '').includes(search);
+      const matchSearch    = !search        || row.name.toLowerCase().includes(search) || (row.phone ?? '').includes(search);
+      const matchStatus    = statuses.size === 0 || statuses.has(row.status);
+      const matchProgram   = !progId        || row.programId === progId;
+      const matchCourse    = !courseId      || row.courseId  === courseId;
+      const matchType      = !studentType   || row.studentType === studentType;
+      const matchReferral  = !referralType  || row.referralTypeName === referralType;
+      const matchQuota     = !quota         || row.admissionQuota === quota;
+      const matchAgent     = !agent         || row.agentName === agent;
+      const matchSource    = !source        || row.admissionSource === source;
 
-      const matchStatus  = statuses.size === 0 || statuses.has(row.status);
-      const matchProgram = !progId   || row.programId === progId;
-      const matchCourse  = !courseId || row.courseId  === courseId;
-      return matchSearch && matchStatus && matchProgram && matchCourse;
+      return matchSearch && matchStatus && matchProgram && matchCourse &&
+             matchType && matchReferral && matchQuota && matchAgent && matchSource;
     };
 
-    // Reactively update the Material filter whenever any filter changes
+    // Reactively update the Material filter trigger whenever any filter signal changes
     effect(() => {
-      const search   = this.searchValue().toLowerCase().trim();
-      const statuses = [...this.selectedStatuses()].join(',');
-      const progId   = this.selectedProgramId() ?? '';
-      const courseId = this.selectedCourseId() ?? '';
-      this.dataSource.filter = `${search}|${statuses}|${progId}|${courseId}`;
+      const parts = [
+        this.searchValue().toLowerCase().trim(),
+        [...this.selectedStatuses()].join(','),
+        this.selectedProgramId() ?? '',
+        this.selectedCourseId() ?? '',
+        this.selectedStudentType() ?? '',
+        this.selectedReferralType() ?? '',
+        this.selectedAdmissionQuota() ?? '',
+        this.selectedAgent() ?? '',
+        this.selectedAdmissionSource() ?? '',
+      ];
+      this.dataSource.filter = parts.join('|') || '_';
       this.dataSource.paginator?.firstPage();
     });
   }
@@ -195,8 +240,14 @@ export class EnquiryListComponent implements OnInit {
     if (p.get('search'))   this.searchValue.set(p.get('search')!);
     const rawStatuses = p.getAll('status').flatMap(s => s.split(',').filter(Boolean));
     if (rawStatuses.length) this.selectedStatuses.set(new Set(rawStatuses));
-    if (p.get('programId'))  this.selectedProgramId.set(Number(p.get('programId')));
-    if (p.get('courseId'))   this.selectedCourseId.set(Number(p.get('courseId')));
+    if (p.get('programId'))       this.selectedProgramId.set(Number(p.get('programId')));
+    if (p.get('courseId'))        this.selectedCourseId.set(Number(p.get('courseId')));
+    if (p.get('studentType'))     this.selectedStudentType.set(p.get('studentType'));
+    if (p.get('referralType'))    this.selectedReferralType.set(p.get('referralType'));
+    if (p.get('admissionQuota'))  this.selectedAdmissionQuota.set(p.get('admissionQuota'));
+    if (p.get('agent'))           this.selectedAgent.set(p.get('agent'));
+    if (p.get('admissionSource')) this.selectedAdmissionSource.set(p.get('admissionSource'));
+    if (this.moreFiltersCount > 0) this.moreFiltersOpen = true;
 
     this.load();
   }
@@ -213,12 +264,17 @@ export class EnquiryListComponent implements OnInit {
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
-        dateFrom:  this.dateFrom  || null,
-        dateTo:    this.dateTo    || null,
-        search:    this.searchValue() || null,
-        status:    statuses.length ? statuses.join(',') : null,
-        programId: this.selectedProgramId() ?? null,
-        courseId:  this.selectedCourseId()  ?? null,
+        dateFrom:        this.dateFrom  || null,
+        dateTo:          this.dateTo    || null,
+        search:          this.searchValue() || null,
+        status:          statuses.length ? statuses.join(',') : null,
+        programId:       this.selectedProgramId() ?? null,
+        courseId:        this.selectedCourseId()  ?? null,
+        studentType:     this.selectedStudentType()      ?? null,
+        referralType:    this.selectedReferralType()     ?? null,
+        admissionQuota:  this.selectedAdmissionQuota()   ?? null,
+        agent:           this.selectedAgent()            ?? null,
+        admissionSource: this.selectedAdmissionSource()  ?? null,
       },
       queryParamsHandling: 'replace',
       replaceUrl: true,
@@ -289,6 +345,11 @@ export class EnquiryListComponent implements OnInit {
     this.selectedStatuses.set(new Set());
     this.selectedProgramId.set(null);
     this.selectedCourseId.set(null);
+    this.selectedStudentType.set(null);
+    this.selectedReferralType.set(null);
+    this.selectedAdmissionQuota.set(null);
+    this.selectedAgent.set(null);
+    this.selectedAdmissionSource.set(null);
     this.searchValue.set('');
     this.syncUrlFilters();
     this.load();
@@ -296,7 +357,10 @@ export class EnquiryListComponent implements OnInit {
 
   protected get hasActiveFilters(): boolean {
     return this.selectedStatuses().size > 0 || !!this.searchValue()
-      || this.selectedProgramId() !== null || this.selectedCourseId() !== null;
+      || this.selectedProgramId()      !== null || this.selectedCourseId()       !== null
+      || this.selectedStudentType()    !== null || this.selectedReferralType()   !== null
+      || this.selectedAdmissionQuota() !== null || this.selectedAgent()          !== null
+      || this.selectedAdmissionSource() !== null;
   }
 
   // ── Program / Course filter handlers ─────────────────────────────────────
@@ -309,6 +373,31 @@ export class EnquiryListComponent implements OnInit {
 
   protected onCourseChange(value: string): void {
     this.selectedCourseId.set(value ? Number(value) : null);
+    this.syncUrlFilters();
+  }
+
+  protected onStudentTypeChange(value: string): void {
+    this.selectedStudentType.set(value || null);
+    this.syncUrlFilters();
+  }
+
+  protected onReferralTypeChange(value: string): void {
+    this.selectedReferralType.set(value || null);
+    this.syncUrlFilters();
+  }
+
+  protected onAdmissionQuotaChange(value: string): void {
+    this.selectedAdmissionQuota.set(value || null);
+    this.syncUrlFilters();
+  }
+
+  protected onAgentChange(value: string): void {
+    this.selectedAgent.set(value || null);
+    this.syncUrlFilters();
+  }
+
+  protected onAdmissionSourceChange(value: string): void {
+    this.selectedAdmissionSource.set(value || null);
     this.syncUrlFilters();
   }
 

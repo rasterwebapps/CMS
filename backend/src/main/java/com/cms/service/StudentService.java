@@ -23,6 +23,7 @@ import com.cms.dto.StudentRequest;
 import com.cms.dto.StudentResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Address;
+import com.cms.model.Admission;
 import com.cms.model.Course;
 import com.cms.model.Speciality;
 import com.cms.model.EnquiryDocument;
@@ -179,13 +180,24 @@ public class StudentService {
         return responses;
     }
 
-    /** Load demands for all students in one query, compute fee status, then map to response. */
+    /** Load demands and admission academic years in bulk, then map to response. */
     private List<StudentResponse> enrichAndMap(List<Student> students) {
         if (students.isEmpty()) return List.of();
         Collection<Long> ids = students.stream().map(Student::getId).toList();
         Map<Long, String> feeStatusByStudent = computeFeeStatusMap(ids);
+        // Bulk-fetch admissions so we can derive academic year for students without a cohort
+        Map<Long, Admission> admissionByStudent = admissionRepository.findByStudentIdIn(ids)
+            .stream().collect(Collectors.toMap(a -> a.getStudent().getId(), a -> a, (a, b) -> a));
         return students.stream()
-            .map(s -> toResponseWithExtras(s, feeStatusByStudent.getOrDefault(s.getId(), "NOT_ASSIGNED")))
+            .map(s -> {
+                String fs = feeStatusByStudent.getOrDefault(s.getId(), "NOT_ASSIGNED");
+                Admission adm = admissionByStudent.get(s.getId());
+                Long fallbackAyId = (adm != null && adm.getJoiningAcademicYear() != null)
+                    ? adm.getJoiningAcademicYear().getId() : null;
+                String fallbackAyName = (adm != null && adm.getJoiningAcademicYear() != null)
+                    ? adm.getJoiningAcademicYear().getName() : null;
+                return toResponseWithExtras(s, fs, fallbackAyId, fallbackAyName);
+            })
             .toList();
     }
 
@@ -399,16 +411,23 @@ public class StudentService {
     }
 
     private StudentResponse toResponse(Student student) {
-        return toResponseWithExtras(student, null);
+        return toResponseWithExtras(student, null, null, null);
     }
 
     private StudentResponse toResponseWithExtras(Student student, String feeStatus) {
+        return toResponseWithExtras(student, feeStatus, null, null);
+    }
+
+    private StudentResponse toResponseWithExtras(Student student, String feeStatus, Long fallbackAyId, String fallbackAyName) {
         Address address = student.getAddress();
-        Long ayId = null;
-        String ayName = null;
+        Long ayId;
+        String ayName;
         if (student.getCohort() != null && student.getCohort().getAdmissionAcademicYear() != null) {
             ayId   = student.getCohort().getAdmissionAcademicYear().getId();
             ayName = student.getCohort().getAdmissionAcademicYear().getName();
+        } else {
+            ayId   = fallbackAyId;
+            ayName = fallbackAyName;
         }
         return new StudentResponse(
             student.getId(),

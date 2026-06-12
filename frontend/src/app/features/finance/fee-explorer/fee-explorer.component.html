@@ -40,6 +40,41 @@
       }
     </div>
 
+    <select class="mlp-filter-select" [value]="filterProgram()" (change)="filterProgram.set($any($event.target).value); onFilterChange()" aria-label="Filter by program">
+      <option value="ALL">All Programs</option>
+      @for (p of programs(); track p) {
+        <option [value]="p">{{ p }}</option>
+      }
+    </select>
+
+    <select class="mlp-filter-select" [value]="filterAcademicYear()" (change)="filterAcademicYear.set($any($event.target).value); onFilterChange()" aria-label="Filter by academic year">
+      <option value="ALL">All Batches</option>
+      @for (ay of academicYears(); track ay) {
+        <option [value]="ay">{{ ay }}</option>
+      }
+    </select>
+
+    <select class="mlp-filter-select" [value]="filterYearOfStudy()" (change)="filterYearOfStudy.set($any($event.target).value); onFilterChange()" aria-label="Filter by year of study">
+      <option value="ALL">All Years</option>
+      @for (y of yearsOfStudy(); track y) {
+        <option [value]="y">Year {{ y }}</option>
+      }
+    </select>
+
+    <select class="mlp-filter-select" [value]="filterAllocStatus()" (change)="filterAllocStatus.set($any($event.target).value); onFilterChange()" aria-label="Filter by allocation status">
+      <option value="ALL">All Statuses</option>
+      @for (s of ALLOC_STATUSES; track s.value) {
+        <option [value]="s.value">{{ s.label }}</option>
+      }
+    </select>
+
+    @if (hasActiveFilters()) {
+      <button class="btn-clear-filters" (click)="clearAllFilters()" aria-label="Clear all filters">
+        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Clear Filters
+      </button>
+    }
+
     <div class="toolbar-right">
       @if (!loading()) {
         <span class="row-count">

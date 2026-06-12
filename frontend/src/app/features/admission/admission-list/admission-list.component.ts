@@ -52,7 +52,10 @@ export class AdmissionListComponent implements OnInit {
     if (v) this.dataSource.paginator = v;
   }
   @ViewChild(MatSort) set sort(v: MatSort) {
-    if (v) this.dataSource.sort = v;
+    if (v) {
+      this.dataSource.sort = v;
+      v.sort({ id: 'admissionNumber', start: 'asc', disableClear: false });
+    }
   }
 
   protected readonly computeInitials = computeInitials;
@@ -91,13 +94,25 @@ export class AdmissionListComponent implements OnInit {
   protected readonly loading = signal(false);
 
   // ── Filters ──────────────────────────────────────────────────
-  protected filterProgram = signal<string>('ALL');
-  protected filterStatus  = signal<string>('ALL');
+  protected filterProgram      = signal<string>('ALL');
+  protected filterStatus       = signal<string>('ALL');
+  protected filterAcademicYear = signal<string>('ALL');
+  protected filterCourse       = signal<string>('ALL');
   protected readonly programs = computed(() =>
     [...new Set(this._allData().map(r => r.programName).filter(Boolean))].sort() as string[]
   );
+  protected readonly academicYears = computed(() =>
+    [...new Set(this._allData().map(r => r.joiningAcademicYearName).filter(Boolean))].sort() as string[]
+  );
+  protected readonly courses = computed(() =>
+    [...new Set(this._allData().map(r => r.courseName).filter(Boolean))].sort() as string[]
+  );
   protected readonly hasActiveFilters = computed(() =>
-    this.searchTerm() !== '' || this.filterProgram() !== 'ALL' || this.filterStatus() !== 'ALL'
+    this.searchTerm()         !== '' ||
+    this.filterProgram()      !== 'ALL' ||
+    this.filterStatus()       !== 'ALL' ||
+    this.filterAcademicYear() !== 'ALL' ||
+    this.filterCourse()       !== 'ALL'
   );
   protected readonly STUDENT_STATUSES = ['ACTIVE', 'INACTIVE', 'GRADUATED', 'DROPPED'];
 
@@ -130,6 +145,8 @@ export class AdmissionListComponent implements OnInit {
     this.searchTerm.set('');
     this.filterProgram.set('ALL');
     this.filterStatus.set('ALL');
+    this.filterAcademicYear.set('ALL');
+    this.filterCourse.set('ALL');
     this.applyFilters();
   }
 
@@ -171,13 +188,17 @@ export class AdmissionListComponent implements OnInit {
   }
 
   private applyFilters(): void {
-    const term    = this.searchTerm().toLowerCase().trim();
-    const program = this.filterProgram();
-    const status  = this.filterStatus();
+    const term         = this.searchTerm().toLowerCase().trim();
+    const program      = this.filterProgram();
+    const status       = this.filterStatus();
+    const academicYear = this.filterAcademicYear();
+    const course       = this.filterCourse();
 
     this.dataSource.filterPredicate = (row) => {
-      if (program !== 'ALL' && (row.programName ?? '') !== program) return false;
-      if (status  !== 'ALL' && (row.studentStatus ?? '') !== status) return false;
+      if (program      !== 'ALL' && (row.programName ?? '') !== program)              return false;
+      if (status       !== 'ALL' && (row.studentStatus ?? '') !== status)             return false;
+      if (academicYear !== 'ALL' && (row.joiningAcademicYearName ?? '') !== academicYear) return false;
+      if (course       !== 'ALL' && (row.courseName ?? '') !== course)                return false;
       if (!term) return true;
       return (
         row.studentName.toLowerCase().includes(term) ||
@@ -185,7 +206,8 @@ export class AdmissionListComponent implements OnInit {
         (row.rollNumber ?? '').toLowerCase().includes(term)
       );
     };
-    this.dataSource.filter = term || program !== 'ALL' || status !== 'ALL' ? (term || program || status || '_') : '';
+    const anyFilter = term || program !== 'ALL' || status !== 'ALL' || academicYear !== 'ALL' || course !== 'ALL';
+    this.dataSource.filter = anyFilter ? (term || program || status || academicYear || course || '_') : '';
     if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
   }
 

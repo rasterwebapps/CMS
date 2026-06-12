@@ -16,6 +16,8 @@ public record FeeExplorerResponse(
         BigDecimal totalPaid,
         BigDecimal totalPending,
         BigDecimal totalPenalty,
-        String allocationStatus
+        String allocationStatus,
+        Integer yearOfStudy,
+        String academicYearName
     ) {}
 }

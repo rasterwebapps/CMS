@@ -49,10 +49,21 @@ export class StudentListComponent implements OnInit {
     if (value) this.dataSource.paginator = value;
   }
   @ViewChild(MatSort) set sort(value: MatSort) {
-    if (value) this.dataSource.sort = value;
+    if (value) {
+      this.dataSource.sort = value;
+      value.sort({ id: 'admissionNumber', start: 'asc', disableClear: false });
+    }
   }
 
-  protected colMenuOpen = false;
+  protected colMenuOpen       = false;
+  protected moreFiltersOpen   = false;
+
+  protected get moreFiltersCount(): number {
+    return (this.filterSemester()     !== 'ALL' ? 1 : 0)
+         + (this.filterSpeciality()   !== 'ALL' ? 1 : 0)
+         + (this.filterAcademicYear() !== 'ALL' ? 1 : 0)
+         + (this.filterFeeStatus()    !== 'ALL' ? 1 : 0);
+  }
   protected readonly computeInitials = computeInitials;
 
   // ── Filters ──────────────────────────────────────────────────────────────

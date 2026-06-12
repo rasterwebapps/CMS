@@ -50,13 +50,22 @@ export class ReceiptsListComponent implements OnInit {
   protected readonly dataSource  = new MatTableDataSource<UnifiedReceiptSummary>([]);
   protected readonly paymentModes = PAYMENT_MODES;
 
-  protected readonly loading     = signal(false);
-  protected readonly searchValue = signal('');
-  protected readonly selectedMode = signal('');
-  protected readonly selectedType = signal('');
-  protected readonly dateFrom    = signal('');
-  protected readonly dateTo      = signal('');
-  private   readonly allReceipts = signal<UnifiedReceiptSummary[]>([]);
+  protected readonly loading        = signal(false);
+  protected readonly searchValue   = signal('');
+  protected readonly selectedMode  = signal('');
+  protected readonly selectedType  = signal('');
+  protected readonly selectedProgram = signal('');
+  protected readonly dateFrom      = signal('');
+  protected readonly dateTo        = signal('');
+  private   readonly allReceipts   = signal<UnifiedReceiptSummary[]>([]);
+
+  protected readonly programs = computed(() =>
+    [...new Set(
+      this.allReceipts()
+        .filter(r => r.receiptType !== 'REFUND' && r.programName)
+        .map(r => r.programName!)
+    )].sort()
+  );
 
   // ── Refund initiation ──────────────────────────────────────────────────────
   protected readonly refundTarget = signal<UnifiedReceiptSummary | null>(null);
@@ -66,11 +75,12 @@ export class ReceiptsListComponent implements OnInit {
   });
 
   protected readonly filteredReceipts = computed(() => {
-    const search = this.searchValue().trim().toLowerCase();
-    const mode   = this.selectedMode();
-    const type   = this.selectedType();
-    const from   = this.dateFrom();
-    const to     = this.dateTo();
+    const search  = this.searchValue().trim().toLowerCase();
+    const mode    = this.selectedMode();
+    const type    = this.selectedType();
+    const program = this.selectedProgram();
+    const from    = this.dateFrom();
+    const to      = this.dateTo();
 
     return this.allReceipts().filter(r => {
       if (r.receiptType === 'REFUND') return false;
@@ -79,10 +89,11 @@ export class ReceiptsListComponent implements OnInit {
           .join(' ').toLowerCase();
         if (!hay.includes(search)) return false;
       }
-      if (mode && r.paymentMode !== mode) return false;
-      if (type && r.payerType !== type)   return false;
-      if (from && r.paymentDate < from)   return false;
-      if (to   && r.paymentDate > to)     return false;
+      if (mode    && r.paymentMode !== mode)   return false;
+      if (type    && r.payerType !== type)     return false;
+      if (program && r.programName !== program) return false;
+      if (from    && r.paymentDate < from)     return false;
+      if (to      && r.paymentDate > to)       return false;
       return true;
     });
   });
@@ -90,7 +101,8 @@ export class ReceiptsListComponent implements OnInit {
   protected readonly totalCount       = computed(() => this.allReceipts().filter(r => r.receiptType !== 'REFUND').length);
   protected readonly filteredCount    = computed(() => this.filteredReceipts().length);
   protected readonly hasActiveFilters = computed(() =>
-    !!this.searchValue() || !!this.selectedMode() || !!this.selectedType() || !!this.dateFrom() || !!this.dateTo()
+    !!this.searchValue() || !!this.selectedMode() || !!this.selectedType() ||
+    !!this.selectedProgram() || !!this.dateFrom() || !!this.dateTo()
   );
 
   constructor() {
@@ -109,6 +121,7 @@ export class ReceiptsListComponent implements OnInit {
     this.searchValue.set('');
     this.selectedMode.set('');
     this.selectedType.set('');
+    this.selectedProgram.set('');
     this.dateFrom.set('');
     this.dateTo.set('');
   }

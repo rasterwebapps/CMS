@@ -54,6 +54,14 @@
         }
       </select>
 
+      <select class="filter-sel" [value]="filterStatus()"
+              (change)="onStatusChange($any($event.target).value)" aria-label="Filter by verification status">
+        <option value="ALL">All Statuses</option>
+        @for (s of VERIFICATION_STATUSES; track s.value) {
+          <option [value]="s.value">{{ s.label }}</option>
+        }
+      </select>
+
       <select class="filter-sel" [value]="filterStudentType()"
               (change)="onStudentTypeChange($any($event.target).value)" aria-label="Filter by student type">
         <option value="ALL">All Types</option>

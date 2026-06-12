@@ -48,6 +48,7 @@ export class DocumentVerificationListComponent implements OnInit {
   protected readonly filterProgram     = signal<string>('ALL');
   protected readonly filterCourse      = signal<string>('ALL');
   protected readonly filterStudentType = signal<string>('ALL');
+  protected readonly filterStatus      = signal<string>('ALL');
 
   protected readonly programs = computed(() =>
     [...new Set(this._allData().map(r => r.programName).filter(Boolean))].sort() as string[]
@@ -55,6 +56,11 @@ export class DocumentVerificationListComponent implements OnInit {
   protected readonly courses = computed(() =>
     [...new Set(this._allData().map(r => r.courseName).filter(Boolean))].sort() as string[]
   );
+
+  protected readonly VERIFICATION_STATUSES = [
+    { value: 'DOCUMENTS_SUBMITTED', label: 'Submitted' },
+    { value: 'DOCUMENTS_VERIFIED',  label: 'Verified'  },
+  ];
 
   protected readonly totalCount    = computed(() => this._allData().length);
   protected readonly filteredCount = computed(() => this.dataSource.filteredData.length);
@@ -79,9 +85,10 @@ export class DocumentVerificationListComponent implements OnInit {
       const studentType = this.filterStudentType();
       const q           = this.searchQuery().toLowerCase().trim();
 
-      if (program     !== 'ALL' && (row.programName ?? '') !== program) return false;
-      if (course      !== 'ALL' && (row.courseName  ?? '') !== course)  return false;
+      if (program     !== 'ALL' && (row.programName ?? '') !== program)     return false;
+      if (course      !== 'ALL' && (row.courseName  ?? '') !== course)      return false;
       if (studentType !== 'ALL' && (row.studentType ?? '') !== studentType) return false;
+      if (this.filterStatus() !== 'ALL' && row.status !== this.filterStatus()) return false;
       if (!q) return true;
       return row.name.toLowerCase().includes(q) ||
         (row.phone ?? '').includes(q) ||
@@ -92,7 +99,7 @@ export class DocumentVerificationListComponent implements OnInit {
 
   private triggerFilter(): void {
     this.dataSource.filter = this.searchQuery() + '|' +
-      this.filterProgram() + '|' + this.filterCourse() + '|' + this.filterStudentType();
+      this.filterProgram() + '|' + this.filterCourse() + '|' + this.filterStudentType() + '|' + this.filterStatus();
     this.dataSource.paginator?.firstPage();
   }
 
@@ -109,19 +116,22 @@ export class DocumentVerificationListComponent implements OnInit {
   protected onProgramChange(val: string): void     { this.filterProgram.set(val);     this.triggerFilter(); }
   protected onCourseChange(val: string): void       { this.filterCourse.set(val);      this.triggerFilter(); }
   protected onStudentTypeChange(val: string): void  { this.filterStudentType.set(val); this.triggerFilter(); }
+  protected onStatusChange(val: string): void        { this.filterStatus.set(val);      this.triggerFilter(); }
 
   protected clearFilters(): void {
     this.filterProgram.set('ALL');
     this.filterCourse.set('ALL');
     this.filterStudentType.set('ALL');
+    this.filterStatus.set('ALL');
     this.searchQuery.set('');
     this.triggerFilter();
   }
 
   protected hasActiveFilters(): boolean {
-    return this.filterProgram() !== 'ALL' ||
-           this.filterCourse() !== 'ALL' ||
+    return this.filterProgram()     !== 'ALL' ||
+           this.filterCourse()      !== 'ALL' ||
            this.filterStudentType() !== 'ALL' ||
+           this.filterStatus()      !== 'ALL' ||
            this.searchQuery() !== '';
   }
 

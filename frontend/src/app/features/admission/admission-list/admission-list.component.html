@@ -52,6 +52,20 @@
       }
     </select>
 
+    <select class="mlp-filter-select" [value]="filterAcademicYear()" (change)="filterAcademicYear.set($any($event.target).value); onFilterChange()" aria-label="Filter by academic year">
+      <option value="ALL">All Batches</option>
+      @for (ay of academicYears(); track ay) {
+        <option [value]="ay">{{ ay }}</option>
+      }
+    </select>
+
+    <select class="mlp-filter-select" [value]="filterCourse()" (change)="filterCourse.set($any($event.target).value); onFilterChange()" aria-label="Filter by course">
+      <option value="ALL">All Courses</option>
+      @for (c of courses(); track c) {
+        <option [value]="c">{{ c }}</option>
+      }
+    </select>
+
     @if (hasActiveFilters()) {
       <button class="btn-clear-filters" (click)="clearAllFilters()" aria-label="Clear all filters">
         <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>

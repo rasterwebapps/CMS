@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
@@ -43,34 +43,90 @@ export class FeeExplorerComponent implements OnInit {
     'totalPaid', 'totalPending', 'totalPenalty', 'allocationStatus', 'actions',
   ];
   protected readonly dataSource = new MatTableDataSource<StudentFeeSummary>([]);
-  protected readonly loading = signal(false);
+  protected readonly loading    = signal(false);
   protected readonly searchValue = signal('');
   protected readonly computeInitials = computeInitials;
 
+  // ── Filters ──────────────────────────────────────────────────────────────
+  protected filterProgram      = signal<string>('ALL');
+  protected filterAcademicYear = signal<string>('ALL');
+  protected filterYearOfStudy  = signal<string>('ALL');
+  protected filterAllocStatus  = signal<string>('ALL');
+
+  private readonly _allData = signal<StudentFeeSummary[]>([]);
+
+  protected readonly programs = computed(() =>
+    [...new Set(this._allData().map(r => r.programName).filter(Boolean))].sort() as string[]
+  );
+  protected readonly academicYears = computed(() =>
+    [...new Set(this._allData().map(r => r.academicYearName).filter(Boolean))].sort() as string[]
+  );
+  protected readonly yearsOfStudy = computed(() =>
+    [...new Set(this._allData().map(r => r.yearOfStudy).filter((v): v is number => v != null))]
+      .sort((a, b) => a - b)
+  );
+  protected readonly ALLOC_STATUSES = [
+    { value: 'DRAFT',         label: 'Draft' },
+    { value: 'FINALIZED',     label: 'Finalized' },
+    { value: 'NOT_ALLOCATED', label: 'Not Allocated' },
+  ];
+  protected readonly hasActiveFilters = computed(() =>
+    this.searchValue()        !== '' ||
+    this.filterProgram()      !== 'ALL' ||
+    this.filterAcademicYear() !== 'ALL' ||
+    this.filterYearOfStudy()  !== 'ALL' ||
+    this.filterAllocStatus()  !== 'ALL'
+  );
+
   ngOnInit(): void {
     this.tourService.register('fee-explorer', FEE_EXPLORER_TOUR);
-    this.dataSource.filterPredicate = (row: StudentFeeSummary, filter: string) => {
-      if (!filter) return true;
-      return row.studentName.toLowerCase().includes(filter) ||
-        (row.rollNumber ?? '').toLowerCase().includes(filter);
-    };
     this.load();
   }
 
   protected applyFilter(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.searchValue.set(value);
-    this.dataSource.filter = value.trim().toLowerCase();
-    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+    this.searchValue.set((event.target as HTMLInputElement).value);
+    this._applyFilters();
   }
 
   protected clearFilter(): void {
     this.searchValue.set('');
-    this.dataSource.filter = '';
+    this._applyFilters();
+  }
+
+  protected onFilterChange(): void { this._applyFilters(); }
+
+  protected clearAllFilters(): void {
+    this.searchValue.set('');
+    this.filterProgram.set('ALL');
+    this.filterAcademicYear.set('ALL');
+    this.filterYearOfStudy.set('ALL');
+    this.filterAllocStatus.set('ALL');
+    this._applyFilters();
   }
 
   protected searchFromApi(): void {
     this.load(this.searchValue());
+  }
+
+  private _applyFilters(): void {
+    const term    = this.searchValue().toLowerCase().trim();
+    const program = this.filterProgram();
+    const ay      = this.filterAcademicYear();
+    const yos     = this.filterYearOfStudy();
+    const status  = this.filterAllocStatus();
+
+    this.dataSource.filterPredicate = (row: StudentFeeSummary) => {
+      if (program !== 'ALL' && (row.programName ?? '') !== program)                return false;
+      if (ay      !== 'ALL' && (row.academicYearName ?? '') !== ay)                return false;
+      if (yos     !== 'ALL' && String(row.yearOfStudy ?? '') !== yos)              return false;
+      if (status  !== 'ALL' && row.allocationStatus !== status)                    return false;
+      if (!term) return true;
+      return row.studentName.toLowerCase().includes(term) ||
+             (row.rollNumber ?? '').toLowerCase().includes(term);
+    };
+    const any = term || program !== 'ALL' || ay !== 'ALL' || yos !== 'ALL' || status !== 'ALL';
+    this.dataSource.filter = any ? (term || program || ay || yos || status || '_') : '';
+    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
   }
 
   protected viewDetails(student: StudentFeeSummary): void {
@@ -81,7 +137,9 @@ export class FeeExplorerComponent implements OnInit {
     this.loading.set(true);
     this.financeService.searchStudentFees(search).subscribe({
       next: (result) => {
+        this._allData.set(result.students);
         this.dataSource.data = result.students;
+        this._applyFilters();
         this.loading.set(false);
       },
       error: () => {

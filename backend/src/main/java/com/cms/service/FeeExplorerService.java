@@ -7,11 +7,16 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import com.cms.dto.FeeExplorerResponse;
+import com.cms.model.Admission;
 import com.cms.model.Penalty;
 import com.cms.model.SemesterFee;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
+import com.cms.repository.AdmissionRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
@@ -31,6 +36,7 @@ public class FeeExplorerService {
     private final PenaltyRepository penaltyRepository;
     private final EnquiryRepository enquiryRepository;
     private final EnquiryPaymentRepository enquiryPaymentRepository;
+    private final AdmissionRepository admissionRepository;
 
     public FeeExplorerService(StudentRepository studentRepository,
                                StudentFeeAllocationRepository allocationRepository,
@@ -38,7 +44,8 @@ public class FeeExplorerService {
                                FeeInstallmentRepository installmentRepository,
                                PenaltyRepository penaltyRepository,
                                EnquiryRepository enquiryRepository,
-                               EnquiryPaymentRepository enquiryPaymentRepository) {
+                               EnquiryPaymentRepository enquiryPaymentRepository,
+                               AdmissionRepository admissionRepository) {
         this.studentRepository = studentRepository;
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
@@ -46,13 +53,25 @@ public class FeeExplorerService {
         this.penaltyRepository = penaltyRepository;
         this.enquiryRepository = enquiryRepository;
         this.enquiryPaymentRepository = enquiryPaymentRepository;
+        this.admissionRepository = admissionRepository;
     }
 
     public FeeExplorerResponse search(String query) {
         List<Student> students = findStudents(query);
 
+        List<Long> studentIds = students.stream().map(Student::getId).toList();
+        Map<Long, Admission> admissionByStudentId = admissionRepository.findByStudentIdIn(studentIds)
+            .stream().collect(Collectors.toMap(a -> a.getStudent().getId(), a -> a, (a, b) -> a));
+
         List<FeeExplorerResponse.StudentFeeSummary> summaries = new ArrayList<>();
         for (Student student : students) {
+            String programName = student.getCourse() != null ? student.getCourse().getName()
+                : student.getProgram() != null ? student.getProgram().getName() : null;
+            Integer yearOfStudy = student.getYearOfStudy();
+            Admission adm = admissionByStudentId.get(student.getId());
+            String academicYearName = adm != null && adm.getJoiningAcademicYear() != null
+                ? adm.getJoiningAcademicYear().getName() : null;
+
             var allocationOpt = allocationRepository.findByStudentId(student.getId());
             if (allocationOpt.isPresent()) {
                 StudentFeeAllocation allocation = allocationOpt.get();
@@ -84,20 +103,18 @@ public class FeeExplorerService {
 
                 summaries.add(new FeeExplorerResponse.StudentFeeSummary(
                     student.getId(), student.getFullName(), student.getRollNumber(),
-                    student.getCourse() != null ? student.getCourse().getName()
-                        : student.getProgram() != null ? student.getProgram().getName() : null,
+                    programName,
                     student.getProgram() != null ? student.getProgram().getDurationYears() : null,
                     allocation.getNetFee(), totalPaid, totalPending, totalPenalty,
-                    allocation.getStatus().name()
+                    allocation.getStatus().name(), yearOfStudy, academicYearName
                 ));
             } else {
                 summaries.add(new FeeExplorerResponse.StudentFeeSummary(
                     student.getId(), student.getFullName(), student.getRollNumber(),
-                    student.getCourse() != null ? student.getCourse().getName()
-                        : student.getProgram() != null ? student.getProgram().getName() : null,
+                    programName,
                     student.getProgram() != null ? student.getProgram().getDurationYears() : null,
                     BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                    "NOT_ALLOCATED"
+                    "NOT_ALLOCATED", yearOfStudy, academicYearName
                 ));
             }
         }

@@ -73,6 +73,18 @@
         }
       </select>
 
+      <select
+        class="mlp-filter-select"
+        [value]="selectedCourseId() ?? ''"
+        (change)="onCourseFilter(+$any($event.target).value || null)"
+        aria-label="Filter by course"
+      >
+        <option value="">All Courses</option>
+        @for (c of courses(); track c.id) {
+          <option [value]="c.id">{{ c.name }}</option>
+        }
+      </select>
+
       @if (hasActiveFilters) {
         <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear filters">
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>

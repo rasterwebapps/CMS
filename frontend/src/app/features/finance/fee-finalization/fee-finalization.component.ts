@@ -64,21 +64,34 @@ export class FeeFinalizationComponent implements OnInit {
   protected readonly authoritativeProposedFeeByEnquiryId = signal<Record<number, number>>({});
 
   // ── List filters ────────────────────────────────────────────────────────────
-  protected readonly searchValue           = signal('');
-  protected readonly selectedProgramId     = signal<number | null>(null);
-  protected readonly selectedQuota         = signal<'MANAGEMENT' | 'COUNSELLING' | null>(null);
+  protected readonly searchValue            = signal('');
+  protected readonly selectedProgramId      = signal<number | null>(null);
+  protected readonly selectedCourseId       = signal<number | null>(null);
+  protected readonly selectedQuota          = signal<'MANAGEMENT' | 'COUNSELLING' | null>(null);
   protected readonly selectedAcademicYearId = signal<number | null>(null);
-  protected readonly programs              = signal<Program[]>([]);
-  protected readonly academicYears         = signal<{ id: number; name: string; isCurrent: boolean }[]>([]);
-  protected readonly allEnquiries          = signal<Enquiry[]>([]);
+  protected readonly programs               = signal<Program[]>([]);
+  protected readonly academicYears          = signal<{ id: number; name: string; isCurrent: boolean }[]>([]);
+  protected readonly allEnquiries           = signal<Enquiry[]>([]);
+
+  protected readonly courses = computed(() => {
+    const map = new Map<number, string>();
+    this.allEnquiries().forEach(e => {
+      if (e.courseId && e.courseName) map.set(e.courseId, e.courseName);
+    });
+    return [...map.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  });
 
   protected readonly filteredEnquiries = computed(() => {
-    const search = this.searchValue().toLowerCase().trim();
-    const progId = this.selectedProgramId();
-    const quota  = this.selectedQuota();
+    const search   = this.searchValue().toLowerCase().trim();
+    const progId   = this.selectedProgramId();
+    const courseId = this.selectedCourseId();
+    const quota    = this.selectedQuota();
     return this.allEnquiries().filter(e => {
-      if (progId != null && e.programId !== progId) return false;
-      if (quota  != null && e.admissionQuota !== quota) return false;
+      if (progId   != null && e.programId !== progId)   return false;
+      if (courseId != null && e.courseId !== courseId)  return false;
+      if (quota    != null && e.admissionQuota !== quota) return false;
       if (!search) return true;
       return (
         e.name.toLowerCase().includes(search) ||
@@ -246,9 +259,14 @@ export class FeeFinalizationComponent implements OnInit {
     this.hydrateAuthoritativeProposedFees(this.allEnquiries());
   }
 
+  protected onCourseFilter(id: number | null): void {
+    this.selectedCourseId.set(id);
+  }
+
   protected clearFilters(): void {
     this.searchValue.set('');
     this.selectedProgramId.set(null);
+    this.selectedCourseId.set(null);
     this.selectedQuota.set(null);
     const current = this.academicYears().find(y => y.isCurrent);
     this.selectedAcademicYearId.set(current?.id ?? null);
@@ -257,7 +275,8 @@ export class FeeFinalizationComponent implements OnInit {
 
   protected get hasActiveFilters(): boolean {
     const current = this.academicYears().find(y => y.isCurrent);
-    return !!this.searchValue() || this.selectedProgramId() != null || this.selectedQuota() != null
+    return !!this.searchValue() || this.selectedProgramId() != null ||
+      this.selectedCourseId() != null || this.selectedQuota() != null
       || (this.selectedAcademicYearId() != null && this.selectedAcademicYearId() !== current?.id);
   }
 

@@ -1,6 +1,7 @@
 package com.cms.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -22,6 +23,7 @@ import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
 import com.cms.model.enums.FeeAllocationStatus;
 import com.cms.model.enums.StudentStatus;
+import com.cms.repository.AdmissionRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EnquiryPaymentRepository;
@@ -47,6 +49,8 @@ class FeeExplorerServiceTest {
     private EnquiryRepository enquiryRepository;
     @Mock
     private EnquiryPaymentRepository enquiryPaymentRepository;
+    @Mock
+    private AdmissionRepository admissionRepository;
 
     private FeeExplorerService service;
 
@@ -57,7 +61,8 @@ class FeeExplorerServiceTest {
     void setUp() {
         service = new FeeExplorerService(studentRepository, allocationRepository,
             semesterFeeRepository, installmentRepository, penaltyRepository,
-            enquiryRepository, enquiryPaymentRepository);
+            enquiryRepository, enquiryPaymentRepository, admissionRepository);
+        when(admissionRepository.findByStudentIdIn(any())).thenReturn(List.of());
 
         testProgram = new Program();
         testProgram.setId(1L);

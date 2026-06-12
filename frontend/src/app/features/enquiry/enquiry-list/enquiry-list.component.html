@@ -125,6 +125,21 @@
       }
     </div>
 
+    <!-- More Filters toggle -->
+    <button class="btn-toolbar"
+            [class.btn-toolbar--active]="moreFiltersOpen || moreFiltersCount > 0"
+            (click)="moreFiltersOpen = !moreFiltersOpen"
+            aria-label="Toggle more filters">
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+      </svg>
+      More Filters
+      @if (moreFiltersCount > 0) {
+        <span class="more-filters-badge">{{ moreFiltersCount }}</span>
+      }
+    </button>
+
     @if (hasActiveFilters) {
       <button class="btn-clear-filters" (click)="clearAllFilters()" aria-label="Clear all filters">
         <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -156,6 +171,58 @@
       </div>
     </div>
   </div>
+
+  <!-- ── More Filters row (collapsible) ──────────────────────────────────── -->
+  @if (moreFiltersOpen) {
+    <div class="more-filters-bar">
+      <select class="enq-filter-select" [value]="selectedStudentType() ?? ''"
+              (change)="onStudentTypeChange($any($event.target).value)"
+              [class.enq-filter-select--active]="selectedStudentType() !== null"
+              aria-label="Filter by student type">
+        <option value="">All Types</option>
+        <option value="DAY_SCHOLAR">Day Scholar</option>
+        <option value="HOSTELER">Hosteler</option>
+      </select>
+
+      <select class="enq-filter-select" [value]="selectedReferralType() ?? ''"
+              (change)="onReferralTypeChange($any($event.target).value)"
+              [class.enq-filter-select--active]="selectedReferralType() !== null"
+              aria-label="Filter by referral type">
+        <option value="">All Referrals</option>
+        @for (r of referralTypeOptions(); track r) {
+          <option [value]="r">{{ r }}</option>
+        }
+      </select>
+
+      <select class="enq-filter-select" [value]="selectedAdmissionQuota() ?? ''"
+              (change)="onAdmissionQuotaChange($any($event.target).value)"
+              [class.enq-filter-select--active]="selectedAdmissionQuota() !== null"
+              aria-label="Filter by admission quota">
+        <option value="">All Quotas</option>
+        <option value="MANAGEMENT">Management</option>
+        <option value="COUNSELLING">Counselling</option>
+      </select>
+
+      <select class="enq-filter-select" [value]="selectedAgent() ?? ''"
+              (change)="onAgentChange($any($event.target).value)"
+              [class.enq-filter-select--active]="selectedAgent() !== null"
+              aria-label="Filter by agent">
+        <option value="">All Agents</option>
+        @for (a of agentOptions(); track a) {
+          <option [value]="a">{{ a }}</option>
+        }
+      </select>
+
+      <select class="enq-filter-select" [value]="selectedAdmissionSource() ?? ''"
+              (change)="onAdmissionSourceChange($any($event.target).value)"
+              [class.enq-filter-select--active]="selectedAdmissionSource() !== null"
+              aria-label="Filter by admission source">
+        <option value="">All Sources</option>
+        <option value="ENQUIRY_FLOW">Enquiry Flow</option>
+        <option value="DIRECT_ADMIT">Direct Admit</option>
+      </select>
+    </div>
+  }
 
   <!-- ── Content Card ───────────────────────────────────────────────────────── -->
   <div class="content-card enq-table-card">

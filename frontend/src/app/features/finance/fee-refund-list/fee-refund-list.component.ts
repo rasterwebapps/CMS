@@ -56,12 +56,18 @@ export class FeeRefundListComponent implements OnInit {
   protected readonly dataSource    = new MatTableDataSource<FeeRefundSummary>([]);
   protected readonly paymentModes  = PAYMENT_MODES;
 
-  protected readonly loading       = signal(false);
-  protected readonly searchValue   = signal('');
-  protected readonly statusFilter  = signal<'' | 'PENDING' | 'APPROVED' | 'REJECTED'>('');
-  protected readonly dateFrom      = signal('');
-  protected readonly dateTo        = signal('');
-  private   readonly allRefunds    = signal<FeeRefundSummary[]>([]);
+  protected readonly loading            = signal(false);
+  protected readonly searchValue        = signal('');
+  protected readonly statusFilter       = signal<'' | 'PENDING' | 'APPROVED' | 'REJECTED'>('');
+  protected readonly filterEntityType   = signal<'' | 'STUDENT' | 'ENQUIRY'>('');
+  protected readonly filterProgram      = signal('');
+  protected readonly dateFrom           = signal('');
+  protected readonly dateTo             = signal('');
+  private   readonly allRefunds         = signal<FeeRefundSummary[]>([]);
+
+  protected readonly programs = computed(() =>
+    [...new Set(this.allRefunds().map(r => r.programName).filter(Boolean))].sort() as string[]
+  );
 
   // ── Side panel ─────────────────────────────────────────────────────────────
   protected readonly selectedRefund = signal<FeeRefundSummary | null>(null);
@@ -83,13 +89,17 @@ export class FeeRefundListComponent implements OnInit {
   });
 
   protected readonly filteredRefunds = computed(() => {
-    const search = this.searchValue().trim().toLowerCase();
-    const status = this.statusFilter();
-    const from   = this.dateFrom();
-    const to     = this.dateTo();
+    const search     = this.searchValue().trim().toLowerCase();
+    const status     = this.statusFilter();
+    const entityType = this.filterEntityType();
+    const program    = this.filterProgram();
+    const from       = this.dateFrom();
+    const to         = this.dateTo();
 
     return this.allRefunds().filter(r => {
-      if (status && r.status !== status) return false;
+      if (status     && r.status !== status)         return false;
+      if (entityType && r.entityType !== entityType) return false;
+      if (program    && r.programName !== program)   return false;
       if (search) {
         const hay = [
           r.studentName, r.admissionNumber ?? '', r.rollNumber ?? '',
@@ -110,7 +120,8 @@ export class FeeRefundListComponent implements OnInit {
   protected readonly filteredCount    = computed(() => this.filteredRefunds().length);
   protected readonly pendingCount     = computed(() => this.allRefunds().filter(r => r.status === 'PENDING').length);
   protected readonly hasActiveFilters = computed(() =>
-    !!this.searchValue() || !!this.statusFilter() || !!this.dateFrom() || !!this.dateTo()
+    !!this.searchValue() || !!this.statusFilter() || !!this.filterEntityType() ||
+    !!this.filterProgram() || !!this.dateFrom() || !!this.dateTo()
   );
 
   constructor() {
@@ -144,6 +155,8 @@ export class FeeRefundListComponent implements OnInit {
   protected clearFilters(): void {
     this.searchValue.set('');
     this.statusFilter.set('');
+    this.filterEntityType.set('');
+    this.filterProgram.set('');
     this.dateFrom.set('');
     this.dateTo.set('');
   }
