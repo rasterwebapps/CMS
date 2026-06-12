@@ -17,6 +17,9 @@ import { STUDENT_LIST_TOUR } from '../../../shared/tour/tours/student.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { computeInitials } from '../../../shared/utils/initials';
+import { catchError, finalize, of, timeout } from 'rxjs';
+
+const LIST_LOAD_TIMEOUT_MS = 20000;
 
 @Component({
   selector: 'app-student-list',
@@ -169,6 +172,11 @@ export class StudentListComponent implements OnInit {
     const feeStatus   = this.filterFeeStatus();
 
     this.dataSource.filterPredicate = (s) => {
+      const fullName = (s.fullName ?? '').toLowerCase();
+      const admissionNumber = (s.admissionNumber ?? '').toLowerCase();
+      const rollNumber = (s.rollNumber ?? '').toLowerCase();
+      const email = (s.email ?? '').toLowerCase();
+
       if (program      !== 'ALL' && s.programName !== program)                                        return false;
       if (status       !== 'ALL' && s.status !== status)                                              return false;
       if (semester     !== 'ALL' && String(s.yearOfStudy) !== semester)                               return false;
@@ -177,11 +185,11 @@ export class StudentListComponent implements OnInit {
       if (feeStatus    !== 'ALL' && (s.feeStatus ?? 'NOT_ASSIGNED') !== feeStatus)                   return false;
       if (!term) return true;
       return (
-        s.fullName.toLowerCase().includes(term) ||
-        (s.admissionNumber ?? '').toLowerCase().includes(term) ||
-        (s.rollNumber ?? '').toLowerCase().includes(term) ||
+        fullName.includes(term) ||
+        admissionNumber.includes(term) ||
+        rollNumber.includes(term) ||
         (s.phone ?? '').includes(term) ||
-        (s.email ?? '').toLowerCase().includes(term)
+        email.includes(term)
       );
     };
     const anyFilter = term || program !== 'ALL' || status !== 'ALL' || semester !== 'ALL' ||
@@ -249,16 +257,21 @@ export class StudentListComponent implements OnInit {
 
   private loadStudents(): void {
     this.loading.set(true);
-    this.studentService.getAll().subscribe({
-      next: (students) => {
-        this.allStudents.set(students);
-        this.dataSource.data = students;
-        this.loading.set(false);
-      },
-      error: () => {
-        this.toast.error('Failed to load students');
-        this.loading.set(false);
-      },
+    this.studentService.getAll().pipe(
+      timeout(LIST_LOAD_TIMEOUT_MS),
+      catchError((error: unknown) => {
+        this.toast.error(
+          (error as { name?: string })?.name === 'TimeoutError'
+            ? 'Students are taking too long to load. Please retry.'
+            : 'Failed to load students',
+        );
+        return of([] as Student[]);
+      }),
+      finalize(() => this.loading.set(false)),
+    ).subscribe((students) => {
+      this.allStudents.set(students);
+      this.dataSource.data = students;
+      this._applyFilters();
     });
   }
 }

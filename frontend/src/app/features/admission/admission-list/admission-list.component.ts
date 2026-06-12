@@ -19,6 +19,9 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { ADMISSION_LIST_TOUR } from '../../../shared/tour/tours/admission.tours';
 import { computeInitials } from '../../../shared/utils/initials';
+import { catchError, finalize, of, timeout } from 'rxjs';
+
+const LIST_LOAD_TIMEOUT_MS = 20000;
 
 @Component({
   selector: 'app-admission-list',
@@ -173,17 +176,21 @@ export class AdmissionListComponent implements OnInit {
 
   private load(): void {
     this.loading.set(true);
-    this.admissionService.getAll().subscribe({
-      next: (data) => {
-        this._allData.set(data);
-        this.dataSource.data = data;
-        this.applyFilters();
-        this.loading.set(false);
-      },
-      error: () => {
-        this.toast.error('Failed to load admissions');
-        this.loading.set(false);
-      },
+    this.admissionService.getAll().pipe(
+      timeout(LIST_LOAD_TIMEOUT_MS),
+      catchError((error: unknown) => {
+        this.toast.error(
+          (error as { name?: string })?.name === 'TimeoutError'
+            ? 'Admissions are taking too long to load. Please retry.'
+            : 'Failed to load admissions',
+        );
+        return of([] as AdmissionResponse[]);
+      }),
+      finalize(() => this.loading.set(false)),
+    ).subscribe((data) => {
+      this._allData.set(data);
+      this.dataSource.data = data;
+      this.applyFilters();
     });
   }
 
@@ -195,15 +202,19 @@ export class AdmissionListComponent implements OnInit {
     const course       = this.filterCourse();
 
     this.dataSource.filterPredicate = (row) => {
+      const studentName = (row.studentName ?? '').toLowerCase();
+      const admissionNumber = (row.admissionNumber ?? '').toLowerCase();
+      const rollNumber = (row.rollNumber ?? '').toLowerCase();
+
       if (program      !== 'ALL' && (row.programName ?? '') !== program)              return false;
       if (status       !== 'ALL' && (row.studentStatus ?? '') !== status)             return false;
       if (academicYear !== 'ALL' && (row.joiningAcademicYearName ?? '') !== academicYear) return false;
       if (course       !== 'ALL' && (row.courseName ?? '') !== course)                return false;
       if (!term) return true;
       return (
-        row.studentName.toLowerCase().includes(term) ||
-        (row.admissionNumber ?? '').toLowerCase().includes(term) ||
-        (row.rollNumber ?? '').toLowerCase().includes(term)
+        studentName.includes(term) ||
+        admissionNumber.includes(term) ||
+        rollNumber.includes(term)
       );
     };
     const anyFilter = term || program !== 'ALL' || status !== 'ALL' || academicYear !== 'ALL' || course !== 'ALL';
