@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -25,6 +25,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
   imports: [
     FormsModule,
     DatePipe,
+    DecimalPipe,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,

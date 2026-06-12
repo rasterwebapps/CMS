@@ -36,8 +36,8 @@ public class EnquiryCreditApplication {
     @Column(name = "amount_applied", nullable = false, precision = 12, scale = 2)
     private BigDecimal amountApplied;
 
-    /** The cash receipt that was collected alongside this credit application. */
-    @Column(name = "receipt_number", nullable = false, length = 50)
+    /** The pre-enrollment payment receipt(s) that are the source of this credit. */
+    @Column(name = "receipt_number", nullable = false, length = 100)
     private String receiptNumber;
 
     @Column(name = "applied_at", nullable = false)

@@ -22,6 +22,7 @@ import com.cms.dto.SemesterPaymentDetail;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Enquiry;
 import com.cms.model.EnquiryCreditApplication;
+import com.cms.model.EnquiryPayment;
 import com.cms.model.FeeInstallment;
 import com.cms.model.FeeRefund;
 import com.cms.model.SemesterFee;
@@ -116,6 +117,15 @@ public class PaymentCollectionService {
             ? request.receiptNumber()
             : unifiedReceiptService.generateReceiptNumber(request.paymentDate().getYear());
 
+        // Source receipt(s) for credit applications — the pre-admission payment receipts, not the new collection receipt
+        String creditSourceReceipts = sourceEnquiry
+            .map(e -> enquiryPaymentRepository.findByEnquiryIdOrderByPaymentDateDesc(e.getId())
+                .stream()
+                .sorted(Comparator.comparing(EnquiryPayment::getPaymentDate))
+                .map(EnquiryPayment::getReceiptNumber)
+                .collect(Collectors.joining(", ")))
+            .orElse(receiptNumber);
+
         for (SemesterFee sf : semesterFees) {
             if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
                 break;
@@ -132,7 +142,7 @@ public class PaymentCollectionService {
 
             if (creditForThis.compareTo(BigDecimal.ZERO) > 0 && sourceEnquiry.isPresent()) {
                 creditApplicationRepository.save(new EnquiryCreditApplication(
-                    sourceEnquiry.get(), student, sf, creditForThis, receiptNumber, Instant.now()));
+                    sourceEnquiry.get(), student, sf, creditForThis, creditSourceReceipts, Instant.now()));
             }
 
             BigDecimal pendingForSemester = capacity.subtract(creditForThis).max(BigDecimal.ZERO);
@@ -250,7 +260,7 @@ public class PaymentCollectionService {
         return receipts;
     }
 
-    private ReceiptResponse toEnquiryPaymentReceiptResponse(com.cms.model.EnquiryPayment p, Long studentId) {
+    private ReceiptResponse toEnquiryPaymentReceiptResponse(EnquiryPayment p, Long studentId) {
         String feeCategory = p.getEnquiry().getStudentType() == com.cms.model.enums.StudentType.HOSTELER
             ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
         return new ReceiptResponse(
