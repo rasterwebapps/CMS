@@ -28,6 +28,8 @@ import com.cms.model.AppRole;
 import com.cms.model.AppUser;
 import com.cms.repository.AppRoleRepository;
 import com.cms.repository.AppUserRepository;
+import com.cms.repository.StudentRepository;
+import com.cms.repository.FacultyRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AppUserServiceTest {
@@ -42,13 +44,22 @@ class AppUserServiceTest {
     private UserPermissionService userPermissionService;
 
     @Mock
+    private StudentRepository studentRepository;
+
+    @Mock
+    private FacultyRepository facultyRepository;
+
+    @Mock
     private AuditLogService auditLogService;
+
+    @Mock
+    private KeycloakAdminService keycloakAdminService;
 
     private AppUserService appUserService;
 
     @BeforeEach
     void setUp() {
-        appUserService = new AppUserService(appUserRepository, appRoleRepository, userPermissionService, auditLogService);
+        appUserService = new AppUserService(appUserRepository, appRoleRepository, studentRepository, facultyRepository, userPermissionService, auditLogService, keycloakAdminService);
     }
 
     // -------------------------------------------------------------------------
@@ -99,7 +110,7 @@ class AppUserServiceTest {
 
     @Test
     void shouldCreateUser() {
-        CreateUserRequest request = new CreateUserRequest("new@test.com", "New User", "newuser", "FACULTY");
+        CreateUserRequest request = new CreateUserRequest("new@test.com", "New User", "newuser", null, "FACULTY", null, null);
 
         AppRole targetRole = createRole(2L, "FACULTY", "Faculty", 5);
         when(appRoleRepository.findByName("FACULTY")).thenReturn(Optional.of(targetRole));
@@ -121,7 +132,7 @@ class AppUserServiceTest {
 
     @Test
     void shouldThrowForbiddenWhenCreatingUserWithEqualOrHigherLevel() {
-        CreateUserRequest request = new CreateUserRequest("peer@test.com", "Peer", "peer", "ADMIN");
+        CreateUserRequest request = new CreateUserRequest("peer@test.com", "Peer", "peer", null, "ADMIN", null, null);
 
         AppRole targetRole = createRole(1L, "ADMIN", "Admin", 3); // same as requester level
         when(appRoleRepository.findByName("ADMIN")).thenReturn(Optional.of(targetRole));
@@ -134,7 +145,7 @@ class AppUserServiceTest {
 
     @Test
     void shouldThrowWhenUsernameAlreadyExists() {
-        CreateUserRequest request = new CreateUserRequest("dup@test.com", "Dup", "existinguser", "FACULTY");
+        CreateUserRequest request = new CreateUserRequest("dup@test.com", "Dup", "existinguser", null, "FACULTY", null, null);
 
         AppRole role = createRole(2L, "FACULTY", "Faculty", 5);
         when(appRoleRepository.findByName("FACULTY")).thenReturn(Optional.of(role));
@@ -147,7 +158,7 @@ class AppUserServiceTest {
 
     @Test
     void shouldThrowWhenEmailAlreadyExists() {
-        CreateUserRequest request = new CreateUserRequest("dup@test.com", "Dup", "newuser2", "FACULTY");
+        CreateUserRequest request = new CreateUserRequest("dup@test.com", "Dup", "newuser2", null, "FACULTY", null, null);
 
         AppRole role = createRole(2L, "FACULTY", "Faculty", 5);
         when(appRoleRepository.findByName("FACULTY")).thenReturn(Optional.of(role));
@@ -161,7 +172,7 @@ class AppUserServiceTest {
 
     @Test
     void shouldThrowWhenRoleNotFoundOnCreate() {
-        CreateUserRequest request = new CreateUserRequest("x@test.com", "X", "xuser", "NONEXISTENT");
+        CreateUserRequest request = new CreateUserRequest("x@test.com", "X", "xuser", null, "NONEXISTENT", null, null);
         when(appRoleRepository.findByName("NONEXISTENT")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> appUserService.create(request, "admin", 2))

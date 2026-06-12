@@ -34,6 +34,7 @@ class SpecialityRepositoryTest {
             "Computer Science",
             "CS",
             "Speciality of Computer Science",
+            null,
             "Dr. John Doe"
         );
 
@@ -52,6 +53,7 @@ class SpecialityRepositoryTest {
             "Mathematics",
             "MATH",
             "Speciality of Mathematics",
+            null,
             "Dr. Jane Smith"
         );
         Speciality saved = specialityRepository.save(speciality);
@@ -68,6 +70,7 @@ class SpecialityRepositoryTest {
             "Physics",
             "PHY",
             "Speciality of Physics",
+            null,
             "Dr. Einstein"
         );
         specialityRepository.save(speciality);
@@ -91,6 +94,7 @@ class SpecialityRepositoryTest {
             "Chemistry",
             "CHEM",
             "Speciality of Chemistry",
+            null,
             "Dr. Curie"
         );
         specialityRepository.save(speciality);
@@ -104,8 +108,8 @@ class SpecialityRepositoryTest {
 
     @Test
     void shouldFindAllSpecialities() {
-        Speciality dept1 = new Speciality("CS", "CS", "CS Dept", "Dr. A");
-        Speciality dept2 = new Speciality("Math", "MATH", "Math Dept", "Dr. B");
+        Speciality dept1 = new Speciality("CS", "CS", "CS Dept", null, "Dr. A");
+        Speciality dept2 = new Speciality("Math", "MATH", "Math Dept", null, "Dr. B");
         specialityRepository.save(dept1);
         specialityRepository.save(dept2);
 
@@ -120,6 +124,7 @@ class SpecialityRepositoryTest {
             "Biology",
             "BIO",
             "Speciality of Biology",
+            null,
             "Dr. Darwin"
         );
         Speciality saved = specialityRepository.save(speciality);
@@ -138,6 +143,7 @@ class SpecialityRepositoryTest {
             "History",
             "HIST",
             "Speciality of History",
+            null,
             "Dr. Historian"
         );
         Speciality saved = specialityRepository.save(speciality);
@@ -155,6 +161,7 @@ class SpecialityRepositoryTest {
             "Geography",
             "GEO",
             "Speciality of Geography",
+            null,
             "Dr. Geo"
         );
         Speciality saved = specialityRepository.save(speciality);
@@ -177,6 +184,7 @@ class SpecialityRepositoryTest {
             "Art",
             "ART",
             "Speciality of Art",
+            null,
             "Dr. Artist"
         );
 

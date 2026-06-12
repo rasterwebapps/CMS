@@ -56,7 +56,7 @@ class FacultyControllerTest {
         return new FacultyRequest(
             employeeCode, firstName, lastName, email, phone, specialityId, designationId,
             specialization, labExpertise, joiningDate, status,
-            facultyType, highestQualification, null, null, null, gender, maritalStatus,
+            facultyType, highestQualification, null, null, null, null, gender, maritalStatus,
             null, null, null, null, null, null, null, null, bankAccountType, address,
             years, years, years, years, years, years
         );
@@ -78,7 +78,7 @@ class FacultyControllerTest {
             id, employeeCode, firstName, lastName, fullName, email, phone, specialityId,
             specialityName, designationId, designationName, specialization, labExpertise,
             joiningDate, status,
-            facultyType, highestQualification, null, null, null, gender, maritalStatus,
+            facultyType, highestQualification, null, null, null, null, gender, maritalStatus,
             null, null, null, null, null, null, null, null, bankAccountType, address, null,
             null, null, null,
             years, years, years, years, years, years,

@@ -23,6 +23,8 @@ import com.cms.model.StudentFeeAllocation;
 import com.cms.model.enums.FeeAllocationStatus;
 import com.cms.model.enums.StudentStatus;
 import com.cms.repository.FeeInstallmentRepository;
+import com.cms.repository.EnquiryRepository;
+import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.PenaltyRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
@@ -41,6 +43,10 @@ class FeeExplorerServiceTest {
     private FeeInstallmentRepository installmentRepository;
     @Mock
     private PenaltyRepository penaltyRepository;
+    @Mock
+    private EnquiryRepository enquiryRepository;
+    @Mock
+    private EnquiryPaymentRepository enquiryPaymentRepository;
 
     private FeeExplorerService service;
 
@@ -50,7 +56,8 @@ class FeeExplorerServiceTest {
     @BeforeEach
     void setUp() {
         service = new FeeExplorerService(studentRepository, allocationRepository,
-            semesterFeeRepository, installmentRepository, penaltyRepository);
+            semesterFeeRepository, installmentRepository, penaltyRepository,
+            enquiryRepository, enquiryPaymentRepository);
 
         testProgram = new Program();
         testProgram.setId(1L);

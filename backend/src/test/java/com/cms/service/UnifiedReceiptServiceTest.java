@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.UnifiedReceiptResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.PaymentReceipt;
+import com.cms.repository.FeeRefundRepository;
 import com.cms.repository.PaymentReceiptRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,13 +31,15 @@ class UnifiedReceiptServiceTest {
     private PaymentReceiptRepository receiptRepository;
 
     @Mock
+    private FeeRefundRepository refundRepository;
+    @Mock
     private ApplicationNumberSequenceService numberSequenceService;
 
     private UnifiedReceiptService service;
 
     @BeforeEach
     void setUp() {
-        service = new UnifiedReceiptService(receiptRepository, numberSequenceService);
+        service = new UnifiedReceiptService(receiptRepository, refundRepository, numberSequenceService);
     }
 
     // ─── generateReceiptNumber ────────────────────────────────────────────────
@@ -64,7 +67,7 @@ class UnifiedReceiptServiceTest {
             1L, "Ravi Kumar", "CS2401", "ADM-2601-0001",
             "B.Sc. Computer Science", BigDecimal.valueOf(25000),
             LocalDate.of(2026, 1, 15), "CASH",
-            null, "Semester fee", "Semester 1", "admin");
+            null, "Semester fee", "Semester 1", "admin", null);
 
         verify(receiptRepository).save(any(PaymentReceipt.class));
     }
@@ -80,7 +83,7 @@ class UnifiedReceiptServiceTest {
             "RCP-2026-00002",
             10L, "Priya S", "B.Tech IT", BigDecimal.valueOf(1000),
             LocalDate.of(2026, 2, 1), "ONLINE",
-            "TXN123", "Enquiry fee", null, "admin");
+            "TXN123", "Enquiry fee", null, "admin", null);
 
         verify(receiptRepository).save(any(PaymentReceipt.class));
     }

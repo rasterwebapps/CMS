@@ -64,7 +64,7 @@ class LabControllerTest {
 
         Instant now = Instant.now();
         SpecialityResponse deptResponse = new SpecialityResponse(
-            1L, "Computer Science", "CS", "CS Speciality", "Dr. John", now, now
+            1L, "Computer Science", "CS", "CS Speciality", null, "Dr. John", now, now
         );
         LabResponse response = new LabResponse(
             1L,
@@ -212,7 +212,7 @@ class LabControllerTest {
     void shouldFindAllLabs() throws Exception {
         Instant now = Instant.now();
         SpecialityResponse deptResponse = new SpecialityResponse(
-            1L, "Computer Science", "CS", "CS Speciality", "Dr. John", now, now
+            1L, "Computer Science", "CS", "CS Speciality", null, "Dr. John", now, now
         );
         LabResponse lab1 = new LabResponse(
             1L, "Computer Lab 1", LabType.COMPUTER, deptResponse,
@@ -251,7 +251,7 @@ class LabControllerTest {
     void shouldFindLabById() throws Exception {
         Instant now = Instant.now();
         SpecialityResponse deptResponse = new SpecialityResponse(
-            1L, "Computer Science", "CS", "CS Speciality", "Dr. John", now, now
+            1L, "Computer Science", "CS", "CS Speciality", null, "Dr. John", now, now
         );
         LabResponse response = new LabResponse(
             1L,
@@ -292,7 +292,7 @@ class LabControllerTest {
     void shouldFindLabsBySpecialityId() throws Exception {
         Instant now = Instant.now();
         SpecialityResponse deptResponse = new SpecialityResponse(
-            1L, "Computer Science", "CS", "CS Speciality", "Dr. John", now, now
+            1L, "Computer Science", "CS", "CS Speciality", null, "Dr. John", now, now
         );
         LabResponse lab1 = new LabResponse(
             1L, "Computer Lab 1", LabType.COMPUTER, deptResponse,
@@ -339,7 +339,7 @@ class LabControllerTest {
 
         Instant now = Instant.now();
         SpecialityResponse deptResponse = new SpecialityResponse(
-            1L, "Computer Science", "CS", "CS Speciality", "Dr. John", now, now
+            1L, "Computer Science", "CS", "CS Speciality", null, "Dr. John", now, now
         );
         LabResponse response = new LabResponse(
             1L,
@@ -649,7 +649,7 @@ class LabControllerTest {
 
         Instant now = Instant.now();
         SpecialityResponse deptResponse = new SpecialityResponse(
-            1L, "Computer Science", "CS", "CS Speciality", "Dr. John", now, now
+            1L, "Computer Science", "CS", "CS Speciality", null, "Dr. John", now, now
         );
         LabResponse response = new LabResponse(
             1L, "Computer Lab 1", LabType.COMPUTER, deptResponse,

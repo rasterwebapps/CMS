@@ -426,7 +426,7 @@ class StudentFeeControllerTest {
             10L, "Year 1", 1,
             new BigDecimal("50000.00"), LocalDate.of(2025, 1, 15), "UPI",
             "TXN-UPI-12345", "Installment payment", Instant.now(),
-            "PAYMENT", null
+            "PAYMENT", null, null
         );
     }
 }

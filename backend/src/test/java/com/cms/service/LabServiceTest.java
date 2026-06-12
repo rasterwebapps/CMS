@@ -475,7 +475,7 @@ class LabServiceTest {
 
     private Speciality createSpeciality(Long id, String name, String code,
                                         String description, String hodName) {
-        Speciality dept = new Speciality(name, code, description, hodName);
+        Speciality dept = new Speciality(name, code, description, null, hodName);
         dept.setId(id);
         Instant now = Instant.now();
         dept.setCreatedAt(now);

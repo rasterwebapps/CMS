@@ -27,6 +27,7 @@ class SpecialityTest {
             "Computer Science",
             "CS",
             "Speciality of Computer Science",
+            null,
             "Dr. John Doe"
         );
 

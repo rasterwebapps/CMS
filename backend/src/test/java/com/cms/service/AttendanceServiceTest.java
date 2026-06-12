@@ -57,7 +57,7 @@ class AttendanceServiceTest {
     void setUp() {
         attendanceService = new AttendanceService(attendanceRepository, studentRepository, subjectRepository);
 
-        Speciality speciality = new Speciality("Computer Science", "CS", "CS Dept", "Dr. Smith");
+        Speciality speciality = new Speciality("Computer Science", "CS", "CS Dept", null, "Dr. Smith");
         speciality.setId(1L);
 
         testProgram = new Program();

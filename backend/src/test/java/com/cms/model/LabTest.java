@@ -29,7 +29,7 @@ class LabTest {
 
     @Test
     void shouldCreateLabWithAllArgsConstructor() {
-        Speciality speciality = new Speciality("CS", "CS", "CS Dept", "Dr. John");
+        Speciality speciality = new Speciality("CS", "CS", "CS Dept", null, "Dr. John");
         Lab lab = new Lab(
             "Computer Lab 1",
             LabType.COMPUTER,
@@ -76,7 +76,7 @@ class LabTest {
     @Test
     void shouldSetAndGetSpeciality() {
         Lab lab = new Lab();
-        Speciality speciality = new Speciality("Physics", "PHY", "Physics Dept", "Dr. Einstein");
+        Speciality speciality = new Speciality("Physics", "PHY", "Physics Dept", null, "Dr. Einstein");
         lab.setSpeciality(speciality);
 
         assertThat(lab.getSpeciality()).isEqualTo(speciality);

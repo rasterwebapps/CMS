@@ -399,7 +399,7 @@ class FacultyServiceTest {
         return new FacultyRequest(
             employeeCode, firstName, lastName, email, phone, specialityId, designationId,
             specialization, labExpertise, joiningDate, status,
-            facultyType, highestQualification, null, null, null, gender, maritalStatus,
+            facultyType, highestQualification, null, null, null, null, gender, maritalStatus,
             null, null, null, null, null, null, null, null, bankAccountType, address,
             years, years, years, years, years, years
         );

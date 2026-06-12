@@ -31,7 +31,7 @@ import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EquipmentRepository;
 import com.cms.repository.ExaminationRepository;
 import com.cms.repository.FacultyRepository;
-import com.cms.repository.FeePaymentRepository;
+import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.MaintenanceRequestRepository;
 import com.cms.repository.ProgramRepository;
@@ -49,7 +49,7 @@ class DashboardServiceTest {
     @Mock private LabRepository labRepository;
     @Mock private EquipmentRepository equipmentRepository;
     @Mock private ExaminationRepository examinationRepository;
-    @Mock private FeePaymentRepository feePaymentRepository;
+    @Mock private PaymentReceiptRepository paymentReceiptRepository;
     @Mock private MaintenanceRequestRepository maintenanceRequestRepository;
     @Mock private AttendanceRepository attendanceRepository;
     @Mock private EnquiryRepository enquiryRepository;
@@ -63,7 +63,7 @@ class DashboardServiceTest {
         dashboardService = new DashboardService(
             studentRepository, facultyRepository, specialityRepository,
             subjectRepository, programRepository, labRepository,
-            equipmentRepository, examinationRepository, feePaymentRepository,
+            equipmentRepository, examinationRepository, paymentReceiptRepository,
             maintenanceRequestRepository, attendanceRepository,
             enquiryRepository, enquiryPaymentRepository, admissionRepository
         );
@@ -79,7 +79,7 @@ class DashboardServiceTest {
         when(labRepository.count()).thenReturn(10L);
         when(equipmentRepository.count()).thenReturn(10L);
         when(examinationRepository.count()).thenReturn(10L);
-        when(feePaymentRepository.count()).thenReturn(10L);
+        when(paymentReceiptRepository.count()).thenReturn(10L);
         when(maintenanceRequestRepository.count()).thenReturn(10L);
         when(attendanceRepository.count()).thenReturn(10L);
         when(equipmentRepository.findAll()).thenReturn(List.of());
@@ -88,7 +88,7 @@ class DashboardServiceTest {
         when(attendanceRepository.findAll()).thenReturn(List.of());
         when(enquiryRepository.findAll()).thenReturn(List.of());
         when(enquiryPaymentRepository.findAll()).thenReturn(List.of());
-        when(feePaymentRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
+        when(paymentReceiptRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(List.of());
 
         DashboardSummaryResponse response = dashboardService.getSummary();
@@ -124,7 +124,7 @@ class DashboardServiceTest {
         when(labRepository.count()).thenReturn(0L);
         when(equipmentRepository.count()).thenReturn(0L);
         when(examinationRepository.count()).thenReturn(0L);
-        when(feePaymentRepository.count()).thenReturn(0L);
+        when(paymentReceiptRepository.count()).thenReturn(0L);
         when(maintenanceRequestRepository.count()).thenReturn(0L);
         when(attendanceRepository.count()).thenReturn(0L);
         when(equipmentRepository.findAll()).thenReturn(List.of());
@@ -133,7 +133,7 @@ class DashboardServiceTest {
         when(attendanceRepository.findAll()).thenReturn(List.of());
         when(enquiryRepository.findAll()).thenReturn(List.of());
         when(enquiryPaymentRepository.findAll()).thenReturn(List.of());
-        when(feePaymentRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
+        when(paymentReceiptRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(List.of());
 
         DashboardSummaryResponse response = dashboardService.getSummary();
@@ -146,7 +146,7 @@ class DashboardServiceTest {
     @Test
     void shouldReturnTrendsWithSixMonths() {
         when(studentRepository.findAll()).thenReturn(List.of());
-        when(feePaymentRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
+        when(paymentReceiptRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(List.of());
 
         DashboardTrendsResponse trends = dashboardService.getTrends();

@@ -49,6 +49,7 @@ import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.CohortRepository;
 import com.cms.repository.LocationCountryRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
@@ -90,6 +91,8 @@ class EnquiryServiceTest {
     @Mock
     private ApplicationNumberSequenceService numberSequenceService;
     @Mock
+    private CohortRepository cohortRepository;
+    @Mock
     private LocationCountryRepository countryRepository;
 
     private EnquiryService enquiryService;
@@ -117,7 +120,8 @@ class EnquiryServiceTest {
             feeStateRepository,
             enquiryDocumentService,
             numberSequenceService,
-            countryRepository
+            countryRepository,
+            cohortRepository
         );
         org.mockito.Mockito.lenient()
             .when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(org.mockito.ArgumentMatchers.any()))
@@ -676,7 +680,7 @@ class EnquiryServiceTest {
         return new FeeStructureResponse(
             id, 1L, 1L, testProgram.getName(), 2L, "BSc Nursing", 100L, "2024-2025",
             com.cms.model.enums.AdmissionQuota.MANAGEMENT, 1L, "Tamil Nadu",
-            com.cms.model.enums.Gender.FEMALE, com.cms.model.enums.StudentType.DAY_SCHOLAR,
+            com.cms.model.enums.Gender.FEMALE,
             feeType, amount, null, true, true, List.of(), Instant.now(), Instant.now()
         );
     }

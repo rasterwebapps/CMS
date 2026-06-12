@@ -48,10 +48,10 @@ class ProgramControllerTest {
 
     @Test
     void shouldCreateProgram() throws Exception {
-        ProgramRequest request = new ProgramRequest("UG Program", "UG", 4, null, null);
+        ProgramRequest request = new ProgramRequest("UG Program", "UG", 4, null, null, null, null, null);
 
         Instant now = Instant.now();
-        ProgramResponse response = new ProgramResponse(1L, "UG Program", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), now, now);
+        ProgramResponse response = new ProgramResponse(1L, "UG Program", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), null, null, null, now, now);
 
         when(programService.create(any(ProgramRequest.class))).thenReturn(response);
 
@@ -69,7 +69,7 @@ class ProgramControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenNameIsBlank() throws Exception {
-        ProgramRequest request = new ProgramRequest("", "UG", 4, null, null);
+        ProgramRequest request = new ProgramRequest("", "UG", 4, null, null, null, null, null);
 
         mockMvc.perform(post("/programs")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -79,7 +79,7 @@ class ProgramControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenCodeIsBlank() throws Exception {
-        ProgramRequest request = new ProgramRequest("UG Program", "", 4, null, null);
+        ProgramRequest request = new ProgramRequest("UG Program", "", 4, null, null, null, null, null);
 
         mockMvc.perform(post("/programs")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -105,8 +105,8 @@ class ProgramControllerTest {
     @Test
     void shouldFindAllPrograms() throws Exception {
         Instant now = Instant.now();
-        ProgramResponse prog1 = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), now, now);
-        ProgramResponse prog2 = new ProgramResponse(2L, "Master", "MASTER", 2, 4, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), now, now);
+        ProgramResponse prog1 = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), null, null, null, now, now);
+        ProgramResponse prog2 = new ProgramResponse(2L, "Master", "MASTER", 2, 4, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), null, null, null, now, now);
 
         when(programService.findAll()).thenReturn(List.of(prog1, prog2));
 
@@ -135,7 +135,7 @@ class ProgramControllerTest {
     @Test
     void shouldFindProgramById() throws Exception {
         Instant now = Instant.now();
-        ProgramResponse response = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), now, now);
+        ProgramResponse response = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), null, null, null, now, now);
 
         when(programService.findById(1L)).thenReturn(response);
 
@@ -161,10 +161,10 @@ class ProgramControllerTest {
 
     @Test
     void shouldUpdateProgram() throws Exception {
-        ProgramRequest request = new ProgramRequest("Bachelor Updated", "BACHELOR", 4, null, null);
+        ProgramRequest request = new ProgramRequest("Bachelor Updated", "BACHELOR", 4, null, null, null, null, null);
 
         Instant now = Instant.now();
-        ProgramResponse response = new ProgramResponse(1L, "Bachelor Updated", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), now, now);
+        ProgramResponse response = new ProgramResponse(1L, "Bachelor Updated", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), null, null, null, now, now);
 
         when(programService.update(eq(1L), any(ProgramRequest.class))).thenReturn(response);
 
@@ -181,7 +181,7 @@ class ProgramControllerTest {
 
     @Test
     void shouldReturnNotFoundWhenUpdatingNonExistentProgram() throws Exception {
-        ProgramRequest request = new ProgramRequest("Name", "CODE", 4, null, null);
+        ProgramRequest request = new ProgramRequest("Name", "CODE", 4, null, null, null, null, null);
 
         when(programService.update(eq(999L), any(ProgramRequest.class)))
             .thenThrow(new ResourceNotFoundException("Program not found with id: 999"));
@@ -196,7 +196,7 @@ class ProgramControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenUpdatingWithInvalidData() throws Exception {
-        ProgramRequest request = new ProgramRequest("", "", 4, null, null);
+        ProgramRequest request = new ProgramRequest("", "", 4, null, null, null, null, null);
 
         mockMvc.perform(put("/programs/1")
                 .contentType(MediaType.APPLICATION_JSON)

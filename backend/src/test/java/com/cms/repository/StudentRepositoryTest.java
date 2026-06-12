@@ -35,7 +35,7 @@ class StudentRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        Speciality speciality = new Speciality("Computer Science", "CS", "CS Speciality", "Dr. Smith");
+        Speciality speciality = new Speciality("Computer Science", "CS", "CS Speciality", null, "Dr. Smith");
         entityManager.persist(speciality);
 
         testProgram = new Program("Bachelor", "BACHELOR", 4);

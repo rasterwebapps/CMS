@@ -386,7 +386,7 @@ class StudentServiceTest {
 
         Student student = createStudent(1L, "CS2401", "Ravi", "Kumar", "ravi@college.edu");
         student.setCourse(course);
-        student.setSpecializationSpeciality(dept);
+        student.setSpeciality(dept);
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
 
@@ -394,8 +394,8 @@ class StudentServiceTest {
 
         assertThat(response.courseId()).isEqualTo(10L);
         assertThat(response.courseName()).isEqualTo("B.Tech CS");
-        assertThat(response.specializationSpecialityId()).isEqualTo(5L);
-        assertThat(response.specializationSpecialityName()).isEqualTo("CS Speciality");
+        assertThat(response.specialityId()).isEqualTo(5L);
+        assertThat(response.specialityName()).isEqualTo("CS Speciality");
     }
 
     @Test

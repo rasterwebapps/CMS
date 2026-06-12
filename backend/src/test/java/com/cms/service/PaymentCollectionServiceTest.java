@@ -36,6 +36,7 @@ import com.cms.model.enums.FeeAllocationStatus;
 import com.cms.model.enums.PaymentMode;
 import com.cms.model.enums.StudentStatus;
 import com.cms.repository.EnquiryPaymentRepository;
+import com.cms.repository.EnquiryCreditApplicationRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.FeeRefundRepository;
@@ -54,6 +55,7 @@ class PaymentCollectionServiceTest {
     @Mock private EnquiryPaymentRepository enquiryPaymentRepository;
     @Mock private FeeRefundRepository refundRepository;
     @Mock private UnifiedReceiptService unifiedReceiptService;
+    @Mock private EnquiryCreditApplicationRepository creditApplicationRepository;
 
     private PaymentCollectionService service;
 
@@ -67,7 +69,7 @@ class PaymentCollectionServiceTest {
     void setUp() {
         service = new PaymentCollectionService(allocationRepository, semesterFeeRepository,
             installmentRepository, studentRepository, enquiryRepository, enquiryPaymentRepository,
-            refundRepository, unifiedReceiptService);
+            refundRepository, unifiedReceiptService, creditApplicationRepository);
         lenient().when(enquiryRepository.findByConvertedStudentId(anyLong())).thenReturn(Optional.empty());
         lenient().when(refundRepository.findByStudentIdAndStatusOrderByPaymentDateDescIdDesc(anyLong(), any()))
             .thenReturn(List.of());

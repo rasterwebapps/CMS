@@ -27,6 +27,7 @@ import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.EnquiryDocumentRepository;
+import com.cms.repository.EnquiryStatusHistoryRepository;
 import com.cms.repository.EnquiryRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,6 +40,8 @@ class EnquiryDocumentServiceTest {
     @Mock
     private EnquiryRepository enquiryRepository;
     @Mock
+    private com.cms.repository.EnquiryStatusHistoryRepository statusHistoryRepository;
+    @Mock
     private com.cms.util.CurrentUserResolver currentUserResolver;
 
     private EnquiryDocumentService documentService;
@@ -48,7 +51,7 @@ class EnquiryDocumentServiceTest {
     @BeforeEach
     void setUp() {
         documentService = new EnquiryDocumentService(documentRepository, historyRepository, enquiryRepository,
-            currentUserResolver);
+            statusHistoryRepository, currentUserResolver);
 
         testEnquiry = new Enquiry("Test", "test@email.com", "1234567890", null,
             java.time.LocalDate.now(), new ReferralType("Walk In", "WALK_IN", java.math.BigDecimal.ZERO, false, "Walk in", true), EnquiryStatus.FEES_PAID);

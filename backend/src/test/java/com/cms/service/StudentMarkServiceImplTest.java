@@ -126,7 +126,6 @@ class StudentMarkServiceImplTest {
     private Cohort createCohort(Long id, Program program, AcademicYear ay) {
         Cohort c = new Cohort();
         c.setId(id);
-        c.setProgram(program);
         c.setAdmissionAcademicYear(ay);
         c.setCohortCode("BCA-2024-2027");
         c.setDisplayName("BCA (2024-2027)");

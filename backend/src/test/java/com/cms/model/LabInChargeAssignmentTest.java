@@ -29,7 +29,7 @@ class LabInChargeAssignmentTest {
 
     @Test
     void shouldCreateAssignmentWithAllArgsConstructor() {
-        Speciality speciality = new Speciality("CS", "CS", "CS Dept", "Dr. John");
+        Speciality speciality = new Speciality("CS", "CS", "CS Dept", null, "Dr. John");
         Lab lab = new Lab("Computer Lab", LabType.COMPUTER, speciality, "Building A", "101", 30, LabStatus.ACTIVE);
         LocalDate assignedDate = LocalDate.of(2024, 1, 15);
         
@@ -59,7 +59,7 @@ class LabInChargeAssignmentTest {
     @Test
     void shouldSetAndGetLab() {
         LabInChargeAssignment assignment = new LabInChargeAssignment();
-        Speciality speciality = new Speciality("CS", "CS", "CS Dept", "Dr. John");
+        Speciality speciality = new Speciality("CS", "CS", "CS Dept", null, "Dr. John");
         Lab lab = new Lab("Physics Lab", LabType.PHYSICS, speciality, "Building B", "201", 25, LabStatus.ACTIVE);
         assignment.setLab(lab);
 

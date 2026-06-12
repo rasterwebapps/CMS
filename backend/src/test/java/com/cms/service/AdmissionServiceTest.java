@@ -38,6 +38,7 @@ import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.CohortRepository;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.IntakeRuleRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -64,6 +65,8 @@ class AdmissionServiceTest {
     private TermInstanceRepository termInstanceRepository;
 
     @Mock
+    private EnquiryRepository enquiryRepository;
+    @Mock
     private ApplicationNumberSequenceService numberSequenceService;
 
     private AdmissionService admissionService;
@@ -72,7 +75,7 @@ class AdmissionServiceTest {
     void setUp() {
         admissionService = new AdmissionService(admissionRepository, studentRepository,
             cohortRepository, intakeRuleRepository, academicYearRepository, termInstanceRepository,
-            numberSequenceService);
+            numberSequenceService, enquiryRepository);
         org.mockito.Mockito.lenient()
             .when(academicYearRepository.findById(100L))
             .thenReturn(Optional.of(createAcademicYear()));
@@ -89,7 +92,7 @@ class AdmissionServiceTest {
 
     private Student createStudent(Long id) {
         Course course = new Course("BSc Nursing", "BSCN", null, null);
-        course.setAdmissionNumberCode("65");
+        course.setRollNumberCode("65");
         Student student = new Student("ROLL001", "John", "Doe", "john@example.com",
             null, 1, LocalDate.of(2024, 1, 1), StudentStatus.ACTIVE);
         student.setId(id);
@@ -314,7 +317,7 @@ class AdmissionServiceTest {
 
         when(admissionRepository.findById(1L)).thenReturn(Optional.of(admission));
         when(intakeRuleRepository.findByProgramIdAndIsActiveTrue(1L)).thenReturn(List.of(rule));
-        when(cohortRepository.findByProgramIdAndAdmissionAcademicYearId(1L, 10L))
+        when(cohortRepository.findByCourseIdAndAdmissionAcademicYearId(1L, 10L))
             .thenReturn(Optional.empty());
         when(academicYearRepository.findByName("2027-2028")).thenReturn(Optional.empty());
         when(cohortRepository.save(any(Cohort.class))).thenReturn(savedCohort);
@@ -375,7 +378,7 @@ class AdmissionServiceTest {
 
         when(admissionRepository.findById(1L)).thenReturn(Optional.of(admission));
         when(intakeRuleRepository.findByProgramIdAndIsActiveTrue(1L)).thenReturn(List.of(rule));
-        when(cohortRepository.findByProgramIdAndAdmissionAcademicYearId(1L, 10L))
+        when(cohortRepository.findByCourseIdAndAdmissionAcademicYearId(1L, 10L))
             .thenReturn(Optional.of(existingCohort));
         when(termInstanceRepository.findByAcademicYearIdAndTermType(10L, TermType.ODD))
             .thenReturn(Optional.of(oddTerm));

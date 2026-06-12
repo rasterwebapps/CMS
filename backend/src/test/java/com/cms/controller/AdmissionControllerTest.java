@@ -67,7 +67,7 @@ class AdmissionControllerTest {
             100L, "2024-2025", 2025,
             LocalDate.of(2024, 1, 15),
             "Chennai", LocalDate.of(2024, 1, 15), true, true,
-            Instant.now(), Instant.now()
+            Instant.now(), Instant.now(), null
         );
     }
 

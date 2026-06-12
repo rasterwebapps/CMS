@@ -45,7 +45,7 @@ class InventoryItemServiceTest {
     void setUp() {
         inventoryItemService = new InventoryItemService(inventoryItemRepository, labRepository);
 
-        Speciality dept = new Speciality("Computer Science", "CS", "CS Dept", "Dr. Smith");
+        Speciality dept = new Speciality("Computer Science", "CS", "CS Dept", null, "Dr. Smith");
         dept.setId(1L);
 
         testLab = new Lab("Lab 1", LabType.COMPUTER, dept, "Main Building", "L001", 30, LabStatus.ACTIVE);

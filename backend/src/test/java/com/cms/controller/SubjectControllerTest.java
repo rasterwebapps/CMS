@@ -49,8 +49,8 @@ class SubjectControllerTest {
     private final Instant now = Instant.now();
 
     private SubjectResponse createTestResponse(Long id, String name, String code) {
-        SpecialityResponse dept = new SpecialityResponse(1L, "MSN", "MSN", "Desc", "Dr. X", now, now);
-        ProgramResponse prog = new ProgramResponse(1L, "B.Sc. Nursing", "BSCN", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, null, now, now);
+        SpecialityResponse dept = new SpecialityResponse(1L, "MSN", "MSN", "Desc", null, "Dr. X", now, now);
+        ProgramResponse prog = new ProgramResponse(1L, "B.Sc. Nursing", "BSCN", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, null, null, null, null, now, now);
         CourseResponse courseResp = new CourseResponse(1L, "BSN Course", "BSN",
             "General", null, prog, now, now);
         return new SubjectResponse(id, name, code, 4, 3, 1, courseResp, dept, 1, now, now);

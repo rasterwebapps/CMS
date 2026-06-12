@@ -71,7 +71,7 @@ class EnquiryControllerTest {
             LocalDate.of(2024, 6, 15), 1L, EnquiryStatus.ENQUIRED,
             null, "Interested in CS", new BigDecimal("50000.00"),
             null, null, null, null, null,
-            null, null, null
+            null, null, null, null, null
         );
 
         EnquiryResponse response = createResponse(1L, "Ravi Kumar", EnquiryStatus.ENQUIRED);
@@ -159,7 +159,7 @@ class EnquiryControllerTest {
             LocalDate.of(2024, 6, 20), 1L, EnquiryStatus.INTERESTED,
             null, "Called back", new BigDecimal("45000.00"),
             null, null, null, null, null,
-            null, null, null
+            null, null, null, null, null
         );
 
         EnquiryResponse response = createResponse(1L, "Ravi Kumar Updated", EnquiryStatus.INTERESTED);
@@ -416,7 +416,7 @@ class EnquiryControllerTest {
             "system",
             null,
             "PARTIALLY_PAID",
-            Instant.now()
+            Instant.now(), null, null
         );
 
         when(enquiryPaymentService.collectPayment(eq(1L), any(EnquiryPaymentRequest.class), any(String.class)))
@@ -445,7 +445,7 @@ class EnquiryControllerTest {
             "system",
             null,
             null,
-            Instant.now()
+            Instant.now(), null, null
         );
 
         when(enquiryPaymentService.getPaymentsByEnquiryId(1L)).thenReturn(List.of(response));
@@ -470,7 +470,7 @@ class EnquiryControllerTest {
             null, null, null, null, null, null,
             convertedStudentId, null, null, null, null, null, null, null, null, null, now, now, null,
             LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE,
-            null, null, null
+            null, null, null, null, null
         );
     }
 
@@ -481,12 +481,13 @@ class EnquiryControllerTest {
             BigDecimal feeGuidelineTotal, BigDecimal referralAdditionalAmount,
             BigDecimal finalCalculatedFee, String yearWiseFees,
             com.cms.model.enums.StudentType studentType,
-            Long countryId, String state, String district) {
+            Long countryId, String state, String district,
+            Long referredStudentId, Long referredFacultyId) {
         return new EnquiryRequest(
             name, email, phone, programId, courseId, enquiryDate, referralTypeId, status,
             agentId, remarks, feeDiscussedAmount, feeGuidelineTotal, referralAdditionalAmount,
             finalCalculatedFee, yearWiseFees, studentType, countryId, state, district,
-            null, null, null,
+            referredStudentId, referredFacultyId, null,
             LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE,
             null, null
         );

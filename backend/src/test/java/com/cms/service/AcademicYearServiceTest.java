@@ -30,7 +30,8 @@ import com.cms.model.enums.ProgramStatus;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.FeeStructureGroupRepository;
-import com.cms.repository.ProgramRepository;
+import com.cms.model.Course;
+import com.cms.repository.CourseRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AcademicYearServiceTest {
@@ -48,7 +49,7 @@ class AcademicYearServiceTest {
     private CohortRepository cohortRepository;
 
     @Mock
-    private ProgramRepository programRepository;
+    private CourseRepository courseRepository;
 
     private AcademicYearService academicYearService;
 
@@ -56,7 +57,7 @@ class AcademicYearServiceTest {
     void setUp() {
         academicYearService = new AcademicYearService(
             academicYearRepository, feeStructureGroupRepository, termInstanceService,
-            cohortRepository, programRepository);
+            cohortRepository, courseRepository);
     }
 
     @Test
@@ -469,7 +470,7 @@ class AcademicYearServiceTest {
             LocalDate.of(2026, 6, 1),
             LocalDate.of(2027, 5, 31),
             false,
-            List.of(new CohortSeatAllocationRequest(10L, 45, 15))
+            List.of(new CohortSeatAllocationRequest(10L, 60, new java.math.BigDecimal("75")))
         );
 
         AcademicYear saved = createAcademicYear(1L, "2026-2027",
@@ -477,7 +478,8 @@ class AcademicYearServiceTest {
         Program bca = createProgram(10L, "BCA", "BCA", 3, ProgramStatus.ACTIVE);
 
         when(academicYearRepository.save(any(AcademicYear.class))).thenReturn(saved);
-        when(programRepository.findById(10L)).thenReturn(Optional.of(bca));
+        Course bcaCourse = createCourse(10L, bca);
+        when(courseRepository.findById(10L)).thenReturn(Optional.of(bcaCourse));
         when(academicYearRepository.findByName("2029-2030")).thenReturn(Optional.empty());
 
         academicYearService.create(request);
@@ -499,7 +501,7 @@ class AcademicYearServiceTest {
             LocalDate.of(2026, 6, 1),
             LocalDate.of(2027, 5, 31),
             false,
-            List.of(new CohortSeatAllocationRequest(10L, 45, 15))
+            List.of(new CohortSeatAllocationRequest(10L, 60, new java.math.BigDecimal("75")))
         );
 
         AcademicYear saved = createAcademicYear(1L, "2026-2027",
@@ -507,7 +509,8 @@ class AcademicYearServiceTest {
         Program inactive = createProgram(10L, "BCA", "BCA", 3, ProgramStatus.INACTIVE);
 
         when(academicYearRepository.save(any(AcademicYear.class))).thenReturn(saved);
-        when(programRepository.findById(10L)).thenReturn(Optional.of(inactive));
+        Course inactiveCourse = createCourse(10L, inactive);
+        when(courseRepository.findById(10L)).thenReturn(Optional.of(inactiveCourse));
 
         assertThatThrownBy(() -> academicYearService.create(request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -529,5 +532,11 @@ class AcademicYearServiceTest {
         Program program = new Program(name, code, durationYears, status);
         program.setId(id);
         return program;
+    }
+
+    private Course createCourse(Long id, Program program) {
+        Course course = new Course(program.getName(), program.getCode(), null, program);
+        course.setId(id);
+        return course;
     }
 }

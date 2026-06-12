@@ -98,11 +98,11 @@ class SearchControllerTest {
 
     @Test
     void shouldSearchFacultyByName() throws Exception {
-        Speciality dept = new Speciality("Engineering", "ENG", null, null);
+        Speciality dept = new Speciality("Engineering", "ENG", null, null, null);
         dept.setId(1L);
 
         Faculty faculty = new Faculty("E001", "Alice", "Brown", "alice@test.com",
-            "9999", dept, com.cms.model.enums.Designation.PROFESSOR, null, null,
+            "9999", dept, null, null, null,
             LocalDate.now(), FacultyStatus.ACTIVE);
         faculty.setId(3L);
 
@@ -138,7 +138,7 @@ class SearchControllerTest {
 
     @Test
     void shouldSearchSpecialitiesByName() throws Exception {
-        Speciality dept = new Speciality("Computer Science", "CS", null, null);
+        Speciality dept = new Speciality("Computer Science", "CS", null, null, null);
         dept.setId(7L);
 
         when(studentRepository.findAll()).thenReturn(List.of());

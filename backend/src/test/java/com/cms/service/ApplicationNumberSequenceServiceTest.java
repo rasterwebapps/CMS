@@ -42,7 +42,7 @@ class ApplicationNumberSequenceServiceTest {
     private Course courseWithCode(String admissionCode) {
         Program program = new Program("BSc Nursing", "BSCN", 4, ProgramStatus.ACTIVE);
         Course course = new Course("BSc Nursing", "BSCN", null, program);
-        course.setAdmissionNumberCode(admissionCode);
+        course.setRollNumberCode(admissionCode);
         return course;
     }
 
