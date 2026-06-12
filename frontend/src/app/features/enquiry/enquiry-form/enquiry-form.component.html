@@ -474,12 +474,8 @@
 
                 @if (isEditMode()) {
                   <div class="field-group">
-                    <label for="enq-status" class="field-label">Status</label>
-                    <select id="enq-status" class="field-select" formControlName="status">
-                      @for (s of statusOptions; track s) {
-                        <option [value]="s">{{ s }}</option>
-                      }
-                    </select>
+                    <label class="field-label">Status</label>
+                    <div class="field-readonly">{{ form.get('status')?.value }}</div>
                   </div>
                 }
 

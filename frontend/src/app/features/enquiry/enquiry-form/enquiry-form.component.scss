@@ -329,6 +329,19 @@
 .field-error { font-size: var(--cms-text-sm); color: #ef4444; margin: 0; }
 .field-hint { font-size: var(--cms-text-sm); color: var(--cms-text-muted); }
 .field-select--error { border-color: #ef4444; }
+.field-readonly {
+  border: 1px solid var(--cms-border-default);
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: var(--cms-text-base);
+  background: var(--cms-bg-muted);
+  color: var(--cms-text-muted);
+  font-family: var(--cms-font-ui), sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: default;
+  user-select: none;
+}
 
 // ── Student type toggle ────────────────────────────────────────
 .stt-toggle {

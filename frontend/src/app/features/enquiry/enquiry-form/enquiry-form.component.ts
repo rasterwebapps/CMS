@@ -336,6 +336,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
       this.itemId = Number(id);
       this.isEditMode.set(true);
       this.pageTitle.set('Edit Enquiry');
+      this.form.get('status')?.disable();
       this.loading.set(true);
       this.enquiryService.getEnquiryById(this.itemId).subscribe({
         next: (item) => {
@@ -677,7 +678,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
       name: v.name.trim(), email: v.email || undefined, phone: v.phone || undefined,
       programId: v.programId || undefined, courseId: v.courseId || undefined,
       enquiryDate: v.enquiryDate, referralTypeId: v.referralTypeId,
-      status: this.isEditMode() ? v.status : undefined, agentId: v.agentId || undefined,
+      status: this.isEditMode() ? (this.form.getRawValue().status ?? undefined) : undefined, agentId: v.agentId || undefined,
       remarks: v.remarks || undefined,
       referralAdditionalAmount: this.referralAdditionalAmount() || undefined,
       studentType: v.studentType || undefined,
