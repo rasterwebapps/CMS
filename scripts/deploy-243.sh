@@ -26,7 +26,7 @@ rsync_to_server() {
   local src="$1"
   local dst="$2"
   shift 2
-  SSHPASS="$SERVER_PASS" sshpass -e rsync -avz --progress \
+  SSHPASS="$SERVER_PASS" sshpass -e rsync -avz --delete --progress \
     "$@" \
     -e "ssh $SSH_OPTS" \
     "$src" "$SERVER_USER@$SERVER:$dst"
