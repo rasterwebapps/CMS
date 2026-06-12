@@ -90,11 +90,15 @@ public class PaymentCollectionService {
 
         // Enquiry payments act as pre-payment credit — distribute in installment order before accepting new payment.
         Optional<Enquiry> sourceEnquiry = enquiryRepository.findByConvertedStudentId(studentId);
-        BigDecimal remainingEnquiryCredit = sourceEnquiry
+        BigDecimal totalEnquiryCredit = sourceEnquiry
             .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
             .orElse(BigDecimal.ZERO);
+        BigDecimal alreadyAppliedCredit = sourceEnquiry
+            .map(e -> creditApplicationRepository.sumAmountAppliedByEnquiryId(e.getId()))
+            .orElse(BigDecimal.ZERO);
+        BigDecimal remainingEnquiryCredit = totalEnquiryCredit.subtract(alreadyAppliedCredit).max(BigDecimal.ZERO);
 
-        BigDecimal totalOutstanding = calculateTotalOutstanding(semesterFees, remainingEnquiryCredit);
+        BigDecimal totalOutstanding = calculateTotalOutstanding(semesterFees, remainingEnquiryCredit, sourceEnquiry);
         if (totalOutstanding.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalStateException("No pending fees found for student: " + student.getRollNumber());
         }
@@ -118,9 +122,12 @@ public class PaymentCollectionService {
             }
 
             BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
-
-            BigDecimal maxCredit = sf.getAmount().subtract(alreadyPaid).max(BigDecimal.ZERO);
-            BigDecimal creditForThis = remainingEnquiryCredit.min(maxCredit);
+            BigDecimal alreadyCredited = sourceEnquiry.isPresent()
+                ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
+                    sourceEnquiry.get().getId(), sf.getId())
+                : BigDecimal.ZERO;
+            BigDecimal capacity = sf.getAmount().subtract(alreadyPaid).subtract(alreadyCredited).max(BigDecimal.ZERO);
+            BigDecimal creditForThis = remainingEnquiryCredit.min(capacity);
             remainingEnquiryCredit = remainingEnquiryCredit.subtract(creditForThis);
 
             if (creditForThis.compareTo(BigDecimal.ZERO) > 0 && sourceEnquiry.isPresent()) {
@@ -128,7 +135,7 @@ public class PaymentCollectionService {
                     sourceEnquiry.get(), student, sf, creditForThis, receiptNumber, Instant.now()));
             }
 
-            BigDecimal pendingForSemester = sf.getAmount().subtract(alreadyPaid).subtract(creditForThis).max(BigDecimal.ZERO);
+            BigDecimal pendingForSemester = capacity.subtract(creditForThis).max(BigDecimal.ZERO);
 
             if (pendingForSemester.compareTo(BigDecimal.ZERO) <= 0) {
                 continue;
@@ -185,21 +192,23 @@ public class PaymentCollectionService {
         );
     }
 
-    private BigDecimal calculateTotalOutstanding(List<SemesterFee> semesterFees, BigDecimal enquiryCredit) {
+    private BigDecimal calculateTotalOutstanding(List<SemesterFee> semesterFees,
+                                                  BigDecimal netRemainingEnquiryCredit,
+                                                  Optional<Enquiry> sourceEnquiry) {
         BigDecimal totalOutstanding = BigDecimal.ZERO;
-        BigDecimal remainingEnquiryCredit = enquiryCredit;
+        BigDecimal remainingCredit = netRemainingEnquiryCredit;
 
         for (SemesterFee sf : semesterFees) {
             BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
-            BigDecimal maxCredit = sf.getAmount().subtract(alreadyPaid).max(BigDecimal.ZERO);
-            BigDecimal creditForThis = remainingEnquiryCredit.min(maxCredit);
-            remainingEnquiryCredit = remainingEnquiryCredit.subtract(creditForThis);
+            BigDecimal alreadyCredited = sourceEnquiry.isPresent()
+                ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
+                    sourceEnquiry.get().getId(), sf.getId())
+                : BigDecimal.ZERO;
+            BigDecimal capacity = sf.getAmount().subtract(alreadyPaid).subtract(alreadyCredited).max(BigDecimal.ZERO);
+            BigDecimal creditForThis = remainingCredit.min(capacity);
+            remainingCredit = remainingCredit.subtract(creditForThis);
 
-            BigDecimal pendingForSemester = sf.getAmount()
-                .subtract(alreadyPaid)
-                .subtract(creditForThis)
-                .max(BigDecimal.ZERO);
-            totalOutstanding = totalOutstanding.add(pendingForSemester);
+            totalOutstanding = totalOutstanding.add(capacity.subtract(creditForThis).max(BigDecimal.ZERO));
         }
 
         return totalOutstanding;
