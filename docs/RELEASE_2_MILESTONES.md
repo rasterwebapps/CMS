@@ -131,7 +131,7 @@
   - `LibraryFineServiceTest` — findAll (no filter / status filter), waive (happy/non-pending), collect (happy/non-pending)
   - `LibraryIssueServiceTest` — issue (student happy, book not found, not available, student not found, max books, missing ID), returnBook (on-time/overdue fine creation/already returned/lost), renew (happy/max renewals/already returned), markOverdueIssues (marks past-due / skips when none)
   - ⚠️ 40 pre-existing test compilation failures in unrelated modules (Speciality constructor, ProgramResponse, FeePaymentRepository) block test execution — fix is a separate cleanup task
-- [ ] **R2-3.5** Create manual test cases: `docs/manual-test-cases/library-management.md`
+- [x] **R2-3.5** Create manual test cases: `docs/manual-test-cases/library-management.md`
 
 ---
 
@@ -354,7 +354,7 @@ Every task/milestone is considered **complete** only when ALL of the following a
 |-----------|--------|----------|
 | R2-M1: Lab Safety & Compliance | ⬜ Not Started | 0% |
 | R2-M2: Communication & Portals | ⬜ Not Started | 0% |
-| R2-M3: Library Management | 🟡 In Progress | 80% — R2-3.1 ✅ R2-3.2 deferred R2-3.3 ✅ R2-3.4 ✅ R2-3.5 pending |
+| R2-M3: Library Management | ✅ Complete | 100% — R2-3.1 ✅ R2-3.2 deferred R2-3.3 ✅ R2-3.4 ✅ R2-3.5 ✅ |
 | R2-M4: Hostel Management | ⬜ Not Started | 0% |
 | R2-M5: Transport Management | ⬜ Not Started | 0% |
 | R2-M6: Research & Publication | ⬜ Not Started | 0% |
