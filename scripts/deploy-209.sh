@@ -339,7 +339,7 @@ if [ "$MODE" = "full" ] || [ "$MODE" = "frontend" ]; then
   print_step "Updating Keycloak client public URLs..."
 
   TOKEN_JSON=""
-  for attempt in $(seq 1 30); do
+  for attempt in $(seq 1 60); do
     TOKEN_JSON=$(curl -sk -X POST "http://$LOCAL_HOST:8180/realms/master/protocol/openid-connect/token" \
       -H 'Content-Type: application/x-www-form-urlencoded' \
       --data-urlencode 'client_id=admin-cli' \
@@ -356,7 +356,7 @@ PY
       break
     fi
 
-    echo "Waiting for Keycloak admin API... attempt $attempt/30"
+    echo "Waiting for Keycloak admin API... attempt $attempt/60"
     sleep 3
   done
 
