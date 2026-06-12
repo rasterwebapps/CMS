@@ -235,8 +235,11 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.tourService.register('retro-admit', RETRO_ADMIT_TOUR);
 
-    // Enforce aggregate payment cap against total actual fee.
-    this.paymentsArray.setValidators(this.paymentsDoNotExceedActualFeeValidator());
+    // Enforce at least one payment entry and aggregate payment cap.
+    this.paymentsArray.setValidators([
+      this.paymentsAtLeastOneValidator(),
+      this.paymentsDoNotExceedActualFeeValidator(),
+    ]);
     this.paymentsArray.updateValueAndValidity({ emitEvent: false });
 
     forkJoin({
@@ -369,6 +372,11 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
       }
     }
     return null;
+  }
+
+  private paymentsAtLeastOneValidator() {
+    return (_: AbstractControl): ValidationErrors | null =>
+      this.paymentsArray.length === 0 ? { paymentsRequired: true } : null;
   }
 
   private paymentsDoNotExceedActualFeeValidator() {
@@ -628,6 +636,8 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
               this.currentStep.set(idx);
             }
           }
+        } else if (this.paymentsArray.hasError('paymentsRequired')) {
+          this.scrollToSection(6);
         }
       }, 50);
       return;

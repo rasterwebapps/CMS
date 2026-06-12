@@ -571,10 +571,9 @@
             <div class="entry-form-card__hdr-ico"><mat-icon>receipt_long</mat-icon></div>
             <div>
               <div class="entry-form-card__hdr-title">
-                Payment History
-                <span class="la-optional-badge">Optional</span>
+                Payment History <span class="la-required-star">*</span>
               </div>
-              <div class="entry-form-card__hdr-sub">Record historical payments. Leave empty if unavailable.</div>
+              <div class="entry-form-card__hdr-sub">At least one payment entry is required to save this record.</div>
             </div>
           </div>
           <div class="entry-form-card__body">
@@ -626,6 +625,12 @@
                   }
                 </tbody>
               </table>
+              </div>
+            }
+            @if (paymentsArray.hasError('paymentsRequired') && paymentsArray.touched) {
+              <div class="la-pt-error" role="alert" aria-live="polite">
+                <mat-icon>error</mat-icon>
+                <span>At least one payment entry is required.</span>
               </div>
             }
             @if (paymentsArray.hasError('paymentsExceedActualFee')) {
