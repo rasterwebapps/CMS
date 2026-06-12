@@ -26,6 +26,8 @@ import com.cms.model.Speciality;
 import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.enums.StudentStatus;
+import com.cms.repository.FeeDemandRepository;
+import com.cms.repository.LibraryIssueRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.StudentRepository;
 
@@ -57,6 +59,12 @@ class StudentServiceTest {
     private com.cms.repository.StudentProgramTransferRepository transferRepository;
 
     @Mock
+    private FeeDemandRepository feeDemandRepository;
+
+    @Mock
+    private LibraryIssueRepository libraryIssueRepository;
+
+    @Mock
     private com.cms.util.CurrentUserResolver currentUserResolver;
 
     private StudentService studentService;
@@ -67,7 +75,7 @@ class StudentServiceTest {
     void setUp() {
         studentService = new StudentService(studentRepository, programRepository, courseRepository, specialityRepository,
             admissionRepository, enquiryDocumentRepository, documentHistoryRepository, transferRepository,
-            currentUserResolver);
+            feeDemandRepository, libraryIssueRepository, currentUserResolver);
 
         testProgram = new Program();
         testProgram.setId(1L);
