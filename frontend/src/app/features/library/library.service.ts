@@ -20,6 +20,9 @@ import {
   SubscriptionStatus,
   LibrarySetting,
   LibrarySettingUpdateRequest,
+  LibraryFineDetail,
+  LibraryFineActionRequest,
+  FineStatus,
 } from './library.model';
 
 @Injectable({ providedIn: 'root' })
@@ -55,6 +58,21 @@ export class LibraryService {
     let params = new HttpParams().set('accessionNumber', accessionNumber);
     if (excludeId != null) params = params.set('excludeId', excludeId.toString());
     return this.http.get<{ exists: boolean }>(`${this.baseUrl}/accession-number-exists`, { params });
+  }
+
+  // ── Fines ─────────────────────────────────────────────────────
+
+  getFines(status?: FineStatus): Observable<LibraryFineDetail[]> {
+    const params = status ? new HttpParams().set('status', status) : undefined;
+    return this.http.get<LibraryFineDetail[]>(`${environment.apiUrl}/library/fines`, { params });
+  }
+
+  waiveFine(id: number, request?: LibraryFineActionRequest): Observable<LibraryFineDetail> {
+    return this.http.post<LibraryFineDetail>(`${environment.apiUrl}/library/fines/${id}/waive`, request ?? {});
+  }
+
+  collectFine(id: number, request?: LibraryFineActionRequest): Observable<LibraryFineDetail> {
+    return this.http.post<LibraryFineDetail>(`${environment.apiUrl}/library/fines/${id}/collect`, request ?? {});
   }
 
   // ── Settings ─────────────────────────────────────────────────

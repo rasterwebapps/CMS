@@ -275,3 +275,20 @@
 
   &--available { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
 }
+
+.hist-fine {
+  display: inline-flex;
+  flex-direction: column;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #b91c1c;
+
+  &--waived    { color: #7c3aed; }
+  &--collected { color: #15803d; }
+}
+
+.hist-fine-status {
+  font-size: 0.72rem;
+  font-weight: 400;
+  opacity: 0.8;
+}

@@ -1,0 +1,174 @@
+<div class="mlp-page">
+
+  <!-- Header -->
+  <div class="mlp-hdr">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Fine <em>Management</em></h1>
+      <p class="mlp-sub">View, waive, and collect overdue fines</p>
+    </div>
+    <div class="fines-summary">
+      <div class="summary-card summary-card--pending">
+        <span class="summary-card__value">{{ totalPending() }}</span>
+        <span class="summary-card__label">Pending</span>
+      </div>
+      <div class="summary-card summary-card--amount">
+        <span class="summary-card__value">₹{{ totalAmount() | number:'1.2-2' }}</span>
+        <span class="summary-card__label">Outstanding</span>
+      </div>
+      <div class="summary-card summary-card--collected">
+        <span class="summary-card__value">₹{{ totalCollected() | number:'1.2-2' }}</span>
+        <span class="summary-card__label">Collected</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="mlp-toolbar">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search by book title, acc. no., member name..."
+        aria-label="Search fines"
+      />
+    </div>
+
+    <select
+      class="mlp-filter-select"
+      [value]="statusFilter() ?? ''"
+      (change)="statusFilter.set($any($event.target).value || null); syncTable()"
+      aria-label="Filter by fine status"
+    >
+      <option value="">All Statuses</option>
+      @for (opt of statusOptions; track opt.value) {
+        <option [value]="opt.value">{{ opt.label }}</option>
+      }
+    </select>
+
+    <select
+      class="mlp-filter-select"
+      [value]="memberFilter() ?? ''"
+      (change)="memberFilter.set($any($event.target).value || null); syncTable()"
+      aria-label="Filter by member type"
+    >
+      <option value="">Students &amp; Faculty</option>
+      <option value="STUDENT">Students only</option>
+      <option value="FACULTY">Faculty only</option>
+    </select>
+
+    @if (hasActiveFilters()) {
+      <button class="btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="mlp-loading-row"><span class="mlp-spinner"></span> Loading fines...</div>
+  }
+
+  @if (!loading()) {
+    <div class="mlp-table-wrap">
+      <table mat-table [dataSource]="dataSource" matSort class="mlp-table" aria-label="Fine register">
+
+        <ng-container matColumnDef="accessionNumber">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Acc. No.</th>
+          <td mat-cell *matCellDef="let f"><span class="acc-no">{{ f.accessionNumber }}</span></td>
+        </ng-container>
+
+        <ng-container matColumnDef="bookTitle">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Book</th>
+          <td mat-cell *matCellDef="let f">
+            <span class="book-title">{{ f.bookTitle }}</span>
+            <span class="issue-dates">
+              Issued {{ f.issuedDate | date:'dd MMM yyyy' }}
+              @if (f.returnedDate) { · Returned {{ f.returnedDate | date:'dd MMM yyyy' }} }
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="memberName">
+          <th mat-header-cell *matHeaderCellDef>Member</th>
+          <td mat-cell *matCellDef="let f">
+            <span class="member-name">{{ f.memberName }}</span>
+            @if (f.memberCode) { <span class="member-code">{{ f.memberCode }}</span> }
+            <span class="member-type-tag"
+              [class.tag--student]="f.memberType === 'STUDENT'"
+              [class.tag--faculty]="f.memberType === 'FACULTY'">
+              {{ f.memberType === 'STUDENT' ? 'Student' : 'Faculty' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="overdueDays">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Overdue</th>
+          <td mat-cell *matCellDef="let f">
+            <span class="overdue-days">{{ f.overdueDays }} day{{ f.overdueDays !== 1 ? 's' : '' }}</span>
+            <span class="rate">@ ₹{{ f.finePerDay }}/day</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="totalFine">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Amount</th>
+          <td mat-cell *matCellDef="let f">
+            <span class="fine-amount" [class.fine-amount--pending]="f.status === 'PENDING'">
+              ₹{{ f.totalFine | number:'1.2-2' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+          <td mat-cell *matCellDef="let f">
+            <span [class]="'fine-status-pill ' + statusClass(f.status)">{{ statusLabel(f.status) }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="resolvedBy">
+          <th mat-header-cell *matHeaderCellDef>Resolved By</th>
+          <td mat-cell *matCellDef="let f">
+            <span class="resolved-by">{{ resolvedBy(f) }}</span>
+            @if (f.remarks) {
+              <span class="fine-remarks" [matTooltip]="f.remarks">
+                <mat-icon style="font-size:14px;height:14px;width:14px">info_outline</mat-icon>
+              </span>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let f" class="actions-cell">
+            @if (f.status === 'PENDING') {
+              <button mat-icon-button (click)="confirmCollect(f)"
+                matTooltip="Mark as Collected" aria-label="Collect fine">
+                <mat-icon>payments</mat-icon>
+              </button>
+              <button mat-icon-button (click)="confirmWaive(f)"
+                matTooltip="Waive Fine" aria-label="Waive fine">
+                <mat-icon>do_not_disturb_on</mat-icon>
+              </button>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="mlp-row"
+          [class.row--pending]="row.status === 'PENDING'"></tr>
+
+        <tr class="mat-row" *matNoDataRow>
+          <td [attr.colspan]="displayedColumns.length">
+            <cms-empty-state
+              icon="currency_rupee"
+              [title]="hasActiveFilters() ? 'No fines match the current filters.' : 'No fines recorded yet.'"
+              [actionLabel]="hasActiveFilters() ? 'Clear Filters' : ''"
+              (actionClick)="hasActiveFilters() ? clearFilters() : null"
+            />
+          </td>
+        </tr>
+      </table>
+    </div>
+    <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons aria-label="Fine register pages" />
+  }
+
+</div>

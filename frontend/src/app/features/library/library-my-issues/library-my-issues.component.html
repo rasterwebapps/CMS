@@ -105,7 +105,15 @@
               <td class="mono">{{ issue.accessionNumber }}</td>
               <td>{{ issue.issuedDate   | date:'dd MMM yyyy' }}</td>
               <td>{{ issue.returnedDate | date:'dd MMM yyyy' }}</td>
-              <td>{{ issue.fine ? ('₹' + issue.fine.totalFine) : '—' }}</td>
+              <td>
+                @if (issue.fine) {
+                  <span class="hist-fine" [class.hist-fine--waived]="issue.fine.status === 'WAIVED'"
+                    [class.hist-fine--collected]="issue.fine.status === 'COLLECTED'">
+                    ₹{{ issue.fine.totalFine }}
+                    <span class="hist-fine-status">{{ issue.fine.status === 'PENDING' ? 'Pending' : issue.fine.status === 'WAIVED' ? 'Waived' : 'Collected' }}</span>
+                  </span>
+                } @else { — }
+              </td>
             </tr>
           }
         </tbody>

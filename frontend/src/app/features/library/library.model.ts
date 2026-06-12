@@ -229,11 +229,36 @@ export const ISSUE_STATUS_OPTIONS: { value: IssueStatus; label: string; colorCla
   { value: 'LOST',     label: 'Lost',     colorClass: 'issue-status--lost' },
 ];
 
-export const FINE_STATUS_OPTIONS: { value: FineStatus; label: string }[] = [
-  { value: 'PENDING',   label: 'Pending' },
-  { value: 'WAIVED',    label: 'Waived' },
-  { value: 'COLLECTED', label: 'Collected' },
+export const FINE_STATUS_OPTIONS: { value: FineStatus; label: string; colorClass: string }[] = [
+  { value: 'PENDING',   label: 'Pending',   colorClass: 'fine-status--pending' },
+  { value: 'WAIVED',    label: 'Waived',    colorClass: 'fine-status--waived' },
+  { value: 'COLLECTED', label: 'Collected', colorClass: 'fine-status--collected' },
 ];
+
+export interface LibraryFineDetail {
+  id: number;
+  issueId: number;
+  accessionNumber: string;
+  bookTitle: string;
+  memberType: LibraryMemberType;
+  memberName: string;
+  memberCode?: string;
+  issuedDate: string;
+  dueDate: string;
+  returnedDate?: string;
+  overdueDays: number;
+  finePerDay: number;
+  totalFine: number;
+  status: FineStatus;
+  waivedBy?: string;
+  collectedAt?: string;
+  remarks?: string;
+  createdAt: string;
+}
+
+export interface LibraryFineActionRequest {
+  remarks?: string;
+}
 
 export const SUBJECT_CATEGORY_OPTIONS: string[] = [
   'Anatomy & Physiology',

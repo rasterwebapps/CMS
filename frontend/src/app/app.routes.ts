@@ -1077,6 +1077,14 @@ export const routes: Routes = [
         (m) => m.LibraryMyIssuesComponent
       ),
   },
+  {
+    path: 'library/fines',
+    canActivate: withPermission('LIBRARY_FINE_VIEW', 'LIBRARY_FINE_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-fines/library-fines.component').then(
+        (m) => m.LibraryFinesComponent
+      ),
+  },
   // ── Administration: User & Role Management ───────────────────────────────
   {
     path: 'user-management',

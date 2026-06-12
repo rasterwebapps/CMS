@@ -203,6 +203,7 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Issue Book',      icon: 'add_circle_outline',  route: '/library/issues/new',       permissions: ['LIBRARY_ISSUE_MANAGE'] },
         { label: 'My Library',      icon: 'person',              route: '/library/my-issues',        permissions: ['LIBRARY_ISSUE_VIEW'] },
         { label: 'Journals',        icon: 'newspaper',           route: '/library/periodicals',      permissions: ['LIBRARY_PERIODICAL_VIEW', 'LIBRARY_PERIODICAL_MANAGE'] },
+        { label: 'Fines',            icon: 'currency_rupee',      route: '/library/fines',            permissions: ['LIBRARY_FINE_VIEW', 'LIBRARY_FINE_MANAGE'] },
         { label: 'Reports',         icon: 'assessment',          route: '/library/reports',          permissions: ['LIBRARY_REPORT_VIEW'] },
         { label: 'Import Books',    icon: 'upload',              route: '/library/books/import',     permissions: ['LIBRARY_IMPORT'] },
         { label: 'Library Settings', icon: 'settings',           route: '/library/settings',         permissions: ['LIBRARY_SETTINGS_MANAGE'] },
