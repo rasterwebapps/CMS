@@ -29,6 +29,8 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long> {
 
     Optional<Enquiry> findByConvertedStudentId(Long studentId);
 
+    List<Enquiry> findByConvertedStudentIdIn(Collection<Long> studentIds);
+
     /** Acquires a row-level write lock — use only inside a write @Transactional. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT e FROM Enquiry e WHERE e.id = :id")

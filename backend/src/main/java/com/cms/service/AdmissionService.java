@@ -1,7 +1,10 @@
 package com.cms.service;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -70,8 +73,19 @@ public class AdmissionService {
     }
 
     public List<AdmissionResponse> findAll() {
-        return admissionRepository.findAll().stream()
-            .map(this::toResponse)
+        List<Admission> admissions = admissionRepository.findAllWithRelations();
+        Collection<Long> studentIds = admissions.stream()
+            .map(a -> a.getStudent().getId())
+            .toList();
+        Map<Long, String> studentTypeMap = enquiryRepository.findByConvertedStudentIdIn(studentIds)
+            .stream()
+            .collect(Collectors.toMap(
+                e -> e.getConvertedStudentId(),
+                e -> e.getStudentType() != null ? e.getStudentType().name() : null,
+                (x, y) -> x
+            ));
+        return admissions.stream()
+            .map(a -> toResponse(a, studentTypeMap.get(a.getStudent().getId())))
             .toList();
     }
 
@@ -189,6 +203,40 @@ public class AdmissionService {
         );
     }
 
+    /** Used by findAll() — studentType is pre-fetched in bulk to avoid N+1. */
+    private AdmissionResponse toResponse(Admission admission, String preloadedStudentType) {
+        AcademicYear ay = admission.getJoiningAcademicYear();
+        Student student = admission.getStudent();
+        Integer durationYears = student.getProgram() != null
+            ? student.getProgram().getDurationYears() : null;
+        Integer expectedCompletion = (ay != null && durationYears != null)
+            ? ay.getStartYear() + durationYears : null;
+        return new AdmissionResponse(
+            admission.getId(),
+            student.getId(),
+            student.getFullName(),
+            student.getAdmissionNumber(),
+            student.getRollNumber(),
+            student.getProgram() != null ? student.getProgram().getName() : null,
+            student.getCourse() != null ? student.getCourse().getName() : null,
+            student.getSemester(),
+            student.isPhysicalDisability(),
+            student.getStatus() != null ? student.getStatus().name() : null,
+            ay != null ? ay.getId() : null,
+            ay != null ? ay.getName() : null,
+            expectedCompletion,
+            admission.getApplicationDate(),
+            admission.getDeclarationPlace(),
+            admission.getDeclarationDate(),
+            admission.getParentConsentGiven(),
+            admission.getApplicantConsentGiven(),
+            admission.getCreatedAt(),
+            admission.getUpdatedAt(),
+            preloadedStudentType
+        );
+    }
+
+    /** Used by single-entity operations (findById, create, update) — acceptable single-row cost. */
     private AdmissionResponse toResponse(Admission admission) {
         AcademicYear ay = admission.getJoiningAcademicYear();
         Student student = admission.getStudent();

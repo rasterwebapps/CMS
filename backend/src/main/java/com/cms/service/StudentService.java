@@ -186,7 +186,7 @@ public class StudentService {
         Collection<Long> ids = students.stream().map(Student::getId).toList();
         Map<Long, String> feeStatusByStudent = computeFeeStatusMap(ids);
         // Bulk-fetch admissions so we can derive academic year for students without a cohort
-        Map<Long, Admission> admissionByStudent = admissionRepository.findByStudentIdIn(ids)
+        Map<Long, Admission> admissionByStudent = admissionRepository.findByStudentIdInFetchJoiningYear(ids)
             .stream().collect(Collectors.toMap(a -> a.getStudent().getId(), a -> a, (a, b) -> a));
         return students.stream()
             .map(s -> {

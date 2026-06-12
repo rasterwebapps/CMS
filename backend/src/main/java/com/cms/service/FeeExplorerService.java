@@ -60,7 +60,7 @@ public class FeeExplorerService {
         List<Student> students = findStudents(query);
 
         List<Long> studentIds = students.stream().map(Student::getId).toList();
-        Map<Long, Admission> admissionByStudentId = admissionRepository.findByStudentIdIn(studentIds)
+        Map<Long, Admission> admissionByStudentId = admissionRepository.findByStudentIdInFetchJoiningYear(studentIds)
             .stream().collect(Collectors.toMap(a -> a.getStudent().getId(), a -> a, (a, b) -> a));
 
         List<FeeExplorerResponse.StudentFeeSummary> summaries = new ArrayList<>();
