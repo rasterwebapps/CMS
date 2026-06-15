@@ -454,6 +454,7 @@ export class EnquiryListComponent implements OnInit {
   }
 
   protected canDelete(item: Enquiry): boolean { return item.status === 'ENQUIRED'; }
+  protected canEdit(item: Enquiry): boolean   { return !['ADMITTED', 'CLOSED'].includes(item.status); }
 
   // ── Actions ───────────────────────────────────────────────────────────────
   protected edit(item: Enquiry): void    { void this.router.navigate(['/enquiries', item.id, 'edit']); }

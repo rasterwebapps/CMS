@@ -127,6 +127,11 @@ export class EnquiryDetailComponent implements OnInit {
     return this.enquiry()?.status === 'DOCUMENTS_VERIFIED';
   }
 
+  protected readonly canEdit = computed(() => {
+    const s = this.enquiry()?.status;
+    return s !== 'ADMITTED' && s !== 'CLOSED';
+  });
+
   protected submitDocuments(): void {
     const id = this.enquiry()?.id;
     if (!id) return;

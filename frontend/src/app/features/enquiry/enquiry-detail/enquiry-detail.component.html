@@ -61,10 +61,12 @@
               Create Admission
             </button>
           }
-          <a class="btn-primary" [routerLink]="['/enquiries', e.id, 'edit']">
-            <mat-icon>edit</mat-icon>
-            Edit
-          </a>
+          @if (canEdit()) {
+            <a class="btn-primary" [routerLink]="['/enquiries', e.id, 'edit']">
+              <mat-icon>edit</mat-icon>
+              Edit
+            </a>
+          }
         </div>
       </div>
 
@@ -203,10 +205,12 @@
                       <span>View Converted Student</span>
                     </a>
                   }
-                  <a class="quick-link" [routerLink]="['/enquiries', e.id, 'edit']">
-                    <mat-icon>edit</mat-icon>
-                    <span>Edit Enquiry</span>
-                  </a>
+                  @if (canEdit()) {
+                    <a class="quick-link" [routerLink]="['/enquiries', e.id, 'edit']">
+                      <mat-icon>edit</mat-icon>
+                      <span>Edit Enquiry</span>
+                    </a>
+                  }
                 </div>
               </div>
             </div>

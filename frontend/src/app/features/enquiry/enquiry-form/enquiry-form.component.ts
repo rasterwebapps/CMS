@@ -97,6 +97,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
+  protected readonly lockedTier = signal<'none' | 'fee' | 'identity'>('none');
 
   // ── Stepper ──────────────────────────────────────────────────────────────
   protected readonly enqSteps       = ENQ_STEPS;
@@ -391,6 +392,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
             // the fee-state has been set before we attempt the guideline call.
             setTimeout(() => this.tryLoadFeeGuideline(), 300);
           }
+          this.applyStatusLocks(item.status);
           this.loading.set(false);
         },
         error: () => {
@@ -400,6 +402,26 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
       });
     }
   }
+  private applyStatusLocks(status: string): void {
+    if (['ADMITTED', 'CLOSED'].includes(status)) {
+      void this.router.navigate(['/enquiries', this.itemId]);
+      return;
+    }
+
+    const FEE_LOCKED = ['FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'DOCUMENTS_VERIFIED'];
+    const IDENTITY_LOCKED = ['DOCUMENTS_SUBMITTED', 'DOCUMENTS_VERIFIED'];
+
+    if (FEE_LOCKED.includes(status)) {
+      ['programId', 'courseId', 'state', 'studentType', 'admissionQuota'].forEach(f => this.form.get(f)?.disable());
+      this.lockedTier.set('fee');
+    }
+
+    if (IDENTITY_LOCKED.includes(status)) {
+      ['name', 'dateOfBirth', 'age', 'gender'].forEach(f => this.form.get(f)?.disable());
+      this.lockedTier.set('identity');
+    }
+  }
+
   protected onProgramChange(programId: number): void {
     this.form.patchValue({ courseId: null });
     this.courses.set([]);
