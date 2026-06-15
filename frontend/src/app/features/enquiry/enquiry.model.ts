@@ -49,6 +49,8 @@ export interface Enquiry {
   feeStateName?: string | null;
   admissionNumber?: string | null;
   admissionSource?: 'ENQUIRY_FLOW' | 'DIRECT_ADMIT' | null;
+  commissionAmount?: number | null;
+  guidelineCommissionAmount?: number | null;
 }
 
 export interface EnquiryRequest {
@@ -78,6 +80,7 @@ export interface EnquiryRequest {
   gender: 'MALE' | 'FEMALE' | 'OTHER';
   admissionQuota?: 'MANAGEMENT' | 'COUNSELLING';
   feeStateId?: number;
+  commissionAmount?: number;
 }
 
 export interface FeeFinalizationRequest {
@@ -86,6 +89,7 @@ export interface FeeFinalizationRequest {
   discountReason?: string;
   yearWiseFees?: string;
   termWiseFees?: string;
+  commissionAmount?: number;
 }
 
 export interface FeeFinalizationResponse {

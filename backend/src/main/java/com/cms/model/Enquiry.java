@@ -110,6 +110,11 @@ public class Enquiry {
     @Column(name = "commission_amount", precision = 12, scale = 2)
     private BigDecimal commissionAmount;
 
+    /** Snapshot of the AgentCommissionGuideline amount at the time of create/update.
+     *  Null when no guideline exists. Never updated after fee finalization. */
+    @Column(name = "guideline_commission_amount", precision = 12, scale = 2)
+    private BigDecimal guidelineCommissionAmount;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "commission_source", length = 20)
     private CommissionSource commissionSource;
@@ -336,6 +341,9 @@ public class Enquiry {
 
     public BigDecimal getCommissionAmount() { return commissionAmount; }
     public void setCommissionAmount(BigDecimal commissionAmount) { this.commissionAmount = commissionAmount; }
+
+    public BigDecimal getGuidelineCommissionAmount() { return guidelineCommissionAmount; }
+    public void setGuidelineCommissionAmount(BigDecimal guidelineCommissionAmount) { this.guidelineCommissionAmount = guidelineCommissionAmount; }
 
     public CommissionSource getCommissionSource() { return commissionSource; }
     public void setCommissionSource(CommissionSource commissionSource) { this.commissionSource = commissionSource; }

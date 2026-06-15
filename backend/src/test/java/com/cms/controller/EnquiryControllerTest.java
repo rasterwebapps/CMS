@@ -470,7 +470,7 @@ class EnquiryControllerTest {
             null, null, null, null, null, null,
             convertedStudentId, null, null, null, null, null, null, null, null, null, now, now, null,
             LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE,
-            null, null, null, null, null
+            null, null, null, null, null, null, null
         );
     }
 

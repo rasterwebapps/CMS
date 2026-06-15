@@ -381,6 +381,29 @@
 .no-discount { color: var(--cms-text-muted); font-size: var(--cms-text-base); }
 
 // ── Remarks row ───────────────────────────────────────────────────────────────
+.info-row--commission {
+  align-items: center;
+  .info-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+.commission-guideline-hint {
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-muted);
+  font-weight: 400;
+}
+.commission-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.commission-input {
+  width: 120px;
+  text-align: right;
+}
+
 .info-row--remarks {
   align-items: flex-start;
   background: rgba(245,158,11,0.04);

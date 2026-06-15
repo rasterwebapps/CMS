@@ -14,5 +14,8 @@ public record FeeFinalizationRequest(
 
     String yearWiseFees,
 
-    String termWiseFees
+    String termWiseFees,
+
+    /** Optional commission override set during fee finalization. When provided, replaces the auto-resolved commission. */
+    BigDecimal commissionAmount
 ) {}

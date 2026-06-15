@@ -216,12 +216,26 @@
               <span class="info-val">{{ selectedEnquiry()!.referralTypeName }}</span>
             </div>
           }
-          @if (selectedEnquiry()!.referralHasCommission) {
-            <div class="info-row">
-              <span class="info-label">Commission</span>
-              <span class="info-val info-val--warn info-val--amount">
-                {{ selectedEnquiry()!.referralCommissionAmount | inr }}
+          @if (selectedEnquiry()!.commissionAmount != null) {
+            <div class="info-row info-row--commission">
+              <span class="info-label">
+                Commission
+                @if (selectedEnquiry()!.guidelineCommissionAmount != null) {
+                  <span class="commission-guideline-hint">Guideline: {{ selectedEnquiry()!.guidelineCommissionAmount | inr }}</span>
+                }
               </span>
+              <div class="commission-input-wrap">
+                <span class="amount-prefix">₹</span>
+                <input
+                  class="amount-input commission-input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  [value]="commissionAmount()"
+                  (input)="onCommissionInput($event)"
+                  placeholder="0"
+                />
+              </div>
             </div>
           }
           @if (selectedEnquiry()!.admissionQuota || selectedEnquiry()!.feeStateName ||

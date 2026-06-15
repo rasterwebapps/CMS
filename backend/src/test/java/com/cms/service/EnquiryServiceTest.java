@@ -95,6 +95,9 @@ class EnquiryServiceTest {
     @Mock
     private LocationCountryRepository countryRepository;
 
+    @Mock
+    private com.cms.repository.AgentCommissionGuidelineRepository agentCommissionGuidelineRepository;
+
     private EnquiryService enquiryService;
 
     private Program testProgram;
@@ -121,6 +124,7 @@ class EnquiryServiceTest {
             enquiryDocumentService,
             numberSequenceService,
             countryRepository,
+            agentCommissionGuidelineRepository,
             cohortRepository
         );
         org.mockito.Mockito.lenient()

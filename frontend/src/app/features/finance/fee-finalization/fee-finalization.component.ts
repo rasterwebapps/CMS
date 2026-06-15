@@ -61,6 +61,7 @@ export class FeeFinalizationComponent implements OnInit {
   protected readonly selectedEnquiry  = signal<Enquiry | null>(null);
   protected readonly yearRows         = signal<YearFeeRow[]>([]);
   protected readonly globalDiscount   = signal<number>(0);
+  protected readonly commissionAmount = signal<number>(0);
   protected readonly authoritativeProposedFeeByEnquiryId = signal<Record<number, number>>({});
 
   // ── List filters ────────────────────────────────────────────────────────────
@@ -285,6 +286,7 @@ export class FeeFinalizationComponent implements OnInit {
     this.discountReasonCtrl.setValue('');
     this.discountReason.set('');
     this.globalDiscount.set(0);
+    this.commissionAmount.set(enquiry.commissionAmount ?? 0);
     this.initYearRows(enquiry);
   }
 
@@ -405,10 +407,15 @@ export class FeeFinalizationComponent implements OnInit {
     this.globalDiscount.set(0);
   }
 
+  protected onCommissionInput(event: Event): void {
+    this.commissionAmount.set(+(event.target as HTMLInputElement).value || 0);
+  }
+
   protected backToList(): void {
     this.selectedEnquiry.set(null);
     this.yearRows.set([]);
     this.globalDiscount.set(0);
+    this.commissionAmount.set(0);
     this.discountReasonCtrl.setValue('');
     this.discountReason.set('');
     this.loadList();
@@ -421,10 +428,11 @@ export class FeeFinalizationComponent implements OnInit {
       this.yearRows().map(r => ({ yearNumber: r.yearNumber, amount: r.finalAmount }))
     );
     const request: FeeFinalizationRequest = {
-      totalFee:       this.totalOriginal(),
-      discountAmount: this.totalDiscount() > 0 ? this.totalDiscount() : undefined,
-      discountReason: this.discountReason().trim() || undefined,
-      yearWiseFees:   yearWiseJson,
+      totalFee:         this.totalOriginal(),
+      discountAmount:   this.totalDiscount() > 0 ? this.totalDiscount() : undefined,
+      discountReason:   this.discountReason().trim() || undefined,
+      yearWiseFees:     yearWiseJson,
+      commissionAmount: enquiry.commissionAmount != null ? this.commissionAmount() : undefined,
     };
 
     this.saving.set(true);

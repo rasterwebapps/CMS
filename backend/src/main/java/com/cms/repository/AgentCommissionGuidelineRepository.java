@@ -15,4 +15,6 @@ public interface AgentCommissionGuidelineRepository extends JpaRepository<AgentC
     List<AgentCommissionGuideline> findByProgramId(Long programId);
 
     Optional<AgentCommissionGuideline> findByAgentIdAndProgramIdAndLocalityType(Long agentId, Long programId, LocalityType localityType);
+
+    List<AgentCommissionGuideline> findByAgentIdAndProgramId(Long agentId, Long programId);
 }

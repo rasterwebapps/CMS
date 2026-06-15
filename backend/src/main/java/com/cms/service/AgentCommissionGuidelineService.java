@@ -78,6 +78,20 @@ public class AgentCommissionGuidelineService {
             .map(this::toResponse);
     }
 
+    public List<AgentCommissionGuidelineResponse> findByAgentAndProgram(Long agentId, Long programId) {
+        return guidelineRepository.findByAgentIdAndProgramId(agentId, programId).stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    /** Returns the first guideline's suggestedCommission for (agent, program), or null if none exists. */
+    public java.math.BigDecimal suggestCommission(Long agentId, Long programId) {
+        return guidelineRepository.findByAgentIdAndProgramId(agentId, programId).stream()
+            .findFirst()
+            .map(AgentCommissionGuideline::getSuggestedCommission)
+            .orElse(null);
+    }
+
     @Transactional
     public AgentCommissionGuidelineResponse update(Long id, AgentCommissionGuidelineRequest request) {
         AgentCommissionGuideline guideline = guidelineRepository.findById(id)

@@ -59,5 +59,7 @@ public record EnquiryResponse(
     Long feeStateId,
     String feeStateName,
     String admissionNumber,
-    String admissionSource
+    String admissionSource,
+    BigDecimal commissionAmount,
+    BigDecimal guidelineCommissionAmount
 ) {}

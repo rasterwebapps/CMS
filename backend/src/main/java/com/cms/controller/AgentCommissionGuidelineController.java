@@ -1,6 +1,9 @@
 package com.cms.controller;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,7 +47,9 @@ public class AgentCommissionGuidelineController {
             @RequestParam(required = false) Long agentId,
             @RequestParam(required = false) Long programId) {
         List<AgentCommissionGuidelineResponse> guidelines;
-        if (agentId != null) {
+        if (agentId != null && programId != null) {
+            guidelines = guidelineService.findByAgentAndProgram(agentId, programId);
+        } else if (agentId != null) {
             guidelines = guidelineService.findByAgentId(agentId);
         } else if (programId != null) {
             guidelines = guidelineService.findByProgramId(programId);
@@ -52,6 +57,17 @@ public class AgentCommissionGuidelineController {
             guidelines = guidelineService.findAll();
         }
         return ResponseEntity.ok(guidelines);
+    }
+
+    /** Returns { suggestedCommission: X } for the given agent+program, or { suggestedCommission: null } if no guideline exists. */
+    @GetMapping("/suggest")
+    public ResponseEntity<Map<String, BigDecimal>> suggest(
+            @RequestParam Long agentId,
+            @RequestParam Long programId) {
+        BigDecimal amount = guidelineService.suggestCommission(agentId, programId);
+        Map<String, BigDecimal> result = new HashMap<>();
+        result.put("suggestedCommission", amount);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")

@@ -328,6 +328,7 @@
 .field-textarea { resize: vertical; min-height: 80px; }
 .field-error { font-size: var(--cms-text-sm); color: #ef4444; margin: 0; }
 .field-hint { font-size: var(--cms-text-sm); color: var(--cms-text-muted); }
+.field-hint-text { font-size: var(--cms-text-sm); color: var(--cms-text-muted); margin: 4px 0 0; }
 .field-select--error { border-color: #ef4444; }
 .field-readonly {
   border: 1px solid var(--cms-border-default);

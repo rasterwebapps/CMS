@@ -59,6 +59,8 @@ import com.cms.repository.FeeStateRepository;
 import com.cms.repository.LocationCountryRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
+import com.cms.model.AgentCommissionGuideline;
+import com.cms.repository.AgentCommissionGuidelineRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.StudentRepository;
 
@@ -94,6 +96,7 @@ public class EnquiryService {
     private final EnquiryDocumentService enquiryDocumentService;
     private final ApplicationNumberSequenceService numberSequenceService;
     private final LocationCountryRepository countryRepository;
+    private final AgentCommissionGuidelineRepository agentCommissionGuidelineRepository;
     private final CohortRepository cohortRepository;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
@@ -113,6 +116,7 @@ public class EnquiryService {
                            EnquiryDocumentService enquiryDocumentService,
                            ApplicationNumberSequenceService numberSequenceService,
                            LocationCountryRepository countryRepository,
+                           AgentCommissionGuidelineRepository agentCommissionGuidelineRepository,
                            CohortRepository cohortRepository) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
@@ -131,6 +135,7 @@ public class EnquiryService {
         this.enquiryDocumentService = enquiryDocumentService;
         this.numberSequenceService = numberSequenceService;
         this.countryRepository = countryRepository;
+        this.agentCommissionGuidelineRepository = agentCommissionGuidelineRepository;
         this.cohortRepository = cohortRepository;
     }
 
@@ -343,6 +348,15 @@ public class EnquiryService {
         }
         if (request.termWiseFees() != null) {
             enquiry.setSemesterWiseFees(request.termWiseFees());
+        }
+
+        if (request.commissionAmount() != null) {
+            BigDecimal overriddenCommission = normalizeAmount(request.commissionAmount());
+            enquiry.setCommissionAmount(overriddenCommission);
+            enquiry.setCommissionPaymentStatus(
+                overriddenCommission.compareTo(BigDecimal.ZERO) > 0
+                    ? CommissionPaymentStatus.PENDING
+                    : CommissionPaymentStatus.NOT_APPLICABLE);
         }
 
         Enquiry saved = enquiryRepository.save(enquiry);
@@ -795,9 +809,16 @@ public class EnquiryService {
     }
 
     private void applyResolvedCommission(Enquiry enquiry, ReferralType referralType, Agent agent) {
-        BigDecimal amount = BigDecimal.ZERO.setScale(2);
-        CommissionSource source = CommissionSource.NONE;
-        if (agent != null && agent.getCommissionAmount() != null
+        BigDecimal guidelineAmount = resolveGuidelineCommission(agent, enquiry.getProgram());
+        enquiry.setGuidelineCommissionAmount(guidelineAmount);
+
+        // Priority: guideline → agent flat amount → referral type → ₹0
+        BigDecimal amount;
+        CommissionSource source;
+        if (guidelineAmount != null && guidelineAmount.compareTo(BigDecimal.ZERO) > 0) {
+            amount = guidelineAmount;
+            source = CommissionSource.AGENT;
+        } else if (agent != null && agent.getCommissionAmount() != null
                 && agent.getCommissionAmount().compareTo(BigDecimal.ZERO) > 0) {
             amount = normalizeAmount(agent.getCommissionAmount());
             source = CommissionSource.AGENT;
@@ -805,11 +826,24 @@ public class EnquiryService {
             amount = normalizeAmount(referralType.getCommissionAmount() != null
                 ? referralType.getCommissionAmount() : BigDecimal.ZERO);
             source = amount.compareTo(BigDecimal.ZERO) > 0 ? CommissionSource.REFERRAL_TYPE : CommissionSource.NONE;
+        } else {
+            amount = BigDecimal.ZERO.setScale(2);
+            source = CommissionSource.NONE;
         }
         enquiry.setCommissionAmount(amount);
         enquiry.setCommissionSource(source);
         enquiry.setCommissionPaymentStatus(
             amount.compareTo(BigDecimal.ZERO) > 0 ? CommissionPaymentStatus.PENDING : CommissionPaymentStatus.NOT_APPLICABLE);
+    }
+
+    private BigDecimal resolveGuidelineCommission(Agent agent, Program program) {
+        if (agent == null || program == null) return null;
+        return agentCommissionGuidelineRepository
+            .findByAgentIdAndProgramId(agent.getId(), program.getId()).stream()
+            .findFirst()
+            .map(AgentCommissionGuideline::getSuggestedCommission)
+            .map(this::normalizeAmount)
+            .orElse(null);
     }
 
     private BigDecimal normalizeNullable(BigDecimal value) {
@@ -899,7 +933,9 @@ public class EnquiryService {
             e.getFeeState() != null ? e.getFeeState().getId() : null,
             e.getFeeState() != null ? e.getFeeState().getName() : null,
             admissionNumber,
-            e.getAdmissionSource()
+            e.getAdmissionSource(),
+            e.getCommissionAmount(),
+            e.getGuidelineCommissionAmount()
         );
     }
 
