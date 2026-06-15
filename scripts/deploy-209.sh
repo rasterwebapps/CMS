@@ -335,7 +335,9 @@ elif [ "$MODE" = "backend" ]; then
 fi
 
 # ── Step 6: Keycloak public URL reconciliation ────────────────────────────────
-if [ "$MODE" = "full" ] || [ "$MODE" = "frontend" ]; then
+# Only needed on full deploys — frontend-only deploys don't change Keycloak client URLs,
+# and the token fetch runs locally where port 8180 is not directly reachable.
+if [ "$MODE" = "full" ]; then
   print_step "Updating Keycloak client public URLs..."
 
   TOKEN_JSON=""
