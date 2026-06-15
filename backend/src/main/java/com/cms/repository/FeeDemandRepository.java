@@ -16,8 +16,8 @@ public interface FeeDemandRepository extends JpaRepository<FeeDemand, Long> {
 
     List<FeeDemand> findByTermInstanceId(Long termInstanceId);
 
-    /** Bulk-load all demands for a set of students — avoids N+1 in list views. */
-    @Query("SELECT d FROM FeeDemand d JOIN d.studentTermEnrollment ste WHERE ste.student.id IN :studentIds")
+    /** Bulk-load all demands for a set of students — JOIN FETCH avoids N+1 when accessing ste.student. */
+    @Query("SELECT d FROM FeeDemand d JOIN FETCH d.studentTermEnrollment ste JOIN FETCH ste.student WHERE ste.student.id IN :studentIds")
     List<FeeDemand> findByStudentIdIn(@Param("studentIds") Collection<Long> studentIds);
 
     Optional<FeeDemand> findByStudentTermEnrollmentId(Long enrollmentId);

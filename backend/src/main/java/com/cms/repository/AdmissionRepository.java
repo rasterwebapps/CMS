@@ -30,7 +30,7 @@ public interface AdmissionRepository extends JpaRepository<Admission, Long> {
            "LEFT JOIN FETCH a.joiningAcademicYear")
     List<Admission> findAllWithRelations();
 
-    /** Used by StudentService and FeeExplorerService — fetches joiningAcademicYear eagerly. */
-    @Query("SELECT a FROM Admission a LEFT JOIN FETCH a.joiningAcademicYear WHERE a.student.id IN :studentIds")
+    /** Used by StudentService and FeeExplorerService — fetches student and joiningAcademicYear eagerly. */
+    @Query("SELECT a FROM Admission a LEFT JOIN FETCH a.student LEFT JOIN FETCH a.joiningAcademicYear WHERE a.student.id IN :studentIds")
     List<Admission> findByStudentIdInFetchJoiningYear(@Param("studentIds") Collection<Long> studentIds);
 }
