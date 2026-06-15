@@ -2,6 +2,10 @@ package com.cms.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -79,6 +83,19 @@ public class StudentController {
             students = studentService.findAll();
         }
         return ResponseEntity.ok(students);
+    }
+
+    @GetMapping("/explorer")
+    public ResponseEntity<Page<StudentResponse>> findExplorer(
+            @RequestParam(required = false) Long programId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long academicYearId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String studentType,
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 25, sort = "admissionNumber", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(studentService.findExplorer(
+            programId, courseId, academicYearId, status, studentType, search, pageable));
     }
 
     @GetMapping("/without-roll-number")

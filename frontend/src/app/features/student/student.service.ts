@@ -1,13 +1,15 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
   CourseRegistration,
+  Page,
   ProgramTransferAnalysis,
   ProgramTransferRecord,
   ProgramTransferRequest,
   Student,
+  StudentExplorerParams,
   StudentFeeLedger,
   StudentRequest,
   StudentTermEnrollment,
@@ -22,6 +24,20 @@ export class StudentService {
 
   getAll(): Observable<Student[]> {
     return this.http.get<Student[]>(this.baseUrl);
+  }
+
+  getExplorer(p: StudentExplorerParams): Observable<Page<Student>> {
+    let params = new HttpParams()
+      .set('page', p.page ?? 0)
+      .set('size', p.size ?? 25);
+    if (p.sort)           params = params.set('sort', p.sort);
+    if (p.programId)      params = params.set('programId', p.programId);
+    if (p.courseId)       params = params.set('courseId', p.courseId);
+    if (p.academicYearId) params = params.set('academicYearId', p.academicYearId);
+    if (p.status)         params = params.set('status', p.status);
+    if (p.studentType)    params = params.set('studentType', p.studentType);
+    if (p.search && p.search.length >= 3) params = params.set('search', p.search);
+    return this.http.get<Page<Student>>(`${this.baseUrl}/explorer`, { params });
   }
 
   getStudentsWithoutRollNumber(courseId?: number, programId?: number): Observable<Student[]> {

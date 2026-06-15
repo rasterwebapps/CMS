@@ -1,16 +1,30 @@
 package com.cms.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.cms.model.Student;
 import com.cms.model.enums.AdmissionCategory;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentStatus;
 
-public interface StudentRepository extends JpaRepository<Student, Long> {
+public interface StudentRepository extends JpaRepository<Student, Long>, JpaSpecificationExecutor<Student> {
+
+    @Query("SELECT s FROM Student s " +
+           "LEFT JOIN FETCH s.program " +
+           "LEFT JOIN FETCH s.course " +
+           "LEFT JOIN FETCH s.speciality " +
+           "LEFT JOIN FETCH s.cohort c " +
+           "LEFT JOIN FETCH c.admissionAcademicYear " +
+           "LEFT JOIN FETCH s.address " +
+           "WHERE s.id IN :ids")
+    List<Student> findByIdInWithRelations(@Param("ids") Collection<Long> ids);
 
     Optional<Student> findByRollNumber(String rollNumber);
 

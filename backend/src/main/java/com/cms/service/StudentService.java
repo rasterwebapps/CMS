@@ -7,11 +7,18 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.cms.repository.StudentSpecification;
 
 import com.cms.dto.AddressRequest;
 import com.cms.dto.BulkRollNumberItem;
@@ -178,6 +185,51 @@ public class StudentService {
                 .toList();
         }
         return responses;
+    }
+
+    /** Paginated explorer: server-side filtering + 3-query fetch pattern. */
+    public Page<StudentResponse> findExplorer(
+            Long programId, Long courseId, Long academicYearId,
+            String status, String studentType, String search,
+            Pageable pageable) {
+
+        Specification<Student> spec = Specification.where(null);
+        if (programId != null)                              spec = spec.and(StudentSpecification.byProgramId(programId));
+        if (courseId != null)                               spec = spec.and(StudentSpecification.byCourseId(courseId));
+        if (academicYearId != null)                         spec = spec.and(StudentSpecification.byAcademicYearId(academicYearId));
+        if (status != null && !status.isBlank())            spec = spec.and(StudentSpecification.byStatus(status));
+        if (studentType != null && !studentType.isBlank())  spec = spec.and(StudentSpecification.byStudentType(studentType));
+        if (search != null && search.length() >= 3)         spec = spec.and(StudentSpecification.bySearch(search));
+
+        // Step 1: Lightweight ID + count query via spec
+        Page<Student> idPage = studentRepository.findAll(spec, pageable);
+        if (idPage.isEmpty()) return idPage.map(s -> toResponseWithExtras(s, null, null, null));
+
+        // Step 2: Fetch full entity graph for this page's IDs
+        List<Long> ids = idPage.getContent().stream().map(Student::getId).toList();
+        Map<Long, Student> byId = studentRepository.findByIdInWithRelations(ids)
+            .stream().collect(Collectors.toMap(Student::getId, s -> s));
+        List<Student> orderedPage = ids.stream().map(byId::get).filter(Objects::nonNull).toList();
+
+        // Step 3: Bulk fee status + bulk admission academic year (for students without cohort)
+        Collection<Long> studentIds = orderedPage.stream().map(Student::getId).toList();
+        Map<Long, String> feeStatusMap = computeFeeStatusMap(studentIds);
+        Map<Long, Admission> admissionMap = admissionRepository.findByStudentIdInFetchJoiningYear(studentIds)
+            .stream().collect(Collectors.toMap(a -> a.getStudent().getId(), a -> a, (a, b) -> a));
+
+        List<StudentResponse> content = orderedPage.stream()
+            .map(s -> {
+                String fs = feeStatusMap.getOrDefault(s.getId(), "NOT_ASSIGNED");
+                Admission adm = admissionMap.get(s.getId());
+                Long fallbackAyId = (adm != null && adm.getJoiningAcademicYear() != null)
+                    ? adm.getJoiningAcademicYear().getId() : null;
+                String fallbackAyName = (adm != null && adm.getJoiningAcademicYear() != null)
+                    ? adm.getJoiningAcademicYear().getName() : null;
+                return toResponseWithExtras(s, fs, fallbackAyId, fallbackAyName);
+            })
+            .toList();
+
+        return new PageImpl<>(content, pageable, idPage.getTotalElements());
     }
 
     /** Load demands and admission academic years in bulk, then map to response. */

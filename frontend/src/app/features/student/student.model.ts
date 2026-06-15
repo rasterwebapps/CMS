@@ -200,3 +200,25 @@ export interface StudentRequest {
     pincode?: string;
   };
 }
+
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+}
+
+export interface StudentExplorerParams {
+  programId?: number;
+  courseId?: number;
+  academicYearId?: number;
+  status?: string;
+  studentType?: string;
+  search?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+}

@@ -119,12 +119,12 @@ public class AdmissionService {
 
         // Step 3: Bulk enquiry lookup for student types (1 query for the page)
         Collection<Long> studentIds = orderedPage.stream().map(a -> a.getStudent().getId()).toList();
-        Map<Long, String> studentTypeMap = enquiryRepository.findByConvertedStudentIdIn(studentIds)
-            .stream().collect(Collectors.toMap(
-                e -> e.getConvertedStudentId(),
-                e -> e.getStudentType() != null ? e.getStudentType().name() : null,
-                (x, y) -> x
-            ));
+        Map<Long, String> studentTypeMap = new java.util.HashMap<>();
+        enquiryRepository.findByConvertedStudentIdIn(studentIds).forEach(e -> {
+            if (e.getConvertedStudentId() != null)
+                studentTypeMap.put(e.getConvertedStudentId(),
+                    e.getStudentType() != null ? e.getStudentType().name() : null);
+        });
 
         List<AdmissionResponse> content = orderedPage.stream()
             .map(a -> toResponse(a, studentTypeMap.get(a.getStudent().getId())))
