@@ -26,7 +26,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_DETAIL_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 import { FeeReceiptDialogComponent } from '../../../shared/fee-receipt-dialog/fee-receipt-dialog.component';
 import { ReceiptDisplayData } from '../../finance/finance.model';
-import { printFeeReceipt } from '../../../shared/utils/print-receipt.utils';
+import { printFeeReceipt, printRefundVoucher, downloadRefundVoucher, RefundVoucherData } from '../../../shared/utils/print-receipt.utils';
 
 @Component({
   selector: 'app-enquiry-detail',
@@ -215,5 +215,33 @@ export class EnquiryDetailComponent implements OnInit {
       feeCategory:          p.feeCategory,
       installmentBreakdown: [],
     });
+  }
+
+  /** Opens the refund voucher PDF in a new tab (view). */
+  protected viewRefundVoucher(p: EnquiryPaymentResponse): void {
+    void printRefundVoucher(this.toRefundVoucherData(p));
+  }
+
+  /** Downloads the refund voucher PDF. */
+  protected downloadRefundVoucher(p: EnquiryPaymentResponse): void {
+    void downloadRefundVoucher(this.toRefundVoucherData(p));
+  }
+
+  private toRefundVoucherData(p: EnquiryPaymentResponse): RefundVoucherData {
+    const e = this.enquiry();
+    return {
+      refundNumber:          p.receiptNumber,
+      originalReceiptNumber: p.originalReceiptNumber ?? '',
+      payerName:             e?.name ?? p.enquiryName,
+      payerIdentifier:       null,
+      admissionNumber:       null,
+      programName:           e?.programName ?? null,
+      refundAmount:          p.amountPaid,
+      refundDate:            p.paymentDate,
+      reason:                p.remarks ?? '',
+      paymentMode:           p.paymentMode,
+      paymentDate:           p.paymentDate,
+      transactionReference:  p.transactionReference,
+    };
   }
 }

@@ -310,7 +310,20 @@
                       <td><span class="code-value">{{ p.transactionReference || '—' }}</span></td>
                       <td>{{ p.collectedBy || '—' }}</td>
                       <td class="actions-col">
-                        @if (p.receiptType !== 'REFUND') {
+                        @if (p.receiptType === 'REFUND') {
+                          <div class="receipt-actions">
+                            <button class="receipt-action-btn" type="button"
+                                    (click)="viewRefundVoucher(p)"
+                                    matTooltip="View refund voucher">
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                            <button class="receipt-action-btn" type="button"
+                                    (click)="downloadRefundVoucher(p)"
+                                    matTooltip="Download refund voucher">
+                              <mat-icon>download</mat-icon>
+                            </button>
+                          </div>
+                        } @else {
                           <div class="receipt-actions">
                             <button class="receipt-action-btn" type="button"
                                     (click)="viewReceipt(p)"
