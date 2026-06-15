@@ -14,7 +14,7 @@ BEGIN
         ('Walk-In',        'WALK_IN',       0,    FALSE, 'Direct walk-in enquiry',      TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
         ('Phone',          'PHONE',         0,    FALSE, 'Phone enquiry',               TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
         ('Online',         'ONLINE',        0,    FALSE, 'Online enquiry',              TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        ('Agent Referral', 'AGENT_REFERRAL',5000, TRUE,  'Referred by external agent',  TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        ('Agent',          'AGENT_REFERRAL',5000, TRUE,  'Referred by external agent',  TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
         ('Staff',          'STAFF',         2000, TRUE,  'Referred by staff member',    TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
         ('Alumni',         'ALUMNI',        1000, TRUE,  'Referred by alumni',          TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
         ('Parent',         'PARENT',        0,    FALSE, 'Referred by parent',          TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
