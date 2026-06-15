@@ -71,6 +71,9 @@ export class AdmissionDetailComponent implements OnInit {
   readonly expandedQuals = signal(new Set<number>());
 
   readonly initials = computed(() => computeInitials(this.admission()?.studentName));
+  readonly canEdit  = computed(() =>
+    !['GRADUATED', 'WITHDRAWN', 'EXPELLED'].includes(this.admission()?.studentStatus ?? ''),
+  );
 
   readonly verifiedDocsCount = computed(
     () => this.documents().filter((doc) => doc.verificationStatus === 'VERIFIED').length,

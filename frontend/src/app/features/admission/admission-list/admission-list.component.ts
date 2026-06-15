@@ -361,6 +361,10 @@ export class AdmissionListComponent implements OnInit, AfterViewInit, OnDestroy 
     void this.router.navigate(['/admissions', item.id]);
   }
 
+  protected canEdit(item: AdmissionResponse): boolean {
+    return !['GRADUATED', 'WITHDRAWN', 'EXPELLED'].includes(item.studentStatus ?? '');
+  }
+
   protected edit(item: AdmissionResponse): void {
     void this.router.navigate(['/admissions', item.id, 'edit']);
   }

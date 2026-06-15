@@ -360,6 +360,11 @@ export class StudentDetailComponent implements OnInit {
     return this.permissionService.has('STUDENT_EDIT');
   }
 
+  protected canTransferProgram(): boolean {
+    const s = this.student()?.status;
+    return this.permissionService.has('STUDENT_EDIT') && (s === 'ACTIVE' || s === 'ON_LEAVE');
+  }
+
   protected openProgramTransfer(): void {
     const s = this.student();
     if (!s) return;

@@ -226,9 +226,14 @@ export class AdmissionFormComponent implements OnInit {
       this.updateValidators('edit');
       this.admissionService.getById(id).subscribe({
         next: (a) => {
+          if (['GRADUATED', 'WITHDRAWN', 'EXPELLED'].includes(a.studentStatus ?? '')) {
+            void this.router.navigate(['/admissions', id]);
+            return;
+          }
           this.selectedAcademicYearId.set(a.joiningAcademicYearId);
           this.editStudentId.set(a.studentId);
           this.form.patchValue({ ...a, joiningAcademicYearId: a.joiningAcademicYearId });
+          this.form.get('studentId')?.disable();
           this.loading.set(false);
         },
         error: () => {
@@ -368,7 +373,8 @@ export class AdmissionFormComponent implements OnInit {
   private submitManual(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     // Pick only the fields relevant to AdmissionRequest; ignore from-enquiry-only fields.
-    const v = this.form.value as Record<string, unknown>;
+    // getRawValue() is required here because studentId is disabled in edit mode.
+    const v = this.form.getRawValue() as Record<string, unknown>;
     const admissionData: AdmissionRequest = {
       studentId: v['studentId'] as number,
       joiningAcademicYearId: v['joiningAcademicYearId'] as number,

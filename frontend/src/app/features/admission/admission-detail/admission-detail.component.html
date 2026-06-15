@@ -52,9 +52,11 @@
           <button class="btn-secondary" type="button" (click)="downloadForm()" title="Download Admission Form">
             <mat-icon>download</mat-icon> Download
           </button>
-          <button class="btn-primary" type="button" (click)="edit()">
-            <mat-icon>edit</mat-icon> Edit
-          </button>
+          @if (canEdit()) {
+            <button class="btn-primary" type="button" (click)="edit()">
+              <mat-icon>edit</mat-icon> Edit
+            </button>
+          }
         </div>
       </div>
 

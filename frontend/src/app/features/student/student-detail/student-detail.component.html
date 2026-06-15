@@ -49,7 +49,7 @@
           <button class="btn-primary" (click)="editStudent()">
             <mat-icon>edit</mat-icon> Edit
           </button>
-          @if (canEditStudent()) {
+          @if (canTransferProgram()) {
             <button class="btn-secondary" (click)="openProgramTransfer()">
               <mat-icon>swap_horiz</mat-icon> Change Program
             </button>
