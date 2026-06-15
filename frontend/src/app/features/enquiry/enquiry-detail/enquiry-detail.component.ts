@@ -88,6 +88,9 @@ export class EnquiryDetailComponent implements OnInit {
     () => this.documents().filter((d) => d.status === 'VERIFIED').length,
   );
   protected readonly docsTotal = computed(() => this.documents().length);
+  protected readonly paymentsWithNotes = computed(() =>
+    this.payments().filter((p) => p.receiptType !== 'REFUND' && p.remarks),
+  );
 
   ngOnInit(): void {
     this.tourService.register('enquiry-detail', ENQUIRY_DETAIL_TOUR);

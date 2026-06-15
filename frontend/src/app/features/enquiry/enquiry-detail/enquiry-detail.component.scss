@@ -299,6 +299,28 @@
   font-size: var(--cms-text-base);
   line-height: 1.6;
   white-space: pre-wrap;
+
+  & + & {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--cms-border);
+  }
+
+  &--payment {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+}
+
+.note-receipt-tag {
+  flex-shrink: 0;
+  font-family: var(--cms-font-mono, monospace);
+  font-size: 0.73rem;
+  color: var(--cms-primary);
+  background: var(--cms-primary-soft, rgba(var(--cms-primary-rgb), 0.08));
+  border-radius: 4px;
+  padding: 1px 5px;
 }
 
 .doc-grid {

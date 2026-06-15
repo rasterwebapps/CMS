@@ -212,10 +212,18 @@
             </div>
           </div>
 
-          @if (e.remarks) {
+          @if (e.remarks || paymentsWithNotes().length > 0) {
             <div class="content-card overview-card notes-card">
               <p class="overview-card__title">Notes</p>
-              <div class="note-box">{{ e.remarks }}</div>
+              @if (e.remarks) {
+                <div class="note-box">{{ e.remarks }}</div>
+              }
+              @for (p of paymentsWithNotes(); track p.id) {
+                <div class="note-box note-box--payment">
+                  <span class="note-receipt-tag">{{ p.receiptNumber }}</span>
+                  {{ p.remarks }}
+                </div>
+              }
             </div>
           }
         </div>
@@ -293,6 +301,8 @@
                       <td class="notes-col">
                         @if (p.receiptType === 'REFUND' && p.originalReceiptNumber) {
                           <span class="text-muted" style="font-size:0.78rem;">Against: <span class="code-value">{{ p.originalReceiptNumber }}</span></span>
+                        } @else if (p.remarks) {
+                          <span class="text-muted" style="font-size:0.78rem;">{{ p.remarks }}</span>
                         } @else {
                           <span class="text-muted">—</span>
                         }
