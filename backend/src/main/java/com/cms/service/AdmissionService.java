@@ -99,7 +99,7 @@ public class AdmissionService {
             String status, String studentType, String search,
             Pageable pageable) {
 
-        Specification<Admission> spec = Specification.where(AdmissionSpecification.distinct());
+        Specification<Admission> spec = Specification.where(null);
         if (programId != null)                          spec = spec.and(AdmissionSpecification.byProgramId(programId));
         if (courseId != null)                           spec = spec.and(AdmissionSpecification.byCourseId(courseId));
         if (academicYearId != null)                     spec = spec.and(AdmissionSpecification.byAcademicYearId(academicYearId));
