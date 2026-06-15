@@ -1,3 +1,25 @@
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
+}
+
+export interface AdmissionExplorerParams {
+  programId?: number | null;
+  courseId?: number | null;
+  academicYearId?: number | null;
+  status?: string | null;
+  studentType?: string | null;
+  search?: string | null;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
 export interface AdmissionRequest {
   studentId: number;
   joiningAcademicYearId: number;

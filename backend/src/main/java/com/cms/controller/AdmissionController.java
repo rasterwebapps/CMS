@@ -8,6 +8,10 @@ import java.util.Map;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -68,6 +72,19 @@ public class AdmissionController {
     @GetMapping
     public ResponseEntity<List<AdmissionResponse>> findAll() {
         return ResponseEntity.ok(admissionService.findAll());
+    }
+
+    @GetMapping("/explorer")
+    public ResponseEntity<Page<AdmissionResponse>> findExplorer(
+            @RequestParam(required = false) Long programId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long academicYearId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String studentType,
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 25, sort = "student.admissionNumber", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(admissionService.findExplorer(
+            programId, courseId, academicYearId, status, studentType, search, pageable));
     }
 
     @GetMapping("/{id}")

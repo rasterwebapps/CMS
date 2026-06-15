@@ -4,8 +4,12 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +31,7 @@ import com.cms.model.enums.CohortStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
+import com.cms.repository.AdmissionSpecification;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.IntakeRuleRepository;
@@ -87,6 +92,45 @@ public class AdmissionService {
         return admissions.stream()
             .map(a -> toResponse(a, studentTypeMap.get(a.getStudent().getId())))
             .toList();
+    }
+
+    public Page<AdmissionResponse> findExplorer(
+            Long programId, Long courseId, Long academicYearId,
+            String status, String studentType, String search,
+            Pageable pageable) {
+
+        Specification<Admission> spec = Specification.where(AdmissionSpecification.distinct());
+        if (programId != null)                          spec = spec.and(AdmissionSpecification.byProgramId(programId));
+        if (courseId != null)                           spec = spec.and(AdmissionSpecification.byCourseId(courseId));
+        if (academicYearId != null)                     spec = spec.and(AdmissionSpecification.byAcademicYearId(academicYearId));
+        if (status != null && !status.isBlank())        spec = spec.and(AdmissionSpecification.byStatus(status));
+        if (studentType != null && !studentType.isBlank()) spec = spec.and(AdmissionSpecification.byStudentType(studentType));
+        if (search != null && search.length() >= 3)    spec = spec.and(AdmissionSpecification.bySearch(search));
+
+        // Step 1: ID + count query via spec (lightweight — no associations fetched)
+        Page<Admission> idPage = admissionRepository.findAll(spec, pageable);
+        if (idPage.isEmpty()) return idPage.map(a -> toResponse(a, null));
+
+        // Step 2: Fetch full entity graph for only this page's IDs
+        List<Long> ids = idPage.getContent().stream().map(Admission::getId).toList();
+        Map<Long, Admission> byId = admissionRepository.findByIdInWithRelations(ids)
+            .stream().collect(Collectors.toMap(Admission::getId, a -> a));
+        List<Admission> orderedPage = ids.stream().map(byId::get).filter(Objects::nonNull).toList();
+
+        // Step 3: Bulk enquiry lookup for student types (1 query for the page)
+        Collection<Long> studentIds = orderedPage.stream().map(a -> a.getStudent().getId()).toList();
+        Map<Long, String> studentTypeMap = enquiryRepository.findByConvertedStudentIdIn(studentIds)
+            .stream().collect(Collectors.toMap(
+                e -> e.getConvertedStudentId(),
+                e -> e.getStudentType() != null ? e.getStudentType().name() : null,
+                (x, y) -> x
+            ));
+
+        List<AdmissionResponse> content = orderedPage.stream()
+            .map(a -> toResponse(a, studentTypeMap.get(a.getStudent().getId())))
+            .toList();
+
+        return new org.springframework.data.domain.PageImpl<>(content, pageable, idPage.getTotalElements());
     }
 
     public AdmissionResponse findById(Long id) {

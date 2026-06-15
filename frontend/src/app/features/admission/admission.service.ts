@@ -3,11 +3,13 @@ import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
+  AdmissionExplorerParams,
   AdmissionRequest,
   AdmissionResponse,
   AcademicQualificationRequest,
   AcademicQualificationResponse,
   AdmissionDocumentResponse,
+  Page,
 } from './admission.model';
 
 @Injectable({ providedIn: 'root' })
@@ -17,6 +19,20 @@ export class AdmissionService {
 
   getAll(): Observable<AdmissionResponse[]> {
     return this.http.get<AdmissionResponse[]>(this.baseUrl);
+  }
+
+  getExplorer(p: AdmissionExplorerParams): Observable<Page<AdmissionResponse>> {
+    let params = new HttpParams()
+      .set('page', p.page ?? 0)
+      .set('size', p.size ?? 25);
+    if (p.sort)          params = params.set('sort', p.sort);
+    if (p.programId)     params = params.set('programId', p.programId);
+    if (p.courseId)      params = params.set('courseId', p.courseId);
+    if (p.academicYearId) params = params.set('academicYearId', p.academicYearId);
+    if (p.status)        params = params.set('status', p.status);
+    if (p.studentType)   params = params.set('studentType', p.studentType);
+    if (p.search && p.search.length >= 3) params = params.set('search', p.search);
+    return this.http.get<Page<AdmissionResponse>>(`${this.baseUrl}/explorer`, { params });
   }
 
   getById(id: number): Observable<AdmissionResponse> {
