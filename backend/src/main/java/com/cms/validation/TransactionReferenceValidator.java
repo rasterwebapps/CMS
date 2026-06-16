@@ -2,6 +2,7 @@ package com.cms.validation;
 
 import com.cms.dto.CollectPaymentRequest;
 import com.cms.dto.EnquiryPaymentRequest;
+import com.cms.dto.LegacyPaymentEntry;
 import com.cms.model.enums.PaymentMode;
 
 import jakarta.validation.ConstraintValidator;
@@ -28,6 +29,9 @@ public class TransactionReferenceValidator
             paymentMode = req.paymentMode();
             transactionReference = req.transactionReference();
         } else if (value instanceof CollectPaymentRequest req) {
+            paymentMode = req.paymentMode();
+            transactionReference = req.transactionReference();
+        } else if (value instanceof LegacyPaymentEntry req) {
             paymentMode = req.paymentMode();
             transactionReference = req.transactionReference();
         }
