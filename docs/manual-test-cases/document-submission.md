@@ -240,3 +240,24 @@ The workflow is:
 
 **Status:** NOT TESTED
 
+---
+
+## TC-DOCSUB-014: Reject unsupported upload formats in Submit Documents
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_FRONT_OFFICE`.
+- Enquiry is in `FEES_PAID` or `PARTIALLY_PAID` and entry page `/enquiries/document-submission/<id>` is open.
+- A non-supported file exists locally (e.g., `sample.webp`, `sample.webm`, or `sample.docx`).
+
+**Steps:**
+1. In any required or optional document row, click **Click to upload**.
+2. Attempt to select the unsupported file.
+3. If the picker still allows selecting the file, complete the selection.
+
+**Expected Result:**
+- Upload is blocked for unsupported formats.
+- A warning toast is shown: **"Only PDF, JPG, PNG files are allowed (max 10 MB)"**.
+- The row remains unchanged (no file name is attached, no status transition triggered).
+
+**Status:** NOT TESTED
+

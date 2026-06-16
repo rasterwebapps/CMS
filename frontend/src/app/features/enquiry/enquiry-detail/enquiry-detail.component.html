@@ -143,7 +143,7 @@
                 <div class="detail-item">
                   <span class="detail-label">Referral Name</span>
                   <span class="detail-value">
-                    {{ e.referredStudentName || e.referredFacultyName || e.referredStaffName || e.referralTypeName || '—' }}
+                    {{ e.referredStudentName || e.referredFacultyName || e.referredStaffName || '—' }}
                   </span>
                 </div>
                 <div class="detail-item">
@@ -354,7 +354,7 @@
           }
 
           @if (creditApplications().length > 0) {
-            <div class="content-card payment-table-card" style="margin-top: 1.5rem;">
+            <div class="content-card payment-table-card">
               <div class="payment-section-hdr">
                 <strong>Pre-enrollment Credit Applied to Student Account</strong>
                 <span class="cms-badge cms-badge--blue" style="margin-left: 0.5rem;">{{ creditApplications().length }} application(s)</span>

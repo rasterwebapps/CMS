@@ -119,6 +119,7 @@
             <input
               #fileInput
               type="file"
+              accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
               class="file-input-hidden"
               (change)="onFileSelected(row, $event)"
               [attr.aria-label]="'Choose file for ' + formatDocType(row.documentType)"
@@ -283,6 +284,7 @@
               <input
                 #fileInput
                 type="file"
+                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
                 class="file-input-hidden"
                 (change)="onFileSelected(row, $event)"
                 [attr.aria-label]="'Choose file for ' + formatDocType(row.documentType)"

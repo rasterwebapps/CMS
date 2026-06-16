@@ -17,7 +17,8 @@
       <#if message??><p class="info-card-msg">${kcSanitize(message.summary)?no_esc}</p></#if>
     </div>
 
-    <a href="/" class="btn-primary">Back to sign in</a>
+    <#assign signInUrl = (url.loginRestartFlowUrl!url.loginUrl)>
+    <a href="${signInUrl}" class="btn-primary">Back to sign in</a>
   </#if>
 
 </@layout.registrationLayout>

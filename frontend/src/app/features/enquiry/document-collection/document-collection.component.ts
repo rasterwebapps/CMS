@@ -19,6 +19,14 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { DOCUMENT_COLLECTION_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 
+const MAX_DOCUMENT_UPLOAD_BYTES = 10 * 1024 * 1024;
+const ALLOWED_UPLOAD_MIME_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+]);
+const ALLOWED_UPLOAD_EXTENSIONS = new Set(['pdf', 'jpg', 'jpeg', 'png']);
+
 
 interface ChecklistRow {
   documentType: string;
@@ -364,9 +372,18 @@ export class DocumentCollectionComponent implements OnInit {
     if (!enquiryId || !file || !this.canManageDocuments() || this.isRowLocked(row)) return;
 
     // Mirror backend MAX_FILE_SIZE_BYTES (10 MB) for fast user feedback.
-    const MAX_BYTES = 10 * 1024 * 1024;
-    if (file.size > MAX_BYTES) {
-      this.toast.warning('File exceeds the 10 MB upload limit');
+    if (file.size > MAX_DOCUMENT_UPLOAD_BYTES) {
+      this.toast.warning('Only PDF, JPG, PNG files are allowed (max 10 MB)');
+      return;
+    }
+
+    const extension = file.name.includes('.')
+      ? file.name.split('.').pop()?.toLowerCase() ?? ''
+      : '';
+    const hasAllowedMime = ALLOWED_UPLOAD_MIME_TYPES.has(file.type.toLowerCase());
+    const hasAllowedExtension = ALLOWED_UPLOAD_EXTENSIONS.has(extension);
+    if (!hasAllowedMime && !hasAllowedExtension) {
+      this.toast.warning('Only PDF, JPG, PNG files are allowed (max 10 MB)');
       return;
     }
 

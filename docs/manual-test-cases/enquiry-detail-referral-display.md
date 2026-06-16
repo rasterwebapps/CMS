@@ -1,4 +1,4 @@
-## TC-ENQ-DET-001: Referral name field falls back to referral type in enquiry detail
+## TC-ENQ-DET-001: Referral name shows only person name or en-dash in enquiry detail
 
 **Preconditions:**
 - User can open `Enquiries` detail screen
@@ -11,7 +11,7 @@
 
 **Expected Result:**
 - `Referral` shows the referral type.
-- `Referral Name` also shows a meaningful value by falling back to referral type when referred person name is absent.
+- `Referral Name` shows `—` when referred student/faculty/staff name is absent.
 
 **Status:** NOT TESTED
 
