@@ -609,15 +609,78 @@
                   </div>
                 </div>
                 <div class="field-row">
-                  <cms-country-state-district-selector
-                    [parentForm]="addressForm"
-                    [countryRequired]="true"
-                    [stateRequired]="true"
-                    [districtRequired]="true"
-                    [showPincode]="true"
-                    defaultStateName="Tamil Nadu"
-                    defaultDistrictName="Salem"
-                  />
+                  <!-- Country + State -->
+                  <div class="field-row conv-addr-sub">
+                    <div class="field-group">
+                      <label class="field-label">Country <span class="field-required">*</span></label>
+                      @if (addrLoadingCountries()) {
+                        <select class="field-input" disabled><option>Loading…</option></select>
+                      } @else {
+                        <select class="field-input" formControlName="country"
+                          [class.field-input--error]="form.get('address.country')?.invalid && form.get('address.country')?.touched">
+                          <option [ngValue]="null">— Select Country —</option>
+                          @for (c of addrCountries(); track c.id) {
+                            <option [ngValue]="c.id">{{ c.name }}</option>
+                          }
+                        </select>
+                      }
+                      @if (form.get('address.country')?.invalid && form.get('address.country')?.touched) {
+                        <p class="field-error">Country is required</p>
+                      }
+                    </div>
+                    <div class="field-group">
+                      <label class="field-label">State <span class="field-required">*</span></label>
+                      @if (addrLoadingStates()) {
+                        <select class="field-input" disabled><option>Loading…</option></select>
+                      } @else {
+                        <select class="field-input" formControlName="state"
+                          [class.field-input--error]="form.get('address.state')?.invalid && form.get('address.state')?.touched">
+                          <option value="">
+                            @if (!form.get('address.country')?.value) { — Select Country first — }
+                            @else { — Select State — }
+                          </option>
+                          @for (s of addrStates(); track s.id) {
+                            <option [value]="s.name">{{ s.name }}</option>
+                          }
+                        </select>
+                      }
+                      @if (form.get('address.state')?.invalid && form.get('address.state')?.touched) {
+                        <p class="field-error">State is required</p>
+                      }
+                    </div>
+                  </div>
+                  <!-- District + Pincode -->
+                  <div class="field-row conv-addr-sub">
+                    <div class="field-group">
+                      <label class="field-label">District <span class="field-required">*</span></label>
+                      @if (addrLoadingDistricts()) {
+                        <select class="field-input" disabled><option>Loading…</option></select>
+                      } @else {
+                        <select class="field-input" formControlName="district"
+                          [class.field-input--error]="form.get('address.district')?.invalid && form.get('address.district')?.touched">
+                          <option value="">
+                            @if (!form.get('address.state')?.value) { — Select State first — }
+                            @else { — Select District — }
+                          </option>
+                          @for (d of addrDistricts(); track d.id) {
+                            <option [value]="d.name">{{ d.name }}</option>
+                          }
+                        </select>
+                      }
+                      @if (form.get('address.district')?.invalid && form.get('address.district')?.touched) {
+                        <p class="field-error">District is required</p>
+                      }
+                    </div>
+                    <div class="field-group">
+                      <label class="field-label">Pincode <span class="field-required">*</span></label>
+                      <input class="field-input" formControlName="pincode" type="text"
+                             inputmode="numeric" autocomplete="postal-code" maxlength="10"
+                             [class.field-input--error]="form.get('address.pincode')?.invalid && form.get('address.pincode')?.touched" />
+                      @if (form.get('address.pincode')?.invalid && form.get('address.pincode')?.touched) {
+                        <p class="field-error">Pincode is required</p>
+                      }
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

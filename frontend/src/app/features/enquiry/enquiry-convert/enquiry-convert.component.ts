@@ -1,8 +1,10 @@
-import { Component, computed, inject, OnInit, signal, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, AfterViewInit, OnDestroy, DestroyRef } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, EMPTY } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
@@ -21,7 +23,8 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_CONVERT_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 import { computeInitials } from '../../../shared/utils/initials';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
-import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
+import { IndiaLocationService } from '../../india-location/india-location.service';
+import { Country, IndiaState, IndiaDistrict } from '../../india-location/india-location.model';
 import { AdmissionService } from '../../admission/admission.service';
 import { AdmissionDocumentResponse } from '../../admission/admission.model';
 import { AdmissionFormData, viewAdmissionForm, printAdmissionForm, downloadAdmissionForm } from '../../../shared/utils/print-admission-form.utils';
@@ -71,7 +74,6 @@ const CONV_STEP_FIELDS: Record<number, string[]> = {
     MatIconModule,
     InrPipe,
     CmsTourButtonComponent,
-    CmsCountryStateDistrictSelectorComponent,
   ],
   templateUrl: './enquiry-convert.component.html',
   styleUrl: './enquiry-convert.component.scss',
@@ -91,6 +93,16 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
   private readonly communityService  = inject(CommunityService);
   private readonly bloodGroupService = inject(BloodGroupService);
   private readonly settingsService   = inject(SettingsService);
+  private readonly locationService   = inject(IndiaLocationService);
+  private readonly destroyRef        = inject(DestroyRef);
+
+  // ── Address cascade signals ───────────────────────────────────────────────
+  protected readonly addrCountries       = signal<Country[]>([]);
+  protected readonly addrStates          = signal<IndiaState[]>([]);
+  protected readonly addrDistricts       = signal<IndiaDistrict[]>([]);
+  protected readonly addrLoadingCountries = signal(false);
+  protected readonly addrLoadingStates   = signal(false);
+  protected readonly addrLoadingDistricts = signal(false);
 
   // ── Stepper state ────────────────────────────────────────────────────────
   protected readonly steps           = CONV_STEPS;
@@ -265,6 +277,7 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
 
   ngOnInit(): void {
     this.tourService.register('enquiry-convert', ENQUIRY_CONVERT_TOUR);
+    this.initAddressCascade();
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (id) this.load(id);
     this.loadBranding();
@@ -283,6 +296,74 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
       this.scrollContainer.removeEventListener('scroll', this.scrollHandler);
     }
     if (this.rafId !== null) cancelAnimationFrame(this.rafId);
+  }
+
+  private initAddressCascade(): void {
+    this.addrLoadingCountries.set(true);
+    this.locationService.getCountries(true).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      catchError(() => { this.addrLoadingCountries.set(false); return EMPTY; }),
+    ).subscribe(countries => {
+      this.addrCountries.set(countries);
+      this.addrLoadingCountries.set(false);
+      const ctrl = this.form.get('address.country');
+      if (ctrl && !ctrl.value) {
+        const india = countries.find(c => c.isoCode === 'IN');
+        if (india) ctrl.setValue(india.id, { emitEvent: true });
+      }
+    });
+
+    const countryCtrl = this.form.get('address.country')!;
+    if (countryCtrl.value) this.loadAddrStatesForCountry(countryCtrl.value as number);
+    countryCtrl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(id => {
+      this.form.get('address.state')!.setValue('');
+      this.form.get('address.district')!.setValue('');
+      this.addrStates.set([]);
+      this.addrDistricts.set([]);
+      if (id) this.loadAddrStatesForCountry(id as number);
+    });
+
+    this.form.get('address.state')!.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(name => {
+      this.form.get('address.district')!.setValue('');
+      this.addrDistricts.set([]);
+      if (name) this.loadAddrDistrictsForStateName(name as string);
+    });
+  }
+
+  private loadAddrStatesForCountry(countryId: number): void {
+    this.addrLoadingStates.set(true);
+    this.locationService.getStatesByCountry(countryId, true).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      catchError(() => { this.addrLoadingStates.set(false); return EMPTY; }),
+    ).subscribe(states => {
+      this.addrStates.set(states);
+      this.addrLoadingStates.set(false);
+      const stateCtrl = this.form.get('address.state')!;
+      if (stateCtrl.value) {
+        this.loadAddrDistrictsForStateName(stateCtrl.value as string);
+      } else {
+        const match = states.find(s => s.name.toLowerCase() === 'tamil nadu');
+        if (match) stateCtrl.setValue(match.name, { emitEvent: true });
+      }
+    });
+  }
+
+  private loadAddrDistrictsForStateName(stateName: string): void {
+    const state = this.addrStates().find(s => s.name.toLowerCase() === stateName.toLowerCase());
+    if (!state) return;
+    this.addrLoadingDistricts.set(true);
+    this.locationService.getDistricts(state.id, true).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      catchError(() => { this.addrLoadingDistricts.set(false); return EMPTY; }),
+    ).subscribe(districts => {
+      this.addrDistricts.set(districts);
+      this.addrLoadingDistricts.set(false);
+      const districtCtrl = this.form.get('address.district')!;
+      if (!districtCtrl.value) {
+        const match = districts.find(d => d.name.toLowerCase() === 'salem');
+        if (match) districtCtrl.setValue(match.name);
+      }
+    });
   }
 
   private loadBranding(): void {

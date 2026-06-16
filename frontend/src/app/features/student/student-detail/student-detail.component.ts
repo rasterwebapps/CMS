@@ -48,7 +48,7 @@ import {
 } from '../../scholarship/verify-eligibility-dialog/verify-eligibility-dialog.component';
 import { FeeReceiptDialogComponent } from '../../../shared/fee-receipt-dialog/fee-receipt-dialog.component';
 import { FinanceService } from '../../finance/finance.service';
-import { ReceiptDisplayData } from '../../finance/finance.model';
+import { Receipt, ReceiptDisplayData } from '../../finance/finance.model';
 import { printFeeReceipt } from '../../../shared/utils/print-receipt.utils';
 
 @Component({
@@ -96,6 +96,9 @@ export class StudentDetailComponent implements OnInit {
 
   protected readonly feeLedger = signal<StudentFeeLedger | null>(null);
   protected readonly loadingLedger = signal(false);
+  protected readonly studentReceipts = signal<Receipt[]>([]);
+  protected readonly loadingReceipts = signal(false);
+  protected readonly receiptsLoaded = signal(false);
   protected readonly scholarshipEligibility = signal<ScholarshipEligibility | null>(null);
   protected readonly eligibleScholarships = signal<ScholarshipType[]>([]);
   protected readonly scholarshipApplications = signal<ScholarshipApplication[]>([]);
@@ -128,9 +131,23 @@ export class StudentDetailComponent implements OnInit {
   });
 
   protected readonly totalFeePaid = computed(() => {
+    // Option 1: paid fee in Student Explorer is driven by all successful receipts.
+    if (this.receiptsLoaded()) {
+      return this.studentReceipts()
+        .filter((receipt) => receipt.receiptType === 'PAYMENT' || receipt.receiptType === 'ENQUIRY_PAYMENT')
+        .reduce((sum, receipt) => sum + receipt.amountPaid, 0);
+    }
+
     const l = this.feeLedger();
     return l ? l.entries.reduce((s, e) => s + e.paidAmount, 0) : 0;
   });
+
+  protected readonly hasFeeLedgerEntries = computed(() => {
+    const ledger = this.feeLedger();
+    return !!ledger && ledger.entries.length > 0;
+  });
+
+  protected readonly hasAnyPayments = computed(() => this.totalFeePaid() > 0);
 
   protected paidPercent(paid: number, total: number): number {
     return total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
@@ -179,6 +196,7 @@ export class StudentDetailComponent implements OnInit {
         this.loading.set(false);
         this.loadEnrollments(id);
         this.loadFeeLedger(id);
+        this.loadReceipts(id);
         this.loadScholarships(id);
         this.loadAdmission(id);
         this.loadTransferHistory(id);
@@ -243,6 +261,22 @@ export class StudentDetailComponent implements OnInit {
       error: () => {
         // Fee ledger may not exist yet — not a fatal error
         this.loadingLedger.set(false);
+      },
+    });
+  }
+
+  private loadReceipts(studentId: number): void {
+    this.loadingReceipts.set(true);
+    this.receiptsLoaded.set(false);
+    this.financeService.getReceipts(studentId).subscribe({
+      next: (receipts) => {
+        this.studentReceipts.set(receipts);
+        this.receiptsLoaded.set(true);
+        this.loadingReceipts.set(false);
+      },
+      error: () => {
+        // Keep ledger-based fallback when receipt API is unavailable.
+        this.loadingReceipts.set(false);
       },
     });
   }

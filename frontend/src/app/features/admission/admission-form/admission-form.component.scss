@@ -145,3 +145,38 @@
     &:hover { opacity: 0.88; }
   }
 }
+
+// Country/State/District/Pincode selector — direct block child, full card width.
+:host ::ng-deep cms-country-state-district-selector.admission-address-grid {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0;
+}
+
+:host ::ng-deep cms-country-state-district-selector.admission-address-grid .state-district-row {
+  display: grid !important;
+  width: 100% !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 16px;
+}
+
+:host ::ng-deep cms-country-state-district-selector.admission-address-grid .state-district-row .field-group,
+:host ::ng-deep cms-country-state-district-selector.admission-address-grid .state-district-row .field-select-wrapper,
+:host ::ng-deep cms-country-state-district-selector.admission-address-grid .state-district-row .field-select,
+:host ::ng-deep cms-country-state-district-selector.admission-address-grid .state-district-row .field-input {
+  width: 100% !important;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  :host ::ng-deep cms-country-state-district-selector.admission-address-grid .state-district-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  :host ::ng-deep cms-country-state-district-selector.admission-address-grid .state-district-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+

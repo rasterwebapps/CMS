@@ -812,6 +812,12 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
     const lastStepIndex = renderedSteps[renderedSteps.length - 1];
     const lastSection = document.getElementById(`retro-section-${lastStepIndex}`);
 
+    const reachedBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 4;
+    if (reachedBottom) {
+      this.currentStep.set(lastStepIndex);
+      return;
+    }
+
     if (firstSection && firstSection.getBoundingClientRect().top >= effectiveTop - 8) {
       this.currentStep.set(renderedSteps[0]);
       return;

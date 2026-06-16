@@ -96,6 +96,16 @@ ssh_run() {
   fi
 }
 
+# Run a script (supplied on stdin) on the server, passing positional args.
+# Secrets are passed as $1 $2 … so they never appear in the command line.
+remote_run_stdin() {
+  if [ -n "$SERVER_PASS" ]; then
+    SSHPASS="$SERVER_PASS" sshpass -e ssh $SSH_OPTS "$SERVER_USER@$SERVER" bash -s -- "$@"
+  else
+    ssh $SSH_OPTS "$SERVER_USER@$SERVER" bash -s -- "$@"
+  fi
+}
+
 rsync_to_server() {
   local src="$1"
   local dst="$2"
@@ -335,57 +345,59 @@ elif [ "$MODE" = "backend" ]; then
 fi
 
 # ── Step 6: Keycloak public URL reconciliation ────────────────────────────────
-# Only needed on full deploys — frontend-only deploys don't change Keycloak client URLs,
-# and the token fetch runs locally where port 8180 is not directly reachable.
+# All curl calls run on the server via SSH — port 8180 is not exposed externally.
+# Secrets are passed as positional args ($1…$4) so they never appear in ps output.
 if [ "$MODE" = "full" ]; then
   print_step "Updating Keycloak client public URLs..."
 
-  TOKEN_JSON=""
-  for attempt in $(seq 1 60); do
-    TOKEN_JSON=$(curl -sk -X POST "http://$LOCAL_HOST:8180/realms/master/protocol/openid-connect/token" \
-      -H 'Content-Type: application/x-www-form-urlencoded' \
-      --data-urlencode 'client_id=admin-cli' \
-      --data-urlencode 'username=admin' \
-      --data-urlencode "password=$KC_PASS" \
-      --data-urlencode 'grant_type=password' || true)
+  remote_run_stdin "$KC_PASS" "$PUBLIC_HOST" "$PUBLIC_IP" "$LOCAL_HOST" <<'REMOTE'
+KC_PASS="$1"
+PUBLIC_HOST="$2"
+PUBLIC_IP="$3"
+LOCAL_HOST="$4"
 
-    if TOKEN_JSON="$TOKEN_JSON" python3 - <<'PY' >/dev/null 2>&1
-import json, os
-payload = json.loads(os.environ['TOKEN_JSON'])
-raise SystemExit(0 if payload.get('access_token') else 1)
-PY
-    then
-      break
-    fi
+TOKEN_JSON=""
+for attempt in $(seq 1 60); do
+  TOKEN_JSON=$(curl -sk -X POST "http://localhost:8180/realms/master/protocol/openid-connect/token" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    --data-urlencode 'client_id=admin-cli' \
+    --data-urlencode 'username=admin' \
+    --data-urlencode "password=$KC_PASS" \
+    --data-urlencode 'grant_type=password' || true)
 
-    echo "Waiting for Keycloak admin API... attempt $attempt/60"
-    sleep 3
-  done
+  if echo "$TOKEN_JSON" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+raise SystemExit(0 if d.get('access_token') else 1)
+" >/dev/null 2>&1; then
+    break
+  fi
 
-  TOKEN=$(TOKEN_JSON="$TOKEN_JSON" python3 - <<'PY'
-import json, os, sys
-payload = json.loads(os.environ['TOKEN_JSON'])
-if 'access_token' not in payload:
-    print(payload, file=sys.stderr)
+  echo "Waiting for Keycloak admin API... attempt $attempt/60"
+  sleep 3
+done
+
+TOKEN=$(echo "$TOKEN_JSON" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+if 'access_token' not in d:
+    print(d, file=sys.stderr)
     sys.exit(1)
-print(payload['access_token'])
-PY
-)
+print(d['access_token'])
+")
 
-  CLIENT_JSON=$(curl -sk -H "Authorization: Bearer $TOKEN" \
-    "http://$LOCAL_HOST:8180/admin/realms/cms/clients?clientId=cms-frontend")
-  CLIENT_ID=$(CLIENT_JSON="$CLIENT_JSON" python3 - <<'PY'
-import json, os, sys
-items = json.loads(os.environ['CLIENT_JSON'])
+CLIENT_JSON=$(curl -sk -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8180/admin/realms/cms/clients?clientId=cms-frontend")
+CLIENT_ID=$(echo "$CLIENT_JSON" | python3 -c "
+import json,sys
+items=json.load(sys.stdin)
 if not items:
     print('cms-frontend client not found', file=sys.stderr)
     sys.exit(1)
 print(items[0]['id'])
-PY
-)
+")
 
-  CLIENT_UPDATE=$(mktemp /tmp/cms209_client_update_XXXXXX.json)
-  cat > "$CLIENT_UPDATE" <<JSON
+CLIENT_UPDATE_JSON=$(cat <<JSON
 {
   "clientId": "cms-frontend",
   "publicClient": true,
@@ -406,35 +418,34 @@ PY
   "protocol": "openid-connect"
 }
 JSON
+)
 
-  STATUS=$(curl -sk -o /tmp/cms209_keycloak_update.out -w '%{http_code}' \
-    -X PUT \
-    -H "Authorization: Bearer $TOKEN" \
-    -H 'Content-Type: application/json' \
-    --data-binary "@$CLIENT_UPDATE" \
-    "http://$LOCAL_HOST:8180/admin/realms/cms/clients/$CLIENT_ID")
-  rm -f "$CLIENT_UPDATE" /tmp/cms209_keycloak_update.out
+STATUS=$(curl -sk -o /dev/null -w '%{http_code}' \
+  -X PUT \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data "$CLIENT_UPDATE_JSON" \
+  "http://localhost:8180/admin/realms/cms/clients/$CLIENT_ID")
 
-  if [ "$STATUS" != "204" ]; then
-    echo "Failed to update Keycloak cms-frontend client. HTTP status: $STATUS"
-    exit 1
-  fi
+if [ "$STATUS" != "204" ]; then
+  echo "Failed to update Keycloak cms-frontend client. HTTP status: $STATUS"
+  exit 1
+fi
 
-  # ── Reconcile realm login theme ──────────────────────────────────────────
-  echo "Setting cms realm loginTheme to 'cms'..."
-  REALM_THEME_STATUS=$(curl -sk -o /tmp/cms209_realm_theme.out -w '%{http_code}' \
-    -X PUT \
-    -H "Authorization: Bearer $TOKEN" \
-    -H 'Content-Type: application/json' \
-    -d '{"loginTheme":"cms"}' \
-    "http://$LOCAL_HOST:8180/admin/realms/cms")
-  rm -f /tmp/cms209_realm_theme.out
+echo "Setting cms realm loginTheme to 'cms'..."
+REALM_STATUS=$(curl -sk -o /dev/null -w '%{http_code}' \
+  -X PUT \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data '{"loginTheme":"cms"}' \
+  "http://localhost:8180/admin/realms/cms")
 
-  if [ "$REALM_THEME_STATUS" != "204" ]; then
-    echo "Warning: Failed to set realm loginTheme. HTTP status: $REALM_THEME_STATUS (non-fatal)"
-  else
-    echo "Realm loginTheme set to 'cms' successfully."
-  fi
+if [ "$REALM_STATUS" != "204" ]; then
+  echo "Warning: Failed to set realm loginTheme. HTTP status: $REALM_STATUS (non-fatal)"
+else
+  echo "Realm loginTheme set to 'cms' successfully."
+fi
+REMOTE
 fi
 
 # ── Step 7: Health check ──────────────────────────────────────────────────────

@@ -69,6 +69,19 @@ const ENQ_STEP_FIELDS: Record<number, string[]> = {
   3: ['enquiryDate', 'referralTypeId'],
 };
 
+const ENQUIRY_STATUS_LABELS: Record<string, string> = {
+  ENQUIRED: 'Enquired',
+  INTERESTED: 'Interested',
+  NOT_INTERESTED: 'Not Interested',
+  FEES_FINALIZED: 'Fees Finalized',
+  FEES_PAID: 'Fees Paid',
+  PARTIALLY_PAID: 'Partially Paid',
+  DOCUMENTS_SUBMITTED: 'Documents Submitted',
+  DOCUMENTS_VERIFIED: 'Documents Verified',
+  ADMITTED: 'Admitted',
+  CLOSED: 'Closed',
+};
+
 @Component({
   selector: 'app-enquiry-form',
   standalone: true,
@@ -196,6 +209,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
     { value: 'COUNSELLING', label: 'Counselling Quota' },
   ];
   protected readonly statusOptions = ['ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'DOCUMENTS_VERIFIED', 'ADMITTED', 'CLOSED'];
+  protected readonly statusLabelMap = ENQUIRY_STATUS_LABELS;
   /** Max date for enquiry date input — today as YYYY-MM-DD string */
   protected readonly maxDateStr: string = new Date().toISOString().split('T')[0];
   /** Max date for DOB input — yesterday (DOB must be in the past) */
@@ -700,7 +714,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
       name: v.name.trim(), email: v.email || undefined, phone: v.phone || undefined,
       programId: v.programId || undefined, courseId: v.courseId || undefined,
       enquiryDate: v.enquiryDate, referralTypeId: v.referralTypeId,
-      status: this.isEditMode() ? (this.form.getRawValue().status ?? undefined) : undefined, agentId: v.agentId || undefined,
+      status: this.isEditMode() ? undefined : (v.status || undefined), agentId: v.agentId || undefined,
       remarks: v.remarks || undefined,
       referralAdditionalAmount: this.referralAdditionalAmount() || undefined,
       studentType: v.studentType || undefined,
@@ -727,6 +741,11 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
       },
       error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
     });
+  }
+
+  protected statusLabel(status: string | null | undefined): string {
+    if (!status) return '—';
+    return this.statusLabelMap[status] ?? status;
   }
   private amountToPaise(value: number | null | undefined): number {
     return Math.round((Number(value) || 0) * 100);

@@ -315,10 +315,8 @@
       <!-- Tab 4: Finance — fee ledger merged -->
       <mat-tab label="Finance">
         <div class="tab-content">
-          @if (loadingLedger()) {
+          @if (loadingLedger() || loadingReceipts()) {
             <cms-skeleton [lines]="4" height="64px"></cms-skeleton>
-          } @else if (!feeLedger() || feeLedger()!.entries.length === 0) {
-            <p class="no-data">No fee demands found for this student.</p>
           } @else {
 
             <!-- Overall summary bar -->
@@ -340,107 +338,117 @@
               </a>
             </div>
 
-            <!-- Per-term entries -->
-            @for (entry of feeLedger()!.entries; track entry.demandId) {
-              <div class="fee-entry content-card">
-
-                <div class="fee-entry__hdr">
-                  <div class="fee-entry__hdr-left">
-                    <h4 class="fee-entry__term">{{ entry.termLabel }}</h4>
-                    <span class="cms-badge"
-                      [class.cms-badge--soft-success]="entry.status === 'PAID'"
-                      [class.cms-badge--soft-warning]="entry.status === 'PARTIAL'"
-                      [class.cms-badge--soft-error]="entry.status === 'UNPAID'"
-                      [class.cms-badge--soft-default]="entry.status === 'WAIVED'">
-                      {{ entry.status }}
-                    </span>
-                  </div>
-                  <span class="fee-entry__due">Due {{ entry.dueDate | appDate }}</span>
-                </div>
-
-                <!-- Progress bar -->
-                <div class="fee-entry__progress">
-                  <div class="fee-progress-track">
-                    <div class="fee-progress-fill"
-                         [class.fee-progress-fill--paid]="entry.status === 'PAID'"
-                         [class.fee-progress-fill--partial]="entry.status === 'PARTIAL'"
-                         [class.fee-progress-fill--unpaid]="entry.status === 'UNPAID'"
-                         [class.fee-progress-fill--waived]="entry.status === 'WAIVED'"
-                         [style.width.%]="paidPercent(entry.paidAmount, entry.totalAmount)">
-                    </div>
-                  </div>
-                  <span class="fee-progress-pct">{{ paidPercent(entry.paidAmount, entry.totalAmount) }}% paid</span>
-                </div>
-
-                <!-- Stats row -->
-                <div class="fee-entry__stats">
-                  <div class="fee-stat">
-                    <span class="fee-stat__label">Total</span>
-                    <span class="fee-stat__value">{{ entry.totalAmount | inr:true:false }}</span>
-                  </div>
-                  <div class="fee-stat">
-                    <span class="fee-stat__label">Paid</span>
-                    <span class="fee-stat__value fee-stat__value--success">{{ entry.paidAmount | inr:true:false }}</span>
-                  </div>
-                  <div class="fee-stat">
-                    <span class="fee-stat__label">Outstanding</span>
-                    <span class="fee-stat__value"
-                          [class.fee-stat__value--danger]="entry.outstandingAmount > 0">
-                      {{ entry.outstandingAmount | inr:true:false }}
-                    </span>
-                  </div>
-                  @if (entry.payments.length > 0) {
-                    <div class="fee-stat">
-                      <span class="fee-stat__label">Payments</span>
-                      <span class="fee-stat__value">{{ entry.payments.length }}</span>
-                    </div>
-                  }
-                </div>
-
-                <!-- Payment rows -->
-                @if (entry.payments.length > 0) {
-                  <table class="fee-payments-table">
-                    <thead>
-                      <tr>
-                        <th>Receipt</th>
-                        <th>Date</th>
-                        <th>Amount (₹)</th>
-                        <th>Late Fee (₹)</th>
-                        <th>Mode</th>
-                        <th class="actions-col">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (p of entry.payments; track p.id) {
-                        <tr>
-                          <td><span class="code-value">{{ p.receiptNumber }}</span></td>
-                          <td>{{ p.paymentDate | appDate }}</td>
-                          <td>{{ p.amountPaid | inr:true:false }}</td>
-                          <td>{{ p.lateFeeApplied > 0 ? (p.lateFeeApplied | number:'1.2-2') : '—' }}</td>
-                          <td>{{ p.paymentMode | paymentModeLabel }}</td>
-                          <td class="actions-col">
-                            <div class="receipt-actions">
-                              <button class="receipt-action-btn" type="button"
-                                      (click)="viewReceipt(p, entry)"
-                                      matTooltip="View receipt">
-                                <mat-icon>visibility</mat-icon>
-                              </button>
-                              <button class="receipt-action-btn" type="button"
-                                      (click)="printReceiptDirect(p, entry)"
-                                      matTooltip="Print receipt">
-                                <mat-icon>print</mat-icon>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
+            @if (!hasFeeLedgerEntries()) {
+              <p class="no-data">
+                @if (hasAnyPayments()) {
+                  No fee demands found for this student. Paid amount includes all successful receipts.
                 } @else {
-                  <p class="fee-no-payments">No payments recorded yet.</p>
+                  No fee demands found for this student.
                 }
+              </p>
+            } @else {
+              <!-- Per-term entries -->
+              @for (entry of feeLedger()!.entries; track entry.demandId) {
+                <div class="fee-entry content-card">
 
-              </div>
+                  <div class="fee-entry__hdr">
+                    <div class="fee-entry__hdr-left">
+                      <h4 class="fee-entry__term">{{ entry.termLabel }}</h4>
+                      <span class="cms-badge"
+                        [class.cms-badge--soft-success]="entry.status === 'PAID'"
+                        [class.cms-badge--soft-warning]="entry.status === 'PARTIAL'"
+                        [class.cms-badge--soft-error]="entry.status === 'UNPAID'"
+                        [class.cms-badge--soft-default]="entry.status === 'WAIVED'">
+                        {{ entry.status }}
+                      </span>
+                    </div>
+                    <span class="fee-entry__due">Due {{ entry.dueDate | appDate }}</span>
+                  </div>
+
+                  <!-- Progress bar -->
+                  <div class="fee-entry__progress">
+                    <div class="fee-progress-track">
+                      <div class="fee-progress-fill"
+                           [class.fee-progress-fill--paid]="entry.status === 'PAID'"
+                           [class.fee-progress-fill--partial]="entry.status === 'PARTIAL'"
+                           [class.fee-progress-fill--unpaid]="entry.status === 'UNPAID'"
+                           [class.fee-progress-fill--waived]="entry.status === 'WAIVED'"
+                           [style.width.%]="paidPercent(entry.paidAmount, entry.totalAmount)">
+                      </div>
+                    </div>
+                    <span class="fee-progress-pct">{{ paidPercent(entry.paidAmount, entry.totalAmount) }}% paid</span>
+                  </div>
+
+                  <!-- Stats row -->
+                  <div class="fee-entry__stats">
+                    <div class="fee-stat">
+                      <span class="fee-stat__label">Total</span>
+                      <span class="fee-stat__value">{{ entry.totalAmount | inr:true:false }}</span>
+                    </div>
+                    <div class="fee-stat">
+                      <span class="fee-stat__label">Paid</span>
+                      <span class="fee-stat__value fee-stat__value--success">{{ entry.paidAmount | inr:true:false }}</span>
+                    </div>
+                    <div class="fee-stat">
+                      <span class="fee-stat__label">Outstanding</span>
+                      <span class="fee-stat__value"
+                            [class.fee-stat__value--danger]="entry.outstandingAmount > 0">
+                        {{ entry.outstandingAmount | inr:true:false }}
+                      </span>
+                    </div>
+                    @if (entry.payments.length > 0) {
+                      <div class="fee-stat">
+                        <span class="fee-stat__label">Payments</span>
+                        <span class="fee-stat__value">{{ entry.payments.length }}</span>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Payment rows -->
+                  @if (entry.payments.length > 0) {
+                    <table class="fee-payments-table">
+                      <thead>
+                        <tr>
+                          <th>Receipt</th>
+                          <th>Date</th>
+                          <th>Amount (₹)</th>
+                          <th>Late Fee (₹)</th>
+                          <th>Mode</th>
+                          <th class="actions-col">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (p of entry.payments; track p.id) {
+                          <tr>
+                            <td><span class="code-value">{{ p.receiptNumber }}</span></td>
+                            <td>{{ p.paymentDate | appDate }}</td>
+                            <td>{{ p.amountPaid | inr:true:false }}</td>
+                            <td>{{ p.lateFeeApplied > 0 ? (p.lateFeeApplied | number:'1.2-2') : '—' }}</td>
+                            <td>{{ p.paymentMode | paymentModeLabel }}</td>
+                            <td class="actions-col">
+                              <div class="receipt-actions">
+                                <button class="receipt-action-btn" type="button"
+                                        (click)="viewReceipt(p, entry)"
+                                        matTooltip="View receipt">
+                                  <mat-icon>visibility</mat-icon>
+                                </button>
+                                <button class="receipt-action-btn" type="button"
+                                        (click)="printReceiptDirect(p, entry)"
+                                        matTooltip="Print receipt">
+                                  <mat-icon>print</mat-icon>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  } @else {
+                    <p class="fee-no-payments">No payments recorded yet.</p>
+                  }
+
+                </div>
+              }
             }
           }
         </div>
@@ -690,4 +698,6 @@
   (closed)="selectedReceipt.set(null)"
   (printed)="selectedReceipt.set(null)"
 />
+
+
 

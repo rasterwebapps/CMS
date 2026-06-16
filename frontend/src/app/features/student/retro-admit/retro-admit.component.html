@@ -499,8 +499,6 @@
       </section>
 
       <!-- ── Section 6 & 7: Fee Structure + Payment History ─────── -->
-      @if (yearCount() > 0) {
-
         <section id="retro-section-5" class="entry-form-card entry-form-card--sectioned">
           <div class="entry-form-card__hdr">
             <div class="entry-form-card__hdr-ico"><mat-icon>payments</mat-icon></div>
@@ -515,6 +513,9 @@
             </div>
           </div>
           <div class="entry-form-card__body">
+            @if (yearCount() === 0) {
+              <p class="la-fee-empty-hint">Select a programme to generate year-wise fee rows.</p>
+            }
             @if (feeGuidelineEmpty()) {
               <p class="la-fee-empty-hint">No guideline fee found for this combination — enter the actual fee for each year below.</p>
             }
@@ -643,13 +644,12 @@
               </div>
             }
             <div class="la-add-payment-row">
-              <button mat-stroked-button type="button" (click)="addPayment()">
+              <button mat-stroked-button type="button" (click)="addPayment()" [disabled]="yearCount() === 0">
                 <mat-icon>add</mat-icon> Add Payment
               </button>
             </div>
           </div>
         </section>
-      }
 
       @if (saveError()) {
         <div class="la-error-banner">

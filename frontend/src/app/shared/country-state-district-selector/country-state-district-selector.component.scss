@@ -1,35 +1,51 @@
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
 /* Uses global field-group / field-select styles from styles.scss */
 .state-district-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  width: 100%;
+  max-width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 
+  .field-group,
+  .field-select-wrapper,
+  .field-select,
+  .field-input {
+    width: 100% !important;
+    min-width: 0;
+    max-width: 100%;
+  }
+
   &--2col {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   &--3col {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   &--4col {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
 
     @media (max-width: 1100px) {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
 
     @media (max-width: 640px) {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr !important;
     }
   }
 
   @media (max-width: 900px) {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
   }
 }
-

@@ -543,17 +543,16 @@
                     }
                   </div>
                 </div>
-                <div class="form-row">
-                  <cms-country-state-district-selector
-                    [parentForm]="addressForm"
-                    [countryRequired]="true"
-                    [stateRequired]="true"
-                    [districtRequired]="true"
-                    [showPincode]="true"
-                    defaultStateName="Tamil Nadu"
-                    defaultDistrictName="Salem"
-                  />
-                </div>
+                <cms-country-state-district-selector
+                  class="admission-address-grid"
+                  [parentForm]="addressForm"
+                  [countryRequired]="true"
+                  [stateRequired]="true"
+                  [districtRequired]="true"
+                  [showPincode]="true"
+                  defaultStateName="Tamil Nadu"
+                  defaultDistrictName="Salem"
+                />
               </div>
             </div>
           </div>

@@ -492,7 +492,7 @@
                 @if (isEditMode()) {
                   <div class="field-group">
                     <label class="field-label">Status</label>
-                    <div class="field-readonly">{{ form.get('status')?.value }}</div>
+                    <div class="field-readonly">{{ statusLabel(form.get('status')?.value) }}</div>
                   </div>
                 }
 
