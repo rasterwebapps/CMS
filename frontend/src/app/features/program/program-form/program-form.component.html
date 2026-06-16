@@ -232,8 +232,8 @@
 
   <!-- ── Document Requirements Side Panel ──────────────────────────────────────── -->
   @if (documentPanelOpen()) {
-    <div class="doc-panel-backdrop" (click)="closeDocumentPanel()"></div>
-    <div class="doc-panel">
+    <div class="doc-panel-backdrop" [style.top.px]="documentPanelTop()" (click)="closeDocumentPanel()"></div>
+    <div class="doc-panel" [style.top.px]="documentPanelTop()">
       <div class="doc-panel__header">
         <div class="doc-panel__header-content">
           <div class="doc-panel__header-icon">

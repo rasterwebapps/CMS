@@ -8,6 +8,15 @@
   gap: 16px;
 }
 
+// App shell chrome above content: toolbar (56px) + breadcrumb (34px) + border (1px)
+$doc-flyout-top-offset: 91px;
+
+// Anchor side-flyout overlays to the page content area (not the full viewport).
+.entry-form-page {
+  position: relative;
+  min-height: 100%;
+}
+
 // ── Document Management Button ──────────────────────────────────
 .doc-manage-btn {
   display: flex;
@@ -23,7 +32,7 @@
 
   &:hover {
     border-color: var(--cms-primary);
-    background: var(--cms-primary-light);
+    background: color-mix(in srgb, var(--cms-primary) 12%, var(--cms-bg-card));
   }
 
   &__icon {
@@ -32,7 +41,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--cms-primary-light);
+    background: color-mix(in srgb, var(--cms-primary) 14%, var(--cms-bg-card));
     border-radius: 8px;
     color: var(--cms-primary);
     flex-shrink: 0;
@@ -69,12 +78,12 @@
 
 // ── Side Panel ──────────────────────────────────────────────────
 .doc-panel-backdrop {
-  position: fixed;
-  top: 91px;
+  position: absolute;
+  top: $doc-flyout-top-offset;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: color-mix(in srgb, #000 48%, transparent);
   z-index: 1050;
   animation: fadeIn 0.2s ease;
 
@@ -89,31 +98,28 @@
 }
 
 .doc-panel {
-  position: fixed;
-  top: 91px;
+  position: absolute;
+  top: $doc-flyout-top-offset;
   right: 0;
   bottom: 0;
   width: 860px;
   max-width: 90vw;
-  background: #ffffff;
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+  background: var(--cms-bg-card);
+  color: var(--cms-text-primary);
+  box-shadow: -4px 0 24px color-mix(in srgb, #000 35%, transparent);
   z-index: 1051;
   display: flex;
   flex-direction: column;
   animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  // Keep panel below shell header/breadcrumb bars on desktop.
-  height: calc(100% - 91px);
 
   @media (max-width: 768px) {
     top: 0;
     width: 100%;
     max-width: 100%;
-    height: 100%;
   }
 
-  // Dark mode support
   @media (prefers-color-scheme: dark) {
-    background: #1e1e1e;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -149,7 +155,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--cms-primary-light);
+  background: color-mix(in srgb, var(--cms-primary) 14%, var(--cms-bg-card));
   border-radius: 10px;
   color: var(--cms-primary);
   flex-shrink: 0;
@@ -235,7 +241,7 @@
   border: 1px solid var(--cms-border-default);
   border-radius: 10px;
   overflow: hidden;
-  background: var(--cms-bg-default);
+  background: var(--cms-bg-muted);
 }
 
 .doc-shuttle-col__header {
@@ -261,7 +267,7 @@
   margin-left: auto;
   font-size: 11px;
   color: var(--cms-text-secondary);
-  background: var(--cms-bg-default);
+  background: var(--cms-bg-subtle);
   border: 1px solid var(--cms-border-default);
   border-radius: 999px;
   padding: 1px 7px;
@@ -293,7 +299,7 @@
   color: var(--cms-primary);
   padding: 6px 10px;
   border-top: 1px solid var(--cms-border-default);
-  background: var(--cms-primary-light);
+  background: color-mix(in srgb, var(--cms-primary) 16%, var(--cms-bg-card));
   flex-shrink: 0;
 }
 
@@ -331,7 +337,7 @@
   &:hover { background: var(--cms-bg-hover); }
 
   &--selected {
-    background: var(--cms-primary-light);
+    background: color-mix(in srgb, var(--cms-primary) 18%, var(--cms-bg-card));
     color: var(--cms-primary);
   }
 }
@@ -387,7 +393,7 @@
 
   &--optional:not(:disabled):hover {
     border-color: var(--cms-primary);
-    background: var(--cms-primary-light);
+    background: color-mix(in srgb, var(--cms-primary) 16%, var(--cms-bg-card));
     color: var(--cms-primary);
   }
 }
@@ -411,7 +417,7 @@
   border: 1px solid var(--cms-border-default);
   border-radius: 10px;
   overflow: hidden;
-  background: var(--cms-bg-default);
+  background: var(--cms-bg-muted);
   min-height: 0;
 }
 
@@ -422,6 +428,15 @@
   z-index: 1;
 }
 
+.doc-shuttle-assigned-hint {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--cms-text-secondary);
+  background: var(--cms-bg-subtle);
+  border-bottom: 1px solid var(--cms-border-default);
+}
 
 .doc-shuttle-assigned-item {
   display: flex;

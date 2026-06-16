@@ -58,6 +58,7 @@ export class ProgramFormComponent implements OnInit {
   protected readonly savingDocuments = signal(false);
   protected readonly loadingDocuments = signal(false);
   protected readonly documentPanelOpen = signal(false);
+  protected readonly documentPanelTop = signal(0);
 
   /** Items selected in the Available column for transfer. */
   protected readonly selectedAvailable = signal<Set<string>>(new Set());
@@ -377,6 +378,7 @@ export class ProgramFormComponent implements OnInit {
     }
     this.selectedAvailable.set(new Set());
     this.documentSearch.set('');
+    this.updateDocumentPanelTop();
     this.setScrollLock(true);
     this.documentPanelOpen.set(true);
   }
@@ -385,6 +387,16 @@ export class ProgramFormComponent implements OnInit {
     this.selectedAvailable.set(new Set());
     this.setScrollLock(false);
     this.documentPanelOpen.set(false);
+    this.documentPanelTop.set(0);
+  }
+
+  private updateDocumentPanelTop(): void {
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      this.documentPanelTop.set(0);
+      return;
+    }
+    const scroller = document.querySelector<HTMLElement>('main.app-content');
+    this.documentPanelTop.set(scroller?.scrollTop ?? 0);
   }
 
   private setScrollLock(lock: boolean): void {
