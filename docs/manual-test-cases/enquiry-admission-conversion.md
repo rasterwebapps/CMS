@@ -232,3 +232,26 @@ These test cases verify the end-to-end "Create Admission" workflow that replaced
 
 **Status:** NOT TESTED
 
+---
+
+## TC-EAC-012: Country/State/District/Pincode row spans full card width in Create Admission form
+
+**Preconditions:**
+- User is logged in with permission to create admissions
+- An enquiry exists in `DOCUMENTS_VERIFIED` status
+
+**Steps:**
+1. Navigate to `/enquiries/{id}/convert`.
+2. Scroll to the address section containing `Country`, `State`, `District`, and `Pincode`.
+3. On desktop (≥900px), verify all four fields appear in a single row of equal-width columns.
+4. On a tablet viewport (640–900px), verify the row splits into two columns.
+5. On mobile (≤640px), verify each field stacks in a single column.
+6. Confirm fields are not compressed to the left half and use the full card width.
+
+**Expected Result:**
+- All four address fields are displayed in one row of four equal columns on desktop.
+- The row is not constrained to the left half of the card.
+- Field controls are visually aligned and consistent with the Street/City row above.
+
+**Status:** NOT TESTED
+
