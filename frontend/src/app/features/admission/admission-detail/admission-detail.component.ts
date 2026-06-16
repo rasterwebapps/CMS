@@ -58,7 +58,7 @@ export class AdmissionDetailComponent implements OnInit {
   readonly student = signal<Student | null>(null);
   readonly qualifications = signal<AcademicQualificationResponse[]>([]);
   readonly documents = signal<AdmissionDocumentResponse[]>([]);
-  readonly checklist = signal<Record<string, string>>({});
+  readonly checklist = signal<{ mandatory: Record<string, string>; optional: Record<string, string> }>({ mandatory: {}, optional: {} });
   readonly passportPhotoUrl = signal<string | null>(null);
   readonly collegeLogo = signal<string | null>(null);
   readonly collegeName = signal<string | null>(null);
@@ -171,7 +171,11 @@ export class AdmissionDetailComponent implements OnInit {
   }
 
   getChecklistEntries(): { type: string; status: string }[] {
-    return Object.entries(this.checklist()).map(([type, status]) => ({ type, status }));
+    const cl = this.checklist();
+    return [
+      ...Object.entries(cl.mandatory),
+      ...Object.entries(cl.optional),
+    ].map(([type, status]) => ({ type, status }));
   }
 
   switchTab(index: number): void {

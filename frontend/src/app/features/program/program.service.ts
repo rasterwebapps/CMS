@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { DocumentTypeInfo, Program, ProgramRequest } from './program.model';
+import { DocumentRequirementsRequest, DocumentRequirementsResponse, DocumentTypeInfo, Program, ProgramRequest } from './program.model';
 
 @Injectable({
   providedIn: 'root',
@@ -32,14 +32,14 @@ export class ProgramService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
-  /** Returns the document types currently required by the program. */
-  getRequiredDocumentTypes(programId: number): Observable<string[]> {
-    return this.http.get<string[]>(`${this.baseUrl}/${programId}/document-types`);
+  /** Returns mandatory and optional document type codes for the program. */
+  getDocumentRequirements(programId: number): Observable<DocumentRequirementsResponse> {
+    return this.http.get<DocumentRequirementsResponse>(`${this.baseUrl}/${programId}/document-types`);
   }
 
-  /** Replaces the program's required document types with the supplied set. */
-  setRequiredDocumentTypes(programId: number, types: string[]): Observable<string[]> {
-    return this.http.put<string[]>(`${this.baseUrl}/${programId}/document-types`, types);
+  /** Replaces the program's mandatory and optional document requirements. */
+  setDocumentRequirements(programId: number, req: DocumentRequirementsRequest): Observable<DocumentRequirementsResponse> {
+    return this.http.put<DocumentRequirementsResponse>(`${this.baseUrl}/${programId}/document-types`, req);
   }
 
   /** Returns the full catalogue of available document types (with display labels). */

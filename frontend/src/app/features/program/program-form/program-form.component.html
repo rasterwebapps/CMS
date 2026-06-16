@@ -173,14 +173,16 @@
             </div>
 
             <div class="field-group" style="margin-bottom: 0;">
-              <label class="field-label">Required Documents</label>
+              <label class="field-label">Document Requirements</label>
               <button type="button" class="doc-manage-btn" (click)="openDocumentPanel()">
                 <div class="doc-manage-btn__icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 </div>
                 <div class="doc-manage-btn__content">
-                  <div class="doc-manage-btn__label">Configure Required Documents</div>
-                  <div class="doc-manage-btn__count">{{ selectedDocumentTypesArray().length }} document{{ selectedDocumentTypesArray().length === 1 ? '' : 's' }} required</div>
+                  <div class="doc-manage-btn__label">Configure Document Requirements</div>
+                  <div class="doc-manage-btn__count">
+                    {{ mandatoryDocumentTypesArray().length }} mandatory · {{ optionalDocumentTypesArray().length }} optional
+                  </div>
                 </div>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="doc-manage-btn__arrow"><polyline points="9 18 15 12 9 6"/></svg>
               </button>
@@ -228,7 +230,7 @@
     </div>
   }
 
-  <!-- ── Required Documents Side Panel ──────────────────────────────────────── -->
+  <!-- ── Document Requirements Side Panel ──────────────────────────────────────── -->
   @if (documentPanelOpen()) {
     <div class="doc-panel-backdrop" (click)="closeDocumentPanel()"></div>
     <div class="doc-panel">
@@ -238,8 +240,8 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           </div>
           <div>
-            <h2 class="doc-panel__title">Required Documents</h2>
-            <p class="doc-panel__subtitle">Select the documents applicants for this program must submit</p>
+            <h2 class="doc-panel__title">Document Requirements</h2>
+            <p class="doc-panel__subtitle">Configure which documents applicants must submit for this program</p>
           </div>
         </div>
         <button type="button" class="doc-panel__close" (click)="closeDocumentPanel()" aria-label="Close panel">
@@ -251,71 +253,138 @@
         @if (loadingDocuments()) {
           <div class="loading-container"><mat-spinner diameter="40"></mat-spinner></div>
         } @else {
-          <!-- Two-column layout: Selection on left, Preview on right -->
-          <div class="doc-selection-layout">
+          <div class="doc-shuttle">
 
-            <!-- Left Column: Document Selection -->
-            <div>
-              <div class="field-group">
-                <label for="doc-search" class="field-label">Search</label>
+            <!-- Available column -->
+            <div class="doc-shuttle-col">
+              <div class="doc-shuttle-col__header">
+                <span class="doc-shuttle-col__title">Available</span>
+                <span class="doc-shuttle-col__count">{{ availableDocumentTypes().length }}</span>
+              </div>
+              <div class="doc-shuttle-col__search">
                 <input
-                  id="doc-search"
                   type="text"
                   class="field-input"
                   placeholder="Filter by name or code…"
                   autocomplete="off"
+                  [value]="documentSearch()"
                   (input)="onDocumentSearchInput($event)"
                 />
               </div>
-              @for (group of groupedDocumentTypes(); track group.category) {
-                <div class="field-group">
-                  <label class="field-label">{{ group.category }}</label>
-                  <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px;">
-                    @for (doc of group.items; track doc.code) {
-                      <label style="display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--cms-border-default); border-radius:8px; cursor:pointer;">
-                        <input
-                          type="checkbox"
-                          [checked]="isDocumentSelected(doc.code)"
-                          (change)="toggleDocumentType(doc.code, $any($event.target).checked)"
-                        />
-                        <span style="flex:1;">{{ doc.label }}</span>
-                      </label>
-                    }
-                  </div>
+              <div class="doc-shuttle-col__list">
+                @if (filteredGroupedAvailable().length === 0) {
+                  <p class="doc-shuttle-empty">
+                    {{ availableDocumentTypes().length === 0 ? 'All documents assigned' : 'No matches' }}
+                  </p>
+                } @else {
+                  @for (group of filteredGroupedAvailable(); track group.category) {
+                    <div class="doc-shuttle-group">
+                      <div class="doc-shuttle-group__label">{{ group.category }}</div>
+                      @for (doc of group.items; track doc.code) {
+                        <label
+                          class="doc-shuttle-item"
+                          [class.doc-shuttle-item--selected]="isAvailableSelected(doc.code)"
+                        >
+                          <input
+                            type="checkbox"
+                            [checked]="isAvailableSelected(doc.code)"
+                            (change)="toggleAvailableSelection(doc.code)"
+                          />
+                          <span>{{ doc.label }}</span>
+                        </label>
+                      }
+                    </div>
+                  }
+                }
+              </div>
+              @if (selectedAvailable().size > 0) {
+                <div class="doc-shuttle-col__selection-hint">
+                  {{ selectedAvailable().size }} selected — use the buttons to assign →
                 </div>
               }
             </div>
 
-            <!-- Right Column: Preview of Selected Documents -->
-            <div class="doc-preview-sidebar" style="position: sticky; top: 16px;">
-              <div style="background: var(--cms-bg-card); border: 1px solid var(--cms-border-default); border-radius: 12px; padding: 16px;">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                  <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--cms-primary-light); display: flex; align-items: center; justify-content: center;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cms-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                  </div>
-                  <div style="flex: 1;">
-                    <div style="font-weight: 600; font-size: 14px; color: var(--cms-text-primary);">Selected Documents</div>
-                    <div style="font-size: 12px; color: var(--cms-text-secondary);">{{ selectedDocumentTypesArray().length }} required</div>
-                  </div>
-                </div>
+            <!-- Transfer buttons -->
+            <div class="doc-shuttle-actions">
+              <button
+                type="button"
+                class="doc-shuttle-btn doc-shuttle-btn--mandatory"
+                [disabled]="selectedAvailable().size === 0"
+                (click)="moveToMandatory()"
+                title="Add selected to Mandatory"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                <span>Mandatory</span>
+              </button>
+              <button
+                type="button"
+                class="doc-shuttle-btn doc-shuttle-btn--optional"
+                [disabled]="selectedAvailable().size === 0"
+                (click)="moveToOptional()"
+                title="Add selected to Optional"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                <span>Optional</span>
+              </button>
+            </div>
 
-                @if (selectedDocumentTypesArray().length === 0) {
-                  <div style="text-align: center; padding: 24px 12px; color: var(--cms-text-muted); font-size: 13px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4; margin-bottom: 8px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    <div>No documents selected</div>
-                    <div style="font-size: 12px; margin-top: 4px;">Check items on the left to add</div>
-                  </div>
-                } @else {
-                  <div style="max-height: 400px; overflow-y: auto;">
-                    @for (docType of selectedDocumentTypesArray(); track docType) {
-                      <div style="display: flex; align-items: start; gap: 8px; padding: 8px; border-bottom: 1px solid var(--cms-border-light); font-size: 13px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cms-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 1px; flex-shrink: 0;"><polyline points="20 6 9 17 4 12"/></svg>
-                        <span style="color: var(--cms-text-primary); flex: 1;">{{ getDocumentLabel(docType) }}</span>
+            <!-- Assigned column -->
+            <div class="doc-shuttle-assigned">
+
+              <!-- Mandatory assigned list -->
+              <div class="doc-shuttle-assigned-section">
+                <div class="doc-shuttle-col__header doc-shuttle-col__header--mandatory">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <span class="doc-shuttle-col__title">Mandatory</span>
+                  <span class="doc-shuttle-col__count">{{ mandatoryDocumentTypesArray().length }}</span>
+                </div>
+                <p class="doc-shuttle-assigned-hint">Blocks progression if missing.</p>
+                <div class="doc-shuttle-col__list">
+                  @if (mandatoryLabeled().length === 0) {
+                    <p class="doc-shuttle-empty">None added</p>
+                  } @else {
+                    @for (item of mandatoryLabeled(); track item.code) {
+                      <div class="doc-shuttle-assigned-item">
+                        <span>{{ item.label }}</span>
+                        <button
+                          type="button"
+                          class="doc-shuttle-remove"
+                          (click)="removeFromMandatory(item.code)"
+                          title="Remove"
+                        >&#x2715;</button>
                       </div>
                     }
-                  </div>
-                }
+                  }
+                </div>
               </div>
+
+              <!-- Optional assigned list -->
+              <div class="doc-shuttle-assigned-section">
+                <div class="doc-shuttle-col__header doc-shuttle-col__header--optional">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <span class="doc-shuttle-col__title">Optional</span>
+                  <span class="doc-shuttle-col__count">{{ optionalDocumentTypesArray().length }}</span>
+                </div>
+                <p class="doc-shuttle-assigned-hint">Visible to applicant; not blocking.</p>
+                <div class="doc-shuttle-col__list">
+                  @if (optionalLabeled().length === 0) {
+                    <p class="doc-shuttle-empty">None added</p>
+                  } @else {
+                    @for (item of optionalLabeled(); track item.code) {
+                      <div class="doc-shuttle-assigned-item">
+                        <span>{{ item.label }}</span>
+                        <button
+                          type="button"
+                          class="doc-shuttle-remove"
+                          (click)="removeFromOptional(item.code)"
+                          title="Remove"
+                        >&#x2715;</button>
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+
             </div>
           </div>
         }
@@ -327,7 +396,7 @@
           @if (savingDocuments()) {
             <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
           } @else {
-            Save Required Documents
+            Save Document Requirements
           }
         </button>
       </div>

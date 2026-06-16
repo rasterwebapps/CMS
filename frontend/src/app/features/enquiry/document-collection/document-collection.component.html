@@ -258,29 +258,30 @@
       </div>
     </div>
 
-    <!-- ── Previously Collected (orphaned) ──────────────────────────── -->
+    <!-- ── Optional / Additional Documents ──────────────────────────── -->
     @if (optionalRows().length > 0) {
       <div class="doc-section">
         <div class="doc-section__hdr doc-section__hdr--muted">
           <div class="doc-section__hdr-ico doc-section__hdr-ico--muted">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           </div>
-          <span>Previously Collected</span>
+          <span>Additional / Optional Documents</span>
           <span class="doc-section__count doc-section__count--muted">{{ optionalRows().length }}</span>
-          <span class="doc-section__hint">No longer in this program's required list</span>
+          <span class="doc-section__hint">Not required to proceed — but if uploaded they must be verified</span>
         </div>
 
         <div class="doc-list">
           @for (row of optionalRows(); track row.documentType) {
             <div
-              class="doc-card doc-card--optional"
+              class="doc-card"
               [class.doc-card--uploaded]="row.status === 'UPLOADED'"
               [class.doc-card--verified]="row.status === 'VERIFIED'"
               [class.doc-card--rejected]="row.status === 'REJECTED'"
               [class.doc-card--saving]="row.saving"
+              [class.doc-card--locked]="isRowLocked(row)"
             >
               <input
-                #fileInputOpt
+                #fileInput
                 type="file"
                 class="file-input-hidden"
                 (change)="onFileSelected(row, $event)"
@@ -313,32 +314,34 @@
                         }
                       </div>
                       <div class="file-info__actions">
-                        <button type="button" class="file-action-btn" matTooltip="View" (click)="viewFile(row)" aria-label="View document"><mat-icon>visibility</mat-icon></button>
-                        <button type="button" class="file-action-btn" matTooltip="Download" (click)="downloadFile(row)" aria-label="Download"><mat-icon>download</mat-icon></button>
-                        @if (canManageDocuments()) {
-                          <button type="button" class="file-action-btn" matTooltip="Replace" (click)="onBrowseFile(row, fileInputOpt)" [disabled]="row.saving" aria-label="Replace"><mat-icon>swap_horiz</mat-icon></button>
+                        <button type="button" class="file-action-btn" matTooltip="View document" (click)="viewFile(row)" aria-label="View document"><mat-icon>visibility</mat-icon></button>
+                        <button type="button" class="file-action-btn" matTooltip="Download" (click)="downloadFile(row)" aria-label="Download document"><mat-icon>download</mat-icon></button>
+                        @if (canManageDocuments() && !isRowLocked(row)) {
+                          <button type="button" class="file-action-btn" matTooltip="Replace file" (click)="onBrowseFile(row, fileInput)" [disabled]="row.saving" aria-label="Replace file"><mat-icon>swap_horiz</mat-icon></button>
                         }
                       </div>
                     </div>
-                  } @else if (canManageDocuments()) {
-                    <button type="button" class="upload-zone upload-zone--compact" (click)="onBrowseFile(row, fileInputOpt)" [disabled]="row.saving" aria-label="Browse and upload">
-                      <mat-icon>add</mat-icon>
-                      <span class="upload-zone__text">Upload</span>
+                  } @else if (canManageDocuments() && !isRowLocked(row)) {
+                    <button type="button" class="upload-zone" (click)="onBrowseFile(row, fileInput)" [disabled]="row.saving" aria-label="Browse and upload file">
+                      <mat-icon>upload</mat-icon>
+                      <span class="upload-zone__text">Click to upload</span>
+                      <span class="upload-zone__hint">PDF, JPG, PNG · max 10 MB</span>
                     </button>
                   } @else {
-                    <span class="no-file-label">—</span>
+                    <span class="no-file-label">No file uploaded</span>
                   }
                 </div>
 
                 <div class="doc-card__controls">
-                  @if (row.document) {
-                    <cms-status-badge [status]="row.status"></cms-status-badge>
-                  }
+                  <cms-status-badge [status]="row.status"></cms-status-badge>
                   @if (row.saving) {
                     <mat-spinner diameter="16"></mat-spinner>
+                  } @else if (isRowLocked(row)) {
+                    <span class="doc-card__locked-tag" matTooltip="Verified documents cannot be changed">
+                      <mat-icon>lock</mat-icon> Locked
+                    </span>
                   } @else if (canManageDocuments()) {
-                    @if (row.documentType === rejectingDocumentType()) {
-                      <!-- Inline rejection-reason prompt -->
+                    @if (verifyMode() && row.documentType === rejectingDocumentType()) {
                       <div class="reject-reason-panel">
                         <input
                           type="text"
@@ -357,12 +360,22 @@
                     } @else {
                       <div class="doc-card__status-actions">
                         @if (!verifyMode()) {
-                          <button type="button" class="status-btn" [class.status-btn--active-blue]="row.status === 'UPLOADED'" matTooltip="Mark uploaded" (click)="saveRow(row, 'UPLOADED')" [disabled]="row.status === 'UPLOADED'" aria-label="Mark uploaded"><mat-icon>upload_file</mat-icon></button>
+                          <button type="button" class="status-btn" [class.status-btn--active-blue]="row.status === 'UPLOADED'"
+                            matTooltip="Mark as uploaded"
+                            (click)="saveRow(row, 'UPLOADED')"
+                            [disabled]="row.status === 'UPLOADED' || !row.document?.hasFile"
+                            aria-label="Mark uploaded"><mat-icon>upload_file</mat-icon></button>
                         }
-                        <button type="button" class="status-btn" [class.status-btn--active-green]="row.status === 'VERIFIED'" matTooltip="Mark verified" (click)="saveRow(row, 'VERIFIED')" [disabled]="row.status === 'VERIFIED'" aria-label="Mark verified"><mat-icon>verified</mat-icon></button>
-                        <button type="button" class="status-btn" [class.status-btn--active-red]="row.status === 'REJECTED'" matTooltip="Mark rejected" (click)="startReject(row)" [disabled]="row.status === 'REJECTED'" aria-label="Mark rejected"><mat-icon>cancel</mat-icon></button>
+                        @if (verifyMode()) {
+                          <button type="button" class="status-btn" [class.status-btn--active-green]="row.status === 'VERIFIED'"
+                            matTooltip="Mark as verified"
+                            (click)="saveRow(row, 'VERIFIED')"
+                            [disabled]="row.status === 'VERIFIED' || !row.document?.hasFile"
+                            aria-label="Mark verified"><mat-icon>verified</mat-icon></button>
+                          <button type="button" class="status-btn" [class.status-btn--active-red]="row.status === 'REJECTED'" matTooltip="Mark as rejected" (click)="startReject(row)" [disabled]="row.status === 'REJECTED'" aria-label="Mark rejected"><mat-icon>cancel</mat-icon></button>
+                        }
                         @if (row.document) {
-                          <button type="button" class="status-btn status-btn--danger" matTooltip="Clear document" (click)="removeRow(row)" aria-label="Clear document"><mat-icon>delete_outline</mat-icon></button>
+                          <button type="button" class="status-btn status-btn--danger" matTooltip="Clear document record" (click)="removeRow(row)" aria-label="Clear document"><mat-icon>delete_outline</mat-icon></button>
                         }
                       </div>
                     }
@@ -372,23 +385,34 @@
 
               <div class="doc-card__remarks">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="remarks-icon" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <input type="text" class="remarks-input" placeholder="Add a note…" [(ngModel)]="row.remarks" [disabled]="row.saving || !canManageDocuments()" (blur)="onRemarksBlur(row)" [attr.aria-label]="'Remarks for ' + formatDocType(row.documentType)" />
+                <input type="text" class="remarks-input" placeholder="Add a note or remark…" [(ngModel)]="row.remarks" [disabled]="row.saving || !canManageDocuments() || isRowLocked(row)" (blur)="onRemarksBlur(row)" [attr.aria-label]="'Remarks for ' + formatDocType(row.documentType)" />
               </div>
-              @if (row.status === 'REJECTED' && canManageDocuments()) {
+
+              @if (row.status === 'REJECTED') {
                 <div class="doc-rejection-banner" role="alert">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="doc-rejection-banner__icon" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                       class="doc-rejection-banner__icon" aria-hidden="true">
                     <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                   </svg>
                   <div class="doc-rejection-banner__body">
                     <p class="doc-rejection-banner__title">Document Rejected</p>
-                    @if (row.remarks) { <p class="doc-rejection-banner__reason">Reason: {{ row.remarks }}</p> }
-                    <div class="doc-rejection-banner__replace">
-                      <button type="button" class="replace-btn" (click)="onBrowseFile(row, fileInputOpt)" [disabled]="row.saving" aria-label="Replace rejected file">
-                        <mat-icon>upload</mat-icon>
-                        Replace File
-                      </button>
-                      <span class="doc-rejection-banner__action">Upload a corrected document, then mark it as {{ verifyMode() ? 'Verified' : 'Uploaded' }}.</span>
-                    </div>
+                    @if (row.remarks) {
+                      <p class="doc-rejection-banner__reason">Reason: {{ row.remarks }}</p>
+                    } @else {
+                      <p class="doc-rejection-banner__reason">No reason provided. Please contact the front office.</p>
+                    }
+                    @if (canManageDocuments()) {
+                      <div class="doc-rejection-banner__replace">
+                        <button type="button" class="replace-btn" (click)="onBrowseFile(row, fileInput)" [disabled]="row.saving" aria-label="Replace rejected file">
+                          <mat-icon>upload</mat-icon>
+                          Replace File
+                        </button>
+                        <span class="doc-rejection-banner__action">Upload a corrected document, then mark it as {{ verifyMode() ? 'Verified' : 'Uploaded' }}.</span>
+                      </div>
+                    } @else {
+                      <p class="doc-rejection-banner__action">Please visit the front office to re-submit the correct document.</p>
+                    }
                   </div>
                 </div>
               }

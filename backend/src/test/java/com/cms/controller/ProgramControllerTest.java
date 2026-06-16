@@ -2,7 +2,6 @@ package com.cms.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -26,10 +25,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.cms.dto.ProgramDocumentRequirementsRequest;
+import com.cms.dto.ProgramDocumentRequirementsResponse;
 import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.enums.DocumentType;
 import com.cms.service.ProgramService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -51,7 +51,7 @@ class ProgramControllerTest {
         ProgramRequest request = new ProgramRequest("UG Program", "UG", 4, null, null, null, null, null);
 
         Instant now = Instant.now();
-        ProgramResponse response = new ProgramResponse(1L, "UG Program", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), null, null, null, now, now);
+        ProgramResponse response = new ProgramResponse(1L, "UG Program", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), Set.of(), null, null, null, now, now);
 
         when(programService.create(any(ProgramRequest.class))).thenReturn(response);
 
@@ -105,8 +105,8 @@ class ProgramControllerTest {
     @Test
     void shouldFindAllPrograms() throws Exception {
         Instant now = Instant.now();
-        ProgramResponse prog1 = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), null, null, null, now, now);
-        ProgramResponse prog2 = new ProgramResponse(2L, "Master", "MASTER", 2, 4, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), null, null, null, now, now);
+        ProgramResponse prog1 = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), Set.of(), null, null, null, now, now);
+        ProgramResponse prog2 = new ProgramResponse(2L, "Master", "MASTER", 2, 4, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), Set.of(), null, null, null, now, now);
 
         when(programService.findAll()).thenReturn(List.of(prog1, prog2));
 
@@ -135,7 +135,7 @@ class ProgramControllerTest {
     @Test
     void shouldFindProgramById() throws Exception {
         Instant now = Instant.now();
-        ProgramResponse response = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), null, null, null, now, now);
+        ProgramResponse response = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), Set.of(), null, null, null, now, now);
 
         when(programService.findById(1L)).thenReturn(response);
 
@@ -164,7 +164,7 @@ class ProgramControllerTest {
         ProgramRequest request = new ProgramRequest("Bachelor Updated", "BACHELOR", 4, null, null, null, null, null);
 
         Instant now = Instant.now();
-        ProgramResponse response = new ProgramResponse(1L, "Bachelor Updated", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), null, null, null, now, now);
+        ProgramResponse response = new ProgramResponse(1L, "Bachelor Updated", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), Set.of(), null, null, null, now, now);
 
         when(programService.update(eq(1L), any(ProgramRequest.class))).thenReturn(response);
 
@@ -226,57 +226,36 @@ class ProgramControllerTest {
     }
 
     @Test
-    void shouldGetRequiredDocumentTypes() throws Exception {
-        when(programService.getRequiredDocumentTypes(96L))
-            .thenReturn(Set.of(DocumentType.TENTH_MARKSHEET, DocumentType.TRANSCRIPT));
+    void shouldGetDocumentRequirements() throws Exception {
+        when(programService.getDocumentRequirements(96L))
+            .thenReturn(new ProgramDocumentRequirementsResponse(
+                Set.of("TENTH_MARKSHEET", "TRANSCRIPT"), Set.of("AADHAR_CARD")));
 
         mockMvc.perform(get("/programs/96/document-types"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray());
+            .andExpect(jsonPath("$.mandatory").isArray())
+            .andExpect(jsonPath("$.optional").isArray());
 
-        verify(programService).getRequiredDocumentTypes(96L);
+        verify(programService).getDocumentRequirements(96L);
     }
 
     @Test
-    void shouldSetRequiredDocumentTypes() throws Exception {
-        when(programService.setRequiredDocumentTypes(eq(96L), any(Set.class)))
-            .thenReturn(Set.of(DocumentType.TENTH_MARKSHEET, DocumentType.TRANSCRIPT));
+    void shouldSetDocumentRequirements() throws Exception {
+        when(programService.setDocumentRequirements(eq(96L), any(ProgramDocumentRequirementsRequest.class)))
+            .thenReturn(new ProgramDocumentRequirementsResponse(
+                Set.of("TENTH_MARKSHEET"), Set.of("AADHAR_CARD")));
 
-        String payload = objectMapper.writeValueAsString(List.of("TENTH_MARKSHEET", "TRANSCRIPT"));
+        String payload = objectMapper.writeValueAsString(
+            new ProgramDocumentRequirementsRequest(Set.of("TENTH_MARKSHEET"), Set.of("AADHAR_CARD")));
 
         mockMvc.perform(put("/programs/96/document-types")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray());
+            .andExpect(jsonPath("$.mandatory").isArray())
+            .andExpect(jsonPath("$.optional").isArray());
 
-        verify(programService).setRequiredDocumentTypes(eq(96L), any(Set.class));
-    }
-
-    @Test
-    void shouldAcceptDisplayNameWhenSettingRequiredDocumentTypes() throws Exception {
-        when(programService.setRequiredDocumentTypes(eq(96L), any(Set.class)))
-            .thenReturn(Set.of(DocumentType.TENTH_MARKSHEET));
-
-        // Send display name instead of enum name; controller should translate it.
-        String payload = objectMapper.writeValueAsString(List.of("10th Marksheet"));
-
-        mockMvc.perform(put("/programs/96/document-types")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(payload))
-            .andExpect(status().isOk());
-
-        verify(programService).setRequiredDocumentTypes(eq(96L), argThat(set -> set.contains(DocumentType.TENTH_MARKSHEET)));
-    }
-
-    @Test
-    void shouldReturnBadRequestForUnknownDocumentType() throws Exception {
-        String payload = objectMapper.writeValueAsString(List.of("NOT_A_REAL_TYPE"));
-
-        mockMvc.perform(put("/programs/96/document-types")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(payload))
-            .andExpect(status().isBadRequest());
+        verify(programService).setDocumentRequirements(eq(96L), any(ProgramDocumentRequirementsRequest.class));
     }
 
     @Test

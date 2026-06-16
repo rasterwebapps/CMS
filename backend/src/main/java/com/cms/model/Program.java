@@ -3,6 +3,7 @@ package com.cms.model;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -10,6 +11,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.DocumentType;
+import com.cms.model.enums.ProgramDocumentCategory;
 import com.cms.model.enums.ProgramStatus;
 
 import jakarta.persistence.CollectionTable;
@@ -70,9 +72,7 @@ public class Program {
         name = "program_document_types",
         joinColumns = @JoinColumn(name = "program_id")
     )
-    @Enumerated(EnumType.STRING)
-    @Column(name = "document_type", length = 100, nullable = false)
-    private Set<DocumentType> requiredDocumentTypes = new HashSet<>();
+    private Set<ProgramDocumentRequirement> documentRequirements = new HashSet<>();
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -152,27 +152,45 @@ public class Program {
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 
-    public Set<DocumentType> getRequiredDocumentTypes() {
-        return requiredDocumentTypes;
+    public Set<ProgramDocumentRequirement> getDocumentRequirements() {
+        return documentRequirements;
     }
 
     /**
-     * Replace the program's required document types in place.
+     * Replace document requirements in place.
      *
-     * Why: Hibernate tracks the {@link jakarta.persistence.ElementCollection}
-     * via the *original* PersistentSet wrapper. Reassigning the field to a
-     * brand-new {@link HashSet} can cause the join-table updates to be
-     * silently dropped on flush — the collection appears to save but reloads
-     * empty. Mutating the existing collection (clear + addAll) keeps
-     * Hibernate's dirty tracking working.
+     * Why: Hibernate tracks the @ElementCollection via the *original* PersistentSet.
+     * Reassigning to a new HashSet drops the dirty-tracking reference; clear + addAll
+     * keeps it intact so the join-table updates are actually flushed.
      */
-    public void setRequiredDocumentTypes(Set<DocumentType> requiredDocumentTypes) {
-        if (this.requiredDocumentTypes == null) {
-            this.requiredDocumentTypes = new HashSet<>();
+    public void setDocumentRequirements(Set<ProgramDocumentRequirement> requirements) {
+        if (this.documentRequirements == null) {
+            this.documentRequirements = new HashSet<>();
         }
-        this.requiredDocumentTypes.clear();
-        if (requiredDocumentTypes != null) {
-            this.requiredDocumentTypes.addAll(requiredDocumentTypes);
+        this.documentRequirements.clear();
+        if (requirements != null) {
+            this.documentRequirements.addAll(requirements);
         }
+    }
+
+    public Set<DocumentType> getMandatoryDocumentTypes() {
+        return documentRequirements.stream()
+            .filter(r -> r.getCategory() == ProgramDocumentCategory.MANDATORY)
+            .map(ProgramDocumentRequirement::getDocumentType)
+            .collect(Collectors.toSet());
+    }
+
+    public Set<DocumentType> getOptionalDocumentTypes() {
+        return documentRequirements.stream()
+            .filter(r -> r.getCategory() == ProgramDocumentCategory.OPTIONAL)
+            .map(ProgramDocumentRequirement::getDocumentType)
+            .collect(Collectors.toSet());
+    }
+
+    /** All configured document types regardless of category. */
+    public Set<DocumentType> getAllConfiguredDocumentTypes() {
+        return documentRequirements.stream()
+            .map(ProgramDocumentRequirement::getDocumentType)
+            .collect(Collectors.toSet());
     }
 }

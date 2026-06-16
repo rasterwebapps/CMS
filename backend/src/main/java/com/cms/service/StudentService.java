@@ -547,8 +547,8 @@ public class StudentService {
             .orElseThrow(() -> new ResourceNotFoundException("Program not found: " + newProgramId));
 
         Program oldProgram = student.getProgram();
-        Set<DocumentType> oldRequired = oldProgram.getRequiredDocumentTypes();
-        Set<DocumentType> newRequired = newProgram.getRequiredDocumentTypes();
+        Set<DocumentType> oldRequired = oldProgram.getAllConfiguredDocumentTypes();
+        Set<DocumentType> newRequired = newProgram.getAllConfiguredDocumentTypes();
 
         Long admissionId = admissionRepository.findByStudentId(studentId)
             .map(a -> a.getId()).orElse(null);

@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.EnumMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.cms.dto.AdmissionDocumentResponse;
+import com.cms.dto.DocumentChecklistResponse;
 import com.cms.dto.DocumentFileDownload;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Admission;
@@ -152,22 +153,34 @@ public class AdmissionDocumentService {
         documentRepository.deleteById(documentId);
     }
 
-    public Map<DocumentType, DocumentVerificationStatus> getChecklist(Long admissionId) {
+    public DocumentChecklistResponse getChecklist(Long admissionId) {
         Admission admission = admissionRepository.findById(admissionId)
             .orElseThrow(() -> new ResourceNotFoundException("Admission not found with id: " + admissionId));
 
-        Set<DocumentType> applicable = resolveApplicableTypes(admission);
+        Set<DocumentType> mandatory = resolveMandatoryTypes(admission);
+        Set<DocumentType> optional  = resolveOptionalTypes(admission);
 
-        Map<DocumentType, DocumentVerificationStatus> checklist = new EnumMap<>(DocumentType.class);
-        for (DocumentType type : applicable) {
-            checklist.put(type, DocumentVerificationStatus.NOT_UPLOADED);
+        Map<String, String> mandatoryMap = new LinkedHashMap<>();
+        Map<String, String> optionalMap  = new LinkedHashMap<>();
+
+        for (DocumentType type : mandatory) {
+            mandatoryMap.put(type.name(), DocumentVerificationStatus.NOT_UPLOADED.name());
         }
+        for (DocumentType type : optional) {
+            optionalMap.put(type.name(), DocumentVerificationStatus.NOT_UPLOADED.name());
+        }
+
         for (EnquiryDocument doc : documentRepository.findByAdmission_Id(admissionId)) {
-            if (applicable.contains(doc.getDocumentType())) {
-                checklist.put(doc.getDocumentType(), doc.getStatus());
+            String key = doc.getDocumentType().name();
+            String status = doc.getStatus().name();
+            if (mandatoryMap.containsKey(key)) {
+                mandatoryMap.put(key, status);
+            } else if (optionalMap.containsKey(key)) {
+                optionalMap.put(key, status);
             }
         }
-        return checklist;
+
+        return new DocumentChecklistResponse(mandatoryMap, optionalMap);
     }
 
     private void recordHistory(EnquiryDocument doc, DocumentVerificationStatus previous,
@@ -187,18 +200,20 @@ public class AdmissionDocumentService {
         historyRepository.save(history);
     }
 
-    private Set<DocumentType> resolveApplicableTypes(Admission admission) {
+    private Set<DocumentType> resolveMandatoryTypes(Admission admission) {
         Student student = admission.getStudent();
-        if (student != null) {
-            Program program = student.getProgram();
-            if (program != null) {
-                Set<DocumentType> configured = program.getRequiredDocumentTypes();
-                if (configured != null && !configured.isEmpty()) {
-                    return new HashSet<>(configured);
-                }
-            }
+        if (student != null && student.getProgram() != null) {
+            return new HashSet<>(student.getProgram().getMandatoryDocumentTypes());
         }
-        return new HashSet<>(Set.of(DocumentType.values()));
+        return new HashSet<>();
+    }
+
+    private Set<DocumentType> resolveOptionalTypes(Admission admission) {
+        Student student = admission.getStudent();
+        if (student != null && student.getProgram() != null) {
+            return new HashSet<>(student.getProgram().getOptionalDocumentTypes());
+        }
+        return new HashSet<>();
     }
 
     private String sanitizeFileName(String original) {

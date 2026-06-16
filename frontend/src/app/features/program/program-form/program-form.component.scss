@@ -70,13 +70,17 @@
 // ── Side Panel ──────────────────────────────────────────────────
 .doc-panel-backdrop {
   position: fixed;
-  top: 0;
+  top: 91px;
   left: 0;
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   z-index: 1050;
   animation: fadeIn 0.2s ease;
+
+  @media (max-width: 768px) {
+    top: 0;
+  }
 }
 
 @keyframes fadeIn {
@@ -86,10 +90,10 @@
 
 .doc-panel {
   position: fixed;
-  top: 0;
+  top: 91px;
   right: 0;
   bottom: 0;
-  width: 700px;
+  width: 860px;
   max-width: 90vw;
   background: #ffffff;
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
@@ -97,10 +101,14 @@
   display: flex;
   flex-direction: column;
   animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  // Keep panel below shell header/breadcrumb bars on desktop.
+  height: calc(100% - 91px);
 
   @media (max-width: 768px) {
+    top: 0;
     width: 100%;
     max-width: 100%;
+    height: 100%;
   }
 
   // Dark mode support
@@ -183,8 +191,11 @@
 
 .doc-panel__body {
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
+  overflow: hidden;   // shuttle handles its own scrolling
   padding: 24px;
+  display: flex;
+  flex-direction: column;
 }
 
 .doc-panel__footer {
@@ -198,20 +209,257 @@
   flex-shrink: 0;
 }
 
-// Two-column layout inside Required Documents card: checkboxes left, preview right
-.doc-selection-layout {
+// ── Document Shuttle (three-column transfer UI) ─────────────────
+
+.doc-shuttle {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;   // all three columns fill the same height
+  gap: 12px;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    height: auto;
+  }
+}
+
+// Available column — grows to fill remaining width, list scrolls inside
+.doc-shuttle-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--cms-bg-default);
+}
+
+.doc-shuttle-col__header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  background: var(--cms-bg-card);
+  border-bottom: 1px solid var(--cms-border-default);
+  flex-shrink: 0;
+
+  &--mandatory { color: var(--cms-danger, #ef4444); }
+  &--optional  { color: var(--cms-primary); }
+}
+
+.doc-shuttle-col__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: inherit;
+}
+
+.doc-shuttle-col__count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--cms-text-secondary);
+  background: var(--cms-bg-default);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.doc-shuttle-col__search {
+  padding: 8px;
+  border-bottom: 1px solid var(--cms-border-default);
+  flex-shrink: 0;
+
+  .field-input {
+    margin: 0;
+    font-size: 12px;
+    padding: 6px 10px;
+    height: auto;
+    min-height: unset;
+  }
+}
+
+.doc-shuttle-col__list {
+  flex: 1;          // fills the column — column height is already constrained
+  overflow-y: auto;
+  min-height: 0;
+  padding: 6px;
+}
+
+.doc-shuttle-col__selection-hint {
+  font-size: 11px;
+  color: var(--cms-primary);
+  padding: 6px 10px;
+  border-top: 1px solid var(--cms-border-default);
+  background: var(--cms-primary-light);
+  flex-shrink: 0;
+}
+
+.doc-shuttle-group {
+  margin-bottom: 8px;
+}
+
+.doc-shuttle-group__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--cms-text-muted);
+  font-weight: 600;
+  padding: 4px 6px 2px;
+}
+
+.doc-shuttle-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--cms-text-primary);
+  transition: background 0.1s ease;
+  user-select: none;
+
+  input[type="checkbox"] {
+    flex-shrink: 0;
+    accent-color: var(--cms-primary);
+    cursor: pointer;
+  }
+
+  &:hover { background: var(--cms-bg-hover); }
+
+  &--selected {
+    background: var(--cms-primary-light);
+    color: var(--cms-primary);
+  }
+}
+
+.doc-shuttle-empty {
+  font-size: 12px;
+  color: var(--cms-text-muted);
+  text-align: center;
+  padding: 20px 8px;
+  margin: 0;
+}
+
+// Transfer buttons column — fixed 92px, never shrinks
+.doc-shuttle-actions {
+  width: 92px;
+  flex-shrink: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+}
+
+.doc-shuttle-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--cms-text-secondary);
+
+  span { line-height: 1; }
+
+  &:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+  }
+
+  &--mandatory:not(:disabled):hover {
+    border-color: var(--cms-danger, #ef4444);
+    background: var(--cms-danger-light, #fef2f2);
+    color: var(--cms-danger, #ef4444);
+  }
+
+  &--optional:not(:disabled):hover {
+    border-color: var(--cms-primary);
+    background: var(--cms-primary-light);
+    color: var(--cms-primary);
+  }
+}
+
+// Assigned column — fixed 230px, never shrinks, two stacked sections
+.doc-shuttle-assigned {
+  width: 230px;
+  flex-shrink: 0;
+  height: 100%;
+  min-height: 0;
   display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 24px;
-  align-items: start;
+  // Deterministic split: Mandatory gets 2/3, Optional gets 1/3, both always present.
+  grid-template-rows: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 8px;
+  overflow: hidden;
+}
 
-  // Stack on tablets and smaller
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
+.doc-shuttle-assigned-section {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--cms-bg-default);
+  min-height: 0;
+}
 
-    .doc-preview-sidebar {
-      position: relative !important;
-      top: 0 !important;
-    }
+// Keep section headers visible while each list scrolls independently.
+.doc-shuttle-assigned-section .doc-shuttle-col__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+
+.doc-shuttle-assigned-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--cms-text-primary);
+
+  span {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.doc-shuttle-remove {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--cms-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  transition: all 0.1s ease;
+  padding: 0;
+
+  &:hover {
+    background: var(--cms-bg-hover);
+    color: var(--cms-danger, #ef4444);
   }
 }

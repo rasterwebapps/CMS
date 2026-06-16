@@ -33,6 +33,7 @@ import com.cms.dto.AdmissionConfirmationDto;
 import com.cms.dto.AdmissionDocumentResponse;
 import com.cms.dto.AdmissionRequest;
 import com.cms.dto.AdmissionResponse;
+import com.cms.dto.DocumentChecklistResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
@@ -295,12 +296,15 @@ class AdmissionControllerTest {
 
     @Test
     void shouldGetDocumentChecklist() throws Exception {
-        Map<DocumentType, DocumentVerificationStatus> checklist = Map.of(
-            DocumentType.AADHAR_CARD, DocumentVerificationStatus.UPLOADED
+        DocumentChecklistResponse checklist = new DocumentChecklistResponse(
+            Map.of(DocumentType.AADHAR_CARD.name(), DocumentVerificationStatus.UPLOADED.name()),
+            Map.of()
         );
         when(admissionDocumentService.getChecklist(1L)).thenReturn(checklist);
         mockMvc.perform(get("/admissions/1/documents/checklist"))
-            .andExpect(status().isOk());
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.mandatory").exists())
+            .andExpect(jsonPath("$.optional").exists());
         verify(admissionDocumentService).getChecklist(1L);
     }
 }

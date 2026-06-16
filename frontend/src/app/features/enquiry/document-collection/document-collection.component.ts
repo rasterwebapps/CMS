@@ -78,6 +78,8 @@ export class DocumentCollectionComponent implements OnInit {
 
   /** Mandatory document types resolved from the program configuration. */
   private readonly mandatoryTypes = signal<ReadonlySet<string>>(new Set());
+  /** Optional document types resolved from the program configuration. */
+  private readonly optionalTypes = signal<ReadonlySet<string>>(new Set());
 
   /** Number of mandatory documents successfully uploaded or verified. */
   protected readonly mandatorySatisfiedCount = computed(
@@ -192,11 +194,12 @@ export class DocumentCollectionComponent implements OnInit {
    * and the persisted documents in parallel.
    */
   private loadCatalogueAndDocuments(enquiryId: number, programId: number | null | undefined): void {
+    const emptyReqs = { mandatory: [] as string[], optional: [] as string[] };
     forkJoin({
       catalogue: this.programService.getAllDocumentTypes(),
-      programTypes: programId
-        ? this.programService.getRequiredDocumentTypes(programId).pipe(catchError(() => of<string[]>([])))
-        : of<string[]>([]),
+      requirements: programId
+        ? this.programService.getDocumentRequirements(programId).pipe(catchError(() => of(emptyReqs)))
+        : of(emptyReqs),
       documents: this.enquiryService.getDocuments(enquiryId).pipe(
         catchError(() => {
           this.toast.error('Failed to load documents');
@@ -204,14 +207,15 @@ export class DocumentCollectionComponent implements OnInit {
         }),
       ),
     }).subscribe({
-      next: ({ catalogue, programTypes, documents }) => {
+      next: ({ catalogue, requirements, documents }) => {
         this.documentCatalogue.set(catalogue);
         this.labelMap.set(new Map(catalogue.map((t) => [t.code, t.label])));
         const catalogueOrder = new Map(catalogue.map((t, i) => [t.code, i]));
-        const sorted = [...programTypes].sort(
+        const sorted = [...requirements.mandatory].sort(
           (a, b) => (catalogueOrder.get(a) ?? 999) - (catalogueOrder.get(b) ?? 999),
         );
         this.mandatoryTypes.set(new Set(sorted));
+        this.optionalTypes.set(new Set(requirements.optional));
         this.rows.set(this.buildChecklist(documents));
         this.loading.set(false);
       },
@@ -225,9 +229,8 @@ export class DocumentCollectionComponent implements OnInit {
   private buildChecklist(documents: EnquiryDocument[]): ChecklistRow[] {
     const byType = new Map(documents.map((d) => [d.documentType, d]));
     const mandatory = this.mandatoryTypes();
+    const optional = this.optionalTypes();
 
-    // Build rows only for the program-required types (mandatory set).
-    // All of these are shown as isMandatory: true.
     const requiredRows: ChecklistRow[] = Array.from(mandatory).map((type) => {
       const existing = byType.get(type) ?? null;
       return {
@@ -240,11 +243,22 @@ export class DocumentCollectionComponent implements OnInit {
       } satisfies ChecklistRow;
     });
 
-    // Safety net: any already-collected docs whose type is no longer in the
-    // program's required set (e.g., programme config changed after upload).
-    // Show them as optional so staff can still view/remove them.
+    const optionalRows: ChecklistRow[] = Array.from(optional).map((type) => {
+      const existing = byType.get(type) ?? null;
+      return {
+        documentType: type,
+        document: existing,
+        status: existing?.status ?? 'NOT_UPLOADED',
+        remarks: existing?.remarks ?? '',
+        isMandatory: false,
+        saving: false,
+      } satisfies ChecklistRow;
+    });
+
+    // Safety net: uploaded docs whose type is not in either mandatory or optional config.
+    const allConfigured = new Set([...mandatory, ...optional]);
     const orphanRows: ChecklistRow[] = documents
-      .filter((d) => !mandatory.has(d.documentType))
+      .filter((d) => !allConfigured.has(d.documentType))
       .map((d) => ({
         documentType: d.documentType,
         document: d,
@@ -254,7 +268,7 @@ export class DocumentCollectionComponent implements OnInit {
         saving: false,
       } satisfies ChecklistRow));
 
-    return [...requiredRows, ...orphanRows];
+    return [...requiredRows, ...optionalRows, ...orphanRows];
   }
 
   /** Persists a row — creates a new EnquiryDocument or updates the existing one. */

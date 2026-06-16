@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.util.Set;
 
 import com.cms.model.enums.AssessmentPattern;
-import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.ProgramStatus;
 
 public record ProgramResponse(
@@ -15,7 +14,8 @@ public record ProgramResponse(
     Integer totalTerms,
     ProgramStatus status,
     AssessmentPattern assessmentPattern,
-    Set<DocumentType> requiredDocumentTypes,
+    Set<String> mandatoryDocumentTypes,
+    Set<String> optionalDocumentTypes,
     Integer minimumAgeYears,
     Integer ageCutoffDay,
     Integer ageCutoffMonth,

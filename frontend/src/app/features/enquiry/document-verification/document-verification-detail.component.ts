@@ -47,6 +47,7 @@ export class DocumentVerificationDetailComponent implements OnInit {
 
   private readonly labelMap       = signal<Map<string, string>>(new Map());
   private readonly mandatoryTypes = signal<ReadonlySet<string>>(new Set());
+  private readonly optionalTypes  = signal<ReadonlySet<string>>(new Set());
 
   protected readonly mandatoryRows = computed(() => this.rows().filter(r => r.isMandatory));
   protected readonly optionalRows  = computed(() => this.rows().filter(r => !r.isMandatory));
@@ -126,22 +127,24 @@ export class DocumentVerificationDetailComponent implements OnInit {
   }
 
   private loadCatalogueAndDocuments(enquiryId: number, programId: number | null | undefined): void {
+    const emptyReqs = { mandatory: [] as string[], optional: [] as string[] };
     forkJoin({
       catalogue: this.programService.getAllDocumentTypes(),
-      programTypes: programId
-        ? this.programService.getRequiredDocumentTypes(programId).pipe(catchError(() => of<string[]>([])))
-        : of<string[]>([]),
+      requirements: programId
+        ? this.programService.getDocumentRequirements(programId).pipe(catchError(() => of(emptyReqs)))
+        : of(emptyReqs),
       documents: this.enquiryService.getDocuments(enquiryId).pipe(
         catchError(() => { this.toast.error('Failed to load documents'); return of<EnquiryDocument[]>([]); })
       ),
     }).subscribe({
-      next: ({ catalogue, programTypes, documents }) => {
+      next: ({ catalogue, requirements, documents }) => {
         this.labelMap.set(new Map(catalogue.map((t: DocumentTypeInfo) => [t.code, t.label])));
         const catalogueOrder = new Map(catalogue.map((t: DocumentTypeInfo, i: number) => [t.code, i]));
-        const sorted = [...programTypes].sort(
+        const sorted = [...requirements.mandatory].sort(
           (a, b) => (catalogueOrder.get(a) ?? 999) - (catalogueOrder.get(b) ?? 999),
         );
         this.mandatoryTypes.set(new Set(sorted));
+        this.optionalTypes.set(new Set(requirements.optional));
         this.rows.set(this.buildRows(documents));
         this.loading.set(false);
 
@@ -162,19 +165,26 @@ export class DocumentVerificationDetailComponent implements OnInit {
   }
 
   private buildRows(documents: EnquiryDocument[]): VerificationRow[] {
-    const byType   = new Map(documents.map(d => [d.documentType, d]));
+    const byType    = new Map(documents.map(d => [d.documentType, d]));
     const mandatory = this.mandatoryTypes();
+    const optional  = this.optionalTypes();
 
     const required: VerificationRow[] = Array.from(mandatory).map(type => {
       const doc = byType.get(type) ?? null;
       return { documentType: type, document: doc, status: doc?.status ?? 'NOT_UPLOADED', isMandatory: true, saving: false };
     });
 
+    const optionalRows: VerificationRow[] = Array.from(optional).map(type => {
+      const doc = byType.get(type) ?? null;
+      return { documentType: type, document: doc, status: doc?.status ?? 'NOT_UPLOADED', isMandatory: false, saving: false };
+    });
+
+    const allConfigured = new Set([...mandatory, ...optional]);
     const orphans: VerificationRow[] = documents
-      .filter(d => !mandatory.has(d.documentType))
+      .filter(d => !allConfigured.has(d.documentType))
       .map(d => ({ documentType: d.documentType, document: d, status: d.status, isMandatory: false, saving: false }));
 
-    return [...required, ...orphans];
+    return [...required, ...optionalRows, ...orphans];
   }
 
   private updateRow(type: string, next: Partial<VerificationRow>): void {

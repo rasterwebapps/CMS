@@ -340,7 +340,6 @@
   overflow: hidden;
 
   &:hover { box-shadow: var(--cms-shadow-md); border-color: var(--cms-border-hover); }
-  &--optional { opacity: 0.88; }
 
   &--uploaded {
     border-left-color: var(--cms-primary);

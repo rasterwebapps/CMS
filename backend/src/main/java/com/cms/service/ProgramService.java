@@ -4,15 +4,20 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.ProgramDocumentRequirementsRequest;
+import com.cms.dto.ProgramDocumentRequirementsResponse;
 import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Program;
+import com.cms.model.ProgramDocumentRequirement;
 import com.cms.model.enums.DocumentType;
+import com.cms.model.enums.ProgramDocumentCategory;
 import com.cms.repository.FeeStructureGroupRepository;
 import com.cms.repository.ProgramRepository;
 
@@ -117,6 +122,10 @@ public class ProgramService {
     }
 
     public ProgramResponse toResponse(Program program) {
+        Set<String> mandatory = program.getMandatoryDocumentTypes().stream()
+            .map(Enum::name).collect(Collectors.toSet());
+        Set<String> optional = program.getOptionalDocumentTypes().stream()
+            .map(Enum::name).collect(Collectors.toSet());
         return new ProgramResponse(
             program.getId(),
             program.getName(),
@@ -125,7 +134,8 @@ public class ProgramService {
             program.getTotalTerms(),
             program.getStatus(),
             program.getAssessmentPattern(),
-            new HashSet<>(program.getRequiredDocumentTypes()),
+            mandatory,
+            optional,
             program.getMinimumAgeYears(),
             program.getAgeCutoffDay(),
             program.getAgeCutoffMonth(),
@@ -134,20 +144,60 @@ public class ProgramService {
         );
     }
 
-    public Set<DocumentType> getRequiredDocumentTypes(Long programId) {
+    public ProgramDocumentRequirementsResponse getDocumentRequirements(Long programId) {
         Program program = programRepository.findById(programId)
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + programId));
-        return new HashSet<>(program.getRequiredDocumentTypes());
+        Set<String> mandatory = program.getMandatoryDocumentTypes().stream()
+            .map(Enum::name).collect(Collectors.toSet());
+        Set<String> optional = program.getOptionalDocumentTypes().stream()
+            .map(Enum::name).collect(Collectors.toSet());
+        return new ProgramDocumentRequirementsResponse(mandatory, optional);
     }
 
     @Transactional
-    public Set<DocumentType> setRequiredDocumentTypes(Long programId, Set<DocumentType> types) {
+    public ProgramDocumentRequirementsResponse setDocumentRequirements(
+            Long programId, ProgramDocumentRequirementsRequest request) {
         Program program = programRepository.findById(programId)
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + programId));
-        Set<DocumentType> sanitized = types != null ? new HashSet<>(types) : new HashSet<>();
-        program.setRequiredDocumentTypes(sanitized);
+
+        Set<ProgramDocumentRequirement> requirements = new HashSet<>();
+        if (request.mandatory() != null) {
+            for (String code : request.mandatory()) {
+                requirements.add(new ProgramDocumentRequirement(
+                    parseDocumentType(code), ProgramDocumentCategory.MANDATORY));
+            }
+        }
+        if (request.optional() != null) {
+            for (String code : request.optional()) {
+                DocumentType type = parseDocumentType(code);
+                // A type cannot be in both categories; MANDATORY wins if already added.
+                boolean alreadyMandatory = requirements.stream()
+                    .anyMatch(r -> r.getDocumentType() == type
+                        && r.getCategory() == ProgramDocumentCategory.MANDATORY);
+                if (!alreadyMandatory) {
+                    requirements.add(new ProgramDocumentRequirement(type, ProgramDocumentCategory.OPTIONAL));
+                }
+            }
+        }
+
+        program.setDocumentRequirements(requirements);
         Program saved = programRepository.save(program);
-        return new HashSet<>(saved.getRequiredDocumentTypes());
+        Set<String> savedMandatory = saved.getMandatoryDocumentTypes().stream()
+            .map(Enum::name).collect(Collectors.toSet());
+        Set<String> savedOptional = saved.getOptionalDocumentTypes().stream()
+            .map(Enum::name).collect(Collectors.toSet());
+        return new ProgramDocumentRequirementsResponse(savedMandatory, savedOptional);
+    }
+
+    private DocumentType parseDocumentType(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException("Document type code must not be blank");
+        }
+        try {
+            return DocumentType.valueOf(raw.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unknown document type: " + raw);
+        }
     }
 
     public boolean nameExists(String name, Long excludeId) {

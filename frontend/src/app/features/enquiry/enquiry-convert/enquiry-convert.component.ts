@@ -197,7 +197,7 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
   protected readonly saving                = signal(false);
   protected readonly successState          = signal<SuccessState | null>(null);
   protected readonly admissionDocs         = signal<AdmissionDocumentResponse[]>([]);
-  protected readonly admissionChecklist    = signal<Record<string, string>>({});
+  protected readonly admissionChecklist    = signal<{ mandatory: Record<string, string>; optional: Record<string, string> }>({ mandatory: {}, optional: {} });
   protected readonly printReady            = signal(false);
   protected readonly seatWarning           = signal<string | null>(null);
   protected readonly seatWarningSoft       = signal(false);
@@ -551,7 +551,11 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
     if (!s) return null;
     const v = this.form.value as Record<string, unknown>;
     const addr = (v['address'] ?? {}) as Record<string, unknown>;
-    const checklistDocuments = Object.entries(this.admissionChecklist()).map(([documentType, verificationStatus]) => ({
+    const cl = this.admissionChecklist();
+    const checklistDocuments = [
+      ...Object.entries(cl.mandatory),
+      ...Object.entries(cl.optional),
+    ].map(([documentType, verificationStatus]) => ({
       documentType,
       verificationStatus,
     }));

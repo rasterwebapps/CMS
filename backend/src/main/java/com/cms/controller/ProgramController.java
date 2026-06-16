@@ -1,10 +1,7 @@
 package com.cms.controller;
 
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-import com.cms.model.enums.DocumentType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.ProgramDocumentRequirementsRequest;
+import com.cms.dto.ProgramDocumentRequirementsResponse;
 import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
 import com.cms.service.ProgramService;
@@ -69,34 +68,19 @@ public class ProgramController {
         return ResponseEntity.noContent().build();
     }
 
-    // ── Document Types Management ────────────────────────────────────────
+    // ── Document Requirements Management ────────────────────────────────────────
 
-    /**
-     * Get required document types for a specific program.
-     */
     @GetMapping("/{id}/document-types")
-    public ResponseEntity<Set<String>> getRequiredDocumentTypes(@PathVariable Long id) {
-        Set<String> types = programService.getRequiredDocumentTypes(id).stream()
-            .map(Enum::name)
-            .collect(Collectors.toSet());
-        return ResponseEntity.ok(types);
+    public ResponseEntity<ProgramDocumentRequirementsResponse> getDocumentRequirements(@PathVariable Long id) {
+        return ResponseEntity.ok(programService.getDocumentRequirements(id));
     }
 
-    /**
-     * Set required document types for a specific program.
-     */
     @PutMapping("/{id}/document-types")
     @PreAuthorize("@perm.has('PROGRAM_MANAGE')")
-    public ResponseEntity<Set<String>> setRequiredDocumentTypes(
+    public ResponseEntity<ProgramDocumentRequirementsResponse> setDocumentRequirements(
             @PathVariable Long id,
-            @RequestBody Set<String> documentTypes) {
-        Set<DocumentType> parsed = (documentTypes == null ? Set.<String>of() : documentTypes).stream()
-            .map(this::parseDocumentType)
-            .collect(Collectors.toSet());
-        Set<String> updated = programService.setRequiredDocumentTypes(id, parsed).stream()
-            .map(Enum::name)
-            .collect(Collectors.toSet());
-        return ResponseEntity.ok(updated);
+            @RequestBody ProgramDocumentRequirementsRequest request) {
+        return ResponseEntity.ok(programService.setDocumentRequirements(id, request));
     }
 
     @GetMapping("/name-exists")
@@ -113,26 +97,5 @@ public class ProgramController {
             @RequestParam String value,
             @RequestParam(required = false) Long excludeId) {
         return ResponseEntity.ok(programService.codeExists(value, excludeId));
-    }
-
-    private DocumentType parseDocumentType(String raw) {
-        if (raw == null || raw.isBlank()) {
-            throw new IllegalArgumentException("Document type code must not be blank");
-        }
-
-        // Most common case: enum name, e.g. "TENTH_MARKSHEET"
-        try {
-            return DocumentType.valueOf(raw.trim().toUpperCase());
-        } catch (IllegalArgumentException ignored) {
-            // Fallback: display name, e.g. "10th Marksheet"
-            String normalized = raw.trim().toLowerCase();
-            for (DocumentType t : DocumentType.values()) {
-                if (t.getDisplayName().equalsIgnoreCase(raw.trim())
-                    || t.getDisplayName().toLowerCase().equals(normalized)) {
-                    return t;
-                }
-            }
-            throw new IllegalArgumentException("Unknown document type: " + raw);
-        }
     }
 }

@@ -91,12 +91,12 @@ public class EnquiryDocumentService {
             .map(EnquiryDocument::getDocumentType)
             .collect(Collectors.toSet());
 
-        Set<DocumentType> required = resolveRequiredTypes(enquiry);
+        Set<DocumentType> mandatory = resolveMandatoryTypes(enquiry);
 
         List<String> missing = new ArrayList<>();
-        for (DocumentType mandatory : required) {
-            if (!submittedTypes.contains(mandatory)) {
-                missing.add(mandatory.name());
+        for (DocumentType type : mandatory) {
+            if (!submittedTypes.contains(type)) {
+                missing.add(type.name());
             }
         }
 
@@ -104,9 +104,8 @@ public class EnquiryDocumentService {
     }
 
     /**
-     * Checks whether every mandatory document for the given enquiry has been
-     * marked as {@code VERIFIED} by a staff member. Used as a pre-flight gate
-     * before completing admission.
+     * Gate: all mandatory docs must be VERIFIED; any uploaded optional docs must
+     * also be VERIFIED (an optional doc stuck at UPLOADED blocks the gate).
      */
     public DocumentVerificationStatusResponse allMandatoryDocumentsVerified(Long enquiryId) {
         Enquiry enquiry = enquiryRepository.findById(enquiryId)
@@ -119,22 +118,31 @@ public class EnquiryDocumentService {
             .map(EnquiryDocument::getDocumentType)
             .collect(Collectors.toSet());
 
-        Set<DocumentType> uploadedOrVerifiedTypes = documents.stream()
-            .filter(d -> d.getStatus() == DocumentVerificationStatus.UPLOADED
-                      || d.getStatus() == DocumentVerificationStatus.VERIFIED)
+        Set<DocumentType> uploadedTypes = documents.stream()
+            .filter(d -> d.getStatus() == DocumentVerificationStatus.UPLOADED)
             .map(EnquiryDocument::getDocumentType)
             .collect(Collectors.toSet());
 
-        Set<DocumentType> required = resolveRequiredTypes(enquiry);
+        Set<DocumentType> mandatory = resolveMandatoryTypes(enquiry);
+        Set<DocumentType> optional  = resolveOptionalTypes(enquiry);
 
         List<String> unverified = new ArrayList<>();
         List<String> notUploaded = new ArrayList<>();
-        for (DocumentType mandatory : required) {
-            if (!verifiedTypes.contains(mandatory)) {
-                unverified.add(mandatory.name());
-                if (!uploadedOrVerifiedTypes.contains(mandatory)) {
-                    notUploaded.add(mandatory.name());
+
+        // All mandatory docs must be verified.
+        for (DocumentType type : mandatory) {
+            if (!verifiedTypes.contains(type)) {
+                unverified.add(type.name());
+                if (!uploadedTypes.contains(type)) {
+                    notUploaded.add(type.name());
                 }
+            }
+        }
+
+        // Any uploaded optional doc must also be verified.
+        for (DocumentType type : optional) {
+            if (uploadedTypes.contains(type)) {
+                unverified.add(type.name());
             }
         }
 
@@ -332,15 +340,16 @@ public class EnquiryDocumentService {
     }
 
     /**
-     * Checks whether all program-required documents for the enquiry are VERIFIED.
-     * If so, transitions the enquiry status from DOCUMENTS_SUBMITTED to DOCUMENTS_VERIFIED.
+     * Auto-transitions to DOCUMENTS_VERIFIED when all mandatory docs are verified
+     * and no uploaded optional docs are left pending verification.
      */
     private void autoTransitionIfAllVerified(Enquiry enquiry, String changedBy) {
         if (enquiry.getStatus() != EnquiryStatus.DOCUMENTS_SUBMITTED) {
             return;
         }
 
-        Set<DocumentType> requiredTypes = resolveRequiredTypes(enquiry);
+        Set<DocumentType> mandatory = resolveMandatoryTypes(enquiry);
+        Set<DocumentType> optional  = resolveOptionalTypes(enquiry);
         List<EnquiryDocument> docs = documentRepository.findByEnquiryId(enquiry.getId());
 
         Set<DocumentType> verifiedTypes = docs.stream()
@@ -348,7 +357,15 @@ public class EnquiryDocumentService {
             .map(EnquiryDocument::getDocumentType)
             .collect(Collectors.toSet());
 
-        if (verifiedTypes.containsAll(requiredTypes)) {
+        Set<DocumentType> uploadedTypes = docs.stream()
+            .filter(d -> d.getStatus() == DocumentVerificationStatus.UPLOADED)
+            .map(EnquiryDocument::getDocumentType)
+            .collect(Collectors.toSet());
+
+        boolean allMandatoryVerified = verifiedTypes.containsAll(mandatory);
+        boolean noUploadedOptionalPending = optional.stream().noneMatch(uploadedTypes::contains);
+
+        if (allMandatoryVerified && noUploadedOptionalPending) {
             EnquiryStatus oldStatus = enquiry.getStatus();
             enquiry.setStatus(EnquiryStatus.DOCUMENTS_VERIFIED);
             enquiryRepository.save(enquiry);
@@ -358,12 +375,16 @@ public class EnquiryDocumentService {
         }
     }
 
-    private Set<DocumentType> resolveRequiredTypes(Enquiry enquiry) {
+    private Set<DocumentType> resolveMandatoryTypes(Enquiry enquiry) {
         if (enquiry.getProgram() != null) {
-            Set<DocumentType> programTypes = enquiry.getProgram().getRequiredDocumentTypes();
-            if (programTypes != null) {
-                return new HashSet<>(programTypes);
-            }
+            return new HashSet<>(enquiry.getProgram().getMandatoryDocumentTypes());
+        }
+        return new HashSet<>();
+    }
+
+    private Set<DocumentType> resolveOptionalTypes(Enquiry enquiry) {
+        if (enquiry.getProgram() != null) {
+            return new HashSet<>(enquiry.getProgram().getOptionalDocumentTypes());
         }
         return new HashSet<>();
     }

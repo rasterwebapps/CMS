@@ -265,57 +265,67 @@ class ProgramServiceTest {
     }
 
     @Test
-    void shouldGetRequiredDocumentTypes() {
+    void shouldGetDocumentRequirements() {
         Program program = createProgram(1L, "Bachelor", "BACHELOR", 4);
-        program.setRequiredDocumentTypes(Set.of(DocumentType.TENTH_MARKSHEET, DocumentType.AADHAR_CARD));
+        program.setDocumentRequirements(Set.of(
+            new com.cms.model.ProgramDocumentRequirement(DocumentType.TENTH_MARKSHEET, com.cms.model.enums.ProgramDocumentCategory.MANDATORY),
+            new com.cms.model.ProgramDocumentRequirement(DocumentType.AADHAR_CARD, com.cms.model.enums.ProgramDocumentCategory.OPTIONAL)
+        ));
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
 
-        Set<DocumentType> result = programService.getRequiredDocumentTypes(1L);
+        com.cms.dto.ProgramDocumentRequirementsResponse result = programService.getDocumentRequirements(1L);
 
-        assertThat(result).containsExactlyInAnyOrder(DocumentType.TENTH_MARKSHEET, DocumentType.AADHAR_CARD);
+        assertThat(result.mandatory()).containsExactly("TENTH_MARKSHEET");
+        assertThat(result.optional()).containsExactly("AADHAR_CARD");
     }
 
     @Test
-    void shouldThrowWhenGettingDocumentTypesForNonExistentProgram() {
+    void shouldThrowWhenGettingDocumentRequirementsForNonExistentProgram() {
         when(programRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> programService.getRequiredDocumentTypes(999L))
+        assertThatThrownBy(() -> programService.getDocumentRequirements(999L))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessageContaining("999");
     }
 
     @Test
-    void shouldSetRequiredDocumentTypes() {
+    void shouldSetDocumentRequirements() {
         Program program = createProgram(1L, "Bachelor", "BACHELOR", 4);
-        Set<DocumentType> types = Set.of(DocumentType.TWELFTH_MARKSHEET, DocumentType.PASSPORT_PHOTO);
+        com.cms.dto.ProgramDocumentRequirementsRequest request = new com.cms.dto.ProgramDocumentRequirementsRequest(
+            Set.of("TWELFTH_MARKSHEET", "PASSPORT_PHOTO"), Set.of("AADHAR_CARD")
+        );
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
         when(programRepository.save(any(Program.class))).thenReturn(program);
 
-        Set<DocumentType> result = programService.setRequiredDocumentTypes(1L, types);
+        com.cms.dto.ProgramDocumentRequirementsResponse result = programService.setDocumentRequirements(1L, request);
 
-        assertThat(result).containsExactlyInAnyOrder(DocumentType.TWELFTH_MARKSHEET, DocumentType.PASSPORT_PHOTO);
+        assertThat(result.mandatory()).containsExactlyInAnyOrder("TWELFTH_MARKSHEET", "PASSPORT_PHOTO");
+        assertThat(result.optional()).containsExactlyInAnyOrder("AADHAR_CARD");
         verify(programRepository).save(any(Program.class));
     }
 
     @Test
-    void shouldSetRequiredDocumentTypesToEmptyWhenNullPassed() {
+    void shouldSetDocumentRequirementsToEmptyWhenNullPassed() {
         Program program = createProgram(1L, "Bachelor", "BACHELOR", 4);
+        com.cms.dto.ProgramDocumentRequirementsRequest request = new com.cms.dto.ProgramDocumentRequirementsRequest(null, null);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
         when(programRepository.save(any(Program.class))).thenReturn(program);
 
-        Set<DocumentType> result = programService.setRequiredDocumentTypes(1L, null);
+        com.cms.dto.ProgramDocumentRequirementsResponse result = programService.setDocumentRequirements(1L, request);
 
-        assertThat(result).isEmpty();
+        assertThat(result.mandatory()).isEmpty();
+        assertThat(result.optional()).isEmpty();
     }
 
     @Test
-    void shouldThrowWhenSettingDocumentTypesForNonExistentProgram() {
+    void shouldThrowWhenSettingDocumentRequirementsForNonExistentProgram() {
         when(programRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> programService.setRequiredDocumentTypes(999L, Set.of()))
+        assertThatThrownBy(() -> programService.setDocumentRequirements(999L,
+            new com.cms.dto.ProgramDocumentRequirementsRequest(Set.of(), Set.of())))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessageContaining("999");
     }

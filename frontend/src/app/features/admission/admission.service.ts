@@ -78,8 +78,8 @@ export class AdmissionService {
     });
   }
 
-  getDocumentChecklist(admissionId: number): Observable<Record<string, string>> {
-    return this.http.get<Record<string, string>>(`${this.baseUrl}/${admissionId}/documents/checklist`);
+  getDocumentChecklist(admissionId: number): Observable<{ mandatory: Record<string, string>; optional: Record<string, string> }> {
+    return this.http.get<{ mandatory: Record<string, string>; optional: Record<string, string> }>(`${this.baseUrl}/${admissionId}/documents/checklist`);
   }
 
   uploadDocument(

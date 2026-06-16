@@ -80,14 +80,15 @@ export class DocumentSlotsService {
   loadStudent(admissionId: number): void {
     forkJoin({
       checklist: this.admissionService.getDocumentChecklist(admissionId).pipe(
-        catchError(() => of<Record<string, string>>({})),
+        catchError(() => of({ mandatory: {} as Record<string, string>, optional: {} as Record<string, string> })),
       ),
       documents: this.admissionService.getDocuments(admissionId).pipe(catchError(() => of([]))),
     }).subscribe(({ checklist, documents }) => {
+      const allConfigured = { ...checklist.mandatory, ...checklist.optional };
       const byType = new Map(documents.map((d) => [d.documentType, d]));
-      const required = new Set(Object.keys(checklist));
+      const required = new Set(Object.keys(allConfigured));
       const slots: DocSlotLite[] = Array.from(required).map((type) => ({
-        status: byType.get(type)?.verificationStatus ?? checklist[type] ?? 'NOT_UPLOADED',
+        status: byType.get(type)?.verificationStatus ?? allConfigured[type] ?? 'NOT_UPLOADED',
       }));
       documents
         .filter((d) => !required.has(d.documentType))

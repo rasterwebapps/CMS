@@ -4,7 +4,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -30,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.cms.dto.DocumentChecklistResponse;
 import com.cms.dto.DocumentFileDownload;
 
 import com.cms.dto.AcademicQualificationRequest;
@@ -157,7 +157,7 @@ public class AdmissionController {
     }
 
     @GetMapping("/{admissionId}/documents/checklist")
-    public ResponseEntity<Map<DocumentType, DocumentVerificationStatus>> getChecklist(
+    public ResponseEntity<DocumentChecklistResponse> getChecklist(
             @PathVariable Long admissionId) {
         return ResponseEntity.ok(admissionDocumentService.getChecklist(admissionId));
     }

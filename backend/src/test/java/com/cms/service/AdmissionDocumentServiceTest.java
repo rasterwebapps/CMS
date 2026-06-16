@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -21,14 +20,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.AdmissionDocumentResponse;
+import com.cms.dto.DocumentChecklistResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Admission;
 import com.cms.model.AcademicYear;
 import com.cms.model.EnquiryDocument;
 import com.cms.model.Program;
+import com.cms.model.ProgramDocumentRequirement;
 import com.cms.model.Student;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
+import com.cms.model.enums.ProgramDocumentCategory;
 import com.cms.model.enums.StudentStatus;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.EnquiryDocumentRepository;
@@ -60,11 +62,15 @@ class AdmissionDocumentServiceTest {
         return createAdmission(id, null);
     }
 
-    private Admission createAdmission(Long id, Set<DocumentType> programRequiredTypes) {
+    private Admission createAdmission(Long id, Set<DocumentType> mandatoryTypes) {
         Program program = null;
-        if (programRequiredTypes != null) {
+        if (mandatoryTypes != null) {
             program = new Program("Bachelor", "BACHELOR", 4);
-            program.setRequiredDocumentTypes(programRequiredTypes);
+            Set<ProgramDocumentRequirement> reqs = new java.util.HashSet<>();
+            for (DocumentType t : mandatoryTypes) {
+                reqs.add(new ProgramDocumentRequirement(t, ProgramDocumentCategory.MANDATORY));
+            }
+            program.setDocumentRequirements(reqs);
         }
         Student student = new Student("ROLL001", "John", "Doe", "john@example.com",
             program, 1, LocalDate.of(2024, 1, 1), StudentStatus.ACTIVE);
@@ -140,52 +146,37 @@ class AdmissionDocumentServiceTest {
     }
 
     @Test
-    void shouldGetChecklistWithAllDocumentTypesWhenProgramHasNoMapping() {
-        Admission admission = createAdmission(1L);
-        EnquiryDocument doc = createDocument(1L, admission, DocumentType.AADHAR_CARD);
-        doc.setStatus(DocumentVerificationStatus.VERIFIED);
-        when(admissionRepository.findById(1L)).thenReturn(Optional.of(admission));
-        when(enquiryDocumentRepository.findByAdmission_Id(1L)).thenReturn(List.of(doc));
-
-        Map<DocumentType, DocumentVerificationStatus> checklist = admissionDocumentService.getChecklist(1L);
-
-        assertThat(checklist).containsKey(DocumentType.AADHAR_CARD);
-        assertThat(checklist.get(DocumentType.AADHAR_CARD)).isEqualTo(DocumentVerificationStatus.VERIFIED);
-        assertThat(checklist.get(DocumentType.TENTH_MARKSHEET)).isEqualTo(DocumentVerificationStatus.NOT_UPLOADED);
-        assertThat(checklist).hasSize(DocumentType.values().length);
-    }
-
-    @Test
-    void shouldReturnAllDocumentTypesAsNotUploadedWhenNoDocuments() {
+    void shouldReturnEmptyChecklistWhenProgramHasNoDocumentConfig() {
         Admission admission = createAdmission(1L);
         when(admissionRepository.findById(1L)).thenReturn(Optional.of(admission));
         when(enquiryDocumentRepository.findByAdmission_Id(1L)).thenReturn(List.of());
-        Map<DocumentType, DocumentVerificationStatus> checklist = admissionDocumentService.getChecklist(1L);
-        assertThat(checklist).hasSize(DocumentType.values().length);
-        checklist.values().forEach(status ->
-            assertThat(status).isEqualTo(DocumentVerificationStatus.NOT_UPLOADED));
+
+        DocumentChecklistResponse checklist = admissionDocumentService.getChecklist(1L);
+
+        assertThat(checklist.mandatory()).isEmpty();
+        assertThat(checklist.optional()).isEmpty();
     }
 
     @Test
-    void shouldGetChecklistOnlyForProgramRequiredTypesWhenConfigured() {
-        Set<DocumentType> required = Set.of(
+    void shouldGetChecklistForConfiguredMandatoryTypes() {
+        Set<DocumentType> mandatory = Set.of(
             DocumentType.AADHAR_CARD,
             DocumentType.TENTH_MARKSHEET,
             DocumentType.PASSPORT_PHOTO
         );
-        Admission admission = createAdmission(1L, required);
+        Admission admission = createAdmission(1L, mandatory);
         EnquiryDocument doc = createDocument(1L, admission, DocumentType.AADHAR_CARD);
         doc.setStatus(DocumentVerificationStatus.VERIFIED);
         when(admissionRepository.findById(1L)).thenReturn(Optional.of(admission));
         when(enquiryDocumentRepository.findByAdmission_Id(1L)).thenReturn(List.of(doc));
 
-        Map<DocumentType, DocumentVerificationStatus> checklist = admissionDocumentService.getChecklist(1L);
+        DocumentChecklistResponse checklist = admissionDocumentService.getChecklist(1L);
 
-        assertThat(checklist).hasSize(3);
-        assertThat(checklist.keySet()).containsExactlyInAnyOrderElementsOf(required);
-        assertThat(checklist.get(DocumentType.AADHAR_CARD)).isEqualTo(DocumentVerificationStatus.VERIFIED);
-        assertThat(checklist.get(DocumentType.TENTH_MARKSHEET)).isEqualTo(DocumentVerificationStatus.NOT_UPLOADED);
-        assertThat(checklist.get(DocumentType.PASSPORT_PHOTO)).isEqualTo(DocumentVerificationStatus.NOT_UPLOADED);
+        assertThat(checklist.mandatory()).hasSize(3);
+        assertThat(checklist.optional()).isEmpty();
+        assertThat(checklist.mandatory().get(DocumentType.AADHAR_CARD.name())).isEqualTo(DocumentVerificationStatus.VERIFIED.name());
+        assertThat(checklist.mandatory().get(DocumentType.TENTH_MARKSHEET.name())).isEqualTo(DocumentVerificationStatus.NOT_UPLOADED.name());
+        assertThat(checklist.mandatory().get(DocumentType.PASSPORT_PHOTO.name())).isEqualTo(DocumentVerificationStatus.NOT_UPLOADED.name());
     }
 
     @Test

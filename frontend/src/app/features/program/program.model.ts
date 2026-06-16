@@ -9,12 +9,23 @@ export interface Program {
   totalTerms: number;
   status: ProgramStatus;
   assessmentPattern: AssessmentPattern;
-  requiredDocumentTypes: string[];
+  mandatoryDocumentTypes: string[];
+  optionalDocumentTypes: string[];
   minimumAgeYears: number;
   ageCutoffDay: number;
   ageCutoffMonth: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DocumentRequirementsResponse {
+  mandatory: string[];
+  optional: string[];
+}
+
+export interface DocumentRequirementsRequest {
+  mandatory: string[];
+  optional: string[];
 }
 
 export interface ProgramRequest {

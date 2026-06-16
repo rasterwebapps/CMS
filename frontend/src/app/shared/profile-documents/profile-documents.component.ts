@@ -39,6 +39,7 @@ interface DocumentSlot {
   verifiedAt?: string;
   remarks?: string;
   isMandatory: boolean;
+  isOptional: boolean;
   saving: boolean;
 }
 
@@ -109,40 +110,53 @@ export class ProfileDocumentsComponent implements OnChanges {
     const missingRequired = this.slots().filter(
       (slot) => slot.isMandatory && slot.status === 'NOT_UPLOADED',
     );
-    const pendingRequired = this.slots().filter(
-      (slot) => slot.isMandatory && slot.status !== 'NOT_UPLOADED' && slot.status !== 'VERIFIED',
+    // All uploaded-but-pending docs (mandatory or optional) need staff action.
+    const pendingVerification = this.slots().filter(
+      (slot) => slot.status !== 'NOT_UPLOADED' && slot.status !== 'VERIFIED',
     );
-    const verifiedRequired = this.slots().filter(
-      (slot) => slot.isMandatory && slot.status === 'VERIFIED',
+    const verified = this.slots().filter((slot) => slot.status === 'VERIFIED');
+    // Optional docs not yet uploaded — visible but not blocking.
+    const optionalNotUploaded = this.slots().filter(
+      (slot) => !slot.isMandatory && slot.isOptional && slot.status === 'NOT_UPLOADED',
     );
-    const extraCollected = this.slots().filter((slot) => !slot.isMandatory);
+    // Docs not in any configured category (extra uploads).
+    const extraCollected = this.slots().filter(
+      (slot) => !slot.isMandatory && !slot.isOptional,
+    );
 
     return [
       {
         key: 'missing-required',
         title: 'Missing Required Documents',
-        subtitle: 'New or pending program requirements appear here first for quick upload.',
+        subtitle: 'These documents are mandatory and must be submitted before progression.',
         icon: 'priority_high',
         slots: missingRequired,
       },
       {
-        key: 'pending-required',
-        title: 'Uploaded / Pending Verification',
-        subtitle: 'Required documents uploaded by the office or student and awaiting action.',
+        key: 'pending-verification',
+        title: 'Awaiting Verification',
+        subtitle: 'Uploaded documents pending staff review — includes any uploaded optional documents.',
         icon: 'pending_actions',
-        slots: pendingRequired,
+        slots: pendingVerification,
       },
       {
-        key: 'verified-required',
-        title: 'Verified Required Documents',
-        subtitle: 'Required documents that are complete and locked from replacement.',
+        key: 'verified',
+        title: 'Verified Documents',
+        subtitle: 'Documents that have been reviewed and approved.',
         icon: 'verified',
-        slots: verifiedRequired,
+        slots: verified,
+      },
+      {
+        key: 'optional-docs',
+        title: 'Additional Documents (Optional)',
+        subtitle: 'Not required to proceed, but can be submitted. If uploaded, they must be verified.',
+        icon: 'add_circle_outline',
+        slots: optionalNotUploaded,
       },
       {
         key: 'extra-collected',
-        title: 'Collected Documents Not Currently Required',
-        subtitle: 'Previously collected documents are preserved even if removed from the program requirements.',
+        title: 'Other Collected Documents',
+        subtitle: 'Previously collected documents not currently in the program configuration.',
         icon: 'inventory_2',
         slots: extraCollected,
       },
@@ -197,6 +211,7 @@ export class ProfileDocumentsComponent implements OnChanges {
             verifiedAt: doc?.verifiedAt ?? undefined,
             remarks: doc?.remarks ?? undefined,
             isMandatory: true,
+            isOptional: false,
             saving: false,
           };
         });
@@ -215,6 +230,7 @@ export class ProfileDocumentsComponent implements OnChanges {
               verifiedAt: d.verifiedAt ?? undefined,
               remarks: d.remarks ?? undefined,
               isMandatory: false,
+              isOptional: false,
               saving: false,
             });
           });
@@ -234,7 +250,7 @@ export class ProfileDocumentsComponent implements OnChanges {
     forkJoin({
       catalogue: this.programService.getAllDocumentTypes().pipe(catchError(() => of<DocumentTypeInfo[]>([]))),
       checklist: this.admissionService.getDocumentChecklist(this.entityId).pipe(
-        catchError(() => of<Record<string, string>>({})),
+        catchError(() => of<{ mandatory: Record<string, string>; optional: Record<string, string> }>({ mandatory: {}, optional: {} })),
       ),
       documents: this.admissionService.getDocuments(this.entityId).pipe(catchError(() => of([]))),
     }).subscribe({
@@ -242,27 +258,52 @@ export class ProfileDocumentsComponent implements OnChanges {
         this.catalogue.set(catalogue);
         this.labelMap = new Map(catalogue.map((t) => [t.code, t.label]));
 
-        const required = new Set(Object.keys(checklist));
+        const mandatoryTypes = new Set(Object.keys(checklist.mandatory));
+        const optionalTypes  = new Set(Object.keys(checklist.optional));
+        const allConfigured  = new Set([...mandatoryTypes, ...optionalTypes]);
         const byType = new Map(documents.map((d) => [d.documentType, d]));
 
-        const slots: DocumentSlot[] = Array.from(required).map((type) => {
+        const slots: DocumentSlot[] = [];
+
+        // Mandatory slots
+        for (const type of mandatoryTypes) {
           const doc = byType.get(type);
-          return {
+          slots.push({
             documentType: type,
             label: this.labelFor(type),
-            status: doc?.verificationStatus ?? checklist[type] ?? 'NOT_UPLOADED',
+            status: doc?.verificationStatus ?? checklist.mandatory[type] ?? 'NOT_UPLOADED',
             documentId: doc?.id,
             hasFile: doc?.hasFile ?? false,
             verifiedBy: doc?.verifiedBy ?? undefined,
             verifiedAt: doc?.verifiedAt ?? undefined,
             remarks: doc?.remarks ?? undefined,
             isMandatory: true,
+            isOptional: false,
             saving: false,
-          };
-        });
+          });
+        }
 
+        // Optional slots (including NOT_UPLOADED — they are visible)
+        for (const type of optionalTypes) {
+          const doc = byType.get(type);
+          slots.push({
+            documentType: type,
+            label: this.labelFor(type),
+            status: doc?.verificationStatus ?? checklist.optional[type] ?? 'NOT_UPLOADED',
+            documentId: doc?.id,
+            hasFile: doc?.hasFile ?? false,
+            verifiedBy: doc?.verifiedBy ?? undefined,
+            verifiedAt: doc?.verifiedAt ?? undefined,
+            remarks: doc?.remarks ?? undefined,
+            isMandatory: false,
+            isOptional: true,
+            saving: false,
+          });
+        }
+
+        // Extra collected (not in any configured category)
         documents
-          .filter((d) => !required.has(d.documentType))
+          .filter((d) => !allConfigured.has(d.documentType))
           .forEach((d) => {
             slots.push({
               documentType: d.documentType,
@@ -274,6 +315,7 @@ export class ProfileDocumentsComponent implements OnChanges {
               verifiedAt: d.verifiedAt ?? undefined,
               remarks: d.remarks ?? undefined,
               isMandatory: false,
+              isOptional: false,
               saving: false,
             });
           });
