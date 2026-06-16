@@ -54,7 +54,7 @@ viewing or downloading them from the enquiry view screen.
 1. Click **Browse** and select a file larger than 10 MB.
 
 **Expected Result:**
-- A snackbar warning appears: *"File exceeds the 10 MB upload limit"*.
+- A snackbar warning appears: *"Only PDF, JPG, PNG files are allowed (max 10 MB)"*.
 - No upload request is sent and the row's state is unchanged.
 
 **Status:** NOT TESTED
@@ -128,3 +128,44 @@ viewing or downloading them from the enquiry view screen.
   binary is stored in the `enquiry_documents.file_data` BLOB column.
 
 **Status:** NOT TESTED
+
+---
+
+## TC-DOCFILE-008: Document Verification rejects unsupported replacement format
+
+**Preconditions:**
+- User is logged in with document verification permissions.
+- Enquiry is in `DOCUMENTS_SUBMITTED` status.
+- At least one document is `REJECTED` so **Replace File** is visible.
+
+**Steps:**
+1. Open **Admission Management → Verify Documents** and open the enquiry.
+2. Click **Replace File** on a rejected document.
+3. Choose an unsupported file format (e.g., `.webp`, `.webm`, `.docx`).
+
+**Expected Result:**
+- Upload is blocked.
+- A warning toast is shown: *"Only PDF, JPG, PNG files are allowed (max 10 MB)"*.
+- The row remains unchanged and no new file is attached.
+
+**Status:** NOT TESTED
+
+---
+
+## TC-DOCFILE-009: Enquiry Convert consent upload rejects unsupported format
+
+**Preconditions:**
+- User can open **Create Admission** for an enquiry.
+- Optional consent document section is visible.
+
+**Steps:**
+1. In **Consent Documents**, choose a non-supported file for either parent/applicant consent input.
+2. Try selecting an unsupported format (e.g., `.webp`, `.webm`, `.docx`).
+
+**Expected Result:**
+- Selection is rejected and file name is not retained.
+- A warning toast is shown: *"Only PDF, JPG, PNG files are allowed (max 10 MB)"*.
+- Submission can proceed without the invalid file (uploads are optional).
+
+**Status:** NOT TESTED
+

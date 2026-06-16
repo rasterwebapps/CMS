@@ -38,6 +38,14 @@ interface SuccessState {
   academicYearName: string;
 }
 
+const MAX_CONSENT_UPLOAD_BYTES = 10 * 1024 * 1024;
+const ALLOWED_UPLOAD_MIME_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+]);
+const ALLOWED_UPLOAD_EXTENSIONS = new Set(['pdf', 'jpg', 'jpeg', 'png']);
+
 // Step definitions
 const CONV_STEPS = [
   { label: 'Student Details', description: 'Name, contact & dates'     },
@@ -503,13 +511,47 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   protected onParentConsentFile(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    if (!file) {
+      this.parentConsentFile.set(null);
+      return;
+    }
+    if (!this.isSupportedConsentFile(file)) {
+      this.toast.warning('Only PDF, JPG, PNG files are allowed (max 10 MB)');
+      input.value = '';
+      this.parentConsentFile.set(null);
+      return;
+    }
     this.parentConsentFile.set(file);
   }
 
   protected onApplicantConsentFile(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    if (!file) {
+      this.applicantConsentFile.set(null);
+      return;
+    }
+    if (!this.isSupportedConsentFile(file)) {
+      this.toast.warning('Only PDF, JPG, PNG files are allowed (max 10 MB)');
+      input.value = '';
+      this.applicantConsentFile.set(null);
+      return;
+    }
     this.applicantConsentFile.set(file);
+  }
+
+  private isSupportedConsentFile(file: File): boolean {
+    if (file.size > MAX_CONSENT_UPLOAD_BYTES) {
+      return false;
+    }
+    const extension = file.name.includes('.')
+      ? file.name.split('.').pop()?.toLowerCase() ?? ''
+      : '';
+    const hasAllowedMime = ALLOWED_UPLOAD_MIME_TYPES.has(file.type.toLowerCase());
+    const hasAllowedExtension = ALLOWED_UPLOAD_EXTENSIONS.has(extension);
+    return hasAllowedMime || hasAllowedExtension;
   }
 
   protected onSubmit(): void {

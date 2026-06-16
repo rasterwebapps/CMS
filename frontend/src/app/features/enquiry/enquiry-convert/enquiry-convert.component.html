@@ -763,7 +763,7 @@
                           <span class="file-size">{{ (parentConsentFile()!.size / 1024).toFixed(0) }} KB</span>
                         } @else { Choose file… }
                       </label>
-                      <input id="conv-parent-consent-file" type="file" accept=".pdf,.jpg,.jpeg,.png"
+                      <input id="conv-parent-consent-file" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
                              class="file-input-hidden" (change)="onParentConsentFile($event)" />
                     </div>
                     <p class="field-hint">PDF, JPG or PNG · max 10 MB</p>
@@ -783,7 +783,7 @@
                           <span class="file-size">{{ (applicantConsentFile()!.size / 1024).toFixed(0) }} KB</span>
                         } @else { Choose file… }
                       </label>
-                      <input id="conv-applicant-consent-file" type="file" accept=".pdf,.jpg,.jpeg,.png"
+                      <input id="conv-applicant-consent-file" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
                              class="file-input-hidden" (change)="onApplicantConsentFile($event)" />
                     </div>
                     <p class="field-hint">PDF, JPG or PNG · max 10 MB</p>

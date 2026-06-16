@@ -112,6 +112,7 @@
             <input
               #replaceInput
               type="file"
+              accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
               style="display:none"
               (change)="onFileSelected(row, $event)"
               [attr.aria-label]="'Replace file for ' + formatDocType(row.documentType)"

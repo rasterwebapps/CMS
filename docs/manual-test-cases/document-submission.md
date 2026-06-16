@@ -261,3 +261,22 @@ The workflow is:
 
 **Status:** NOT TESTED
 
+---
+
+## TC-DOCSUB-015: Rejected document reason appears only once
+
+**Preconditions:**
+- User is logged in with `ROLE_ADMIN` or `ROLE_FRONT_OFFICE`.
+- Entry page `/enquiries/document-submission/<id>` is open.
+
+**Steps:**
+1. Mark a required document as **Rejected** and enter a rejection reason.
+2. Observe the same row after rejection is saved.
+
+**Expected Result:**
+- Rejection reason is shown only in the **Document Rejected** banner.
+- Inline remark input row is not shown for rejected rows.
+- No duplicate display of the same reason text.
+
+**Status:** NOT TESTED
+
