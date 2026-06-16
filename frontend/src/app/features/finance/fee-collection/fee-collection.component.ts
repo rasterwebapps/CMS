@@ -25,6 +25,7 @@ import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/paymen
 import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
 import { FeeReceiptDialogComponent } from '../../../shared/fee-receipt-dialog/fee-receipt-dialog.component';
 import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
+import { pastDateOnlyValidator } from '../../../shared/validators/date.validators';
 import { HttpErrorResponse } from '@angular/common/http';
 
 export type FilterType   = 'ALL' | 'ENQUIRY' | 'STUDENT';
@@ -113,16 +114,17 @@ export class FeeCollectionComponent implements OnInit {
       }
       if (type !== 'ALL' && e.type !== type) return false;
       if (status === 'OVERDUE'     && !(e.nextDueDate && new Date(e.nextDueDate) < today)) return false;
-      return status !== 'OUTSTANDING' || e.totalOutstanding > 0;
+      return status !== 'OUTSTANDING' || this.hasCollectableOutstanding(e.totalOutstanding);
     });
   });
 
   protected readonly paymentModes = PAYMENT_MODES;
   protected readonly getPaymentModeLabel = getPaymentModeLabel;
+  protected readonly todayIsoDate = this.toIsoDate(new Date());
 
   protected readonly form: FormGroup = this.fb.group({
     amount:               [null, [Validators.required, Validators.min(1)]],
-    paymentDate:          ['', Validators.required],
+    paymentDate:          ['', [Validators.required, pastDateOnlyValidator()]],
     paymentMode:          ['', Validators.required],
     transactionReference: ['', [transactionReferenceRequiredValidator('paymentMode')]],
     remarks:              [''],
@@ -139,26 +141,26 @@ export class FeeCollectionComponent implements OnInit {
       const fs = this.feeStatus();
       if (!fs) return [];
       const sems = fs.installmentBreakdown;
-      const immediatePayableIndex = sems.findIndex(s => s.outstanding > 0);
+      const immediatePayableIndex = sems.findIndex(s => this.hasCollectableOutstanding(s.outstanding));
       return sems.map((s, i) => ({
         label:       s.installmentLabel,
-        fee:         s.allocatedFee,
-        paid:        s.paidAmount,
-        outstanding: s.outstanding,
+        fee:         this.normalizeMoney(s.allocatedFee),
+        paid:        this.normalizeMoney(s.paidAmount),
+        outstanding: this.normalizeMoney(s.outstanding),
         dueDate:     s.dueDate,
-        isPaid:      s.outstanding === 0,
+        isPaid:      this.normalizeMoney(s.outstanding) === 0,
         isNext:      i === immediatePayableIndex,
       }));
     } else {
       const sems = this.studentSemesters();
-      const immediatePayableIndex = sems.findIndex(s => s.pendingAmount > 0);
+      const immediatePayableIndex = sems.findIndex(s => this.hasCollectableOutstanding(s.pendingAmount));
       return sems.map((s, i) => ({
         label:       s.installmentLabel,
-        fee:         s.amount,
-        paid:        s.amountPaid,
-        outstanding: s.pendingAmount,
+        fee:         this.normalizeMoney(s.amount),
+        paid:        this.normalizeMoney(s.amountPaid),
+        outstanding: this.normalizeMoney(s.pendingAmount),
         dueDate:     s.dueDate,
-        isPaid:      s.pendingAmount === 0,
+        isPaid:      this.normalizeMoney(s.pendingAmount) === 0,
         isNext:      i === immediatePayableIndex,
       }));
     }
@@ -219,15 +221,17 @@ export class FeeCollectionComponent implements OnInit {
           .map(e => this.enquiryToEntry(e));
 
         const studentEntries: FeeEntry[] = (students.students ?? [])
-          .filter(s => s.totalPending > 0)
+              .filter(s => this.hasCollectableOutstanding(s.totalPending))
           .map(s => this.studentToEntry(s));
 
-        const all = [...enquiryEntries, ...studentEntries].sort((a, b) => {
+        const all = [...enquiryEntries, ...studentEntries]
+          .filter(entry => this.hasCollectableOutstanding(entry.totalOutstanding))
+          .sort((a, b) => {
           if (!a.nextDueDate && !b.nextDueDate) return a.name.localeCompare(b.name);
           if (!a.nextDueDate) return 1;
           if (!b.nextDueDate) return -1;
           return a.nextDueDate.localeCompare(b.nextDueDate);
-        });
+          });
 
         this.feeEntries.set(all);
         this.loading.set(false);
@@ -258,24 +262,24 @@ export class FeeCollectionComponent implements OnInit {
     const blockedStatuses = ['NOT_INTERESTED', 'CANCELLED', 'CLOSED', 'CONVERTED'];
     return enquiry.finalizedNetFee !== null && enquiry.finalizedNetFee !== undefined &&
       !blockedStatuses.includes(enquiry.status) &&
-      this.getEnquiryOutstanding(enquiry) > 0;
+      this.hasCollectableOutstanding(this.getEnquiryOutstanding(enquiry));
   }
 
   private getEnquiryOutstanding(enquiry: Enquiry): number {
     const totalFee = enquiry.finalizedNetFee ?? 0;
     const totalPaid = enquiry.totalPaidAmount ?? 0;
-    return Math.max(0, totalFee - totalPaid);
+    return this.normalizeMoney(Math.max(0, totalFee - totalPaid));
   }
 
   private enquiryToEntry(e: Enquiry): FeeEntry {
-    const totalFee = e.finalizedNetFee ?? 0;
-    const totalPaid = e.totalPaidAmount ?? 0;
+    const totalFee = this.normalizeMoney(e.finalizedNetFee ?? 0);
+    const totalPaid = this.normalizeMoney(e.totalPaidAmount ?? 0);
     return {
       type: 'ENQUIRY', id: e.id, name: e.name,
       rollNumber: null,
       programName: e.programName ?? '—', courseName: e.courseName,
       totalFee, totalPaid,
-      totalOutstanding: Math.max(0, totalFee - totalPaid),
+      totalOutstanding: this.normalizeMoney(Math.max(0, totalFee - totalPaid)),
       nextDueDate: null, nextDueLabel: null,
     };
   }
@@ -285,13 +289,15 @@ export class FeeCollectionComponent implements OnInit {
       type: 'STUDENT', id: s.studentId, name: s.studentName,
       rollNumber: s.rollNumber ?? null,
       programName: s.programName ?? '—', courseName: null,
-      totalFee: s.totalFee, totalPaid: s.totalPaid, totalOutstanding: s.totalPending,
+      totalFee: this.normalizeMoney(s.totalFee),
+      totalPaid: this.normalizeMoney(s.totalPaid),
+      totalOutstanding: this.normalizeMoney(s.totalPending),
       nextDueDate: null, nextDueLabel: null,
     };
   }
 
   protected selectEntry(entry: FeeEntry): void {
-    if (entry.totalOutstanding <= 0) {
+    if (!this.hasCollectableOutstanding(entry.totalOutstanding)) {
       this.toast.info('No outstanding balance available for this record');
       return;
     }
@@ -307,21 +313,21 @@ export class FeeCollectionComponent implements OnInit {
     this.receipt.set(null);
     this.denominationValid.set(false);
     this.form.reset();
-    this.form.patchValue({ paymentDate: new Date().toISOString().split('T')[0] });
+    this.form.patchValue({ paymentDate: this.todayIsoDate });
 
     if (entry.type === 'ENQUIRY') {
       this.enquiryService.getYearWiseFeeStatus(entry.id).subscribe({
         next: (fs) => {
           this.feeStatus.set(fs);
           const sems = fs.installmentBreakdown;
-          const nextSem = sems.find(s => s.outstanding > 0);
-          const prefill = nextSem ? nextSem.outstanding : fs.totalOutstanding;
+          const nextSem = sems.find(s => this.hasCollectableOutstanding(s.outstanding));
+          const prefill = this.normalizeMoney(nextSem ? nextSem.outstanding : fs.totalOutstanding);
           if (!this.form.get('amount')?.value) {
-            this.form.patchValue({ amount: prefill > 0 ? prefill : null });
+            this.form.patchValue({ amount: this.hasCollectableOutstanding(prefill) ? prefill : null });
           }
         },
         error: () => {
-          this.form.patchValue({ amount: entry.totalOutstanding > 0 ? entry.totalOutstanding : null });
+          this.form.patchValue({ amount: this.hasCollectableOutstanding(entry.totalOutstanding) ? entry.totalOutstanding : null });
         },
       });
     } else {
@@ -329,14 +335,16 @@ export class FeeCollectionComponent implements OnInit {
         next: (alloc) => {
           this.studentSemesters.set(alloc.installmentFees);
           const sems = alloc.installmentFees;
-          const nextSem = sems.find(s => s.pendingAmount > 0);
-          const prefill = nextSem ? nextSem.pendingAmount : sems.reduce((acc, sf) => acc + sf.pendingAmount, 0);
+          const nextSem = sems.find(s => this.hasCollectableOutstanding(s.pendingAmount));
+          const prefill = this.normalizeMoney(
+            nextSem ? nextSem.pendingAmount : sems.reduce((acc, sf) => acc + sf.pendingAmount, 0)
+          );
           if (!this.form.get('amount')?.value) {
-            this.form.patchValue({ amount: prefill > 0 ? prefill : null });
+            this.form.patchValue({ amount: this.hasCollectableOutstanding(prefill) ? prefill : null });
           }
         },
         error: () => {
-          this.form.patchValue({ amount: entry.totalOutstanding > 0 ? entry.totalOutstanding : null });
+          this.form.patchValue({ amount: this.hasCollectableOutstanding(entry.totalOutstanding) ? entry.totalOutstanding : null });
         },
       });
     }
@@ -364,17 +372,18 @@ export class FeeCollectionComponent implements OnInit {
     }
     const entry = this.selectedEntry();
     if (!entry) return;
-    if (entry.totalOutstanding <= 0) {
+    if (!this.hasCollectableOutstanding(entry.totalOutstanding)) {
       this.toast.info('No outstanding balance available for this record');
       return;
     }
 
     const v = this.form.value;
+    const normalizedAmount = this.normalizeMoney(v.amount);
     this.saving.set(true);
 
     if (entry.type === 'ENQUIRY') {
       const req: EnquiryPaymentRequest = {
-        amountPaid:           v.amount,
+        amountPaid:           normalizedAmount,
         paymentDate:          v.paymentDate,
         paymentMode:          v.paymentMode,
         transactionReference: v.transactionReference || undefined,
@@ -408,7 +417,7 @@ export class FeeCollectionComponent implements OnInit {
       });
     } else {
       this.financeService.collectPayment(entry.id, {
-        amount: v.amount, paymentDate: v.paymentDate, paymentMode: v.paymentMode,
+        amount: normalizedAmount, paymentDate: v.paymentDate, paymentMode: v.paymentMode,
         transactionReference: v.transactionReference || undefined,
         remarks: v.remarks || undefined,
       }).subscribe({
@@ -478,7 +487,8 @@ export class FeeCollectionComponent implements OnInit {
     const maxError = amountControl?.errors?.['amountExceedsOutstanding'];
     if (!maxError) return null;
 
-    return `Amount cannot exceed total outstanding of ₹${Number(maxError.max).toLocaleString('en-IN')}`;
+    const formattedMax = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Number(maxError.max));
+    return `Amount cannot exceed total outstanding of ₹${formattedMax}`;
   }
 
   private getApiErrorMessage(error: unknown, fallback: string): string {
@@ -490,7 +500,7 @@ export class FeeCollectionComponent implements OnInit {
     const amountControl = this.form.get('amount');
     if (!amountControl) return;
 
-    const validators = [Validators.required, Validators.min(1)];
+    const validators = [Validators.required, Validators.min(1), this.wholeRupeeAmountValidator()];
     const max = this.amountMax();
     if (max !== null) {
       validators.push(this.maxOutstandingValidator(max));
@@ -501,6 +511,7 @@ export class FeeCollectionComponent implements OnInit {
   }
 
   private maxOutstandingValidator(max: number): ValidatorFn {
+    const normalizedMax = this.normalizeMoney(max);
     return (control: AbstractControl): ValidationErrors | null => {
       const rawValue = control.value;
       if (rawValue === null || rawValue === '' || rawValue === undefined) {
@@ -508,16 +519,48 @@ export class FeeCollectionComponent implements OnInit {
       }
 
       const numericValue = Number(rawValue);
-      if (Number.isNaN(numericValue) || numericValue <= max) {
+      if (Number.isNaN(numericValue) || numericValue <= normalizedMax) {
         return null;
       }
 
       return {
         amountExceedsOutstanding: {
-          max,
+          max: normalizedMax,
           actual: numericValue,
         },
       };
     };
+  }
+
+  private wholeRupeeAmountValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const rawValue = control.value;
+      if (rawValue === null || rawValue === '' || rawValue === undefined) {
+        return null;
+      }
+
+      const numericValue = Number(rawValue);
+      if (!Number.isFinite(numericValue) || Number.isInteger(numericValue)) {
+        return null;
+      }
+
+      return { wholeRupeeOnly: true };
+    };
+  }
+
+  private hasCollectableOutstanding(value: number | null | undefined): boolean {
+    return this.normalizeMoney(value) > 0;
+  }
+
+  private normalizeMoney(value: number | null | undefined): number {
+    const numericValue = Number(value ?? 0);
+    if (Number.isNaN(numericValue)) {
+      return 0;
+    }
+    return Math.max(0, Math.round(numericValue));
+  }
+
+  private toIsoDate(value: Date): string {
+    return value.toISOString().split('T')[0];
   }
 }

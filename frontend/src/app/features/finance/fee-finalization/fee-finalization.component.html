@@ -356,19 +356,21 @@
                     <td class="mono">{{ row.originalAmount | inr }}</td>
                     <td class="text-right">
                       <div class="year-input-col">
-                        <div class="amount-input-wrap" [class.amount-input-wrap--error]="row.finalAmount > row.originalAmount">
+                        <div class="amount-input-wrap" [class.amount-input-wrap--error]="!isFiniteNumber(row.finalAmount) || row.finalAmount > row.originalAmount">
                           <span class="amount-prefix">₹</span>
                           <input
                             class="amount-input"
                             type="number"
                             min="0"
                             [value]="row.finalAmount"
-                            (change)="updateYearAmount(i, $any($event.target).value)"
-                            [class.amount-input--reduced]="row.finalAmount < row.originalAmount"
-                            [class.amount-input--error]="row.finalAmount > row.originalAmount"
+                            (input)="updateYearAmount(i, $any($event.target).value)"
+                            [class.amount-input--reduced]="isFiniteNumber(row.finalAmount) && row.finalAmount < row.originalAmount"
+                            [class.amount-input--error]="!isFiniteNumber(row.finalAmount) || row.finalAmount > row.originalAmount"
                           />
                         </div>
-                        @if (row.finalAmount > row.originalAmount) {
+                        @if (!isFiniteNumber(row.finalAmount)) {
+                          <span class="input-error-hint">Enter a valid final fee value</span>
+                        } @else if (row.finalAmount > row.originalAmount) {
                           <span class="input-error-hint">Exceeds original — only discounts allowed</span>
                         }
                       </div>
@@ -404,6 +406,9 @@
 
           @if (anyYearBelowZero()) {
             <p class="field-error-block">Year fee cannot be negative</p>
+          }
+          @if (anyInvalidYearValue()) {
+            <p class="field-error-block">Each year must have a valid final fee value before finalization.</p>
           }
           @if (anyYearExceedsOriginal()) {
             <p class="field-error-block">Fee increase not allowed. Year fee cannot exceed the original calculated amount. Only discounts can be applied.</p>

@@ -277,7 +277,7 @@
 
           <div class="field-group">
             <label class="field-label">Amount (₹) <span class="field-required">*</span></label>
-            <input class="field-input" type="number" formControlName="amount" min="1" [attr.max]="amountMax()"
+            <input class="field-input" type="number" formControlName="amount" min="1" step="1" [attr.max]="amountMax()"
                    placeholder="0"
                    [class.field-input--error]="form.get('amount')?.invalid && form.get('amount')?.touched" />
             <p class="field-hint">
@@ -289,6 +289,8 @@
             @if (form.get('amount')?.invalid && form.get('amount')?.touched) {
               @if (form.get('amount')?.errors?.['required'] || form.get('amount')?.errors?.['min']) {
                 <p class="field-error">Valid amount is required</p>
+              } @else if (form.get('amount')?.errors?.['wholeRupeeOnly']) {
+                <p class="field-error">Amount must be a whole rupee value</p>
               } @else if (getAmountMaxError(); as amountMaxError) {
                 <p class="field-error">{{ amountMaxError }}</p>
               }
@@ -299,9 +301,14 @@
             <div class="field-group">
               <label class="field-label">Payment Date <span class="field-required">*</span></label>
               <input class="field-input" type="date" formControlName="paymentDate"
+                     [max]="todayIsoDate"
                      [class.field-input--error]="form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched" />
               @if (form.get('paymentDate')?.invalid && form.get('paymentDate')?.touched) {
-                <p class="field-error">Payment date is required</p>
+                @if (form.get('paymentDate')?.errors?.['required']) {
+                  <p class="field-error">Payment date is required</p>
+                } @else if (form.get('paymentDate')?.errors?.['pastDateOnly']) {
+                  <p class="field-error">Future payment date is not allowed</p>
+                }
               }
             </div>
             <div class="field-group">
