@@ -609,7 +609,7 @@
                       <td>
                         <select class="la-pt-input" formControlName="paymentMode">
                           @for (m of PAYMENT_MODES; track m) {
-                            <option [value]="m">{{ m }}</option>
+                            <option [value]="m">{{ getPaymentModeLabel(m) }}</option>
                           }
                         </select>
                       </td>

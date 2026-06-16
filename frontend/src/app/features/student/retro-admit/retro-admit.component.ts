@@ -35,6 +35,7 @@ import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/countr
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { RETRO_ADMIT_TOUR } from '../../../shared/tour/tours/student.tours';
+import { PAYMENT_MODES, getPaymentModeLabel } from '../../../shared/utils/payment-mode.utils';
 
 interface RetroAdmitResponse {
   studentId: number;
@@ -153,7 +154,8 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
   protected readonly paymentRows       = signal<FormGroup[]>([]);
   protected readonly fifoCollected     = signal<Map<number, number>>(new Map());
 
-  protected readonly PAYMENT_MODES = ['CASH', 'DD', 'CHEQUE', 'BANK_TRANSFER', 'UPI', 'ONLINE'];
+  protected readonly PAYMENT_MODES = PAYMENT_MODES;
+  protected readonly getPaymentModeLabel = getPaymentModeLabel;
 
   protected readonly form: FormGroup = this.fb.group({
     // Student identity
