@@ -185,17 +185,13 @@ export class IntegrationsSettingsComponent implements OnInit {
     }
 
     this.saving.set(true);
-    const ops = this.fields.map(f =>
-      f.id !== null
-        ? this.settingsService.update(f.id, this.buildRequest(f))
-        : this.settingsService.create(this.buildRequest(f))
-    );
+    const ops = this.fields.map(f => this.settingsService.upsert(this.buildRequest(f)));
 
     forkJoin(ops).subscribe({
       next: (results) => {
         for (const cfg of results) {
           const field = this.fields.find(f => f.key === cfg.configKey);
-          if (field && field.id === null) field.id = cfg.id;
+          if (field) field.id = cfg.id;
         }
         this.toast.success('Integration settings saved');
         this.saving.set(false);

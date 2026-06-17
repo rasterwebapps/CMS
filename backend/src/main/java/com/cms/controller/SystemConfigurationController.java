@@ -75,6 +75,14 @@ public class SystemConfigurationController {
         return ResponseEntity.ok(response);
     }
 
+    @PutMapping("/upsert")
+    @PreAuthorize("@perm.has('SETTINGS_MANAGE')")
+    public ResponseEntity<SystemConfigurationResponse> upsert(
+            @Valid @RequestBody SystemConfigurationRequest request) {
+        SystemConfigurationResponse response = systemConfigurationService.upsert(request);
+        return ResponseEntity.ok(response);
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("@perm.has('SETTINGS_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {

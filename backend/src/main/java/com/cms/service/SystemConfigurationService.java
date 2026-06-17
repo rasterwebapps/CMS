@@ -86,6 +86,30 @@ public class SystemConfigurationService {
     }
 
     @Transactional
+    public SystemConfigurationResponse upsert(SystemConfigurationRequest request) {
+        return systemConfigurationRepository.findByConfigKey(request.configKey())
+            .map(existing -> {
+                existing.setConfigValue(request.configValue());
+                if (request.description() != null) existing.setDescription(request.description());
+                existing.setDataType(request.dataType());
+                existing.setCategory(request.category());
+                existing.setIsEditable(request.isEditable());
+                return toResponse(systemConfigurationRepository.save(existing));
+            })
+            .orElseGet(() -> {
+                SystemConfiguration config = new SystemConfiguration(
+                    request.configKey(),
+                    request.configValue(),
+                    request.description(),
+                    request.dataType(),
+                    request.category(),
+                    request.isEditable()
+                );
+                return toResponse(systemConfigurationRepository.save(config));
+            });
+    }
+
+    @Transactional
     public void delete(Long id) {
         if (!systemConfigurationRepository.existsById(id)) {
             throw new ResourceNotFoundException(

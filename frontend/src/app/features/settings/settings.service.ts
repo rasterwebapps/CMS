@@ -31,6 +31,10 @@ export class SettingsService {
     return this.http.post<SystemConfiguration>(this.baseUrl, request);
   }
 
+  upsert(request: SystemConfigurationRequest): Observable<SystemConfiguration> {
+    return this.http.put<SystemConfiguration>(`${this.baseUrl}/upsert`, request);
+  }
+
   update(id: number, request: SystemConfigurationRequest): Observable<SystemConfiguration> {
     return this.http.put<SystemConfiguration>(`${this.baseUrl}/${id}`, request);
   }

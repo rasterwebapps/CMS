@@ -9,7 +9,7 @@ public record SystemConfigurationRequest(
     @NotBlank(message = "Config key is required")
     String configKey,
 
-    @NotBlank(message = "Config value is required")
+    @NotNull(message = "Config value is required")
     String configValue,
 
     String description,
