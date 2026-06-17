@@ -8,6 +8,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cms.model.enums.AdmissionCategory;
+import com.cms.model.enums.BankAccountType;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentStatus;
 import com.cms.model.Cohort;
@@ -166,6 +167,26 @@ public class Student {
     // Address
     @Embedded
     private Address address;
+
+    // Bank details — for OneBook payout (refunds, scholarships)
+    @Column(name = "bank_account_holder", length = 200)
+    private String bankAccountHolder;
+
+    @Column(name = "bank_account_number", length = 30)
+    private String bankAccountNumber;
+
+    @Column(name = "bank_ifsc_code", length = 15)
+    private String bankIfscCode;
+
+    @Column(name = "bank_branch", length = 100)
+    private String bankBranch;
+
+    @Column(name = "bank_name", length = 100)
+    private String bankName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "bank_account_type", length = 20)
+    private BankAccountType bankAccountType;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -539,4 +560,17 @@ public class Student {
     public void setExpectedGraduationTermInstance(TermInstance expectedGraduationTermInstance) {
         this.expectedGraduationTermInstance = expectedGraduationTermInstance;
     }
+
+    public String getBankAccountHolder() { return bankAccountHolder; }
+    public void setBankAccountHolder(String bankAccountHolder) { this.bankAccountHolder = bankAccountHolder; }
+    public String getBankAccountNumber() { return bankAccountNumber; }
+    public void setBankAccountNumber(String bankAccountNumber) { this.bankAccountNumber = bankAccountNumber; }
+    public String getBankIfscCode() { return bankIfscCode; }
+    public void setBankIfscCode(String bankIfscCode) { this.bankIfscCode = bankIfscCode; }
+    public String getBankBranch() { return bankBranch; }
+    public void setBankBranch(String bankBranch) { this.bankBranch = bankBranch; }
+    public String getBankName() { return bankName; }
+    public void setBankName(String bankName) { this.bankName = bankName; }
+    public BankAccountType getBankAccountType() { return bankAccountType; }
+    public void setBankAccountType(BankAccountType bankAccountType) { this.bankAccountType = bankAccountType; }
 }

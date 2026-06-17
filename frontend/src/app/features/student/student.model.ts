@@ -92,6 +92,12 @@ export interface Student {
   district?: string;
   state?: string;
   pincode?: string;
+  bankAccountHolder?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+  bankBranch?: string;
+  bankName?: string;
+  bankAccountType?: 'SAVINGS' | 'CURRENT' | 'SALARY';
   createdAt: string;
   updatedAt: string;
 }
@@ -199,7 +205,21 @@ export interface StudentRequest {
     state?: string;
     pincode?: string;
   };
+  bankAccountHolder?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+  bankBranch?: string;
+  bankName?: string;
+  bankAccountType?: 'SAVINGS' | 'CURRENT' | 'SALARY';
 }
+
+export type BankAccountType = 'SAVINGS' | 'CURRENT' | 'SALARY';
+
+export const STUDENT_BANK_ACCOUNT_TYPE_OPTIONS: { value: BankAccountType; label: string }[] = [
+  { value: 'SAVINGS', label: 'Savings' },
+  { value: 'CURRENT', label: 'Current' },
+  { value: 'SALARY', label: 'Salary' },
+];
 
 export interface Page<T> {
   content: T[];

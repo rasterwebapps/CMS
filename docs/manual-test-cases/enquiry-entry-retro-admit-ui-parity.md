@@ -70,3 +70,57 @@
 
 **Status:** NOT TESTED
 
+## TC-ENQ-UI-003: Enquiry autocomplete shows results only after 2 characters
+
+**Preconditions:**
+- User is logged in and can open `/enquiries/new`
+- Referral data exists for Agent/Student/Alumni/Faculty searches
+
+**Steps:**
+1. Select a referral type that shows a search dropdown (e.g., Agent Referral).
+2. Type 1 character in the search box.
+3. Verify no dropdown results are shown.
+4. Type at least 2 characters with no matching records.
+5. Verify dropdown shows `Data not available`.
+6. Type at least 2 characters matching an existing record.
+
+**Expected Result:**
+- Search results appear only when typed length is 2 or more.
+- Empty-result message is shown as `Data not available` for 2+ character searches with no matches.
+- Matching records are selectable normally.
+
+**Status:** NOT TESTED
+
+## TC-ENQ-UI-004: Enquiry create enforces minimum 2 characters for text fields
+
+**Preconditions:**
+- User can open `/enquiries/new`
+
+**Steps:**
+1. Enter 1-character values in text fields (e.g., Full Name, Staff referral name when Staff source is selected).
+2. Fill remaining required fields and try to save.
+
+**Expected Result:**
+- Save is blocked.
+- Field-level validation indicates text must be at least 2 characters.
+
+**Status:** NOT TESTED
+
+## TC-RETRO-UI-003: Retro Admit agent autocomplete shows `Data not available` after 2 characters
+
+**Preconditions:**
+- User can open `/students/retro-admit`
+- Agent referral type exists
+
+**Steps:**
+1. Select referral type as Agent.
+2. Type 1 character in Agent search.
+3. Verify no dropdown options are shown.
+4. Type 2+ characters that do not match any agent.
+
+**Expected Result:**
+- Search list is gated to 2+ characters.
+- Empty dropdown state shows `Data not available`.
+
+**Status:** NOT TESTED
+

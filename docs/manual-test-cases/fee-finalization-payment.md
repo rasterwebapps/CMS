@@ -562,3 +562,83 @@
 - GET returns the collected payment in the list
 
 **Status:** NOT TESTED
+
+---
+
+## TC-PAY-010: Collect form prefill matches rounded outstanding shown in table
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_FRONT_OFFICE
+- At least one collectable record has fractional outstanding from backend (for example, 55499.5)
+
+**Steps:**
+1. Navigate to `/student-fees/collect-payment`
+2. Note the row-level Outstanding value shown in the list/table
+3. Open `Collect Balance` for the same row
+4. Verify the pre-filled Amount value in `Payment Details`
+
+**Expected Result:**
+- Amount is pre-filled as a whole-rupee rounded value and matches what the UI displays for outstanding
+- No decimal value appears in the pre-filled amount field
+
+**Status:** NOT TESTED
+
+---
+
+## TC-PAY-011: Future payment date is blocked in collect form
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_FRONT_OFFICE
+- A collectable fee record is opened in `Collect Balance`
+
+**Steps:**
+1. Open the `Payment Date` picker
+2. Try selecting a date after today
+3. If typed manually, enter a future date and blur the field
+
+**Expected Result:**
+- Date picker does not allow selecting future dates
+- Manual future date entry shows validation error: `Future payment date is not allowed`
+- Submit remains blocked until date is today or earlier
+
+**Status:** NOT TESTED
+
+---
+
+## TC-PAY-012: Zero-outstanding records are hidden from collect-payment list
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN or ROLE_FRONT_OFFICE
+- At least one enquiry/student has effective outstanding of 0 after whole-rupee normalization
+
+**Steps:**
+1. Navigate to `/student-fees/collect-payment`
+2. Inspect rows and Outstanding column values
+
+**Expected Result:**
+- Rows with zero effective outstanding are not shown in the list
+- No row appears with displayed Outstanding `0` and an enabled `Collect Balance` action
+
+**Status:** NOT TESTED
+
+---
+
+## TC-FIN-107: Finalize Fee remains disabled when any year final amount is invalid/blank
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN
+- An INTERESTED enquiry is opened in `/student-fees/finalize`
+
+**Steps:**
+1. In Year-wise Fee Breakdown, clear one `Final Fee` input so it becomes blank/invalid
+2. Observe inline error state/message for that row
+3. Check `Finalize Fee` button state
+4. Enter a valid number back in the same input
+
+**Expected Result:**
+- Row shows validation hint for invalid/missing final fee value
+- `Finalize Fee` button is disabled while any year value is invalid
+- `Finalize Fee` becomes enabled again only after all year values are valid and other validations pass
+
+**Status:** NOT TESTED
+

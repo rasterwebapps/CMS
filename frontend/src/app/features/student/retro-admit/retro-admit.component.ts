@@ -36,6 +36,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { RETRO_ADMIT_TOUR } from '../../../shared/tour/tours/student.tours';
 import { PAYMENT_MODES, getPaymentModeLabel } from '../../../shared/utils/payment-mode.utils';
+import { trimmedMinLength } from '../../../shared/validators/cms-validators';
 
 interface RetroAdmitResponse {
   studentId: number;
@@ -57,6 +58,8 @@ const RETRO_STEPS = [
   { label: 'Fee Structure', description: 'Year-wise fees and adjustments' },
   { label: 'Payment History', description: 'Historical collections and receipts' },
 ] as const;
+
+const MIN_AUTOCOMPLETE_CHARS = 2;
 
 @Component({
   selector: 'app-retro-admit',
@@ -129,11 +132,14 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
 
   protected readonly filteredAgents = computed(() => {
     const term = this.agentSearchTerm().trim().toLowerCase();
-    if (!term) return this.agents().slice(0, 20);
+    if (term.length < MIN_AUTOCOMPLETE_CHARS) return [];
     return this.agents()
       .filter(a => a.name.toLowerCase().includes(term) || (a.phone ?? '').toLowerCase().includes(term))
       .slice(0, 20);
   });
+  protected readonly isAgentSearchReady = computed(
+    () => this.agentSearchTerm().trim().length >= MIN_AUTOCOMPLETE_CHARS,
+  );
 
   protected get today(): string {
     return new Date().toISOString().split('T')[0];
@@ -159,13 +165,13 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
 
   protected readonly form: FormGroup = this.fb.group({
     // Student identity
-    firstName:    ['', Validators.required],
-    lastName:     ['', Validators.required],
+    firstName:    ['', [Validators.required, trimmedMinLength(2)]],
+    lastName:     ['', [Validators.required, trimmedMinLength(2)]],
     email:        ['', [Validators.required, Validators.email]],
-    phone:        ['', Validators.required],
-    rollNumber:   ['', [Validators.required, Validators.maxLength(50)]],
-    universityRegistrationNumber: ['', [Validators.required, Validators.maxLength(50)]],
-    umisNumber:   ['', [Validators.maxLength(50)]],
+    phone:        ['', [Validators.required, trimmedMinLength(2)]],
+    rollNumber:   ['', [Validators.required, Validators.maxLength(50), trimmedMinLength(2)]],
+    universityRegistrationNumber: ['', [Validators.required, Validators.maxLength(50), trimmedMinLength(2)]],
+    umisNumber:   ['', [Validators.maxLength(50), trimmedMinLength(2)]],
 
     // Admission context
     programId:             [null as number | null, Validators.required],
@@ -181,31 +187,31 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
     // Personal
     dateOfBirth:       ['', Validators.required],
     gender:            ['FEMALE', Validators.required],
-    aadharNumber:      ['', Validators.required],
-    nationality:       ['Indian', Validators.required],
-    religion:          ['', Validators.required],
+    aadharNumber:      ['', [Validators.required, trimmedMinLength(2)]],
+    nationality:       ['Indian', [Validators.required, trimmedMinLength(2)]],
+    religion:          ['', [Validators.required, trimmedMinLength(2)]],
     communityCategory: ['', Validators.required],
-    caste:             ['', Validators.required],
+    caste:             ['', [Validators.required, trimmedMinLength(2)]],
     bloodGroup:        ['', Validators.required],
     physicalDisability: [false],
 
     // Family
-    fatherName:   ['', Validators.required],
-    fatherPhone:  ['', Validators.required],
+    fatherName:   ['', [Validators.required, trimmedMinLength(2)]],
+    fatherPhone:  ['', [Validators.required, trimmedMinLength(2)]],
     fatherEmail:  ['', [Validators.required, Validators.email]],
-    motherName:   ['', Validators.required],
-    motherPhone:  ['', Validators.required],
+    motherName:   ['', [Validators.required, trimmedMinLength(2)]],
+    motherPhone:  ['', [Validators.required, trimmedMinLength(2)]],
     motherEmail:  ['', [Validators.required, Validators.email]],
 
     // Address
     address: this.fb.group({
       country:       [null as number | null],
-      postalAddress: ['', Validators.required],
-      street:        ['', Validators.required],
-      city:          ['', Validators.required],
-      district:      [''],
-      state:         [''],
-      pincode:       ['', Validators.required],
+      postalAddress: ['', [Validators.required, trimmedMinLength(2)]],
+      street:        ['', [Validators.required, trimmedMinLength(2)]],
+      city:          ['', [Validators.required, trimmedMinLength(2)]],
+      district:      ['', [trimmedMinLength(2)]],
+      state:         ['', [trimmedMinLength(2)]],
+      pincode:       ['', [Validators.required, trimmedMinLength(2)]],
     }),
 
     // Consent
@@ -213,7 +219,7 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
     applicantConsentGiven: [false, Validators.requiredTrue],
 
     // Declaration
-    declarationPlace: [''],
+    declarationPlace: ['', [trimmedMinLength(2)]],
     declarationDate:  [''],
 
     // Referral
@@ -500,9 +506,9 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
       paymentDate:          ['', Validators.required],
       amount:               [null as number | null, [Validators.required, Validators.min(0.01)]],
       paymentMode:          ['CASH', Validators.required],
-      receiptNumber:        [''],
-      transactionReference: [''],
-      remarks:              [''],
+      receiptNumber:        ['', [trimmedMinLength(2)]],
+      transactionReference: ['', [trimmedMinLength(2)]],
+      remarks:              ['', [trimmedMinLength(2)]],
     });
     this.paymentsArray.push(g);
     this.paymentRows.update(rows => [...rows, g]);

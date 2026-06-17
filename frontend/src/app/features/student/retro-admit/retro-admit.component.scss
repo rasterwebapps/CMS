@@ -701,6 +701,12 @@
   &:hover { background: rgba(var(--cms-primary-rgb), 0.07); }
 }
 
+.person-search-empty {
+  padding: 10px 12px;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-muted);
+}
+
 .person-name { font-size: var(--cms-text-base); font-weight: 500; color: var(--cms-text-primary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .person-code { font-size: var(--cms-text-xs); color: var(--cms-text-muted); font-family: var(--cms-font-mono), monospace; flex-shrink: 0; }
 

@@ -224,6 +224,7 @@ public class FacultyService {
         faculty.setClinicalExperienceUgYears(r.clinicalExperienceUgYears());
         faculty.setClinicalExperiencePgYears(r.clinicalExperiencePgYears());
         faculty.setClinicalExperiencePhdYears(r.clinicalExperiencePhdYears());
+        faculty.setCommissionAmount(r.commissionAmount());
     }
 
     private static String trim(String s) {
@@ -297,7 +298,8 @@ public class FacultyService {
             faculty.getClinicalExperiencePhdYears(),
             faculty.getCreatedAt(),
             faculty.getUpdatedAt(),
-            documentReviewSummary(faculty)
+            documentReviewSummary(faculty),
+            faculty.getCommissionAmount()
         );
     }
 

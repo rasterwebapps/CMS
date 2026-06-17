@@ -2,6 +2,7 @@ import {
   Component, computed, effect, inject, ElementRef, OnInit, signal, ViewChild,
 } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { TitleCasePipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -10,6 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FinanceService } from '../finance.service';
 import { FeeRefundSummary } from '../finance.model';
+import { SettingsService } from '../../settings/settings.service';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
@@ -29,7 +31,7 @@ type PanelMode = 'view' | 'approve' | 'reject';
   selector: 'app-fee-refund-list',
   standalone: true,
   imports: [
-    FormsModule, ReactiveFormsModule,
+    FormsModule, ReactiveFormsModule, TitleCasePipe,
     InrPipe, PaymentModeLabelPipe, AppDatePipe,
     CmsEmptyStateComponent, CashDenominationComponent, CmsTourButtonComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
@@ -39,10 +41,11 @@ type PanelMode = 'view' | 'approve' | 'reject';
   styleUrl: './fee-refund-list.component.scss',
 })
 export class FeeRefundListComponent implements OnInit {
-  private readonly financeService = inject(FinanceService);
-  private readonly toast          = inject(ToastService);
-  private readonly fb             = inject(FormBuilder);
-  private readonly tourService    = inject(TourService);
+  private readonly financeService  = inject(FinanceService);
+  private readonly settingsService = inject(SettingsService);
+  private readonly toast           = inject(ToastService);
+  private readonly fb              = inject(FormBuilder);
+  private readonly tourService     = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(v: MatPaginator) { if (v) this.dataSource.paginator = v; }
   @ViewChild(MatSort)      set sort(v: MatSort)           { if (v) this.dataSource.sort = v; }
@@ -56,9 +59,13 @@ export class FeeRefundListComponent implements OnInit {
   protected readonly dataSource    = new MatTableDataSource<FeeRefundSummary>([]);
   protected readonly paymentModes  = PAYMENT_MODES;
 
+  protected readonly oneBookEnabled     = signal(false);
+  protected readonly oneBookAllowCash   = signal(true);
+
   protected readonly loading            = signal(false);
+  protected readonly submittingOneBook  = signal(false);
   protected readonly searchValue        = signal('');
-  protected readonly statusFilter       = signal<'' | 'PENDING' | 'APPROVED' | 'REJECTED'>('');
+  protected readonly statusFilter       = signal<'' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'TRANSMITTED' | 'PAYMENT_FAILED'>('');
   protected readonly filterEntityType   = signal<'' | 'STUDENT' | 'ENQUIRY'>('');
   protected readonly filterProgram      = signal('');
   protected readonly dateFrom           = signal('');
@@ -138,6 +145,17 @@ export class FeeRefundListComponent implements OnInit {
   ngOnInit(): void {
     this.tourService.register('fee-refund-list', FEE_REFUND_LIST_TOUR);
     this.load();
+    this.loadOneBookConfig();
+  }
+
+  private loadOneBookConfig(): void {
+    this.settingsService.getByCategory('INTEGRATION').subscribe({
+      next: settings => {
+        const map = Object.fromEntries(settings.map(s => [s.configKey, s.configValue]));
+        this.oneBookEnabled.set(map['onebook.enabled'] === 'true');
+        this.oneBookAllowCash.set(map['onebook.allow_cash_in_cms'] !== 'false');
+      },
+    });
   }
 
   private get today(): string {
@@ -181,6 +199,31 @@ export class FeeRefundListComponent implements OnInit {
     this.approvalForm.patchValue({ paymentMode: this.selectedRefund()?.paymentMode ?? '' });
     this.panelMode.set('approve');
     this.scrollPanelTop();
+  }
+
+  protected approveViaOneBook(): void {
+    const target = this.selectedRefund();
+    if (!target) return;
+    this.submittingOneBook.set(true);
+    this.financeService.approveRefundViaOneBook(target.id).subscribe({
+      next: (res) => {
+        this.submittingOneBook.set(false);
+        const isFailure = res.status === 'FAILED';
+        if (isFailure) {
+          this.toast.error('OneBook API rejected the refund — marked as Payment Failed.');
+        } else {
+          this.toast.success('Refund transmitted to OneBook — awaiting payment confirmation.');
+        }
+        const updatedStatus = isFailure ? 'PAYMENT_FAILED' : 'TRANSMITTED';
+        const updated: FeeRefundSummary = { ...target, status: updatedStatus as FeeRefundSummary['status'] };
+        this.allRefunds.update(list => list.map(r => r.id === target.id ? updated : r));
+        this.selectedRefund.set(updated);
+      },
+      error: (err) => {
+        this.submittingOneBook.set(false);
+        this.toast.error(this.apiError(err, 'Failed to transmit refund to OneBook.'));
+      },
+    });
   }
 
   protected startReject(): void {

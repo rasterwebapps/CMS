@@ -176,6 +176,7 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Fee Explorer',       icon: 'account_balance_wallet', route: '/student-fees',       permissions: ['STUDENT_FEE_VIEW', 'STUDENT_FEE_MANAGE'] },
         { label: 'Receipts',          icon: 'receipt_long',           route: '/receipts',           permissions: ['RECEIPT_VIEW'] },
         { label: 'Refunds',           icon: 'assignment_return',      route: '/refund-approvals',   permissions: ['FEE_REFUND_APPROVE'] },
+        { label: 'Commissions',       icon: 'handshake',              route: '/commission-explorer', permissions: ['COMMISSION_VIEW', 'COMMISSION_MANAGE'] },
       ],
     },
     // 5. Academics
@@ -246,11 +247,13 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Faculty Doc Config',   icon: 'rule',          route: '/faculty/document-config', permissions: ['FACULTY_MANAGE'] },
         { label: 'Scholarship Types',    icon: 'workspace_premium', route: '/scholarships',          permissions: ['SCHOLARSHIP_MANAGE'] },
         { label: 'Agents',               icon: 'support_agent', route: '/agents',                  permissions: ['AGENT_VIEW', 'AGENT_MANAGE'] },
+        { label: 'Staff Referrers',      icon: 'badge',         route: '/staff-referrers',         permissions: ['STAFF_REFERRER_VIEW', 'STAFF_REFERRER_MANAGE'] },
         { label: 'Referral Types',     icon: 'share',            route: '/referral-types',          permissions: ['REFERRAL_TYPE_VIEW', 'REFERRAL_TYPE_MANAGE'] },
         { label: 'Communities',        icon: 'people',           route: '/communities',             permissions: ['COMMUNITY_VIEW', 'COMMUNITY_MANAGE'] },
         { label: 'Blood Groups',       icon: 'bloodtype',        route: '/blood-groups',            permissions: ['BLOOD_GROUP_VIEW', 'BLOOD_GROUP_MANAGE'] },
         { label: 'Location Master',    icon: 'public',           route: '/india-locations',         permissions: ['INDIA_LOCATION_VIEW', 'INDIA_LOCATION_MANAGE'] },
         { label: 'Settings',           icon: 'settings',         route: '/settings',                permissions: ['SETTINGS_VIEW', 'SETTINGS_MANAGE'] },
+        { label: 'Integrations',       icon: 'account_tree',     route: '/settings/integrations',   permissions: ['SETTINGS_MANAGE'] },
       ],
     },
     // 9. User Management

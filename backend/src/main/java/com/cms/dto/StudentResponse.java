@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 import com.cms.model.enums.AdmissionCategory;
+import com.cms.model.enums.BankAccountType;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentStatus;
 
@@ -65,6 +66,14 @@ public record StudentResponse(
     String state,
     String pincode,
 
+    // Bank details
+    String bankAccountHolder,
+    String bankAccountNumber,
+    String bankIfscCode,
+    String bankBranch,
+    String bankName,
+    BankAccountType bankAccountType,
+
     String bio,
     String emergencyContactName,
     String emergencyContactRelationship,
@@ -93,6 +102,7 @@ public record StudentResponse(
             admissionDate, labBatch, status, null, dateOfBirth, gender, nationality, religion, communityCategory,
             caste, bloodGroup, false, fatherName, fatherPhone, fatherEmail, motherName, motherPhone, motherEmail,
             parentMobile, false, null, null, countryId, postalAddress, street, city, district, state, pincode,
+            null, null, null, null, null, null,
             null, null, null, null, null, null, null, createdAt, updatedAt);
     }
 }

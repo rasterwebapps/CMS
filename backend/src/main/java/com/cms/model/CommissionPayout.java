@@ -23,14 +23,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-/**
- * A single commission payout made to an agent (or other referral source) for
- * an enquiry.  Multiple rows allow PARTIAL → PAID transitions.
- */
 @Entity
-@Table(name = "agent_commission_payouts")
+@Table(name = "commission_payouts")
 @EntityListeners(AuditingEntityListener.class)
-public class AgentCommissionPayout {
+public class CommissionPayout {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,10 +36,17 @@ public class AgentCommissionPayout {
     @JoinColumn(name = "enquiry_id", nullable = false)
     private Enquiry enquiry;
 
-    /** Nullable: enquiry may have no agent (commission via referral type only). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_id")
     private Agent agent;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "staff_referrer_id")
+    private StaffReferrer staffReferrer;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "referred_faculty_id")
+    private Faculty faculty;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
@@ -72,21 +75,7 @@ public class AgentCommissionPayout {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public AgentCommissionPayout() {
-    }
-
-    public AgentCommissionPayout(Enquiry enquiry, Agent agent, BigDecimal amount,
-                                  LocalDate payoutDate, PaymentMode paymentMode,
-                                  String transactionReference, String remarks, String paidBy) {
-        this.enquiry = enquiry;
-        this.agent = agent;
-        this.amount = amount;
-        this.payoutDate = payoutDate;
-        this.paymentMode = paymentMode;
-        this.transactionReference = transactionReference;
-        this.remarks = remarks;
-        this.paidBy = paidBy;
-    }
+    public CommissionPayout() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -94,6 +83,10 @@ public class AgentCommissionPayout {
     public void setEnquiry(Enquiry enquiry) { this.enquiry = enquiry; }
     public Agent getAgent() { return agent; }
     public void setAgent(Agent agent) { this.agent = agent; }
+    public StaffReferrer getStaffReferrer() { return staffReferrer; }
+    public void setStaffReferrer(StaffReferrer staffReferrer) { this.staffReferrer = staffReferrer; }
+    public Faculty getFaculty() { return faculty; }
+    public void setFaculty(Faculty faculty) { this.faculty = faculty; }
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
     public LocalDate getPayoutDate() { return payoutDate; }
@@ -101,7 +94,7 @@ public class AgentCommissionPayout {
     public PaymentMode getPaymentMode() { return paymentMode; }
     public void setPaymentMode(PaymentMode paymentMode) { this.paymentMode = paymentMode; }
     public String getTransactionReference() { return transactionReference; }
-    public void setTransactionReference(String transactionReference) { this.transactionReference = transactionReference; }
+    public void setTransactionReference(String t) { this.transactionReference = t; }
     public String getRemarks() { return remarks; }
     public void setRemarks(String remarks) { this.remarks = remarks; }
     public String getPaidBy() { return paidBy; }
@@ -111,4 +104,3 @@ public class AgentCommissionPayout {
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }
-

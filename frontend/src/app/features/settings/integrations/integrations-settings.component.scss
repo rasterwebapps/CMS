@@ -1,0 +1,278 @@
+.int-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// ── Card ─────────────────────────────────────────────────────────────────────
+.int-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 12px;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--cms-border-default);
+  }
+
+  &__icon-wrap {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--cms-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .material-symbols-rounded { font-size: 20px; }
+
+    &--cash       { background: rgba(16, 185, 129, 0.12); color: var(--cms-success); }
+    &--connection { background: rgba(59, 130, 246, 0.12); color: var(--cms-info); }
+    &--webhook    { background: rgba(245, 158, 11, 0.12); color: var(--cms-warning); }
+  }
+
+  &__title {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0 0 3px;
+    color: var(--cms-text-primary);
+  }
+
+  &__sub {
+    font-size: 12.5px;
+    color: var(--cms-text-secondary);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  &__body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+// ── Toggle row ────────────────────────────────────────────────────────────────
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  &__label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cms-text-primary);
+  }
+
+  &__desc {
+    font-size: 12.5px;
+    color: var(--cms-text-secondary);
+    line-height: 1.5;
+  }
+}
+
+// ── Toggle switch ─────────────────────────────────────────────────────────────
+.cms-toggle {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+  &__track {
+    display: block;
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    background: var(--cms-border-default);
+    border: 1px solid var(--cms-border-default);
+    transition: background .2s, border-color .2s;
+    position: relative;
+  }
+
+  &__thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    transition: transform .2s;
+  }
+
+  &--on .cms-toggle__track {
+    background: var(--cms-primary);
+    border-color: var(--cms-primary);
+  }
+
+  &--on .cms-toggle__thumb {
+    transform: translateX(20px);
+  }
+}
+
+// ── Notice banners ────────────────────────────────────────────────────────────
+.int-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+
+  .material-symbols-rounded { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+  &--info {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--cms-info);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+
+    strong { font-weight: 700; }
+  }
+
+  &--tip {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--cms-warning);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+
+    code {
+      font-family: monospace;
+      font-size: 12px;
+      background: rgba(245, 158, 11, 0.15);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+  }
+}
+
+// ── Fields grid ───────────────────────────────────────────────────────────────
+.fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  @media (max-width: 640px) { grid-template-columns: 1fr; }
+}
+
+.field-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &--full { grid-column: 1 / -1; }
+}
+
+.field-hint {
+  font-size: 11.5px;
+  color: var(--cms-text-secondary);
+  margin: 0;
+
+  code {
+    font-family: monospace;
+    font-size: 11px;
+    background: var(--cms-bg-muted);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+// ── Secret input ──────────────────────────────────────────────────────────────
+.secret-input-wrap {
+  position: relative;
+  display: flex;
+}
+
+.secret-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--cms-text-secondary);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+
+  .material-symbols-rounded { font-size: 18px; }
+  &:hover { color: var(--cms-text-primary); }
+}
+
+.secret-input-wrap .field-input { padding-right: 40px; width: 100%; }
+
+// ── Webhook URL display ───────────────────────────────────────────────────────
+.webhook-url-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.webhook-url-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--cms-text-secondary);
+}
+
+.webhook-url {
+  font-family: monospace;
+  font-size: 12.5px;
+  background: var(--cms-bg-muted);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--cms-text-primary);
+  word-break: break-all;
+}
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+.int-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.skeleton-block {
+  height: 140px;
+  background: var(--cms-bg-muted);
+  border-radius: 12px;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+// ── Spinner ───────────────────────────────────────────────────────────────────
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  margin-right: 6px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

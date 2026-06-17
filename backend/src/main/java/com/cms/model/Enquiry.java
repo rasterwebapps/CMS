@@ -168,8 +168,8 @@ public class Enquiry {
     @Column(name = "referred_faculty_id")
     private Long referredFacultyId;
 
-    @Column(name = "referred_staff_name")
-    private String referredStaffName;
+    @Column(name = "referred_staff_id")
+    private Long referredStaffId;
 
     @Column(name = "converted_student_id")
     private Long convertedStudentId;
@@ -439,8 +439,8 @@ public class Enquiry {
     public Long getReferredFacultyId() { return referredFacultyId; }
     public void setReferredFacultyId(Long referredFacultyId) { this.referredFacultyId = referredFacultyId; }
 
-    public String getReferredStaffName() { return referredStaffName; }
-    public void setReferredStaffName(String referredStaffName) { this.referredStaffName = referredStaffName; }
+    public Long getReferredStaffId() { return referredStaffId; }
+    public void setReferredStaffId(Long referredStaffId) { this.referredStaffId = referredStaffId; }
 
     public Long getConvertedStudentId() {
         return convertedStudentId;

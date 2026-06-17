@@ -169,6 +169,12 @@ export class FinanceService {
       `${this.studentFeeUrl}/refunds/${refundId}/reject`, request);
   }
 
+  /** Push a PENDING (or PAYMENT_FAILED) refund to OneBook for payment. */
+  approveRefundViaOneBook(refundId: number): Observable<{ referenceId: string; status: string }> {
+    return this.http.post<{ referenceId: string; status: string }>(
+      `${this.studentFeeUrl}/refunds/${refundId}/approve-onebook`, {});
+  }
+
   /** Returns all pre-enrollment credit applications for a converted student. */
   getCreditApplications(studentId: number): Observable<EnquiryCreditApplication[]> {
     return this.http.get<EnquiryCreditApplication[]>(`${this.studentFeeUrl}/${studentId}/credit-applications`);

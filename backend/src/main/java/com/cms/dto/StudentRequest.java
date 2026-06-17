@@ -3,6 +3,7 @@ package com.cms.dto;
 import java.time.LocalDate;
 
 import com.cms.model.enums.AdmissionCategory;
+import com.cms.model.enums.BankAccountType;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentStatus;
 
@@ -85,7 +86,15 @@ public record StudentRequest(
     String motherEducation,
 
     // Address
-    AddressRequest address
+    AddressRequest address,
+
+    // Bank details
+    String bankAccountHolder,
+    String bankAccountNumber,
+    String bankIfscCode,
+    String bankBranch,
+    String bankName,
+    BankAccountType bankAccountType
 ) {
     public StudentRequest(String rollNumber, String firstName, String lastName, String email,
                           String phone, Long programId, Long courseId, Long specialityId,
@@ -97,6 +106,7 @@ public record StudentRequest(
         this(rollNumber, null, null, firstName, lastName, email, phone, programId, courseId, specialityId,
             yearOfStudy, admissionDate, labBatch, status, null, dateOfBirth, gender, aadharNumber, nationality,
             religion, communityCategory, caste, bloodGroup, false, fatherName, fatherPhone, fatherEmail,
-            motherName, motherPhone, motherEmail, parentMobile, false, null, null, address);
+            motherName, motherPhone, motherEmail, parentMobile, false, null, null, address,
+            null, null, null, null, null, null);
     }
 }

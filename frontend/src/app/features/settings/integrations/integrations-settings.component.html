@@ -1,0 +1,269 @@
+<div class="mlp-page">
+
+  <!-- Header -->
+  <div class="mlp-hdr">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <a class="back-link" routerLink="/settings" aria-label="Back to settings">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </a>
+        <h1 class="mlp-title">External <em>Integrations</em></h1>
+      </div>
+      <p class="mlp-sub">Configure OneBook integration for routing online payments outside OneCMS</p>
+    </div>
+    <button class="btn-primary" (click)="save()" [disabled]="saving() || loading()">
+      @if (saving()) {
+        <span class="btn-spinner"></span> Saving…
+      } @else {
+        Save Changes
+      }
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="int-skeleton">
+      @for (_ of [1,2,3,4]; track $index) {
+        <div class="skeleton-block"></div>
+      }
+    </div>
+  } @else {
+    <div class="int-body">
+
+      <!-- ── OneBook master toggle ──────────────────────────────────────────── -->
+      <section class="int-card">
+        <div class="int-card__header">
+          <div class="int-card__icon-wrap">
+            <span class="material-symbols-rounded" aria-hidden="true">account_tree</span>
+          </div>
+          <div>
+            <h2 class="int-card__title">OneBook Integration</h2>
+            <p class="int-card__sub">When enabled, approved online payments are pushed to OneBook for processing. OneBook confirms and updates the status back via a secure callback.</p>
+          </div>
+        </div>
+
+        <div class="int-card__body">
+          <div class="toggle-row">
+            <div class="toggle-row__text">
+              <span class="toggle-row__label">Enable OneBook Integration</span>
+              <span class="toggle-row__desc">
+                @if (isEnabled()) {
+                  Online payments will be routed to OneBook. Cash payments depend on the setting below.
+                } @else {
+                  All payments (commissions, refunds, scholarships) are handled entirely within OneCMS.
+                }
+              </span>
+            </div>
+            <label class="cms-toggle" [class.cms-toggle--on]="isEnabled()">
+              <input type="checkbox"
+                [checked]="getBooleanField('onebook.enabled')"
+                (change)="setBooleanField('onebook.enabled', $any($event.target).checked)" />
+              <span class="cms-toggle__track">
+                <span class="cms-toggle__thumb"></span>
+              </span>
+            </label>
+          </div>
+
+          @if (!isEnabled()) {
+            <div class="int-notice int-notice--info">
+              <span class="material-symbols-rounded" aria-hidden="true">info</span>
+              <span>OneBook is currently <strong>disabled</strong>. All payment workflows run inside OneCMS — no external service is contacted.</span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- ── Cash payment setting (always visible) ─────────────────────────── -->
+      <section class="int-card">
+        <div class="int-card__header">
+          <div class="int-card__icon-wrap int-card__icon-wrap--cash">
+            <span class="material-symbols-rounded" aria-hidden="true">payments</span>
+          </div>
+          <div>
+            <h2 class="int-card__title">Cash Payments</h2>
+            <p class="int-card__sub">Controls whether cash payments can be recorded directly in OneCMS when OneBook is active. Online payments (UPI, bank transfer, etc.) always route through OneBook.</p>
+          </div>
+        </div>
+
+        <div class="int-card__body">
+          <div class="toggle-row">
+            <div class="toggle-row__text">
+              <span class="toggle-row__label">Allow Cash Payments in OneCMS</span>
+              <span class="toggle-row__desc">
+                @if (getBooleanField('onebook.allow_cash_in_cms')) {
+                  Admins can record cash payouts directly in OneCMS — these bypass OneBook.
+                } @else {
+                  Cash payments are not accepted in OneCMS. All disbursements must go through OneBook.
+                }
+              </span>
+            </div>
+            <label class="cms-toggle" [class.cms-toggle--on]="getBooleanField('onebook.allow_cash_in_cms')">
+              <input type="checkbox"
+                [checked]="getBooleanField('onebook.allow_cash_in_cms')"
+                (change)="setBooleanField('onebook.allow_cash_in_cms', $any($event.target).checked)" />
+              <span class="cms-toggle__track">
+                <span class="cms-toggle__thumb"></span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── OneBook connection details (only when enabled) ────────────────── -->
+      @if (isEnabled()) {
+        <section class="int-card">
+          <div class="int-card__header">
+            <div class="int-card__icon-wrap int-card__icon-wrap--connection">
+              <span class="material-symbols-rounded" aria-hidden="true">cable</span>
+            </div>
+            <div>
+              <h2 class="int-card__title">Connection Settings</h2>
+              <p class="int-card__sub">Credentials and identity fields used when OneCMS pushes payment requests to OneBook. Keep the password confidential.</p>
+            </div>
+          </div>
+
+          <div class="int-card__body">
+            <div class="fields-grid">
+
+              <!-- Server URL — full width -->
+              <div class="field-wrap field-wrap--full">
+                <label class="field-label" for="api-url">
+                  OneBook Server URL <span class="required-star">*</span>
+                </label>
+                <input id="api-url" type="url" class="field-input"
+                  [value]="fieldValue('onebook.api_url')"
+                  (input)="setFieldValue('onebook.api_url', $any($event.target).value)"
+                  placeholder="https://172.16.x.x:8080" />
+                <p class="field-hint">OneCMS will call <code>{{ fieldValue('onebook.api_url') || 'https://…' }}/one-book/api/payment-register/add-from-other-app</code></p>
+              </div>
+
+              <!-- Username -->
+              <div class="field-wrap">
+                <label class="field-label" for="ob-username">
+                  Username <span class="required-star">*</span>
+                </label>
+                <input id="ob-username" type="text" class="field-input"
+                  [value]="fieldValue('onebook.username')"
+                  (input)="setFieldValue('onebook.username', $any($event.target).value)"
+                  placeholder="e.g. raster"
+                  autocomplete="off" />
+              </div>
+
+              <!-- Password -->
+              <div class="field-wrap">
+                <label class="field-label" for="ob-password">
+                  Password <span class="required-star">*</span>
+                </label>
+                <div class="secret-input-wrap">
+                  <input id="ob-password" class="field-input"
+                    [type]="showPassword() ? 'text' : 'password'"
+                    [value]="fieldValue('onebook.password')"
+                    (input)="setFieldValue('onebook.password', $any($event.target).value)"
+                    placeholder="OneBook login password"
+                    autocomplete="new-password" />
+                  <button type="button" class="secret-toggle" (click)="showPassword.set(!showPassword())"
+                    [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+                    <span class="material-symbols-rounded">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Organisation ID -->
+              <div class="field-wrap">
+                <label class="field-label" for="ob-org-id">
+                  Organisation ID <span class="required-star">*</span>
+                </label>
+                <input id="ob-org-id" type="text" class="field-input"
+                  [value]="fieldValue('onebook.org_id')"
+                  (input)="setFieldValue('onebook.org_id', $any($event.target).value)"
+                  placeholder="e.g. skscon" />
+              </div>
+
+              <!-- Branch ID -->
+              <div class="field-wrap">
+                <label class="field-label" for="ob-branch-id">Branch ID</label>
+                <input id="ob-branch-id" type="text" class="field-input"
+                  [value]="fieldValue('onebook.branch_id')"
+                  (input)="setFieldValue('onebook.branch_id', $any($event.target).value)"
+                  placeholder="e.g. 1" />
+              </div>
+
+              <!-- Application Name -->
+              <div class="field-wrap">
+                <label class="field-label" for="ob-app-name">Application Name in OneBook</label>
+                <input id="ob-app-name" type="text" class="field-input"
+                  [value]="fieldValue('onebook.app_name')"
+                  (input)="setFieldValue('onebook.app_name', $any($event.target).value)"
+                  placeholder="ONECMS" />
+              </div>
+
+              <!-- Paper Name -->
+              <div class="field-wrap">
+                <label class="field-label" for="ob-paper-name">Paper Name in OneBook</label>
+                <input id="ob-paper-name" type="text" class="field-input"
+                  [value]="fieldValue('onebook.paper_name')"
+                  (input)="setFieldValue('onebook.paper_name', $any($event.target).value)"
+                  placeholder="SKS College Of Nursing" />
+              </div>
+
+              <!-- Date of Integration -->
+              <div class="field-wrap">
+                <label class="field-label" for="ob-int-date">Date of Integration</label>
+                <input id="ob-int-date" type="date" class="field-input"
+                  [value]="fieldValue('onebook.integration_date')"
+                  (input)="setFieldValue('onebook.integration_date', $any($event.target).value)" />
+                <p class="field-hint">Date OneCMS was integrated with OneBook. Informational only.</p>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Webhook secret ─────────────────────────────────────────────── -->
+        <section class="int-card">
+          <div class="int-card__header">
+            <div class="int-card__icon-wrap int-card__icon-wrap--webhook">
+              <span class="material-symbols-rounded" aria-hidden="true">webhook</span>
+            </div>
+            <div>
+              <h2 class="int-card__title">Inbound Webhook</h2>
+              <p class="int-card__sub">OneBook calls back to <code>/webhooks/onebook/payment-status</code> to update payment statuses. The secret below must be configured in OneBook.</p>
+            </div>
+          </div>
+
+          <div class="int-card__body">
+            <div class="int-notice int-notice--tip">
+              <span class="material-symbols-rounded" aria-hidden="true">tips_and_updates</span>
+              <span>Configure OneBook to send the value below in the <code>X-OneBook-Secret</code> header on every callback. OneCMS rejects any request missing or not matching this secret.</span>
+            </div>
+
+            <div class="field-wrap" style="margin-top: 16px;">
+              <label class="field-label" for="webhook-secret">Webhook Secret</label>
+              <div class="secret-input-wrap">
+                <input id="webhook-secret" class="field-input"
+                  [type]="showWebhookSecret() ? 'text' : 'password'"
+                  [value]="fieldValue('onebook.webhook_secret')"
+                  (input)="setFieldValue('onebook.webhook_secret', $any($event.target).value)"
+                  placeholder="Set a strong random secret" autocomplete="off" />
+                <button type="button" class="secret-toggle" (click)="showWebhookSecret.set(!showWebhookSecret())"
+                  [attr.aria-label]="showWebhookSecret() ? 'Hide secret' : 'Show secret'">
+                  <span class="material-symbols-rounded">{{ showWebhookSecret() ? 'visibility_off' : 'visibility' }}</span>
+                </button>
+              </div>
+              <p class="field-hint">Use a long random string (min 32 chars). Copy this exact value into OneBook's callback configuration.</p>
+            </div>
+
+            <div class="webhook-url-row">
+              <span class="webhook-url-label">Callback URL for OneBook</span>
+              <code class="webhook-url">{{ '[your-server]' }}/api/webhooks/onebook/payment-status</code>
+            </div>
+          </div>
+        </section>
+      }
+
+    </div>
+  }
+</div>

@@ -1,0 +1,221 @@
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/staff-referrers" aria-label="Back to staff referrers">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Staff Referrer</em></h1>
+      </div>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the staff referrer details below.' : 'Register a sister-concern staff member who refers students.' }}
+      </p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="entry-form-sections">
+
+        <!-- ─── 1. STAFF INFORMATION ─────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Staff Information</div>
+              <div class="entry-form-card__hdr-sub">Contact, institution &amp; commission</div>
+            </div>
+          </div>
+
+          <div class="entry-form-card__body">
+            <div class="field-group">
+              <label for="sr-name" class="field-label">Name <span class="required-star">*</span></label>
+              <input id="sr-name" class="field-input" formControlName="name"
+                placeholder="Enter staff member's name" autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+              @if (form.get('name')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">
+                  @if (form.get('name')?.hasError('required')) { Name is required }
+                  @else if (form.get('name')?.hasError('uniqueField')) { This name is already registered }
+                  @else { Invalid name }
+                </p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="sr-institution" class="field-label">Institution</label>
+              <input id="sr-institution" class="field-input" formControlName="institution"
+                placeholder="Sister concern college name" autocomplete="off" />
+              <p class="field-hint">The college or institution this staff member works at</p>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="sr-phone" class="field-label">Phone</label>
+                <input id="sr-phone" class="field-input" formControlName="phone"
+                  placeholder="+91 9876543210" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="sr-email" class="field-label">Email</label>
+                <input id="sr-email" type="email" class="field-input" formControlName="email"
+                  placeholder="staff@college.edu" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="sr-commission" class="field-label">Commission (₹)</label>
+              <input id="sr-commission" type="number" class="field-input"
+                formControlName="commissionAmount" min="0" placeholder="0"
+                [class.field-input--error]="form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched" />
+              <p class="field-hint">Blank = use STAFF referral type default commission</p>
+              @if (form.get('commissionAmount')?.invalid && form.get('commissionAmount')?.touched) {
+                <p class="field-error">Must be 0 or greater</p>
+              }
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0;">
+              <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 2. IDENTITY ──────────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h4"/><path d="M7 13h4"/><circle cx="16.5" cy="11" r="2"/><path d="M14 16c.6-1.4 1.5-2 2.5-2s1.9.6 2.5 2"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Identity</div>
+              <div class="entry-form-card__hdr-sub">PAN &amp; Aadhaar — required for tax-compliant payouts</div>
+            </div>
+          </div>
+
+          <div class="entry-form-card__body">
+            <div class="field-row" style="margin-bottom: 0;">
+              <div class="field-group">
+                <label for="sr-pan" class="field-label">PAN Number</label>
+                <input id="sr-pan" class="field-input" formControlName="panNumber"
+                  placeholder="ABCDE1234F" autocomplete="off"
+                  style="text-transform: uppercase;" maxlength="10" />
+              </div>
+              <div class="field-group">
+                <label for="sr-aadhaar" class="field-label">Aadhaar Number</label>
+                <input id="sr-aadhaar" class="field-input" formControlName="aadhaarNumber"
+                  placeholder="1234 5678 9012" autocomplete="off" maxlength="14" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── 3. BANK DETAILS ─────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V10l7-5 7 5v11"/><path d="M9 21v-6h6v6"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Bank Details</div>
+              <div class="entry-form-card__hdr-sub">Used to disburse commission payouts</div>
+            </div>
+          </div>
+
+          <div class="entry-form-card__body">
+            <div class="field-row">
+              <div class="field-group">
+                <label for="sr-bank-holder" class="field-label">Account Holder Name</label>
+                <input id="sr-bank-holder" class="field-input" formControlName="bankAccountHolder"
+                  placeholder="As printed on passbook" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="sr-bank-acct" class="field-label">Account Number</label>
+                <input id="sr-bank-acct" class="field-input" formControlName="bankAccountNumber"
+                  placeholder="Account #" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="sr-bank-ifsc" class="field-label">IFSC Code</label>
+                <input id="sr-bank-ifsc" class="field-input" formControlName="bankIfscCode"
+                  placeholder="ABCD0123456" autocomplete="off"
+                  style="text-transform: uppercase;" maxlength="11" />
+              </div>
+              <div class="field-group">
+                <label for="sr-bank-type" class="field-label">Account Type</label>
+                <select id="sr-bank-type" class="field-select" formControlName="bankAccountType">
+                  <option [ngValue]="null">Select type</option>
+                  @for (option of bankAccountTypeOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="field-row" style="margin-bottom: 0;">
+              <div class="field-group">
+                <label for="sr-bank-name" class="field-label">Bank Name</label>
+                <input id="sr-bank-name" class="field-input" formControlName="bankName"
+                  placeholder="e.g., State Bank of India" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="sr-bank-branch" class="field-label">Branch</label>
+                <input id="sr-bank-branch" class="field-input" formControlName="bankBranch"
+                  placeholder="Branch name" autocomplete="off" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── Sticky save/cancel footer ─────────────────── -->
+        <div class="entry-form-sticky-footer">
+          <span class="entry-form-sticky-footer__hint">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            Identity &amp; bank details are optional but required for commission disbursement.
+          </span>
+          <button type="button" class="btn-cancel" routerLink="/staff-referrers">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update' : 'Create' }}
+            }
+          </button>
+        </div>
+      </form>
+
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-avatar">{{ previewInitials() || '—' }}</div>
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Name will appear here' }}
+          </div>
+          @if (previewInstitution()) {
+            <div class="prev-sub">{{ previewInstitution() }}</div>
+          }
+          @if (previewPhone()) {
+            <div class="prev-sub" style="margin-top: 4px;">{{ previewPhone() }}</div>
+          }
+          <div class="prev-meta-row">
+            @if (previewComm() != null && previewComm()! > 0) {
+              <span class="prev-pill prev-pill--amber">₹ {{ previewComm() }}</span>
+            }
+            <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">
+              {{ previewActive() ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </cms-preview-card>
+
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
+    </div>
+  }
+</div>

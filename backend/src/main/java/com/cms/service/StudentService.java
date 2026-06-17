@@ -164,6 +164,14 @@ public class StudentService {
             student.setAddress(toAddress(request.address()));
         }
 
+        // Bank details
+        student.setBankAccountHolder(request.bankAccountHolder());
+        student.setBankAccountNumber(request.bankAccountNumber());
+        student.setBankIfscCode(request.bankIfscCode());
+        student.setBankBranch(request.bankBranch());
+        student.setBankName(request.bankName());
+        student.setBankAccountType(request.bankAccountType());
+
         Student saved = studentRepository.save(student);
         return toResponse(saved);
     }
@@ -394,6 +402,14 @@ public class StudentService {
             student.setAddress(toAddress(request.address()));
         }
 
+        // Bank details
+        student.setBankAccountHolder(request.bankAccountHolder());
+        student.setBankAccountNumber(request.bankAccountNumber());
+        student.setBankIfscCode(request.bankIfscCode());
+        student.setBankBranch(request.bankBranch());
+        student.setBankName(request.bankName());
+        student.setBankAccountType(request.bankAccountType());
+
         Student updated = studentRepository.save(student);
         return toResponse(updated);
     }
@@ -528,6 +544,12 @@ public class StudentService {
             address != null ? address.getDistrict() : null,
             address != null ? address.getState() : null,
             address != null ? address.getPincode() : null,
+            student.getBankAccountHolder(),
+            student.getBankAccountNumber(),
+            student.getBankIfscCode(),
+            student.getBankBranch(),
+            student.getBankName(),
+            student.getBankAccountType(),
             student.getBio(),
             student.getEmergencyContactName(),
             student.getEmergencyContactRelationship(),

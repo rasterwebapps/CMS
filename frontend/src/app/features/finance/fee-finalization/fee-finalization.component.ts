@@ -131,6 +131,9 @@ export class FeeFinalizationComponent implements OnInit {
   protected readonly anyYearBelowZero = computed(() =>
     this.yearRows().some(r => r.finalAmount < 0)
   );
+  protected readonly anyInvalidYearValue = computed(() =>
+    this.yearRows().some(r => !Number.isFinite(r.finalAmount))
+  );
   protected readonly anyYearExceedsOriginal = computed(() =>
     this.yearRows().some(r => r.finalAmount > r.originalAmount)
   );
@@ -142,6 +145,7 @@ export class FeeFinalizationComponent implements OnInit {
     this.hasDiscount() && !this.discountReason().trim()
   );
   protected readonly canSubmit = computed(() =>
+    !this.anyInvalidYearValue() &&
     !this.anyYearBelowZero() &&
     !this.anyYearExceedsOriginal() &&
     !this.discountExceedsTotal() &&
@@ -371,12 +375,18 @@ export class FeeFinalizationComponent implements OnInit {
   }
 
   protected updateYearAmount(index: number, raw: string): void {
-    const requestedVal = this.paiseToAmount(Math.max(0, this.amountToPaise(parseFloat(raw) || 0)));
+    const requestedVal = this.parseEditableAmount(raw);
     const rows = this.yearRows().map((r, i) => {
       if (i === index) return { ...r, finalAmount: requestedVal };
       return r;
     });
     this.yearRows.set(rows);
+
+    if (rows.some(r => !Number.isFinite(r.finalAmount))) {
+      this.globalDiscount.set(0);
+      return;
+    }
+
     const finalPaise = rows.reduce((s, r) => s + this.amountToPaise(r.finalAmount), 0);
     this.globalDiscount.set(this.paiseToAmount(Math.max(0, this.amountToPaise(this.totalOriginal()) - finalPaise)));
   }
@@ -462,6 +472,24 @@ export class FeeFinalizationComponent implements OnInit {
 
   private paiseToAmount(value: number): number {
     return value / 100;
+  }
+
+  private parseEditableAmount(raw: string): number {
+    const normalizedRaw = raw.trim();
+    if (!normalizedRaw) {
+      return Number.NaN;
+    }
+
+    const parsed = Number(normalizedRaw);
+    if (!Number.isFinite(parsed)) {
+      return Number.NaN;
+    }
+
+    return this.paiseToAmount(Math.max(0, this.amountToPaise(parsed)));
+  }
+
+  protected isFiniteNumber(value: number): boolean {
+    return Number.isFinite(value);
   }
 
   protected startTour(): void {

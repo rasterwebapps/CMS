@@ -104,5 +104,7 @@ public record FacultyRequest(
     BigDecimal teachingExperiencePhdYears,
     BigDecimal clinicalExperienceUgYears,
     BigDecimal clinicalExperiencePgYears,
-    BigDecimal clinicalExperiencePhdYears
+    BigDecimal clinicalExperiencePhdYears,
+
+    BigDecimal commissionAmount
 ) {}

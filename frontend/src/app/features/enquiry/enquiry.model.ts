@@ -38,6 +38,7 @@ export interface Enquiry {
   referredStudentName?: string | null;
   referredFacultyId?: number | null;
   referredFacultyName?: string | null;
+  referredStaffId?: number | null;
   referredStaffName?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -75,7 +76,7 @@ export interface EnquiryRequest {
   district?: string;
   referredStudentId?: number;
   referredFacultyId?: number;
-  referredStaffName?: string;
+  referredStaffId?: number;
   dateOfBirth: string;
   gender: 'MALE' | 'FEMALE' | 'OTHER';
   admissionQuota?: 'MANAGEMENT' | 'COUNSELLING';

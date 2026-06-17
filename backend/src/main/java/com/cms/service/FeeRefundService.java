@@ -17,6 +17,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.EnquiryPayment;
 import com.cms.model.FeeInstallment;
 import com.cms.model.FeeRefund;
+import com.cms.model.OneBookPaymentRequest;
 import com.cms.model.PaymentReceipt;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
@@ -188,6 +189,58 @@ public class FeeRefundService {
         refund.setApprovedAt(now);
 
         return toSummaryResponse(refundRepository.save(refund));
+    }
+
+    /**
+     * Called by OneBookWebhookService when OneBook confirms a refund payment or reports failure.
+     * PAID → generate refundNumber, soft-flag installments/payment row, set APPROVED.
+     * FAILED → set PAYMENT_FAILED.
+     * PROCESSING → no-op; wait for a follow-up callback.
+     */
+    @Transactional
+    public void completeOneBookRefund(OneBookPaymentRequest obRequest, String internalStatus) {
+        FeeRefund refund = refundRepository.findById(obRequest.getEntityId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Refund not found: " + obRequest.getEntityId()));
+
+        if ("PAID".equals(internalStatus)) {
+            LocalDate paymentDate = obRequest.getOnebookPaidDate() != null
+                    ? obRequest.getOnebookPaidDate() : LocalDate.now();
+            String refundNumber = unifiedReceiptService.generateRefundNumber(paymentDate.getYear());
+            Instant now = Instant.now();
+
+            if ("ENQUIRY".equals(refund.getEntityType())) {
+                EnquiryPayment payment = enquiryPaymentRepository
+                        .findByReceiptNumber(refund.getOriginalReceiptNumber())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Payment not found for receipt: " + refund.getOriginalReceiptNumber()));
+                payment.setRefundedAt(now);
+                payment.setRefundNumber(refundNumber);
+                enquiryPaymentRepository.save(payment);
+            } else {
+                List<FeeInstallment> installments =
+                        installmentRepository.findByReceiptNumber(refund.getOriginalReceiptNumber());
+                installments.forEach(fi -> {
+                    fi.setRefundedAt(now);
+                    fi.setRefundNumber(refundNumber);
+                });
+                installmentRepository.saveAll(installments);
+            }
+
+            refund.setStatus("APPROVED");
+            refund.setRefundNumber(refundNumber);
+            refund.setPaymentMode(obRequest.getOnebookPaymentMode() != null
+                    ? obRequest.getOnebookPaymentMode() : "ONLINE");
+            refund.setPaymentDate(paymentDate);
+            refund.setTransactionReference(obRequest.getOnebookTxnId());
+            refund.setApprovedBy(obRequest.getApprovedBy());
+            refund.setApprovedAt(now);
+            refundRepository.save(refund);
+        } else if ("FAILED".equals(internalStatus)) {
+            refund.setStatus("PAYMENT_FAILED");
+            refundRepository.save(refund);
+        }
+        // PROCESSING: no status change — await further callback
     }
 
     /** Step 2b — approver rejects the refund request. No payment rows are touched. */

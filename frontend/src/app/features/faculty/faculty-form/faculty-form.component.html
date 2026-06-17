@@ -177,10 +177,20 @@
                 placeholder="e.g., Cardiology, Artificial Intelligence" autocomplete="off" />
             </div>
 
-            <div class="field-group" style="margin-bottom: 0;">
+            <div class="field-group">
               <label for="fac-expertise" class="field-label">Lab / Subject Expertise</label>
               <textarea id="fac-expertise" class="field-textarea" formControlName="labExpertise"
                 placeholder="Areas of teaching/lab expertise" rows="2"></textarea>
+            </div>
+
+            <div class="field-row" style="margin-bottom: 0;">
+              <div class="field-group">
+                <label for="fac-commission" class="field-label">Referral Commission Amount (₹)</label>
+                <input id="fac-commission" type="number" class="field-input" formControlName="commissionAmount"
+                  placeholder="e.g., 5000" min="0" step="0.01" />
+                <p class="field-hint">Commission paid to this faculty member per referred admission</p>
+              </div>
+              <div class="field-group"></div>
             </div>
           </div>
         </section>

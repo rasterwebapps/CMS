@@ -12,6 +12,7 @@ import { Agent } from '../../agent/agent.model';
 import { AgentService } from '../../agent/agent.service';
 import { ReferralType } from '../../referral-type/referral-type.model';
 import { ReferralTypeService } from '../../referral-type/referral-type.service';
+import { StaffReferrerService } from '../../staff-referrer/staff-referrer.service';
 import { environment } from '../../../../environments';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
@@ -19,6 +20,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_FORM_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
+import { trimmedMinLength } from '../../../shared/validators/cms-validators';
 interface ProgramInfo {
   id: number;
   name: string;
@@ -82,6 +84,8 @@ const ENQUIRY_STATUS_LABELS: Record<string, string> = {
   CLOSED: 'Closed',
 };
 
+const MIN_AUTOCOMPLETE_CHARS = 2;
+
 @Component({
   selector: 'app-enquiry-form',
   standalone: true,
@@ -104,6 +108,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
   private readonly enquiryService = inject(EnquiryService);
   private readonly agentService = inject(AgentService);
   private readonly referralTypeService = inject(ReferralTypeService);
+  private readonly staffReferrerService = inject(StaffReferrerService);
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
@@ -137,7 +142,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
         const c = this.form.get('agentId'); c?.markAsTouched(); if (c?.invalid) valid = false;
       }
       if (cat === 'STAFF') {
-        const c = this.form.get('referredStaffName'); c?.markAsTouched(); if (c?.invalid) valid = false;
+        const c = this.form.get('referredStaffId'); c?.markAsTouched(); if (c?.invalid) valid = false;
       }
     }
     if (!valid) { scrollToFirstInvalid(this.form); return; }
@@ -192,7 +197,8 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
   // Person search signals (loaded on-demand when referral type changes)
   protected readonly studentList = signal<{ id: number; fullName: string; rollNumber: string }[]>([]);
   protected readonly alumniList = signal<{ id: number; fullName: string; rollNumber: string }[]>([]);
-  protected readonly facultyList = signal<{ id: number; fullName: string; employeeCode: string }[]>([]);
+  protected readonly facultyList = signal<{ id: number; fullName: string; employeeCode: string; commissionAmount?: number | null }[]>([]);
+  protected readonly staffList   = signal<{ id: number; name: string; institution: string | null; commissionAmount: number | null }[]>([]);
   protected readonly personSearchTerm = signal('');
   protected readonly personSearchOpen = signal(false);
   // Agent search signals
@@ -246,7 +252,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
     district:       [''],
     referredStudentId: [null as number | null],
     referredFacultyId: [null as number | null],
-    referredStaffName: [null as string | null],
+    referredStaffId:   [null as number | null],
     dateOfBirth:    ['', Validators.required],
     age:            [null as number | null, [Validators.min(0), Validators.max(150)]],
     gender:         ['FEMALE' as 'FEMALE' | 'MALE' | 'OTHER', Validators.required],
@@ -256,7 +262,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
   /** Filtered student list based on the current search term. */
   protected readonly filteredStudents = computed(() => {
     const term = this.personSearchTerm().trim().toLowerCase();
-    if (!term) return this.studentList().slice(0, 20);
+    if (term.length < MIN_AUTOCOMPLETE_CHARS) return [];
     return this.studentList()
       .filter(s => s.fullName.toLowerCase().includes(term) || s.rollNumber.toLowerCase().includes(term))
       .slice(0, 20);
@@ -264,7 +270,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
   /** Filtered alumni list based on the current search term. */
   protected readonly filteredAlumni = computed(() => {
     const term = this.personSearchTerm().trim().toLowerCase();
-    if (!term) return this.alumniList().slice(0, 20);
+    if (term.length < MIN_AUTOCOMPLETE_CHARS) return [];
     return this.alumniList()
       .filter(s => s.fullName.toLowerCase().includes(term) || s.rollNumber.toLowerCase().includes(term))
       .slice(0, 20);
@@ -272,19 +278,33 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
   /** Filtered faculty list based on the current search term. */
   protected readonly filteredFaculty = computed(() => {
     const term = this.personSearchTerm().trim().toLowerCase();
-    if (!term) return this.facultyList().slice(0, 20);
+    if (term.length < MIN_AUTOCOMPLETE_CHARS) return [];
     return this.facultyList()
       .filter(f => f.fullName.toLowerCase().includes(term) || f.employeeCode.toLowerCase().includes(term))
+      .slice(0, 20);
+  });
+  /** Filtered staff referrer list based on the current search term. */
+  protected readonly filteredStaff = computed(() => {
+    const term = this.personSearchTerm().trim().toLowerCase();
+    if (term.length < MIN_AUTOCOMPLETE_CHARS) return [];
+    return this.staffList()
+      .filter(s => s.name.toLowerCase().includes(term) || (s.institution ?? '').toLowerCase().includes(term))
       .slice(0, 20);
   });
   /** Filtered agent list based on the current agent search term. */
   protected readonly filteredAgents = computed(() => {
     const term = this.agentSearchTerm().trim().toLowerCase();
-    if (!term) return this.agents().slice(0, 20);
+    if (term.length < MIN_AUTOCOMPLETE_CHARS) return [];
     return this.agents()
       .filter(a => a.name.toLowerCase().includes(term) || (a.phone ?? '').toLowerCase().includes(term))
       .slice(0, 20);
   });
+  protected readonly isAgentSearchReady = computed(
+    () => this.agentSearchTerm().trim().length >= MIN_AUTOCOMPLETE_CHARS,
+  );
+  protected readonly isPersonSearchReady = computed(
+    () => this.personSearchTerm().trim().length >= MIN_AUTOCOMPLETE_CHARS,
+  );
   protected setStudentType(type: 'DAY_SCHOLAR' | 'HOSTELER'): void {
     this.form.patchValue({ studentType: type });
     this.onStudentTypeChange();
@@ -347,6 +367,9 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
       error: () => {},
     });
     const id = this.route.snapshot.paramMap.get('id');
+    if (!id) {
+      this.applyCreateMinLengthRules();
+    }
     if (id) {
       this.itemId = Number(id);
       this.isEditMode.set(true);
@@ -369,7 +392,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
             district: item.district ?? '',
             referredStudentId: item.referredStudentId ?? null,
             referredFacultyId: item.referredFacultyId ?? null,
-            referredStaffName: item.referredStaffName ?? null,
+            referredStaffId:   item.referredStaffId ?? null,
             dateOfBirth: item.dateOfBirth ?? '',
             gender: item.gender ?? 'FEMALE',
           });
@@ -378,6 +401,8 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
             this.personSearchTerm.set(item.referredStudentName);
           } else if (item.referredFacultyName) {
             this.personSearchTerm.set(item.referredFacultyName);
+          } else if (item.referredStaffName) {
+            this.personSearchTerm.set(item.referredStaffName);
           }
           if (item.agentName) {
             this.agentSearchTerm.set(item.agentName);
@@ -390,7 +415,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
               agentId: item.agentId ?? null,
               referredStudentId: item.referredStudentId ?? null,
               referredFacultyId: item.referredFacultyId ?? null,
-              referredStaffName: item.referredStaffName ?? null,
+              referredStaffId:   item.referredStaffId ?? null,
             });
             if (item.agentName) { this.agentSearchTerm.set(item.agentName); }
           }
@@ -567,7 +592,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
   }
   protected onReferralTypeChange(referralTypeId: number): void {
     // Reset all person selectors
-    this.form.patchValue({ agentId: null, referredStudentId: null, referredFacultyId: null, referredStaffName: null });
+    this.form.patchValue({ agentId: null, referredStudentId: null, referredFacultyId: null, referredStaffId: null });
     this.personSearchTerm.set('');
     this.personSearchOpen.set(false);
     this.agentSearchTerm.set('');
@@ -576,7 +601,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
       this.referralAdditionalAmount.set(0);
       this.referralCategory.set('NONE');
       this.updateAgentValidator(false);
-      this.updateStaffNameValidator(false);
+      this.updateStaffIdValidator(false);
       return;
     }
     const rt = this.referralTypes().find((r) => r.id === referralTypeId);
@@ -585,30 +610,31 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
     if (code === 'AGENT_REFERRAL') {
       this.referralCategory.set('AGENT');
       this.updateAgentValidator(true);
-      this.updateStaffNameValidator(false);
+      this.updateStaffIdValidator(false);
     } else if (code === 'STUDENT') {
       this.referralCategory.set('STUDENT');
       this.updateAgentValidator(false);
-      this.updateStaffNameValidator(false);
+      this.updateStaffIdValidator(false);
       this.loadStudentList();
     } else if (code === 'ALUMNI') {
       this.referralCategory.set('ALUMNI');
       this.updateAgentValidator(false);
-      this.updateStaffNameValidator(false);
+      this.updateStaffIdValidator(false);
       this.loadAlumniList();
     } else if (code === 'FACULTY') {
       this.referralCategory.set('FACULTY');
       this.updateAgentValidator(false);
-      this.updateStaffNameValidator(false);
+      this.updateStaffIdValidator(false);
       this.loadFacultyList();
     } else if (code === 'STAFF') {
       this.referralCategory.set('STAFF');
       this.updateAgentValidator(false);
-      this.updateStaffNameValidator(true);
+      this.updateStaffIdValidator(true);
+      this.loadStaffList();
     } else {
       this.referralCategory.set('NONE');
       this.updateAgentValidator(false);
-      this.updateStaffNameValidator(false);
+      this.updateStaffIdValidator(false);
     }
   }
   protected updateAgentValidator(required: boolean): void {
@@ -620,14 +646,28 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
     }
     ctrl?.updateValueAndValidity({ emitEvent: false });
   }
-  protected updateStaffNameValidator(required: boolean): void {
-    const ctrl = this.form.get('referredStaffName');
+  protected updateStaffIdValidator(required: boolean): void {
+    const ctrl = this.form.get('referredStaffId');
     if (required) {
-      ctrl?.setValidators([Validators.required, Validators.maxLength(255)]);
+      ctrl?.setValidators(Validators.required);
     } else {
       ctrl?.clearValidators();
     }
     ctrl?.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private applyCreateMinLengthRules(): void {
+    this.form.get('name')?.setValidators([Validators.required, Validators.maxLength(255), trimmedMinLength(2)]);
+    this.form.get('phone')?.setValidators([Validators.required, trimmedMinLength(2)]);
+    this.form.get('state')?.setValidators([Validators.required, trimmedMinLength(2)]);
+    this.form.get('district')?.setValidators([trimmedMinLength(2)]);
+    this.form.get('remarks')?.setValidators([trimmedMinLength(2)]);
+
+    this.form.get('name')?.updateValueAndValidity({ emitEvent: false });
+    this.form.get('phone')?.updateValueAndValidity({ emitEvent: false });
+    this.form.get('state')?.updateValueAndValidity({ emitEvent: false });
+    this.form.get('district')?.updateValueAndValidity({ emitEvent: false });
+    this.form.get('remarks')?.updateValueAndValidity({ emitEvent: false });
   }
   protected selectAgent(id: number, name: string): void {
     this.form.patchValue({ agentId: id });
@@ -659,17 +699,23 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
       : (rt?.hasCommission ? (rt?.commissionAmount ?? 0) : 0);
     this.referralAdditionalAmount.set(commission);
   }
-  protected selectPerson(id: number, name: string, type: 'STUDENT' | 'ALUMNI' | 'FACULTY'): void {
+  protected selectPerson(id: number, name: string, type: 'STUDENT' | 'ALUMNI' | 'FACULTY' | 'STAFF', commissionAmount?: number | null): void {
     if (type === 'STUDENT' || type === 'ALUMNI') {
       this.form.patchValue({ referredStudentId: id });
-    } else {
+    } else if (type === 'FACULTY') {
       this.form.patchValue({ referredFacultyId: id });
+    } else {
+      this.form.patchValue({ referredStaffId: id });
     }
     this.personSearchTerm.set(name);
     this.personSearchOpen.set(false);
+    // Apply person-level commission override if provided and non-zero
+    if (commissionAmount != null && Number(commissionAmount) > 0) {
+      this.referralAdditionalAmount.set(Number(commissionAmount));
+    }
   }
   protected clearPerson(): void {
-    this.form.patchValue({ referredStudentId: null, referredFacultyId: null });
+    this.form.patchValue({ referredStudentId: null, referredFacultyId: null, referredStaffId: null });
     this.personSearchTerm.set('');
   }
   protected onPersonSearchInput(event: Event): void {
@@ -696,10 +742,19 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
   }
   private loadFacultyList(): void {
     if (this.facultyList().length > 0) return;
-    this.http.get<{ id: number; fullName: string; employeeCode: string }[]>(
+    this.http.get<{ id: number; fullName: string; employeeCode: string; commissionAmount?: number | null }[]>(
       `${environment.apiUrl}/faculty`
     ).subscribe({
       next: (data) => this.facultyList.set(data),
+      error: () => {},
+    });
+  }
+  private loadStaffList(): void {
+    if (this.staffList().length > 0) return;
+    this.staffReferrerService.getActive().subscribe({
+      next: (data) => this.staffList.set(
+        data.map(s => ({ id: s.id, name: s.name, institution: s.institution, commissionAmount: s.commissionAmount ?? null }))
+      ),
       error: () => {},
     });
   }
@@ -724,7 +779,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
       district: v.district?.trim() || undefined,
       referredStudentId: v.referredStudentId ?? undefined,
       referredFacultyId: v.referredFacultyId ?? undefined,
-      referredStaffName: v.referredStaffName?.trim() || undefined,
+      referredStaffId:   v.referredStaffId ?? undefined,
       dateOfBirth: v.dateOfBirth,
       gender: v.gender,
       admissionQuota: v.admissionQuota || undefined,

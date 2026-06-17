@@ -1,0 +1,430 @@
+<div class="mlp-page">
+
+  <!-- ── Payout modal ────────────────────────────────────────────────────────── -->
+  @if (payoutTarget()) {
+    <div class="ce-overlay" role="dialog" aria-modal="true" aria-labelledby="payout-dialog-title">
+      <div class="ce-dialog">
+        <div class="ce-dialog__header">
+          <span class="material-icons ce-dialog__icon" aria-hidden="true">{{ isCashOnly() ? 'attach_money' : 'payments' }}</span>
+          <h3 id="payout-dialog-title">{{ isCashOnly() ? 'Record Cash Payment' : 'Record Commission Payout' }}</h3>
+        </div>
+
+        <div class="ce-dialog__summary">
+          <div class="ce-summary-row">
+            <span class="ce-summary-label">Student</span>
+            <span class="ce-summary-value">{{ payoutTarget()!.studentName }}</span>
+          </div>
+          <div class="ce-summary-row">
+            <span class="ce-summary-label">Referrer</span>
+            <span class="ce-summary-value">{{ referrerLabel(payoutTarget()!) }}</span>
+          </div>
+          <div class="ce-summary-row">
+            <span class="ce-summary-label">Commission Due</span>
+            <span class="ce-summary-value ce-amount">{{ payoutTarget()!.commissionAmount | inr }}</span>
+          </div>
+          <div class="ce-summary-row">
+            <span class="ce-summary-label">Already Paid</span>
+            <span class="ce-summary-value">{{ payoutTarget()!.commissionPaidAmount | inr }}</span>
+          </div>
+          <div class="ce-summary-row">
+            <span class="ce-summary-label">Outstanding</span>
+            <span class="ce-summary-value ce-amount--outstanding">{{ payoutTarget()!.commissionOutstanding | inr }}</span>
+          </div>
+        </div>
+
+        <form [formGroup]="payoutForm" (ngSubmit)="submitPayout()" novalidate class="ce-dialog__form">
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label" for="po-amount">Amount Paid <span class="required-star">*</span></label>
+              <input id="po-amount" type="number" class="field-input" formControlName="amount"
+                placeholder="0.00" min="0.01" step="0.01"
+                [class.field-input--error]="payoutForm.get('amount')?.invalid && payoutForm.get('amount')?.touched" />
+              @if (payoutForm.get('amount')?.invalid && payoutForm.get('amount')?.touched) {
+                <p class="field-error">Enter a valid amount</p>
+              }
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="po-date">Payout Date <span class="required-star">*</span></label>
+              <input id="po-date" type="date" class="field-input" formControlName="payoutDate"
+                [class.field-input--error]="payoutForm.get('payoutDate')?.invalid && payoutForm.get('payoutDate')?.touched" />
+              @if (payoutForm.get('payoutDate')?.invalid && payoutForm.get('payoutDate')?.touched) {
+                <p class="field-error">Date is required</p>
+              }
+            </div>
+          </div>
+
+          <div class="field-row">
+            @if (!isCashOnly()) {
+              <div class="field-group">
+                <label class="field-label" for="po-mode">Payment Mode <span class="required-star">*</span></label>
+                <select id="po-mode" class="field-select" formControlName="paymentMode"
+                  [class.field-select--error]="payoutForm.get('paymentMode')?.invalid && payoutForm.get('paymentMode')?.touched">
+                  <option [value]="null">Select mode…</option>
+                  @for (mode of paymentModes; track mode) {
+                    <option [value]="mode">{{ mode | paymentModeLabel }}</option>
+                  }
+                </select>
+                @if (payoutForm.get('paymentMode')?.invalid && payoutForm.get('paymentMode')?.touched) {
+                  <p class="field-error">Payment mode is required</p>
+                }
+              </div>
+            }
+            <div class="field-group">
+              <label class="field-label" for="po-ref">Transaction Reference</label>
+              <input id="po-ref" class="field-input" formControlName="transactionReference"
+                placeholder="UTR / Cheque no. / Reference" />
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="po-remarks">Remarks</label>
+            <textarea id="po-remarks" class="field-textarea" formControlName="remarks"
+              rows="2" placeholder="Optional notes…"></textarea>
+          </div>
+
+          <div class="ce-dialog__footer">
+            <button type="button" class="btn-secondary" (click)="closePayoutModal()"
+              [disabled]="actionLoading()">Cancel</button>
+            <button type="submit" class="btn-primary" [disabled]="actionLoading()">
+              @if (actionLoading()) { <span class="btn-spinner"></span> } Record Payout
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ── Page header ─────────────────────────────────────────────────────────── -->
+  <div class="mlp-hero anim-rise">
+    <div class="mlp-hero__main">
+      <div class="mlp-hero__title-row">
+        <span class="material-icons mlp-hero__icon" aria-hidden="true">account_balance_wallet</span>
+        <h1 class="mlp-hero__title">Commission Explorer</h1>
+      </div>
+      <p class="mlp-sub">Track referral commissions — pending, requested, and paid.</p>
+    </div>
+  </div>
+
+  <!-- ── Summary stats ───────────────────────────────────────────────────────── -->
+  <div class="ce-stats anim-rise anim-rise--d1">
+    <div class="ce-stat">
+      <span class="ce-stat__label">Total Commission Due</span>
+      <span class="ce-stat__value">{{ totalDue() | inr }}</span>
+    </div>
+    <div class="ce-stat">
+      <span class="ce-stat__label">Paid Out</span>
+      <span class="ce-stat__value ce-stat__value--paid">{{ totalPaid() | inr }}</span>
+    </div>
+    <div class="ce-stat">
+      <span class="ce-stat__label">Outstanding</span>
+      <span class="ce-stat__value ce-stat__value--outstanding">{{ totalOutstanding() | inr }}</span>
+    </div>
+    <div class="ce-stat">
+      <span class="ce-stat__label">Awaiting Approval</span>
+      <span class="ce-stat__value ce-stat__value--requested">{{ totalRequested() }}</span>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ─────────────────────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d2">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+           viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input class="search-bar__input"
+        [value]="filterSearch()"
+        (input)="filterSearch.set($any($event.target).value)"
+        placeholder="Search by name, referrer, admission no."
+        type="text" aria-label="Search commissions" />
+      @if (filterSearch()) {
+        <button class="search-bar__clear" (click)="filterSearch.set('')" aria-label="Clear">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      }
+    </div>
+
+    <select class="mlp-filter-select"
+      [value]="filterStatus()"
+      (change)="filterStatus.set($any($event.target).value)"
+      aria-label="Filter by status">
+      <option value="">All Statuses</option>
+      @for (s of statusOptions; track s.value) {
+        <option [value]="s.value">{{ s.label }}</option>
+      }
+    </select>
+
+    <select class="mlp-filter-select"
+      [value]="filterSource()"
+      (change)="filterSource.set($any($event.target).value)"
+      aria-label="Filter by referral source">
+      <option value="">All Sources</option>
+      @for (s of sourceOptions; track s.value) {
+        <option [value]="s.value">{{ s.label }}</option>
+      }
+    </select>
+
+    <div class="date-range-group">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <span class="date-range-label">From</span>
+      <input class="date-input" type="date"
+        [value]="filterFrom()"
+        (change)="filterFrom.set($any($event.target).value)"
+        aria-label="From date" />
+      <span class="date-sep">—</span>
+      <span class="date-range-label">To</span>
+      <input class="date-input" type="date"
+        [value]="filterTo()"
+        (change)="filterTo.set($any($event.target).value)"
+        aria-label="To date" />
+    </div>
+
+    @if (hasFilters()) {
+      <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear all filters">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Clear
+      </button>
+    }
+  </div>
+
+  <!-- ── Table ───────────────────────────────────────────────────────────────── -->
+  <div class="mlp-table-wrap anim-rise anim-rise--d3">
+    @if (loading()) {
+      <div class="mlp-loading">
+        <mat-spinner diameter="36" />
+      </div>
+    } @else if (filteredRecords().length === 0) {
+      <cms-empty-state
+        icon="account_balance_wallet"
+        title="No commission records found"
+        [subtitle]="hasFilters() ? 'Try adjusting your filters.' : 'No commissions with an amount have been recorded yet.'"
+      />
+    } @else {
+      <table mat-table [dataSource]="dataSource" matSort class="cms-table">
+
+        <!-- Student Name -->
+        <ng-container matColumnDef="studentName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
+          <td mat-cell *matCellDef="let r" class="cell-primary">
+            <span class="cell-name">{{ r.studentName }}</span>
+            @if (r.admissionNumber) {
+              <span class="cell-sub">{{ r.admissionNumber }}</span>
+            }
+          </td>
+        </ng-container>
+
+        <!-- Referrer -->
+        <ng-container matColumnDef="referrer">
+          <th mat-header-cell *matHeaderCellDef>Referrer</th>
+          <td mat-cell *matCellDef="let r">
+            <span class="cell-name">{{ referrerLabel(r) }}</span>
+            @if (referrerType(r)) {
+              <span class="cell-badge cell-badge--type">{{ referrerType(r) }}</span>
+            }
+          </td>
+        </ng-container>
+
+        <!-- Program -->
+        <ng-container matColumnDef="program">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
+          <td mat-cell *matCellDef="let r">
+            <span class="cell-name">{{ r.programName || '—' }}</span>
+            @if (r.courseName) {
+              <span class="cell-sub">{{ r.courseName }}</span>
+            }
+          </td>
+        </ng-container>
+
+        <!-- Commission Amount -->
+        <ng-container matColumnDef="commissionAmount">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-right">Total</th>
+          <td mat-cell *matCellDef="let r" class="cell-right cell-amount">
+            {{ r.commissionAmount | inr }}
+          </td>
+        </ng-container>
+
+        <!-- Paid -->
+        <ng-container matColumnDef="paidAmount">
+          <th mat-header-cell *matHeaderCellDef class="cell-right">Paid</th>
+          <td mat-cell *matCellDef="let r" class="cell-right">
+            <span [class.cell-amount--paid]="r.commissionPaidAmount > 0">
+              {{ r.commissionPaidAmount | inr }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Outstanding -->
+        <ng-container matColumnDef="outstanding">
+          <th mat-header-cell *matHeaderCellDef class="cell-right">Outstanding</th>
+          <td mat-cell *matCellDef="let r" class="cell-right">
+            <span [class.cell-amount--outstanding]="r.commissionOutstanding > 0">
+              {{ r.commissionOutstanding | inr }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Status -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let r">
+            <span class="badge" [class]="statusClass(r.commissionPaymentStatus)">
+              {{ statusLabel(r.commissionPaymentStatus) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Actions -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let r" class="cell-actions">
+            <!-- Request payment (PENDING only, any viewer) -->
+            @if (r.commissionPaymentStatus === 'PENDING') {
+              <button class="btn-action btn-action--request"
+                (click)="requestPayment(r, $event)"
+                [disabled]="actionLoading()"
+                matTooltip="Request payment approval">
+                <span class="material-icons">send</span>
+              </button>
+            }
+
+            <!-- Payout actions (PAYMENT_REQUESTED or PARTIAL, manage only) -->
+            @if (canManage() && (r.commissionPaymentStatus === 'PAYMENT_REQUESTED' || r.commissionPaymentStatus === 'PARTIAL')) {
+              @if (!oneBookEnabled()) {
+                <!-- OneBook OFF: full record payout (all modes) -->
+                <button class="btn-action btn-action--payout"
+                  (click)="openPayoutModal(r, $event, false)"
+                  [disabled]="actionLoading()"
+                  matTooltip="Record payout">
+                  <span class="material-icons">payments</span>
+                </button>
+              } @else {
+                @if (oneBookAllowCash()) {
+                  <!-- OneBook ON + cash allowed: record cash payout -->
+                  <button class="btn-action btn-action--payout"
+                    (click)="openPayoutModal(r, $event, true)"
+                    [disabled]="actionLoading()"
+                    matTooltip="Record cash payment">
+                    <span class="material-icons">attach_money</span>
+                  </button>
+                }
+                <!-- OneBook ON: approve and transmit to OneBook -->
+                <button class="btn-action btn-action--onebook"
+                  (click)="approveViaOneBook(r, $event)"
+                  [disabled]="actionLoading()"
+                  matTooltip="Approve &amp; send to OneBook">
+                  <span class="material-icons">send_to_mobile</span>
+                </button>
+              }
+            }
+
+            <!-- Retry for FAILED transmissions (OneBook ON only) -->
+            @if (canManage() && r.commissionPaymentStatus === 'FAILED' && oneBookEnabled()) {
+              <button class="btn-action btn-action--onebook btn-action--retry"
+                (click)="approveViaOneBook(r, $event)"
+                [disabled]="actionLoading()"
+                matTooltip="Retry transmission to OneBook">
+                <span class="material-icons">replay</span>
+              </button>
+            }
+
+            <!-- Expand/collapse -->
+            <button class="btn-action btn-action--expand"
+              (click)="toggleRow(r)"
+              [matTooltip]="isExpanded(r) ? 'Hide history' : 'View payout history'">
+              <span class="material-icons">{{ isExpanded(r) ? 'expand_less' : 'expand_more' }}</span>
+            </button>
+          </td>
+        </ng-container>
+
+        <!-- Expanded detail row -->
+        <ng-container matColumnDef="expandedDetail">
+          <td mat-cell *matCellDef="let r" [attr.colspan]="displayedColumns.length" class="cell-expanded">
+            @if (isExpanded(r)) {
+              <div class="ce-detail">
+                <div class="ce-detail__meta">
+                  <span><strong>Enquiry Date:</strong> {{ r.enquiryDate | appDate }}</span>
+                  <span><strong>Status:</strong> {{ r.enquiryStatus }}</span>
+                  <span><strong>Referral Type:</strong> {{ r.referralTypeName || '—' }}</span>
+                  <span><strong>Source:</strong> {{ referrerType(r) || '—' }}</span>
+                </div>
+
+                @if (r.oneBookReferenceId) {
+                  <p class="ce-detail__section-title">OneBook Integration</p>
+                  <div class="ce-detail__meta ce-detail__onebook">
+                    <span><strong>Reference:</strong> <code class="ce-code">{{ r.oneBookReferenceId }}</code></span>
+                    <span><strong>Status:</strong>
+                      <span class="badge" [class]="statusClass(r.commissionPaymentStatus)">{{ statusLabel(r.commissionPaymentStatus) }}</span>
+                    </span>
+                    @if (r.oneBookTransmittedAt) {
+                      <span><strong>Transmitted:</strong> {{ r.oneBookTransmittedAt | appDate }}</span>
+                    }
+                    @if (r.oneBookTxnId) {
+                      <span><strong>Txn ID:</strong> <code class="ce-code">{{ r.oneBookTxnId }}</code></span>
+                    }
+                  </div>
+                }
+
+                @if (r.payouts && r.payouts.length > 0) {
+                  <p class="ce-detail__section-title">Payout History</p>
+                  <table class="ce-payout-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Mode</th>
+                        <th>Reference</th>
+                        <th>Paid By</th>
+                        <th>Remarks</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (p of r.payouts; track p.id) {
+                        <tr>
+                          <td>{{ p.payoutDate | appDate }}</td>
+                          <td class="cell-amount">{{ p.amount | inr }}</td>
+                          <td>{{ p.paymentMode | paymentModeLabel }}</td>
+                          <td class="cell-code">{{ p.transactionReference || '—' }}</td>
+                          <td>{{ p.paidBy || '—' }}</td>
+                          <td>{{ p.remarks || '—' }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                } @else {
+                  <p class="ce-detail__no-payouts">No payouts recorded yet.</p>
+                }
+              </div>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let r; columns: displayedColumns;"
+            class="cms-table__row"
+            [class.cms-table__row--expanded]="isExpanded(r)"
+            (click)="toggleRow(r)">
+        </tr>
+        <tr mat-row *matRowDef="let r; columns: ['expandedDetail']"
+            class="cms-table__detail-row">
+        </tr>
+      </table>
+
+      <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons />
+    }
+  </div>
+
+</div>

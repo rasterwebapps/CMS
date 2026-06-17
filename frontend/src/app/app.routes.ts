@@ -380,6 +380,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'commission-explorer',
+    canActivate: withPermission('COMMISSION_VIEW', 'COMMISSION_MANAGE'),
+    loadComponent: () =>
+      import('./features/commission-explorer/commission-explorer-list/commission-explorer-list.component').then(
+        (m) => m.CommissionExplorerListComponent
+      ),
+  },
+  {
     path: 'refund-approvals',
     canActivate: withPermission('FEE_REFUND_APPROVE'),
     loadComponent: () =>
@@ -666,6 +674,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'settings/integrations',
+    canActivate: withPermission('SETTINGS_MANAGE'),
+    loadComponent: () =>
+      import('./features/settings/integrations/integrations-settings.component').then(
+        (m) => m.IntegrationsSettingsComponent
+      ),
+  },
+  {
     path: 'settings/branding',
     canActivate: withPermission('SETTINGS_MANAGE'),
     loadComponent: () =>
@@ -687,6 +703,30 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/settings/system-configuration-form/system-configuration-form.component').then(
         (m) => m.SystemConfigurationFormComponent
+      ),
+  },
+  {
+    path: 'staff-referrers',
+    canActivate: withPermission('STAFF_REFERRER_VIEW', 'STAFF_REFERRER_MANAGE'),
+    loadComponent: () =>
+      import('./features/staff-referrer/staff-referrer-list/staff-referrer-list.component').then(
+        (m) => m.StaffReferrerListComponent
+      ),
+  },
+  {
+    path: 'staff-referrers/new',
+    canActivate: withPermission('STAFF_REFERRER_MANAGE'),
+    loadComponent: () =>
+      import('./features/staff-referrer/staff-referrer-form/staff-referrer-form.component').then(
+        (m) => m.StaffReferrerFormComponent
+      ),
+  },
+  {
+    path: 'staff-referrers/:id/edit',
+    canActivate: withPermission('STAFF_REFERRER_MANAGE'),
+    loadComponent: () =>
+      import('./features/staff-referrer/staff-referrer-form/staff-referrer-form.component').then(
+        (m) => m.StaffReferrerFormComponent
       ),
   },
   {

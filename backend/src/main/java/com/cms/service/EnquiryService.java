@@ -62,6 +62,7 @@ import com.cms.repository.ReferralTypeRepository;
 import com.cms.model.AgentCommissionGuideline;
 import com.cms.repository.AgentCommissionGuidelineRepository;
 import com.cms.repository.CohortRepository;
+import com.cms.repository.StaffReferrerRepository;
 import com.cms.repository.StudentRepository;
 
 @Service
@@ -97,6 +98,7 @@ public class EnquiryService {
     private final ApplicationNumberSequenceService numberSequenceService;
     private final LocationCountryRepository countryRepository;
     private final AgentCommissionGuidelineRepository agentCommissionGuidelineRepository;
+    private final StaffReferrerRepository staffReferrerRepository;
     private final CohortRepository cohortRepository;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
@@ -117,6 +119,7 @@ public class EnquiryService {
                            ApplicationNumberSequenceService numberSequenceService,
                            LocationCountryRepository countryRepository,
                            AgentCommissionGuidelineRepository agentCommissionGuidelineRepository,
+                           StaffReferrerRepository staffReferrerRepository,
                            CohortRepository cohortRepository) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
@@ -136,6 +139,7 @@ public class EnquiryService {
         this.numberSequenceService = numberSequenceService;
         this.countryRepository = countryRepository;
         this.agentCommissionGuidelineRepository = agentCommissionGuidelineRepository;
+        this.staffReferrerRepository = staffReferrerRepository;
         this.cohortRepository = cohortRepository;
     }
 
@@ -181,15 +185,15 @@ public class EnquiryService {
         enquiry.setAdmissionQuota(request.admissionQuota());
         applyFeeState(enquiry, request.feeStateId());
         applyAuthoritativeFees(enquiry, request);
+        enquiry.setReferredStudentId(request.referredStudentId());
+        enquiry.setReferredFacultyId(request.referredFacultyId());
+        enquiry.setReferredStaffId(request.referredStaffId());
         applyResolvedCommission(enquiry, referralType, agent);
         enquiry.setCountry(request.countryId() != null
             ? countryRepository.findById(request.countryId()).orElse(null)
             : null);
         enquiry.setState(request.state());
         enquiry.setDistrict(request.district());
-        enquiry.setReferredStudentId(request.referredStudentId());
-        enquiry.setReferredFacultyId(request.referredFacultyId());
-        enquiry.setReferredStaffName(request.referredStaffName());
 
         Enquiry saved = enquiryRepository.save(enquiry);
         recordHistory(saved, null, saved.getStatus(), "system", null);
@@ -274,15 +278,15 @@ public class EnquiryService {
         enquiry.setAdmissionQuota(request.admissionQuota());
         applyFeeState(enquiry, request.feeStateId());
         applyAuthoritativeFees(enquiry, request);
+        enquiry.setReferredStudentId(request.referredStudentId());
+        enquiry.setReferredFacultyId(request.referredFacultyId());
+        enquiry.setReferredStaffId(request.referredStaffId());
         applyResolvedCommission(enquiry, referralType, agent);
         enquiry.setCountry(request.countryId() != null
             ? countryRepository.findById(request.countryId()).orElse(null)
             : null);
         enquiry.setState(request.state());
         enquiry.setDistrict(request.district());
-        enquiry.setReferredStudentId(request.referredStudentId());
-        enquiry.setReferredFacultyId(request.referredFacultyId());
-        enquiry.setReferredStaffName(request.referredStaffName());
 
         if (request.status() != null) {
             enquiry.setStatus(request.status());
@@ -812,19 +816,47 @@ public class EnquiryService {
         BigDecimal guidelineAmount = resolveGuidelineCommission(agent, enquiry.getProgram());
         enquiry.setGuidelineCommissionAmount(guidelineAmount);
 
-        // Priority: guideline → agent flat amount → referral type → ₹0
+        String rtCode = referralType != null ? referralType.getCode() : null;
         BigDecimal amount;
         CommissionSource source;
+
         if (guidelineAmount != null && guidelineAmount.compareTo(BigDecimal.ZERO) > 0) {
+            // Agent per-program guideline takes highest priority
             amount = guidelineAmount;
             source = CommissionSource.AGENT;
         } else if (agent != null && agent.getCommissionAmount() != null
                 && agent.getCommissionAmount().compareTo(BigDecimal.ZERO) > 0) {
+            // Agent flat override
             amount = normalizeAmount(agent.getCommissionAmount());
             source = CommissionSource.AGENT;
+        } else if ("STAFF".equals(rtCode) && enquiry.getReferredStaffId() != null) {
+            // Staff referrer's commission amount, falling back to referral type
+            BigDecimal staffAmount = staffReferrerRepository.findById(enquiry.getReferredStaffId())
+                .map(sr -> sr.getCommissionAmount())
+                .filter(a -> a != null && a.compareTo(BigDecimal.ZERO) > 0)
+                .orElse(null);
+            if (staffAmount != null) {
+                amount = normalizeAmount(staffAmount);
+                source = CommissionSource.STAFF_REFERRER;
+            } else {
+                amount = fallbackReferralTypeAmount(referralType);
+                source = amount.compareTo(BigDecimal.ZERO) > 0 ? CommissionSource.REFERRAL_TYPE : CommissionSource.NONE;
+            }
+        } else if ("FACULTY".equals(rtCode) && enquiry.getReferredFacultyId() != null) {
+            // Faculty commission amount, falling back to referral type
+            BigDecimal facultyAmount = facultyRepository.findById(enquiry.getReferredFacultyId())
+                .map(f -> f.getCommissionAmount())
+                .filter(a -> a != null && a.compareTo(BigDecimal.ZERO) > 0)
+                .orElse(null);
+            if (facultyAmount != null) {
+                amount = normalizeAmount(facultyAmount);
+                source = CommissionSource.FACULTY_REFERRER;
+            } else {
+                amount = fallbackReferralTypeAmount(referralType);
+                source = amount.compareTo(BigDecimal.ZERO) > 0 ? CommissionSource.REFERRAL_TYPE : CommissionSource.NONE;
+            }
         } else if (referralType != null && Boolean.TRUE.equals(referralType.getHasCommission())) {
-            amount = normalizeAmount(referralType.getCommissionAmount() != null
-                ? referralType.getCommissionAmount() : BigDecimal.ZERO);
+            amount = fallbackReferralTypeAmount(referralType);
             source = amount.compareTo(BigDecimal.ZERO) > 0 ? CommissionSource.REFERRAL_TYPE : CommissionSource.NONE;
         } else {
             amount = BigDecimal.ZERO.setScale(2);
@@ -834,6 +866,14 @@ public class EnquiryService {
         enquiry.setCommissionSource(source);
         enquiry.setCommissionPaymentStatus(
             amount.compareTo(BigDecimal.ZERO) > 0 ? CommissionPaymentStatus.PENDING : CommissionPaymentStatus.NOT_APPLICABLE);
+    }
+
+    private BigDecimal fallbackReferralTypeAmount(ReferralType referralType) {
+        if (referralType == null || !Boolean.TRUE.equals(referralType.getHasCommission())) {
+            return BigDecimal.ZERO.setScale(2);
+        }
+        return normalizeAmount(referralType.getCommissionAmount() != null
+            ? referralType.getCommissionAmount() : BigDecimal.ZERO);
     }
 
     private BigDecimal resolveGuidelineCommission(Agent agent, Program program) {
@@ -871,6 +911,12 @@ public class EnquiryService {
         if (facultyId == null) return null;
         return facultyRepository.findById(facultyId)
             .map(f -> f.getFullName()).orElse(null);
+    }
+
+    private String resolveStaffName(Long staffId) {
+        if (staffId == null) return null;
+        return staffReferrerRepository.findById(staffId)
+            .map(s -> s.getName()).orElse(null);
     }
 
     private EnquiryResponse toResponse(Enquiry e) {
@@ -923,7 +969,8 @@ public class EnquiryService {
             resolveStudentName(e.getReferredStudentId()),
             e.getReferredFacultyId(),
             resolveFacultyName(e.getReferredFacultyId()),
-            e.getReferredStaffName(),
+            e.getReferredStaffId(),
+            resolveStaffName(e.getReferredStaffId()),
             e.getCreatedAt(),
             e.getUpdatedAt(),
             totalPaid,

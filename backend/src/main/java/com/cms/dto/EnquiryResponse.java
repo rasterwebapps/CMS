@@ -49,6 +49,7 @@ public record EnquiryResponse(
     String referredStudentName,
     Long referredFacultyId,
     String referredFacultyName,
+    Long referredStaffId,
     String referredStaffName,
     Instant createdAt,
     Instant updatedAt,

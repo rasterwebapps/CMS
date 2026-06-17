@@ -8,7 +8,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments';
 import { StudentService } from '../student.service';
-import { StudentRequest } from '../student.model';
+import { StudentRequest, STUDENT_BANK_ACCOUNT_TYPE_OPTIONS } from '../student.model';
 import { CommunityService } from '../../community/community.service';
 import { BloodGroupService } from '../../blood-group/blood-group.service';
 import { Community } from '../../community/community.model';
@@ -56,6 +56,7 @@ export class StudentFormComponent implements OnInit {
   private readonly communityService = inject(CommunityService);
   private readonly bloodGroupService = inject(BloodGroupService);
 
+  protected readonly bankAccountTypeOptions = STUDENT_BANK_ACCOUNT_TYPE_OPTIONS;
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
@@ -141,6 +142,12 @@ export class StudentFormComponent implements OnInit {
     district: [''],
     state: [''],
     pincode: [''],
+    bankAccountHolder: [''],
+    bankAccountNumber: [''],
+    bankIfscCode: [''],
+    bankBranch: [''],
+    bankName: [''],
+    bankAccountType: [null as string | null],
   });
 
   constructor() {
@@ -225,6 +232,12 @@ export class StudentFormComponent implements OnInit {
         state: v.state?.trim() || undefined,
         pincode: v.pincode?.trim() || undefined,
       },
+      bankAccountHolder: v.bankAccountHolder?.trim() || undefined,
+      bankAccountNumber: v.bankAccountNumber?.trim() || undefined,
+      bankIfscCode: v.bankIfscCode?.trim()?.toUpperCase() || undefined,
+      bankBranch: v.bankBranch?.trim() || undefined,
+      bankName: v.bankName?.trim() || undefined,
+      bankAccountType: v.bankAccountType || undefined,
     };
 
     this.saving.set(true);
@@ -330,6 +343,12 @@ export class StudentFormComponent implements OnInit {
           district: student.district || '',
           state: student.state || '',
           pincode: student.pincode || '',
+          bankAccountHolder: student.bankAccountHolder || '',
+          bankAccountNumber: student.bankAccountNumber || '',
+          bankIfscCode: student.bankIfscCode || '',
+          bankBranch: student.bankBranch || '',
+          bankName: student.bankName || '',
+          bankAccountType: student.bankAccountType || null,
         });
         this.loading.set(false);
       },

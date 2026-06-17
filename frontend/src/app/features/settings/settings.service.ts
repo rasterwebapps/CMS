@@ -20,7 +20,7 @@ export class SettingsService {
   }
 
   getByCategory(category: string): Observable<SystemConfiguration[]> {
-    return this.http.get<SystemConfiguration[]>(`${this.baseUrl}/category/${category}`);
+    return this.http.get<SystemConfiguration[]>(`${this.baseUrl}?category=${encodeURIComponent(category)}`);
   }
 
   getByKey(key: string): Observable<SystemConfiguration> {

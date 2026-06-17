@@ -58,7 +58,7 @@ public record EnquiryRequest(
 
     Long referredFacultyId,
 
-    String referredStaffName,
+    Long referredStaffId,
 
     @NotNull(message = "Date of birth is required")
     @Past(message = "Date of birth must be in the past")

@@ -166,6 +166,9 @@ export class FacultyFormComponent implements OnInit {
     state: [''],
     pincode: [''],
 
+    // Commission
+    commissionAmount: [null as number | null],
+
     // Experience (years, decimals allowed)
     teachingExperienceUgYears: [null as number | null],
     teachingExperiencePgYears: [null as number | null],
@@ -273,6 +276,7 @@ export class FacultyFormComponent implements OnInit {
       clinicalExperienceUgYears: this.numberOrUndefined(v.clinicalExperienceUgYears),
       clinicalExperiencePgYears: this.numberOrUndefined(v.clinicalExperiencePgYears),
       clinicalExperiencePhdYears: this.numberOrUndefined(v.clinicalExperiencePhdYears),
+      commissionAmount: this.numberOrUndefined(v.commissionAmount),
     };
 
     this.saving.set(true);
@@ -509,6 +513,7 @@ export class FacultyFormComponent implements OnInit {
           clinicalExperienceUgYears: faculty.clinicalExperienceUgYears ?? null,
           clinicalExperiencePgYears: faculty.clinicalExperiencePgYears ?? null,
           clinicalExperiencePhdYears: faculty.clinicalExperiencePhdYears ?? null,
+          commissionAmount: faculty.commissionAmount ?? null,
         });
         this.loading.set(false);
       },

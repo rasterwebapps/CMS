@@ -107,7 +107,11 @@
                          placeholder="e.g., Priya Sharma" autocomplete="name"
                          [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
                   @if (form.get('name')?.invalid && form.get('name')?.touched) {
-                    <p class="field-error">Name is required</p>
+                      @if (form.get('name')?.hasError('required')) {
+                       <p class="field-error">Name is required</p>
+                     } @else if (form.get('name')?.hasError('trimmedMinLength')) {
+                       <p class="field-error">Name must be at least 2 characters</p>
+                     }
                   }
                 </div>
 
@@ -374,13 +378,17 @@
                           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                       }
-                      @if (agentSearchOpen() && filteredAgents().length > 0) {
+                      @if (agentSearchOpen() && isAgentSearchReady()) {
                         <div class="person-search-dropdown">
-                          @for (a of filteredAgents(); track a.id) {
-                            <button type="button" class="person-search-item" (click)="selectAgent(a.id, a.name)">
-                              <span class="person-name">{{ a.name }}</span>
-                              <span class="person-code">{{ a.phone }}</span>
-                            </button>
+                          @if (filteredAgents().length > 0) {
+                            @for (a of filteredAgents(); track a.id) {
+                              <button type="button" class="person-search-item" (click)="selectAgent(a.id, a.name)">
+                                <span class="person-name">{{ a.name }}</span>
+                                <span class="person-code">{{ a.phone }}</span>
+                              </button>
+                            }
+                          } @else {
+                            <div class="person-search-empty">Data not available</div>
                           }
                         </div>
                       }
@@ -406,13 +414,17 @@
                           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                       }
-                      @if (personSearchOpen() && filteredStudents().length > 0) {
+                      @if (personSearchOpen() && isPersonSearchReady()) {
                         <div class="person-search-dropdown">
-                          @for (s of filteredStudents(); track s.id) {
-                            <button type="button" class="person-search-item" (click)="selectPerson(s.id, s.fullName, 'STUDENT')">
-                              <span class="person-name">{{ s.fullName }}</span>
-                              <span class="person-code">{{ s.rollNumber }}</span>
-                            </button>
+                          @if (filteredStudents().length > 0) {
+                            @for (s of filteredStudents(); track s.id) {
+                              <button type="button" class="person-search-item" (click)="selectPerson(s.id, s.fullName, 'STUDENT')">
+                                <span class="person-name">{{ s.fullName }}</span>
+                                <span class="person-code">{{ s.rollNumber }}</span>
+                              </button>
+                            }
+                          } @else {
+                            <div class="person-search-empty">Data not available</div>
                           }
                         </div>
                       }
@@ -434,13 +446,17 @@
                           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                       }
-                      @if (personSearchOpen() && filteredAlumni().length > 0) {
+                      @if (personSearchOpen() && isPersonSearchReady()) {
                         <div class="person-search-dropdown">
-                          @for (s of filteredAlumni(); track s.id) {
-                            <button type="button" class="person-search-item" (click)="selectPerson(s.id, s.fullName, 'ALUMNI')">
-                              <span class="person-name">{{ s.fullName }}</span>
-                              <span class="person-code">{{ s.rollNumber }}</span>
-                            </button>
+                          @if (filteredAlumni().length > 0) {
+                            @for (s of filteredAlumni(); track s.id) {
+                              <button type="button" class="person-search-item" (click)="selectPerson(s.id, s.fullName, 'ALUMNI')">
+                                <span class="person-name">{{ s.fullName }}</span>
+                                <span class="person-code">{{ s.rollNumber }}</span>
+                              </button>
+                            }
+                          } @else {
+                            <div class="person-search-empty">Data not available</div>
                           }
                         </div>
                       }
@@ -462,13 +478,17 @@
                           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                       }
-                      @if (personSearchOpen() && filteredFaculty().length > 0) {
+                      @if (personSearchOpen() && isPersonSearchReady()) {
                         <div class="person-search-dropdown">
-                          @for (f of filteredFaculty(); track f.id) {
-                            <button type="button" class="person-search-item" (click)="selectPerson(f.id, f.fullName, 'FACULTY')">
-                              <span class="person-name">{{ f.fullName }}</span>
-                              <span class="person-code">{{ f.employeeCode }}</span>
-                            </button>
+                          @if (filteredFaculty().length > 0) {
+                            @for (f of filteredFaculty(); track f.id) {
+                              <button type="button" class="person-search-item" (click)="selectPerson(f.id, f.fullName, 'FACULTY', f.commissionAmount)">
+                                <span class="person-name">{{ f.fullName }}</span>
+                                <span class="person-code">{{ f.employeeCode }}</span>
+                              </button>
+                            }
+                          } @else {
+                            <div class="person-search-empty">Data not available</div>
                           }
                         </div>
                       }
@@ -477,15 +497,36 @@
                 }
 
                 @if (referralCategory() === 'STAFF') {
-                  <div class="field-group">
-                    <label for="enq-staff-name" class="field-label">Referred By (Staff Name) <span class="field-required">*</span></label>
-                    <input id="enq-staff-name" class="field-input" formControlName="referredStaffName"
-                           placeholder="Enter referring staff member's name"
-                           autocomplete="off"
-                           [class.field-input--error]="form.get('referredStaffName')?.invalid && form.get('referredStaffName')?.touched" />
-                    @if (form.get('referredStaffName')?.invalid && form.get('referredStaffName')?.touched) {
-                      <p class="field-error">Referring staff member's name is required</p>
-                    }
+                  <div class="field-group enq-person-search">
+                    <label class="field-label">Referred By (Staff)</label>
+                    <div class="person-search-wrap">
+                      <input class="field-input" type="text" placeholder="Search by name or institution…"
+                             [value]="personSearchTerm()"
+                             (input)="onPersonSearchInput($event)"
+                             (focus)="personSearchOpen.set(true)"
+                             autocomplete="off" />
+                      @if (personSearchTerm()) {
+                        <button type="button" class="person-search-clear" (click)="clearPerson()" aria-label="Clear">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      }
+                      @if (personSearchOpen() && isPersonSearchReady()) {
+                        <div class="person-search-dropdown">
+                          @if (filteredStaff().length > 0) {
+                            @for (s of filteredStaff(); track s.id) {
+                              <button type="button" class="person-search-item" (click)="selectPerson(s.id, s.name, 'STAFF', s.commissionAmount)">
+                                <span class="person-name">{{ s.name }}</span>
+                                @if (s.institution) {
+                                  <span class="person-code">{{ s.institution }}</span>
+                                }
+                              </button>
+                            }
+                          } @else {
+                            <div class="person-search-empty">No active staff referrers found</div>
+                          }
+                        </div>
+                      }
+                    </div>
                   </div>
                 }
 

@@ -12,6 +12,8 @@ package com.cms.model.enums;
  */
 public enum CommissionSource {
     AGENT,
+    STAFF_REFERRER,
+    FACULTY_REFERRER,
     REFERRAL_TYPE,
     NONE
 }

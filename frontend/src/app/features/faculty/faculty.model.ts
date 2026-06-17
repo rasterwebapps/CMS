@@ -102,6 +102,7 @@ export interface Faculty {
   createdAt: string;
   updatedAt: string;
   documentReview?: FacultyDocumentReviewSummary;
+  commissionAmount?: number | null;
 }
 
 export interface FacultyRequest {
@@ -140,6 +141,7 @@ export interface FacultyRequest {
   clinicalExperienceUgYears?: number;
   clinicalExperiencePgYears?: number;
   clinicalExperiencePhdYears?: number;
+  commissionAmount?: number;
 }
 
 export interface FacultyDocument {

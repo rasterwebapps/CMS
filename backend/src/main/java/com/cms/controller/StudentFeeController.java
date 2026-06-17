@@ -1,6 +1,7 @@
 package com.cms.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,9 +31,11 @@ import com.cms.dto.ReceiptSummaryResponse;
 import com.cms.dto.StudentFeeAllocationRequest;
 import com.cms.dto.StudentFeeAllocationResponse;
 import com.cms.dto.YearFeeFromEnquiry;
+import com.cms.model.OneBookPaymentRequest;
 import com.cms.service.FeeExplorerService;
 import com.cms.service.FeeFinalizationService;
 import com.cms.service.FeeRefundService;
+import com.cms.service.OneBookIntegrationService;
 import com.cms.service.PaymentCollectionService;
 import com.cms.service.PenaltyCalculationService;
 
@@ -47,17 +50,20 @@ public class StudentFeeController {
     private final PenaltyCalculationService penaltyCalculationService;
     private final FeeExplorerService feeExplorerService;
     private final FeeRefundService feeRefundService;
+    private final OneBookIntegrationService oneBookService;
 
     public StudentFeeController(FeeFinalizationService feeFinalizationService,
                                  PaymentCollectionService paymentCollectionService,
                                  PenaltyCalculationService penaltyCalculationService,
                                  FeeExplorerService feeExplorerService,
-                                 FeeRefundService feeRefundService) {
+                                 FeeRefundService feeRefundService,
+                                 OneBookIntegrationService oneBookService) {
         this.feeFinalizationService = feeFinalizationService;
         this.paymentCollectionService = paymentCollectionService;
         this.penaltyCalculationService = penaltyCalculationService;
         this.feeExplorerService = feeExplorerService;
         this.feeRefundService = feeRefundService;
+        this.oneBookService = oneBookService;
     }
 
     @PostMapping("/finalize")
@@ -145,6 +151,16 @@ public class StudentFeeController {
             @AuthenticationPrincipal Jwt jwt) {
         String username = jwt != null ? jwt.getClaimAsString("preferred_username") : null;
         return ResponseEntity.ok(feeRefundService.approveRefund(refundId, request, username));
+    }
+
+    @PostMapping("/refunds/{refundId}/approve-onebook")
+    @PreAuthorize("@perm.has('FEE_REFUND_APPROVE')")
+    public ResponseEntity<Map<String, String>> approveRefundViaOneBook(
+            @PathVariable Long refundId,
+            @AuthenticationPrincipal Jwt jwt) {
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : null;
+        OneBookPaymentRequest obReq = oneBookService.pushRefundPayment(refundId, username);
+        return ResponseEntity.ok(Map.of("referenceId", obReq.getReferenceId(), "status", obReq.getStatus()));
     }
 
     @PostMapping("/refunds/{refundId}/reject")

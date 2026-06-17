@@ -12,6 +12,8 @@ import org.springframework.data.repository.query.Param;
 
 import com.cms.model.Enquiry;
 import com.cms.model.enums.AdmissionQuota;
+import com.cms.model.enums.CommissionPaymentStatus;
+import com.cms.model.enums.CommissionSource;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.Gender;
 
@@ -53,6 +55,27 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long> {
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate,
             @Param("terminalStatuses") Collection<EnquiryStatus> terminalStatuses);
+
+    @Query("""
+        SELECT e FROM Enquiry e
+        WHERE e.commissionAmount IS NOT NULL AND e.commissionAmount > 0
+          AND (:status IS NULL OR e.commissionPaymentStatus = :status)
+          AND (:source IS NULL OR e.commissionSource = :source)
+          AND (:referralTypeId IS NULL OR e.referralType.id = :referralTypeId)
+          AND (:agentId IS NULL OR e.agent.id = :agentId)
+          AND (:fromDate IS NULL OR e.enquiryDate >= :fromDate)
+          AND (:toDate IS NULL OR e.enquiryDate <= :toDate)
+          AND (:search IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', :search, '%')))
+        ORDER BY e.updatedAt DESC
+        """)
+    List<Enquiry> findCommissions(
+            @Param("status") CommissionPaymentStatus status,
+            @Param("source") CommissionSource source,
+            @Param("referralTypeId") Long referralTypeId,
+            @Param("agentId") Long agentId,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate,
+            @Param("search") String search);
 
     @Query("SELECT COUNT(e) FROM Enquiry e WHERE e.program.id = :programId AND e.admissionQuota = :quota AND e.feeState.id = :feeStateId AND e.gender = :gender AND e.status IN :statuses")
     long countByFeeGroupParams(

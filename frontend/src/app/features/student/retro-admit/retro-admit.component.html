@@ -451,14 +451,18 @@
                       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   }
-                  @if (agentSearchOpen() && filteredAgents().length > 0) {
+                  @if (agentSearchOpen() && isAgentSearchReady()) {
                     <div class="person-search-dropdown">
-                      @for (a of filteredAgents(); track a.id) {
-                        <button type="button" class="person-search-item"
-                                (click)="selectAgent(a.id, a.name)">
-                          <span class="person-name">{{ a.name }}</span>
-                          <span class="person-code">{{ a.phone }}</span>
-                        </button>
+                      @if (filteredAgents().length > 0) {
+                        @for (a of filteredAgents(); track a.id) {
+                          <button type="button" class="person-search-item"
+                                  (click)="selectAgent(a.id, a.name)">
+                            <span class="person-name">{{ a.name }}</span>
+                            <span class="person-code">{{ a.phone }}</span>
+                          </button>
+                        }
+                      } @else {
+                        <div class="person-search-empty">Data not available</div>
                       }
                     </div>
                   }

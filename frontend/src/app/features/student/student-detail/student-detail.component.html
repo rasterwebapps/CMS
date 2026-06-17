@@ -233,6 +233,20 @@
               <div class="detail-item"><span class="detail-label">State</span><span class="detail-value">{{ student()!.state || '—' }}</span></div>
               <div class="detail-item"><span class="detail-label">Pincode</span><span class="detail-value">{{ student()!.pincode || '—' }}</span></div>
             </div>
+
+            <p class="form-section-title profile-subsection">Bank Details</p>
+            @if (student()!.bankAccountNumber) {
+              <div class="detail-grid">
+                <div class="detail-item"><span class="detail-label">Account Holder</span><span class="detail-value">{{ student()!.bankAccountHolder || '—' }}</span></div>
+                <div class="detail-item"><span class="detail-label">Account Number</span><span class="detail-value code-value">{{ student()!.bankAccountNumber }}</span></div>
+                <div class="detail-item"><span class="detail-label">IFSC Code</span><span class="detail-value code-value">{{ student()!.bankIfscCode || '—' }}</span></div>
+                <div class="detail-item"><span class="detail-label">Account Type</span><span class="detail-value">{{ student()!.bankAccountType || '—' }}</span></div>
+                <div class="detail-item"><span class="detail-label">Bank Name</span><span class="detail-value">{{ student()!.bankName || '—' }}</span></div>
+                <div class="detail-item"><span class="detail-label">Branch</span><span class="detail-value">{{ student()!.bankBranch || '—' }}</span></div>
+              </div>
+            } @else {
+              <p class="no-data">No bank details on record. Add them via <strong>Edit Student</strong> when a payout is needed.</p>
+            }
           </div>
         </div>
       </mat-tab>

@@ -351,7 +351,7 @@ export interface FeeRefundSummary {
   reason: string;
   requestedBy: string | null;
   requestedAt: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'TRANSMITTED' | 'PAYMENT_FAILED';
   // Populated after APPROVED
   refundNumber: string | null;
   paymentMode: string | null;

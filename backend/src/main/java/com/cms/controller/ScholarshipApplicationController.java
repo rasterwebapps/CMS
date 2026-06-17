@@ -1,6 +1,7 @@
 package com.cms.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,8 @@ import com.cms.dto.ScholarshipApplicationResponse;
 import com.cms.dto.ScholarshipApprovalRequest;
 import com.cms.dto.ScholarshipRejectionRequest;
 import com.cms.dto.ScholarshipSanctionRequest;
+import com.cms.model.OneBookPaymentRequest;
+import com.cms.service.OneBookIntegrationService;
 import com.cms.service.ScholarshipDisbursementService;
 import com.cms.service.StudentScholarshipService;
 
@@ -32,11 +35,14 @@ public class ScholarshipApplicationController {
 
     private final StudentScholarshipService studentScholarshipService;
     private final ScholarshipDisbursementService disbursementService;
+    private final OneBookIntegrationService oneBookService;
 
     public ScholarshipApplicationController(StudentScholarshipService studentScholarshipService,
-                                            ScholarshipDisbursementService disbursementService) {
+                                            ScholarshipDisbursementService disbursementService,
+                                            OneBookIntegrationService oneBookService) {
         this.studentScholarshipService = studentScholarshipService;
         this.disbursementService = disbursementService;
+        this.oneBookService = oneBookService;
     }
 
     @GetMapping
@@ -101,6 +107,16 @@ public class ScholarshipApplicationController {
             @AuthenticationPrincipal Jwt jwt) {
         DisbursementResponse response = disbursementService.disburse(id, request, username(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/{id}/disburse-onebook")
+    @PreAuthorize("@perm.has('SCHOLARSHIP_DISBURSE')")
+    public ResponseEntity<Map<String, String>> disburseViaOneBook(
+            @PathVariable Long id,
+            @Valid @RequestBody DisbursementRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        OneBookPaymentRequest obReq = oneBookService.pushScholarshipPayment(id, request, username(jwt));
+        return ResponseEntity.ok(Map.of("referenceId", obReq.getReferenceId(), "status", obReq.getStatus()));
     }
 
     @GetMapping("/{id}/disbursements")

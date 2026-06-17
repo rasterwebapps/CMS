@@ -69,16 +69,20 @@ tr.rfl-row--pending:hover td {
   text-transform: uppercase;
   white-space: nowrap;
 
-  &--pending  { background: rgba(251, 191, 36, 0.18); color: #92400e; border: 1px solid rgba(251, 191, 36, 0.4); }
-  &--approved { background: rgba(16, 185, 129, 0.15); color: var(--cms-badge-green-bg); border: 1px solid rgba(16, 185, 129, 0.3); }
-  &--rejected { background: rgba(239, 68, 68, 0.12);  color: var(--cms-badge-red-bg);   border: 1px solid rgba(239, 68, 68, 0.25); }
+  &--pending     { background: rgba(251, 191, 36, 0.18); color: #92400e; border: 1px solid rgba(251, 191, 36, 0.4); }
+  &--approved    { background: rgba(16, 185, 129, 0.15); color: var(--cms-badge-green-bg); border: 1px solid rgba(16, 185, 129, 0.3); }
+  &--rejected    { background: rgba(239, 68, 68, 0.12);  color: var(--cms-badge-red-bg);   border: 1px solid rgba(239, 68, 68, 0.25); }
+  &--transmitted { background: rgba(99, 102, 241, 0.12); color: #4338ca; border: 1px solid rgba(99, 102, 241, 0.3); }
+  &--failed      { background: rgba(239, 68, 68, 0.12);  color: var(--cms-badge-red-bg);   border: 1px solid rgba(239, 68, 68, 0.25); }
 }
 
 :root[data-theme="dark"] {
   .rfl-status-chip {
-    &--pending  { background: rgba(251, 191, 36, 0.2);  color: #fbbf24; border-color: rgba(251, 191, 36, 0.3); }
-    &--approved { background: rgba(16, 185, 129, 0.2);  color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
-    &--rejected { background: rgba(239, 68, 68, 0.18);  color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
+    &--pending     { background: rgba(251, 191, 36, 0.2);  color: #fbbf24; border-color: rgba(251, 191, 36, 0.3); }
+    &--approved    { background: rgba(16, 185, 129, 0.2);  color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
+    &--rejected    { background: rgba(239, 68, 68, 0.18);  color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
+    &--transmitted { background: rgba(99, 102, 241, 0.2);  color: #a5b4fc; border-color: rgba(99, 102, 241, 0.3); }
+    &--failed      { background: rgba(239, 68, 68, 0.18);  color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
   }
 }
 
@@ -259,9 +263,11 @@ tr.rfl-row--pending:hover td {
   padding: 16px 20px;
   flex-shrink: 0;
 
-  &--pending  { background: var(--cms-gradient-brand, linear-gradient(135deg, var(--cms-primary) 0%, var(--cms-primary-hover) 100%)); color: #fff; }
-  &--approved { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; }
-  &--rejected { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; }
+  &--pending     { background: var(--cms-gradient-brand, linear-gradient(135deg, var(--cms-primary) 0%, var(--cms-primary-hover) 100%)); color: #fff; }
+  &--approved    { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; }
+  &--rejected    { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; }
+  &--transmitted { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #fff; }
+  &--failed      { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: #fff; }
 }
 
 .rfl-panel__header-left {
@@ -304,8 +310,9 @@ tr.rfl-row--pending:hover td {
   border-radius: 10px;
   overflow: hidden;
 
-  &--approved { border-color: rgba(16, 185, 129, 0.3); }
-  &--rejected { border-color: rgba(239, 68, 68, 0.25); }
+  &--approved    { border-color: rgba(16, 185, 129, 0.3); }
+  &--rejected    { border-color: rgba(239, 68, 68, 0.25); }
+  &--transmitted { border-color: rgba(99, 102, 241, 0.3); }
 }
 
 .rfl-block-title {
