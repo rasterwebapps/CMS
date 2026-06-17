@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, computed, ViewChild, effect } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -44,6 +44,7 @@ interface Program { id: number; name: string; durationYears: number; }
 })
 export class FeeFinalizationComponent implements OnInit {
   private readonly route    = inject(ActivatedRoute);
+  private readonly router   = inject(Router);
   private readonly http     = inject(HttpClient);
   private readonly enquiryService = inject(EnquiryService);
   private readonly toast    = inject(ToastService);
@@ -176,20 +177,39 @@ export class FeeFinalizationComponent implements OnInit {
       },
     });
 
-    const enquiryId = this.route.snapshot.queryParamMap.get('enquiryId');
-    if (enquiryId) {
-      this.loading.set(true);
-      this.enquiryService.getEnquiryById(Number(enquiryId)).subscribe({
-        next: (e) => {
-          this.allEnquiries.set([e]);
-          this.selectEnquiry(e);
-          this.loading.set(false);
-        },
-        error: () => { this.toast.error('Failed to load enquiry'); this.loadList(); },
-      });
-    } else {
-      this.loadList();
-    }
+    // Subscribe (not snapshot) so browser back/forward updates the view correctly.
+    this.route.queryParamMap.subscribe(params => {
+      const enquiryIdStr = params.get('enquiryId');
+      if (enquiryIdStr) {
+        const id = Number(enquiryIdStr);
+        // Guard: skip if already showing this enquiry (e.g. came via selectEnquiry()).
+        if (this.selectedEnquiry()?.id !== id) {
+          this.loading.set(true);
+          this.enquiryService.getEnquiryById(id).subscribe({
+            next: (e) => {
+              this.allEnquiries.set([e]);
+              this.applyEnquiryState(e);
+              this.loading.set(false);
+            },
+            error: () => {
+              this.toast.error('Failed to load enquiry');
+              void this.router.navigate(['/student-fees/finalize']);
+            },
+          });
+        }
+      } else {
+        // No enquiryId — ensure list view.
+        if (this.selectedEnquiry() !== null) {
+          this.selectedEnquiry.set(null);
+          this.yearRows.set([]);
+          this.globalDiscount.set(0);
+          this.commissionAmount.set(0);
+          this.discountReasonCtrl.setValue('');
+          this.discountReason.set('');
+        }
+        this.loadList();
+      }
+    });
   }
 
   private loadList(): void {
@@ -286,6 +306,12 @@ export class FeeFinalizationComponent implements OnInit {
   }
 
   protected selectEnquiry(enquiry: Enquiry): void {
+    // Update URL so the browser back button returns to the list, not a previous route.
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { enquiryId: enquiry.id } });
+    this.applyEnquiryState(enquiry);
+  }
+
+  private applyEnquiryState(enquiry: Enquiry): void {
     this.selectedEnquiry.set(enquiry);
     this.discountReasonCtrl.setValue('');
     this.discountReason.set('');
@@ -422,13 +448,16 @@ export class FeeFinalizationComponent implements OnInit {
   }
 
   protected backToList(): void {
+    // Reset UI immediately, then navigate to clear the query param.
+    // The queryParamMap subscription will call loadList() once navigation completes.
     this.selectedEnquiry.set(null);
     this.yearRows.set([]);
     this.globalDiscount.set(0);
     this.commissionAmount.set(0);
     this.discountReasonCtrl.setValue('');
     this.discountReason.set('');
-    this.loadList();
+    this.loading.set(true);
+    void this.router.navigate(['/student-fees/finalize']);
   }
 
   protected onSubmit(): void {

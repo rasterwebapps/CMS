@@ -207,6 +207,32 @@ export class FeeCollectionComponent implements OnInit {
     this.tourService.register('fee-collection', FEE_COLLECTION_TOUR);
     this.tourService.register('collect-balance', COLLECT_BALANCE_TOUR);
     this.loadAll(() => this.applyDeepLink());
+
+    // Subscribe (not snapshot) so browser back/forward updates the view after data is loaded.
+    this.route.queryParamMap.subscribe(params => {
+      if (this.feeEntries().length === 0) return; // not yet loaded; applyDeepLink handles initial
+      const enquiryIdStr = params.get('enquiryId');
+      if (!enquiryIdStr) {
+        if (this.selectedEntry()?.type === 'ENQUIRY') {
+          this.selectedEntry.set(null);
+          this.feeStatus.set(null);
+          this.studentSemesters.set([]);
+          this.receipt.set(null);
+          this.denominationValid.set(false);
+          this.form.reset();
+        }
+        return;
+      }
+      const id = Number(enquiryIdStr);
+      if (this.selectedEntry()?.id === id && this.selectedEntry()?.type === 'ENQUIRY') return;
+      const entry = this.feeEntries().find(e => e.type === 'ENQUIRY' && e.id === id);
+      if (entry) {
+        this.applyEntryState(entry);
+      } else {
+        this.toast.info('This enquiry is not eligible for balance collection');
+        void this.router.navigate([], { relativeTo: this.route, queryParams: {} });
+      }
+    });
   }
 
   private loadAll(onComplete?: () => void): void {
@@ -250,7 +276,7 @@ export class FeeCollectionComponent implements OnInit {
     const id = Number(param);
     const entry = this.feeEntries().find(e => e.type === 'ENQUIRY' && e.id === id);
     if (entry) {
-      this.selectEntry(entry);
+      this.applyEntryState(entry); // state-only, no navigate (URL already has enquiryId)
     } else {
       this.toast.info('This enquiry is not eligible for balance collection');
     }
@@ -307,6 +333,12 @@ export class FeeCollectionComponent implements OnInit {
       return;
     }
 
+    // Update URL so browser back returns to the list, not a previous route.
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { enquiryId: entry.id } });
+    this.applyEntryState(entry);
+  }
+
+  private applyEntryState(entry: FeeEntry): void {
     this.selectedEntry.set(entry);
     this.feeStatus.set(null);
     this.studentSemesters.set([]);
@@ -361,6 +393,8 @@ export class FeeCollectionComponent implements OnInit {
     this.receipt.set(null);
     this.denominationValid.set(false);
     this.form.reset();
+    // Clear query param to update browser history correctly.
+    void this.router.navigate([], { relativeTo: this.route, queryParams: {} });
   }
 
   protected onSubmit(): void {
