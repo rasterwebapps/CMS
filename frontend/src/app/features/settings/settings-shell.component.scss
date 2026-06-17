@@ -1,0 +1,56 @@
+// ── Tab Bar ───────────────────────────────────────────────────────────────────
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--cms-border-default);
+  flex-wrap: wrap;
+}
+
+.settings-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border: none;
+  background: none;
+  font-size: var(--cms-text-sm);
+  font-weight: 500;
+  color: var(--cms-text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+
+  .material-symbols-rounded {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    font-variation-settings: 'FILL' 0;
+  }
+
+  &:hover { color: var(--cms-text-primary); }
+
+  &--active {
+    color: var(--cms-primary);
+    border-bottom-color: var(--cms-primary);
+    font-weight: 600;
+
+    .material-symbols-rounded { font-variation-settings: 'FILL' 1; }
+  }
+}
+
+// ── Spinner (for save button) ─────────────────────────────────────────────────
+.btn-spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

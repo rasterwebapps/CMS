@@ -1,5 +1,4 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { SettingsService } from '../settings.service';
@@ -16,7 +15,7 @@ interface BrandingField {
 @Component({
   selector: 'app-branding',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [FormsModule],
   templateUrl: './branding.component.html',
   styleUrl: './branding.component.scss',
 })
@@ -24,8 +23,8 @@ export class BrandingComponent implements OnInit {
   private readonly settingsService = inject(SettingsService);
   private readonly toast = inject(ToastService);
 
-  protected readonly loading = signal(true);
-  protected readonly saving = signal(false);
+  readonly loading = signal(true);
+  readonly saving = signal(false);
   protected readonly logoPreview = signal<string | null>(null);
   protected readonly logoId = signal<number | null>(null);
 
@@ -72,7 +71,7 @@ export class BrandingComponent implements OnInit {
     if (el) el.value = '';
   }
 
-  protected save(): void {
+  save(): void {
     this.saving.set(true);
     const ops = this.fields.map(f =>
       f.id !== null

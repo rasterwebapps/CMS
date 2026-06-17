@@ -1,30 +1,4 @@
-<div class="mlp-page">
-
-  <!-- Header -->
-  <div class="mlp-hdr">
-    <div class="mlp-hdr-left">
-      <div class="page-title-row">
-        <a class="back-link" routerLink="/settings" aria-label="Back to settings">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-               fill="none" stroke="currentColor" stroke-width="2.5"
-               stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </a>
-        <h1 class="mlp-title">External <em>Integrations</em></h1>
-      </div>
-      <p class="mlp-sub">Configure OneBook integration for routing online payments outside OneCMS</p>
-    </div>
-    <button class="btn-primary" (click)="save()" [disabled]="saving() || loading()">
-      @if (saving()) {
-        <span class="btn-spinner"></span> Saving…
-      } @else {
-        Save Changes
-      }
-    </button>
-  </div>
-
-  @if (loading()) {
+@if (loading()) {
     <div class="int-skeleton">
       @for (_ of [1,2,3,4]; track $index) {
         <div class="skeleton-block"></div>
@@ -265,5 +239,5 @@
       }
 
     </div>
+
   }
-</div>

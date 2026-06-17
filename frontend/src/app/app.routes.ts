@@ -669,26 +669,12 @@ export const routes: Routes = [
     path: 'settings',
     canActivate: withPermission('SETTINGS_VIEW', 'SETTINGS_MANAGE'),
     loadComponent: () =>
-      import('./features/settings/system-configuration-list/system-configuration-list.component').then(
-        (m) => m.SystemConfigurationListComponent
+      import('./features/settings/settings-shell.component').then(
+        (m) => m.SettingsShellComponent
       ),
   },
-  {
-    path: 'settings/integrations',
-    canActivate: withPermission('SETTINGS_MANAGE'),
-    loadComponent: () =>
-      import('./features/settings/integrations/integrations-settings.component').then(
-        (m) => m.IntegrationsSettingsComponent
-      ),
-  },
-  {
-    path: 'settings/branding',
-    canActivate: withPermission('SETTINGS_MANAGE'),
-    loadComponent: () =>
-      import('./features/settings/branding/branding.component').then(
-        (m) => m.BrandingComponent
-      ),
-  },
+  { path: 'settings/branding',      redirectTo: '/settings', pathMatch: 'full' },
+  { path: 'settings/integrations',  redirectTo: '/settings', pathMatch: 'full' },
   {
     path: 'settings/new',
     canActivate: withPermission('SETTINGS_MANAGE'),

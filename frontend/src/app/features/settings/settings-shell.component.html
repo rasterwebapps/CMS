@@ -1,0 +1,73 @@
+<div class="mlp-page">
+
+  <!-- Header -->
+  <div class="mlp-hdr">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="mlp-title">System <em>Settings</em></h1>
+      </div>
+      <p class="mlp-sub">Application configuration, branding, and external integrations</p>
+    </div>
+
+    @if (activeTab() === 'configuration') {
+      <button class="btn-primary" routerLink="/settings/new" aria-label="Add new configuration">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Configuration
+      </button>
+    } @else {
+      <button class="btn-primary" (click)="save()" [disabled]="isSaving() || isLoading()">
+        @if (isSaving()) {
+          <span class="btn-spinner"></span> Saving…
+        } @else {
+          Save Changes
+        }
+      </button>
+    }
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="settings-tabs" role="tablist">
+    <button
+      class="settings-tab"
+      role="tab"
+      [class.settings-tab--active]="activeTab() === 'configuration'"
+      [attr.aria-selected]="activeTab() === 'configuration'"
+      (click)="setTab('configuration')"
+    >
+      <span class="material-symbols-rounded" aria-hidden="true">tune</span>
+      Configuration
+    </button>
+    <button
+      class="settings-tab"
+      role="tab"
+      [class.settings-tab--active]="activeTab() === 'branding'"
+      [attr.aria-selected]="activeTab() === 'branding'"
+      (click)="setTab('branding')"
+    >
+      <span class="material-symbols-rounded" aria-hidden="true">palette</span>
+      Branding
+    </button>
+    <button
+      class="settings-tab"
+      role="tab"
+      [class.settings-tab--active]="activeTab() === 'integrations'"
+      [attr.aria-selected]="activeTab() === 'integrations'"
+      (click)="setTab('integrations')"
+    >
+      <span class="material-symbols-rounded" aria-hidden="true">account_tree</span>
+      Integrations
+    </button>
+  </div>
+
+  <!-- Tab Content -->
+  @if (activeTab() === 'configuration') {
+    <app-system-configuration-list />
+  }
+  @if (activeTab() === 'branding') {
+    <app-branding />
+  }
+  @if (activeTab() === 'integrations') {
+    <app-integrations-settings />
+  }
+
+</div>

@@ -1,5 +1,4 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { SettingsService } from '../settings.service';
@@ -20,7 +19,7 @@ interface IntegrationField {
 @Component({
   selector: 'app-integrations-settings',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [FormsModule],
   templateUrl: './integrations-settings.component.html',
   styleUrl: './integrations-settings.component.scss',
 })
@@ -28,8 +27,8 @@ export class IntegrationsSettingsComponent implements OnInit {
   private readonly settingsService = inject(SettingsService);
   private readonly toast           = inject(ToastService);
 
-  protected readonly loading            = signal(true);
-  protected readonly saving             = signal(false);
+  readonly loading = signal(true);
+  readonly saving  = signal(false);
   protected readonly isEnabled          = signal(false);
   protected readonly showPassword       = signal(false);
   protected readonly showWebhookSecret  = signal(false);
@@ -172,7 +171,7 @@ export class IntegrationsSettingsComponent implements OnInit {
     if (field) field.value = value;
   }
 
-  protected save(): void {
+  save(): void {
     if (this.isEnabled()) {
       const url      = this.fieldValue('onebook.api_url').trim();
       const username = this.fieldValue('onebook.username').trim();
