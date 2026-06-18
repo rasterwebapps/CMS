@@ -108,11 +108,16 @@ export class BreadcrumbService {
 
     for (let i = 0; i < segments.length; i++) {
       const segment = segments[i];
-      if (isId(segment)) continue;
+      if (isId(segment)) {
+        // Terminal ID segment → add a non-clickable "View" crumb for the current detail page
+        if (i === segments.length - 1) {
+          crumbs.push({ label: 'View' });
+        }
+        continue;
+      }
       accumulated += '/' + segment;
       const label = SEGMENT_LABELS[segment] ?? segment;
-      const nextIsId = i + 1 < segments.length && isId(segments[i + 1]);
-      const isLast = i === segments.length - 1 || (i === segments.length - 2 && nextIsId);
+      const isLast = i === segments.length - 1;
       crumbs.push({ label, route: isLast ? undefined : accumulated });
     }
     return crumbs;
