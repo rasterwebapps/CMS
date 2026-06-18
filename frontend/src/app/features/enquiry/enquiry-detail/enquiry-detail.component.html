@@ -49,6 +49,12 @@
         </div>
 
         <div id="tour-enq-detail-actions" class="profile-hero__actions">
+          @if (e.convertedStudentId) {
+            <a class="btn-secondary" [routerLink]="['/students', e.convertedStudentId]">
+              <mat-icon>person_search</mat-icon>
+              View Student
+            </a>
+          }
           @if (canSubmitDocuments()) {
             <button class="btn-primary" type="button" (click)="submitDocuments()">
               <mat-icon>upload</mat-icon>
@@ -72,21 +78,21 @@
 
       <div class="profile-hero__kpis" aria-label="Enquiry summary">
         <div class="hero-kpi hero-kpi--indigo">
-          <mat-icon>event</mat-icon>
+          <span class="kpi-icon-well"><mat-icon>event</mat-icon></span>
           <div class="hero-kpi__body">
             <span class="hero-kpi__value">{{ e.enquiryDate | appDate }}</span>
             <span class="hero-kpi__label">Enquiry Date</span>
           </div>
         </div>
         <div class="hero-kpi hero-kpi--amber">
-          <mat-icon>timer</mat-icon>
+          <span class="kpi-icon-well"><mat-icon>timer</mat-icon></span>
           <div class="hero-kpi__body">
             <span class="hero-kpi__value">{{ daysActive() }}</span>
             <span class="hero-kpi__label">Days Active</span>
           </div>
         </div>
         <div class="hero-kpi hero-kpi--emerald">
-          <mat-icon>account_balance_wallet</mat-icon>
+          <span class="kpi-icon-well"><mat-icon>account_balance_wallet</mat-icon></span>
           <div class="hero-kpi__body">
             <span class="hero-kpi__value">
               @if (e.finalizedNetFee != null) { {{ e.finalizedNetFee | inr }} }
@@ -98,7 +104,7 @@
           </div>
         </div>
         <div class="hero-kpi hero-kpi--rose">
-          <mat-icon>pending_actions</mat-icon>
+          <span class="kpi-icon-well"><mat-icon>pending_actions</mat-icon></span>
           <div class="hero-kpi__body">
             <span class="hero-kpi__value">
               {{ e.finalizedNetFee != null ? (outstandingAmount() | inr) : '—' }}
@@ -107,13 +113,14 @@
           </div>
         </div>
         <div class="hero-kpi hero-kpi--gray">
-          <mat-icon>folder_open</mat-icon>
+          <span class="kpi-icon-well"><mat-icon>folder_open</mat-icon></span>
           <div class="hero-kpi__body">
             <span class="hero-kpi__value">{{ docsVerified() }}/{{ docsTotal() }}</span>
             <span class="hero-kpi__label">Documents</span>
           </div>
         </div>
       </div>
+
     </header>
 
     <mat-tab-group
@@ -124,94 +131,42 @@
       (selectedIndexChange)="selectedTabIndex.set($event)">
       <mat-tab label="Overview">
         <div class="tab-content">
-          <div class="overview-grid">
-            <div class="content-card overview-card">
-              <p class="overview-card__title">Contact & Source</p>
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="detail-label">Email</span>
-                  <span class="detail-value">{{ e.email || '—' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Phone</span>
-                  <span class="detail-value code-value">{{ e.phone || '—' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Referral</span>
-                  <span class="detail-value">{{ e.referralTypeName || '—' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Referral Name</span>
-                  <span class="detail-value">
-                    {{ e.referredStudentName || e.referredFacultyName || e.referredStaffName || '—' }}
-                  </span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Agent</span>
-                  <span class="detail-value">{{ e.agentName || '—' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Country</span>
-                  <span class="detail-value">{{ e.countryName || '—' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">State</span>
-                  <span class="detail-value">{{ e.state || '—' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">District</span>
-                  <span class="detail-value">{{ e.district || '—' }}</span>
-                </div>
+          <div class="content-card overview-card">
+            <p class="overview-card__title">Contact & Source</p>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Email</span>
+                <span class="detail-value">{{ e.email || '—' }}</span>
               </div>
-            </div>
-
-            <div class="overview-side">
-              <div class="content-card overview-card">
-                <p class="overview-card__title">Fee Snapshot</p>
-                <div class="detail-grid fee-detail-grid">
-                  <div class="detail-item">
-                    <span class="detail-label">Guideline</span>
-                    <span class="detail-value cell-currency">{{ e.finalCalculatedFee | inr }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Discount</span>
-                    <span class="detail-value cell-currency discount-value">
-                      @if (e.finalizedDiscountAmount && e.finalizedDiscountAmount > 0) {
-                        − {{ e.finalizedDiscountAmount | inr }}
-                      } @else { — }
-                    </span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Net Fee</span>
-                    <span class="detail-value cell-currency">{{ e.finalizedNetFee | inr }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Paid</span>
-                    <span class="detail-value cell-currency">{{ totalPaid() | inr }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Finalized By</span>
-                    <span class="detail-value">{{ e.finalizedBy || '—' }}</span>
-                  </div>
-                </div>
+              <div class="detail-item">
+                <span class="detail-label">Phone</span>
+                <span class="detail-value code-value">{{ e.phone || '—' }}</span>
               </div>
-
-              <div class="content-card overview-card">
-                <p class="overview-card__title">Quick Links</p>
-                <div class="quick-links">
-                  @if (e.convertedStudentId) {
-                    <a class="quick-link" [routerLink]="['/students', e.convertedStudentId]">
-                      <mat-icon>person_search</mat-icon>
-                      <span>View Converted Student</span>
-                    </a>
-                  }
-                  @if (canEdit()) {
-                    <a class="quick-link" [routerLink]="['/enquiries', e.id, 'edit']">
-                      <mat-icon>edit</mat-icon>
-                      <span>Edit Enquiry</span>
-                    </a>
-                  }
-                </div>
+              <div class="detail-item">
+                <span class="detail-label">Referral</span>
+                <span class="detail-value">{{ e.referralTypeName || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Referral Name</span>
+                <span class="detail-value">
+                  {{ e.referredStudentName || e.referredFacultyName || e.referredStaffName || '—' }}
+                </span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Agent</span>
+                <span class="detail-value">{{ e.agentName || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Country</span>
+                <span class="detail-value">{{ e.countryName || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">State</span>
+                <span class="detail-value">{{ e.state || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">District</span>
+                <span class="detail-value">{{ e.district || '—' }}</span>
               </div>
             </div>
           </div>
@@ -395,24 +350,40 @@
           @if (statusHistory().length === 0) {
             <cms-empty-state icon="history" title="No status history" subtitle="Status changes will be tracked here." />
           } @else {
-            <div class="content-card history-timeline-card">
+            <div class="content-card journey-card">
               <p class="overview-card__title">Status Journey</p>
-              <ol class="timeline">
-                @for (h of statusHistory(); track h.id; let last = $last) {
-                  <li class="timeline-item">
-                    <span class="timeline-dot" [class.timeline-dot--active]="last" [attr.data-status]="h.toStatus"></span>
-                    <div class="timeline-body">
-                      <div class="timeline-main">
-                        <cms-status-badge [status]="h.fromStatus || ''" />
-                        <mat-icon class="timeline-arrow" aria-hidden="true">arrow_forward</mat-icon>
-                        <cms-status-badge [status]="h.toStatus" />
+              <div class="journey-grid">
+                @for (row of journeyRows(); track $index; let lastRow = $last) {
+                  <div class="journey-row">
+                    @for (node of row; track $index; let lastNode = $last) {
+                      <div class="journey-node" [class.journey-node--current]="node.isLast">
+                        <cms-status-badge [status]="node.status" />
+                        @if (node.changedAt) {
+                          <span class="journey-date">{{ node.changedAt | appDate }}</span>
+                          <span class="journey-by">{{ node.changedBy }}</span>
+                        } @else {
+                          <span class="journey-by journey-by--start">Start</span>
+                        }
+                        @if (node.remarks) {
+                          <span class="journey-has-note" [matTooltip]="node.remarks">
+                            <mat-icon>sticky_note_2</mat-icon>
+                          </span>
+                        }
                       </div>
-                      <div class="timeline-meta">{{ h.changedAt | appDate:'dateTime' }} · {{ h.changedBy }}</div>
-                      @if (h.remarks) { <div class="timeline-remarks">{{ h.remarks }}</div> }
+                      @if (!lastNode) {
+                        <span class="journey-connector" aria-hidden="true">
+                          <mat-icon>arrow_forward</mat-icon>
+                        </span>
+                      }
+                    }
+                  </div>
+                  @if (!lastRow) {
+                    <div class="journey-row-end">
+                      <mat-icon class="journey-wrap-icon">subdirectory_arrow_right</mat-icon>
                     </div>
-                  </li>
+                  }
                 }
-              </ol>
+              </div>
             </div>
           }
         </div>

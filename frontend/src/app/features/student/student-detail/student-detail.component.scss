@@ -173,7 +173,7 @@
 .profile-hero__kpis {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 16px;
   margin-top: 20px;
   width: 100%;
 
@@ -251,23 +251,6 @@
 }
 
 // ── Overview tab ──────────────────────────────────────────────
-.overview-grid {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 16px;
-  align-items: start;
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.overview-side {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
 .overview-card {
   padding: 20px 24px;
 }
@@ -279,44 +262,6 @@
   letter-spacing: 0.08em;
   color: var(--cms-text-muted);
   margin: 0 0 16px;
-}
-
-.quick-links {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.quick-link {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: var(--cms-radius-md);
-  text-decoration: none;
-  color: var(--cms-text-secondary);
-  font-size: var(--cms-text-base);
-  font-weight: 500;
-  font-family: inherit;
-  transition: var(--cms-transition);
-  background: transparent;
-  border: none;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-
-  mat-icon {
-    font-size: var(--cms-text-lg);
-    width: 18px;
-    height: 18px;
-    color: var(--cms-primary);
-    flex-shrink: 0;
-  }
-
-  &:hover {
-    background: var(--cms-bg-hover);
-    color: var(--cms-primary);
-  }
 }
 
 // ─────────────────────────────────────────────────────────────

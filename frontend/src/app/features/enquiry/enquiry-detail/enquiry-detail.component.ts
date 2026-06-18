@@ -92,6 +92,25 @@ export class EnquiryDetailComponent implements OnInit {
     this.payments().filter((p) => p.receiptType !== 'REFUND' && p.remarks),
   );
 
+  protected readonly journeyRows = computed(() => {
+    const history = this.statusHistory();
+    if (history.length === 0) return [];
+    type Node = { status: string; changedAt: string | null; changedBy: string | null; remarks: string | null; isLast: boolean };
+    const nodes: Node[] = [
+      { status: history[0].fromStatus ?? '', changedAt: null, changedBy: null, remarks: null, isLast: false },
+    ];
+    history.forEach((h, i) => nodes.push({
+      status: h.toStatus,
+      changedAt: h.changedAt,
+      changedBy: h.changedBy,
+      remarks: h.remarks,
+      isLast: i === history.length - 1,
+    }));
+    const rows: Node[][] = [];
+    for (let i = 0; i < nodes.length; i += 4) rows.push(nodes.slice(i, i + 4));
+    return rows;
+  });
+
   ngOnInit(): void {
     this.tourService.register('enquiry-detail', ENQUIRY_DETAIL_TOUR);
     const id = Number(this.route.snapshot.paramMap.get('id'));

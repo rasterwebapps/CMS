@@ -94,6 +94,7 @@
           </div>
         </div>
       </div>
+
     </header>
 
     <!-- ── Tabs ────────────────────────────────────────── -->
@@ -106,93 +107,42 @@
       <!-- Tab 1: Overview -->
       <mat-tab label="Overview">
         <div class="tab-content">
-          <div class="overview-grid">
-
-            <!-- Left: Identity -->
-            <div class="content-card overview-card">
-              <p class="overview-card__title">Identity</p>
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="detail-label">Admission Number</span>
-                  <span class="detail-value code-value">{{ student()!.admissionNumber || '—' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Roll Number</span>
-                  <span class="detail-value code-value">{{ student()!.rollNumber || '—' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">University Reg. No.</span>
-                  <span class="detail-value code-value">{{ student()!.universityRegistrationNumber || '—' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">UMIS Number</span>
-                  <span class="detail-value code-value">{{ student()!.umisNumber || '—' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Admission Date</span>
-                  <span class="detail-value">{{ student()!.admissionDate | appDate }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Email</span>
-                  <span class="detail-value">{{ student()!.email }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Phone</span>
-                  <span class="detail-value">{{ student()!.phone || '—' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Lab Batch</span>
-                  <span class="detail-value">{{ student()!.labBatch || '—' }}</span>
-                </div>
+          <div class="content-card overview-card">
+            <p class="overview-card__title">Identity</p>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Admission Number</span>
+                <span class="detail-value code-value">{{ student()!.admissionNumber || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Roll Number</span>
+                <span class="detail-value code-value">{{ student()!.rollNumber || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">University Reg. No.</span>
+                <span class="detail-value code-value">{{ student()!.universityRegistrationNumber || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">UMIS Number</span>
+                <span class="detail-value code-value">{{ student()!.umisNumber || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Admission Date</span>
+                <span class="detail-value">{{ student()!.admissionDate | appDate }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Email</span>
+                <span class="detail-value">{{ student()!.email }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Phone</span>
+                <span class="detail-value">{{ student()!.phone || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Lab Batch</span>
+                <span class="detail-value">{{ student()!.labBatch || '—' }}</span>
               </div>
             </div>
-
-            <!-- Right: Current term + Quick links -->
-            <div class="overview-side">
-              <div class="content-card overview-card">
-                <p class="overview-card__title">Current Term</p>
-                @if (loadingEnrollments()) {
-                  <cms-skeleton [lines]="3" height="14px"></cms-skeleton>
-                } @else if (sortedEnrollments().length > 0) {
-                  @let current = sortedEnrollments()[0];
-                  <div class="detail-grid">
-                    <div class="detail-item">
-                      <span class="detail-label">Term</span>
-                      <span class="detail-value">{{ current.termInstanceLabel }}</span>
-                    </div>
-                    <div class="detail-item">
-                      <span class="detail-label">Semester</span>
-                      <span class="detail-value">{{ current.termNumber }}</span>
-                    </div>
-                    <div class="detail-item">
-                      <span class="detail-label">Year of Study</span>
-                      <span class="detail-value">Year {{ current.yearOfStudy }}</span>
-                    </div>
-                    <div class="detail-item">
-                      <span class="detail-label">Status</span>
-                      <cms-status-badge [status]="current.status" />
-                    </div>
-                  </div>
-                } @else {
-                  <p class="no-data">No term enrolments yet.</p>
-                }
-              </div>
-
-              <div class="content-card overview-card">
-                <p class="overview-card__title">Quick Links</p>
-                <div class="quick-links">
-                  <a class="quick-link" [routerLink]="['/student-fees', student()!.id]">
-                    <mat-icon>account_balance_wallet</mat-icon>
-                    <span>Full Fee Details</span>
-                  </a>
-                  <button class="quick-link" type="button" (click)="switchTab(4)">
-                    <mat-icon>workspace_premium</mat-icon>
-                    <span>Scholarship Applications</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
           </div>
         </div>
       </mat-tab>

@@ -34,11 +34,27 @@
             <div class="profile-hero__meta">
               <span class="profile-hero__subtitle">
                 {{ admission()!.admissionNumber || '—' }}
+                @if (admission()!.rollNumber) {
+                  <span class="dot-sep">·</span>
+                  {{ admission()!.rollNumber }}
+                }
                 <span class="dot-sep">·</span>
                 {{ admission()!.programName || '—' }}
+                @if (admission()!.courseName) {
+                  <span class="dot-sep">·</span>
+                  {{ admission()!.courseName }}
+                }
                 <span class="dot-sep">·</span>
                 {{ admission()!.joiningAcademicYearName || '—' }}
               </span>
+              @if (admission()!.studentType) {
+                <span class="cms-badge cms-badge--gray">
+                  {{ admission()!.studentType === 'DAY_SCHOLAR' ? 'Day Scholar' : 'Hosteler' }}
+                </span>
+              }
+              @if (admission()!.physicalDisability) {
+                <span class="cms-badge cms-badge--amber">Physical Disability</span>
+              }
             </div>
           </div>
         </div>
@@ -52,6 +68,9 @@
           <button class="btn-secondary" type="button" (click)="downloadForm()" title="Download Admission Form">
             <mat-icon>download</mat-icon> Download
           </button>
+          <a class="btn-secondary" [routerLink]="['/students', admission()!.studentId]" title="View Student Profile">
+            <mat-icon>person</mat-icon> Student Profile
+          </a>
           @if (canEdit()) {
             <button class="btn-primary" type="button" (click)="edit()">
               <mat-icon>edit</mat-icon> Edit
@@ -90,6 +109,7 @@
           </div>
         </div>
       </div>
+
     </header>
 
     <!-- ── Tabs ────────────────────────────────────────── -->
@@ -103,80 +123,32 @@
       <!-- Tab 1: Overview -->
       <mat-tab label="Overview">
         <div class="tab-content">
-          <div class="overview-grid">
-            <div class="content-card overview-card">
-              <p class="overview-card__title">Application Details</p>
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="detail-label">Application Date</span>
-                  <span class="detail-value">{{ admission()!.applicationDate | appDate }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Declaration Place</span>
-                  <span class="detail-value">{{ admission()!.declarationPlace || '—' }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Declaration Date</span>
-                  <span class="detail-value">{{ admission()!.declarationDate | appDate }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Parent Consent</span>
-                  <span class="detail-value">{{ yesNo(admission()!.parentConsentGiven) }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Applicant Consent</span>
-                  <span class="detail-value">{{ yesNo(admission()!.applicantConsentGiven) }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Expected Completion Year</span>
-                  <span class="detail-value code-value">{{ admission()!.expectedCompletionYear || '—' }}</span>
-                </div>
+          <div class="content-card overview-card">
+            <p class="overview-card__title">Application Details</p>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Application Date</span>
+                <span class="detail-value">{{ admission()!.applicationDate | appDate }}</span>
               </div>
-            </div>
-
-            <div class="overview-side">
-              <div class="content-card overview-card">
-                <p class="overview-card__title">Student Snapshot</p>
-                <div class="detail-grid">
-                  <div class="detail-item">
-                    <span class="detail-label">Admission Number</span>
-                    <span class="detail-value code-value">{{ admission()!.admissionNumber || '—' }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Roll Number</span>
-                    <span class="detail-value code-value">{{ admission()!.rollNumber || '—' }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Program</span>
-                    <span class="detail-value">{{ admission()!.programName || '—' }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Course</span>
-                    <span class="detail-value">{{ admission()!.courseName || '—' }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Student Type</span>
-                    <span class="detail-value">{{ admission()!.studentType === 'DAY_SCHOLAR' ? 'Day Scholar' : admission()!.studentType === 'HOSTELER' ? 'Hosteler' : '—' }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Status</span>
-                    <cms-status-badge [status]="admission()!.studentStatus || ''" />
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Physical Disability</span>
-                    <span class="detail-value">{{ yesNo(admission()!.physicalDisability) }}</span>
-                  </div>
-                </div>
+              <div class="detail-item">
+                <span class="detail-label">Declaration Place</span>
+                <span class="detail-value">{{ admission()!.declarationPlace || '—' }}</span>
               </div>
-
-              <div class="content-card overview-card">
-                <p class="overview-card__title">Quick Links</p>
-                <div class="quick-links">
-                  <a class="quick-link" [routerLink]="['/students', admission()!.studentId]">
-                    <mat-icon>person</mat-icon>
-                    <span>Student Profile</span>
-                  </a>
-                </div>
+              <div class="detail-item">
+                <span class="detail-label">Declaration Date</span>
+                <span class="detail-value">{{ admission()!.declarationDate | appDate }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Parent Consent</span>
+                <span class="detail-value">{{ yesNo(admission()!.parentConsentGiven) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Applicant Consent</span>
+                <span class="detail-value">{{ yesNo(admission()!.applicantConsentGiven) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Expected Completion Year</span>
+                <span class="detail-value code-value">{{ admission()!.expectedCompletionYear || '—' }}</span>
               </div>
             </div>
           </div>

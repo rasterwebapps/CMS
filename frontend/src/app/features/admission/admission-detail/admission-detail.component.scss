@@ -62,9 +62,6 @@
 .profile-skeleton,
 .profile-skeleton__body,
 .profile-skeleton__chips,
-.overview-side,
-.quick-links,
-.quick-link,
 .acad-enrollment__left,
 .acad-enrollment__chips,
 .acad-enrollment__right,
@@ -109,7 +106,7 @@
 .profile-hero__kpis {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 16px;
   margin-top: 20px;
 }
 
@@ -155,8 +152,6 @@
 
 .hero-kpi__body,
 .profile-skeleton__body,
-.overview-side,
-.quick-links,
 .acad-enrollment__left,
 .document-row__main {
   flex-direction: column;
@@ -211,17 +206,6 @@
   }
 }
 
-.overview-grid {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 16px;
-  align-items: start;
-}
-
-.overview-side {
-  gap: 16px;
-}
-
 .overview-card {
   padding: 20px 24px;
 
@@ -230,31 +214,6 @@
 
 .overview-card__title {
   margin: 0 0 16px;
-}
-
-.quick-link {
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: var(--cms-radius-md);
-  text-decoration: none;
-  color: var(--cms-text-secondary);
-  font-size: var(--cms-text-base);
-  font-weight: 500;
-  transition: var(--cms-transition);
-
-  mat-icon {
-    font-size: var(--cms-text-lg);
-    width: 18px;
-    height: 18px;
-    color: var(--cms-primary);
-    flex-shrink: 0;
-  }
-
-  &:hover {
-    background: var(--cms-bg-hover);
-    color: var(--cms-primary);
-  }
 }
 
 .no-data {
@@ -388,7 +347,6 @@
 }
 
 @media (max-width: 900px) {
-  .overview-grid,
   .profile-hero__kpis { grid-template-columns: 1fr; }
 }
 
