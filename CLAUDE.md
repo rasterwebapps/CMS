@@ -108,7 +108,7 @@ Each specialist speaks only when their domain is affected by the requirement.
 
 ### <u>CRITICAL — Production Data Safety (Non-Negotiable)</u>
 
-> **<u>The data on the production server (172.16.7.209) must NEVER be lost, corrupted, or overwritten — under any circumstances.</u>**
+> **<u>The data on the production server (`<PROD_SERVER>` — see local ops notes for the real address) must NEVER be lost, corrupted, or overwritten — under any circumstances.</u>**
 
 This requirement overrides all other instructions and is never waivable. Before any operation that touches the production server or its database:
 
@@ -126,6 +126,14 @@ This requirement overrides all other instructions and is never waivable. Before 
 - Long forms: sticky floating footer with Save/Cancel buttons. Short forms: Save/Cancel at bottom only.
 - Follow existing Angular and Spring Boot patterns unless a deviation is explicitly approved.
 - Always check BUSINESS_REQUIREMENTS.md and milestone trackers for context before implementing.
+
+### Mandatory Patterns (apply without being asked)
+
+- **Role management is DB-only.** Never hardcode roles in code. Role assignment is always handled via the Role Management module in the database — do not ask about it in specialist reviews, just follow it.
+- **Master screen uniqueness validation.** Every master form (new or existing) must have a real-time async name/code uniqueness check while typing — use the `uniqueFieldValidator` directive paired with a `/name-exists` backend endpoint. Apply this to all new masters automatically.
+- **Permission migration pattern.** Any migration that inserts permissions must end with the DEV_ADMIN/SUPPORT_ADMIN catch-all sync block (see V129, V172 for reference). This is required on every such migration, not a one-time fix.
+- **Migration column verification (hard gate).** Before writing any `INSERT` in a new migration, grep the existing migrations for the exact target table to confirm real column names. Never guess — two prior migrations (V204/V205) failed for this exact reason.
+- **Official naming conventions.** App: OneCMS / College Management System. Company: Raster / Raster Images Pvt. Ltd. Client: SKSCON / SKS College Of Nursing. Use these consistently in docs, UI copy, and commit messages.
 
 ### Component Touch Rule (mandatory, no exceptions)
 
