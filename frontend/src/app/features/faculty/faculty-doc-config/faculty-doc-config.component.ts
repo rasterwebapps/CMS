@@ -158,8 +158,8 @@ export class FacultyDocConfigComponent implements OnInit {
         this.saving.set(false);
         this.toast.success('Requirement rule added');
       },
-      error: () => {
-        this.toast.error('Failed to add requirement rule');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to add requirement rule');
         this.saving.set(false);
       },
     });
@@ -186,7 +186,7 @@ export class FacultyDocConfigComponent implements OnInit {
         this.dataSource.data = this.rules();
         this.toast.success('Requirement rule removed');
       },
-      error: () => this.toast.error('Failed to remove requirement rule'),
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to remove requirement rule'),
     });
   }
 

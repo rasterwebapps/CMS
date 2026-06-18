@@ -138,7 +138,7 @@ export class MaintenanceFormComponent implements OnInit {
     const op$ = this.isEditMode() ? this.maintenanceService.update(this.itemId!, request) : this.maintenanceService.create(request);
     op$.subscribe({
       next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/maintenance']); },
-      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to save'); this.saving.set(false); },
     });
   }
 }

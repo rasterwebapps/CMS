@@ -130,8 +130,8 @@ export class DesignationListComponent implements OnInit {
         this.toast.success('Designation deleted successfully');
         this.loadDesignations();
       },
-      error: () => {
-        this.toast.error('Failed to delete designation');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to delete designation');
         this.loading.set(false);
       },
     });

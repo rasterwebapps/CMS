@@ -168,8 +168,8 @@ export class SyllabusFormComponent implements OnInit {
         this.toast.success(this.isEditMode() ? 'Updated' : 'Created');
         void this.router.navigate(['/syllabi']);
       },
-      error: () => {
-        this.toast.error('Failed to save');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to save');
         this.saving.set(false);
       },
     });

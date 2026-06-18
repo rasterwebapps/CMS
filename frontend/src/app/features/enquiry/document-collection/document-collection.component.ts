@@ -342,9 +342,9 @@ export class DocumentCollectionComponent implements OnInit {
         });
         this.toast.success(`${this.formatDocType(row.documentType)} cleared`);
       },
-      error: () => {
+      error: (err) => {
         this.updateRow(row, { ...row, saving: false });
-        this.toast.error(`Failed to clear ${this.formatDocType(row.documentType)}`);
+        this.toast.error(err?.error?.message ?? `Failed to clear ${this.formatDocType(row.documentType)}`);
       },
     });
   }

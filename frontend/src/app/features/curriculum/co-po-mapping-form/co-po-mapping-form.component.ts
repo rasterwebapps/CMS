@@ -106,8 +106,8 @@ export class CoPoMappingFormComponent implements OnInit {
         this.toast.success(this.isEditMode() ? 'Updated' : 'Created');
         void this.router.navigate(['/curriculum-mappings']);
       },
-      error: () => {
-        this.toast.error('Failed to save');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to save');
         this.saving.set(false);
       },
     });

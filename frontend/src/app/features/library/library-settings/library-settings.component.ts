@@ -75,10 +75,10 @@ export class LibrarySettingsComponent implements OnInit {
               this.saving.set(false);
             }
           },
-          error: () => {
+          error: (err) => {
             if (!failed) {
               failed = true;
-              this.toast.error('Failed to save one or more settings');
+              this.toast.error(err?.error?.message ?? 'Failed to save one or more settings');
               this.saving.set(false);
             }
           },

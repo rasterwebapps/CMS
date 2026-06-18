@@ -143,9 +143,9 @@ export class LabFormComponent implements OnInit {
         this.toast.success(message);
         void this.router.navigate(['/labs']);
       },
-      error: () => {
+      error: (err) => {
         const message = this.isEditMode() ? 'Failed to update lab' : 'Failed to create lab';
-        this.toast.error(message);
+        this.toast.error(err?.error?.message ?? message);
         this.saving.set(false);
       },
     });

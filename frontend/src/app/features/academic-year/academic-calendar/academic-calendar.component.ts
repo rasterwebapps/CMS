@@ -404,8 +404,8 @@ export class AcademicCalendarComponent implements OnInit {
         this.eventSaving.set(false);
         this.reloadEvents();
       },
-      error: () => {
-        this.toast.error('Failed to save event');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to save event');
         this.eventSaving.set(false);
       },
     });
@@ -418,7 +418,7 @@ export class AcademicCalendarComponent implements OnInit {
         this.toast.success('Event deleted');
         this.reloadEvents();
       },
-      error: () => this.toast.error('Failed to delete event'),
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete event'),
     });
   }
 

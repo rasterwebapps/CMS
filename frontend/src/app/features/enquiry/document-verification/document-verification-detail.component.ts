@@ -234,9 +234,9 @@ export class DocumentVerificationDetailComponent implements OnInit {
           setTimeout(() => void this.router.navigate(['/enquiries/document-verification']), 1800);
         }
       },
-      error: () => {
+      error: (err) => {
         this.updateRow(row.documentType, { saving: false });
-        this.toast.error(`Failed to verify ${this.formatDocType(row.documentType)}`);
+        this.toast.error(err?.error?.message ?? `Failed to verify ${this.formatDocType(row.documentType)}`);
       },
     });
   }
@@ -264,9 +264,9 @@ export class DocumentVerificationDetailComponent implements OnInit {
         this.updateRow(row.documentType, { document: saved, status: saved.status, saving: false });
         this.toast.warning(`${this.formatDocType(row.documentType)} rejected — use "Replace File" to upload a corrected copy`);
       },
-      error: () => {
+      error: (err) => {
         this.updateRow(row.documentType, { saving: false });
-        this.toast.error(`Failed to reject ${this.formatDocType(row.documentType)}`);
+        this.toast.error(err?.error?.message ?? `Failed to reject ${this.formatDocType(row.documentType)}`);
       },
     });
   }

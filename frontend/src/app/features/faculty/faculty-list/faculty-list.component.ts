@@ -253,8 +253,8 @@ export class FacultyListComponent implements OnInit {
         this.toast.success('Faculty deleted successfully');
         this.loadFaculty();
       },
-      error: () => {
-        this.toast.error('Failed to delete faculty');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to delete faculty');
         this.loading.set(false);
       },
     });

@@ -138,8 +138,8 @@ export class BloodGroupListComponent implements OnInit {
         this.toast.success('Blood group deleted successfully');
         this.load();
       },
-      error: () => {
-        this.toast.error('Failed to delete blood group');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to delete blood group');
         this.loading.set(false);
       },
     });

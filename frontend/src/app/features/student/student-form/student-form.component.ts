@@ -254,10 +254,10 @@ export class StudentFormComponent implements OnInit {
         this.toast.success(message);
         void this.router.navigate(['/students']);
       },
-      error: () => {
-        const message = this.isEditMode()
+      error: (err) => {
+        const message = err?.error?.message ?? (this.isEditMode()
           ? 'Failed to update student'
-          : 'Failed to create student';
+          : 'Failed to create student');
         this.toast.error(message);
         this.saving.set(false);
       },

@@ -128,8 +128,8 @@ export class AcademicYearListComponent implements OnInit {
         this.toast.success('Academic year deleted successfully');
         this.loadAcademicYears();
       },
-      error: () => {
-        this.toast.error('Failed to delete academic year');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to delete academic year');
         this.loading.set(false);
       },
     });

@@ -101,8 +101,8 @@ export class AttendanceListComponent implements OnInit {
             this.toast.success('Attendance record deleted');
             this.loadAttendance();
           },
-          error: () => {
-            this.toast.error('Failed to delete record');
+          error: (err) => {
+            this.toast.error(err?.error?.message ?? 'Failed to delete record');
           },
         });
       }

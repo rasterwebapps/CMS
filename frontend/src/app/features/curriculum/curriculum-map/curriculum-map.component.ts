@@ -106,8 +106,8 @@ export class CurriculumMapComponent implements OnInit {
         this.removing.set(null);
         this.loadCurriculum();
       },
-      error: () => {
-        this.toast.error('Failed to remove course');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to remove course');
         this.removing.set(null);
       },
     });

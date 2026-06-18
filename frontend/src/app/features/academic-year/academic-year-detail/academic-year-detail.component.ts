@@ -112,7 +112,7 @@ export class AcademicYearDetailComponent implements OnInit {
     advancing.set(true);
     this.academicYearService.updateTermInstance(term.id, { status: next }).subscribe({
       next: () => { this.toast.success(`Term advanced to ${next}`); this.loadData(); advancing.set(false); },
-      error: () => { this.toast.error('Failed to advance term status'); advancing.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to advance term status'); advancing.set(false); },
     });
   }
 
@@ -123,7 +123,7 @@ export class AcademicYearDetailComponent implements OnInit {
     generating.set(true);
     this.academicYearService.generateEnrollments(term.id).subscribe({
       next: (res) => { this.toast.success(`Generated ${res.enrollmentsCreated} enrollment(s)`); generating.set(false); },
-      error: () => { this.toast.error('Failed to generate enrollments'); generating.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to generate enrollments'); generating.set(false); },
     });
   }
 
@@ -150,8 +150,8 @@ export class AcademicYearDetailComponent implements OnInit {
         this.togglingCounsellingId.set(null);
         this.toast.success(closing ? 'Counselling closed — seats are now lapsed' : 'Counselling reopened');
       },
-      error: () => {
-        this.toast.error('Failed to update counselling status');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to update counselling status');
         this.togglingCounsellingId.set(null);
       },
     });

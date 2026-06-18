@@ -794,7 +794,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
         this.toast.success(this.isEditMode() ? 'Updated' : 'Created');
         void this.router.navigate(['/enquiries']);
       },
-      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to save'); this.saving.set(false); },
     });
   }
 

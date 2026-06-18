@@ -140,8 +140,8 @@ export class CommunityListComponent implements OnInit {
         this.toast.success('Community deleted successfully');
         this.load();
       },
-      error: () => {
-        this.toast.error('Failed to delete community');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to delete community');
         this.loading.set(false);
       },
     });

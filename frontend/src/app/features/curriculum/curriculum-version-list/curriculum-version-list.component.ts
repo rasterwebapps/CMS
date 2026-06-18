@@ -120,8 +120,8 @@ export class CurriculumVersionListComponent implements OnInit {
         this.cloning.set(null);
         this.loadVersions();
       },
-      error: () => {
-        this.toast.error('Failed to clone version');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to clone version');
         this.cloning.set(null);
       },
     });

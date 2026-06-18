@@ -429,7 +429,7 @@ export class EnquiryListComponent implements OnInit {
         }
         this.toast.success(`Status → ${this.statusLabel(updated.status)}`);
       },
-      error: () => this.toast.error('Failed to update status'),
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to update status'),
     });
   }
 
@@ -492,7 +492,7 @@ export class EnquiryListComponent implements OnInit {
     this.loading.set(true);
     this.enquiryService.deleteEnquiry(item.id).subscribe({
       next:  () => { this.toast.success('Deleted'); this.load(); },
-      error: () => { this.toast.error('Failed to delete'); this.loading.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to delete'); this.loading.set(false); },
     });
   }
 

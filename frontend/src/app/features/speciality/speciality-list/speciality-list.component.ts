@@ -156,8 +156,8 @@ export class SpecialityListComponent implements OnInit {
         this.toast.success('Speciality deleted successfully');
         this.loadSpecialities();
       },
-      error: () => {
-        this.toast.error('Failed to delete speciality');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to delete speciality');
         this.loading.set(false);
       },
     });

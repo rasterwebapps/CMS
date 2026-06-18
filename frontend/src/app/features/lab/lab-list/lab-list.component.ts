@@ -193,8 +193,8 @@ export class LabListComponent implements OnInit {
         this.toast.success('Lab deleted successfully');
         this.loadLabs();
       },
-      error: () => {
-        this.toast.error('Failed to delete lab');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to delete lab');
         this.loading.set(false);
       },
     });

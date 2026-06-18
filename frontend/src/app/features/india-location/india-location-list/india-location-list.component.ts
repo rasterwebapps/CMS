@@ -192,7 +192,7 @@ export class IndiaLocationListComponent implements OnInit {
               this.toast.success('State deleted');
               this.load();
             },
-            error: () => this.toast.error('Failed to delete state'),
+            error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete state'),
           });
         }
       });
@@ -225,7 +225,7 @@ export class IndiaLocationListComponent implements OnInit {
               map.set(district.stateId, updated);
               this.districtsByState.set(map);
             },
-            error: () => this.toast.error('Failed to delete district'),
+            error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete district'),
           });
         }
       });

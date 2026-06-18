@@ -118,7 +118,7 @@ export class RollNumberAssignmentComponent implements OnInit {
     }
     this.studentService.assignRollNumber(item.student.id, item.rollNumber.trim()).subscribe({
       next:  () => { this.toast.success(`Roll number assigned to ${item.student.fullName}`); this.loadStudents(); },
-      error: () => this.toast.error('Failed to assign roll number'),
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to assign roll number'),
     });
   }
 
@@ -130,7 +130,7 @@ export class RollNumberAssignmentComponent implements OnInit {
       valid.map((a) => ({ studentId: a.student.id, rollNumber: a.rollNumber.trim() })),
     ).subscribe({
       next:  () => { this.toast.success('Roll numbers saved successfully'); this.loadStudents(); this.saving.set(false); },
-      error: () => { this.toast.error('Failed to save roll numbers'); this.saving.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to save roll numbers'); this.saving.set(false); },
     });
   }
 }

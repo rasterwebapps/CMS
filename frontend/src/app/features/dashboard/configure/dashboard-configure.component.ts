@@ -44,9 +44,9 @@ export class DashboardConfigureComponent implements OnInit {
         this.snackBar.open('Dashboard saved', 'OK', { duration: 2500 });
         void this.router.navigate(['/dashboard']);
       },
-      error: () => {
+      error: (err) => {
         this.saving.set(false);
-        this.snackBar.open('Save failed — please try again', 'Dismiss', { duration: 3500 });
+        this.snackBar.open(err?.error?.message ?? 'Save failed — please try again', 'Dismiss', { duration: 3500 });
       },
     });
   }

@@ -101,7 +101,7 @@ export class SystemConfigurationFormComponent implements OnInit {
     const op$ = this.isEditMode() ? this.settingsService.update(this.itemId!, request) : this.settingsService.create(request);
     op$.subscribe({
       next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/settings']); },
-      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to save'); this.saving.set(false); },
     });
   }
 }

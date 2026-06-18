@@ -141,8 +141,8 @@ export class LabDetailComponent implements OnInit {
         this.toggleAssignmentForm();
         this.loadAssignments(this.lab()!.id);
       },
-      error: () => {
-        this.toast.error('Error adding assignment');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Error adding assignment');
       },
     });
   }
@@ -157,8 +157,8 @@ export class LabDetailComponent implements OnInit {
         this.toast.success('Assignment removed');
         this.loadAssignments(this.lab()!.id);
       },
-      error: () => {
-        this.toast.error('Error removing assignment');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Error removing assignment');
       },
     });
   }

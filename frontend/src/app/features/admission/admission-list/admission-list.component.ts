@@ -381,7 +381,7 @@ export class AdmissionListComponent implements OnInit, AfterViewInit, OnDestroy 
       if (confirmed) {
         this.admissionService.delete(item.id).subscribe({
           next:  () => { this.toast.success('Deleted'); this.loadPage(); },
-          error: () => this.toast.error('Failed to delete'),
+          error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete'),
         });
       }
     });

@@ -131,8 +131,8 @@ export class ProgramListComponent implements OnInit {
         this.toast.success('Program deleted successfully');
         this.loadPrograms();
       },
-      error: () => {
-        this.toast.error('Failed to delete program');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to delete program');
         this.loading.set(false);
       },
     });

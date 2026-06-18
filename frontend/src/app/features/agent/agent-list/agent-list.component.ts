@@ -121,7 +121,7 @@ export class AgentListComponent implements OnInit {
     this.loading.set(true);
     this.agentService.deleteAgent(item.id).subscribe({
       next: () => { this.toast.success('Deleted successfully'); this.load(); },
-      error: () => { this.toast.error('Failed to delete'); this.loading.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to delete'); this.loading.set(false); },
     });
   }
 

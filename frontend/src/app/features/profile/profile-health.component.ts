@@ -201,14 +201,14 @@ export class ProfileHealthComponent implements OnInit, OnDestroy {
     this.uploadingCover.set(true);
     this.profileService.uploadCover(file).subscribe({
       next: () => { this.profileService.loadCover(); this.uploadingCover.set(false); this.toast.success('Cover updated'); },
-      error: () => { this.uploadingCover.set(false); this.toast.error('Failed to upload cover'); },
+      error: (err) => { this.uploadingCover.set(false); this.toast.error(err?.error?.message ?? 'Failed to upload cover'); },
     });
   }
 
   protected removeCover(): void {
     this.profileService.deleteCover().subscribe({
       next:  () => { this.profileService.setCoverDataUrl(null); this.toast.success('Cover removed'); },
-      error: () => this.toast.error('Failed to remove cover'),
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to remove cover'),
     });
   }
 

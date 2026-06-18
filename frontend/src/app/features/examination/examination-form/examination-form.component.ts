@@ -109,7 +109,7 @@ export class ExaminationFormComponent implements OnInit {
     const op$ = this.isEditMode() ? this.examinationService.update(this.itemId!, request) : this.examinationService.create(request);
     op$.subscribe({
       next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/examinations']); },
-      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to save'); this.saving.set(false); },
     });
   }
 

@@ -612,8 +612,8 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
 
     forkJoin(uploads).subscribe({
       next: () => done(),
-      error: () => {
-        this.toast.warning('Admission created but consent document upload failed. You can re-upload from the enquiry documents screen.');
+      error: (err) => {
+        this.toast.warning(err?.error?.message ?? 'Admission created but consent document upload failed. You can re-upload from the enquiry documents screen.');
         this.saving.set(false);
         this.showSuccess(enquiry);
       },

@@ -245,7 +245,7 @@ export class AcademicYearFormComponent implements OnInit {
         this.reloadTermInstances();
         advancing.set(false);
       },
-      error: () => { this.toast.error('Failed to advance term status'); advancing.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to advance term status'); advancing.set(false); },
     });
   }
 
@@ -256,7 +256,7 @@ export class AcademicYearFormComponent implements OnInit {
     generating.set(true);
     this.academicYearService.generateEnrollments(term.id).subscribe({
       next: (res) => { this.toast.success(`Generated ${res.enrollmentsCreated} enrollment(s)`); generating.set(false); },
-      error: () => { this.toast.error('Failed to generate enrollments'); generating.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to generate enrollments'); generating.set(false); },
     });
   }
 
@@ -295,8 +295,8 @@ export class AcademicYearFormComponent implements OnInit {
         const label = quota === 'MANAGEMENT' ? 'Management' : 'Counselling';
         this.toast.success(closing ? `${label} seats locked` : `${label} seats reopened`);
       },
-      error: () => {
-        this.toast.error('Failed to update quota status');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to update quota status');
         this.togglingCounsellingId.set(null);
       },
     });

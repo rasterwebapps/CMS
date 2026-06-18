@@ -146,8 +146,8 @@ export class CourseListComponent implements OnInit {
         this.toast.success('Course deleted successfully');
         this.loadCourses();
       },
-      error: () => {
-        this.toast.error('Failed to delete course');
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to delete course');
         this.loading.set(false);
       },
     });

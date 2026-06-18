@@ -481,9 +481,9 @@ export class ProfileDocumentsComponent implements OnChanges {
             this.updateSlot(slot.documentType, { status: saved.status, remarks: saved.remarks, saving: false });
             this.toast.success(status === 'VERIFIED' ? `${slot.label} verified` : `${slot.label} rejected`);
           },
-          error: () => {
+          error: (err) => {
             this.updateSlot(slot.documentType, { saving: false });
-            this.toast.error('Failed to update verification status');
+            this.toast.error(err?.error?.message ?? 'Failed to update verification status');
           },
         });
     } else {
@@ -497,9 +497,9 @@ export class ProfileDocumentsComponent implements OnChanges {
           });
           this.toast.success(status === 'VERIFIED' ? `${slot.label} verified` : `${slot.label} rejected`);
         },
-        error: () => {
+        error: (err) => {
           this.updateSlot(slot.documentType, { saving: false });
-          this.toast.error('Failed to update verification status');
+          this.toast.error(err?.error?.message ?? 'Failed to update verification status');
         },
       });
     }

@@ -367,7 +367,7 @@ export class StudentListComponent implements OnInit, AfterViewInit, OnDestroy {
       if (confirmed) {
         this.studentService.delete(student.id).subscribe({
           next:  () => { this.toast.success('Student deleted successfully'); this.loadPage(); },
-          error: () => this.toast.error('Failed to delete student'),
+          error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete student'),
         });
       }
     });

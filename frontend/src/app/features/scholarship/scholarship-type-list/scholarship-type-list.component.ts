@@ -66,7 +66,7 @@ export class ScholarshipTypeListComponent implements OnInit {
     if (!confirm(`Deactivate ${row.name}?`)) return;
     this.scholarshipService.deactivateScholarshipType(row.id).subscribe({
       next: () => { this.toast.success('Scholarship deactivated'); this.load(); },
-      error: () => this.toast.error('Failed to deactivate scholarship'),
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to deactivate scholarship'),
     });
   }
 

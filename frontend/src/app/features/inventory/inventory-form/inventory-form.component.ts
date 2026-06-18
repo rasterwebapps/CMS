@@ -145,7 +145,7 @@ export class InventoryFormComponent implements OnInit {
     const op$ = this.isEditMode() ? this.inventoryService.update(this.itemId!, request) : this.inventoryService.create(request);
     op$.subscribe({
       next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/inventory']); },
-      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to save'); this.saving.set(false); },
     });
   }
 }

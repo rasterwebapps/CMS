@@ -125,7 +125,7 @@ export class EquipmentFormComponent implements OnInit {
     const op$ = this.isEditMode() ? this.equipmentService.update(this.itemId!, request) : this.equipmentService.create(request);
     op$.subscribe({
       next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/equipment']); },
-      error: () => { this.toast.error('Failed to save'); this.saving.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to save'); this.saving.set(false); },
     });
   }
 

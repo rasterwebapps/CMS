@@ -260,7 +260,7 @@ export class FeeStructureListComponent implements OnInit {
       item.quota, item.feeStateId, item.gender,
     ).subscribe({
       next:  () => { this.toast.success('Deleted successfully'); this.load(); },
-      error: () => { this.toast.error('Failed to delete'); this.loading.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to delete'); this.loading.set(false); },
     });
   }
 

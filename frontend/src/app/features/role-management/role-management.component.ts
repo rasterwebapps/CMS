@@ -201,7 +201,7 @@ export class RoleManagementComponent implements OnInit {
         this.closePanel();
         this.saving.set(false);
       },
-      error: () => { this.toast.error('Failed to save widgets'); this.saving.set(false); },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to save widgets'); this.saving.set(false); },
     });
   }
 
