@@ -6,9 +6,10 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ProgramService } from '../program.service';
-import { Program } from '../program.model';
+import { Program, ProgramStatus } from '../program.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -25,6 +26,7 @@ import { PROGRAM_LIST_TOUR } from '../../../shared/tour/tours/program.tours';
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsViewToggleComponent,
     CmsTourButtonComponent,
   ],
   templateUrl: './program-list.component.html',
@@ -116,6 +118,35 @@ export class ProgramListComponent implements OnInit {
       },
     }).afterClosed().subscribe((confirmed) => {
       if (confirmed) this.performDelete(program);
+    });
+  }
+
+  protected toggleProgramStatus(program: Program): void {
+    const nextStatus: ProgramStatus = program.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    const action = nextStatus === 'ACTIVE' ? 'Activate' : 'Deactivate';
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: `${action} Program`,
+        message: `Are you sure you want to ${action.toLowerCase()} "${program.name}"?`,
+        confirmText: action,
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.loading.set(true);
+      this.programService.updateStatus(program.id, {
+        status: nextStatus,
+        reason: `Manual ${action.toLowerCase()} from list`,
+      }).subscribe({
+        next: () => {
+          this.toast.success(`Program ${action.toLowerCase()}d successfully`);
+          this.loadPrograms();
+        },
+        error: (err) => {
+          this.toast.error(err?.error?.message ?? `Failed to ${action.toLowerCase()} program`);
+          this.loading.set(false);
+        },
+      });
     });
   }
 

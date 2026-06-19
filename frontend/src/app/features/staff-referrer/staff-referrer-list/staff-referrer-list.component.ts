@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { DecimalPipe } from '@angular/common';
+import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -10,6 +10,7 @@ import { StaffReferrerService } from '../staff-referrer.service';
 import { StaffReferrer } from '../staff-referrer.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
@@ -17,13 +18,14 @@ import { ToastService } from '../../../core/toast/toast.service';
   standalone: true,
   imports: [
     RouterLink,
-    DecimalPipe,
+    InrPipe,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsViewToggleComponent,
   ],
   templateUrl: './staff-referrer-list.component.html',
   styleUrl: './staff-referrer-list.component.scss',
@@ -89,13 +91,19 @@ export class StaffReferrerListComponent implements OnInit {
     void this.router.navigate(['/staff-referrers', item.id, 'edit']);
   }
 
-  protected delete(item: StaffReferrer): void {
+  protected toggleStatus(item: StaffReferrer): void {
+    const nextAction = item.isActive ? 'Deactivate' : 'Activate';
     this.dialog
       .open(ConfirmDialogComponent, {
-        data: { title: 'Delete Staff Referrer', message: `Delete "${item.name}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
+        data: {
+          title: `${nextAction} Staff Referrer`,
+          message: `${nextAction} "${item.name}"?`,
+          confirmText: nextAction,
+          cancelText: 'Cancel',
+        },
       })
       .afterClosed()
-      .subscribe((confirmed) => { if (confirmed) this.doDelete(item); });
+      .subscribe((confirmed) => { if (confirmed) this.doToggle(item); });
   }
 
   protected handleEmptyAction(): void {
@@ -111,11 +119,22 @@ export class StaffReferrerListComponent implements OnInit {
     return stored === 'table' ? 'table' : 'card';
   }
 
-  private doDelete(item: StaffReferrer): void {
+  private doToggle(item: StaffReferrer): void {
     this.loading.set(true);
-    this.service.delete(item.id).subscribe({
-      next: () => { this.toast.success('Deleted successfully'); this.load(); },
-      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to delete'); this.loading.set(false); },
+    const request$ = item.isActive
+      ? this.service.deactivate(item.id)
+      : this.service.reactivate(item.id);
+    request$.subscribe({
+      next: () => {
+        this.toast.success(`Staff referrer ${item.isActive ? 'deactivated' : 'activated'} successfully`);
+        this.load();
+      },
+      error: (err) => {
+        this.toast.error(
+          err?.error?.message ?? `Failed to ${item.isActive ? 'deactivate' : 'activate'} staff referrer`,
+        );
+        this.loading.set(false);
+      },
     });
   }
 

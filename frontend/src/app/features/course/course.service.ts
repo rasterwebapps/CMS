@@ -2,7 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { Course, CourseRequest } from './course.model';
+import {
+  Course,
+  CourseRequest,
+  CourseStatusUpdateRequest,
+  CourseStatusUpdateResponse,
+} from './course.model';
 
 @Injectable({
   providedIn: 'root',
@@ -29,6 +34,10 @@ export class CourseService {
 
   update(id: number, request: CourseRequest): Observable<Course> {
     return this.http.put<Course>(`${this.baseUrl}/${id}`, request);
+  }
+
+  updateStatus(id: number, request: CourseStatusUpdateRequest): Observable<CourseStatusUpdateResponse> {
+    return this.http.patch<CourseStatusUpdateResponse>(`${this.baseUrl}/${id}/status`, request);
   }
 
   delete(id: number): Observable<void> {

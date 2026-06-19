@@ -2,7 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { Speciality, SpecialityRequest } from './speciality.model';
+import {
+  Speciality,
+  SpecialityRequest,
+  SpecialityStatusUpdateRequest,
+  SpecialityStatusUpdateResponse,
+} from './speciality.model';
 
 @Injectable({
   providedIn: 'root',
@@ -11,8 +16,8 @@ export class SpecialityService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/specialities`;
 
-  getAll(): Observable<Speciality[]> {
-    return this.http.get<Speciality[]>(this.baseUrl);
+  getAll(activeOnly = false): Observable<Speciality[]> {
+    return this.http.get<Speciality[]>(`${this.baseUrl}?activeOnly=${activeOnly}`);
   }
 
   getById(id: number): Observable<Speciality> {
@@ -29,6 +34,13 @@ export class SpecialityService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  updateStatus(
+    id: number,
+    request: SpecialityStatusUpdateRequest,
+  ): Observable<SpecialityStatusUpdateResponse> {
+    return this.http.patch<SpecialityStatusUpdateResponse>(`${this.baseUrl}/${id}/status`, request);
   }
 
   checkNameExists(value: string, excludeId?: number): Observable<boolean> {

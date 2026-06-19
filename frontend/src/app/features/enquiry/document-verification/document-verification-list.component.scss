@@ -273,28 +273,6 @@
 .col-center { text-align: center !important; }
 .col-center .mat-sort-header-container { justify-content: center; }
 
-.type-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: var(--cms-text-xs);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-
-  &--day_scholar {
-    background: color-mix(in srgb, #3b82f6 12%, transparent);
-    color: #1d4ed8;
-    :host-context(.dark-mode) & { color: #93c5fd; }
-  }
-
-  &--hosteler {
-    background: color-mix(in srgb, #8b5cf6 12%, transparent);
-    color: #6d28d9;
-    :host-context(.dark-mode) & { color: #c4b5fd; }
-  }
-}
-
 // ── Row actions ───────────────────────────────────────────────────────────
 .row-actions {
   display: flex;
@@ -335,7 +313,7 @@
   cursor: pointer;
   transition: background 0.12s;
 
-  :host-context(.dark-mode) & { color: #86efac; }
+  :host-context(.dark-theme) & { color: #86efac; }
 
   &:hover {
     background: color-mix(in srgb, #22c55e 25%, transparent);
@@ -356,7 +334,7 @@
   border-radius: 5px;
   animation: skeleton-pulse 1.4s ease-in-out infinite;
 
-  :host-context(.dark-mode) & { background: var(--cms-skeleton-bg-dark, #2d3748); }
+  :host-context(.dark-theme) & { background: var(--cms-skeleton-bg-dark, #2d3748); }
 
   &--avatar  { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; }
   &--name    { height: 12px; width: 120px; }

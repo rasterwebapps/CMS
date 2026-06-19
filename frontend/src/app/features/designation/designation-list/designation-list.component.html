@@ -1,15 +1,15 @@
-<div class="dept-list-page">
+<div class="mlp-page">
 
   <!-- ── Page Header ─────────────────────────────────────────── -->
-  <div id="tour-dsg-header" class="dept-pg-hdr anim-rise">
-    <div class="dept-pg-left">
+  <div id="tour-dsg-header" class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
       <div class="page-title-row">
         <h1 class="dept-pg-title">Faculty <em>Designations</em></h1>
         <cms-tour-button tourKey="designation-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="dept-pg-sub">Manage designation titles used across faculty profiles</p>
     </div>
-    <div class="dept-pg-actions">
+    <div>
       <button class="btn-primary" routerLink="/designations/new" aria-label="Add new designation">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add Designation
@@ -18,7 +18,7 @@
   </div>
 
   <!-- ── Toolbar ───────────────────────────────────────────────── -->
-  <div class="dept-toolbar anim-rise anim-rise--d1">
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
     <div id="tour-dsg-search" class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input
@@ -35,9 +35,12 @@
         </button>
       }
     </div>
-    <div id="tour-dsg-view-toggle" style="margin-left:auto">
-      <cms-view-toggle [mode]="viewMode()" storageKey="designation-view" (modeChange)="setViewMode($event)" />
-    </div>
+    <cms-view-toggle
+      id="tour-dsg-view-toggle"
+      [mode]="viewMode()"
+      storageKey="designation-view-mode"
+      (modeChange)="setViewMode($event)"
+    />
   </div>
 
   <div id="tour-dsg-content">
@@ -69,7 +72,10 @@
               <button class="dept-act-btn" (click)="editDesignation(item)" [attr.title]="'Edit ' + item.name" type="button" aria-label="Edit designation">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
-              <button class="dept-act-btn dept-act-btn--danger" (click)="deleteDesignation(item)" [attr.title]="'Delete ' + item.name" type="button" aria-label="Delete designation">
+              <button class="dept-act-btn" [class.dept-act-btn--danger]="item.isActive"
+                      (click)="toggleDesignationStatus(item)"
+                      [attr.title]="item.isActive ? ('Deactivate ' + item.name) : ('Activate ' + item.name)"
+                      type="button" aria-label="Toggle designation status">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
               </button>
             </div>
@@ -79,6 +85,7 @@
             <div class="dept-card__body">
               <div class="dept-card__name">{{ item.name }}</div>
               <div class="dept-card__code">{{ item.code }}</div>
+              <div class="dept-card__code">{{ item.isActive ? 'Active' : 'Inactive' }}</div>
               @if (item.description) {
                 <p class="dept-card__desc">{{ item.description }}</p>
               }
@@ -100,7 +107,7 @@
         (actionClick)="handleEmptyAction()"
       ></cms-empty-state>
     } @else {
-      <div class="dept-table-wrap">
+      <div class="content-card mlp-table-card">
         <table mat-table [dataSource]="dataSource" matSort class="dept-table">
           <ng-container matColumnDef="code">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
@@ -114,13 +121,24 @@
             <th mat-header-cell *matHeaderCellDef>Description</th>
             <td mat-cell *matCellDef="let row">{{ row.description || '—' }}</td>
           </ng-container>
+          <ng-container matColumnDef="isActive">
+            <th mat-header-cell *matHeaderCellDef class="cell-align-center">Status</th>
+            <td mat-cell *matCellDef="let row" class="cell-align-center">
+              <span class="status-chip" [class.status-chip--active]="row.isActive" [class.status-chip--inactive]="!row.isActive">
+                {{ row.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+          </ng-container>
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let row">
               <button class="dept-act-btn" (click)="editDesignation(row)" title="Edit" type="button" aria-label="Edit">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
-              <button class="dept-act-btn dept-act-btn--danger" (click)="deleteDesignation(row)" title="Delete" type="button" aria-label="Delete">
+              <button class="dept-act-btn" [class.dept-act-btn--danger]="row.isActive"
+                      (click)="toggleDesignationStatus(row)"
+                      [title]="row.isActive ? 'Deactivate' : 'Activate'"
+                      type="button" aria-label="Toggle designation status">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
               </button>
             </td>

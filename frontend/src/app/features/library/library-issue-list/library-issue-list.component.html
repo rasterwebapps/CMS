@@ -85,7 +85,7 @@
           <td mat-cell *matCellDef="let i">
             <span class="member-name">{{ i.memberType === 'STUDENT' ? i.studentName : i.facultyName }}</span>
             <span class="member-code">{{ i.memberType === 'STUDENT' ? i.studentRollNumber : i.facultyEmployeeCode }}</span>
-            <span class="member-type-tag" [class.tag--student]="i.memberType === 'STUDENT'" [class.tag--faculty]="i.memberType === 'FACULTY'">
+            <span class="cms-badge" [class.cms-badge--soft-blue]="i.memberType === 'STUDENT'" [class.cms-badge--soft-purple]="i.memberType === 'FACULTY'">
               {{ i.memberType === 'STUDENT' ? 'Student' : 'Faculty' }}
             </span>
           </td>

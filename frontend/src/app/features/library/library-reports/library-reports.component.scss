@@ -130,9 +130,9 @@
   font-size: 0.75rem;
   font-weight: 600;
 
-  &--pending   { background: #fee2e2; color: #b91c1c; }
-  &--waived    { background: #f3f4f6; color: #6b7280; }
-  &--collected { background: #dcfce7; color: #15803d; }
+  &--pending   { background: rgba(239, 68, 68, 0.12);   color: #EF4444; }
+  &--waived    { background: rgba(167, 139, 250, 0.12); color: #A78BFA; }
+  &--collected { background: rgba(34, 197, 94, 0.12);   color: #22C55E; }
 }
 
 .status-sm {
@@ -148,11 +148,6 @@
   &--lost     { background: #f3f4f6; color: #6b7280; }
 }
 
-.member-badge {
-  font-size: 0.73rem; font-weight: 600; padding: 2px 7px; border-radius: 8px;
-  &.badge--student { background: #dbeafe; color: #1d4ed8; }
-  &.badge--faculty { background: #ede9fe; color: #7c3aed; }
-}
 
 // ── Fine summary cards ────────────────────────────────────────
 

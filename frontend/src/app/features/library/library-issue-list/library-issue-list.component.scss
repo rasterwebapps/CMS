@@ -23,17 +23,6 @@
 .member-name { display: block; font-weight: 500; }
 .member-code { display: block; font-size: 0.78rem; color: var(--color-text-secondary); }
 
-.member-type-tag {
-  display: inline-block;
-  padding: 1px 7px;
-  border-radius: 10px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  margin-top: 2px;
-
-  &.tag--student { background: #dbeafe; color: #1d4ed8; }
-  &.tag--faculty { background: #ede9fe; color: #7c3aed; }
-}
 
 .issue-status-pill {
   display: inline-flex;

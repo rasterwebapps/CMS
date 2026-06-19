@@ -11,6 +11,7 @@ import { ReferralTypeService } from '../referral-type.service';
 import { ReferralType } from '../referral-type.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -28,6 +29,7 @@ import { REFERRAL_TYPE_LIST_TOUR } from '../../../shared/tour/tours/referral-typ
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsViewToggleComponent,
     CmsTourButtonComponent,
   ],
   templateUrl: './referral-type-list.component.html',
@@ -96,19 +98,20 @@ export class ReferralTypeListComponent implements OnInit {
     void this.router.navigate(['/referral-types', item.id, 'edit']);
   }
 
-  protected delete(item: ReferralType): void {
+  protected toggleStatus(item: ReferralType): void {
+    const nextAction = item.isActive ? 'Deactivate' : 'Activate';
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          title: 'Delete Referral Type',
-          message: `Delete "${item.name}"?`,
-          confirmText: 'Delete',
+          title: `${nextAction} Referral Type`,
+          message: `${nextAction} "${item.name}"?`,
+          confirmText: nextAction,
           cancelText: 'Cancel',
         },
       })
       .afterClosed()
       .subscribe((confirmed) => {
-        if (confirmed) this.doDelete(item);
+        if (confirmed) this.doToggle(item);
       });
   }
 
@@ -125,15 +128,20 @@ export class ReferralTypeListComponent implements OnInit {
     return stored === 'table' ? 'table' : 'card';
   }
 
-  private doDelete(item: ReferralType): void {
+  private doToggle(item: ReferralType): void {
     this.loading.set(true);
-    this.referralTypeService.deleteReferralType(item.id).subscribe({
+    const request$ = item.isActive
+      ? this.referralTypeService.deactivateReferralType(item.id)
+      : this.referralTypeService.reactivateReferralType(item.id);
+    request$.subscribe({
       next: () => {
-        this.toast.success('Deleted successfully');
+        this.toast.success(`Referral type ${item.isActive ? 'deactivated' : 'activated'} successfully`);
         this.load();
       },
       error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to delete');
+        this.toast.error(
+          err?.error?.message ?? `Failed to ${item.isActive ? 'deactivate' : 'activate'} referral type`,
+        );
         this.loading.set(false);
       },
     });

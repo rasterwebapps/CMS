@@ -99,23 +99,24 @@ export class BloodGroupListComponent implements OnInit {
     void this.router.navigate(['/blood-groups', item.id, 'edit']);
   }
 
-  protected delete(item: BloodGroup): void {
+  protected toggleStatus(item: BloodGroup): void {
     if (!this.canManage()) {
-      this.toast.error('You do not have permission to delete blood groups');
+      this.toast.error('You do not have permission to update blood group status');
       return;
     }
+    const nextAction = item.isActive ? 'Deactivate' : 'Activate';
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          title: 'Delete Blood Group',
-          message: `Delete "${item.name}" (${item.code})?`,
-          confirmText: 'Delete',
+          title: `${nextAction} Blood Group`,
+          message: `${nextAction} "${item.name}" (${item.code})?`,
+          confirmText: nextAction,
           cancelText: 'Cancel',
         },
       })
       .afterClosed()
       .subscribe((confirmed) => {
-        if (confirmed) this.doDelete(item);
+        if (confirmed) this.doToggle(item);
       });
   }
 
@@ -131,15 +132,20 @@ export class BloodGroupListComponent implements OnInit {
     }
   }
 
-  private doDelete(item: BloodGroup): void {
+  private doToggle(item: BloodGroup): void {
     this.loading.set(true);
-    this.bloodGroupService.deleteBloodGroup(item.id).subscribe({
+    const request$ = item.isActive
+      ? this.bloodGroupService.deactivateBloodGroup(item.id)
+      : this.bloodGroupService.reactivateBloodGroup(item.id);
+    request$.subscribe({
       next: () => {
-        this.toast.success('Blood group deleted successfully');
+        this.toast.success(`Blood group ${item.isActive ? 'deactivated' : 'activated'} successfully`);
         this.load();
       },
       error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to delete blood group');
+        this.toast.error(
+          err?.error?.message ?? `Failed to ${item.isActive ? 'deactivate' : 'activate'} blood group`,
+        );
         this.loading.set(false);
       },
     });
@@ -160,4 +166,3 @@ export class BloodGroupListComponent implements OnInit {
     });
   }
 }
-

@@ -9,6 +9,7 @@ import { AgentService } from '../agent.service';
 import { Agent } from '../agent.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -25,6 +26,7 @@ import { AGENT_LIST_TOUR } from '../../../shared/tour/tours/agent.tours';
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsViewToggleComponent,
     CmsTourButtonComponent,
   ],
   templateUrl: './agent-list.component.html',
@@ -95,13 +97,19 @@ export class AgentListComponent implements OnInit {
     void this.router.navigate(['/agents', item.id, 'edit']);
   }
 
-  protected delete(item: Agent): void {
+  protected toggleStatus(item: Agent): void {
+    const nextAction = item.isActive ? 'Deactivate' : 'Activate';
     this.dialog
       .open(ConfirmDialogComponent, {
-        data: { title: 'Delete Agent', message: `Delete "${item.name}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
+        data: {
+          title: `${nextAction} Agent`,
+          message: `${nextAction} "${item.name}"?`,
+          confirmText: nextAction,
+          cancelText: 'Cancel',
+        },
       })
       .afterClosed()
-      .subscribe((confirmed) => { if (confirmed) this.doDelete(item); });
+      .subscribe((confirmed) => { if (confirmed) this.doToggle(item); });
   }
 
   protected handleEmptyAction(): void {
@@ -117,11 +125,20 @@ export class AgentListComponent implements OnInit {
     return stored === 'table' ? 'table' : 'card';
   }
 
-  private doDelete(item: Agent): void {
+  private doToggle(item: Agent): void {
     this.loading.set(true);
-    this.agentService.deleteAgent(item.id).subscribe({
-      next: () => { this.toast.success('Deleted successfully'); this.load(); },
-      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to delete'); this.loading.set(false); },
+    const request$ = item.isActive
+      ? this.agentService.deactivateAgent(item.id)
+      : this.agentService.reactivateAgent(item.id);
+    request$.subscribe({
+      next: () => {
+        this.toast.success(`Agent ${item.isActive ? 'deactivated' : 'activated'} successfully`);
+        this.load();
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? `Failed to ${item.isActive ? 'deactivate' : 'activate'}`);
+        this.loading.set(false);
+      },
     });
   }
 

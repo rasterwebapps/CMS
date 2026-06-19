@@ -231,23 +231,6 @@
   font-style: italic;
 }
 
-// Type badge
-.rcp-type-badge {
-  display: inline-block;
-  font-size: var(--cms-text-xs);
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 20px;
-  background: var(--cms-bg-muted, #f8f9fa);
-  color: var(--cms-text-secondary, #475569);
-  border: 1px solid var(--cms-border-default, #e5e7eb);
-
-  &--student {
-    background: #eff6ff;
-    color: #1d4ed8;
-    border-color: #bfdbfe;
-  }
-}
 
 // Installment breakdown
 .rcp-breakdown {

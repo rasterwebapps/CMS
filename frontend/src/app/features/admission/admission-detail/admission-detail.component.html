@@ -48,7 +48,9 @@
                 {{ admission()!.joiningAcademicYearName || '—' }}
               </span>
               @if (admission()!.studentType) {
-                <span class="cms-badge cms-badge--gray">
+                <span class="cms-badge"
+                  [class.cms-badge--soft-blue]="admission()!.studentType === 'DAY_SCHOLAR'"
+                  [class.cms-badge--soft-purple]="admission()!.studentType === 'HOSTELER'">
                   {{ admission()!.studentType === 'DAY_SCHOLAR' ? 'Day Scholar' : 'Hosteler' }}
                 </span>
               }

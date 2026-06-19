@@ -48,7 +48,7 @@
         <div class="rcp-row">
           <span class="rcp-label">Type</span>
           <span class="rcp-value">
-            <span class="rcp-type-badge" [class.rcp-type-badge--student]="isStudent()">
+            <span class="cms-badge" [class.cms-badge--soft-blue]="isStudent()" [class.cms-badge--soft-gray]="!isStudent()">
               {{ isStudent() ? 'Student' : 'Pre-enrollment' }}
             </span>
           </span>

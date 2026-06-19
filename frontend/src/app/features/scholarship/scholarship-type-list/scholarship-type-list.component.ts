@@ -62,11 +62,20 @@ export class ScholarshipTypeListComponent implements OnInit {
     void this.router.navigate(['/scholarships', row.id, 'edit']);
   }
 
-  protected deactivate(row: ScholarshipType): void {
-    if (!confirm(`Deactivate ${row.name}?`)) return;
-    this.scholarshipService.deactivateScholarshipType(row.id).subscribe({
-      next: () => { this.toast.success('Scholarship deactivated'); this.load(); },
-      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to deactivate scholarship'),
+  protected toggleStatus(row: ScholarshipType): void {
+    const nextAction = row.active ? 'Deactivate' : 'Activate';
+    if (!confirm(`${nextAction} ${row.name}?`)) return;
+    const request$ = row.active
+      ? this.scholarshipService.deactivateScholarshipType(row.id)
+      : this.scholarshipService.reactivateScholarshipType(row.id);
+    request$.subscribe({
+      next: () => {
+        this.toast.success(`Scholarship ${row.active ? 'deactivated' : 'activated'}`);
+        this.load();
+      },
+      error: (err) => this.toast.error(
+        err?.error?.message ?? `Failed to ${row.active ? 'deactivate' : 'activate'} scholarship`,
+      ),
     });
   }
 

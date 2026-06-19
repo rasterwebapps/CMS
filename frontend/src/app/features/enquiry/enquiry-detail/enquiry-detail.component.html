@@ -353,8 +353,8 @@
             <div class="content-card journey-card">
               <p class="overview-card__title">Status Journey</p>
               <div class="journey-grid">
-                @for (row of journeyRows(); track $index; let lastRow = $last) {
-                  <div class="journey-row">
+                @for (row of journeyRows(); track $index; let lastRow = $last; let rIdx = $index) {
+                  <div class="journey-row" [class.journey-row--reverse]="rIdx % 2 === 1">
                     @for (node of row; track $index; let lastNode = $last) {
                       <div class="journey-node" [class.journey-node--current]="node.isLast">
                         <cms-status-badge [status]="node.status" />
@@ -378,8 +378,10 @@
                     }
                   </div>
                   @if (!lastRow) {
-                    <div class="journey-row-end">
-                      <mat-icon class="journey-wrap-icon">subdirectory_arrow_right</mat-icon>
+                    <div class="journey-row-end" [class.journey-row-end--left]="rIdx % 2 === 1">
+                      <span class="journey-row-end__slot">
+                        <mat-icon class="journey-wrap-icon">arrow_downward</mat-icon>
+                      </span>
                     </div>
                   }
                 }

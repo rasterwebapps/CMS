@@ -2,7 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { StaffReferrer, StaffReferrerRequest } from './staff-referrer.model';
+import {
+  StaffReferrer,
+  StaffReferrerRequest,
+  StaffReferrerStatusUpdateRequest,
+  StaffReferrerStatusUpdateResponse,
+} from './staff-referrer.model';
 
 @Injectable({ providedIn: 'root' })
 export class StaffReferrerService {
@@ -31,5 +36,20 @@ export class StaffReferrerService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.url}/${id}`);
+  }
+
+  deactivate(id: number): Observable<StaffReferrerStatusUpdateResponse> {
+    return this.updateStatus(id, { isActive: false });
+  }
+
+  reactivate(id: number): Observable<StaffReferrerStatusUpdateResponse> {
+    return this.updateStatus(id, { isActive: true });
+  }
+
+  updateStatus(
+    id: number,
+    request: StaffReferrerStatusUpdateRequest,
+  ): Observable<StaffReferrerStatusUpdateResponse> {
+    return this.http.patch<StaffReferrerStatusUpdateResponse>(`${this.url}/${id}/status`, request);
   }
 }

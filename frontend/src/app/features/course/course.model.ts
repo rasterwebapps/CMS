@@ -6,6 +6,7 @@ export interface Course {
   code: string;
   specialization: string | null;
   rollNumberCode: string | null;
+  isActive: boolean;
   program: Program;
   createdAt: string;
   updatedAt: string;
@@ -17,4 +18,16 @@ export interface CourseRequest {
   specialization: string | null;
   rollNumberCode: string;
   programId: number;
+  isActive?: boolean;
+}
+
+export interface CourseStatusUpdateRequest {
+  isActive: boolean;
+  reason?: string;
+}
+
+export interface CourseStatusUpdateResponse {
+  id: number;
+  isActive: boolean;
+  updatedAt: string;
 }

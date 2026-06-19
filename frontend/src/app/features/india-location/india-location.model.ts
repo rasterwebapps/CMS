@@ -48,3 +48,14 @@ export interface IndiaDistrictRequest {
   isActive?: boolean;
 }
 
+export interface IndiaLocationStatusUpdateRequest {
+  isActive: boolean;
+  reason?: string;
+}
+
+export interface IndiaLocationStatusUpdateResponse {
+  id: number;
+  isActive: boolean;
+  updatedAt: string;
+}
+

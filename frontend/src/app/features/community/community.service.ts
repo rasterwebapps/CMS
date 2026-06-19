@@ -2,7 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { Community, CommunityRequest } from './community.model';
+import {
+  Community,
+  CommunityRequest,
+  CommunityStatusUpdateRequest,
+  CommunityStatusUpdateResponse,
+} from './community.model';
 
 @Injectable({
   providedIn: 'root',
@@ -34,5 +39,19 @@ export class CommunityService {
   deleteCommunity(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
-}
 
+  deactivateCommunity(id: number): Observable<CommunityStatusUpdateResponse> {
+    return this.updateStatus(id, { isActive: false });
+  }
+
+  reactivateCommunity(id: number): Observable<CommunityStatusUpdateResponse> {
+    return this.updateStatus(id, { isActive: true });
+  }
+
+  updateStatus(
+    id: number,
+    request: CommunityStatusUpdateRequest,
+  ): Observable<CommunityStatusUpdateResponse> {
+    return this.http.patch<CommunityStatusUpdateResponse>(`${this.baseUrl}/${id}/status`, request);
+  }
+}

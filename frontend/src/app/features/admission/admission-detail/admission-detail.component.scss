@@ -88,7 +88,7 @@
 
 .profile-hero__identity {
   align-items: flex-start;
-  gap: 20px;
+  gap: 18px;
   flex: 1;
   min-width: 0;
 }
@@ -106,8 +106,8 @@
 .profile-hero__kpis {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-top: 20px;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .hero-kpi {

@@ -890,10 +890,16 @@
 .journey-row {
   display: flex;
   align-items: stretch;
+
+  &--reverse {
+    flex-direction: row-reverse;
+
+    .journey-connector mat-icon { transform: scaleX(-1); }
+  }
 }
 
 .journey-node {
-  flex: 1;
+  flex: 0 1 calc((100% - 3 * 28px) / 4);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -959,7 +965,17 @@
 .journey-row-end {
   display: flex;
   justify-content: flex-end;
-  padding: 2px 14px 2px 0;
+
+  &--left { justify-content: flex-start; }
+}
+
+// Same width as .journey-node so the arrow lands centred under the card
+// it's connecting to/from (rows alternate direction, so that card is
+// always at this same edge — see .journey-row--reverse).
+.journey-row-end__slot {
+  flex: 0 0 calc((100% - 3 * 28px) / 4);
+  display: flex;
+  justify-content: center;
 }
 
 .journey-wrap-icon {

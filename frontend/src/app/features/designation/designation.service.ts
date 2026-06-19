@@ -2,15 +2,20 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { DesignationMaster, DesignationRequest } from './designation.model';
+import {
+  DesignationMaster,
+  DesignationRequest,
+  DesignationStatusUpdateRequest,
+  DesignationStatusUpdateResponse,
+} from './designation.model';
 
 @Injectable({ providedIn: 'root' })
 export class DesignationService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/designations`;
 
-  getAll(): Observable<DesignationMaster[]> {
-    return this.http.get<DesignationMaster[]>(this.baseUrl);
+  getAll(activeOnly = false): Observable<DesignationMaster[]> {
+    return this.http.get<DesignationMaster[]>(`${this.baseUrl}?activeOnly=${activeOnly}`);
   }
 
   getById(id: number): Observable<DesignationMaster> {
@@ -27,6 +32,13 @@ export class DesignationService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  updateStatus(
+    id: number,
+    request: DesignationStatusUpdateRequest,
+  ): Observable<DesignationStatusUpdateResponse> {
+    return this.http.patch<DesignationStatusUpdateResponse>(`${this.baseUrl}/${id}/status`, request);
   }
 
   checkNameExists(value: string, excludeId?: number): Observable<boolean> {

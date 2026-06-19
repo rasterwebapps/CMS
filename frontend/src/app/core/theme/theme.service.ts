@@ -137,6 +137,32 @@ export class ThemeService {
   }
 
   /**
+   * Re-injects the dark/light-dependent tokens for the currently active swatch.
+   * Call this after toggling the `dark-theme`/`light-theme` class on <html> —
+   * `applyTheme()` only re-runs when the user picks a new accent colour, so
+   * without this, --cms-primary-light stays stuck on whichever mode was
+   * active the last time a swatch was applied.
+   */
+  refreshForColorScheme(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+    const palette = this.generatePalette(this._activeSwatch());
+    this.injectPaletteVariables(palette);
+  }
+
+  /** True when dark mode is the currently rendered theme (explicit class, or OS preference if unset). */
+  private isDarkActive(): boolean {
+    if (!isPlatformBrowser(this.platformId)) {
+      return false;
+    }
+    const html = document.documentElement;
+    if (html.classList.contains('dark-theme')) return true;
+    if (html.classList.contains('light-theme')) return false;
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+  }
+
+  /**
    * Returns a full 50–950 palette for the given swatch.
    * Uses the hand-crafted Tailwind v3 palette when the swatch ID is recognised
    * (gives perceptually even ramps), otherwise falls back to HSL interpolation.
@@ -235,7 +261,10 @@ export class ThemeService {
     // Update --cms-primary-rgb so rgba() usages in SCSS work correctly
     root.style.setProperty('--cms-primary-rgb', `${r}, ${g}, ${b}`);
     root.style.setProperty('--cms-primary-hover', palette[shades.hover]);
-    root.style.setProperty('--cms-primary-light', palette[50]);
+    // In dark mode, palette[50] (near-white) would make a "light tint" surface
+    // unreadable against light text — match the success/warning/danger pattern
+    // and use a low-alpha tint of the primary colour instead.
+    root.style.setProperty('--cms-primary-light', this.isDarkActive() ? rgba(0.12) : palette[50]);
     root.style.setProperty('--cms-border-hover', palette[300]);
     root.style.setProperty('--cms-sidenav-active-text', primaryHex);
 

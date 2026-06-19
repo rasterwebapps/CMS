@@ -1,13 +1,13 @@
-<div class="enq-list-page">
+<div class="enq-list-page mlp-page">
 
   <!-- ── Header (matches Speciality list style) ──────────────────────────── -->
-  <div id="tour-enq-header" class="enq-pg-hdr anim-rise">
-    <div class="enq-pg-left">
+  <div id="tour-enq-header" class="enq-pg-hdr mlp-hdr anim-rise">
+    <div class="enq-pg-left mlp-hdr-left">
       <div class="page-title-row">
-        <h1 class="enq-pg-title">Student <em>Enquiries</em></h1>
+        <h1 class="enq-pg-title mlp-title">Student <em>Enquiries</em></h1>
         <cms-tour-button tourKey="enquiry-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="enq-pg-sub">Track and manage prospective student enquiries</p>
+      <p class="enq-pg-sub mlp-sub">Track and manage prospective student enquiries</p>
     </div>
     <div class="enq-pg-actions">
       <button class="btn-export" (click)="exportCsv()" matTooltip="Export to CSV" aria-label="Export CSV">
@@ -22,7 +22,7 @@
   </div>
 
   <!-- ── Row 2: Filters ──────────────────────────────────────────────────── -->
-  <div id="tour-enq-toolbar" class="enq-filterbar anim-rise anim-rise--d1">
+  <div id="tour-enq-toolbar" class="enq-filterbar mlp-toolbar anim-rise anim-rise--d1">
 
     <!-- Search -->
     <div class="search-bar" role="search">
@@ -225,7 +225,7 @@
   }
 
   <!-- ── Content Card ───────────────────────────────────────────────────────── -->
-  <div class="content-card enq-table-card">
+  <div class="content-card enq-table-card mlp-table-card">
 
     @if (loading()) {
       <!-- Skeleton rows -->
@@ -285,9 +285,9 @@
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
             <td mat-cell *matCellDef="let row">
               @if (row.studentType === 'DAY_SCHOLAR') {
-                <span class="type-badge type-badge--day">Day Scholar</span>
+                <span class="cms-badge cms-badge--soft-blue">Day Scholar</span>
               } @else if (row.studentType === 'HOSTELER') {
-                <span class="type-badge type-badge--host">Hosteler</span>
+                <span class="cms-badge cms-badge--soft-purple">Hosteler</span>
               } @else {
                 <span class="cell-muted">—</span>
               }

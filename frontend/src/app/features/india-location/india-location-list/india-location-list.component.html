@@ -109,7 +109,10 @@
                       </svg>
                     </a>
                     @if (country.isoCode !== 'IN') {
-                      <button class="mlp-act-btn mlp-act-btn--del" (click)="deleteCountry(country); $event.stopPropagation()" matTooltip="Delete Country" aria-label="Delete country">
+                      <button class="mlp-act-btn" [class.mlp-act-btn--del]="country.isActive"
+                              (click)="toggleCountryStatus(country); $event.stopPropagation()"
+                              [matTooltip]="country.isActive ? 'Deactivate Country' : 'Activate Country'"
+                              [attr.aria-label]="country.isActive ? 'Deactivate country' : 'Activate country'">
                         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
                              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                           <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
@@ -165,7 +168,10 @@
                                     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                                   </svg>
                                 </a>
-                                <button class="mlp-act-btn mlp-act-btn--del" (click)="deleteState(state); $event.stopPropagation()" matTooltip="Delete State" aria-label="Delete state">
+                                <button class="mlp-act-btn" [class.mlp-act-btn--del]="state.isActive"
+                                        (click)="toggleStateStatus(state); $event.stopPropagation()"
+                                        [matTooltip]="state.isActive ? 'Deactivate State' : 'Activate State'"
+                                        [attr.aria-label]="state.isActive ? 'Deactivate state' : 'Activate state'">
                                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                                     <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
@@ -196,7 +202,8 @@
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                                           </svg>
                                         </button>
-                                        <button class="district-chip__delete" (click)="deleteDistrict(district)" matTooltip="Delete">
+                                        <button class="district-chip__delete" (click)="toggleDistrictStatus(district)"
+                                                [matTooltip]="district.isActive ? 'Deactivate' : 'Activate'">
                                           <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
                                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                                             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -250,7 +257,9 @@
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                           </svg>
                         </button>
-                        <button class="district-chip__delete" (click)="deleteDistrict(d)" matTooltip="Delete district {{ d.name }}" aria-label="Delete district {{ d.name }}">
+                        <button class="district-chip__delete" (click)="toggleDistrictStatus(d)"
+                                [matTooltip]="d.isActive ? 'Deactivate district ' + d.name : 'Activate district ' + d.name"
+                                [attr.aria-label]="d.isActive ? 'Deactivate district ' + d.name : 'Activate district ' + d.name">
                           <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -315,7 +324,10 @@
                       <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
                   </a>
-                  <button class="action-btn action-btn--danger" (click)="deleteState(row)" matTooltip="Delete state" aria-label="Delete state">
+                  <button class="action-btn" [class.action-btn--danger]="row.isActive"
+                          (click)="toggleStateStatus(row)"
+                          [matTooltip]="row.isActive ? 'Deactivate state' : 'Activate state'"
+                          [attr.aria-label]="row.isActive ? 'Deactivate state' : 'Activate state'">
                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
                          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                       <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>

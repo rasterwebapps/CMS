@@ -19,3 +19,15 @@ export interface ReferralTypeRequest {
   description?: string;
   isActive?: boolean;
 }
+
+export interface ReferralTypeStatusUpdateRequest {
+  isActive: boolean;
+  reason?: string;
+}
+
+export interface ReferralTypeStatusUpdateResponse {
+  id: number;
+  isActive: boolean;
+  updatedAt: string;
+}
+

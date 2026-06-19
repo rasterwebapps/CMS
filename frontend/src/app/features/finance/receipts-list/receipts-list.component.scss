@@ -143,23 +143,6 @@ tr.table-row:hover td.mat-mdc-table-sticky {
 
 .date-sep { color: var(--cms-text-muted); font-size: var(--cms-text-xs); }
 
-// Type badge variants
-.type-badge {
-  display: inline-block;
-  font-size: var(--cms-text-xs);
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 20px;
-  background: var(--cms-bg-muted);
-  color: var(--cms-text-secondary);
-  border: 1px solid var(--cms-border-default);
-
-  &--student {
-    background: #eff6ff;
-    color: #1d4ed8;
-    border-color: #bfdbfe;
-  }
-}
 
 // Refund action button (for initiation from receipts list)
 .action-btn--refund {

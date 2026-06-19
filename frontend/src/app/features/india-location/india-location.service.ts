@@ -9,6 +9,8 @@ import {
   IndiaDistrict,
   IndiaStateRequest,
   IndiaDistrictRequest,
+  IndiaLocationStatusUpdateRequest,
+  IndiaLocationStatusUpdateResponse,
 } from './india-location.model';
 
 @Injectable({ providedIn: 'root' })
@@ -36,6 +38,16 @@ export class IndiaLocationService {
 
   deleteCountry(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/countries/${id}`);
+  }
+
+  updateCountryStatus(
+    id: number,
+    request: IndiaLocationStatusUpdateRequest,
+  ): Observable<IndiaLocationStatusUpdateResponse> {
+    return this.http.patch<IndiaLocationStatusUpdateResponse>(
+      `${this.baseUrl}/countries/${id}/status`,
+      request,
+    );
   }
 
   /** Get states belonging to a specific country (cascade on country select). */
@@ -67,6 +79,16 @@ export class IndiaLocationService {
     return this.http.delete<void>(`${this.baseUrl}/states/${id}`);
   }
 
+  updateStateStatus(
+    id: number,
+    request: IndiaLocationStatusUpdateRequest,
+  ): Observable<IndiaLocationStatusUpdateResponse> {
+    return this.http.patch<IndiaLocationStatusUpdateResponse>(
+      `${this.baseUrl}/states/${id}/status`,
+      request,
+    );
+  }
+
   // ─── Districts ───────────────────────────────────────────────────────────
 
   getDistricts(stateId: number, activeOnly = true): Observable<IndiaDistrict[]> {
@@ -89,6 +111,16 @@ export class IndiaLocationService {
 
   deleteDistrict(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/districts/${id}`);
+  }
+
+  updateDistrictStatus(
+    id: number,
+    request: IndiaLocationStatusUpdateRequest,
+  ): Observable<IndiaLocationStatusUpdateResponse> {
+    return this.http.patch<IndiaLocationStatusUpdateResponse>(
+      `${this.baseUrl}/districts/${id}/status`,
+      request,
+    );
   }
 }
 

@@ -175,7 +175,9 @@
             <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-center">Type</th>
             <td mat-cell *matCellDef="let row" class="col-center">
               @if (row.studentType) {
-                <span class="type-chip type-chip--{{ row.studentType | lowercase }}">
+                <span class="cms-badge"
+                  [class.cms-badge--soft-blue]="row.studentType === 'DAY_SCHOLAR'"
+                  [class.cms-badge--soft-purple]="row.studentType === 'HOSTELER'">
                   {{ row.studentType === 'DAY_SCHOLAR' ? 'Day Scholar' : 'Hosteler' }}
                 </span>
               } @else {

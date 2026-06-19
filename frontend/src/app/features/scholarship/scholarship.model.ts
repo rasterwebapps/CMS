@@ -32,6 +32,17 @@ export interface ScholarshipTypeRequest {
   active?: boolean;
 }
 
+export interface ScholarshipTypeStatusUpdateRequest {
+  isActive: boolean;
+  reason?: string;
+}
+
+export interface ScholarshipTypeStatusUpdateResponse {
+  id: number;
+  isActive: boolean;
+  updatedAt: string;
+}
+
 export interface ScholarshipEligibility {
   id: number;
   studentId: number;

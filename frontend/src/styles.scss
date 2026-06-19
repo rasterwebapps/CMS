@@ -601,10 +601,12 @@ app-root {
   }
 
   // ─── Soft / translucent variants (coloured text on light tinted background) ───
+  &--soft-blue   { background: rgba(59, 130, 246, 0.12);              color: #3B82F6; }
   &--soft-green  { background: rgba(34, 197, 94, 0.12);               color: #22C55E; }
   &--soft-amber  { background: rgba(245, 158, 11, 0.12);              color: #F59E0B; }
   &--soft-red    { background: rgba(239, 68, 68, 0.12);               color: #EF4444; }
   &--soft-purple { background: rgba(167, 139, 250, 0.12);             color: #A78BFA; }
+  &--soft-gray   { background: var(--cms-bg-muted);                   color: var(--cms-text-secondary); }
   &--soft-accent { background: rgba(var(--cms-primary-rgb), 0.12);    color: var(--cms-primary); }
   &--soft-up {
     background: rgba(34, 197, 94, 0.12);
@@ -1961,21 +1963,21 @@ tr.mat-mdc-no-data-row {
 
 .status-active,
 .status-yes {
-  background-color: #ffffff;
+  background-color: rgba(21, 128, 61, 0.12);
   color: #15803d;
   &::before { background: #15803d; }
 }
 
 .status-inactive,
 .status-no {
-  background-color: #ffffff;
+  background-color: rgba(220, 38, 38, 0.12);
   color: #dc2626;
   &::before { background: #dc2626; }
 }
 
 .status-graduated,
 .status-completed {
-  background-color: #ffffff;
+  background-color: rgba(29, 78, 216, 0.12);
   color: #1d4ed8;
   &::before { background: #1d4ed8; }
 }
@@ -1983,19 +1985,19 @@ tr.mat-mdc-no-data-row {
 .status-dropped,
 .status-warning,
 .status-pending {
-  background-color: #ffffff;
+  background-color: rgba(217, 119, 6, 0.12);
   color: #d97706;
   &::before { background: #d97706; }
 }
 
 .status-maintenance {
-  background-color: #ffffff;
+  background-color: rgba(8, 145, 178, 0.12);
   color: #0891b2;
   &::before { background: #0891b2; }
 }
 
 .status-current {
-  background-color: #ffffff;
+  background-color: rgba(var(--cms-primary-rgb), 0.12);
   color: var(--cms-primary);
   &::before { background: var(--cms-primary); }
 }
@@ -5956,18 +5958,12 @@ tr.mlp-row {
   .sub-status--active  { background: rgba(21, 128, 61, 0.18);   color: #4ade80; }
   .sub-status--expired { background: rgba(107, 114, 128, 0.18); color: #9ca3af; }
 
-  .member-type-tag.tag--student { background: rgba(29, 78, 216, 0.18);  color: #93c5fd; }
-  .member-type-tag.tag--faculty { background: rgba(124, 58, 237, 0.18); color: #c4b5fd; }
-
   .type-tag--national      { background: rgba(29, 78, 216, 0.18);  color: #93c5fd; }
   .type-tag--international { background: rgba(124, 58, 237, 0.18); color: #c4b5fd; }
 
-  .member-badge.badge--student { background: rgba(29, 78, 216, 0.18);  color: #93c5fd; }
-  .member-badge.badge--faculty { background: rgba(124, 58, 237, 0.18); color: #c4b5fd; }
-
   .fine-status--pending   { background: rgba(185, 28, 28, 0.18);   color: #f87171; }
   .fine-status--collected { background: rgba(21, 128, 61, 0.18);   color: #4ade80; }
-  .fine-status--waived    { background: rgba(107, 114, 128, 0.18); color: #9ca3af; }
+  .fine-status--waived    { background: rgba(124, 58, 237, 0.18);  color: #c4b5fd; }
 
   .status-sm--issued   { background: rgba(29, 78, 216, 0.18);  color: #93c5fd; }
   .status-sm--returned { background: rgba(21, 128, 61, 0.18);  color: #4ade80; }

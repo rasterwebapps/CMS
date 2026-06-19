@@ -37,6 +37,17 @@ export interface StaffReferrerRequest {
   bankAccountType?: BankAccountType;
 }
 
+export interface StaffReferrerStatusUpdateRequest {
+  isActive: boolean;
+  reason?: string;
+}
+
+export interface StaffReferrerStatusUpdateResponse {
+  id: number;
+  isActive: boolean;
+  updatedAt: string;
+}
+
 export const STAFF_REFERRER_BANK_ACCOUNT_TYPE_OPTIONS: { value: BankAccountType; label: string }[] = [
   { value: 'SAVINGS', label: 'Savings' },
   { value: 'CURRENT', label: 'Current' },

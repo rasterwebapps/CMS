@@ -101,23 +101,24 @@ export class CommunityListComponent implements OnInit {
     void this.router.navigate(['/communities', item.id, 'edit']);
   }
 
-  protected delete(item: Community): void {
+  protected toggleStatus(item: Community): void {
     if (!this.canManage()) {
-      this.toast.error('You do not have permission to delete communities');
+      this.toast.error('You do not have permission to update community status');
       return;
     }
+    const nextAction = item.isActive ? 'Deactivate' : 'Activate';
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          title: 'Delete Community',
-          message: `Delete "${item.name}" (${item.code})?`,
-          confirmText: 'Delete',
+          title: `${nextAction} Community`,
+          message: `${nextAction} "${item.name}" (${item.code})?`,
+          confirmText: nextAction,
           cancelText: 'Cancel',
         },
       })
       .afterClosed()
       .subscribe((confirmed) => {
-        if (confirmed) this.doDelete(item);
+        if (confirmed) this.doToggle(item);
       });
   }
 
@@ -133,15 +134,20 @@ export class CommunityListComponent implements OnInit {
     }
   }
 
-  private doDelete(item: Community): void {
+  private doToggle(item: Community): void {
     this.loading.set(true);
-    this.communityService.deleteCommunity(item.id).subscribe({
+    const request$ = item.isActive
+      ? this.communityService.deactivateCommunity(item.id)
+      : this.communityService.reactivateCommunity(item.id);
+    request$.subscribe({
       next: () => {
-        this.toast.success('Community deleted successfully');
+        this.toast.success(`Community ${item.isActive ? 'deactivated' : 'activated'} successfully`);
         this.load();
       },
       error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to delete community');
+        this.toast.error(
+          err?.error?.message ?? `Failed to ${item.isActive ? 'deactivate' : 'activate'} community`,
+        );
         this.loading.set(false);
       },
     });
@@ -162,4 +168,3 @@ export class CommunityListComponent implements OnInit {
     });
   }
 }
-

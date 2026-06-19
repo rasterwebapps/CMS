@@ -5,6 +5,8 @@ import { environment } from '../../../environments';
 import {
   Agent,
   AgentRequest,
+  AgentStatusUpdateRequest,
+  AgentStatusUpdateResponse,
   AgentCommissionGuideline,
   AgentCommissionGuidelineRequest,
 } from './agent.model';
@@ -39,6 +41,21 @@ export class AgentService {
 
   deleteAgent(id: number): Observable<void> {
     return this.http.delete<void>(`${this.agentUrl}/${id}`);
+  }
+
+  deactivateAgent(id: number): Observable<AgentStatusUpdateResponse> {
+    return this.updateStatus(id, { isActive: false });
+  }
+
+  reactivateAgent(id: number): Observable<AgentStatusUpdateResponse> {
+    return this.updateStatus(id, { isActive: true });
+  }
+
+  updateStatus(
+    id: number,
+    request: AgentStatusUpdateRequest,
+  ): Observable<AgentStatusUpdateResponse> {
+    return this.http.patch<AgentStatusUpdateResponse>(`${this.agentUrl}/${id}/status`, request);
   }
 
   getGuidelines(): Observable<AgentCommissionGuideline[]> {

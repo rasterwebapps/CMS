@@ -169,8 +169,8 @@
                 <td class="mono">{{ i.accessionNumber }}</td>
                 <td class="book-title">{{ i.bookTitle }}</td>
                 <td>{{ memberName(i) }}</td>
-                <td><span class="member-badge" [class.badge--student]="i.memberType==='STUDENT'"
-                  [class.badge--faculty]="i.memberType==='FACULTY'">{{ i.memberType }}</span></td>
+                <td><span class="cms-badge" [class.cms-badge--soft-blue]="i.memberType==='STUDENT'"
+                  [class.cms-badge--soft-purple]="i.memberType==='FACULTY'">{{ i.memberType }}</span></td>
                 <td>{{ i.issuedDate | date:'dd MMM yy' }}</td>
                 <td>{{ i.dueDate   | date:'dd MMM yy' }}</td>
                 <td>{{ i.returnedDate ? (i.returnedDate | date:'dd MMM yy') : '—' }}</td>

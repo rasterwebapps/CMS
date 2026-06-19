@@ -34,23 +34,12 @@
       }
     </div>
 
-    <div id="tour-program-view-toggle" class="mlp-seg" style="margin-left:auto" role="group" aria-label="View mode">
-      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'card'" (click)="setViewMode('card')" aria-label="Card view" type="button">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <rect x="1" y="1" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-          <rect x="8" y="1" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-          <rect x="1" y="8" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-          <rect x="8" y="8" width="5" height="5" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-        </svg>
-        Cards
-      </button>
-      <button class="mlp-seg-btn" [class.mlp-seg-btn--active]="viewMode() === 'table'" (click)="setViewMode('table')" aria-label="Table view" type="button">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <path d="M1 3.5h12M1 7h12M1 10.5h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-        </svg>
-        Table
-      </button>
-    </div>
+    <cms-view-toggle
+      id="tour-program-view-toggle"
+      [mode]="viewMode()"
+      storageKey="program-view-mode"
+      (modeChange)="setViewMode($event)"
+    />
   </div>
 
   <!-- ── Loading: skeleton cards ─────────────────────────────── -->
@@ -79,6 +68,15 @@
             <div class="mlp-card__actions">
               <button class="mlp-act-btn" (click)="editProgram(program)" [attr.title]="'Edit ' + program.name" type="button" aria-label="Edit program">
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button
+                class="mlp-act-btn"
+                (click)="toggleProgramStatus(program)"
+                [attr.title]="(program.status === 'ACTIVE' ? 'Deactivate ' : 'Activate ') + program.name"
+                type="button"
+                [attr.aria-label]="program.status === 'ACTIVE' ? 'Deactivate program' : 'Activate program'"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
               </button>
               <button class="mlp-act-btn mlp-act-btn--del" (click)="deleteProgram(program)" [attr.title]="'Delete ' + program.name" type="button" aria-label="Delete program">
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -155,6 +153,14 @@
             <div class="row-actions">
               <button class="action-btn" matTooltip="Edit" (click)="editProgram(program)" aria-label="Edit program">
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button
+                class="action-btn"
+                [matTooltip]="program.status === 'ACTIVE' ? 'Deactivate' : 'Activate'"
+                (click)="toggleProgramStatus(program)"
+                [attr.aria-label]="program.status === 'ACTIVE' ? 'Deactivate program' : 'Activate program'"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
               </button>
               <button class="action-btn action-btn--danger" matTooltip="Delete" (click)="deleteProgram(program)" aria-label="Delete program">
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>

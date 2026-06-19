@@ -514,13 +514,6 @@
   &__dot { width: 5px; height: 5px; border-radius: 50%; background: var(--cms-primary); flex-shrink: 0; }
 }
 
-.type-chip {
-  display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px;
-  font-size: var(--cms-text-xs); font-weight: 600;
-  background: rgba(59,130,246,.1); color: #2563eb; border: 1px solid rgba(59,130,246,.2);
-  &--hosteler { background: rgba(var(--cms-primary-rgb),.1); color: var(--cms-primary); border-color: rgba(var(--cms-primary-rgb),.2); }
-}
-
 // ── Banners ───────────────────────────────────────────────────
 .doc-verify-banner {
   display: flex;

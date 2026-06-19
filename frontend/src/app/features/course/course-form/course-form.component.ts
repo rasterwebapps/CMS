@@ -80,6 +80,7 @@ export class CourseFormComponent implements OnInit {
     rollNumberCode: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(2), noInternalSpaces()]],
     specialization: [''],
     programId: [null as number | null, [Validators.required]],
+    isActive: [true],
   });
 
   constructor() {
@@ -152,6 +153,7 @@ export class CourseFormComponent implements OnInit {
       rollNumberCode: stripSpaces(this.form.value.rollNumberCode ?? '').toUpperCase(),
       specialization: this.form.value.specialization?.trim() || null,
       programId: this.form.value.programId,
+      isActive: this.form.value.isActive,
     };
 
     this.saving.set(true);
@@ -211,6 +213,7 @@ export class CourseFormComponent implements OnInit {
           rollNumberCode: course.rollNumberCode,
           specialization: course.specialization,
           programId: course.program?.id,
+          isActive: course.isActive,
         });
         this.loading.set(false);
       },

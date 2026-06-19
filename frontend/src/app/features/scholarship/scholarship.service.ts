@@ -13,6 +13,8 @@ import {
   ScholarshipRejectionRequest,
   ScholarshipType,
   ScholarshipTypeRequest,
+  ScholarshipTypeStatusUpdateRequest,
+  ScholarshipTypeStatusUpdateResponse,
 } from './scholarship.model';
 
 @Injectable({ providedIn: 'root' })
@@ -36,8 +38,22 @@ export class ScholarshipService {
     return this.http.put<ScholarshipType>(`${this.baseUrl}/scholarships/${id}`, request);
   }
 
-  deactivateScholarshipType(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/scholarships/${id}`);
+  deactivateScholarshipType(id: number): Observable<ScholarshipTypeStatusUpdateResponse> {
+    return this.updateScholarshipTypeStatus(id, { isActive: false });
+  }
+
+  reactivateScholarshipType(id: number): Observable<ScholarshipTypeStatusUpdateResponse> {
+    return this.updateScholarshipTypeStatus(id, { isActive: true });
+  }
+
+  updateScholarshipTypeStatus(
+    id: number,
+    request: ScholarshipTypeStatusUpdateRequest,
+  ): Observable<ScholarshipTypeStatusUpdateResponse> {
+    return this.http.patch<ScholarshipTypeStatusUpdateResponse>(
+      `${this.baseUrl}/scholarships/${id}/status`,
+      request,
+    );
   }
 
   getEligibleScholarships(studentId: number): Observable<ScholarshipType[]> {

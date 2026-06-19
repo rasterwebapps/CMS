@@ -11,7 +11,7 @@ import { Speciality } from '../speciality.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
-import { CmsViewMode, CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
+import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { DEPT_LIST_TOUR } from '../../../shared/tour/tours/speciality.tours';
@@ -47,39 +47,14 @@ export class SpecialityListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['code', 'name', 'hodName', 'actions'];
+  protected readonly displayedColumns = ['code', 'name', 'hodName', 'isActive', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Speciality>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
-  private readonly _specialities = signal<Speciality[]>([]);
-
-  protected readonly totalCount = computed(() => this._specialities().length);
-  protected readonly hodAssignedCount = computed(() =>
-    this._specialities().filter(d => d.hodName).length
-  );
-
-  protected readonly visibleRows = computed<Speciality[]>(() => {
-    this.searchValue();
-    return this.dataSource.filteredData;
-  });
-
-  protected onViewModeChange(mode: 'card' | 'table'): void {
-    this.viewMode.set(mode);
-  }
-
-  protected initials(name?: string | null): string {
-    return computeInitials(name) || '—';
-  }
-
   private readonly allSpecialities = signal<Speciality[]>([]);
 
   private readonly VIEW_MODE_KEY = 'speciality-view-mode';
   protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
-
-  protected readonly deptCount = computed(() => this.allSpecialities().length);
-  protected readonly headsAssigned = computed(() =>
-    this.allSpecialities().filter(d => !!(d.hodName?.trim())).length,
-  );
 
   protected readonly filteredDepts = computed(() => {
     const q = this.searchValue().trim().toLowerCase();
@@ -122,17 +97,18 @@ export class SpecialityListComponent implements OnInit {
     void this.router.navigate(['/specialities', speciality.id, 'edit']);
   }
 
-  protected deleteSpeciality(speciality: Speciality): void {
+  protected toggleSpecialityStatus(speciality: Speciality): void {
+    const nextAction = speciality.isActive ? 'Deactivate' : 'Activate';
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        title: 'Delete Speciality',
-        message: `Are you sure you want to delete "${speciality.name}"?`,
-        confirmText: 'Delete',
+        title: `${nextAction} Speciality`,
+        message: `${nextAction} "${speciality.name}" (${speciality.code})?`,
+        confirmText: nextAction,
         cancelText: 'Cancel',
       },
     });
     dialogRef.afterClosed().subscribe((confirmed) => {
-      if (confirmed) this.performDelete(speciality);
+      if (confirmed) this.performToggle(speciality);
     });
   }
 
@@ -149,15 +125,17 @@ export class SpecialityListComponent implements OnInit {
     return stored === 'table' ? 'table' : 'card';
   }
 
-  private performDelete(speciality: Speciality): void {
+  private performToggle(speciality: Speciality): void {
     this.loading.set(true);
-    this.specialityService.delete(speciality.id).subscribe({
+    this.specialityService.updateStatus(speciality.id, { isActive: !speciality.isActive }).subscribe({
       next: () => {
-        this.toast.success('Speciality deleted successfully');
+        this.toast.success(`Speciality ${speciality.isActive ? 'deactivated' : 'activated'} successfully`);
         this.loadSpecialities();
       },
       error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to delete speciality');
+        this.toast.error(
+          err?.error?.message ?? `Failed to ${speciality.isActive ? 'deactivate' : 'activate'} speciality`,
+        );
         this.loading.set(false);
       },
     });
@@ -169,7 +147,6 @@ export class SpecialityListComponent implements OnInit {
       next: (specialities) => {
         this.allSpecialities.set(specialities);
         this.dataSource.data = specialities;
-        this._specialities.set(specialities);
         this.loading.set(false);
       },
       error: () => {

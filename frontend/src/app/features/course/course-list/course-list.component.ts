@@ -11,6 +11,7 @@ import { ProgramService } from '../../program/program.service';
 import { Program } from '../../program/program.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -27,6 +28,7 @@ import { COURSE_LIST_TOUR } from '../../../shared/tour/tours/course.tours';
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsViewToggleComponent,
     CmsTourButtonComponent,
   ],
   templateUrl: './course-list.component.html',
@@ -49,7 +51,7 @@ export class CourseListComponent implements OnInit {
 
   private readonly VIEW_MODE_KEY = 'course-view-mode';
 
-  protected readonly displayedColumns = ['code', 'name', 'specialization', 'program', 'actions'];
+  protected readonly displayedColumns = ['code', 'name', 'specialization', 'program', 'status', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Course>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
@@ -123,6 +125,38 @@ export class CourseListComponent implements OnInit {
       .afterClosed()
       .subscribe((confirmed) => {
         if (confirmed) this.performDelete(course);
+      });
+  }
+
+  protected toggleCourseStatus(course: Course): void {
+    const nextIsActive = !course.isActive;
+    const action = nextIsActive ? 'Activate' : 'Deactivate';
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: `${action} Course`,
+          message: `Are you sure you want to ${action.toLowerCase()} "${course.name}"?`,
+          confirmText: action,
+          cancelText: 'Cancel',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) return;
+        this.loading.set(true);
+        this.courseService.updateStatus(course.id, {
+          isActive: nextIsActive,
+          reason: `Manual ${action.toLowerCase()} from list`,
+        }).subscribe({
+          next: () => {
+            this.toast.success(`Course ${action.toLowerCase()}d successfully`);
+            this.loadCourses();
+          },
+          error: (err) => {
+            this.toast.error(err?.error?.message ?? `Failed to ${action.toLowerCase()} course`);
+            this.loading.set(false);
+          },
+        });
       });
   }
 

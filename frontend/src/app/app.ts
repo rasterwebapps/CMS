@@ -23,6 +23,7 @@ import { BreadcrumbBarComponent } from './shared/breadcrumb-bar/breadcrumb-bar.c
 import { ToastHostComponent } from './core/toast/toast-host.component';
 import { TourService, ONBOARDING_TOUR_STEPS } from './core/tour';
 import { ProfileService } from './features/profile/profile.service';
+import { ThemeService } from './core/theme/theme.service';
 import { environment } from '../environments';
 
 interface NavItem {
@@ -82,6 +83,7 @@ export class App implements OnInit, AfterViewInit {
   private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
   private readonly tourService = inject(TourService);
+  private readonly themeService = inject(ThemeService);
 
   /** Tracks the current route URL so collapsed-group active state is reactive. */
   private readonly currentUrl = signal(this.router.url);
@@ -100,7 +102,8 @@ export class App implements OnInit, AfterViewInit {
   protected readonly navSearchActive = signal(false);
   @ViewChild('navSearchInput') private navSearchInputRef?: ElementRef<HTMLInputElement>;
 
-  protected readonly darkTheme = signal(false);
+  /** Persisted in localStorage; falls back to OS preference when never explicitly set. */
+  protected readonly darkTheme = signal(this.loadDarkThemeState());
   /** `true` → sidenav collapsed to the 68px icon rail. Persisted in localStorage. */
   protected readonly sidenavCollapsed = signal(this.loadCollapsedState());
   /** Mobile drawer open state. Independent of pinned/collapsed. */
@@ -120,6 +123,7 @@ export class App implements OnInit, AfterViewInit {
 
   private static readonly EXPANDED_GROUPS_KEY = 'cms_nav_expanded_groups';
   private static readonly COLLAPSED_KEY = 'cms_sidenav_collapsed';
+  private static readonly DARK_THEME_KEY = 'cms_dark_theme';
 
   protected readonly focusMode = this.layoutService.isFocusMode;
   protected readonly focusModeTitle = this.layoutService.focusModeTitle;
@@ -399,6 +403,14 @@ export class App implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
+    // Reflect the persisted/OS-derived dark mode choice onto <html> before first paint settles.
+    // ThemeService.init() (app initializer) ran before this class existed, so its dark/light-dependent
+    // tokens were computed from the OS media query alone — recompute now that the explicit class is set.
+    if (isPlatformBrowser(this.platformId)) {
+      this.applyThemeClass();
+      this.themeService.refreshForColorScheme();
+    }
+
     // Install global keyboard shortcuts (g-leader navigation + ? cheat-sheet).
     this.shortcutsService.install();
 
@@ -459,14 +471,25 @@ export class App implements OnInit, AfterViewInit {
   protected toggleTheme(): void {
     this.darkTheme.update((v) => !v);
     if (isPlatformBrowser(this.platformId)) {
-      const html = document.documentElement;
-      if (this.darkTheme()) {
-        html.classList.add('dark-theme');
-        html.classList.remove('light-theme');
-      } else {
-        html.classList.add('light-theme');
-        html.classList.remove('dark-theme');
+      this.applyThemeClass();
+      try {
+        localStorage.setItem(App.DARK_THEME_KEY, JSON.stringify(this.darkTheme()));
+      } catch {
+        // Ignore storage errors
       }
+      this.themeService.refreshForColorScheme();
+    }
+  }
+
+  /** Reflects the current `darkTheme` signal onto the `<html>` element's class list. */
+  private applyThemeClass(): void {
+    const html = document.documentElement;
+    if (this.darkTheme()) {
+      html.classList.add('dark-theme');
+      html.classList.remove('light-theme');
+    } else {
+      html.classList.add('light-theme');
+      html.classList.remove('dark-theme');
     }
   }
 
@@ -528,6 +551,22 @@ export class App implements OnInit, AfterViewInit {
       }
     }
     return false;
+  }
+
+  /** Restores the user's explicit dark/light choice; falls back to OS preference when never set. */
+  private loadDarkThemeState(): boolean {
+    if (!isPlatformBrowser(this.platformId)) {
+      return false;
+    }
+    try {
+      const stored = localStorage.getItem(App.DARK_THEME_KEY);
+      if (stored) {
+        return JSON.parse(stored) as boolean;
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
   }
 
   protected onMenuSearchInput(event: Event): void {

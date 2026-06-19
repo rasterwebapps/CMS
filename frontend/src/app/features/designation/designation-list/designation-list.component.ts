@@ -51,7 +51,7 @@ export class DesignationListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['code', 'name', 'description', 'actions'];
+  protected readonly displayedColumns = ['code', 'name', 'description', 'isActive', 'actions'];
   protected readonly dataSource = new MatTableDataSource<DesignationMaster>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
@@ -96,17 +96,18 @@ export class DesignationListComponent implements OnInit {
     void this.router.navigate(['/designations', item.id, 'edit']);
   }
 
-  protected deleteDesignation(item: DesignationMaster): void {
+  protected toggleDesignationStatus(item: DesignationMaster): void {
+    const nextAction = item.isActive ? 'Deactivate' : 'Activate';
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        title: 'Delete Designation',
-        message: `Are you sure you want to delete "${item.name}"?`,
-        confirmText: 'Delete',
+        title: `${nextAction} Designation`,
+        message: `${nextAction} "${item.name}" (${item.code})?`,
+        confirmText: nextAction,
         cancelText: 'Cancel',
       },
     });
     dialogRef.afterClosed().subscribe(confirmed => {
-      if (confirmed) this.performDelete(item);
+      if (confirmed) this.performToggle(item);
     });
   }
 
@@ -123,15 +124,17 @@ export class DesignationListComponent implements OnInit {
     return stored === 'table' ? 'table' : 'card';
   }
 
-  private performDelete(item: DesignationMaster): void {
+  private performToggle(item: DesignationMaster): void {
     this.loading.set(true);
-    this.designationService.delete(item.id).subscribe({
+    this.designationService.updateStatus(item.id, { isActive: !item.isActive }).subscribe({
       next: () => {
-        this.toast.success('Designation deleted successfully');
+        this.toast.success(`Designation ${item.isActive ? 'deactivated' : 'activated'} successfully`);
         this.loadDesignations();
       },
       error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to delete designation');
+        this.toast.error(
+          err?.error?.message ?? `Failed to ${item.isActive ? 'deactivate' : 'activate'} designation`,
+        );
         this.loading.set(false);
       },
     });

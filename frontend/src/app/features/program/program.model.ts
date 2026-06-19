@@ -39,6 +39,17 @@ export interface ProgramRequest {
   ageCutoffMonth: number;
 }
 
+export interface ProgramStatusUpdateRequest {
+  status: ProgramStatus;
+  reason?: string;
+}
+
+export interface ProgramStatusUpdateResponse {
+  id: number;
+  status: ProgramStatus;
+  updatedAt: string;
+}
+
 /**
  * Lightweight projection of a backend DocumentType, returned by GET /document-types.
  * Used as the single source of truth for rendering document type pickers and labels.

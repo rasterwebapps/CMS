@@ -41,6 +41,17 @@ export interface AgentRequest {
   bankAccountType?: BankAccountType;
 }
 
+export interface AgentStatusUpdateRequest {
+  isActive: boolean;
+  reason?: string;
+}
+
+export interface AgentStatusUpdateResponse {
+  id: number;
+  isActive: boolean;
+  updatedAt: string;
+}
+
 export const AGENT_BANK_ACCOUNT_TYPE_OPTIONS: { value: BankAccountType; label: string }[] = [
   { value: 'SAVINGS', label: 'Savings' },
   { value: 'CURRENT', label: 'Current' },

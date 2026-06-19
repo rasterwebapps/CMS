@@ -2,7 +2,15 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { DocumentRequirementsRequest, DocumentRequirementsResponse, DocumentTypeInfo, Program, ProgramRequest } from './program.model';
+import {
+  DocumentRequirementsRequest,
+  DocumentRequirementsResponse,
+  DocumentTypeInfo,
+  Program,
+  ProgramRequest,
+  ProgramStatusUpdateRequest,
+  ProgramStatusUpdateResponse,
+} from './program.model';
 
 @Injectable({
   providedIn: 'root',
@@ -26,6 +34,10 @@ export class ProgramService {
 
   update(id: number, request: ProgramRequest): Observable<Program> {
     return this.http.put<Program>(`${this.baseUrl}/${id}`, request);
+  }
+
+  updateStatus(id: number, request: ProgramStatusUpdateRequest): Observable<ProgramStatusUpdateResponse> {
+    return this.http.patch<ProgramStatusUpdateResponse>(`${this.baseUrl}/${id}/status`, request);
   }
 
   delete(id: number): Observable<void> {

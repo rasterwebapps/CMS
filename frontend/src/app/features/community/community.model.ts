@@ -15,3 +15,14 @@ export interface CommunityRequest {
   isActive?: boolean;
 }
 
+export interface CommunityStatusUpdateRequest {
+  isActive: boolean;
+  reason?: string;
+}
+
+export interface CommunityStatusUpdateResponse {
+  id: number;
+  isActive: boolean;
+  updatedAt: string;
+}
+

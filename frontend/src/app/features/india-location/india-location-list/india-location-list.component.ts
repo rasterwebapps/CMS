@@ -146,25 +146,29 @@ export class IndiaLocationListComponent implements OnInit {
     void this.router.navigate(['/india-locations/countries', item.id, 'edit']);
   }
 
-  protected deleteCountry(item: Country): void {
+  protected toggleCountryStatus(item: Country): void {
+    const nextAction = item.isActive ? 'Deactivate' : 'Activate';
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          title: 'Delete Country',
-          message: `Delete "${item.name}"? All its states and districts will also be removed.`,
-          confirmText: 'Delete',
+          title: `${nextAction} Country`,
+          message: `${nextAction} "${item.name}" (${item.isoCode})?`,
+          confirmText: nextAction,
           cancelText: 'Cancel',
         },
       })
       .afterClosed()
       .subscribe((confirmed) => {
         if (confirmed) {
-          this.service.deleteCountry(item.id).subscribe({
+          this.service.updateCountryStatus(item.id, { isActive: !item.isActive }).subscribe({
             next: () => {
-              this.toast.success('Country deleted');
+              this.toast.success(`Country ${item.isActive ? 'deactivated' : 'activated'}`);
               this.load();
             },
-            error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete country'),
+            error: (err) =>
+              this.toast.error(
+                err?.error?.message ?? `Failed to ${item.isActive ? 'deactivate' : 'activate'} country`,
+              ),
           });
         }
       });
@@ -174,25 +178,29 @@ export class IndiaLocationListComponent implements OnInit {
     void this.router.navigate(['/india-locations/states', item.id, 'edit']);
   }
 
-  protected deleteState(item: IndiaState): void {
+  protected toggleStateStatus(item: IndiaState): void {
+    const nextAction = item.isActive ? 'Deactivate' : 'Activate';
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          title: 'Delete State',
-          message: `Delete "${item.name}"? All its districts will also be removed.`,
-          confirmText: 'Delete',
+          title: `${nextAction} State`,
+          message: `${nextAction} "${item.name}" (${item.code})?`,
+          confirmText: nextAction,
           cancelText: 'Cancel',
         },
       })
       .afterClosed()
       .subscribe((confirmed) => {
         if (confirmed) {
-          this.service.deleteState(item.id).subscribe({
+          this.service.updateStateStatus(item.id, { isActive: !item.isActive }).subscribe({
             next: () => {
-              this.toast.success('State deleted');
+              this.toast.success(`State ${item.isActive ? 'deactivated' : 'activated'}`);
               this.load();
             },
-            error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete state'),
+            error: (err) =>
+              this.toast.error(
+                err?.error?.message ?? `Failed to ${item.isActive ? 'deactivate' : 'activate'} state`,
+              ),
           });
         }
       });
@@ -202,30 +210,34 @@ export class IndiaLocationListComponent implements OnInit {
     void this.router.navigate(['/india-locations/districts', district.id, 'edit']);
   }
 
-  protected deleteDistrict(district: IndiaDistrict): void {
+  protected toggleDistrictStatus(district: IndiaDistrict): void {
+    const nextAction = district.isActive ? 'Deactivate' : 'Activate';
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          title: 'Delete District',
-          message: `Delete district "${district.name}" from ${district.stateName}?`,
-          confirmText: 'Delete',
+          title: `${nextAction} District`,
+          message: `${nextAction} district "${district.name}" from ${district.stateName}?`,
+          confirmText: nextAction,
           cancelText: 'Cancel',
         },
       })
       .afterClosed()
       .subscribe((confirmed) => {
         if (confirmed) {
-          this.service.deleteDistrict(district.id).subscribe({
+          this.service.updateDistrictStatus(district.id, { isActive: !district.isActive }).subscribe({
             next: () => {
-              this.toast.success('District deleted');
+              this.toast.success(`District ${district.isActive ? 'deactivated' : 'activated'}`);
               const map = new Map(this.districtsByState());
-              const updated = (map.get(district.stateId) ?? []).filter(
-                (d) => d.id !== district.id,
+              const updated = (map.get(district.stateId) ?? []).map((d) =>
+                d.id === district.id ? { ...d, isActive: !district.isActive } : d,
               );
               map.set(district.stateId, updated);
               this.districtsByState.set(map);
             },
-            error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete district'),
+            error: (err) =>
+              this.toast.error(
+                err?.error?.message ?? `Failed to ${district.isActive ? 'deactivate' : 'activate'} district`,
+              ),
           });
         }
       });

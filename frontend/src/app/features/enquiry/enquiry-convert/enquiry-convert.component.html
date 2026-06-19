@@ -206,7 +206,9 @@
               <span class="summary-kv__key">Student Type</span>
               <span class="summary-kv__val">
                 @if (enquiry()?.studentType) {
-                  <span class="type-chip" [class.type-chip--hosteler]="enquiry()?.studentType === 'HOSTELER'">
+                  <span class="cms-badge"
+                    [class.cms-badge--soft-blue]="enquiry()?.studentType === 'DAY_SCHOLAR'"
+                    [class.cms-badge--soft-purple]="enquiry()?.studentType === 'HOSTELER'">
                     {{ enquiry()?.studentType === 'DAY_SCHOLAR' ? 'Day Scholar' : 'Hosteler' }}
                   </span>
                 } @else { — }

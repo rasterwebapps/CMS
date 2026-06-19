@@ -64,7 +64,14 @@
           <td mat-cell *matCellDef="let row">
             <div class="row-actions">
               <button class="action-btn" (click)="edit(row)" aria-label="Edit"><mat-icon>edit</mat-icon></button>
-              <button class="action-btn action-btn--danger" (click)="deactivate(row)" aria-label="Deactivate"><mat-icon>block</mat-icon></button>
+              <button
+                class="action-btn"
+                [class.action-btn--danger]="row.active"
+                (click)="toggleStatus(row)"
+                [attr.aria-label]="row.active ? 'Deactivate' : 'Activate'"
+              >
+                <mat-icon>{{ row.active ? 'block' : 'check_circle' }}</mat-icon>
+              </button>
             </div>
           </td>
         </ng-container>

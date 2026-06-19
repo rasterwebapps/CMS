@@ -13,3 +13,14 @@ export interface BloodGroupRequest {
   isActive?: boolean;
 }
 
+export interface BloodGroupStatusUpdateRequest {
+  isActive: boolean;
+  reason?: string;
+}
+
+export interface BloodGroupStatusUpdateResponse {
+  id: number;
+  isActive: boolean;
+  updatedAt: string;
+}
+
