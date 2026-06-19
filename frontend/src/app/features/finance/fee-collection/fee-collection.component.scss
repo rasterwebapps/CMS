@@ -41,6 +41,9 @@
 }
 .fee-collection-table { min-width: 980px; }
 .actions-header   { width: 110px; }
+// This cell holds a primary "Collect Balance" CTA, not a secondary icon
+// action — it must stay fully visible, unlike the dimmed-until-hover
+// icon-only .row-actions used elsewhere in the app.
 .row-actions      { justify-content: center; opacity: 1; }
 
 .cell-name    { display: block; font-weight: 500; color: var(--cms-text-primary); }

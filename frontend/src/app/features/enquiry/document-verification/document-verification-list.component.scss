@@ -281,22 +281,6 @@
   gap: 6px;
 }
 
-.action-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: 1px solid var(--cms-border-default);
-  background: var(--cms-bg-card);
-  color: var(--cms-text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
-
-  &:hover { background: var(--cms-bg-hover); color: var(--cms-text-primary); }
-}
-
 .verify-btn {
   display: flex;
   align-items: center;

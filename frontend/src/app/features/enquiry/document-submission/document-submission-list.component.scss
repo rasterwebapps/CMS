@@ -442,26 +442,6 @@
   justify-content: flex-end;
 }
 
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px; height: 30px;
-  border: 1px solid var(--cms-border-default);
-  border-radius: 7px;
-  background: transparent;
-  color: var(--cms-text-muted);
-  cursor: pointer;
-  padding: 0;
-  transition: all 0.15s;
-
-  &:hover {
-    background: var(--cms-primary-light);
-    color: var(--cms-primary);
-    border-color: rgba(var(--cms-primary-rgb), 0.25);
-  }
-}
-
 .collect-btn {
   display: inline-flex;
   align-items: center;

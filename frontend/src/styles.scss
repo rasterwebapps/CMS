@@ -601,24 +601,24 @@ app-root {
   }
 
   // ─── Soft / translucent variants (coloured text on light tinted background) ───
-  &--soft-blue   { background: rgba(59, 130, 246, 0.12);              color: #3B82F6; }
-  &--soft-green  { background: rgba(34, 197, 94, 0.12);               color: #22C55E; }
-  &--soft-amber  { background: rgba(245, 158, 11, 0.12);              color: #F59E0B; }
-  &--soft-red    { background: rgba(239, 68, 68, 0.12);               color: #EF4444; }
-  &--soft-purple { background: rgba(167, 139, 250, 0.12);             color: #A78BFA; }
+  &--soft-blue   { background: rgba(59, 130, 246, 0.08);              color: #3B82F6; }
+  &--soft-green  { background: rgba(34, 197, 94, 0.08);               color: #22C55E; }
+  &--soft-amber  { background: rgba(245, 158, 11, 0.08);              color: #F59E0B; }
+  &--soft-red    { background: rgba(239, 68, 68, 0.08);               color: #EF4444; }
+  &--soft-purple { background: rgba(167, 139, 250, 0.08);             color: #A78BFA; }
   &--soft-gray   { background: var(--cms-bg-muted);                   color: var(--cms-text-secondary); }
-  &--soft-accent { background: rgba(var(--cms-primary-rgb), 0.12);    color: var(--cms-primary); }
+  &--soft-accent { background: rgba(var(--cms-primary-rgb), 0.08);    color: var(--cms-primary); }
   &--soft-up {
-    background: rgba(34, 197, 94, 0.12);
+    background: rgba(34, 197, 94, 0.08);
     color: #22C55E;
     &::before { content: '↑ '; }
   }
   &--soft-down {
-    background: rgba(239, 68, 68, 0.12);
+    background: rgba(239, 68, 68, 0.08);
     color: #EF4444;
     &::before { content: '↓ '; }
   }
-  &--soft-warn { background: rgba(245, 158, 11, 0.12); color: #F59E0B; }
+  &--soft-warn { background: rgba(245, 158, 11, 0.08); color: #F59E0B; }
 }
 
 // ──────────────────────────────────────────────────
@@ -1551,12 +1551,6 @@ app-root {
   tr.table-row {
     transition: var(--cms-transition);
 
-    .row-actions {
-      opacity:        0.45;
-      pointer-events: auto;
-      transition:     opacity 0.15s;
-    }
-
     &:hover {
       background-color: color-mix(in srgb, var(--cms-primary) 4%, var(--cms-bg-hover));
 
@@ -1569,8 +1563,6 @@ app-root {
       td.mat-mdc-cell:first-child {
         box-shadow: inset 3px 0 0 var(--cms-primary);
       }
-
-      .row-actions { opacity: 1; }
     }
 
     &:last-child td.mat-cell,
@@ -1963,21 +1955,21 @@ tr.mat-mdc-no-data-row {
 
 .status-active,
 .status-yes {
-  background-color: rgba(21, 128, 61, 0.12);
+  background-color: rgba(21, 128, 61, 0.08);
   color: #15803d;
   &::before { background: #15803d; }
 }
 
 .status-inactive,
 .status-no {
-  background-color: rgba(220, 38, 38, 0.12);
+  background-color: rgba(220, 38, 38, 0.08);
   color: #dc2626;
   &::before { background: #dc2626; }
 }
 
 .status-graduated,
 .status-completed {
-  background-color: rgba(29, 78, 216, 0.12);
+  background-color: rgba(29, 78, 216, 0.08);
   color: #1d4ed8;
   &::before { background: #1d4ed8; }
 }
@@ -1985,24 +1977,24 @@ tr.mat-mdc-no-data-row {
 .status-dropped,
 .status-warning,
 .status-pending {
-  background-color: rgba(217, 119, 6, 0.12);
+  background-color: rgba(217, 119, 6, 0.08);
   color: #d97706;
   &::before { background: #d97706; }
 }
 
 .status-maintenance {
-  background-color: rgba(8, 145, 178, 0.12);
+  background-color: rgba(8, 145, 178, 0.08);
   color: #0891b2;
   &::before { background: #0891b2; }
 }
 
 .status-current {
-  background-color: rgba(var(--cms-primary-rgb), 0.12);
+  background-color: rgba(var(--cms-primary-rgb), 0.08);
   color: var(--cms-primary);
   &::before { background: var(--cms-primary); }
 }
 
-// ── Row Actions – Hidden until hover ─────────────
+// ── Row Actions – Dimmed at rest, full strength on hover/focus ───
 .actions-header {
   width: 90px;
 }
@@ -2011,10 +2003,19 @@ tr.mat-mdc-no-data-row {
   display: flex;
   align-items: center;
   gap: 2px;
-  opacity: 0;
-  pointer-events: none;
+  opacity: 0.45;
+  pointer-events: auto;
   transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   justify-content: flex-end;
+
+  &:hover,
+  &:focus-within {
+    opacity: 1;
+  }
+}
+
+tr:hover .row-actions {
+  opacity: 1;
 }
 
 .action-btn {
@@ -2027,7 +2028,7 @@ tr.mat-mdc-no-data-row {
   background: transparent;
   border-radius: var(--cms-radius-sm);
   cursor: pointer;
-  color: var(--cms-text-muted);
+  color: var(--cms-text-secondary);
   transition: var(--cms-transition);
 
   &:hover {
@@ -2040,34 +2041,58 @@ tr.mat-mdc-no-data-row {
     outline-offset: 1px;
   }
 
-  &--danger:hover {
-    background: var(--cms-danger-light);
+  &--danger {
     color: var(--cms-danger);
+
+    &:hover {
+      background: var(--cms-danger-light);
+      color: var(--cms-danger);
+    }
   }
 
-  &--view:hover {
-    background: var(--cms-info-light);
+  &--view {
     color: var(--cms-info);
+
+    &:hover {
+      background: var(--cms-info-light);
+      color: var(--cms-info);
+    }
   }
 
-  &--convert:hover {
-    background: var(--cms-success-light);
+  &--convert {
     color: var(--cms-success);
+
+    &:hover {
+      background: var(--cms-success-light);
+      color: var(--cms-success);
+    }
   }
 
-  &--primary:hover {
-    background: var(--cms-primary-light);
+  &--primary {
     color: var(--cms-primary);
+
+    &:hover {
+      background: var(--cms-primary-light);
+      color: var(--cms-primary);
+    }
   }
 
-  &--success:hover {
-    background: var(--cms-success-light);
+  &--success {
     color: var(--cms-success);
+
+    &:hover {
+      background: var(--cms-success-light);
+      color: var(--cms-success);
+    }
   }
 
-  &--info:hover {
-    background: var(--cms-info-light);
+  &--info {
     color: var(--cms-info);
+
+    &:hover {
+      background: var(--cms-info-light);
+      color: var(--cms-info);
+    }
   }
 }
 

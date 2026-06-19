@@ -287,26 +287,4 @@
   justify-content: flex-end;
 }
 
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid var(--cms-border-default);
-  border-radius: 7px;
-  background: transparent;
-  color: var(--cms-text-secondary);
-  cursor: pointer;
-  transition: all 0.15s;
-
-  &:hover { background: var(--cms-bg-muted); color: var(--cms-primary); border-color: var(--cms-primary); }
-
-  &--danger:hover {
-    color: var(--cms-danger);
-    border-color: var(--cms-danger);
-    background: rgba(var(--cms-danger-rgb, 239 68 68), 0.06);
-  }
-}
-
 // ── Table footer — layout handled globally in styles.scss (.table-footer)

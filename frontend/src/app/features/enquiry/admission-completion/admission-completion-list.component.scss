@@ -266,22 +266,6 @@
   justify-content: flex-end;
 }
 
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--cms-border-default);
-  border-radius: 7px;
-  background: transparent;
-  color: var(--cms-text-secondary);
-  cursor: pointer;
-  transition: all 0.15s;
-
-  &:hover { background: var(--cms-bg-muted); color: var(--cms-primary); border-color: var(--cms-primary); }
-}
-
 .complete-btn {
   display: inline-flex;
   align-items: center;

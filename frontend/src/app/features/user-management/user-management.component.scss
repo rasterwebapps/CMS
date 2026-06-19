@@ -285,27 +285,6 @@
   white-space: nowrap;
 }
 
-// ── Action buttons ────────────────────────────────────────────
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid var(--cms-border-default);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--cms-text-secondary);
-  cursor: pointer;
-  transition: all 0.15s;
-
-  &:hover {
-    background: var(--cms-bg-muted);
-    color: var(--cms-primary);
-    border-color: rgba(var(--cms-primary-rgb), 0.35);
-  }
-}
-
 // ── Slide-in panel ────────────────────────────────────────────
 .um-panel {
   width: 380px;

@@ -573,27 +573,6 @@ $sem-cols: 28px 1fr 100px 92px 92px 108px 76px;
 
 .receipt-actions { display: flex; align-items: center; justify-content: center; gap: 4px; }
 
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px; height: 28px;
-  border: 1.5px solid var(--cms-line-strong);
-  border-radius: 7px;
-  background: var(--cms-bg-card);
-  color: var(--cms-text-muted);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-
-  &:hover { background: var(--cms-bg-muted); color: var(--cms-text-primary); border-color: var(--cms-text-muted); }
-
-  &--primary {
-    border-color: rgba(var(--cms-primary-rgb), 0.35);
-    color: var(--cms-primary);
-    &:hover { background: rgba(var(--cms-primary-rgb), 0.08); border-color: var(--cms-primary); }
-  }
-}
-
 .empty-receipts {
   display: flex;
   flex-direction: column;
