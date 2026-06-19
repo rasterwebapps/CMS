@@ -12,6 +12,10 @@ public interface CommissionPayoutRepository extends JpaRepository<CommissionPayo
 
     List<CommissionPayout> findByEnquiryIdOrderByPayoutDateDesc(Long enquiryId);
 
+    boolean existsByAgentId(Long agentId);
+
+    boolean existsByStaffReferrerId(Long staffReferrerId);
+
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM CommissionPayout p WHERE p.enquiry.id = :enquiryId")
     java.math.BigDecimal sumAmountByEnquiryId(@Param("enquiryId") Long enquiryId);
 }

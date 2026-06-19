@@ -21,7 +21,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.ReferralTypeRequest;
 import com.cms.dto.ReferralTypeResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.exception.LifecycleConflictException;
 import com.cms.model.ReferralType;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.ReferralTypeRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,11 +32,14 @@ class ReferralTypeServiceTest {
     @Mock
     private ReferralTypeRepository referralTypeRepository;
 
+    @Mock
+    private EnquiryRepository enquiryRepository;
+
     private ReferralTypeService referralTypeService;
 
     @BeforeEach
     void setUp() {
-        referralTypeService = new ReferralTypeService(referralTypeRepository);
+        referralTypeService = new ReferralTypeService(referralTypeRepository, enquiryRepository);
     }
 
     @Test
@@ -353,6 +358,33 @@ class ReferralTypeServiceTest {
         assertThat(response.name()).isEqualTo("Agent / Consultant");
         assertThat(response.code()).isEqualTo("AGENT_REFERRAL");
         assertThat(response.isSystemDefined()).isTrue();
+    }
+
+    @Test
+    void shouldDeactivateAndReactivateReferralType() {
+        ReferralType rt = createReferralType(2L, "Alumni", "ALUMNI", BigDecimal.ZERO);
+        when(referralTypeRepository.findById(2L)).thenReturn(Optional.of(rt));
+        when(enquiryRepository.existsByReferralTypeId(2L)).thenReturn(false);
+        when(referralTypeRepository.save(any(ReferralType.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ReferralTypeResponse deactivated = referralTypeService.deactivate(2L);
+        ReferralTypeResponse reactivated = referralTypeService.reactivate(2L);
+
+        assertThat(deactivated.isActive()).isFalse();
+        assertThat(reactivated.isActive()).isTrue();
+    }
+
+    @Test
+    void shouldThrowWhenDeactivatingReferralTypeWithDependencies() {
+        ReferralType rt = createReferralType(3L, "Agency", "AGENCY", BigDecimal.ZERO);
+        when(referralTypeRepository.findById(3L)).thenReturn(Optional.of(rt));
+        when(enquiryRepository.existsByReferralTypeId(3L)).thenReturn(true);
+
+        assertThatThrownBy(() -> referralTypeService.deactivate(3L))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("Cannot deactivate Referral Type");
+
+        verify(referralTypeRepository, never()).save(any());
     }
 
     private ReferralType createReferralType(Long id, String name, String code, BigDecimal commissionAmount) {

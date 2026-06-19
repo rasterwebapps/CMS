@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.ScholarshipTypeRequest;
 import com.cms.dto.ScholarshipTypeResponse;
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.ScholarshipType;
 import com.cms.repository.ScholarshipTypeRepository;
@@ -23,6 +25,12 @@ public class ScholarshipTypeService {
 
     public List<ScholarshipTypeResponse> getAllActive() {
         return scholarshipTypeRepository.findByActiveTrueOrderByNameAsc().stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    public List<ScholarshipTypeResponse> getAll() {
+        return scholarshipTypeRepository.findAll().stream()
             .map(this::toResponse)
             .toList();
     }
@@ -55,9 +63,15 @@ public class ScholarshipTypeService {
 
     @Transactional
     public void deactivate(Long id, String actor) {
+        updateStatus(id, new ActiveStatusUpdateRequest(false, null), actor);
+    }
+
+    @Transactional
+    public ActiveStatusUpdateResponse updateStatus(Long id, ActiveStatusUpdateRequest request, String actor) {
         ScholarshipType type = findEntity(id);
-        type.setActive(false);
-        scholarshipTypeRepository.save(type);
+        type.setActive(Boolean.TRUE.equals(request.isActive()));
+        ScholarshipType saved = scholarshipTypeRepository.save(type);
+        return new ActiveStatusUpdateResponse(saved.getId(), saved.isActive(), saved.getUpdatedAt());
     }
 
     ScholarshipType findEntity(Long id) {

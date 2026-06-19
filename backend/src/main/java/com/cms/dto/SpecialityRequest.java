@@ -15,5 +15,7 @@ public record SpecialityRequest(
     @Size(max = 1000, message = "Description must not exceed 1000 characters")
     String description,
 
-    Long hodFacultyId
+    Long hodFacultyId,
+
+    Boolean isActive
 ) {}

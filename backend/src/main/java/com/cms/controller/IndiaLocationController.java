@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.CountryRequest;
 import com.cms.dto.CountryResponse;
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.dto.IndiaDistrictRequest;
 import com.cms.dto.IndiaDistrictResponse;
 import com.cms.dto.IndiaStateRequest;
@@ -81,6 +84,14 @@ public class IndiaLocationController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/countries/{id}/status")
+    @PreAuthorize("@perm.has('INDIA_LOCATION_MANAGE')")
+    public ResponseEntity<ActiveStatusUpdateResponse> updateCountryStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ActiveStatusUpdateRequest request) {
+        return ResponseEntity.ok(service.updateCountryStatus(id, request));
+    }
+
     /** Get states belonging to a specific country. */
     @GetMapping("/countries/{countryId}/states")
     public ResponseEntity<List<IndiaStateResponse>> getStatesByCountry(
@@ -141,6 +152,14 @@ public class IndiaLocationController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/states/{id}/status")
+    @PreAuthorize("@perm.has('INDIA_LOCATION_MANAGE')")
+    public ResponseEntity<ActiveStatusUpdateResponse> updateStateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ActiveStatusUpdateRequest request) {
+        return ResponseEntity.ok(service.updateStateStatus(id, request));
+    }
+
     // ─── Districts ───────────────────────────────────────────────────────────
 
     @GetMapping("/states/{stateId}/districts")
@@ -179,6 +198,14 @@ public class IndiaLocationController {
     public ResponseEntity<Void> deleteDistrict(@PathVariable Long id) {
         service.deleteDistrict(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/districts/{id}/status")
+    @PreAuthorize("@perm.has('INDIA_LOCATION_MANAGE')")
+    public ResponseEntity<ActiveStatusUpdateResponse> updateDistrictStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ActiveStatusUpdateRequest request) {
+        return ResponseEntity.ok(service.updateDistrictStatus(id, request));
     }
 }
 

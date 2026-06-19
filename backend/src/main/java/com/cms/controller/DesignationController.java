@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.DesignationRequest;
 import com.cms.dto.DesignationResponse;
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.service.DesignationService;
 
 import jakarta.validation.Valid;
@@ -38,8 +41,12 @@ public class DesignationController {
     }
 
     @GetMapping
-    public ResponseEntity<List<DesignationResponse>> findAll() {
-        return ResponseEntity.ok(designationService.findAll());
+    public ResponseEntity<List<DesignationResponse>> findAll(
+            @RequestParam(required = false, defaultValue = "false") boolean activeOnly) {
+        List<DesignationResponse> result = activeOnly
+            ? designationService.findActive()
+            : designationService.findAll();
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")
@@ -60,6 +67,14 @@ public class DesignationController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         designationService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("@perm.has('DESIGNATION_MANAGE')")
+    public ResponseEntity<ActiveStatusUpdateResponse> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ActiveStatusUpdateRequest request) {
+        return ResponseEntity.ok(designationService.updateStatus(id, request));
     }
 
     @GetMapping("/name-exists")

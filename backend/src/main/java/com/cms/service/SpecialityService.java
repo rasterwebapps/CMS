@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.SpecialityRequest;
 import com.cms.dto.SpecialityResponse;
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Faculty;
 import com.cms.model.Speciality;
@@ -41,13 +43,22 @@ public class SpecialityService {
         }
 
         Speciality speciality = new Speciality(name, code, trim(request.description()), null, null);
+        if (request.isActive() != null) {
+            speciality.setIsActive(request.isActive());
+        }
         applyHod(speciality, request.hodFacultyId());
         Speciality saved = specialityRepository.save(speciality);
         return toResponse(saved);
     }
 
     public List<SpecialityResponse> findAll() {
-        return specialityRepository.findAll().stream()
+        return specialityRepository.findAllByOrderByNameAsc().stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    public List<SpecialityResponse> findActive() {
+        return specialityRepository.findByIsActiveTrueOrderByNameAsc().stream()
             .map(this::toResponse)
             .toList();
     }
@@ -77,6 +88,9 @@ public class SpecialityService {
         speciality.setName(name);
         speciality.setCode(code);
         speciality.setDescription(trim(request.description()));
+        if (request.isActive() != null) {
+            speciality.setIsActive(request.isActive());
+        }
         applyHod(speciality, request.hodFacultyId());
 
         Speciality updated = specialityRepository.save(speciality);
@@ -89,6 +103,15 @@ public class SpecialityService {
             throw new ResourceNotFoundException("Speciality not found with id: " + id);
         }
         specialityRepository.deleteById(id);
+    }
+
+    @Transactional
+    public ActiveStatusUpdateResponse updateStatus(Long id, ActiveStatusUpdateRequest request) {
+        Speciality speciality = specialityRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Speciality not found with id: " + id));
+        speciality.setIsActive(Boolean.TRUE.equals(request.isActive()));
+        Speciality saved = specialityRepository.save(speciality);
+        return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
     }
 
     public boolean nameExists(String name, Long excludeId) {
@@ -128,6 +151,7 @@ public class SpecialityService {
             speciality.getDescription(),
             speciality.getHodFacultyId(),
             speciality.getHodName(),
+            speciality.getIsActive(),
             speciality.getCreatedAt(),
             speciality.getUpdatedAt()
         );

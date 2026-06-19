@@ -7,8 +7,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.ReferralTypeRequest;
 import com.cms.dto.ReferralTypeResponse;
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.exception.LifecycleConflictException;
 import com.cms.model.ReferralType;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.ReferralTypeRepository;
 
 @Service
@@ -16,9 +20,12 @@ import com.cms.repository.ReferralTypeRepository;
 public class ReferralTypeService {
 
     private final ReferralTypeRepository referralTypeRepository;
+    private final EnquiryRepository enquiryRepository;
 
-    public ReferralTypeService(ReferralTypeRepository referralTypeRepository) {
+    public ReferralTypeService(ReferralTypeRepository referralTypeRepository,
+                               EnquiryRepository enquiryRepository) {
         this.referralTypeRepository = referralTypeRepository;
+        this.enquiryRepository = enquiryRepository;
     }
 
     @Transactional
@@ -134,6 +141,36 @@ public class ReferralTypeService {
             throw new IllegalStateException("System-defined referral types cannot be deleted");
         }
         referralTypeRepository.deleteById(id);
+    }
+
+    @Transactional
+    public ActiveStatusUpdateResponse updateStatus(Long id, ActiveStatusUpdateRequest request) {
+        ReferralType referralType = referralTypeRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Referral type not found with id: " + id));
+        if (Boolean.FALSE.equals(request.isActive()) && enquiryRepository.existsByReferralTypeId(id)) {
+            throw new LifecycleConflictException(
+                "Cannot deactivate Referral Type: enquiries are associated with it.",
+                "ACTIVE_REFERENCE_EXISTS",
+                "ReferralType",
+                id,
+                null
+            );
+        }
+        referralType.setIsActive(request.isActive());
+        ReferralType updated = referralTypeRepository.save(referralType);
+        return new ActiveStatusUpdateResponse(updated.getId(), updated.getIsActive(), updated.getUpdatedAt());
+    }
+
+    @Transactional
+    public ReferralTypeResponse deactivate(Long id) {
+        updateStatus(id, new ActiveStatusUpdateRequest(false, null));
+        return findById(id);
+    }
+
+    @Transactional
+    public ReferralTypeResponse reactivate(Long id) {
+        updateStatus(id, new ActiveStatusUpdateRequest(true, null));
+        return findById(id);
     }
 
     public boolean nameExists(String name, Long excludeId) {

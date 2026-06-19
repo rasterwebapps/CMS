@@ -27,7 +27,11 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long> {
 
     List<Enquiry> findByReferralTypeId(Long referralTypeId);
 
+    boolean existsByReferralTypeId(Long referralTypeId);
+
     List<Enquiry> findByAgentId(Long agentId);
+
+    boolean existsByAgentId(Long agentId);
 
     Optional<Enquiry> findByConvertedStudentId(Long studentId);
 

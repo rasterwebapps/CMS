@@ -7,8 +7,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.StaffReferrerRequest;
 import com.cms.dto.StaffReferrerResponse;
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
+import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.StaffReferrer;
+import com.cms.repository.CommissionPayoutRepository;
 import com.cms.repository.StaffReferrerRepository;
 
 @Service
@@ -16,9 +20,12 @@ import com.cms.repository.StaffReferrerRepository;
 public class StaffReferrerService {
 
     private final StaffReferrerRepository repository;
+    private final CommissionPayoutRepository commissionPayoutRepository;
 
-    public StaffReferrerService(StaffReferrerRepository repository) {
+    public StaffReferrerService(StaffReferrerRepository repository,
+                                CommissionPayoutRepository commissionPayoutRepository) {
         this.repository = repository;
+        this.commissionPayoutRepository = commissionPayoutRepository;
     }
 
     @Transactional
@@ -63,6 +70,36 @@ public class StaffReferrerService {
             throw new ResourceNotFoundException("Staff referrer not found: " + id);
         }
         repository.deleteById(id);
+    }
+
+    @Transactional
+    public ActiveStatusUpdateResponse updateStatus(Long id, ActiveStatusUpdateRequest request) {
+        StaffReferrer entity = repository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Staff referrer not found: " + id));
+        if (Boolean.FALSE.equals(request.isActive()) && commissionPayoutRepository.existsByStaffReferrerId(id)) {
+            throw new LifecycleConflictException(
+                "Cannot deactivate Staff Referrer: commission payouts are associated with it.",
+                "ACTIVE_REFERENCE_EXISTS",
+                "StaffReferrer",
+                id,
+                null
+            );
+        }
+        entity.setIsActive(request.isActive());
+        StaffReferrer updated = repository.save(entity);
+        return new ActiveStatusUpdateResponse(updated.getId(), updated.getIsActive(), updated.getUpdatedAt());
+    }
+
+    @Transactional
+    public StaffReferrerResponse deactivate(Long id) {
+        updateStatus(id, new ActiveStatusUpdateRequest(false, null));
+        return findById(id);
+    }
+
+    @Transactional
+    public StaffReferrerResponse reactivate(Long id) {
+        updateStatus(id, new ActiveStatusUpdateRequest(true, null));
+        return findById(id);
     }
 
     public boolean nameExists(String name, Long excludeId) {

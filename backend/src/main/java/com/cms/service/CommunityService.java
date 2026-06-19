@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.CommunityRequest;
 import com.cms.dto.CommunityResponse;
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Community;
 import com.cms.repository.CommunityRepository;
@@ -82,6 +84,26 @@ public class CommunityService {
         communityRepository.deleteById(id);
     }
 
+    @Transactional
+    public ActiveStatusUpdateResponse updateStatus(Long id, ActiveStatusUpdateRequest request) {
+        Community community = findEntityById(id);
+        community.setIsActive(request.isActive());
+        Community saved = communityRepository.save(community);
+        return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
+    }
+
+    @Transactional
+    public CommunityResponse deactivate(Long id) {
+        updateStatus(id, new ActiveStatusUpdateRequest(false, null));
+        return findById(id);
+    }
+
+    @Transactional
+    public CommunityResponse reactivate(Long id) {
+        updateStatus(id, new ActiveStatusUpdateRequest(true, null));
+        return findById(id);
+    }
+
     public boolean nameExists(String name, Long excludeId) {
         String trimmed = name == null ? "" : name.trim();
         if (excludeId != null) {
@@ -124,4 +146,3 @@ public class CommunityService {
         return t;
     }
 }
-

@@ -7,18 +7,33 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.AgentRequest;
 import com.cms.dto.AgentResponse;
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
+import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Agent;
+import com.cms.repository.AgentCommissionGuidelineRepository;
 import com.cms.repository.AgentRepository;
+import com.cms.repository.CommissionPayoutRepository;
+import com.cms.repository.EnquiryRepository;
 
 @Service
 @Transactional(readOnly = true)
 public class AgentService {
 
     private final AgentRepository agentRepository;
+    private final EnquiryRepository enquiryRepository;
+    private final AgentCommissionGuidelineRepository agentCommissionGuidelineRepository;
+    private final CommissionPayoutRepository commissionPayoutRepository;
 
-    public AgentService(AgentRepository agentRepository) {
+    public AgentService(AgentRepository agentRepository,
+                        EnquiryRepository enquiryRepository,
+                        AgentCommissionGuidelineRepository agentCommissionGuidelineRepository,
+                        CommissionPayoutRepository commissionPayoutRepository) {
         this.agentRepository = agentRepository;
+        this.enquiryRepository = enquiryRepository;
+        this.agentCommissionGuidelineRepository = agentCommissionGuidelineRepository;
+        this.commissionPayoutRepository = commissionPayoutRepository;
     }
 
     @Transactional
@@ -98,6 +113,30 @@ public class AgentService {
         agentRepository.deleteById(id);
     }
 
+    @Transactional
+    public ActiveStatusUpdateResponse updateStatus(Long id, ActiveStatusUpdateRequest request) {
+        Agent agent = agentRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Agent not found with id: " + id));
+        if (Boolean.FALSE.equals(request.isActive())) {
+            ensureCanDeactivateAgent(id);
+        }
+        agent.setIsActive(request.isActive());
+        Agent updated = agentRepository.save(agent);
+        return new ActiveStatusUpdateResponse(updated.getId(), updated.getIsActive(), updated.getUpdatedAt());
+    }
+
+    @Transactional
+    public AgentResponse deactivate(Long id) {
+        updateStatus(id, new ActiveStatusUpdateRequest(false, null));
+        return findById(id);
+    }
+
+    @Transactional
+    public AgentResponse reactivate(Long id) {
+        updateStatus(id, new ActiveStatusUpdateRequest(true, null));
+        return findById(id);
+    }
+
     public boolean nameExists(String name, Long excludeId) {
         String trimmed = name == null ? "" : name.trim();
         if (excludeId != null) {
@@ -153,5 +192,35 @@ public class AgentService {
             agent.getCreatedAt(),
             agent.getUpdatedAt()
         );
+    }
+
+    private void ensureCanDeactivateAgent(Long id) {
+        if (enquiryRepository.existsByAgentId(id)) {
+            throw new LifecycleConflictException(
+                "Cannot deactivate Agent: enquiries are associated with it.",
+                "ACTIVE_REFERENCE_EXISTS",
+                "Agent",
+                id,
+                null
+            );
+        }
+        if (agentCommissionGuidelineRepository.existsByAgentId(id)) {
+            throw new LifecycleConflictException(
+                "Cannot deactivate Agent: commission guidelines are associated with it.",
+                "ACTIVE_REFERENCE_EXISTS",
+                "Agent",
+                id,
+                null
+            );
+        }
+        if (commissionPayoutRepository.existsByAgentId(id)) {
+            throw new LifecycleConflictException(
+                "Cannot deactivate Agent: commission payouts are associated with it.",
+                "ACTIVE_REFERENCE_EXISTS",
+                "Agent",
+                id,
+                null
+            );
+        }
     }
 }

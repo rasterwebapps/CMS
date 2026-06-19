@@ -20,8 +20,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.AgentRequest;
 import com.cms.dto.AgentResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.exception.LifecycleConflictException;
 import com.cms.model.Agent;
+import com.cms.repository.AgentCommissionGuidelineRepository;
 import com.cms.repository.AgentRepository;
+import com.cms.repository.CommissionPayoutRepository;
+import com.cms.repository.EnquiryRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AgentServiceTest {
@@ -29,11 +33,25 @@ class AgentServiceTest {
     @Mock
     private AgentRepository agentRepository;
 
+    @Mock
+    private EnquiryRepository enquiryRepository;
+
+    @Mock
+    private AgentCommissionGuidelineRepository agentCommissionGuidelineRepository;
+
+    @Mock
+    private CommissionPayoutRepository commissionPayoutRepository;
+
     private AgentService agentService;
 
     @BeforeEach
     void setUp() {
-        agentService = new AgentService(agentRepository);
+        agentService = new AgentService(
+            agentRepository,
+            enquiryRepository,
+            agentCommissionGuidelineRepository,
+            commissionPayoutRepository
+        );
     }
 
     @Test
@@ -231,6 +249,35 @@ class AgentServiceTest {
             .hasMessage("Agent not found with id: 999");
 
         verify(agentRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void shouldDeactivateAndReactivateAgent() {
+        Agent agent = createAgent(2L, "Demo Agent", "999", null, null, null, null, null, true);
+        when(agentRepository.findById(2L)).thenReturn(Optional.of(agent));
+        when(enquiryRepository.existsByAgentId(2L)).thenReturn(false);
+        when(agentCommissionGuidelineRepository.existsByAgentId(2L)).thenReturn(false);
+        when(commissionPayoutRepository.existsByAgentId(2L)).thenReturn(false);
+        when(agentRepository.save(any(Agent.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        AgentResponse deactivated = agentService.deactivate(2L);
+        AgentResponse reactivated = agentService.reactivate(2L);
+
+        assertThat(deactivated.isActive()).isFalse();
+        assertThat(reactivated.isActive()).isTrue();
+    }
+
+    @Test
+    void shouldThrowWhenDeactivatingAgentWithDependencies() {
+        Agent agent = createAgent(3L, "Demo Agent", "999", null, null, null, null, null, true);
+        when(agentRepository.findById(3L)).thenReturn(Optional.of(agent));
+        when(enquiryRepository.existsByAgentId(3L)).thenReturn(true);
+
+        assertThatThrownBy(() -> agentService.deactivate(3L))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("Cannot deactivate Agent");
+
+        verify(agentRepository, never()).save(any());
     }
 
     /** Build an AgentRequest with the legacy 8-argument signature; identity/bank fields are null. */

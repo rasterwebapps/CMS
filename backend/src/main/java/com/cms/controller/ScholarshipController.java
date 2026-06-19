@@ -10,12 +10,16 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.dto.ScholarshipTypeRequest;
 import com.cms.dto.ScholarshipTypeResponse;
 import com.cms.service.ScholarshipTypeService;
@@ -34,8 +38,12 @@ public class ScholarshipController {
 
     @GetMapping
     @PreAuthorize("@perm.has('SCHOLARSHIP_VIEW')")
-    public ResponseEntity<List<ScholarshipTypeResponse>> list() {
-        return ResponseEntity.ok(scholarshipTypeService.getAllActive());
+    public ResponseEntity<List<ScholarshipTypeResponse>> list(
+            @RequestParam(required = false, defaultValue = "false") boolean activeOnly) {
+        List<ScholarshipTypeResponse> result = activeOnly
+            ? scholarshipTypeService.getAllActive()
+            : scholarshipTypeService.getAll();
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")
@@ -67,6 +75,15 @@ public class ScholarshipController {
     public ResponseEntity<Void> deactivate(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         scholarshipTypeService.deactivate(id, username(jwt));
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("@perm.has('SCHOLARSHIP_MANAGE')")
+    public ResponseEntity<ActiveStatusUpdateResponse> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ActiveStatusUpdateRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(scholarshipTypeService.updateStatus(id, request, username(jwt)));
     }
 
     private static String username(Jwt jwt) {

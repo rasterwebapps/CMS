@@ -38,6 +38,9 @@ public class Speciality {
     @Column(name = "hod_name")
     private String hodName;
 
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -74,6 +77,9 @@ public class Speciality {
 
     public String getHodName() { return hodName; }
     public void setHodName(String hodName) { this.hodName = hodName; }
+
+    public Boolean getIsActive() { return isActive; }
+    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

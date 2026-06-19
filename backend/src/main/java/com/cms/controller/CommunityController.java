@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.CommunityRequest;
 import com.cms.dto.CommunityResponse;
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.service.CommunityService;
 
 import jakarta.validation.Valid;
@@ -66,6 +69,26 @@ public class CommunityController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("@perm.has('COMMUNITY_MANAGE')")
+    public ResponseEntity<ActiveStatusUpdateResponse> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ActiveStatusUpdateRequest request) {
+        return ResponseEntity.ok(communityService.updateStatus(id, request));
+    }
+
+    @PutMapping("/{id}/deactivate")
+    @PreAuthorize("@perm.has('COMMUNITY_MANAGE')")
+    public ResponseEntity<CommunityResponse> deactivate(@PathVariable Long id) {
+        return ResponseEntity.ok(communityService.deactivate(id));
+    }
+
+    @PutMapping("/{id}/reactivate")
+    @PreAuthorize("@perm.has('COMMUNITY_MANAGE')")
+    public ResponseEntity<CommunityResponse> reactivate(@PathVariable Long id) {
+        return ResponseEntity.ok(communityService.reactivate(id));
+    }
+
     @GetMapping("/name-exists")
     @PreAuthorize("@perm.has('COMMUNITY_MANAGE')")
     public ResponseEntity<Boolean> nameExists(
@@ -82,4 +105,3 @@ public class CommunityController {
         return ResponseEntity.ok(communityService.codeExists(value, excludeId));
     }
 }
-

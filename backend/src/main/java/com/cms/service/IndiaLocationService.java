@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.CountryRequest;
 import com.cms.dto.CountryResponse;
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.dto.IndiaDistrictRequest;
 import com.cms.dto.IndiaDistrictResponse;
 import com.cms.dto.IndiaStateRequest;
@@ -93,6 +95,14 @@ public class IndiaLocationService {
         countryRepository.deleteById(id);
     }
 
+    @Transactional
+    public ActiveStatusUpdateResponse updateCountryStatus(Long id, ActiveStatusUpdateRequest request) {
+        LocationCountry country = fetchCountry(id);
+        country.setIsActive(Boolean.TRUE.equals(request.isActive()));
+        LocationCountry saved = countryRepository.save(country);
+        return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
+    }
+
     // ─── States ──────────────────────────────────────────────────────────────
 
     public List<IndiaStateResponse> findAllStates() {
@@ -172,6 +182,14 @@ public class IndiaLocationService {
         stateRepository.deleteById(id);
     }
 
+    @Transactional
+    public ActiveStatusUpdateResponse updateStateStatus(Long id, ActiveStatusUpdateRequest request) {
+        IndiaState state = fetchState(id);
+        state.setIsActive(Boolean.TRUE.equals(request.isActive()));
+        IndiaState saved = stateRepository.save(state);
+        return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
+    }
+
     // ─── Districts ───────────────────────────────────────────────────────────
 
     public List<IndiaDistrictResponse> findDistrictsByState(Long stateId) {
@@ -232,6 +250,14 @@ public class IndiaLocationService {
             throw new ResourceNotFoundException("District not found with id: " + id);
         }
         districtRepository.deleteById(id);
+    }
+
+    @Transactional
+    public ActiveStatusUpdateResponse updateDistrictStatus(Long id, ActiveStatusUpdateRequest request) {
+        IndiaDistrict district = fetchDistrict(id);
+        district.setIsActive(Boolean.TRUE.equals(request.isActive()));
+        IndiaDistrict saved = districtRepository.save(district);
+        return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

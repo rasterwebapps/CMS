@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.BloodGroupRequest;
 import com.cms.dto.BloodGroupResponse;
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.BloodGroupMaster;
 import com.cms.repository.BloodGroupRepository;
@@ -81,6 +83,26 @@ public class BloodGroupService {
         bloodGroupRepository.deleteById(id);
     }
 
+    @Transactional
+    public ActiveStatusUpdateResponse updateStatus(Long id, ActiveStatusUpdateRequest request) {
+        BloodGroupMaster bg = findEntityById(id);
+        bg.setIsActive(request.isActive());
+        BloodGroupMaster saved = bloodGroupRepository.save(bg);
+        return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
+    }
+
+    @Transactional
+    public BloodGroupResponse deactivate(Long id) {
+        updateStatus(id, new ActiveStatusUpdateRequest(false, null));
+        return findById(id);
+    }
+
+    @Transactional
+    public BloodGroupResponse reactivate(Long id) {
+        updateStatus(id, new ActiveStatusUpdateRequest(true, null));
+        return findById(id);
+    }
+
     public boolean nameExists(String name, Long excludeId) {
         String trimmed = name == null ? "" : name.trim();
         if (excludeId != null) {
@@ -123,4 +145,3 @@ public class BloodGroupService {
         return t;
     }
 }
-

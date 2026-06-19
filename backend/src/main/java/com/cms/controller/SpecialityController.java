@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.SpecialityRequest;
 import com.cms.dto.SpecialityResponse;
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.service.SpecialityService;
 
 import jakarta.validation.Valid;
@@ -39,8 +42,11 @@ public class SpecialityController {
     }
 
     @GetMapping
-    public ResponseEntity<List<SpecialityResponse>> findAll() {
-        List<SpecialityResponse> specialities = specialityService.findAll();
+    public ResponseEntity<List<SpecialityResponse>> findAll(
+            @RequestParam(required = false, defaultValue = "false") boolean activeOnly) {
+        List<SpecialityResponse> specialities = activeOnly
+            ? specialityService.findActive()
+            : specialityService.findAll();
         return ResponseEntity.ok(specialities);
     }
 
@@ -64,6 +70,14 @@ public class SpecialityController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         specialityService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("@perm.has('DEPT_MANAGE')")
+    public ResponseEntity<ActiveStatusUpdateResponse> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ActiveStatusUpdateRequest request) {
+        return ResponseEntity.ok(specialityService.updateStatus(id, request));
     }
 
     @GetMapping("/name-exists")

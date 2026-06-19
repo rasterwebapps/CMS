@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.ReferralTypeRequest;
 import com.cms.dto.ReferralTypeResponse;
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.service.ReferralTypeService;
 
 import jakarta.validation.Valid;
@@ -70,6 +73,26 @@ public class ReferralTypeController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         referralTypeService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("@perm.has('REFERRAL_TYPE_MANAGE')")
+    public ResponseEntity<ActiveStatusUpdateResponse> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ActiveStatusUpdateRequest request) {
+        return ResponseEntity.ok(referralTypeService.updateStatus(id, request));
+    }
+
+    @PutMapping("/{id}/deactivate")
+    @PreAuthorize("@perm.has('REFERRAL_TYPE_MANAGE')")
+    public ResponseEntity<ReferralTypeResponse> deactivate(@PathVariable Long id) {
+        return ResponseEntity.ok(referralTypeService.deactivate(id));
+    }
+
+    @PutMapping("/{id}/reactivate")
+    @PreAuthorize("@perm.has('REFERRAL_TYPE_MANAGE')")
+    public ResponseEntity<ReferralTypeResponse> reactivate(@PathVariable Long id) {
+        return ResponseEntity.ok(referralTypeService.reactivate(id));
     }
 
     @GetMapping("/name-exists")

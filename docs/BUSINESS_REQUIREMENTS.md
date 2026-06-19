@@ -38,6 +38,7 @@
 - [BR-29: UI Validation & Form Behaviour Standards](#br-29-ui-validation--form-behaviour-standards)
 - [BR-30: Multi-Dimension Fee Structure (Quota × State × Gender × Student Type)](#br-30-multi-dimension-fee-structure-quota--state--gender--student-type)
 - [BR-31: Student Data Import — Legacy Migration](#br-31-student-data-import--legacy-migration)
+- [BR-32: Master Lifecycle Status Management](#br-32-master-lifecycle-status-management)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -1360,6 +1361,21 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 ---
 
+### 29.12 Active Lifecycle Governance (Phase 1: Program/Course)
+
+| Rule | Detail |
+|------|--------|
+| Program status updates use a dedicated endpoint | `PATCH /programs/{id}/status` with payload `{ status, reason? }` |
+| Course active-state updates use a dedicated endpoint | `PATCH /courses/{id}/status` with payload `{ isActive, reason? }` |
+| Program cannot be deactivated when active child courses exist | Backend returns `409` with lifecycle code `ACTIVE_CHILD_EXISTS` |
+| Program cannot be deactivated when active dependent masters exist | Active `IntakeRule`, `CurriculumVersion`, or `FeeStructureGroup` blocks deactivation (`409 ACTIVE_REFERENCE_EXISTS`) |
+| Course cannot be activated while parent program is inactive | Backend returns `409` with lifecycle code `ANCESTOR_INACTIVE` |
+| Course cannot be deactivated when active fee structures exist | Backend returns `409` with lifecycle code `ACTIVE_REFERENCE_EXISTS` |
+| Inactive records remain editable where form allows status toggle | Existing BR-29.8 rule remains valid |
+| Lifecycle conflicts must return structured conflict payload | Include `status`, `message`, `code`, `entity`, `entityId`, `timestamp` |
+
+---
+
 ### Implementation Reference
 
 | Validator / Utility | File | Use on |
@@ -1385,6 +1401,7 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 | 2026-05-21 | BR-30, BR-3, BR-6, BR-23 | **BR-30 post-implementation fixes (review pass):** (1) Enquiry form — gender change now re-fetches fee; fee banner shows contextual "what's still needed" text; programs without courses correctly trigger fee calculation (`courseId` removed from null-guard in `applyAuthoritativeFees`); `updateCourseValidator` triggers fee load for no-course programs; `tryLoadFeeGuideline` guard prevents misleading "not found" when courses exist but none is selected. (2) Fee finalization — Quota filter dropdown added to toolbar; `filteredEnquiries` includes quota in text search; `applyEqualSplitFallback` uses actual program `durationYears` (not hardcoded 4); `discountReason` signal synced to FormControl; "Fee Basis" group label + divider added to info panel. (3) API layer — `applyAuthoritativeFees` error message now shows fee state name (not raw ID); `GET /fee-structures/grouped` extended to accept `quota`, `feeStateId`, `gender`, `studentType` as optional filters; `DataIntegrityViolationException` handler improved with specific messages for `uq_fee_structure_group` and `uq_fee_structure_group_fee_type` constraint violations. | — |
 | 2026-05-21 | BR-30, BR-1, BR-3, BR-6, BR-12 | **Multi-dimension fee structure (BR-30):** Fee structure uniqueness key extended to `program + academicYear + course + quota + feeState + gender + studentType`. New `FeeState` master (Tamil Nadu = default, Other State = fallback); new `FeeStructureGroup` entity; `FeeStructure` items linked to group. `Enquiry` gains `admissionQuota` and `feeState` FK. Fee lookup on enquiry form uses 6 fields; state auto-derived from address; fallback to Other State if no exact match; submission blocked if no configuration found. Enquiry form adds Admission Quota dropdown (default: Management). Fee finalization shows all 4 dimensions as read-only context rows. Migrations V165–V168. BR-1 uniqueness rule amended; BR-3 fee-load flow rewritten; BR-6 finalization amended; BR-12 studentType noted as one of 4 dimensions. | — |
 | 2026-05-18 | BR-29 | Added UI Validation & Form Behaviour Standards: boundary value / empty-space rules, code-field no-space rule, case-insensitive unique validation, dropdown/autocomplete UX, date-picker range rules, submit multi-click prevention, update button label, inactive/delete protection, table ordering, pagination spinner, and search scope. Implemented `cms-validators.ts` with `noConsecutiveSpaces`, `noInternalSpaces`, `trimmedMinLength`, `cmsFieldError`, `stripSpaces`, `collapseSpaces`. Applied across all master-data form components. | — |
+| 2026-06-18 | BR-29.12 | Added Phase 1 Active Lifecycle Governance for Program/Course: dedicated status endpoints, parent-child deactivation guards, active dependency checks, and structured lifecycle conflict responses (`ACTIVE_CHILD_EXISTS`, `ACTIVE_REFERENCE_EXISTS`, `ANCESTOR_INACTIVE`). | — |
 | 2026-05-16 | BR-28 | Added notification & alert preferences: generic vs role-specific categories, per-role defaults, delivery channels (in-app/email/both), backend requirements for `user_notification_preferences` table, sending service triggers, and current localStorage-only state with migration path to backend | — |
 | 2026-05-16 | BR-27 | Added permanent admission number generation on successful admission completion/confirmation, academic-year format `ADM-2526-0001`, immutable student reference, receipt display, searchable admission/student screens, and read-only number sequence registry | — |
 | 2026-05-14 | BR-26 | Added derived faculty document-review summary on faculty discovery screens, review-status filtering, document workflow entry points, verification lock/audit rules, re-upload reset behavior, and the rule that document review must not create or overload `FacultyStatus` | — |
@@ -1949,6 +1966,43 @@ Students with `cohort = null` (due to missing `course_code`) must be manually as
 | `AcademicQualification` | 0..N (one per qualification row) |
 | `StudentFeeAllocation` | 0 or 1 (if Fee History row exists) |
 | `PaymentRecord` | 0..N (one per fee row with `amount_paid > 0`) |
+
+---
+
+## BR-32: Master Lifecycle Status Management
+
+### Business Rule
+
+Master screens must use a unified lifecycle status contract for activate/deactivate/reactivate transitions.
+
+### Scope
+
+- `Scholarship Type`
+- `India Location (Country / State / District)`
+- `Blood Group`
+- `Community`
+- `Referral Type`
+- `Agent`
+- `Staff Referrer`
+
+### API Contract Standard
+
+- Status updates are performed via `PATCH /{resource}/{id}/status`.
+- Request payload shape: `{ "isActive": boolean, "reason": string | null }`.
+- Response payload shape: `{ "id": number, "isActive": boolean, "updatedAt": timestamp }`.
+
+### Lifecycle Guard Rules
+
+- Deactivation is blocked with `409 CONFLICT` and `ACTIVE_REFERENCE_EXISTS` when active usage exists.
+- Guarded references include:
+  - `Referral Type` -> `Enquiry`
+  - `Agent` -> `Enquiry`, `Agent Commission Guideline`, `Commission Payout`
+  - `Staff Referrer` -> `Commission Payout`
+- Reactivation does not auto-reactivate dependents.
+
+### Backward Compatibility
+
+- Existing `/deactivate` and `/reactivate` endpoints remain available but delegate to the same status-update service logic.
 
 ---
 

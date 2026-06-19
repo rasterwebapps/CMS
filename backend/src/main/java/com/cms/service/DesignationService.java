@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.DesignationRequest;
 import com.cms.dto.DesignationResponse;
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.DesignationMaster;
 import com.cms.repository.DesignationRepository;
@@ -36,11 +38,20 @@ public class DesignationService {
         }
 
         DesignationMaster designation = new DesignationMaster(name, code.toUpperCase(), trim(request.description()));
+        if (request.isActive() != null) {
+            designation.setIsActive(request.isActive());
+        }
         return toResponse(designationRepository.save(designation));
     }
 
     public List<DesignationResponse> findAll() {
-        return designationRepository.findAll().stream()
+        return designationRepository.findAllByOrderByNameAsc().stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    public List<DesignationResponse> findActive() {
+        return designationRepository.findByIsActiveTrueOrderByNameAsc().stream()
             .map(this::toResponse)
             .toList();
     }
@@ -67,6 +78,9 @@ public class DesignationService {
         designation.setName(name);
         designation.setCode(code.toUpperCase());
         designation.setDescription(trim(request.description()));
+        if (request.isActive() != null) {
+            designation.setIsActive(request.isActive());
+        }
         return toResponse(designationRepository.save(designation));
     }
 
@@ -76,6 +90,14 @@ public class DesignationService {
             throw new ResourceNotFoundException("Designation not found with id: " + id);
         }
         designationRepository.deleteById(id);
+    }
+
+    @Transactional
+    public ActiveStatusUpdateResponse updateStatus(Long id, ActiveStatusUpdateRequest request) {
+        DesignationMaster designation = findOrThrow(id);
+        designation.setIsActive(Boolean.TRUE.equals(request.isActive()));
+        DesignationMaster saved = designationRepository.save(designation);
+        return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
     }
 
     public boolean nameExists(String name, Long excludeId) {
@@ -97,7 +119,7 @@ public class DesignationService {
 
     private DesignationResponse toResponse(DesignationMaster d) {
         return new DesignationResponse(d.getId(), d.getName(), d.getCode(), d.getDescription(),
-            d.getCreatedAt(), d.getUpdatedAt());
+            d.getIsActive(), d.getCreatedAt(), d.getUpdatedAt());
     }
 
     private static String trim(String s) {
