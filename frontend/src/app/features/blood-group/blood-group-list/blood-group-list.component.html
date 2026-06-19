@@ -38,7 +38,7 @@
         </button>
       }
     </div>
-    <div id="tour-bg-view-toggle">
+    <div id="tour-bg-view-toggle" style="margin-left:auto;">
       <cms-view-toggle [mode]="viewMode()" storageKey="blood-group-list-view-mode" (modeChange)="setViewMode($event)" />
     </div>
   </div>
@@ -73,10 +73,7 @@
                   <div class="mlp-card__title">{{ item.name }}</div>
                   <div class="mlp-card__sub">{{ item.code }}</div>
                 </div>
-                <span class="status-chip" [class.status-chip--active]="item.isActive"
-                      [class.status-chip--inactive]="!item.isActive">
-                  {{ item.isActive ? 'Active' : 'Inactive' }}
-                </span>
+                <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
               </div>
               @if (canManage()) {
                 <div class="mlp-card__actions">
@@ -126,10 +123,7 @@
         <ng-container matColumnDef="isActive">
           <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Status</th>
           <td mat-cell *matCellDef="let row" class="cell-align-center">
-            <span class="status-chip" [class.status-chip--active]="row.isActive"
-                  [class.status-chip--inactive]="!row.isActive">
-              {{ row.isActive ? 'Active' : 'Inactive' }}
-            </span>
+            <cms-status-badge [status]="row.isActive ? 'ACTIVE' : 'INACTIVE'" />
           </td>
         </ng-container>
 

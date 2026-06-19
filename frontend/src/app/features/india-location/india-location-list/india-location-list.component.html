@@ -48,7 +48,7 @@
         </button>
       }
     </div>
-    <div id="tour-location-tabs">
+    <div id="tour-location-tabs" style="margin-left:auto;">
       <cms-view-toggle [mode]="viewMode()" storageKey="india-location-list-view-mode" (modeChange)="setViewMode($event)" />
     </div>
   </div>
@@ -81,11 +81,7 @@
                 <div class="state-card__info">
                   <span class="code-chip code-chip--country">{{ country.isoCode }}</span>
                   <span class="state-card__name">{{ country.name }}</span>
-                  <span class="status-chip"
-                        [class.status-chip--active]="country.isActive"
-                        [class.status-chip--inactive]="!country.isActive">
-                    {{ country.isActive ? 'Active' : 'Inactive' }}
-                  </span>
+                  <cms-status-badge [status]="country.isActive ? 'ACTIVE' : 'INACTIVE'" />
                   <span class="state-count-badge">
                     {{ statesForCountry(country.id).length }} states
                   </span>
@@ -146,11 +142,7 @@
                             <div class="state-card__info">
                               <span class="code-chip">{{ state.code }}</span>
                               <span class="state-card__name">{{ state.name }}</span>
-                              <span class="status-chip"
-                                    [class.status-chip--active]="state.isActive"
-                                    [class.status-chip--inactive]="!state.isActive">
-                                {{ state.isActive ? 'Active' : 'Inactive' }}
-                              </span>
+                              <cms-status-badge [status]="state.isActive ? 'ACTIVE' : 'INACTIVE'" />
                             </div>
                             <div class="state-card__actions-row">
                               @if (canManage()) {
@@ -298,11 +290,7 @@
           <ng-container matColumnDef="isActive">
             <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Status</th>
             <td mat-cell *matCellDef="let row" class="cell-align-center">
-              <span class="status-chip"
-                    [class.status-chip--active]="row.isActive"
-                    [class.status-chip--inactive]="!row.isActive">
-                {{ row.isActive ? 'Active' : 'Inactive' }}
-              </span>
+              <cms-status-badge [status]="row.isActive ? 'ACTIVE' : 'INACTIVE'" />
             </td>
           </ng-container>
 
