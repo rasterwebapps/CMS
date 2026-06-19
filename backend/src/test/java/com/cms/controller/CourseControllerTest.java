@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -47,14 +48,14 @@ class CourseControllerTest {
     @Test
     void shouldCreateCourse() throws Exception {
         CourseRequest request = new CourseRequest(
-            "B.Sc. Nursing", "BSN", "General", null, 1L
+            "B.Sc. Nursing", "BSN", "General", null, 1L, null
         );
 
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
             1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, now, now);
         CourseResponse response = new CourseResponse(
-            1L, "B.Sc. Nursing", "BSN", "General", null, progResponse, now, now
+            1L, "B.Sc. Nursing", "BSN", "General", null, true, progResponse, now, now
         );
 
         when(courseService.create(any(CourseRequest.class))).thenReturn(response);
@@ -75,7 +76,7 @@ class CourseControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenNameIsBlank() throws Exception {
-        CourseRequest request = new CourseRequest("", "BSN", null, "RN", 1L);
+        CourseRequest request = new CourseRequest("", "BSN", null, "RN", 1L, null);
 
         mockMvc.perform(post("/courses")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -85,7 +86,7 @@ class CourseControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenCodeIsBlank() throws Exception {
-        CourseRequest request = new CourseRequest("B.Sc. Nursing", "", null, "RN", 1L);
+        CourseRequest request = new CourseRequest("B.Sc. Nursing", "", null, "RN", 1L, null);
 
         mockMvc.perform(post("/courses")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -114,10 +115,10 @@ class CourseControllerTest {
         ProgramResponse progResponse = new ProgramResponse(
             1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, now, now);
         CourseResponse course1 = new CourseResponse(
-            1L, "B.Sc. Nursing", "BSN", "General", null, progResponse, now, now
+            1L, "B.Sc. Nursing", "BSN", "General", null, true, progResponse, now, now
         );
         CourseResponse course2 = new CourseResponse(
-            2L, "M.Sc. Nursing", "MSN", "Obs Gyn", null, progResponse, now, now
+            2L, "M.Sc. Nursing", "MSN", "Obs Gyn", null, true, progResponse, now, now
         );
 
         when(courseService.findAll()).thenReturn(List.of(course1, course2));
@@ -150,7 +151,7 @@ class CourseControllerTest {
         ProgramResponse progResponse = new ProgramResponse(
             1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, now, now);
         CourseResponse response = new CourseResponse(
-            1L, "B.Sc. Nursing", "BSN", "General", null, progResponse, now, now
+            1L, "B.Sc. Nursing", "BSN", "General", null, true, progResponse, now, now
         );
 
         when(courseService.findById(1L)).thenReturn(response);
@@ -182,10 +183,10 @@ class CourseControllerTest {
         ProgramResponse progResponse = new ProgramResponse(
             1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, now, now);
         CourseResponse course1 = new CourseResponse(
-            1L, "B.Sc. Nursing", "BSN", "General", null, progResponse, now, now
+            1L, "B.Sc. Nursing", "BSN", "General", null, true, progResponse, now, now
         );
         CourseResponse course2 = new CourseResponse(
-            2L, "M.Sc. Nursing", "MSN", "Obs Gyn", null, progResponse, now, now
+            2L, "M.Sc. Nursing", "MSN", "Obs Gyn", null, true, progResponse, now, now
         );
 
         when(courseService.findByProgramId(1L)).thenReturn(List.of(course1, course2));
@@ -213,14 +214,14 @@ class CourseControllerTest {
     @Test
     void shouldUpdateCourse() throws Exception {
         CourseRequest request = new CourseRequest(
-            "B.Sc. Nursing Updated", "BSNU", "Updated Specialization", null, 1L
+            "B.Sc. Nursing Updated", "BSNU", "Updated Specialization", null, 1L, null
         );
 
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
             1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, now, now);
         CourseResponse response = new CourseResponse(
-            1L, "B.Sc. Nursing Updated", "BSNU", "Updated Specialization", null, progResponse, now, now
+            1L, "B.Sc. Nursing Updated", "BSNU", "Updated Specialization", null, true, progResponse, now, now
         );
 
         when(courseService.update(eq(1L), any(CourseRequest.class))).thenReturn(response);
@@ -239,7 +240,7 @@ class CourseControllerTest {
 
     @Test
     void shouldReturnNotFoundWhenUpdatingNonExistentCourse() throws Exception {
-        CourseRequest request = new CourseRequest("Name", "CODE", null, "RN", 1L);
+        CourseRequest request = new CourseRequest("Name", "CODE", null, "RN", 1L, null);
 
         when(courseService.update(eq(999L), any(CourseRequest.class)))
             .thenThrow(new ResourceNotFoundException("Course not found with id: 999"));
@@ -254,13 +255,30 @@ class CourseControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenUpdatingWithInvalidData() throws Exception {
-        CourseRequest request = new CourseRequest("", "", null, "RN", 1L);
+        CourseRequest request = new CourseRequest("", "", null, "RN", 1L, null);
 
         mockMvc.perform(put("/courses/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void shouldUpdateCourseStatus() throws Exception {
+        Instant now = Instant.now();
+        when(courseService.updateStatus(eq(1L), any(com.cms.dto.CourseStatusUpdateRequest.class)))
+            .thenReturn(new com.cms.dto.CourseStatusUpdateResponse(1L, false, now));
+
+        mockMvc.perform(patch("/courses/1/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"isActive": false, "reason": "retired"}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(1))
+            .andExpect(jsonPath("$.isActive").value(false));
+    }
+
 
     @Test
     void shouldDeleteCourse() throws Exception {

@@ -25,7 +25,11 @@ import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Program;
+import com.cms.model.enums.ProgramStatus;
+import com.cms.repository.CourseRepository;
+import com.cms.repository.CurriculumVersionRepository;
 import com.cms.repository.FeeStructureGroupRepository;
+import com.cms.repository.IntakeRuleRepository;
 import com.cms.repository.ProgramRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,11 +41,60 @@ class ProgramServiceTest {
     @Mock
     private FeeStructureGroupRepository feeStructureGroupRepository;
 
+    @Mock
+    private CourseRepository courseRepository;
+
+    @Mock
+    private IntakeRuleRepository intakeRuleRepository;
+
+    @Mock
+    private CurriculumVersionRepository curriculumVersionRepository;
+
     private ProgramService programService;
 
     @BeforeEach
     void setUp() {
-        programService = new ProgramService(programRepository, feeStructureGroupRepository);
+        programService = new ProgramService(
+            programRepository,
+            courseRepository,
+            feeStructureGroupRepository,
+            intakeRuleRepository,
+            curriculumVersionRepository
+        );
+    }
+
+    @Test
+    void shouldUpdateProgramStatusToInactiveWhenNoActiveDependencies() {
+        Program program = createProgram(1L, "Bachelor", "BACHELOR", 4);
+        program.setStatus(ProgramStatus.ACTIVE);
+        when(programRepository.findById(1L)).thenReturn(Optional.of(program));
+        when(courseRepository.existsByProgramIdAndIsActiveTrue(1L)).thenReturn(false);
+        when(intakeRuleRepository.existsByProgramIdAndIsActiveTrue(1L)).thenReturn(false);
+        when(curriculumVersionRepository.existsByProgramIdAndIsActiveTrue(1L)).thenReturn(false);
+        when(feeStructureGroupRepository.existsByProgramIdAndIsActiveTrue(1L)).thenReturn(false);
+        when(programRepository.save(any(Program.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = programService.updateStatus(
+            1L,
+            new com.cms.dto.ProgramStatusUpdateRequest(ProgramStatus.INACTIVE, "retired")
+        );
+
+        assertThat(response.status()).isEqualTo(ProgramStatus.INACTIVE);
+    }
+
+    @Test
+    void shouldBlockProgramDeactivationWhenActiveCourseExists() {
+        Program program = createProgram(1L, "Bachelor", "BACHELOR", 4);
+        program.setStatus(ProgramStatus.ACTIVE);
+        when(programRepository.findById(1L)).thenReturn(Optional.of(program));
+        when(courseRepository.existsByProgramIdAndIsActiveTrue(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> programService.updateStatus(
+            1L,
+            new com.cms.dto.ProgramStatusUpdateRequest(ProgramStatus.INACTIVE, "retired")
+        ))
+            .isInstanceOf(com.cms.exception.LifecycleConflictException.class)
+            .hasMessageContaining("active Courses");
     }
 
     @Test

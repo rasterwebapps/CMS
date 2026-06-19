@@ -177,3 +177,55 @@
 | **Action**  | Open Add/Edit Course, enter Admission Number Code such as `65`, fill required fields, and save |
 | **Expected**| Course saves successfully; reopening the course shows the same Admission Number Code; admissions for that course can generate admission numbers without the `admission_number_code` configuration error |
 
+---
+
+## Lifecycle Active/Inactive (Phase 1)
+
+### TC-PROG-STATUS-001: Deactivate Program blocked when active Course exists
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Preconditions** | Program has at least one active course |
+| **Action**  | Click deactivate action for the program in Program List |
+| **Expected**| Backend returns 409 and UI shows blocker message (active child courses) |
+
+---
+
+### TC-PROG-STATUS-002: Deactivate Program succeeds when dependencies are inactive
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Preconditions** | All child courses and active references are inactive |
+| **Action**  | Click deactivate action for the program |
+| **Expected**| Program status changes to Inactive and list badge updates |
+
+---
+
+### TC-COURSE-STATUS-001: Deactivate Course blocked when active fee structure exists
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Preconditions** | Course has at least one active fee structure |
+| **Action**  | Click deactivate action for the course in Course List |
+| **Expected**| Backend returns 409 and UI shows blocker message |
+
+---
+
+### TC-COURSE-STATUS-002: Reactivate Course blocked when parent Program is inactive
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Preconditions** | Course is inactive and parent program is inactive |
+| **Action**  | Click activate action for the course |
+| **Expected**| Backend returns 409 with ancestor inactive message |
+
+---
+
+### TC-COURSE-STATUS-003: Course status update from form
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Preconditions** | Open course edit form |
+| **Action**  | Toggle Status field and save |
+| **Expected**| Course updates successfully and list shows matching Active/Inactive badge |
+

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -29,7 +30,9 @@ import com.cms.dto.ProgramDocumentRequirementsRequest;
 import com.cms.dto.ProgramDocumentRequirementsResponse;
 import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
+import com.cms.dto.ProgramStatusUpdateResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.enums.ProgramStatus;
 import com.cms.service.ProgramService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -202,6 +205,22 @@ class ProgramControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldUpdateProgramStatus() throws Exception {
+        Instant now = Instant.now();
+        when(programService.updateStatus(eq(1L), any(com.cms.dto.ProgramStatusUpdateRequest.class)))
+            .thenReturn(new ProgramStatusUpdateResponse(1L, ProgramStatus.INACTIVE, now));
+
+        mockMvc.perform(patch("/programs/1/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"status": "INACTIVE", "reason": "retired"}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(1))
+            .andExpect(jsonPath("$.status").value("INACTIVE"));
     }
 
     @Test

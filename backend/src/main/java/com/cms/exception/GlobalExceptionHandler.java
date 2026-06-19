@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import com.cms.dto.ErrorResponse;
+import com.cms.dto.LifecycleConflictResponse;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -62,6 +63,20 @@ public class GlobalExceptionHandler {
         ErrorResponse error = new ErrorResponse(
             HttpStatus.CONFLICT.value(),
             ex.getMessage(),
+            Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(LifecycleConflictException.class)
+    public ResponseEntity<LifecycleConflictResponse> handleLifecycleConflict(LifecycleConflictException ex) {
+        LifecycleConflictResponse error = new LifecycleConflictResponse(
+            HttpStatus.CONFLICT.value(),
+            ex.getMessage(),
+            ex.getCode(),
+            ex.getEntity(),
+            ex.getEntityId(),
+            ex.getBlockerCount(),
             Instant.now()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);

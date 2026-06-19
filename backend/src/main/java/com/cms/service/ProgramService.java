@@ -13,12 +13,19 @@ import com.cms.dto.ProgramDocumentRequirementsRequest;
 import com.cms.dto.ProgramDocumentRequirementsResponse;
 import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
+import com.cms.dto.ProgramStatusUpdateRequest;
+import com.cms.dto.ProgramStatusUpdateResponse;
+import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Program;
 import com.cms.model.ProgramDocumentRequirement;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.ProgramDocumentCategory;
+import com.cms.model.enums.ProgramStatus;
+import com.cms.repository.CourseRepository;
+import com.cms.repository.CurriculumVersionRepository;
 import com.cms.repository.FeeStructureGroupRepository;
+import com.cms.repository.IntakeRuleRepository;
 import com.cms.repository.ProgramRepository;
 
 @Service
@@ -26,12 +33,21 @@ import com.cms.repository.ProgramRepository;
 public class ProgramService {
 
     private final ProgramRepository programRepository;
+    private final CourseRepository courseRepository;
     private final FeeStructureGroupRepository feeStructureGroupRepository;
+    private final IntakeRuleRepository intakeRuleRepository;
+    private final CurriculumVersionRepository curriculumVersionRepository;
 
     public ProgramService(ProgramRepository programRepository,
-                          FeeStructureGroupRepository feeStructureGroupRepository) {
+                          CourseRepository courseRepository,
+                          FeeStructureGroupRepository feeStructureGroupRepository,
+                          IntakeRuleRepository intakeRuleRepository,
+                          CurriculumVersionRepository curriculumVersionRepository) {
         this.programRepository = programRepository;
+        this.courseRepository = courseRepository;
         this.feeStructureGroupRepository = feeStructureGroupRepository;
+        this.intakeRuleRepository = intakeRuleRepository;
+        this.curriculumVersionRepository = curriculumVersionRepository;
     }
 
     @Transactional
@@ -98,6 +114,9 @@ public class ProgramService {
         program.setCode(code);
         program.setDurationYears(request.durationYears());
         if (request.status() != null) {
+            if (isProgramDeactivation(program.getStatus(), request.status())) {
+                ensureCanDeactivateProgram(program.getId());
+            }
             program.setStatus(request.status());
         }
         if (request.assessmentPattern() != null) {
@@ -119,6 +138,21 @@ public class ProgramService {
                 "Cannot delete program because fee structures are associated with it.");
         }
         programRepository.deleteById(id);
+    }
+
+    @Transactional
+    public ProgramStatusUpdateResponse updateStatus(Long id, ProgramStatusUpdateRequest request) {
+        Program program = programRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + id));
+
+        ProgramStatus requestedStatus = request.status();
+        if (isProgramDeactivation(program.getStatus(), requestedStatus)) {
+            ensureCanDeactivateProgram(program.getId());
+        }
+
+        program.setStatus(requestedStatus);
+        Program saved = programRepository.save(program);
+        return new ProgramStatusUpdateResponse(saved.getId(), saved.getStatus(), saved.getUpdatedAt());
     }
 
     public ProgramResponse toResponse(Program program) {
@@ -248,5 +282,48 @@ public class ProgramService {
             throw new IllegalArgumentException(message);
         }
         return t;
+    }
+
+    private boolean isProgramDeactivation(ProgramStatus currentStatus, ProgramStatus requestedStatus) {
+        return currentStatus == ProgramStatus.ACTIVE && requestedStatus == ProgramStatus.INACTIVE;
+    }
+
+    private void ensureCanDeactivateProgram(Long programId) {
+        if (courseRepository.existsByProgramIdAndIsActiveTrue(programId)) {
+            throw new LifecycleConflictException(
+                "Cannot deactivate Program: active Courses exist.",
+                "ACTIVE_CHILD_EXISTS",
+                "Program",
+                programId,
+                null
+            );
+        }
+        if (intakeRuleRepository.existsByProgramIdAndIsActiveTrue(programId)) {
+            throw new LifecycleConflictException(
+                "Cannot deactivate Program: active Intake Rules exist.",
+                "ACTIVE_REFERENCE_EXISTS",
+                "Program",
+                programId,
+                null
+            );
+        }
+        if (curriculumVersionRepository.existsByProgramIdAndIsActiveTrue(programId)) {
+            throw new LifecycleConflictException(
+                "Cannot deactivate Program: active Curriculum Versions exist.",
+                "ACTIVE_REFERENCE_EXISTS",
+                "Program",
+                programId,
+                null
+            );
+        }
+        if (feeStructureGroupRepository.existsByProgramIdAndIsActiveTrue(programId)) {
+            throw new LifecycleConflictException(
+                "Cannot deactivate Program: active Fee Structures exist.",
+                "ACTIVE_REFERENCE_EXISTS",
+                "Program",
+                programId,
+                null
+            );
+        }
     }
 }

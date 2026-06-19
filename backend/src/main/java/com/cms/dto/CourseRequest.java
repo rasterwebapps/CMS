@@ -21,6 +21,11 @@ public record CourseRequest(
     String rollNumberCode,
 
     @NotNull(message = "Program ID is required")
-    Long programId
+    Long programId,
+
+    Boolean isActive
 ) {
+    public CourseRequest(String name, String code, String specialization, String rollNumberCode, Long programId) {
+        this(name, code, specialization, rollNumberCode, programId, null);
+    }
 }

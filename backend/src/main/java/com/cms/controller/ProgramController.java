@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +20,8 @@ import com.cms.dto.ProgramDocumentRequirementsRequest;
 import com.cms.dto.ProgramDocumentRequirementsResponse;
 import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
+import com.cms.dto.ProgramStatusUpdateRequest;
+import com.cms.dto.ProgramStatusUpdateResponse;
 import com.cms.service.ProgramService;
 
 import jakarta.validation.Valid;
@@ -58,6 +61,15 @@ public class ProgramController {
             @PathVariable Long id,
             @Valid @RequestBody ProgramRequest request) {
         ProgramResponse response = programService.update(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("@perm.has('PROGRAM_MANAGE')")
+    public ResponseEntity<ProgramStatusUpdateResponse> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ProgramStatusUpdateRequest request) {
+        ProgramStatusUpdateResponse response = programService.updateStatus(id, request);
         return ResponseEntity.ok(response);
     }
 

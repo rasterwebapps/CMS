@@ -39,9 +39,13 @@ public interface FeeStructureGroupRepository extends JpaRepository<FeeStructureG
 
     boolean existsByProgramId(Long programId);
 
+    boolean existsByProgramIdAndIsActiveTrue(Long programId);
+
     boolean existsByAcademicYearId(Long academicYearId);
 
     boolean existsByCourseId(Long courseId);
+
+    boolean existsByCourseIdAndIsActiveTrue(Long courseId);
 
     boolean existsByFeeStateId(Long feeStateId);
 }

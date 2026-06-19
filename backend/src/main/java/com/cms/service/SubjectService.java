@@ -146,6 +146,7 @@ public class SubjectService {
             course.getId(), course.getName(), course.getCode(),
             course.getSpecialization(),
             course.getRollNumberCode(),
+            course.getIsActive(),
             programResponse,
             course.getCreatedAt(), course.getUpdatedAt()
         );

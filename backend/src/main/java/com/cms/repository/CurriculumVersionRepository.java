@@ -11,4 +11,6 @@ public interface CurriculumVersionRepository extends JpaRepository<CurriculumVer
     List<CurriculumVersion> findByProgramId(Long programId);
 
     List<CurriculumVersion> findByProgramIdAndIsActiveTrue(Long programId);
+
+    boolean existsByProgramIdAndIsActiveTrue(Long programId);
 }

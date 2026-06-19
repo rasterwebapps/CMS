@@ -40,6 +40,28 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+val lifecycleTestSourceSet = sourceSets.create("lifecycleTest") {
+    java.srcDir("src/lifecycleTest/java")
+    resources.srcDir("src/lifecycleTest/resources")
+    compileClasspath += sourceSets["main"].output + configurations["testRuntimeClasspath"]
+    runtimeClasspath += output + compileClasspath
+}
+
+configurations[lifecycleTestSourceSet.implementationConfigurationName]
+    .extendsFrom(configurations["testImplementation"])
+configurations[lifecycleTestSourceSet.runtimeOnlyConfigurationName]
+    .extendsFrom(configurations["testRuntimeOnly"])
+
+val lifecycleTest by tasks.registering(Test::class) {
+    description = "Runs isolated Program/Course lifecycle tests without compiling src/test"
+    group = "verification"
+    testClassesDirs = lifecycleTestSourceSet.output.classesDirs
+    classpath = lifecycleTestSourceSet.runtimeClasspath
+    shouldRunAfter(tasks.test)
+    useJUnitPlatform()
+    jvmArgs("-Duser.timezone=UTC")
+}
+
 tasks.withType<Test> {
     useJUnitPlatform()
     // Run tests with JVM in UTC so date/time assertions are timezone-independent

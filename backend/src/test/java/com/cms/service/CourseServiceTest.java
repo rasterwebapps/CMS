@@ -64,7 +64,8 @@ class CourseServiceTest {
             "BSN",
             "General",
             "RN",
-            1L
+            1L,
+            null
         );
 
         Course savedCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
@@ -98,7 +99,8 @@ class CourseServiceTest {
             "BSN",
             null,
             null,
-            999L
+            999L,
+            null
         );
 
         when(programRepository.findById(999L)).thenReturn(Optional.empty());
@@ -209,7 +211,8 @@ class CourseServiceTest {
             "MSN",
             "Obs Gyn",
             "MN",
-            2L
+            2L,
+            null
         );
 
         Course updatedCourse = createCourse(1L, "M.Sc. Nursing", "MSN", "Obs Gyn", newProgram);
@@ -243,7 +246,7 @@ class CourseServiceTest {
     @Test
     void shouldThrowWhenUpdatingCourseWithDuplicateName() {
         Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
-        CourseRequest request = new CourseRequest("M.Sc. Nursing", "BSN", null, "RN", 1L);
+        CourseRequest request = new CourseRequest("M.Sc. Nursing", "BSN", null, "RN", 1L, null);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
@@ -260,7 +263,7 @@ class CourseServiceTest {
     @Test
     void shouldThrowWhenUpdatingCourseWithDuplicateCode() {
         Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
-        CourseRequest request = new CourseRequest("B.Sc. Nursing", "MSN", null, "RN", 1L);
+        CourseRequest request = new CourseRequest("B.Sc. Nursing", "MSN", null, "RN", 1L, null);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(1L)).thenReturn(Optional.of(program));
@@ -277,7 +280,7 @@ class CourseServiceTest {
 
     @Test
     void shouldThrowExceptionWhenUpdatingNonExistentCourse() {
-        CourseRequest request = new CourseRequest("Name", "CODE", null, "RN", 1L);
+        CourseRequest request = new CourseRequest("Name", "CODE", null, "RN", 1L, null);
 
         when(courseRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -293,7 +296,7 @@ class CourseServiceTest {
     void shouldThrowExceptionWhenUpdatingWithNonExistentProgram() {
         Course existingCourse = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
 
-        CourseRequest request = new CourseRequest("Name", "CODE", null, "RN", 999L);
+        CourseRequest request = new CourseRequest("Name", "CODE", null, "RN", 999L, null);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existingCourse));
         when(programRepository.findById(999L)).thenReturn(Optional.empty());
@@ -303,6 +306,21 @@ class CourseServiceTest {
             .hasMessage("Program not found with id: 999");
 
         verify(courseRepository, never()).save(any(Course.class));
+    }
+
+    @Test
+    void shouldBlockCourseReactivationWhenProgramIsInactive() {
+        Course course = createCourse(1L, "B.Sc. Nursing", "BSN", "General", program);
+        course.setIsActive(false);
+        program.setStatus(com.cms.model.enums.ProgramStatus.INACTIVE);
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
+
+        assertThatThrownBy(() -> courseService.updateStatus(
+            1L,
+            new com.cms.dto.CourseStatusUpdateRequest(true, "reopen")
+        ))
+            .isInstanceOf(com.cms.exception.LifecycleConflictException.class)
+            .hasMessageContaining("parent Program is inactive");
     }
 
     @Test

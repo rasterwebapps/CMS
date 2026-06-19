@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.CourseRequest;
 import com.cms.dto.CourseResponse;
+import com.cms.dto.CourseStatusUpdateRequest;
+import com.cms.dto.CourseStatusUpdateResponse;
 import com.cms.service.CourseService;
 
 import jakarta.validation.Valid;
@@ -62,6 +65,15 @@ public class CourseController {
             @PathVariable Long id,
             @Valid @RequestBody CourseRequest request) {
         CourseResponse response = courseService.update(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("@perm.has('COURSE_MANAGE')")
+    public ResponseEntity<CourseStatusUpdateResponse> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody CourseStatusUpdateRequest request) {
+        CourseStatusUpdateResponse response = courseService.updateStatus(id, request);
         return ResponseEntity.ok(response);
     }
 

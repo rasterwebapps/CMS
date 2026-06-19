@@ -7,10 +7,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.CourseRequest;
 import com.cms.dto.CourseResponse;
+import com.cms.dto.CourseStatusUpdateRequest;
+import com.cms.dto.CourseStatusUpdateResponse;
 import com.cms.dto.ProgramResponse;
+import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Course;
 import com.cms.model.Program;
+import com.cms.model.enums.ProgramStatus;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.FeeStructureGroupRepository;
 import com.cms.repository.ProgramRepository;
@@ -38,6 +42,7 @@ public class CourseService {
     public CourseResponse create(CourseRequest request) {
         Program program = programRepository.findById(request.programId())
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
+        assertProgramActiveForCourse(program, null, true);
         String name = requireTrimmed(request.name(), "Course name is required");
         String code = requireTrimmed(request.code(), "Course code is required");
 
@@ -57,6 +62,7 @@ public class CourseService {
             program
         );
         course.setRollNumberCode(trim(request.rollNumberCode()));
+        course.setIsActive(request.isActive() != null ? request.isActive() : true);
         Course saved = courseRepository.save(course);
         return toResponse(saved);
     }
@@ -89,6 +95,8 @@ public class CourseService {
 
         Program program = programRepository.findById(request.programId())
             .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
+        boolean programChanged = course.getProgram() == null || !course.getProgram().getId().equals(program.getId());
+        assertProgramActiveForCourse(program, course.getId(), programChanged);
         String name = requireTrimmed(request.name(), "Course name is required");
         String code = requireTrimmed(request.code(), "Course code is required");
 
@@ -105,6 +113,18 @@ public class CourseService {
         course.setCode(code);
         course.setSpecialization(trim(request.specialization()));
         course.setRollNumberCode(trim(request.rollNumberCode()));
+        if (request.isActive() != null) {
+            if (Boolean.TRUE.equals(request.isActive()) && program.getStatus() == ProgramStatus.INACTIVE) {
+                throw new LifecycleConflictException(
+                    "Cannot activate Course while parent Program is inactive.",
+                    "ANCESTOR_INACTIVE",
+                    "Course",
+                    id,
+                    null
+                );
+            }
+            course.setIsActive(request.isActive());
+        }
         course.setProgram(program);
 
         Course updated = courseRepository.save(course);
@@ -121,6 +141,39 @@ public class CourseService {
                 "Cannot delete course because fee structures are associated with it.");
         }
         courseRepository.deleteById(id);
+    }
+
+    @Transactional
+    public CourseStatusUpdateResponse updateStatus(Long id, CourseStatusUpdateRequest request) {
+        Course course = courseRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
+
+        if (Boolean.FALSE.equals(request.isActive())
+            && feeStructureGroupRepository.existsByCourseIdAndIsActiveTrue(id)) {
+            throw new LifecycleConflictException(
+                "Cannot deactivate Course: active Fee Structures exist.",
+                "ACTIVE_REFERENCE_EXISTS",
+                "Course",
+                id,
+                null
+            );
+        }
+
+        if (Boolean.TRUE.equals(request.isActive())
+            && course.getProgram() != null
+            && course.getProgram().getStatus() == ProgramStatus.INACTIVE) {
+            throw new LifecycleConflictException(
+                "Cannot activate Course while parent Program is inactive.",
+                "ANCESTOR_INACTIVE",
+                "Course",
+                id,
+                null
+            );
+        }
+
+        course.setIsActive(request.isActive());
+        Course saved = courseRepository.save(course);
+        return new CourseStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
     }
 
     public boolean nameExists(String name, Long excludeId) {
@@ -149,9 +202,23 @@ public class CourseService {
             course.getCode(),
             course.getSpecialization(),
             course.getRollNumberCode(),
+            course.getIsActive(),
             programResponse,
             course.getCreatedAt(),
             course.getUpdatedAt()
+        );
+    }
+
+    private void assertProgramActiveForCourse(Program program, Long courseId, boolean failWhenInactive) {
+        if (!failWhenInactive || program.getStatus() == ProgramStatus.ACTIVE) {
+            return;
+        }
+        throw new LifecycleConflictException(
+            "Cannot assign Course to an inactive Program.",
+            "ANCESTOR_INACTIVE",
+            "Course",
+            courseId,
+            null
         );
     }
 

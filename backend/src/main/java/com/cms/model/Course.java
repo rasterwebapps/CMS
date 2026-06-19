@@ -42,6 +42,9 @@ public class Course {
     @JoinColumn(name = "program_id", nullable = false)
     private Program program;
 
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -98,6 +101,14 @@ public class Course {
 
     public void setProgram(Program program) {
         this.program = program;
+    }
+
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
 
     public String getRollNumberCode() {

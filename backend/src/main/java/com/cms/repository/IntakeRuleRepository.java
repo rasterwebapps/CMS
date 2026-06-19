@@ -9,4 +9,5 @@ import com.cms.model.IntakeRule;
 public interface IntakeRuleRepository extends JpaRepository<IntakeRule, Long> {
     List<IntakeRule> findByProgramId(Long programId);
     List<IntakeRule> findByProgramIdAndIsActiveTrue(Long programId);
+    boolean existsByProgramIdAndIsActiveTrue(Long programId);
 }
