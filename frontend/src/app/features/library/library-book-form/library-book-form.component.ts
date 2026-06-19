@@ -5,7 +5,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime, distinctUntilChanged, map, switchMap, first } from 'rxjs/operators';
 import { timer } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { LibraryService } from '../library.service';
 import {
   LibraryBookRequest,
@@ -18,7 +17,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 @Component({
   selector: 'app-library-book-form',
   standalone: true,
-  imports: [RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule],
+  imports: [RouterLink, ReactiveFormsModule, MatButtonModule],
   templateUrl: './library-book-form.component.html',
   styleUrl: './library-book-form.component.scss',
 })

@@ -1,17 +1,13 @@
-<div class="dept-form-page">
+<div class="entry-form-page">
 
   <!-- ── Page Header ──────────────────────────────────────────── -->
-  <div class="dept-form-header">
-    <a class="dept-back-btn" routerLink="/specialities" aria-label="Back to specialities">
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/specialities" aria-label="Back to specialities">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
     </a>
-    <div class="dept-form-hdr-text">
-      <h1 class="dept-form-title">
-        {{ isEditMode() ? 'Edit' : 'Add' }} <em>Speciality</em>
-      </h1>
-      <p class="dept-form-subtitle">
-        {{ isEditMode() ? 'Update the speciality details below.' : 'Fill in the details below to register a new speciality.' }}
-      </p>
+    <div class="entry-form-hdr-text">
+      <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Speciality</em></h1>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update the speciality details below.' : 'Fill in the details below to register a new speciality.' }}</p>
     </div>
     <cms-tour-button tourKey="dept-form" [iconOnly]="true" />
   </div>
@@ -21,22 +17,22 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <div class="dept-form-layout">
+    <div class="entry-form-layout">
 
       <!-- ── LEFT: Form Card ─────────────────────────────────── -->
-      <div class="dept-form-card">
-        <div class="dept-form-card-hdr">
-          <div class="dept-fchico">
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
           </div>
           <div>
-            <div class="dept-fchtit">Speciality Information</div>
-            <div class="dept-fchsub">Basic details and identification</div>
+            <div class="entry-form-card__hdr-title">Speciality Information</div>
+            <div class="entry-form-card__hdr-sub">Basic details and identification</div>
           </div>
         </div>
 
-        <div class="dept-form-body">
-          <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
 
             <!-- Name -->
             <div class="field-group">
@@ -132,7 +128,7 @@
             </div>
 
             <!-- Form Actions -->
-            <div id="tour-dept-submit" class="form-footer dept-form-footer">
+            <div id="tour-dept-submit" class="entry-form-card__footer">
               <button type="button" class="btn-cancel" routerLink="/specialities">Cancel</button>
               <button type="submit" class="btn-submit" [disabled]="saving()">
                 @if (saving()) {
@@ -143,72 +139,38 @@
               </button>
             </div>
 
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
 
       <!-- ── RIGHT: Side Panel ───────────────────────────────── -->
-      <div class="dept-side-panel">
+      <aside class="entry-form-side-panel">
 
         <!-- Live Preview Card -->
-        <div id="tour-dept-preview" class="dept-preview-card">
-          <div class="dept-preview-hdr">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            <span class="dept-preview-label">Live Preview</span>
-          </div>
-          <div class="dept-preview-body">
-            <div class="dept-prev-code">{{ previewCode() || '—' }}</div>
-            <div class="dept-prev-name" [class.dept-prev-name--empty]="!previewName()">
+        <div id="tour-dept-preview">
+          <cms-preview-card label="Live preview">
+            <div class="prev-code">{{ previewCode() || '—' }}</div>
+            <div class="prev-name" [class.prev-name--empty]="!previewName()">
               {{ previewName() || 'Speciality name will appear here' }}
             </div>
             @if (previewHod()) {
-              <div class="dept-prev-hod">
-                <span class="dept-prev-hod-av">{{ hodInitials() }}</span>
-                <span class="dept-prev-hod-name">{{ previewHod() }}</span>
+              <div class="spec-prev-hod">
+                <span class="spec-prev-hod-av">{{ hodInitials() }}</span>
+                <span class="spec-prev-hod-name">{{ previewHod() }}</span>
               </div>
             }
             @if (previewDesc()) {
-              <p class="dept-prev-desc">{{ previewDesc() }}</p>
+              <p class="prev-sub">{{ previewDesc() }}</p>
             }
-          </div>
+          </cms-preview-card>
         </div>
 
         <!-- Guidance Tips Card -->
-        <div id="tour-dept-tips" class="dept-tip-card">
-          <div class="dept-tip-title">Guidance</div>
-
-          <div class="dept-tip-item">
-            <div class="dept-tip-ico">
-              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
-            </div>
-            <div>
-              <div class="dept-tip-t">Unique Code</div>
-              <div class="dept-tip-s">Use 2–5 uppercase letters as an identifier. E.g. GN for General Nursing.</div>
-            </div>
-          </div>
-
-          <div class="dept-tip-item">
-            <div class="dept-tip-ico">
-              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </div>
-            <div>
-              <div class="dept-tip-t">Head of Speciality</div>
-              <div class="dept-tip-s">Assign a faculty member as Head of Speciality from the dropdown.</div>
-            </div>
-          </div>
-
-          <div class="dept-tip-item">
-            <div class="dept-tip-ico">
-              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            </div>
-            <div>
-              <div class="dept-tip-t">Description</div>
-              <div class="dept-tip-s">Optional — briefly describe the speciality's focus area and programmes offered.</div>
-            </div>
-          </div>
+        <div id="tour-dept-tips">
+          <cms-tips-card heading="Guidance" [tips]="TIPS" />
         </div>
 
-      </div>
+      </aside>
     </div>
   }
 </div>

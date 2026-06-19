@@ -47,7 +47,7 @@
       (actionClick)="navigateToNew()"
     ></cms-empty-state>
   } @else {
-    <div id="tour-cv-content" class="mlp-cards-grid">
+    <div id="tour-cv-content" class="mlp-cards-grid mlp-table-card">
       @for (version of versions(); track version.id; let i = $index) {
         <div class="mlp-card" [style.animation-delay]="(i * 0.05) + 's'">
           <div class="mlp-card__actions">

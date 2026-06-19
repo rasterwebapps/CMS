@@ -10,6 +10,7 @@ import { Community } from '../community.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
@@ -28,6 +29,7 @@ import { COMMUNITY_LIST_TOUR } from '../../../shared/tour/tours/community.tours'
     MatTooltipModule,
     CmsEmptyStateComponent,
     CmsViewToggleComponent,
+    CmsStatusBadgeComponent,
     CmsTourButtonComponent,
   ],
   templateUrl: './community-list.component.html',

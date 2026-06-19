@@ -95,9 +95,7 @@
               @if (item.commissionAmount != null) {
                 <span class="agt-badge agt-badge--seats">{{ item.commissionAmount | inr:false:false }}</span>
               }
-              <span class="status-badge" [class.status-active]="item.isActive" [class.status-inactive]="!item.isActive">
-                {{ item.isActive ? 'Active' : 'Inactive' }}
-              </span>
+              <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
             </div>
           </div>
         }
@@ -134,9 +132,7 @@
           <ng-container matColumnDef="isActive">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
             <td mat-cell *matCellDef="let row">
-              <span class="status-badge" [class.status-active]="row.isActive" [class.status-inactive]="!row.isActive">
-                {{ row.isActive ? 'Active' : 'Inactive' }}
-              </span>
+              <cms-status-badge [status]="row.isActive ? 'ACTIVE' : 'INACTIVE'" />
             </td>
           </ng-container>
 

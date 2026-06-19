@@ -232,7 +232,7 @@
         <ng-container matColumnDef="payerType">
           <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Type</th>
           <td mat-cell *matCellDef="let row" class="cell-align-center">
-            <span class="cms-badge" [class.cms-badge--soft-blue]="row.payerType === 'STUDENT'" [class.cms-badge--soft-gray]="row.payerType !== 'STUDENT'">
+            <span class="cms-badge" [class.cms-badge--blue]="row.payerType === 'STUDENT'" [class.cms-badge--gray]="row.payerType !== 'STUDENT'">
               {{ row.payerType === 'STUDENT' ? 'Student' : 'Pre-enroll' }}
             </span>
           </td>

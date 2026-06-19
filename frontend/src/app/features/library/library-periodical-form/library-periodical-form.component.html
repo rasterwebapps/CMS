@@ -1,9 +1,12 @@
-<div class="form-page">
-  <div class="form-page__header">
-    <a routerLink="/library/periodicals" class="back-link">
-      <mat-icon>arrow_back</mat-icon> Journals &amp; Periodicals
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/library/periodicals" aria-label="Back to journals and periodicals">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
     </a>
-    <h1 class="form-page__title">{{ pageTitle() }}</h1>
+    <div class="entry-form-hdr-text">
+      <h1 class="page-title">{{ pageTitle() }}</h1>
+      <p class="page-subtitle">Manage journals and periodical register entries.</p>
+    </div>
   </div>
 
   @if (loading()) {
@@ -121,7 +124,7 @@
       </section>
 
       <!-- Sticky Footer -->
-      <div class="form-footer form-footer--sticky">
+      <div class="entry-form-sticky-footer">
         <button type="button" class="btn-secondary" (click)="cancel()">Cancel</button>
         <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
           @if (saving()) { Saving... } @else { {{ isEditMode() ? 'Update Entry' : 'Add Entry' }} }

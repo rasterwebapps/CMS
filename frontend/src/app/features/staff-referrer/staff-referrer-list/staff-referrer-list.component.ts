@@ -11,6 +11,7 @@ import { StaffReferrer } from '../staff-referrer.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
@@ -26,6 +27,7 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatTooltipModule,
     CmsEmptyStateComponent,
     CmsViewToggleComponent,
+    CmsStatusBadgeComponent,
   ],
   templateUrl: './staff-referrer-list.component.html',
   styleUrl: './staff-referrer-list.component.scss',

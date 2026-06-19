@@ -2,7 +2,6 @@ import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MatIconModule } from '@angular/material/icon';
 import { LibraryService } from '../library.service';
 import {
   LibraryPeriodicalRequest,
@@ -15,7 +14,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 @Component({
   selector: 'app-library-periodical-form',
   standalone: true,
-  imports: [RouterLink, ReactiveFormsModule, MatIconModule],
+  imports: [RouterLink, ReactiveFormsModule],
   templateUrl: './library-periodical-form.component.html',
   styleUrl:    './library-periodical-form.component.scss',
 })

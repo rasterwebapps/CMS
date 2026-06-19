@@ -14,6 +14,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { DESIGNATION_LIST_TOUR } from '../../../shared/tour/tours/designation.tours';
@@ -31,6 +32,7 @@ import { DESIGNATION_LIST_TOUR } from '../../../shared/tour/tours/designation.to
     MatTooltipModule,
     CmsEmptyStateComponent,
     CmsViewToggleComponent,
+    CmsStatusBadgeComponent,
     CmsTourButtonComponent,
     SlicePipe,
   ],

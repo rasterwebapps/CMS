@@ -55,6 +55,7 @@ export class CmsStatusBadgeComponent {
       case 'ENROLLED':
       case 'VERIFIED':
       case 'YES':
+      case 'EDITABLE':
         return 'status-active';
 
       // ── In-progress / warning states ────────────────────────────────────
@@ -65,11 +66,16 @@ export class CmsStatusBadgeComponent {
       case 'WARNING':
       case 'UNDER_REVIEW':
       case 'UPLOADED':
+      case 'ON_LEAVE':
+      case 'SABBATICAL':
+      case 'ON_HOLD':
         return 'status-warning';
 
       // ── Neutral / pending states ─────────────────────────────────────────
       case 'ENQUIRED':
       case 'FEES_FINALIZED':
+      case 'FINALIZED':
+      case 'DRAFT':
       case 'INTERESTED':
       case 'PENDING':
       case 'SUBMITTED':
@@ -80,12 +86,16 @@ export class CmsStatusBadgeComponent {
       case 'CANCELLED':
       case 'ABSENT':
       case 'RETIRED':
+      case 'RESIGNED':
+      case 'TERMINATED':
       case 'NOT_INTERESTED':
       case 'CLOSED':
       case 'REJECTED':
       case 'WITHDRAWN':
       case 'NOT_UPLOADED':
+      case 'NOT_ALLOCATED':
       case 'NO':
+      case 'LOCKED':
         return 'status-inactive';
 
       // ── Returned / handed-back documents ────────────────────────────────
@@ -100,6 +110,7 @@ export class CmsStatusBadgeComponent {
 
       // ── Maintenance / info states ────────────────────────────────────────
       case 'MAINTENANCE':
+      case 'UNDER_MAINTENANCE':
         return 'status-maintenance';
 
       // ── Current / primary states ─────────────────────────────────────────

@@ -85,7 +85,7 @@
             <div class="dept-card__body">
               <div class="dept-card__name">{{ item.name }}</div>
               <div class="dept-card__code">{{ item.code }}</div>
-              <div class="dept-card__code">{{ item.isActive ? 'Active' : 'Inactive' }}</div>
+              <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
               @if (item.description) {
                 <p class="dept-card__desc">{{ item.description }}</p>
               }
@@ -124,9 +124,7 @@
           <ng-container matColumnDef="isActive">
             <th mat-header-cell *matHeaderCellDef class="cell-align-center">Status</th>
             <td mat-cell *matCellDef="let row" class="cell-align-center">
-              <span class="status-chip" [class.status-chip--active]="row.isActive" [class.status-chip--inactive]="!row.isActive">
-                {{ row.isActive ? 'Active' : 'Inactive' }}
-              </span>
+              <cms-status-badge [status]="row.isActive ? 'ACTIVE' : 'INACTIVE'" />
             </td>
           </ng-container>
           <ng-container matColumnDef="actions">

@@ -22,6 +22,8 @@ import { Speciality } from '../../speciality/speciality.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { FACULTY_LIST_TOUR } from '../../../shared/tour/tours/faculty.tours';
@@ -31,6 +33,8 @@ import { FACULTY_LIST_TOUR } from '../../../shared/tour/tours/faculty.tours';
   standalone: true,
   imports: [
     CmsEmptyStateComponent,
+    CmsViewToggleComponent,
+    CmsStatusBadgeComponent,
     CmsTourButtonComponent,
     RouterLink,
     TitleCasePipe,
@@ -194,12 +198,6 @@ export class FacultyListComponent implements OnInit {
     }).afterClosed().subscribe((confirmed) => {
       if (confirmed) this.performDelete(faculty);
     });
-  }
-
-  protected getStatusClass(status: FacultyStatus): string {
-    if (status === 'ACTIVE') return 'fac-status--active';
-    if (status === 'ON_LEAVE' || status === 'SABBATICAL') return 'fac-status--leave';
-    return 'fac-status--inactive';
   }
 
   protected documentReviewBadge(faculty: Faculty): { label: string; className: string; tooltip: string } {

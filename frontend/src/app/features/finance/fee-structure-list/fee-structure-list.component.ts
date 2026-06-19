@@ -11,6 +11,7 @@ import { FinanceService } from '../finance.service';
 import { FeeState, FeeStructure, GroupedFeeStructure } from '../finance.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { environment } from '../../../../environments';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
@@ -30,6 +31,7 @@ type Gender = 'MALE' | 'FEMALE' | 'OTHER' | null;
   imports: [
     InrPipe,
     CmsEmptyStateComponent,
+    CmsViewToggleComponent,
     RouterLink,
     MatTableModule,
     MatPaginatorModule,

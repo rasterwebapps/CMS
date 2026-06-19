@@ -569,7 +569,8 @@
           </div>
 
           <!-- ── Footer ─────────────────────────────────────────────────────── -->
-          <div class="ayf-footer">
+
+          <div class="entry-form-sticky-footer">
             @if (isViewMode()) {
               <a class="btn-cancel" routerLink="/academic-years">Back</a>
               <a class="btn-submit" [routerLink]="['/academic-years', route.snapshot.paramMap.get('id'), 'edit']">

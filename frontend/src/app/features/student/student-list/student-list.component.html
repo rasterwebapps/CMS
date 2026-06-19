@@ -1,13 +1,13 @@
-<div class="stu-page" (click)="colMenuOpen = false">
+<div class="stu-page mlp-page" (click)="colMenuOpen = false">
 
   <!-- ── Header ────────────────────────────────────────────────── -->
-  <div id="tour-stu-header" class="stu-hdr anim-rise">
-    <div class="stu-hdr-left">
+  <div id="tour-stu-header" class="stu-hdr mlp-hdr anim-rise">
+    <div class="stu-hdr-left mlp-hdr-left">
       <div class="page-title-row">
-        <h1 class="stu-title">Enrolled <em>Students</em></h1>
+        <h1 class="stu-title mlp-title">Enrolled <em>Students</em></h1>
         <cms-tour-button tourKey="student-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="stu-sub">View and manage enrolled students across all programs</p>
+      <p class="stu-sub mlp-sub">View and manage enrolled students across all programs</p>
     </div>
     <button id="tour-stu-add-btn" class="btn-primary" routerLink="/students/new" aria-label="Add new student">
       <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -19,7 +19,7 @@
   </div>
 
   <!-- ── Toolbar ────────────────────────────────────────────────── -->
-  <div id="tour-stu-toolbar" class="stu-toolbar anim-rise anim-rise--d1" (click)="$event.stopPropagation()">
+  <div id="tour-stu-toolbar" class="stu-toolbar mlp-toolbar anim-rise anim-rise--d1" (click)="$event.stopPropagation()">
 
     <div class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
@@ -129,7 +129,7 @@
   </div>
 
   <!-- ── Content card ──────────────────────────────────────────── -->
-  <div class="content-card stu-table-card">
+  <div class="content-card stu-table-card mlp-table-card">
 
     @if (loading()) {
       <div class="stu-skeleton">

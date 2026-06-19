@@ -10,8 +10,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FinanceService } from '../finance.service';
 import { BulkFeeStructureRequest, FeeState, FeeStructureItemRequest, GroupedFeeStructure, YearAmountRequest } from '../finance.model';
 import { environment } from '../../../../environments';
-import { LayoutService } from '../../../core/layout/layout.service';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -47,7 +45,7 @@ interface ReplicationTarget {
   imports: [
     InrPipe, RouterLink, ReactiveFormsModule,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule,
-    PageHeaderComponent, CmsTourButtonComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './fee-structure-form.component.html',
   styleUrl: './fee-structure-form.component.scss',
@@ -59,7 +57,6 @@ export class FeeStructureFormComponent implements OnInit {
   private readonly financeService = inject(FinanceService);
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
-  protected readonly layoutService = inject(LayoutService);
   private readonly tourService = inject(TourService);
 
   protected readonly loading   = signal(false);

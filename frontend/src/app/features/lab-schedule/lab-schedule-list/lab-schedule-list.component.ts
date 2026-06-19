@@ -12,7 +12,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { LabScheduleService } from '../lab-schedule.service';
 import { LabSchedule } from '../lab-schedule.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -21,7 +20,6 @@ import { ToastService } from '../../../core/toast/toast.service';
   selector: 'app-lab-schedule-list',
   standalone: true,
   imports: [
-    PageHeaderComponent,
     CmsTourButtonComponent,
     CmsEmptyStateComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,

@@ -10,12 +10,16 @@ import { SystemConfiguration } from '../settings.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-system-configuration-list',
   standalone: true,
   imports: [
     CmsEmptyStateComponent,
+    CmsViewToggleComponent,
+    CmsStatusBadgeComponent,
     RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatTooltipModule,
   ],

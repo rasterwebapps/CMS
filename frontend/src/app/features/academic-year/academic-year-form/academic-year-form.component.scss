@@ -273,21 +273,6 @@ input:checked + .toggle-track {
   color: var(--cms-text-primary);
 }
 
-// ── Sticky footer ─────────────────────────────────────────────────────────────
-.ayf-footer {
-  position: sticky;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 14px 28px;
-  border-top: 1px solid var(--cms-line);
-  background: var(--cms-bg-card);
-  border-radius: 0 0 var(--cms-radius-lg) var(--cms-radius-lg);
-  z-index: 10;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
-}
 
 // CSS spinner for submit button
 .btn-spinner {

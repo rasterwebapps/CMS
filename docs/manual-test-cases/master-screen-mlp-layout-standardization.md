@@ -55,3 +55,68 @@
 
 **Status:** NOT TESTED
 
+## TC-MLP-004: Enquiry pipeline lists use MLP structure
+
+**Preconditions:**
+- User is logged in with access to enquiry workflow lists
+- Application is running
+
+**Steps:**
+1. Open `/enquiries`, `/enquiries/document-submission`, `/enquiries/document-verification`, and `/enquiries/admission-completion`.
+2. Verify each screen shows MLP header and toolbar spacing.
+3. Verify table area uses the standard table card layout and paginator placement.
+
+**Expected Result:**
+- All four enquiry workflow lists render with MLP structure and existing actions continue to work.
+
+**Status:** NOT TESTED
+
+## TC-MLP-005: Mid-priority list screens migrated to MLP
+
+**Preconditions:**
+- User is logged in with access to lab schedule, student, commission explorer, settings, scholarship applications, and curriculum versions
+- Application is running
+
+**Steps:**
+1. Open `/lab-schedules`, `/students`, `/commission-explorer`, `/settings`, `/scholarship-applications`, and `/curriculum-versions`.
+2. Verify each screen uses MLP page/header/toolbar/table-card classes.
+3. For `/settings`, switch card/table and refresh to confirm view-mode persistence.
+
+**Expected Result:**
+- All listed screens follow MLP layout standards and maintain prior user workflows.
+
+**Status:** NOT TESTED
+
+## TC-MLP-006: Library list screens use MLP table-card container
+
+**Preconditions:**
+- User is logged in with access to library module
+- Application is running
+
+**Steps:**
+1. Open `/library/books`, `/library/issues`, and `/library/periodicals`.
+2. Verify each page has MLP page/header/toolbar structure.
+3. Verify table region uses the standard MLP table-card container behavior.
+
+**Expected Result:**
+- All three library list screens align with MLP layout standards without functional regression.
+
+**Status:** NOT TESTED
+
+## TC-MLP-007: Shared view toggle migration for remaining card/table lists
+
+**Preconditions:**
+- User is logged in with access to equipment, faculty, fee structure, and lab modules
+- Application is running
+
+**Steps:**
+1. Open `/equipment`, `/faculty`, `/fee-structures`, and `/labs`.
+2. On each screen, toggle card/table view.
+3. Refresh each page and verify selected view mode persists.
+
+**Expected Result:**
+- Inline segmented toggles are replaced by shared view toggle behavior.
+- View mode persistence and list actions continue working.
+
+**Status:** NOT TESTED
+

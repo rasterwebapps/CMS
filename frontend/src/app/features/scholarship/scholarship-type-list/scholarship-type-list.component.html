@@ -56,7 +56,7 @@
 
         <ng-container matColumnDef="active">
           <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Status</th>
-          <td mat-cell *matCellDef="let row" class="cell-align-center"><span class="cms-badge" [class.cms-badge--green]="row.active" [class.cms-badge--gray]="!row.active">{{ row.active ? 'Active' : 'Inactive' }}</span></td>
+          <td mat-cell *matCellDef="let row" class="cell-align-center"><cms-status-badge [status]="row.active ? 'ACTIVE' : 'INACTIVE'" /></td>
         </ng-container>
 
         <ng-container matColumnDef="actions">

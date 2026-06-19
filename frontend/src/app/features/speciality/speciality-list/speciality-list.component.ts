@@ -12,6 +12,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { DEPT_LIST_TOUR } from '../../../shared/tour/tours/speciality.tours';
@@ -28,7 +29,7 @@ import { computeInitials } from '../../../shared/utils/initials';
     MatProgressSpinnerModule,
     MatDialogModule,
     MatTooltipModule,
-    CmsEmptyStateComponent, CmsViewToggleComponent, CmsTourButtonComponent,
+    CmsEmptyStateComponent, CmsViewToggleComponent, CmsStatusBadgeComponent, CmsTourButtonComponent,
   ],
   templateUrl: './speciality-list.component.html',
   styleUrl: './speciality-list.component.scss',

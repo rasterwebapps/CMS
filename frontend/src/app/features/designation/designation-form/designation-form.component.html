@@ -1,17 +1,16 @@
-<div class="dept-form-page">
+<div class="entry-form-page">
 
   <!-- ── Page Header ──────────────────────────────────────────── -->
-  <div class="dept-form-header">
-    <a class="dept-back-btn" routerLink="/designations" aria-label="Back to designations">
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/designations" aria-label="Back to designations">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
     </a>
-    <div class="dept-form-hdr-text">
-      <h1 class="dept-form-title">
-        {{ isEditMode() ? 'Edit' : 'Add' }} <em>Designation</em>
-      </h1>
-      <p class="dept-form-subtitle">
-        {{ isEditMode() ? 'Update the designation details below.' : 'Fill in the details below to register a new designation.' }}
-      </p>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Designation</em></h1>
+        <cms-tour-button tourKey="designation-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update the designation details below.' : 'Fill in the details below to register a new designation.' }}</p>
     </div>
   </div>
 
@@ -20,22 +19,22 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    <div class="dept-form-layout">
+    <div class="entry-form-layout">
 
       <!-- ── LEFT: Form Card ─────────────────────────────────── -->
-      <div class="dept-form-card">
-        <div class="dept-form-card-hdr">
-          <div class="dept-fchico">
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           </div>
           <div>
-            <div class="dept-fchtit">Designation Information</div>
-            <div class="dept-fchsub">Name, code, and optional description</div>
+            <div class="entry-form-card__hdr-title">Designation Information</div>
+            <div class="entry-form-card__hdr-sub">Name, code, and optional description</div>
           </div>
         </div>
 
-        <div class="dept-form-body">
-          <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
 
             <!-- Name -->
             <div class="field-group">
@@ -101,7 +100,7 @@
             </div>
 
             <!-- Footer -->
-            <div class="dept-form-footer">
+            <div class="entry-form-card__footer">
               <a routerLink="/designations" class="btn-secondary">Cancel</a>
               <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
                 @if (saving()) {
@@ -111,11 +110,12 @@
               </button>
             </div>
 
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
 
       <!-- ── RIGHT: Preview Card ─────────────────────────────── -->
+      <aside class="entry-form-side-panel">
       <div class="dept-preview-card">
         <div class="dept-preview-hdr">
           <span class="dept-preview-label">Preview</span>
@@ -128,6 +128,7 @@
           }
         </div>
       </div>
+      </aside>
 
     </div>
   }

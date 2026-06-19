@@ -16,6 +16,12 @@
     </div>
   </div>
 
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    @if (!loading()) {
+      <span class="row-count">{{ applications().length }} applications</span>
+    }
+  </div>
+
   <div id="tour-schapp-content">
   @if (loading()) {
     <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>

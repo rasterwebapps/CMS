@@ -1,12 +1,16 @@
 <div class="entry-form-page">
-  @if (!layoutService.isFocusMode()) {
-    <app-page-header
-      [title]="pageTitle()"
-      [subtitle]="isEditMode() ? 'Update the fee schedule below.' : 'Configure fee schedules for a program and course.'"
-    >
-      <cms-tour-button titleAction tourKey="fee-structure-form" [iconOnly]="true" iconVariant="info-circle" />
-    </app-page-header>
-  }
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/fee-structures" aria-label="Back to fee structures">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ pageTitle() }}</h1>
+        <cms-tour-button tourKey="fee-structure-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update the fee schedule below.' : 'Configure fee schedules for a program and course.' }}</p>
+    </div>
+  </div>
 
   @if (loading()) {
     <div class="loading-container">
@@ -472,16 +476,13 @@
         }
 
         <!-- ── Actions ─────────────────────────────────────────────── -->
-        <div id="tour-fs-submit" class="form-actions">
-          <button mat-stroked-button type="button" class="cancel-btn" routerLink="/fee-structures">
-            <mat-icon>close</mat-icon>
+        <div id="tour-fs-submit" class="entry-form-sticky-footer">
+          <button type="button" class="btn-cancel" routerLink="/fee-structures">
             Cancel
           </button>
-          <button mat-flat-button class="save-btn" type="submit" [disabled]="saving()">
+          <button class="btn-submit" type="submit" [disabled]="saving()">
             @if (saving()) {
-              <mat-spinner diameter="18"></mat-spinner>
-            } @else {
-              <mat-icon>{{ isEditMode() ? 'update' : 'save' }}</mat-icon>
+              <span class="btn-spinner"></span>
             }
             <span>{{ saving() ? 'Saving…' : (isEditMode() ? 'Update Fee Structure' : 'Save Fee Structure') }}</span>
           </button>

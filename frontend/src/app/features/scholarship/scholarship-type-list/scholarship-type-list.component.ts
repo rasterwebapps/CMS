@@ -6,6 +6,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -16,7 +17,7 @@ import { ScholarshipService } from '../scholarship.service';
 @Component({
   selector: 'app-scholarship-type-list',
   standalone: true,
-  imports: [RouterLink, MatIconModule, MatProgressSpinnerModule, MatTableModule, MatSortModule, InrPipe, CmsEmptyStateComponent, CmsTourButtonComponent],
+  imports: [RouterLink, MatIconModule, MatProgressSpinnerModule, MatTableModule, MatSortModule, InrPipe, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent],
   templateUrl: './scholarship-type-list.component.html',
   styleUrl: './scholarship-type-list.component.scss',
 })

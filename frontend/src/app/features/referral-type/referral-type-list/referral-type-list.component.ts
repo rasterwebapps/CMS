@@ -12,6 +12,7 @@ import { ReferralType } from '../referral-type.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -30,6 +31,7 @@ import { REFERRAL_TYPE_LIST_TOUR } from '../../../shared/tour/tours/referral-typ
     MatTooltipModule,
     CmsEmptyStateComponent,
     CmsViewToggleComponent,
+    CmsStatusBadgeComponent,
     CmsTourButtonComponent,
   ],
   templateUrl: './referral-type-list.component.html',

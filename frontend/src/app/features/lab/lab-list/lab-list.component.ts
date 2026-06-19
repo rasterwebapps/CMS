@@ -1,5 +1,4 @@
 import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { NgClass } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -13,6 +12,8 @@ import { SpecialityService } from '../../speciality/speciality.service';
 import { Speciality } from '../../speciality/speciality.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
@@ -20,7 +21,8 @@ import { ToastService } from '../../../core/toast/toast.service';
   standalone: true,
   imports: [
     CmsEmptyStateComponent,
-    NgClass,
+    CmsViewToggleComponent,
+    CmsStatusBadgeComponent,
     RouterLink, CmsTourButtonComponent,
     MatTableModule,
     MatPaginatorModule,
@@ -150,19 +152,6 @@ export class LabListComponent implements OnInit {
     }).afterClosed().subscribe((confirmed) => {
       if (confirmed) this.performDelete(lab);
     });
-  }
-
-  protected getStatusColor(status: LabStatus): string {
-    switch (status) {
-      case 'ACTIVE': return 'status-active';
-      case 'INACTIVE': return 'status-inactive';
-      case 'UNDER_MAINTENANCE': return 'status-maintenance';
-      default: return '';
-    }
-  }
-
-  protected getStatusLabel(status: LabStatus): string {
-    return this.labStatuses.find(s => s.value === status)?.label ?? status;
   }
 
   protected getTypeLabel(type: LabType): string {

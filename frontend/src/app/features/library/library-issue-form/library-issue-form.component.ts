@@ -2,7 +2,6 @@ import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MatIconModule } from '@angular/material/icon';
 import { LibraryService } from '../library.service';
 import { LibraryBook, LibraryIssueRequest } from '../library.model';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -14,7 +13,7 @@ import { Faculty } from '../../faculty/faculty.model';
 @Component({
   selector: 'app-library-issue-form',
   standalone: true,
-  imports: [RouterLink, ReactiveFormsModule, MatIconModule],
+  imports: [RouterLink, ReactiveFormsModule],
   templateUrl: './library-issue-form.component.html',
   styleUrl: './library-issue-form.component.scss',
 })

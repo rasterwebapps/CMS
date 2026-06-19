@@ -11,6 +11,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { EQUIPMENT_LIST_TOUR } from '../../../shared/tour/tours/equipment.tours';
@@ -21,6 +22,7 @@ import { EQUIPMENT_LIST_TOUR } from '../../../shared/tour/tours/equipment.tours'
   imports: [
     CmsEmptyStateComponent,
     CmsStatusBadgeComponent,
+    CmsViewToggleComponent,
     RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatTooltipModule,
     CmsTourButtonComponent,

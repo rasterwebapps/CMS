@@ -91,11 +91,7 @@
             <div class="prog-card__terms">
               {{ termCountLabel(program) }}
             </div>
-            <span class="cms-badge"
-              [class.cms-badge--soft-success]="program.status === 'ACTIVE'"
-              [class.cms-badge--soft-default]="program.status === 'INACTIVE'">
-              {{ program.status === 'ACTIVE' ? 'Active' : 'Inactive' }}
-            </span>
+            <cms-status-badge [status]="program.status" />
           </div>
         }
       </div>
@@ -139,11 +135,7 @@
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
           <td mat-cell *matCellDef="let program">
-            @if (program.status === 'ACTIVE') {
-              <span class="cms-badge cms-badge--soft-success">Active</span>
-            } @else {
-              <span class="cms-badge cms-badge--soft-default">Inactive</span>
-            }
+            <cms-status-badge [status]="program.status" />
           </td>
         </ng-container>
 

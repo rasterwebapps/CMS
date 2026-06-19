@@ -4,7 +4,6 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { SpecialityService } from '../speciality.service';
@@ -19,6 +18,8 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
+import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
+import { CmsTip, CmsTipsCardComponent } from '../../../shared/tips-card/tips-card.component';
 
 @Component({
   selector: 'app-speciality-form',
@@ -27,10 +28,11 @@ import { uniqueFieldValidator } from '../../../shared/validators/unique-field.va
     RouterLink,
     ReactiveFormsModule,
     MatButtonModule,
-    MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     CmsTourButtonComponent,
+    CmsPreviewCardComponent,
+    CmsTipsCardComponent,
   ],
   templateUrl: './speciality-form.component.html',
   styleUrl: './speciality-form.component.scss',
@@ -59,6 +61,23 @@ export class SpecialityFormComponent implements OnInit {
   protected readonly previewHod = signal('');
   protected readonly previewDesc = signal('');
   protected readonly codeCharCount = signal(0);
+  protected readonly TIPS: CmsTip[] = [
+    {
+      icon: 'sell',
+      title: 'Unique Code',
+      subtitle: 'Use 2-5 uppercase letters as an identifier. Example: GN for General Nursing.',
+    },
+    {
+      icon: 'person',
+      title: 'Head of Speciality',
+      subtitle: 'Assign a faculty member as Head of Speciality from the dropdown.',
+    },
+    {
+      icon: 'notes',
+      title: 'Description',
+      subtitle: "Optional: briefly describe the speciality's focus area and programs offered.",
+    },
+  ];
 
   private hodNameFromServer: string | null = null;
   protected readonly hodInitials = computed(() => computeInitials(this.previewHod()) || '?');
