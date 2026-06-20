@@ -233,9 +233,7 @@
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns()"
-              class="table-row table-row--clickable"
-              (click)="completeAdmission(row)"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
             <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding:0;border:none;">

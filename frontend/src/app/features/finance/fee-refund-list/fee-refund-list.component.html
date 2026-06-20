@@ -288,26 +288,6 @@
         <!-- PENDING / PAYMENT_FAILED action buttons -->
         @if ((selectedRefund()!.status === 'PENDING' || selectedRefund()!.status === 'PAYMENT_FAILED') && panelMode() === 'view') {
           <div class="rfl-panel__pending-actions">
-            @if (selectedRefund()!.status === 'PENDING') {
-              <button class="btn-danger" (click)="startReject()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
-                     fill="none" stroke="currentColor" stroke-width="2.5"
-                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-                Reject
-              </button>
-            }
-            @if (oneBookEnabled() && oneBookAllowCash() && selectedRefund()!.status === 'PENDING') {
-              <button class="btn-secondary" (click)="startApprove()" [disabled]="submittingOneBook()">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
-                       fill="none" stroke="currentColor" stroke-width="2.5"
-                       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/>
-                  </svg>
-                Cash Refund
-              </button>
-            }
             @if (oneBookEnabled()) {
               <button class="btn-primary btn-primary--approve" (click)="approveViaOneBook()" [disabled]="submittingOneBook()">
                 @if (submittingOneBook()) { <span class="btn-spinner"></span> Sending… }
@@ -336,6 +316,28 @@
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
                 Approve
+              </button>
+            }
+
+            @if (oneBookEnabled() && oneBookAllowCash() && selectedRefund()!.status === 'PENDING') {
+              <button class="btn-secondary" (click)="startApprove()" [disabled]="submittingOneBook()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2.5"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/>
+                </svg>
+                Cash Refund
+              </button>
+            }
+
+            @if (selectedRefund()!.status === 'PENDING') {
+              <button class="btn-danger" (click)="startReject()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2.5"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+                Reject
               </button>
             }
           </div>
@@ -546,12 +548,14 @@
                     Review
                   </cms-row-action-btn>
                 } @else if (r.status === 'APPROVED') {
-                  <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View details" ariaLabel="View details" (clicked)="openPanel(r)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-                         fill="none" stroke="currentColor" stroke-width="2"
-                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
+                  <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View / Print Voucher" ariaLabel="View refund voucher" (clicked)="viewVoucher(r)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
+                         viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                         aria-hidden="true">
+                      <polyline points="6 9 6 2 18 2 18 9"/>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                      <rect x="6" y="14" width="12" height="8"/>
                     </svg>
                   </cms-row-action-btn>
                   <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Download Voucher PDF" ariaLabel="Download refund voucher PDF" (clicked)="downloadVoucher(r)">
@@ -564,14 +568,12 @@
                       <line x1="12" y1="15" x2="12" y2="3"/>
                     </svg>
                   </cms-row-action-btn>
-                  <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View / Print Voucher" ariaLabel="View refund voucher" (clicked)="viewVoucher(r)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
-                         viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                         aria-hidden="true">
-                      <polyline points="6 9 6 2 18 2 18 9"/>
-                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                      <rect x="6" y="14" width="12" height="8"/>
+                  <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View details" ariaLabel="View details" (clicked)="openPanel(r)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
                     </svg>
                   </cms-row-action-btn>
                 } @else {
@@ -591,8 +593,7 @@
           <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
           <tr mat-row *matRowDef="let r; columns: displayedColumns;"
               class="table-row"
-              [class.rfl-row--pending]="r.status === 'PENDING'"
-              (click)="openPanel(r)">
+              [class.rfl-row--pending]="r.status === 'PENDING'">
           </tr>
 
           <tr class="mat-row" *matNoDataRow>

@@ -433,25 +433,6 @@
   }
 }
 
-// ── Clickable rows ────────────────────────────────────────────────────────
-
-.table-row--clickable {
-  cursor: pointer;
-  transition: background 0.12s;
-
-  // Keep the hover accent inside the first real table cell. A pseudo-element
-  // directly on <tr> can be rendered as an anonymous table cell, causing an
-  // empty first column and shifting all row data under the wrong headers.
-  td:first-child {
-    box-shadow: inset 3px 0 0 transparent;
-    transition: box-shadow 0.15s;
-  }
-
-  &:hover {
-    background: rgba(var(--cms-primary-rgb), 0.025);
-    td:first-child { box-shadow: inset 3px 0 0 var(--cms-primary); }
-  }
-}
 
 // ── Column alignment helpers ──────────────────────────────────────────────
 .col-right  { text-align: right !important; }

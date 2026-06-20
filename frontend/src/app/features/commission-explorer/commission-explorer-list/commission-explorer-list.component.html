@@ -416,8 +416,7 @@
         <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
         <tr mat-row *matRowDef="let r; columns: displayedColumns;"
             class="cms-table__row"
-            [class.cms-table__row--expanded]="isExpanded(r)"
-            (click)="toggleRow(r)">
+            [class.cms-table__row--expanded]="isExpanded(r)">
         </tr>
         <tr mat-row *matRowDef="let r; columns: ['expandedDetail']"
             class="cms-table__detail-row">

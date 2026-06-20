@@ -54,8 +54,7 @@
           @for (user of filteredUsers(); track user.id) {
             <div class="user-card"
                  [class.user-card--inactive]="!user.isActive"
-                 [class.user-card--selected]="editTarget()?.id === user.id"
-                 (click)="canEdit() && openEdit(user)">
+                 [class.user-card--selected]="editTarget()?.id === user.id">
 
               <!-- Avatar -->
               <div class="user-card__avatar" [attr.data-level]="user.hierarchyLevel">
@@ -81,7 +80,7 @@
 
               <!-- Actions -->
               @if (canDeactivate() || canEdit()) {
-                <div class="user-card__actions" (click)="$event.stopPropagation()">
+                <div class="user-card__actions">
                   @if (canDeactivate()) {
                     <cms-row-action-btn [variant]="user.isActive ? 'danger' : 'neutral'" [iconOnly]="true"
                             [tooltip]="user.isActive ? 'Deactivate user' : 'Reactivate user'"

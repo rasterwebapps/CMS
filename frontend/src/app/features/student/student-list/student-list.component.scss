@@ -252,10 +252,4 @@
 
 // ── Row actions ───────────────────────────────────────────────
 
-.table-row--clickable {
-  cursor: pointer;
-  transition: background 0.12s;
-  &:hover { background: rgba(var(--cms-primary-rgb), 0.03); }
-}
-
 // ── Table footer — layout handled globally in styles.scss (.table-footer)

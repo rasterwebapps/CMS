@@ -16,8 +16,6 @@ tr.table-row:hover td.mat-mdc-table-sticky {
   background: var(--cms-bg-hover);
 }
 
-tr.table-row { cursor: pointer; }
-
 // ── Pending row highlight ─────────────────────────────────────────────────────
 tr.rfl-row--pending td {
   background-color: rgba(251, 191, 36, 0.06);

@@ -525,15 +525,6 @@ $ctrl-h: var(--cms-list-filter-height);
   white-space: nowrap;
 }
 
-// ── Clickable rows ──────────────────────────────────────────────
-
-.table-row--clickable {
-  cursor: pointer;
-  transition: background 0.12s;
-
-  &:hover { background: rgba(var(--cms-primary-rgb), 0.03); }
-}
-
 // ── Legacy Direct Admit badge ────────────────────────────────────
 
 .status-cell {
