@@ -17,6 +17,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { COURSE_LIST_TOUR } from '../../../shared/tour/tours/course.tours';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 
 @Component({
   selector: 'app-course-list',
@@ -32,6 +33,7 @@ import { COURSE_LIST_TOUR } from '../../../shared/tour/tours/course.tours';
     CmsViewToggleComponent,
     CmsStatusBadgeComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
   ],
   templateUrl: './course-list.component.html',
   styleUrl: './course-list.component.scss',

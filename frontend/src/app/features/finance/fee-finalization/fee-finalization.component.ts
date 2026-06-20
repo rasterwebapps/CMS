@@ -16,6 +16,8 @@ import { FEE_FINALIZATION_TOUR } from '../../../shared/tour/tours/finance.tours'
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { Enquiry, FeeFinalizationRequest } from '../../enquiry/enquiry.model';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments';
 
@@ -37,7 +39,7 @@ interface Program { id: number; name: string; durationYears: number; }
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     MatTableModule, MatTooltipModule,
     MatPaginatorModule, MatSortModule,
-    CmsEmptyStateComponent,
+    CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent,
   ],
   templateUrl: './fee-finalization.component.html',
   styleUrl: './fee-finalization.component.scss',

@@ -188,11 +188,7 @@
 
                 <!-- Status badge -->
                 <div class="semester-status">
-                  @switch (getTermStatus(term)) {
-                    @case ('COMPLETED') { <span class="cms-badge cms-badge--gray">Completed</span> }
-                    @case ('ONGOING')   { <span class="cms-badge cms-badge--blue">In Progress</span> }
-                    @case ('UPCOMING')  { <span class="cms-badge cms-badge--amber">Upcoming</span> }
-                  }
+                  <cms-status-badge [status]="getTermStatus(term)" />
                 </div>
 
                 <!-- Events overlapping this term -->

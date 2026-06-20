@@ -181,11 +181,7 @@
             <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-center">Type</th>
             <td mat-cell *matCellDef="let row" class="col-center">
               @if (row.studentType) {
-                <span class="cms-badge"
-                  [class.cms-badge--blue]="row.studentType === 'DAY_SCHOLAR'"
-                  [class.cms-badge--violet]="row.studentType === 'HOSTELER'">
-                  {{ row.studentType === 'DAY_SCHOLAR' ? 'Day Scholar' : 'Hosteler' }}
-                </span>
+                <cms-type-badge [value]="row.studentType" [label]="row.studentType === 'DAY_SCHOLAR' ? 'Day Scholar' : 'Hosteler'" />
               } @else {
                 <span class="cell-muted">—</span>
               }
@@ -205,21 +201,21 @@
             <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
             <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
               <div class="row-actions">
-                <button class="action-btn" matTooltip="View enquiry" (click)="viewEnquiry(row)" aria-label="View enquiry">
+                <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View enquiry" ariaLabel="View enquiry" (clicked)="viewEnquiry(row)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                   </svg>
-                </button>
+                </cms-row-action-btn>
                 @if (canVerifyDocuments()) {
-                  <button class="verify-btn" (click)="verifyDocuments(row)" aria-label="Verify documents">
+                  <cms-row-action-btn variant="accent" ariaLabel="Verify documents" (clicked)="verifyDocuments(row)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
                          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                       <polyline points="22 4 12 14.01 9 11.01"/>
                     </svg>
                     Verify
-                  </button>
+                  </cms-row-action-btn>
                 }
               </div>
             </td>

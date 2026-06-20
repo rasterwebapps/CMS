@@ -15,6 +15,8 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 
 @Component({
   selector: 'app-lab-schedule-list',
@@ -22,6 +24,8 @@ import { ToastService } from '../../../core/toast/toast.service';
   imports: [
     CmsTourButtonComponent,
     CmsEmptyStateComponent,
+    CmsRowActionButtonComponent,
+    CmsTypeBadgeComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],
   templateUrl: './lab-schedule-list.component.html',

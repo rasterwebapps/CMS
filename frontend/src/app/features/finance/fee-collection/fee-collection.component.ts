@@ -16,6 +16,8 @@ import { Enquiry, EnquiryPaymentRequest, EnquiryYearWiseFeeStatusResponse } from
 import { StudentFeeSummary, InstallmentFeeDetail, ReceiptDisplayData } from '../finance.model';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { FEE_COLLECTION_TOUR, COLLECT_BALANCE_TOUR } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -58,6 +60,8 @@ export interface FeeEntry {
     MatTableModule, MatPaginatorModule, MatSortModule, MatTooltipModule,
     CmsEmptyStateComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
+    CmsTypeBadgeComponent,
     CashDenominationComponent,
     FeeReceiptDialogComponent,
   ],

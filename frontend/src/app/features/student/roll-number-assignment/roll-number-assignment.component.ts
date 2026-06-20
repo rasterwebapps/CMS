@@ -13,6 +13,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ROLL_NUMBER_ASSIGNMENT_TOUR } from '../../../shared/tour/tours/student.tours';
 import { computeInitials } from '../../../shared/utils/initials';
@@ -28,6 +29,7 @@ interface RollAssignment {
   imports: [
     CmsEmptyStateComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
     AppDatePipe,
     FormsModule,
     MatTableModule,

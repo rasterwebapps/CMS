@@ -15,6 +15,8 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 
 @Component({
   selector: 'app-maintenance-list',
@@ -22,6 +24,8 @@ import { ToastService } from '../../../core/toast/toast.service';
   imports: [
     CmsEmptyStateComponent,
     CmsStatusBadgeComponent,
+    CmsRowActionButtonComponent,
+    CmsTypeBadgeComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatButtonModule, MatIconModule,
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],

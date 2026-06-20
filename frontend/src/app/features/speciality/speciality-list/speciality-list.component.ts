@@ -17,6 +17,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { DEPT_LIST_TOUR } from '../../../shared/tour/tours/speciality.tours';
 import { computeInitials } from '../../../shared/utils/initials';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 
 @Component({
   selector: 'app-speciality-list',
@@ -30,6 +31,7 @@ import { computeInitials } from '../../../shared/utils/initials';
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent, CmsViewToggleComponent, CmsStatusBadgeComponent, CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
   ],
   templateUrl: './speciality-list.component.html',
   styleUrl: './speciality-list.component.scss',

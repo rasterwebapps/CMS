@@ -15,6 +15,8 @@ import { Enquiry } from '../enquiry.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { computeInitials } from '../../../shared/utils/initials';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 
 @Component({
   selector: 'app-document-verification-list',
@@ -24,6 +26,8 @@ import { computeInitials } from '../../../shared/utils/initials';
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsRowActionButtonComponent,
+    CmsTypeBadgeComponent,
   ],
   templateUrl: './document-verification-list.component.html',
   styleUrl: './document-verification-list.component.scss',

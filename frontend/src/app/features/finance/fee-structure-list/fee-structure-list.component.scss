@@ -3,7 +3,7 @@
   &__program {
     font-size: var(--cms-text-md);
     font-weight: 600;
-    color: var(--text-primary, #1e293b);
+    color: var(--cms-text-primary);
     margin-bottom: 4px;
     line-height: 1.3;
   }
@@ -30,7 +30,7 @@
   &__amount {
     font-size: var(--cms-text-lg);
     font-weight: 700;
-    color: var(--primary, #6366f1);
+    color: var(--cms-primary);
     margin-top: auto;
     font-variant-numeric: tabular-nums;
   }
@@ -50,25 +50,25 @@
     gap: 8px;
     padding: 5px 8px;
     border-radius: 6px;
-    background: var(--surface-alt, rgba(99, 102, 241, 0.05));
-    border: 1px solid var(--border-subtle, rgba(99, 102, 241, 0.1));
+    background: color-mix(in srgb, var(--cms-primary) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cms-primary) 10%, transparent);
 
     &:first-child {
       // Day Scholar — transport tint
-      background: var(--surface-alt, rgba(16, 185, 129, 0.05));
-      border-color: rgba(16, 185, 129, 0.15);
+      background: color-mix(in srgb, var(--cms-success) 5%, transparent);
+      border-color: color-mix(in srgb, var(--cms-success) 15%, transparent);
 
-      .fs-card__fee-label { color: var(--success, #10b981); }
-      .fs-card__fee-amount { color: var(--success, #10b981); }
+      .fs-card__fee-label { color: var(--cms-success); }
+      .fs-card__fee-amount { color: var(--cms-success); }
     }
 
     &:last-child {
       // Hosteler — indigo tint
-      background: var(--surface-alt, rgba(99, 102, 241, 0.05));
-      border-color: rgba(99, 102, 241, 0.15);
+      background: color-mix(in srgb, var(--cms-primary) 5%, transparent);
+      border-color: color-mix(in srgb, var(--cms-primary) 15%, transparent);
 
-      .fs-card__fee-label { color: var(--primary, #6366f1); }
-      .fs-card__fee-amount { color: var(--primary, #6366f1); }
+      .fs-card__fee-label { color: var(--cms-primary); }
+      .fs-card__fee-amount { color: var(--cms-primary); }
     }
   }
 

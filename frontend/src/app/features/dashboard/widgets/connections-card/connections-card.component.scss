@@ -13,7 +13,7 @@
   padding: 2px 8px;
   border-radius: 999px;
   background: rgba(0, 0, 0, .06);
-  color: var(--text-muted, #6b7280);
+  color: var(--cms-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -37,7 +37,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--ca, var(--cms-primary));
+  background: var(--cms-primary);
   color: #fff;
   font-size: var(--cms-text-sm);
   font-weight: 700;
@@ -45,12 +45,12 @@
 }
 
 .cn-body  { flex: 1; min-width: 0; }
-.cn-name  { display: block; font-size: var(--cms-text-base); font-weight: 600; color: var(--text-1, #111827); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cn-role  { display: block; font-size: var(--cms-text-xs); color: var(--text-muted, #6b7280); }
+.cn-name  { display: block; font-size: var(--cms-text-base); font-weight: 600; color: var(--cms-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cn-role  { display: block; font-size: var(--cms-text-xs); color: var(--cms-text-muted); }
 
 .empty-hint {
   font-size: var(--cms-text-base);
-  color: var(--text-muted, #6b7280);
+  color: var(--cms-text-muted);
   margin: 0;
 }
 

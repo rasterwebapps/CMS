@@ -92,11 +92,7 @@
           <td mat-cell *matCellDef="let f">
             <span class="member-name">{{ f.memberName }}</span>
             @if (f.memberCode) { <span class="member-code">{{ f.memberCode }}</span> }
-            <span class="cms-badge"
-              [class.cms-badge--soft-blue]="f.memberType === 'STUDENT'"
-              [class.cms-badge--soft-purple]="f.memberType === 'FACULTY'">
-              {{ f.memberType === 'STUDENT' ? 'Student' : 'Faculty' }}
-            </span>
+            <cms-type-badge [value]="f.memberType === 'STUDENT' ? 'STUDENT' : 'FACULTY'" [label]="f.memberType === 'STUDENT' ? 'Student' : 'Faculty'" />
           </td>
         </ng-container>
 
@@ -140,14 +136,14 @@
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let f" class="actions-cell">
             @if (f.status === 'PENDING') {
-              <button mat-icon-button (click)="confirmCollect(f)"
-                matTooltip="Mark as Collected" aria-label="Collect fine">
+              <cms-row-action-btn variant="accent" [iconOnly]="true"
+                tooltip="Mark as Collected" ariaLabel="Collect fine" (clicked)="confirmCollect(f)">
                 <mat-icon>payments</mat-icon>
-              </button>
-              <button mat-icon-button (click)="confirmWaive(f)"
-                matTooltip="Waive Fine" aria-label="Waive fine">
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="neutral" [iconOnly]="true"
+                tooltip="Waive Fine" ariaLabel="Waive fine" (clicked)="confirmWaive(f)">
                 <mat-icon>do_not_disturb_on</mat-icon>
-              </button>
+              </cms-row-action-btn>
             }
           </td>
         </ng-container>

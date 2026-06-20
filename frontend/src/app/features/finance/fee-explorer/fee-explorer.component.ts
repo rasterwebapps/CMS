@@ -10,6 +10,7 @@ import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { FEE_EXPLORER_TOUR } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -21,6 +22,7 @@ import { computeInitials } from '../../../shared/utils/initials';
   imports: [
     InrPipe, MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
   ],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',

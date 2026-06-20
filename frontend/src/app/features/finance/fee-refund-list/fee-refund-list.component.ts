@@ -18,6 +18,8 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { FEE_REFUND_LIST_TOUR } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -34,6 +36,7 @@ type PanelMode = 'view' | 'approve' | 'reject';
     FormsModule, ReactiveFormsModule, TitleCasePipe,
     InrPipe, PaymentModeLabelPipe, AppDatePipe,
     CmsEmptyStateComponent, CashDenominationComponent, CmsTourButtonComponent,
+    CmsRowActionButtonComponent, CmsTypeBadgeComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
   ],

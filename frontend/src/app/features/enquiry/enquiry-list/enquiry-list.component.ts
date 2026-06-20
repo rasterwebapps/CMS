@@ -17,6 +17,8 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 
@@ -42,6 +44,8 @@ export const STATUS_LABELS: Record<string, string> = {
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule, MatMenuModule,
     CmsEmptyStateComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
+    CmsTypeBadgeComponent,
   ],
   templateUrl: './enquiry-list.component.html',
   styleUrl: './enquiry-list.component.scss',

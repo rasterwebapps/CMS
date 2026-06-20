@@ -26,6 +26,8 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { FACULTY_DOC_CONFIG_TOUR } from '../../../shared/tour/tours/faculty-doc-config.tours';
 
@@ -45,6 +47,8 @@ import { FACULTY_DOC_CONFIG_TOUR } from '../../../shared/tour/tours/faculty-doc-
     MatProgressSpinnerModule,
     CmsEmptyStateComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
+    CmsTypeBadgeComponent,
   ],
   templateUrl: './faculty-doc-config.component.html',
   styleUrl: './faculty-doc-config.component.scss',

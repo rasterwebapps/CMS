@@ -1,7 +1,6 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { LowerCasePipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -19,16 +18,20 @@ import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { DOCUMENT_SUBMISSION_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 
 @Component({
   selector: 'app-document-submission-list',
   standalone: true,
   imports: [
-    InrPipe, AppDatePipe, FormsModule, LowerCasePipe,
+    InrPipe, AppDatePipe, FormsModule,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatTooltipModule,
     CmsEmptyStateComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
+    CmsTypeBadgeComponent,
   ],
   templateUrl: './document-submission-list.component.html',
   styleUrl: './document-submission-list.component.scss',

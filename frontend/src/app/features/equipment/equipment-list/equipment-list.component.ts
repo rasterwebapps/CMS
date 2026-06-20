@@ -9,12 +9,14 @@ import { EquipmentService } from '../equipment.service';
 import { Equipment } from '../equipment.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { EQUIPMENT_LIST_TOUR } from '../../../shared/tour/tours/equipment.tours';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 
 @Component({
   selector: 'app-equipment-list',
@@ -22,10 +24,12 @@ import { EQUIPMENT_LIST_TOUR } from '../../../shared/tour/tours/equipment.tours'
   imports: [
     CmsEmptyStateComponent,
     CmsStatusBadgeComponent,
+    CmsTypeBadgeComponent,
     CmsViewToggleComponent,
     RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatTooltipModule,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
   ],
   templateUrl: './equipment-list.component.html',
   styleUrl: './equipment-list.component.scss',

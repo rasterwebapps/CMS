@@ -36,6 +36,7 @@ import { CsvExporterService } from '../../../core/export/csv-exporter.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ACADEMIC_CALENDAR_TOUR } from '../../../shared/tour/tours/academic-calendar.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
@@ -96,6 +97,7 @@ const EVENT_TYPE_ICONS: Record<CalendarEventType, string> = {
     PageHeaderComponent,
     CmsEmptyStateComponent,
     CmsTourButtonComponent,
+    CmsStatusBadgeComponent,
   ],
   templateUrl: './academic-calendar.component.html',
   styleUrl: './academic-calendar.component.scss',

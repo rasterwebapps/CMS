@@ -14,6 +14,8 @@ import { LabCurriculumMapping } from '../curriculum.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 
 @Component({
   selector: 'app-co-po-mapping',
@@ -29,7 +31,9 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatProgressSpinnerModule,
     MatDialogModule,
     MatTooltipModule,
-    CmsEmptyStateComponent],
+    CmsEmptyStateComponent,
+    CmsTypeBadgeComponent,
+    CmsRowActionButtonComponent],
   templateUrl: './co-po-mapping.component.html',
   styleUrl: './co-po-mapping.component.scss',
 })

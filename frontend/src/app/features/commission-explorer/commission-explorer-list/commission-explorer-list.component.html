@@ -233,7 +233,7 @@
           <td mat-cell *matCellDef="let r">
             <span class="cell-name">{{ referrerLabel(r) }}</span>
             @if (referrerType(r)) {
-              <span class="cell-badge cell-badge--type">{{ referrerType(r) }}</span>
+              <cms-type-badge [value]="r.commissionSource" [label]="referrerType(r)" />
             }
           </td>
         </ng-container>
@@ -293,60 +293,61 @@
           <td mat-cell *matCellDef="let r" class="cell-actions">
             <!-- Request payment (PENDING only, any viewer) -->
             @if (r.commissionPaymentStatus === 'PENDING') {
-              <button class="btn-action btn-action--request"
-                (click)="requestPayment(r, $event)"
+              <cms-row-action-btn variant="accent" [iconOnly]="true"
+                tooltip="Request payment approval" ariaLabel="Request payment approval"
                 [disabled]="actionLoading()"
-                matTooltip="Request payment approval">
+                (clicked)="requestPayment(r, $event)">
                 <span class="material-icons">send</span>
-              </button>
+              </cms-row-action-btn>
             }
 
             <!-- Payout actions (PAYMENT_REQUESTED or PARTIAL, manage only) -->
             @if (canManage() && (r.commissionPaymentStatus === 'PAYMENT_REQUESTED' || r.commissionPaymentStatus === 'PARTIAL')) {
               @if (!oneBookEnabled()) {
                 <!-- OneBook OFF: full record payout (all modes) -->
-                <button class="btn-action btn-action--payout"
-                  (click)="openPayoutModal(r, $event, false)"
+                <cms-row-action-btn variant="accent" [iconOnly]="true"
+                  tooltip="Record payout" ariaLabel="Record payout"
                   [disabled]="actionLoading()"
-                  matTooltip="Record payout">
+                  (clicked)="openPayoutModal(r, $event, false)">
                   <span class="material-icons">payments</span>
-                </button>
+                </cms-row-action-btn>
               } @else {
                 @if (oneBookAllowCash()) {
                   <!-- OneBook ON + cash allowed: record cash payout -->
-                  <button class="btn-action btn-action--payout"
-                    (click)="openPayoutModal(r, $event, true)"
+                  <cms-row-action-btn variant="accent" [iconOnly]="true"
+                    tooltip="Record cash payment" ariaLabel="Record cash payment"
                     [disabled]="actionLoading()"
-                    matTooltip="Record cash payment">
+                    (clicked)="openPayoutModal(r, $event, true)">
                     <span class="material-icons">attach_money</span>
-                  </button>
+                  </cms-row-action-btn>
                 }
                 <!-- OneBook ON: approve and transmit to OneBook -->
-                <button class="btn-action btn-action--onebook"
-                  (click)="approveViaOneBook(r, $event)"
+                <cms-row-action-btn variant="accent" [iconOnly]="true"
+                  tooltip="Approve &amp; send to OneBook" ariaLabel="Approve and send to OneBook"
                   [disabled]="actionLoading()"
-                  matTooltip="Approve &amp; send to OneBook">
+                  (clicked)="approveViaOneBook(r, $event)">
                   <span class="material-icons">send_to_mobile</span>
-                </button>
+                </cms-row-action-btn>
               }
             }
 
             <!-- Retry for FAILED transmissions (OneBook ON only) -->
             @if (canManage() && r.commissionPaymentStatus === 'FAILED' && oneBookEnabled()) {
-              <button class="btn-action btn-action--onebook btn-action--retry"
-                (click)="approveViaOneBook(r, $event)"
+              <cms-row-action-btn variant="accent" [iconOnly]="true"
+                tooltip="Retry transmission to OneBook" ariaLabel="Retry transmission to OneBook"
                 [disabled]="actionLoading()"
-                matTooltip="Retry transmission to OneBook">
+                (clicked)="approveViaOneBook(r, $event)">
                 <span class="material-icons">replay</span>
-              </button>
+              </cms-row-action-btn>
             }
 
             <!-- Expand/collapse -->
-            <button class="btn-action btn-action--expand"
-              (click)="toggleRow(r)"
-              [matTooltip]="isExpanded(r) ? 'Hide history' : 'View payout history'">
+            <cms-row-action-btn variant="neutral" [iconOnly]="true"
+              [tooltip]="isExpanded(r) ? 'Hide history' : 'View payout history'"
+              [ariaLabel]="isExpanded(r) ? 'Hide history' : 'View payout history'"
+              (clicked)="toggleRow(r)">
               <span class="material-icons">{{ isExpanded(r) ? 'expand_less' : 'expand_more' }}</span>
-            </button>
+            </cms-row-action-btn>
           </td>
         </ng-container>
 

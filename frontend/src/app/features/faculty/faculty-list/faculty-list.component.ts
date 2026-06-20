@@ -27,6 +27,7 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { FACULTY_LIST_TOUR } from '../../../shared/tour/tours/faculty.tours';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 
 @Component({
   selector: 'app-faculty-list',
@@ -36,6 +37,7 @@ import { FACULTY_LIST_TOUR } from '../../../shared/tour/tours/faculty.tours';
     CmsViewToggleComponent,
     CmsStatusBadgeComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
     RouterLink,
     TitleCasePipe,
     MatTableModule,

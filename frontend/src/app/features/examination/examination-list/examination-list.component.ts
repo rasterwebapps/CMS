@@ -14,12 +14,14 @@ import { Examination } from '../examination.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 
 @Component({
   selector: 'app-examination-list',
   standalone: true,
   imports: [
     CmsEmptyStateComponent,
+    CmsRowActionButtonComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],
   templateUrl: './examination-list.component.html',

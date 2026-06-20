@@ -1,0 +1,12 @@
+<button
+  type="button"
+  class="btn-row-outline"
+  [ngClass]="[variantClass, iconOnly ? 'btn-row-outline--square' : '']"
+  [matTooltip]="tooltip ?? ''"
+  [matTooltipPosition]="tooltipPosition"
+  [attr.aria-label]="ariaLabel"
+  [disabled]="disabled"
+  (click)="clicked.emit($event)"
+>
+  <ng-content></ng-content>
+</button>

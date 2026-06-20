@@ -12,6 +12,8 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 
 @Component({
   selector: 'app-system-configuration-list',
@@ -20,8 +22,10 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
     CmsEmptyStateComponent,
     CmsViewToggleComponent,
     CmsStatusBadgeComponent,
+    CmsTypeBadgeComponent,
     RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatTooltipModule,
+    CmsRowActionButtonComponent,
   ],
   templateUrl: './system-configuration-list.component.html',
   styleUrl: './system-configuration-list.component.scss',

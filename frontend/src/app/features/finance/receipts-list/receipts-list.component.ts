@@ -13,6 +13,8 @@ import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.p
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { RECEIPTS_LIST_TOUR } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -26,6 +28,7 @@ import { printFeeReceipt, downloadFeeReceipt } from '../../../shared/utils/print
     FormsModule, ReactiveFormsModule,
     InrPipe, PaymentModeLabelPipe, AppDatePipe,
     CmsEmptyStateComponent, CmsTourButtonComponent,
+    CmsRowActionButtonComponent, CmsTypeBadgeComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
   ],

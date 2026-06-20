@@ -14,6 +14,8 @@ import { Attendance } from '../attendance.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 
 @Component({
   selector: 'app-attendance-list',
@@ -29,7 +31,9 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatProgressSpinnerModule,
     MatDialogModule,
     MatTooltipModule,
-    CmsEmptyStateComponent],
+    CmsEmptyStateComponent,
+    CmsRowActionButtonComponent,
+    CmsTypeBadgeComponent],
   templateUrl: './attendance-list.component.html',
   styleUrl: './attendance-list.component.scss',
 })

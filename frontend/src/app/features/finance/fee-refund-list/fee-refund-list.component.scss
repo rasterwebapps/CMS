@@ -61,6 +61,7 @@ tr.rfl-row--pending:hover td {
 .rfl-status-chip {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   padding: 2px 8px;
   border-radius: 20px;
   font-size: 0.7rem;
@@ -68,6 +69,15 @@ tr.rfl-row--pending:hover td {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
 
   &--pending     { background: rgba(251, 191, 36, 0.18); color: #92400e; border: 1px solid rgba(251, 191, 36, 0.4); }
   &--approved    { background: rgba(16, 185, 129, 0.15); color: var(--cms-badge-green-bg); border: 1px solid rgba(16, 185, 129, 0.3); }

@@ -16,6 +16,7 @@ import { LibraryBook, BookStatus, BOOK_STATUS_OPTIONS, SUBJECT_CATEGORY_OPTIONS 
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
 
 @Component({
@@ -33,6 +34,7 @@ import { PermissionService } from '../../../core/permissions/permission.service'
     MatTooltipModule,
     MatSelectModule,
     MatInputModule,
+    CmsRowActionButtonComponent,
     MatFormFieldModule,
     CmsEmptyStateComponent,
   ],

@@ -322,12 +322,22 @@
 .status-pill {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   padding: 2px 9px;
   border-radius: 10px;
   font-size: var(--cms-text-xs);
   font-weight: 600;
   letter-spacing: 0.03em;
   white-space: nowrap;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
 
   &--verified {
     background: color-mix(in srgb, #22c55e 15%, transparent);

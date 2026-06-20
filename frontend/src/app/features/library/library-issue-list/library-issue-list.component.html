@@ -85,9 +85,7 @@
           <td mat-cell *matCellDef="let i">
             <span class="member-name">{{ i.memberType === 'STUDENT' ? i.studentName : i.facultyName }}</span>
             <span class="member-code">{{ i.memberType === 'STUDENT' ? i.studentRollNumber : i.facultyEmployeeCode }}</span>
-            <span class="cms-badge" [class.cms-badge--soft-blue]="i.memberType === 'STUDENT'" [class.cms-badge--soft-purple]="i.memberType === 'FACULTY'">
-              {{ i.memberType === 'STUDENT' ? 'Student' : 'Faculty' }}
-            </span>
+            <cms-type-badge [value]="i.memberType === 'STUDENT' ? 'STUDENT' : 'FACULTY'" [label]="i.memberType === 'STUDENT' ? 'Student' : 'Faculty'" />
           </td>
         </ng-container>
 
@@ -138,15 +136,14 @@
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let i" class="actions-cell">
             @if (isActive(i)) {
-              <button mat-icon-button (click)="confirmRenew(i)"
-                [disabled]="i.renewalCount >= 2"
-                matTooltip="Renew" aria-label="Renew">
+              <cms-row-action-btn variant="neutral" [iconOnly]="true" [disabled]="i.renewalCount >= 2"
+                tooltip="Renew" ariaLabel="Renew" (clicked)="confirmRenew(i)">
                 <mat-icon>autorenew</mat-icon>
-              </button>
-              <button mat-icon-button (click)="confirmReturn(i)"
-                matTooltip="Return" aria-label="Return book">
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="accent" [iconOnly]="true"
+                tooltip="Return" ariaLabel="Return book" (clicked)="confirmReturn(i)">
                 <mat-icon>assignment_return</mat-icon>
-              </button>
+              </cms-row-action-btn>
             }
           </td>
         </ng-container>

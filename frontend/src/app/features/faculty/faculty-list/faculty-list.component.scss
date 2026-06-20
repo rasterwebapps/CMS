@@ -125,17 +125,17 @@
 // btn-ghost utility used for "Clear Filters" in the toolbar
 .btn-ghost {
   padding: 6px 14px;
-  border: 1px solid var(--border, #e2e8f0);
+  border: 1px solid var(--cms-border-default);
   border-radius: 6px;
   background: transparent;
   font-size: var(--cms-text-base);
   font-weight: 500;
-  color: var(--text-muted, #64748b);
+  color: var(--cms-text-muted);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 
   &:hover {
-    background: var(--surface-hover, #f1f5f9);
-    color: var(--text, #1e293b);
+    background: var(--cms-bg-hover);
+    color: var(--cms-text-primary);
   }
 }

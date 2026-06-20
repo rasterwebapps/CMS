@@ -100,9 +100,7 @@
             <ng-container matColumnDef="type">
               <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Type</th>
               <td mat-cell *matCellDef="let row" class="cell-align-center">
-                <span class="cms-badge" [class.cms-badge--blue]="row.type === 'STUDENT'" [class.cms-badge--gray]="row.type !== 'STUDENT'">
-                  {{ row.type === 'STUDENT' ? 'Student' : 'Pre-enroll' }}
-                </span>
+                <cms-type-badge [value]="row.type === 'STUDENT' ? 'STUDENT' : 'ENQUIRY'" [label]="row.type === 'STUDENT' ? 'Student' : 'Pre-enroll'" />
               </td>
             </ng-container>
 
@@ -147,16 +145,15 @@
               <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
               <td mat-cell *matCellDef="let row" class="cell-align-center">
                 <div class="row-actions">
-                  <button class="btn-primary collect-action-btn"
-                          type="button"
-                          (click)="selectEntry(row)"
+                  <cms-row-action-btn variant="accent"
+                          (clicked)="selectEntry(row)"
                           [disabled]="row.totalOutstanding <= 0"
-                          [matTooltip]="row.totalOutstanding <= 0 ? 'No outstanding balance available' : 'Collect balance'"
-                          matTooltipPosition="left"
-                          aria-label="Collect balance">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                    Collect Balance
-                  </button>
+                          [tooltip]="row.totalOutstanding <= 0 ? 'No outstanding balance available' : 'Collect balance'"
+                          tooltipPosition="left"
+                          ariaLabel="Collect balance">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/></svg>
+                    Collect
+                  </cms-row-action-btn>
                 </div>
               </td>
             </ng-container>
@@ -208,9 +205,7 @@
               {{ selectedEntry()!.programName }}{{ selectedEntry()!.courseName ? ' · ' + selectedEntry()!.courseName : '' }}
             </div>
           </div>
-          <span class="cms-badge" [class.cms-badge--blue]="selectedEntry()!.type === 'STUDENT'" [class.cms-badge--gray]="selectedEntry()!.type !== 'STUDENT'">
-            {{ selectedEntry()!.type === 'STUDENT' ? 'Student' : 'Pre-enrollment' }}
-          </span>
+          <cms-type-badge [value]="selectedEntry()!.type" [label]="selectedEntry()!.type === 'STUDENT' ? 'Student' : 'Pre-enrollment'" />
         </div>
 
          <!-- Installment Table -->
@@ -364,7 +359,7 @@
               @if (saving()) {
                 <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
               } @else {
-                Collect Balance
+                Collect
               }
             </button>
           </div>

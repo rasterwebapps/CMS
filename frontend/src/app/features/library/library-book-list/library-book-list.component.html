@@ -134,13 +134,13 @@
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let book" class="actions-cell">
             @if (canManage()) {
-              <button mat-icon-button (click)="editBook(book)" matTooltip="Edit" aria-label="Edit book">
+              <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit book" (clicked)="editBook(book)">
                 <mat-icon>edit</mat-icon>
-              </button>
-              <button mat-icon-button (click)="deleteBook(book)" matTooltip="Delete" aria-label="Delete book"
-                [disabled]="book.status === 'ISSUED'">
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete book"
+                [disabled]="book.status === 'ISSUED'" (clicked)="deleteBook(book)">
                 <mat-icon>delete</mat-icon>
-              </button>
+              </cms-row-action-btn>
             }
           </td>
         </ng-container>

@@ -552,7 +552,7 @@ app-root {
   align-items: center;
   gap: 4px;
   padding: 3px 10px;
-  border-radius: var(--cms-radius-sm);
+  border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.5;
@@ -1027,6 +1027,107 @@ app-root {
   &:focus-visible {
     outline: 2px solid var(--cms-primary);
     outline-offset: 2px;
+  }
+}
+
+// ── Outlined Row-Action Button ────────────────────
+// Table-row action buttons (Verify, Collect, etc). Filled .btn-primary is
+// reserved for page-level CTAs ("+ Add Student"); row actions are always
+// outlined so they read as distinct from that single page-level commitment.
+.btn-row-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 7px;
+  border: 1px solid;
+  background: transparent;
+  cursor: pointer;
+  font-size: var(--cms-text-sm);
+  font-weight: 700;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: var(--cms-transition);
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &:active { transform: translateY(0); }
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  &--accent {
+    border-color: var(--cms-primary);
+    color: var(--cms-primary);
+    background: rgba(var(--cms-primary-rgb), 0.10);
+
+    &:hover:not(:disabled) {
+      background: var(--cms-primary);
+      color: #fff;
+    }
+  }
+
+  &--success {
+    border-color: var(--cms-success);
+    color: var(--cms-success);
+    background: color-mix(in srgb, var(--cms-success) 10%, transparent);
+
+    &:hover:not(:disabled) {
+      background: var(--cms-success);
+      color: #fff;
+    }
+  }
+
+  &--info {
+    border-color: var(--cms-info);
+    color: var(--cms-info);
+    background: color-mix(in srgb, var(--cms-info) 10%, transparent);
+
+    &:hover:not(:disabled) {
+      background: var(--cms-info);
+      color: #fff;
+    }
+  }
+
+  &--danger {
+    border-color: var(--cms-danger);
+    color: var(--cms-danger);
+    background: color-mix(in srgb, var(--cms-danger) 10%, transparent);
+
+    &:hover:not(:disabled) {
+      background: var(--cms-danger);
+      color: #fff;
+    }
+  }
+
+  &--neutral {
+    border-color: var(--cms-text-secondary);
+    color: var(--cms-text-secondary);
+    background: var(--cms-bg-surface-2);
+
+    &:hover:not(:disabled) {
+      background: var(--cms-text-secondary);
+      border-color: var(--cms-text-secondary);
+      color: #fff;
+    }
+  }
+
+  // Icon-only sizing (no text label) — e.g. the "View" button next to Verify/Collect.
+  &--square {
+    width: 30px;
+    padding: 0;
+    justify-content: center;
   }
 }
 
@@ -1994,6 +2095,12 @@ tr.mat-mdc-no-data-row {
   &::before { background: var(--cms-primary); }
 }
 
+.status-neutral {
+  background-color: var(--cms-bg-muted);
+  color: var(--cms-text-secondary);
+  &::before { background: var(--cms-text-secondary); }
+}
+
 // ── Row Actions – Dimmed at rest, full strength on hover/focus ───
 .actions-header {
   width: 90px;
@@ -2002,20 +2109,10 @@ tr.mat-mdc-no-data-row {
 .row-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
-  opacity: 0.45;
-  pointer-events: auto;
-  transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  justify-content: flex-end;
-
-  &:hover,
-  &:focus-within {
-    opacity: 1;
-  }
-}
-
-tr:hover .row-actions {
+  gap: 6px;
   opacity: 1;
+  pointer-events: auto;
+  justify-content: flex-end;
 }
 
 .action-btn {

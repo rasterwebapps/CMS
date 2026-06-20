@@ -208,13 +208,13 @@
                   </div>
                   <cms-status-badge [status]="d.status || 'PENDING'" />
                   @if (d.hasFile) {
-                    <div class="doc-card-actions">
-                      <button mat-icon-button type="button" matTooltip="View" (click)="viewDocumentFile(d)" aria-label="View document">
+                    <div class="doc-card-actions row-actions">
+                      <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View" ariaLabel="View document" (clicked)="viewDocumentFile(d)">
                         <mat-icon>visibility</mat-icon>
-                      </button>
-                      <button mat-icon-button type="button" matTooltip="Download" (click)="downloadDocumentFile(d)" aria-label="Download document">
+                      </cms-row-action-btn>
+                      <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Download" ariaLabel="Download document" (clicked)="downloadDocumentFile(d)">
                         <mat-icon>download</mat-icon>
-                      </button>
+                      </cms-row-action-btn>
                     </div>
                   }
                 </article>
@@ -249,7 +249,7 @@
                       <td>
                         <span class="code-value">{{ p.receiptNumber }}</span>
                         @if (p.receiptType === 'REFUND') {
-                          <span class="cms-badge cms-badge--amber" style="margin-left:5px;font-size:0.68rem;">Refund</span>
+                          <span class="cms-badge cms-badge--soft-amber" style="margin-left:5px;font-size:0.68rem;">Refund</span>
                         }
                       </td>
                       <td>{{ p.paymentDate | appDate }}</td>
@@ -270,30 +270,22 @@
                       <td>{{ p.collectedBy || '—' }}</td>
                       <td class="actions-col">
                         @if (p.receiptType === 'REFUND') {
-                          <div class="receipt-actions">
-                            <button class="receipt-action-btn" type="button"
-                                    (click)="viewRefundVoucher(p)"
-                                    matTooltip="View refund voucher">
+                          <div class="receipt-actions row-actions">
+                            <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View refund voucher" ariaLabel="View refund voucher" (clicked)="viewRefundVoucher(p)">
                               <mat-icon>visibility</mat-icon>
-                            </button>
-                            <button class="receipt-action-btn" type="button"
-                                    (click)="downloadRefundVoucher(p)"
-                                    matTooltip="Download refund voucher">
+                            </cms-row-action-btn>
+                            <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Download refund voucher" ariaLabel="Download refund voucher" (clicked)="downloadRefundVoucher(p)">
                               <mat-icon>download</mat-icon>
-                            </button>
+                            </cms-row-action-btn>
                           </div>
                         } @else {
-                          <div class="receipt-actions">
-                            <button class="receipt-action-btn" type="button"
-                                    (click)="viewReceipt(p)"
-                                    matTooltip="View receipt">
+                          <div class="receipt-actions row-actions">
+                            <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View receipt" ariaLabel="View receipt" (clicked)="viewReceipt(p)">
                               <mat-icon>visibility</mat-icon>
-                            </button>
-                            <button class="receipt-action-btn" type="button"
-                                    (click)="printReceiptDirect(p)"
-                                    matTooltip="Print receipt">
+                            </cms-row-action-btn>
+                            <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Print receipt" ariaLabel="Print receipt" (clicked)="printReceiptDirect(p)">
                               <mat-icon>print</mat-icon>
-                            </button>
+                            </cms-row-action-btn>
                           </div>
                         }
                       </td>
@@ -312,7 +304,7 @@
             <div class="content-card payment-table-card">
               <div class="payment-section-hdr">
                 <strong>Pre-enrollment Credit Applied to Student Account</strong>
-                <span class="cms-badge cms-badge--blue" style="margin-left: 0.5rem;">{{ creditApplications().length }} application(s)</span>
+                <span class="cms-badge cms-badge--soft-blue" style="margin-left: 0.5rem;">{{ creditApplications().length }} application(s)</span>
               </div>
               <table class="fee-payments-table">
                 <thead>

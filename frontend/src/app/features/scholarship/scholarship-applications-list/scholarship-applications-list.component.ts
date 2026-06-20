@@ -15,12 +15,13 @@ import { ScholarshipApplication } from '../scholarship.model';
 import { ScholarshipService } from '../scholarship.service';
 import { ScholarshipApproveDialogComponent } from '../approve-dialog/scholarship-approve-dialog.component';
 import { ScholarshipRejectDialogComponent } from '../reject-dialog/scholarship-reject-dialog.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 
 @Component({
   selector: 'app-scholarship-applications-list',
   standalone: true,
   imports: [MatIconModule, MatProgressSpinnerModule, MatDialogModule, MatTableModule, MatSortModule, AppDatePipe, InrPipe,
-            CmsEmptyStateComponent, CmsStatusBadgeComponent],
+            CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsRowActionButtonComponent],
   templateUrl: './scholarship-applications-list.component.html',
   styleUrl: './scholarship-applications-list.component.scss',
 })

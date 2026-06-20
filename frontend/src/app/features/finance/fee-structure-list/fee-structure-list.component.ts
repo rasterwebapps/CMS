@@ -17,6 +17,8 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { FEE_STRUCTURE_LIST_TOUR } from '../../../shared/tour/tours/fee-structure.tours';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 
 interface Program { id: number; name: string; }
 interface Course  { id: number; name: string; }
@@ -39,6 +41,8 @@ type Gender = 'MALE' | 'FEMALE' | 'OTHER' | null;
     MatDialogModule,
     MatTooltipModule,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
+    CmsTypeBadgeComponent,
   ],
   templateUrl: './fee-structure-list.component.html',
   styleUrl: './fee-structure-list.component.scss',

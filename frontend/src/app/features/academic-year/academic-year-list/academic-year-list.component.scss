@@ -20,21 +20,3 @@
   }
 }
 
-.ay-card__badge {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  font-size: var(--cms-text-sm);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-
-  &--current {
-    background: var(--cms-success-light);
-    color: var(--cms-success);
-  }
-
-  &--past {
-    background: var(--cms-bg-muted);
-    color: var(--cms-text-muted);
-  }
-}

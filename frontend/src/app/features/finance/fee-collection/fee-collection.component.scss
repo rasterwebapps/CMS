@@ -41,10 +41,7 @@
 }
 .fee-collection-table { min-width: 980px; }
 .actions-header   { width: 110px; }
-// This cell holds a primary "Collect Balance" CTA, not a secondary icon
-// action — it must stay fully visible, unlike the dimmed-until-hover
-// icon-only .row-actions used elsewhere in the app.
-.row-actions      { justify-content: center; opacity: 1; }
+.row-actions      { justify-content: center; }
 
 .cell-name    { display: block; font-weight: 500; color: var(--cms-text-primary); }
 .cell-sub     { display: block; font-size: var(--cms-text-sm); color: var(--cms-text-muted); }
@@ -53,17 +50,6 @@
 .cell-paid    { color: #10B981; }
 .cell-outstanding { color: #EF4444; font-weight: 600; }
 .cell-overdue { color: #EF4444; font-weight: 700; }
-
-.collect-action-btn {
-  min-height: 34px;
-  padding: 7px 12px;
-  border-radius: 9px;
-  font-size: var(--cms-text-sm);
-  box-shadow: none;
-
-  &:hover { transform: translateY(-1px); }
-}
-
 
 // ── Receipt ───────────────────────────────────────────────────────────────────
 .receipt-wrap {

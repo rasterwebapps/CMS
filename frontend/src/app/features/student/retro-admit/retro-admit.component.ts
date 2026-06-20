@@ -33,6 +33,7 @@ import { FeeState } from '../../finance/finance.model';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { RETRO_ADMIT_TOUR } from '../../../shared/tour/tours/student.tours';
 import { PAYMENT_MODES, getPaymentModeLabel } from '../../../shared/utils/payment-mode.utils';
@@ -69,6 +70,7 @@ const MIN_AUTOCOMPLETE_CHARS = 2;
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     InrPipe, CmsCountryStateDistrictSelectorComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
   ],
   templateUrl: './retro-admit.component.html',
   styleUrl: './retro-admit.component.scss',

@@ -26,10 +26,21 @@
 
 .issue-status-pill {
   display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 3px 10px;
   border-radius: 12px;
   font-size: 0.78rem;
   font-weight: 600;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
 
   &.issue-status--issued   { background: #dbeafe; color: #1d4ed8; }
   &.issue-status--returned { background: #dcfce7; color: #15803d; }
@@ -66,8 +77,11 @@
 .row--overdue { background: #fff5f5; }
 
 .actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
   white-space: nowrap;
-  text-align: right;
 }
 
 .checkbox-inline {

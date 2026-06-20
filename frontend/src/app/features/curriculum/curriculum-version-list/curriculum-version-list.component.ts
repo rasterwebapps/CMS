@@ -9,6 +9,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { CurriculumVersionService } from '../curriculum-version.service';
 import { CurriculumVersion } from '../curriculum-version.model';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
@@ -26,6 +28,8 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
     MatProgressSpinnerModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsStatusBadgeComponent,
+    CmsRowActionButtonComponent,
     CmsTourButtonComponent,
   ],
   templateUrl: './curriculum-version-list.component.html',

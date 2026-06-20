@@ -621,10 +621,9 @@
                       <td><input type="text" class="la-pt-input" formControlName="transactionReference" /></td>
                       <td><input type="text" class="la-pt-input" formControlName="remarks" /></td>
                       <td>
-                        <button mat-icon-button type="button" class="la-pt-del"
-                                (click)="removePayment($index)" aria-label="Remove payment">
+                        <cms-row-action-btn variant="danger" [iconOnly]="true" ariaLabel="Remove payment" (clicked)="removePayment($index)">
                           <mat-icon>delete</mat-icon>
-                        </button>
+                        </cms-row-action-btn>
                       </td>
                     </tr>
                   }

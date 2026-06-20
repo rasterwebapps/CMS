@@ -192,12 +192,12 @@
             <th mat-header-cell *matHeaderCellDef class="actions-col"></th>
             <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
               <div class="row-actions">
-                <button class="action-btn" matTooltip="View" (click)="viewDetails(row)" aria-label="View fee details">
+                <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View" ariaLabel="View fee details" (clicked)="viewDetails(row)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                   </svg>
-                </button>
+                </cms-row-action-btn>
               </div>
             </td>
           </ng-container>

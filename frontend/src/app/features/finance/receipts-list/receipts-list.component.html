@@ -196,9 +196,9 @@
             <div class="receipt-code-cell">
               <span class="cell-code">{{ row.receiptNumber }}</span>
               @if (row.refundStatus === 'PENDING') {
-                <span class="cms-badge cms-badge--amber receipt-status-chip">Refund Pending</span>
+                <span class="cms-badge cms-badge--soft-amber receipt-status-chip">Refund Pending</span>
               } @else if (row.refunded || row.refundStatus === 'APPROVED') {
-                <span class="cms-badge cms-badge--green receipt-status-chip">Refunded</span>
+                <span class="cms-badge cms-badge--soft-green receipt-status-chip">Refunded</span>
               }
             </div>
           </td>
@@ -232,9 +232,7 @@
         <ng-container matColumnDef="payerType">
           <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Type</th>
           <td mat-cell *matCellDef="let row" class="cell-align-center">
-            <span class="cms-badge" [class.cms-badge--blue]="row.payerType === 'STUDENT'" [class.cms-badge--gray]="row.payerType !== 'STUDENT'">
-              {{ row.payerType === 'STUDENT' ? 'Student' : 'Pre-enroll' }}
-            </span>
+            <cms-type-badge [value]="row.payerType" [label]="row.payerType === 'STUDENT' ? 'Student' : 'Pre-enroll'" />
           </td>
         </ng-container>
 
@@ -260,7 +258,7 @@
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Mode</th>
           <td mat-cell *matCellDef="let row">
             @if (row.paymentMode) {
-              <span class="cms-badge cms-badge--gray">{{ row.paymentMode | paymentModeLabel }}</span>
+              <cms-type-badge [value]="row.paymentMode" [label]="row.paymentMode | paymentModeLabel" />
             } @else {
               <span class="cell-muted">—</span>
             }
@@ -285,11 +283,11 @@
           <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
           <td mat-cell *matCellDef="let row">
             <div class="row-actions">
-              <button
-                class="action-btn action-btn--primary"
-                matTooltip="View / Print Receipt"
-                (click)="viewReceipt(row)"
-                aria-label="View receipt PDF">
+              <cms-row-action-btn
+                variant="info" [iconOnly]="true"
+                tooltip="View / Print Receipt"
+                ariaLabel="View receipt PDF"
+                (clicked)="viewReceipt(row)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -298,12 +296,12 @@
                   <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
                   <rect x="6" y="14" width="12" height="8"/>
                 </svg>
-              </button>
-              <button
-                class="action-btn"
-                matTooltip="Download Receipt PDF"
-                (click)="downloadReceipt(row)"
-                aria-label="Download receipt PDF">
+              </cms-row-action-btn>
+              <cms-row-action-btn
+                variant="danger" [iconOnly]="true"
+                tooltip="Download Receipt PDF"
+                ariaLabel="Download receipt PDF"
+                (clicked)="downloadReceipt(row)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -312,13 +310,13 @@
                   <polyline points="7 10 12 15 17 10"/>
                   <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-              </button>
-              <button
-                class="action-btn action-btn--refund"
+              </cms-row-action-btn>
+              <cms-row-action-btn
+                variant="danger" [iconOnly]="true"
                 [disabled]="!canInitiateRefund(row)"
-                [matTooltip]="canInitiateRefund(row) ? 'Request Refund' : getRefundBlockReason(row)"
-                (click)="startRefund(row)"
-                aria-label="Request refund for this receipt">
+                [tooltip]="canInitiateRefund(row) ? 'Request Refund' : getRefundBlockReason(row)"
+                ariaLabel="Request refund for this receipt"
+                (clicked)="startRefund(row)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -326,7 +324,7 @@
                   <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                   <path d="M3 3v5h5"/>
                 </svg>
-              </button>
+              </cms-row-action-btn>
             </div>
           </td>
         </ng-container>

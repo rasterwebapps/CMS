@@ -17,6 +17,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { REFERRAL_TYPE_LIST_TOUR } from '../../../shared/tour/tours/referral-type.tours';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 
 @Component({
   selector: 'app-referral-type-list',
@@ -33,6 +34,7 @@ import { REFERRAL_TYPE_LIST_TOUR } from '../../../shared/tour/tours/referral-typ
     CmsViewToggleComponent,
     CmsStatusBadgeComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
   ],
   templateUrl: './referral-type-list.component.html',
   styleUrl: './referral-type-list.component.scss',

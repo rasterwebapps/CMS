@@ -285,9 +285,9 @@
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
             <td mat-cell *matCellDef="let row">
               @if (row.studentType === 'DAY_SCHOLAR') {
-                <span class="cms-badge cms-badge--soft-blue">Day Scholar</span>
+                <cms-type-badge value="DAY_SCHOLAR" label="Day Scholar" />
               } @else if (row.studentType === 'HOSTELER') {
-                <span class="cms-badge cms-badge--soft-purple">Hosteler</span>
+                <cms-type-badge value="HOSTELER" label="Hosteler" />
               } @else {
                 <span class="cell-muted">—</span>
               }
@@ -355,41 +355,40 @@
             <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
             <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
               <div class="row-actions">
-                <button class="action-btn" matTooltip="View details" (click)="view(row)" aria-label="View enquiry">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
-                @if (canEdit(row)) {
-                  <button class="action-btn" matTooltip="Edit" (click)="edit(row)" aria-label="Edit enquiry">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  </button>
-                }
-
                 <!-- Contextual primary actions -->
-                @if (canFinalizeFee(row)) {
-                  <button class="action-btn action-btn--primary" matTooltip="Finalize Fee" (click)="finalizeFee(row)" aria-label="Finalize fee">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                  </button>
-                }
-                @if (canCollectPayment(row)) {
-                  <button class="action-btn action-btn--success" matTooltip="Collect Balance" (click)="collectPayment(row)" aria-label="Collect balance">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                  </button>
+                @if (canConvert(row)) {
+                  <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Create Admission" ariaLabel="Create admission" (clicked)="convert(row)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/></svg>
+                  </cms-row-action-btn>
                 }
                 @if (canSubmitDocuments(row)) {
-                  <button class="action-btn action-btn--info" matTooltip="Submit Documents" (click)="submitDocuments(row)" aria-label="Submit documents">
+                  <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Submit Documents" ariaLabel="Submit documents" (clicked)="submitDocuments(row)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="16 13 12 17 8 13"/><line x1="12" y1="17" x2="12" y2="11"/></svg>
-                  </button>
+                  </cms-row-action-btn>
                 }
-                @if (canConvert(row)) {
-                  <button class="action-btn action-btn--convert" matTooltip="Create Admission" (click)="convert(row)" aria-label="Create admission">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/></svg>
-                  </button>
+                @if (canCollectPayment(row)) {
+                  <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Collect Balance" ariaLabel="Collect balance" (clicked)="collectPayment(row)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                  </cms-row-action-btn>
+                }
+                @if (canFinalizeFee(row)) {
+                  <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Finalize Fee" ariaLabel="Finalize fee" (clicked)="finalizeFee(row)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </cms-row-action-btn>
                 }
                 @if (canDelete(row)) {
-                  <button class="action-btn action-btn--danger" matTooltip="Delete" (click)="delete(row)" aria-label="Delete enquiry">
+                  <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete enquiry" (clicked)="delete(row)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                  </button>
+                  </cms-row-action-btn>
                 }
+                @if (canEdit(row)) {
+                  <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit enquiry" (clicked)="edit(row)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </cms-row-action-btn>
+                }
+                <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View details" ariaLabel="View enquiry" (clicked)="view(row)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </cms-row-action-btn>
               </div>
             </td>
           </ng-container>

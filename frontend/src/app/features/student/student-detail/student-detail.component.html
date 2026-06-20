@@ -390,17 +390,13 @@
                             <td>{{ p.lateFeeApplied > 0 ? (p.lateFeeApplied | number:'1.2-2') : '—' }}</td>
                             <td>{{ p.paymentMode | paymentModeLabel }}</td>
                             <td class="actions-col">
-                              <div class="receipt-actions">
-                                <button class="receipt-action-btn" type="button"
-                                        (click)="viewReceipt(p, entry)"
-                                        matTooltip="View receipt">
+                              <div class="receipt-actions row-actions">
+                                <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View receipt" ariaLabel="View receipt" (clicked)="viewReceipt(p, entry)">
                                   <mat-icon>visibility</mat-icon>
-                                </button>
-                                <button class="receipt-action-btn" type="button"
-                                        (click)="printReceiptDirect(p, entry)"
-                                        matTooltip="Print receipt">
+                                </cms-row-action-btn>
+                                <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Print receipt" ariaLabel="Print receipt" (clicked)="printReceiptDirect(p, entry)">
                                   <mat-icon>print</mat-icon>
-                                </button>
+                                </cms-row-action-btn>
                               </div>
                             </td>
                           </tr>

@@ -79,21 +79,20 @@
         @for (course of filteredCourses(); track course.id; let i = $index) {
           <div class="mlp-card crs-card" [style.animation-delay]="(i * 0.05) + 's'">
             <div class="mlp-card__actions">
-              <button class="mlp-act-btn" (click)="editCourse(course)" [attr.title]="'Edit ' + course.name" type="button" aria-label="Edit course">
+              <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Edit course" ariaLabel="Edit course" (clicked)="editCourse(course)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              </button>
-              <button
-                class="mlp-act-btn"
-                (click)="toggleCourseStatus(course)"
-                [attr.title]="(course.isActive ? 'Deactivate ' : 'Activate ') + course.name"
-                type="button"
-                [attr.aria-label]="course.isActive ? 'Deactivate course' : 'Activate course'"
+              </cms-row-action-btn>
+              <cms-row-action-btn
+                [variant]="course.isActive ? 'danger' : 'neutral'" [iconOnly]="true"
+                (clicked)="toggleCourseStatus(course)"
+                [tooltip]="(course.isActive ? 'Deactivate ' : 'Activate ') + course.name"
+                [ariaLabel]="course.isActive ? 'Deactivate course' : 'Activate course'"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-              </button>
-              <button class="mlp-act-btn mlp-act-btn--del" (click)="deleteCourse(course)" [attr.title]="'Delete ' + course.name" type="button" aria-label="Delete course">
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete course" ariaLabel="Delete course" (clicked)="deleteCourse(course)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              </button>
+              </cms-row-action-btn>
             </div>
             <div class="crs-card__code">{{ course.code }}</div>
             <div class="crs-card__name">{{ course.name }}</div>
@@ -155,20 +154,20 @@
           <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
           <td mat-cell *matCellDef="let course">
             <div class="row-actions">
-              <button class="action-btn" matTooltip="Edit" (click)="editCourse(course)" aria-label="Edit course">
+              <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit course" (clicked)="editCourse(course)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              </button>
-              <button
-                class="action-btn"
-                [matTooltip]="course.isActive ? 'Deactivate' : 'Activate'"
-                (click)="toggleCourseStatus(course)"
-                [attr.aria-label]="course.isActive ? 'Deactivate course' : 'Activate course'"
+              </cms-row-action-btn>
+              <cms-row-action-btn
+                variant="neutral" [iconOnly]="true"
+                [tooltip]="course.isActive ? 'Deactivate' : 'Activate'"
+                [ariaLabel]="course.isActive ? 'Deactivate course' : 'Activate course'"
+                (clicked)="toggleCourseStatus(course)"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-              </button>
-              <button class="action-btn action-btn--danger" matTooltip="Delete" (click)="deleteCourse(course)" aria-label="Delete course">
+              </cms-row-action-btn>
+               <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete course" (clicked)="deleteCourse(course)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              </button>
+              </cms-row-action-btn>
             </div>
           </td>
         </ng-container>

@@ -166,12 +166,12 @@
       @for (fs of filteredFeeStructures(); track fs.groupId) {
         <div class="mlp-card anim-rise">
           <div class="mlp-card__actions">
-            <button class="mlp-act-btn" matTooltip="Edit" (click)="edit(fs)" aria-label="Edit fee structure">
+            <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit fee structure" (clicked)="edit(fs)">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-            <button class="mlp-act-btn mlp-act-btn--del" matTooltip="Delete" (click)="delete(fs)" aria-label="Delete fee structure">
+            </cms-row-action-btn>
+            <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete fee structure" (clicked)="delete(fs)">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            </button>
+            </cms-row-action-btn>
           </div>
 
           <div class="fs-card__program">{{ fs.programName }}</div>
@@ -185,9 +185,9 @@
           </div>
 
           <div class="fs-card__dim-row">
-            <span class="cms-badge cms-badge--violet">{{ quotaLabel(fs.quota) }}</span>
+            <cms-type-badge [value]="fs.quota" [label]="quotaLabel(fs.quota)" />
             <span class="cms-badge cms-badge--gray">{{ fs.feeStateName }}</span>
-            <span class="cms-badge cms-badge--gray">{{ genderLabel(fs.gender) }}</span>
+            <cms-type-badge [value]="fs.gender" [label]="genderLabel(fs.gender)" />
           </div>
 
           @if (hasAccommodationFees(fs)) {
@@ -242,7 +242,7 @@
           <ng-container matColumnDef="quota">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Quota</th>
             <td mat-cell *matCellDef="let row">
-              <span class="cms-badge cms-badge--violet">{{ quotaLabel(row.quota) }}</span>
+              <cms-type-badge [value]="row.quota" [label]="quotaLabel(row.quota)" />
             </td>
           </ng-container>
 
@@ -253,7 +253,9 @@
 
           <ng-container matColumnDef="gender">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Gender</th>
-            <td mat-cell *matCellDef="let row" class="cell-muted">{{ genderLabel(row.gender) }}</td>
+            <td mat-cell *matCellDef="let row">
+              <cms-type-badge [value]="row.gender" [label]="genderLabel(row.gender)" />
+            </td>
           </ng-container>
 
 
@@ -288,12 +290,12 @@
             <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
             <td mat-cell *matCellDef="let row">
               <div class="row-actions">
-                <button class="action-btn" matTooltip="Edit" (click)="edit(row)" aria-label="Edit fee structure group">
+                <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit fee structure group" (clicked)="edit(row)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
-                <button class="action-btn action-btn--danger" matTooltip="Delete" (click)="delete(row)" aria-label="Delete fee structure group">
+                </cms-row-action-btn>
+                <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete fee structure group" (clicked)="delete(row)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                </button>
+                </cms-row-action-btn>
               </div>
             </td>
           </ng-container>

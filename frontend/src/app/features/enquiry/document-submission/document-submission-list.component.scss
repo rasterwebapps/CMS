@@ -433,43 +433,6 @@
   }
 }
 
-// ── Row actions ──────────────────────────────────────────────────────────
-
-.row-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  justify-content: flex-end;
-}
-
-.collect-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 30px;
-  padding: 0 12px;
-  border: 1px solid rgba(var(--cms-primary-rgb), 0.35);
-  background: rgba(var(--cms-primary-rgb), 0.07);
-  border-radius: 7px;
-  cursor: pointer;
-  color: var(--cms-primary);
-  font-size: var(--cms-text-sm);
-  font-weight: 700;
-  font-family: var(--cms-font-ui);
-  white-space: nowrap;
-  transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
-
-  &:hover {
-    background: var(--cms-primary);
-    color: #fff;
-    border-color: var(--cms-primary);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(var(--cms-primary-rgb), 0.32);
-  }
-
-  &:active { transform: translateY(0); }
-}
-
 // ── Clickable rows ────────────────────────────────────────────────────────
 
 .table-row--clickable {

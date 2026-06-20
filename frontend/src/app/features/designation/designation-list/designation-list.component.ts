@@ -18,6 +18,7 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { DESIGNATION_LIST_TOUR } from '../../../shared/tour/tours/designation.tours';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 
 @Component({
   selector: 'app-designation-list',
@@ -35,6 +36,7 @@ import { DESIGNATION_LIST_TOUR } from '../../../shared/tour/tours/designation.to
     CmsStatusBadgeComponent,
     CmsTourButtonComponent,
     SlicePipe,
+    CmsRowActionButtonComponent,
   ],
   templateUrl: './designation-list.component.html',
   styleUrl: './designation-list.component.scss',

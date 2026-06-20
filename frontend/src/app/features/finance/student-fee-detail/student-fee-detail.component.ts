@@ -10,6 +10,7 @@ import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.p
 import { FinanceService } from '../finance.service';
 import { StudentFeeAllocation, InstallmentFeeDetail, Receipt, EnquiryCreditApplication, ReceiptDisplayData, CollectPaymentRequest } from '../finance.model';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
 import { FeeReceiptDialogComponent } from '../../../shared/fee-receipt-dialog/fee-receipt-dialog.component';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -39,7 +40,7 @@ export interface ReceiptGroup {
   imports: [
     AppDatePipe, PaymentModeLabelPipe, InrPipe, RouterLink, DatePipe, DecimalPipe,
     ReactiveFormsModule, MatTooltipModule, MatProgressSpinnerModule,
-    CmsStatusBadgeComponent, CashDenominationComponent, FeeReceiptDialogComponent,
+    CmsStatusBadgeComponent, CmsRowActionButtonComponent, CashDenominationComponent, FeeReceiptDialogComponent,
   ],
   templateUrl: './student-fee-detail.component.html',
   styleUrl: './student-fee-detail.component.scss',

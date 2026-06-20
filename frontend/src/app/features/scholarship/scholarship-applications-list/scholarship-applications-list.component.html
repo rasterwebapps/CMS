@@ -64,10 +64,10 @@
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
           <td mat-cell *matCellDef="let row">
-            <div class="row-actions">
-              @if (row.status === 'PENDING') {
-                <button class="action-btn action-btn--primary" title="Approve" (click)="approve(row)"><mat-icon>check</mat-icon></button>
-                <button class="action-btn action-btn--danger" title="Reject" (click)="reject(row)"><mat-icon>close</mat-icon></button>
+             <div class="row-actions">
+               @if (row.status === 'PENDING') {
+                 <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Approve" ariaLabel="Approve" (clicked)="approve(row)"><mat-icon>check</mat-icon></cms-row-action-btn>
+                 <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Reject" ariaLabel="Reject" (clicked)="reject(row)"><mat-icon>close</mat-icon></cms-row-action-btn>
               }
               @if (row.status === 'REJECTED' && row.rejectionReason) {
                 <span class="sal-rejection-reason" [title]="row.rejectionReason"><mat-icon>info</mat-icon></span>

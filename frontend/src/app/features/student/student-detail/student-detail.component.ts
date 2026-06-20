@@ -19,6 +19,7 @@ import {
 } from '../student.model';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { computeInitials } from '../../../shared/utils/initials';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
@@ -67,6 +68,7 @@ import { printFeeReceipt } from '../../../shared/utils/print-receipt.utils';
     CmsStatusBadgeComponent,
     CmsSkeletonComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
     ProfileDocumentsComponent,
     MatTooltipModule,
     FeeReceiptDialogComponent,

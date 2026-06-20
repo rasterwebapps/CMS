@@ -708,14 +708,7 @@
 }
 
 .doc-card-actions {
-  display: flex;
-  gap: 4px;
   flex-shrink: 0;
-
-  button {
-    color: var(--cms-text-muted);
-    &:hover { color: var(--cms-primary); }
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -801,31 +794,7 @@
 }
 
 .receipt-actions {
-  display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 2px;
-}
-
-.receipt-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--cms-text-muted);
-  cursor: pointer;
-  transition: background 0.13s, color 0.13s;
-
-  mat-icon { font-size: 1.05rem; width: 17px; height: 17px; }
-
-  &:hover {
-    background: color-mix(in srgb, var(--cms-primary) 10%, transparent);
-    color: var(--cms-primary);
-  }
 }
 
 .payment-total {

@@ -60,7 +60,7 @@
               <span class="rfl-name-stack">
                 <span>{{ selectedRefund()!.studentName }}</span>
                 @if (selectedRefund()!.entityType === 'ENQUIRY') {
-                  <span class="cms-badge cms-badge--blue">Pre-enroll</span>
+                  <cms-type-badge value="ENQUIRY" label="Pre-enroll" />
                 } @else if (selectedRefund()!.admissionNumber) {
                   <span class="rfl-sub-id">{{ selectedRefund()!.admissionNumber }}</span>
                 }
@@ -300,12 +300,11 @@
             }
             @if (oneBookEnabled() && oneBookAllowCash() && selectedRefund()!.status === 'PENDING') {
               <button class="btn-secondary" (click)="startApprove()" [disabled]="submittingOneBook()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
-                     fill="none" stroke="currentColor" stroke-width="2.5"
-                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <line x1="12" y1="1" x2="12" y2="23"/>
-                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                </svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+                       fill="none" stroke="currentColor" stroke-width="2.5"
+                       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/>
+                  </svg>
                 Cash Refund
               </button>
             }
@@ -488,7 +487,7 @@
               <div class="rfl-student-cell">
                 <span class="rfl-student-name">{{ r.studentName }}</span>
                 @if (r.entityType === 'ENQUIRY') {
-                  <span class="cms-badge cms-badge--blue rfl-entity-badge">Pre-enroll</span>
+                  <cms-type-badge value="ENQUIRY" label="Pre-enroll" class="rfl-entity-badge" />
                 } @else if (r.admissionNumber) {
                   <span class="rfl-student-id">{{ r.admissionNumber }}</span>
                 }
@@ -537,8 +536,7 @@
             <td mat-cell *matCellDef="let r">
               <div class="row-actions">
                 @if (r.status === 'PENDING') {
-                  <button class="rfl-action-btn" (click)="openPanel(r)"
-                          matTooltip="Review & Approve / Reject">
+                  <cms-row-action-btn variant="accent" tooltip="Review & Approve / Reject" ariaLabel="Review" (clicked)="openPanel(r)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                          fill="none" stroke="currentColor" stroke-width="2"
                          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -546,25 +544,17 @@
                       <circle cx="12" cy="12" r="3"/>
                     </svg>
                     Review
-                  </button>
+                  </cms-row-action-btn>
                 } @else if (r.status === 'APPROVED') {
-                  <button class="action-btn action-btn--primary"
-                          matTooltip="View / Print Voucher"
-                          (click)="viewVoucher(r)"
-                          aria-label="View refund voucher">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
-                         viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                         aria-hidden="true">
-                      <polyline points="6 9 6 2 18 2 18 9"/>
-                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                      <rect x="6" y="14" width="12" height="8"/>
+                  <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View details" ariaLabel="View details" (clicked)="openPanel(r)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
                     </svg>
-                  </button>
-                  <button class="action-btn"
-                          matTooltip="Download Voucher PDF"
-                          (click)="downloadVoucher(r)"
-                          aria-label="Download refund voucher PDF">
+                  </cms-row-action-btn>
+                  <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Download Voucher PDF" ariaLabel="Download refund voucher PDF" (clicked)="downloadVoucher(r)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
                          viewBox="0 0 24 24" fill="none" stroke="currentColor"
                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -573,24 +563,26 @@
                       <polyline points="7 10 12 15 17 10"/>
                       <line x1="12" y1="15" x2="12" y2="3"/>
                     </svg>
-                  </button>
-                  <button class="rfl-view-btn" (click)="openPanel(r)" matTooltip="View details">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-                         fill="none" stroke="currentColor" stroke-width="2"
-                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
+                  </cms-row-action-btn>
+                  <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View / Print Voucher" ariaLabel="View refund voucher" (clicked)="viewVoucher(r)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
+                         viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                         aria-hidden="true">
+                      <polyline points="6 9 6 2 18 2 18 9"/>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                      <rect x="6" y="14" width="12" height="8"/>
                     </svg>
-                  </button>
+                  </cms-row-action-btn>
                 } @else {
-                  <button class="rfl-view-btn" (click)="openPanel(r)" matTooltip="View details">
+                  <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View details" ariaLabel="View details" (clicked)="openPanel(r)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                          fill="none" stroke="currentColor" stroke-width="2"
                          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                       <circle cx="12" cy="12" r="3"/>
                     </svg>
-                  </button>
+                  </cms-row-action-btn>
                 }
               </div>
             </td>

@@ -143,24 +143,6 @@ tr.table-row:hover td.mat-mdc-table-sticky {
 
 .date-sep { color: var(--cms-text-muted); font-size: var(--cms-text-xs); }
 
-
-// Refund action button (for initiation from receipts list)
-.action-btn--refund {
-  color: var(--cms-text-secondary);
-
-  &:hover {
-    color: #c2410c;
-    background: #fff7ed;
-  }
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    color: var(--cms-text-subtle);
-    background: transparent;
-  }
-}
-
 // ── Refund initiation overlay ──────────────────────────────────────────────
 
 .refund-overlay {
@@ -277,5 +259,14 @@ tr.table-row:hover td.mat-mdc-table-sticky {
   font-size: 11px;
   line-height: 1.2;
   font-weight: 700;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
 }
 

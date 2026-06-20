@@ -17,6 +17,8 @@ import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { CommissionExplorerService } from '../commission-explorer.service';
 import {
   CommissionRecord,
@@ -31,7 +33,7 @@ import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
   imports: [
     ReactiveFormsModule,
     InrPipe, AppDatePipe, PaymentModeLabelPipe,
-    CmsEmptyStateComponent,
+    CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
   ],

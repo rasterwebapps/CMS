@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { LowerCasePipe, TitleCasePipe } from '@angular/common';
+import { TitleCasePipe } from '@angular/common';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, takeUntil } from 'rxjs/operators';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -21,6 +21,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { AdmissionService } from '../admission.service';
 import { AdmissionExplorerParams, AdmissionResponse } from '../admission.model';
 import { ProgramService } from '../../program/program.service';
@@ -57,7 +59,6 @@ const SORT_FIELD_MAP: Record<string, string> = {
   standalone: true,
   imports: [
     FormsModule,
-    LowerCasePipe,
     TitleCasePipe,
     AppDatePipe,
     CmsEmptyStateComponent,
@@ -69,6 +70,8 @@ const SORT_FIELD_MAP: Record<string, string> = {
     MatDialogModule,
     MatTooltipModule,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
+    CmsStatusBadgeComponent,
   ],
   templateUrl: './admission-list.component.html',
   styleUrl: './admission-list.component.scss',

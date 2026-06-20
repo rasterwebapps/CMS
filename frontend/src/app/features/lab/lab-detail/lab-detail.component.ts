@@ -13,6 +13,8 @@ import { Lab, LabInChargeAssignment, LabInChargeAssignmentRequest, LabInChargeRo
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 
 @Component({
@@ -29,6 +31,8 @@ import { ToastService } from '../../../core/toast/toast.service';
     MatProgressSpinnerModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsRowActionButtonComponent,
+    CmsTypeBadgeComponent,
     PageHeaderComponent],
   templateUrl: './lab-detail.component.html',
   styleUrl: './lab-detail.component.scss',

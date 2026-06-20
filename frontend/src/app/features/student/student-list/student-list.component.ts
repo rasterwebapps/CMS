@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { LowerCasePipe, TitleCasePipe } from '@angular/common';
+import { TitleCasePipe } from '@angular/common';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, takeUntil } from 'rxjs/operators';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -35,6 +35,8 @@ import { STUDENT_LIST_TOUR } from '../../../shared/tour/tours/student.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { computeInitials } from '../../../shared/utils/initials';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 
 const DEFAULT_PAGE_SIZE = 25;
 const SEARCH_MIN_LENGTH = 3;
@@ -53,12 +55,13 @@ const SORT_FIELD_MAP: Record<string, string> = {
   standalone: true,
   imports: [
     FormsModule,
-    LowerCasePipe,
     TitleCasePipe,
     AppDatePipe,
     RouterLink,
     CmsEmptyStateComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
+    CmsStatusBadgeComponent,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,

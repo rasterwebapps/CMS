@@ -519,29 +519,7 @@
     font-family: var(--cms-font-mono);
   }
 
-  &__actions { display: flex; gap: 1px; flex-shrink: 0; }
-}
-
-// ── File action buttons ───────────────────────────────────────────────────
-
-.file-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--cms-text-muted);
-  padding: 0;
-  transition: var(--cms-transition-fast);
-
-  mat-icon { font-size: var(--cms-text-md); width: 15px; height: 15px; }
-
-  &:hover:not([disabled]) { background: rgba(var(--cms-primary-rgb), 0.08); color: var(--cms-primary); }
-  &[disabled] { opacity: 0.35; cursor: not-allowed; }
+  &__actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 }
 
 // ── Upload zone ───────────────────────────────────────────────────────────

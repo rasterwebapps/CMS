@@ -79,6 +79,7 @@ export class CmsStatusBadgeComponent {
       case 'INTERESTED':
       case 'PENDING':
       case 'SUBMITTED':
+      case 'UPCOMING':
         return 'status-pending';
 
       // ── Negative / terminal failure states ───────────────────────────────
@@ -96,6 +97,9 @@ export class CmsStatusBadgeComponent {
       case 'NOT_ALLOCATED':
       case 'NO':
       case 'LOCKED':
+      case 'EXPIRED':
+      case 'SUSPENDED':
+      case 'EXPELLED':
         return 'status-inactive';
 
       // ── Returned / handed-back documents ────────────────────────────────
@@ -115,7 +119,12 @@ export class CmsStatusBadgeComponent {
 
       // ── Current / primary states ─────────────────────────────────────────
       case 'CURRENT':
+      case 'ONGOING':
         return 'status-current';
+
+      // ── Past / closed-cycle states ────────────────────────────────────────
+      case 'PAST':
+        return 'status-neutral';
 
       // ── Dropped / archived states ────────────────────────────────────────
       case 'DROPPED':

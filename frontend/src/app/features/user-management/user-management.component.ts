@@ -7,13 +7,14 @@ import { PermissionService } from '../../core/permissions/permission.service';
 import { AppUserResponse, AppRoleResponse, CreateUserRequest, UpdateUserRequest } from '../../core/permissions/permission.model';
 import { ToastService } from '../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../shared/empty-state/empty-state.component';
+import { CmsRowActionButtonComponent } from '../../shared/row-action-button/row-action-button.component';
 
 type PanelMode = 'create' | 'edit' | null;
 
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, CmsEmptyStateComponent],
+  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, CmsEmptyStateComponent, CmsRowActionButtonComponent],
   templateUrl: './user-management.component.html',
   styleUrl:    './user-management.component.scss',
 })

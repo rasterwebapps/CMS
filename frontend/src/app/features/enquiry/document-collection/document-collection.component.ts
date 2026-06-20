@@ -14,6 +14,7 @@ import { ProgramService } from '../../program/program.service';
 import { DocumentTypeInfo } from '../../program/program.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -48,6 +49,7 @@ interface ChecklistRow {
     MatProgressSpinnerModule,
     MatTooltipModule,
     CmsStatusBadgeComponent,
+    CmsRowActionButtonComponent,
     CmsTourButtonComponent],
   templateUrl: './document-collection.component.html',
   styleUrl: './document-collection.component.scss',

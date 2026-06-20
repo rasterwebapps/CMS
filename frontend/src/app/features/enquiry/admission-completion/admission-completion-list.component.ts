@@ -17,6 +17,7 @@ import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ADMISSION_COMPLETION_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 
 @Component({
   selector: 'app-admission-completion-list',
@@ -27,6 +28,7 @@ import { ADMISSION_COMPLETION_LIST_TOUR } from '../../../shared/tour/tours/enqui
     MatTooltipModule,
     CmsEmptyStateComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
   ],
   templateUrl: './admission-completion-list.component.html',
   styleUrl: './admission-completion-list.component.scss',

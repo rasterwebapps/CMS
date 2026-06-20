@@ -158,20 +158,34 @@
 }
 
 .cell-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
   white-space: nowrap;
-  text-align: right;
   min-width: 100px;
 }
 
 // ── Badges ───────────────────────────────────────────────────────────────────
 .badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11px;
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 5px;
   text-transform: uppercase;
   letter-spacing: .04em;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
 
   &--warning      { background: var(--cms-warning-light); color: var(--cms-warning); }
   &--info         { background: var(--cms-info-light);    color: var(--cms-info); }

@@ -18,6 +18,8 @@ import {
 import { ToastService } from '../../../core/toast/toast.service';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 
 @Component({
   selector: 'app-library-issue-list',
@@ -33,6 +35,8 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
     MatIconModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsRowActionButtonComponent,
+    CmsTypeBadgeComponent,
   ],
   templateUrl: './library-issue-list.component.html',
   styleUrl: './library-issue-list.component.scss',

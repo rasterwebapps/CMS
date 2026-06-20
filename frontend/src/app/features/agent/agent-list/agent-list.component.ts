@@ -15,6 +15,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { AGENT_LIST_TOUR } from '../../../shared/tour/tours/agent.tours';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 
 @Component({
   selector: 'app-agent-list',
@@ -30,6 +31,7 @@ import { AGENT_LIST_TOUR } from '../../../shared/tour/tours/agent.tours';
     CmsViewToggleComponent,
     CmsStatusBadgeComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
   ],
   templateUrl: './agent-list.component.html',
   styleUrl: './agent-list.component.scss',

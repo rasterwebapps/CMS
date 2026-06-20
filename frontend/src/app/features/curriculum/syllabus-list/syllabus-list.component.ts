@@ -16,6 +16,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { ToastService } from '../../../core/toast/toast.service';
 import { TourService } from '../../../shared/tour/tour.service';
 import { SYLLABUS_LIST_TOUR } from '../../../shared/tour/tours/syllabus.tours';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 
 @Component({
   selector: 'app-syllabus-list',
@@ -31,7 +32,8 @@ import { SYLLABUS_LIST_TOUR } from '../../../shared/tour/tours/syllabus.tours';
     MatProgressSpinnerModule,
     MatDialogModule,
     MatTooltipModule,
-    CmsEmptyStateComponent],
+    CmsEmptyStateComponent,
+    CmsRowActionButtonComponent],
   templateUrl: './syllabus-list.component.html',
   styleUrl: './syllabus-list.component.scss',
 })

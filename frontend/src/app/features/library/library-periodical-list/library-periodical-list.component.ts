@@ -19,6 +19,9 @@ import {
 import { ToastService } from '../../../core/toast/toast.service';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
 
 @Component({
@@ -35,6 +38,9 @@ import { PermissionService } from '../../../core/permissions/permission.service'
     MatIconModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    CmsRowActionButtonComponent,
+    CmsTypeBadgeComponent,
+    CmsStatusBadgeComponent,
   ],
   templateUrl: './library-periodical-list.component.html',
   styleUrl:    './library-periodical-list.component.scss',

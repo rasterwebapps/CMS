@@ -14,10 +14,10 @@
     <div class="sfd-confirm-overlay" (click)="showConfirmModal.set(false)">
       <div class="sfd-confirm-modal" (click)="$event.stopPropagation()">
         <div class="sfd-confirm-modal__icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-          </svg>
+           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+             <path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/>
+           </svg>
         </div>
         <h3 class="sfd-confirm-modal__title">Confirm Payment</h3>
         <p class="sfd-confirm-modal__sub">Verify the details — this cannot be undone.</p>
@@ -240,7 +240,7 @@
           <div class="form-hdr__title">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              <path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/>
             </svg>
             Collect Payment
           </div>
@@ -404,9 +404,9 @@
                   <td><span class="code-value">{{ g.receiptNumber }}</span></td>
                   <td>
                     @if (g.receiptType === 'REFUND') {
-                      <span class="cms-badge cms-badge--amber ph-type-badge">Refund</span>
+                      <span class="cms-badge cms-badge--soft-amber ph-type-badge">Refund</span>
                     } @else if (g.receiptType === 'ENQUIRY_PAYMENT') {
-                      <span class="cms-badge cms-badge--blue ph-type-badge">Pre-Admission</span>
+                      <span class="cms-badge cms-badge--soft-blue ph-type-badge">Pre-Admission</span>
                     } @else {
                       <span class="cms-badge cms-badge--soft-green ph-type-badge">Payment</span>
                     }
@@ -427,23 +427,21 @@
                   <td class="actions-col">
                     @if (g.receiptType === 'PAYMENT' || g.receiptType === 'REFUND') {
                       <div class="receipt-actions">
-                        <button class="action-btn action-btn--primary" matTooltip="View / Print Receipt"
-                                (click)="viewReceipt(g)" aria-label="View receipt">
+                        <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View / Print Receipt" ariaLabel="View receipt" (clicked)="viewReceipt(g)">
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <polyline points="6 9 6 2 18 2 18 9"/>
                             <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
                             <rect x="6" y="14" width="12" height="8"/>
                           </svg>
-                        </button>
-                        <button class="action-btn" matTooltip="Download PDF"
-                                (click)="downloadReceipt(g)" aria-label="Download receipt PDF">
+                        </cms-row-action-btn>
+                        <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Download PDF" ariaLabel="Download receipt PDF" (clicked)="downloadReceipt(g)">
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                             <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                           </svg>
-                        </button>
+                        </cms-row-action-btn>
                       </div>
                     }
                   </td>

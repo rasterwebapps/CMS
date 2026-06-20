@@ -259,41 +259,6 @@
 
 .actions-header { width: 160px; }
 
-.row-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  justify-content: flex-end;
-}
-
-.complete-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px;
-  border: 1px solid rgba(var(--cms-primary-rgb), 0.3);
-  background: rgba(var(--cms-primary-rgb), 0.06);
-  border-radius: 7px;
-  cursor: pointer;
-  color: var(--cms-primary);
-  font-size: var(--cms-text-base);
-  font-weight: 600;
-  font-family: var(--cms-font-ui);
-  white-space: nowrap;
-  transition: all 0.15s;
-
-  &:hover {
-    background: var(--cms-primary);
-    color: #fff;
-    border-color: var(--cms-primary);
-    box-shadow: 0 4px 12px rgba(var(--cms-primary-rgb), 0.3);
-    transform: translateY(-1px);
-  }
-
-  &:active { transform: translateY(0); }
-}
-
 .verify-btn {
   display: inline-flex;
   align-items: center;

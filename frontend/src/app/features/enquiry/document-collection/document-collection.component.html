@@ -151,10 +151,10 @@
                       }
                     </div>
                     <div class="file-info__actions">
-                      <button type="button" class="file-action-btn" matTooltip="View document" (click)="viewFile(row)" aria-label="View document"><mat-icon>visibility</mat-icon></button>
-                      <button type="button" class="file-action-btn" matTooltip="Download" (click)="downloadFile(row)" aria-label="Download document"><mat-icon>download</mat-icon></button>
+                      <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View document" ariaLabel="View document" (clicked)="viewFile(row)"><mat-icon>visibility</mat-icon></cms-row-action-btn>
+                      <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Download" ariaLabel="Download document" (clicked)="downloadFile(row)"><mat-icon>download</mat-icon></cms-row-action-btn>
                        @if (canManageDocuments() && !isRowLocked(row)) {
-                         <button type="button" class="file-action-btn" matTooltip="Replace file" (click)="onBrowseFile(row, fileInput)" [disabled]="row.saving" aria-label="Replace file"><mat-icon>swap_horiz</mat-icon></button>
+                         <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Replace file" ariaLabel="Replace file" [disabled]="row.saving" (clicked)="onBrowseFile(row, fileInput)"><mat-icon>swap_horiz</mat-icon></cms-row-action-btn>
                        }
                      </div>
                    </div>
@@ -213,7 +213,7 @@
                         <button type="button" class="status-btn" [class.status-btn--active-red]="row.status === 'REJECTED'" matTooltip="Mark as rejected" (click)="startReject(row)" [disabled]="row.status === 'REJECTED'" aria-label="Mark rejected"><mat-icon>cancel</mat-icon></button>
                       }
                       @if (row.document) {
-                        <button type="button" class="status-btn status-btn--danger" matTooltip="Clear document record" (click)="removeRow(row)" aria-label="Clear document"><mat-icon>delete_outline</mat-icon></button>
+                        <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Clear document record" ariaLabel="Clear document" (clicked)="removeRow(row)"><mat-icon>delete_outline</mat-icon></cms-row-action-btn>
                       }
                     </div>
                   }
@@ -318,10 +318,10 @@
                         }
                       </div>
                       <div class="file-info__actions">
-                        <button type="button" class="file-action-btn" matTooltip="View document" (click)="viewFile(row)" aria-label="View document"><mat-icon>visibility</mat-icon></button>
-                        <button type="button" class="file-action-btn" matTooltip="Download" (click)="downloadFile(row)" aria-label="Download document"><mat-icon>download</mat-icon></button>
+                        <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View document" ariaLabel="View document" (clicked)="viewFile(row)"><mat-icon>visibility</mat-icon></cms-row-action-btn>
+                        <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Download" ariaLabel="Download document" (clicked)="downloadFile(row)"><mat-icon>download</mat-icon></cms-row-action-btn>
                         @if (canManageDocuments() && !isRowLocked(row)) {
-                          <button type="button" class="file-action-btn" matTooltip="Replace file" (click)="onBrowseFile(row, fileInput)" [disabled]="row.saving" aria-label="Replace file"><mat-icon>swap_horiz</mat-icon></button>
+                          <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Replace file" ariaLabel="Replace file" [disabled]="row.saving" (clicked)="onBrowseFile(row, fileInput)"><mat-icon>swap_horiz</mat-icon></cms-row-action-btn>
                         }
                       </div>
                     </div>
@@ -379,7 +379,7 @@
                           <button type="button" class="status-btn" [class.status-btn--active-red]="row.status === 'REJECTED'" matTooltip="Mark as rejected" (click)="startReject(row)" [disabled]="row.status === 'REJECTED'" aria-label="Mark rejected"><mat-icon>cancel</mat-icon></button>
                         }
                         @if (row.document) {
-                          <button type="button" class="status-btn status-btn--danger" matTooltip="Clear document record" (click)="removeRow(row)" aria-label="Clear document"><mat-icon>delete_outline</mat-icon></button>
+                          <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Clear document record" ariaLabel="Clear document" (clicked)="removeRow(row)"><mat-icon>delete_outline</mat-icon></cms-row-action-btn>
                         }
                       </div>
                     }

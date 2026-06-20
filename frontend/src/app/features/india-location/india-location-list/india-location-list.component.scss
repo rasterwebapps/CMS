@@ -12,8 +12,8 @@
 // ─── Country card (outer accordion) ─────────────────────────────────────────
 
 .country-card {
-  background: var(--surface-card, #fff);
-  border: 1.5px solid var(--color-primary-muted, #c7d2fe);
+  background: var(--cms-bg-card);
+  border: 1.5px solid var(--cms-border-hover);
   border-radius: 12px;
   overflow: hidden;
   transition: box-shadow 0.2s;
@@ -30,37 +30,37 @@
     cursor: pointer;
     user-select: none;
     gap: 12px;
-    background: var(--surface-hover, #f5f3ff);
+    background: var(--cms-bg-hover);
   }
 
   &__states {
-    border-top: 1.5px solid var(--color-primary-muted, #c7d2fe);
+    border-top: 1.5px solid var(--cms-border-hover);
     padding: 12px 16px 16px;
-    background: var(--surface-default, #fafaff);
+    background: var(--cms-bg-subtle);
   }
 }
 
 .code-chip--country {
-  background: var(--color-primary-subtle, #ede9fe);
-  color: var(--color-primary, #6366f1);
-  border: 1px solid var(--color-primary-muted, #c7d2fe);
+  background: var(--cms-primary-light);
+  color: var(--cms-primary);
+  border: 1px solid var(--cms-border-hover);
   font-weight: 700;
   letter-spacing: 0.05em;
 }
 
 .state-count-badge {
   font-size: var(--cms-text-sm);
-  color: var(--text-muted, #6b7280);
-  background: var(--surface-default, #f3f4f6);
-  border: 1px solid var(--border-subtle, #e5e7eb);
+  color: var(--cms-text-muted);
+  background: var(--cms-bg-muted);
+  border: 1px solid var(--cms-border-default);
   border-radius: 20px;
   padding: 1px 8px;
 }
 
 
 .state-card {
-  background: var(--surface-card, #fff);
-  border: 1px solid var(--border-subtle, #e5e7eb);
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
   border-radius: 10px;
   overflow: hidden;
   transition: box-shadow 0.2s;
@@ -71,7 +71,7 @@
 
   &--nested {
     border-radius: 8px;
-    border-color: var(--border-subtle, #e5e7eb);
+    border-color: var(--cms-border-default);
   }
 
   &__header {
@@ -96,19 +96,19 @@
   &__name {
     font-weight: 500;
     font-size: var(--cms-text-base);
-    color: var(--text-primary, #111);
+    color: var(--cms-text-primary);
   }
 
   &__actions-row {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     flex-shrink: 0;
   }
 
   &__chevron {
     transition: transform 0.2s;
-    color: var(--text-muted, #6b7280);
+    color: var(--cms-text-muted);
   }
 
   &--expanded &__chevron {
@@ -117,15 +117,15 @@
 
   &__districts {
     padding: 12px 16px 16px;
-    border-top: 1px solid var(--border-subtle, #e5e7eb);
-    background: var(--surface-hover, #f9fafb);
+    border-top: 1px solid var(--cms-border-default);
+    background: var(--cms-bg-hover);
   }
 }
 
 .no-districts {
   font-size: var(--cms-text-base);
-  color: var(--text-muted, #6b7280);
-  a { color: var(--color-primary, #6366f1); text-decoration: underline; }
+  color: var(--cms-text-muted);
+  a { color: var(--cms-primary); text-decoration: underline; }
 }
 
 .district-chips {
@@ -140,12 +140,12 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: var(--surface-default, #f3f4f6);
-  border: 1px solid var(--border-subtle, #e5e7eb);
+  background: var(--cms-bg-muted);
+  border: 1px solid var(--cms-border-default);
   border-radius: 20px;
   padding: 3px 10px 3px 10px;
   font-size: var(--cms-text-sm);
-  color: var(--text-primary, #111);
+  color: var(--cms-text-primary);
 
   &--inactive {
     opacity: 0.5;
@@ -163,25 +163,25 @@
     border: none;
     border-radius: 999px;
     background: transparent;
-    color: var(--text-muted, #6b7280);
+    color: var(--cms-text-muted);
     cursor: pointer;
     line-height: 1;
     transition: background 0.15s ease, color 0.15s ease;
 
     &:focus-visible {
-      outline: 2px solid var(--cms-primary, #6366f1);
+      outline: 2px solid var(--cms-primary);
       outline-offset: 1px;
     }
   }
 
   &__edit:hover {
     background: rgba(var(--cms-primary-rgb), 0.12);
-    color: var(--cms-primary, #6366f1);
+    color: var(--cms-primary);
   }
 
   &__delete:hover {
     background: rgba(239, 68, 68, 0.10);
-    color: var(--color-danger, #ef4444);
+    color: var(--cms-danger);
   }
 }
 
@@ -189,7 +189,7 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  background: var(--surface-default, #f3f4f6);
+  background: var(--cms-bg-muted);
   border-radius: 4px;
   padding: 2px 7px;
   font-size: var(--cms-text-sm);

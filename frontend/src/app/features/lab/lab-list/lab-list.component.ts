@@ -14,7 +14,9 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 
 @Component({
   selector: 'app-lab-list',
@@ -23,12 +25,14 @@ import { ToastService } from '../../../core/toast/toast.service';
     CmsEmptyStateComponent,
     CmsViewToggleComponent,
     CmsStatusBadgeComponent,
+    CmsTypeBadgeComponent,
     RouterLink, CmsTourButtonComponent,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
     MatDialogModule,
     MatTooltipModule,
+    CmsRowActionButtonComponent,
   ],
   templateUrl: './lab-list.component.html',
   styleUrl: './lab-list.component.scss',

@@ -16,6 +16,7 @@ import { PermissionService } from '../../../core/permissions/permission.service'
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { BLOOD_GROUP_LIST_TOUR } from '../../../shared/tour/tours/blood-group.tours';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 
 @Component({
   selector: 'app-blood-group-list',
@@ -31,6 +32,7 @@ import { BLOOD_GROUP_LIST_TOUR } from '../../../shared/tour/tours/blood-group.to
     CmsViewToggleComponent,
     CmsStatusBadgeComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
   ],
   templateUrl: './blood-group-list.component.html',
   styleUrl: './blood-group-list.component.scss',

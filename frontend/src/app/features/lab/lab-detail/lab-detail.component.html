@@ -118,7 +118,7 @@
               <ng-container matColumnDef="role">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Role</th>
                 <td mat-cell *matCellDef="let assignment">
-                  <mat-chip>{{ getRoleLabel(assignment.role) }}</mat-chip>
+                  <cms-type-badge [value]="assignment.role" [label]="getRoleLabel(assignment.role)" />
                 </td>
               </ng-container>
 
@@ -132,9 +132,9 @@
                 <td mat-cell *matCellDef="let assignment">
                   @if (canManageLabs()) {
                     <div class="row-actions">
-                      <button class="action-btn action-btn--danger" mat-icon-button (click)="removeAssignment(assignment.id)" matTooltip="Remove">
+                      <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Remove" ariaLabel="Remove assignment" (clicked)="removeAssignment(assignment.id)">
                         <mat-icon>delete</mat-icon>
-                      </button>
+                      </cms-row-action-btn>
                     </div>
                   }
                 </td>

@@ -102,17 +102,10 @@
   th { font-weight: 600; }
 }
 
-.criterion-badge {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: var(--cms-text-sm);
-  font-weight: 500;
-  background: var(--mat-sys-secondary-container);
-  color: var(--mat-sys-on-secondary-container);
-}
-
 .actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   text-align: right;
   width: 56px;
 }

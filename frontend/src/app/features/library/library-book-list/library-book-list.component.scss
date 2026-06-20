@@ -33,11 +33,21 @@
 .status-pill {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   padding: 3px 10px;
   border-radius: 12px;
   font-size: 0.78rem;
   font-weight: 600;
   white-space: nowrap;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
 
   &.status--available  { background: #dcfce7; color: #15803d; }
   &.status--issued     { background: #fef9c3; color: #a16207; }
@@ -47,8 +57,11 @@
 }
 
 .actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
   white-space: nowrap;
-  text-align: right;
 }
 
 .mlp-loading-row {

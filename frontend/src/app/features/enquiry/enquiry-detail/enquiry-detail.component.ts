@@ -9,6 +9,7 @@ import { EnquiryService } from '../enquiry.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import {
   Enquiry,
   EnquiryDocument,
@@ -44,6 +45,7 @@ import { printFeeReceipt, printRefundVoucher, downloadRefundVoucher, RefundVouch
     CmsStatusBadgeComponent,
     CmsSkeletonComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
     FeeReceiptDialogComponent,
   ],
   templateUrl: './enquiry-detail.component.html',
