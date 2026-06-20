@@ -223,6 +223,12 @@ public class CommissionExplorerService {
     private String resolveFacultyName(Long facultyId) {
         if (facultyId == null) return null;
         return facultyRepository.findById(facultyId)
-                .map(f -> f.getFirstName() + " " + f.getLastName()).orElse(null);
+                .map(f -> {
+                    String first = f.getFirstName() != null ? f.getFirstName() : "";
+                    String last = f.getLastName() != null ? f.getLastName() : "";
+                    return (first + " " + last).trim();
+                })
+                .filter(name -> !name.isBlank())
+                .orElse(null);
     }
 }
