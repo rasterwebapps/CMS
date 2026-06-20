@@ -29,6 +29,7 @@ public enum DocumentType {
     TRANSFER_CERTIFICATE("School Transfer Certificate"),
     COLLEGE_OR_SCHOOL_TC("College Transfer Certificate"),
     MIGRATION_CERTIFICATE("Migration Certificate"),
+    ALLOTMENT_ORDER("Allotment Order"),
 
     // Identity
     AADHAR_CARD("Aadhar Card"),
