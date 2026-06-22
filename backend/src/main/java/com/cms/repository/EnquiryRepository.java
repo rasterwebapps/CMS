@@ -69,7 +69,7 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long> {
           AND (:agentId IS NULL OR e.agent.id = :agentId)
           AND (:fromDate IS NULL OR e.enquiryDate >= :fromDate)
           AND (:toDate IS NULL OR e.enquiryDate <= :toDate)
-          AND (:search IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', :search, '%')))
+          AND (:search IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))
         ORDER BY e.updatedAt DESC
         """)
     List<Enquiry> findCommissions(

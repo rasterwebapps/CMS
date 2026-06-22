@@ -155,7 +155,7 @@ export class CommissionExplorerListComponent implements OnInit {
     this.loading.set(true);
     this.explorerService.getAll().subscribe({
       next: (records) => { this.allRecords.set(records); this.loading.set(false); },
-      error: ()        => { this.toast.error('Failed to load commission records'); this.loading.set(false); },
+      error: (err)     => { this.toast.error(this.apiError(err, 'Failed to load commission records')); this.loading.set(false); },
     });
   }
 
