@@ -10,10 +10,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.cms.config.PermSecurityBean;
 import com.cms.dto.AdmissionDocumentResponse;
 import com.cms.dto.DocumentChecklistResponse;
 import com.cms.dto.DocumentFileDownload;
@@ -40,15 +42,18 @@ public class AdmissionDocumentService {
     private final EnquiryDocumentHistoryRepository historyRepository;
     private final AdmissionRepository admissionRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final PermSecurityBean permSecurityBean;
 
     public AdmissionDocumentService(EnquiryDocumentRepository documentRepository,
                                     EnquiryDocumentHistoryRepository historyRepository,
                                     AdmissionRepository admissionRepository,
-                                    CurrentUserResolver currentUserResolver) {
+                                    CurrentUserResolver currentUserResolver,
+                                    PermSecurityBean permSecurityBean) {
         this.documentRepository = documentRepository;
         this.historyRepository = historyRepository;
         this.admissionRepository = admissionRepository;
         this.currentUserResolver = currentUserResolver;
+        this.permSecurityBean = permSecurityBean;
     }
 
     public List<AdmissionDocumentResponse> findByAdmissionId(Long admissionId) {
@@ -57,9 +62,14 @@ public class AdmissionDocumentService {
             .toList();
     }
 
-    @Transactional
     public AdmissionDocumentResponse uploadFile(Long admissionId, DocumentType documentType,
                                                 String remarks, MultipartFile file) {
+        return uploadFile(admissionId, documentType, remarks, file, false);
+    }
+
+    @Transactional
+    public AdmissionDocumentResponse uploadFile(Long admissionId, DocumentType documentType,
+                                                String remarks, MultipartFile file, boolean forceOverride) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File is required");
         }
@@ -79,8 +89,14 @@ public class AdmissionDocumentService {
                 return d;
             });
 
-        if (document.getId() != null && document.getStatus() == DocumentVerificationStatus.VERIFIED) {
-            throw new IllegalStateException("Cannot replace a verified document");
+        boolean wasVerified = document.getId() != null && document.getStatus() == DocumentVerificationStatus.VERIFIED;
+        if (wasVerified) {
+            if (!forceOverride) {
+                throw new IllegalStateException("Cannot replace a verified document");
+            }
+            if (!permSecurityBean.has("DOCUMENT_VERIFIED_OVERRIDE")) {
+                throw new AccessDeniedException("Replacing a verified document requires override permission");
+            }
         }
 
         DocumentVerificationStatus previousStatus = document.getId() != null ? document.getStatus() : null;
@@ -95,6 +111,10 @@ public class AdmissionDocumentService {
         document.setFileSize(file.getSize());
         document.setUploadedAt(Instant.now());
         document.setStatus(DocumentVerificationStatus.UPLOADED);
+        if (wasVerified) {
+            document.setVerifiedBy(null);
+            document.setVerifiedAt(null);
+        }
         if (remarks != null && !remarks.isBlank()) {
             document.setRemarks(remarks.trim());
         }

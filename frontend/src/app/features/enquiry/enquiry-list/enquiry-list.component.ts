@@ -21,6 +21,7 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
 
 export const STATUS_LABELS: Record<string, string> = {
   ENQUIRED:             'Enquired',
@@ -46,6 +47,9 @@ export const STATUS_LABELS: Record<string, string> = {
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
+      CmsIconDeleteComponent,
+      CmsIconEditComponent,
+      CmsIconViewComponent,
   ],
   templateUrl: './enquiry-list.component.html',
   styleUrl: './enquiry-list.component.scss',

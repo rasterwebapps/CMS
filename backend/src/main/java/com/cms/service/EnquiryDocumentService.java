@@ -8,10 +8,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.cms.config.PermSecurityBean;
 import com.cms.dto.DocumentFileDownload;
 import com.cms.dto.DocumentVerificationStatusResponse;
 import com.cms.dto.EnquiryDocumentHistoryResponse;
@@ -41,17 +43,20 @@ public class EnquiryDocumentService {
     private final EnquiryRepository enquiryRepository;
     private final EnquiryStatusHistoryRepository statusHistoryRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final PermSecurityBean permSecurityBean;
 
     public EnquiryDocumentService(EnquiryDocumentRepository documentRepository,
                                    EnquiryDocumentHistoryRepository historyRepository,
                                    EnquiryRepository enquiryRepository,
                                    EnquiryStatusHistoryRepository statusHistoryRepository,
-                                   CurrentUserResolver currentUserResolver) {
+                                   CurrentUserResolver currentUserResolver,
+                                   PermSecurityBean permSecurityBean) {
         this.documentRepository = documentRepository;
         this.historyRepository = historyRepository;
         this.enquiryRepository = enquiryRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.currentUserResolver = currentUserResolver;
+        this.permSecurityBean = permSecurityBean;
     }
 
     public List<EnquiryDocumentHistoryResponse> getHistory(Long documentId) {
@@ -198,11 +203,19 @@ public class EnquiryDocumentService {
      * updated in place; otherwise a new record is created. The verification
      * status is set to UPLOADED on successful upload.
      */
-    @Transactional
     public EnquiryDocumentResponse uploadFile(Long enquiryId,
                                                DocumentType documentType,
                                                String remarks,
                                                MultipartFile file) {
+        return uploadFile(enquiryId, documentType, remarks, file, false);
+    }
+
+    @Transactional
+    public EnquiryDocumentResponse uploadFile(Long enquiryId,
+                                               DocumentType documentType,
+                                               String remarks,
+                                               MultipartFile file,
+                                               boolean forceOverride) {
         if (documentType == null) {
             throw new IllegalArgumentException("documentType is required");
         }
@@ -223,6 +236,16 @@ public class EnquiryDocumentService {
             .findFirst()
             .orElseGet(() -> new EnquiryDocument(enquiry, documentType, DocumentVerificationStatus.NOT_UPLOADED));
 
+        boolean wasVerified = document.getId() != null && document.getStatus() == DocumentVerificationStatus.VERIFIED;
+        if (wasVerified) {
+            if (!forceOverride) {
+                throw new IllegalStateException("Cannot replace a verified document");
+            }
+            if (!permSecurityBean.has("DOCUMENT_VERIFIED_OVERRIDE")) {
+                throw new AccessDeniedException("Replacing a verified document requires override permission");
+            }
+        }
+
         DocumentVerificationStatus previousStatus = document.getId() != null ? document.getStatus() : null;
 
         try {
@@ -235,6 +258,10 @@ public class EnquiryDocumentService {
         document.setFileSize(file.getSize());
         document.setUploadedAt(Instant.now());
         document.setStatus(DocumentVerificationStatus.UPLOADED);
+        if (wasVerified) {
+            document.setVerifiedBy(null);
+            document.setVerifiedAt(null);
+        }
         // Always overwrite remarks so a previous rejection reason is cleared
         // from the active record. The old value is preserved in history via
         // the recordHistory call below.

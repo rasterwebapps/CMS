@@ -19,6 +19,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { FEE_STRUCTURE_LIST_TOUR } from '../../../shared/tour/tours/fee-structure.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
+import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 
 interface Program { id: number; name: string; }
 interface Course  { id: number; name: string; }
@@ -43,6 +44,8 @@ type Gender = 'MALE' | 'FEMALE' | 'OTHER' | null;
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
+      CmsIconDeleteComponent,
+      CmsIconEditComponent,
   ],
   templateUrl: './fee-structure-list.component.html',
   styleUrl: './fee-structure-list.component.scss',

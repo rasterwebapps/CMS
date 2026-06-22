@@ -16,6 +16,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
+import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-co-po-mapping',
@@ -33,7 +34,10 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
     MatTooltipModule,
     CmsEmptyStateComponent,
     CmsTypeBadgeComponent,
-    CmsRowActionButtonComponent],
+    CmsRowActionButtonComponent,
+    CmsIconDeleteComponent,
+    CmsIconEditComponent,
+],
   templateUrl: './co-po-mapping.component.html',
   styleUrl: './co-po-mapping.component.scss',
 })

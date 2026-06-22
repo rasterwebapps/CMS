@@ -17,6 +17,7 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
+import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-maintenance-list',
@@ -28,7 +29,10 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
     CmsTypeBadgeComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],
+    MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
+    CmsIconDeleteComponent,
+    CmsIconEditComponent,
+  ],
   templateUrl: './maintenance-list.component.html',
   styleUrl: './maintenance-list.component.scss',
 })

@@ -1062,7 +1062,8 @@ app-root {
   }
 
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.35;
+    filter: grayscale(1);
     cursor: not-allowed;
     pointer-events: none;
   }
@@ -1119,6 +1120,17 @@ app-root {
     &:hover:not(:disabled) {
       background: var(--cms-text-secondary);
       border-color: var(--cms-text-secondary);
+      color: #fff;
+    }
+  }
+
+  &--warning {
+    border-color: var(--cms-warning);
+    color: var(--cms-warning);
+    background: color-mix(in srgb, var(--cms-warning) 10%, transparent);
+
+    &:hover:not(:disabled) {
+      background: var(--cms-warning);
       color: #fff;
     }
   }

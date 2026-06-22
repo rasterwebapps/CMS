@@ -16,6 +16,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
+import { CmsIconDeleteComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-attendance-list',
@@ -33,7 +34,9 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
     MatTooltipModule,
     CmsEmptyStateComponent,
     CmsRowActionButtonComponent,
-    CmsTypeBadgeComponent],
+    CmsTypeBadgeComponent,
+    CmsIconDeleteComponent,
+],
   templateUrl: './attendance-list.component.html',
   styleUrl: './attendance-list.component.scss',
 })

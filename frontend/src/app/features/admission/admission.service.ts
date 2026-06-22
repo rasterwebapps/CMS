@@ -87,11 +87,13 @@ export class AdmissionService {
     documentType: string,
     file: File,
     remarks?: string,
+    force = false,
   ): Observable<AdmissionDocumentResponse> {
     const formData = new FormData();
     formData.append('documentType', documentType);
     formData.append('file', file);
     if (remarks) formData.append('remarks', remarks);
+    if (force) formData.append('force', 'true');
     return this.http.post<AdmissionDocumentResponse>(
       `${this.baseUrl}/${admissionId}/documents/upload`,
       formData,

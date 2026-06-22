@@ -213,6 +213,10 @@ export class AdmissionDetailComponent implements OnInit {
     return this.permissionService.has('DOCUMENT_SUBMISSION_MANAGE');
   }
 
+  canForceReplaceDocuments(): boolean {
+    return this.permissionService.has('DOCUMENT_VERIFIED_OVERRIDE');
+  }
+
   viewForm(): void {
     const data = this.buildFormData();
     if (data) viewAdmissionForm(data);

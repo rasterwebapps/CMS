@@ -14,6 +14,7 @@ import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-staff-referrer-list',
@@ -30,6 +31,8 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
     CmsViewToggleComponent,
     CmsStatusBadgeComponent,
     CmsRowActionButtonComponent,
+      CmsIconEditComponent,
+      CmsIconToggleStatusComponent,
   ],
   templateUrl: './staff-referrer-list.component.html',
   styleUrl: './staff-referrer-list.component.scss',

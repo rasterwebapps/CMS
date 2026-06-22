@@ -17,6 +17,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { EQUIPMENT_LIST_TOUR } from '../../../shared/tour/tours/equipment.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-equipment-list',
@@ -30,6 +31,8 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
     MatDialogModule, MatTooltipModule,
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
+      CmsIconDeleteComponent,
+      CmsIconEditComponent,
   ],
   templateUrl: './equipment-list.component.html',
   styleUrl: './equipment-list.component.scss',

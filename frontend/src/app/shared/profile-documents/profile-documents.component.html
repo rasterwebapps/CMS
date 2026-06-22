@@ -101,6 +101,17 @@
                           <mat-icon>lock</mat-icon>
                         </span>
                       } @else {
+                        @if (slot.status === 'VERIFIED' && canForceReplace) {
+                          <button
+                            mat-icon-button
+                            color="warn"
+                            matTooltip="Force replace — resets verification status"
+                            (click)="forceReplace(slot)"
+                          >
+                            <mat-icon>lock_reset</mat-icon>
+                          </button>
+                        }
+
                         @if (canManage && slot.status !== 'VERIFIED') {
                           <button
                             mat-icon-button

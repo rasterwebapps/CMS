@@ -126,12 +126,16 @@ export class EnquiryService {
     documentType: string,
     file: File,
     remarks?: string,
+    force = false,
   ): Observable<EnquiryDocument> {
     const form = new FormData();
     form.append('documentType', documentType);
     form.append('file', file, file.name);
     if (remarks) {
       form.append('remarks', remarks);
+    }
+    if (force) {
+      form.append('force', 'true');
     }
     return this.http.post<EnquiryDocument>(`${this.baseUrl}/${enquiryId}/documents/upload`, form);
   }

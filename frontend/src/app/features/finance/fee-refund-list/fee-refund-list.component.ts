@@ -26,6 +26,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
 import { printRefundVoucher, downloadRefundVoucher, RefundVoucherData } from '../../../shared/utils/print-receipt.utils';
+import { CmsIconViewComponent } from '../../../shared/icons';
 
 type PanelMode = 'view' | 'approve' | 'reject';
 
@@ -39,6 +40,7 @@ type PanelMode = 'view' | 'approve' | 'reject';
     CmsRowActionButtonComponent, CmsTypeBadgeComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
+      CmsIconViewComponent,
   ],
   templateUrl: './fee-refund-list.component.html',
   styleUrl: './fee-refund-list.component.scss',

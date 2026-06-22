@@ -39,6 +39,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { ADMISSION_LIST_TOUR } from '../../../shared/tour/tours/admission.tours';
 import { computeInitials } from '../../../shared/utils/initials';
+import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
 
 const DEFAULT_PAGE_SIZE = 25;
 const SEARCH_MIN_LENGTH = 3;
@@ -72,7 +73,10 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
     CmsStatusBadgeComponent,
-  ],
+    CmsIconDeleteComponent,
+  CmsIconEditComponent,
+  CmsIconViewComponent,
+],
   templateUrl: './admission-list.component.html',
   styleUrl: './admission-list.component.scss',
 })

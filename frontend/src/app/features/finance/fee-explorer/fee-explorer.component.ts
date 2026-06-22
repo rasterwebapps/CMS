@@ -15,6 +15,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { FEE_EXPLORER_TOUR } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { computeInitials } from '../../../shared/utils/initials';
+import { CmsIconViewComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-fee-explorer',
@@ -23,6 +24,7 @@ import { computeInitials } from '../../../shared/utils/initials';
     InrPipe, MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent,
     CmsRowActionButtonComponent,
+      CmsIconViewComponent,
   ],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',

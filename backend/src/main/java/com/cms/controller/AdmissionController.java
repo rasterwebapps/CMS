@@ -168,9 +168,10 @@ public class AdmissionController {
             @PathVariable Long admissionId,
             @RequestParam("documentType") DocumentType documentType,
             @RequestParam(value = "remarks", required = false) String remarks,
+            @RequestParam(value = "force", required = false, defaultValue = "false") boolean force,
             @RequestPart("file") MultipartFile file) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(admissionDocumentService.uploadFile(admissionId, documentType, remarks, file));
+            .body(admissionDocumentService.uploadFile(admissionId, documentType, remarks, file, force));
     }
 
     @GetMapping("/documents/{id}/download")

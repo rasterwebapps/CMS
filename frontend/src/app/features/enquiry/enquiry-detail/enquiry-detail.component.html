@@ -209,11 +209,29 @@
                   <cms-status-badge [status]="d.status || 'PENDING'" />
                   @if (d.hasFile) {
                     <div class="doc-card-actions row-actions">
-                      <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View" ariaLabel="View document" (clicked)="viewDocumentFile(d)">
-                        <mat-icon>visibility</mat-icon>
-                      </cms-row-action-btn>
+                      @if (d.status === 'UPLOADED' && canVerifyDocuments()) {
+                        <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Verify" ariaLabel="Verify document" [disabled]="verifyingDocumentId() === d.id" (clicked)="verifyDocumentFile(d)">
+                          <mat-icon>check_circle</mat-icon>
+                        </cms-row-action-btn>
+                      }
+                      @if (d.status === 'VERIFIED' && canForceReplace()) {
+                        <input
+                          #forceReplaceInput
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                          style="display:none"
+                          (change)="onForceReplaceFileSelected($event)"
+                          [attr.aria-label]="'Force replace verified file for ' + d.documentType"
+                        />
+                        <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Force replace — resets verification" ariaLabel="Force replace verified document" (clicked)="forceReplaceDocumentFile(d, forceReplaceInput)">
+                          <mat-icon>lock_reset</mat-icon>
+                        </cms-row-action-btn>
+                      }
                       <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Download" ariaLabel="Download document" (clicked)="downloadDocumentFile(d)">
                         <mat-icon>download</mat-icon>
+                      </cms-row-action-btn>
+                      <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View" ariaLabel="View document" (clicked)="viewDocumentFile(d)">
+                        <mat-icon>visibility</mat-icon>
                       </cms-row-action-btn>
                     </div>
                   }

@@ -98,8 +98,9 @@ public class EnquiryDocumentController {
             @PathVariable Long enquiryId,
             @RequestParam("documentType") DocumentType documentType,
             @RequestParam(value = "remarks", required = false) String remarks,
+            @RequestParam(value = "force", required = false, defaultValue = "false") boolean force,
             @RequestPart("file") MultipartFile file) {
-        EnquiryDocumentResponse response = documentService.uploadFile(enquiryId, documentType, remarks, file);
+        EnquiryDocumentResponse response = documentService.uploadFile(enquiryId, documentType, remarks, file, force);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

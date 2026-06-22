@@ -37,6 +37,7 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
 
 const DEFAULT_PAGE_SIZE = 25;
 const SEARCH_MIN_LENGTH = 3;
@@ -67,6 +68,9 @@ const SORT_FIELD_MAP: Record<string, string> = {
     MatSortModule,
     MatDialogModule,
     MatTooltipModule,
+      CmsIconDeleteComponent,
+      CmsIconEditComponent,
+      CmsIconViewComponent,
   ],
   templateUrl: './student-list.component.html',
   styleUrl: './student-list.component.scss',

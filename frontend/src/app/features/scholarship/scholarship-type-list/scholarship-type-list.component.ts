@@ -14,11 +14,12 @@ import { SCHOLARSHIP_TYPE_LIST_TOUR } from '../../../shared/tour/tours/scholarsh
 import { ScholarshipType } from '../scholarship.model';
 import { ScholarshipService } from '../scholarship.service';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-scholarship-type-list',
   standalone: true,
-  imports: [RouterLink, MatIconModule, MatProgressSpinnerModule, MatTableModule, MatSortModule, InrPipe, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent, CmsRowActionButtonComponent],
+  imports: [RouterLink, MatIconModule, MatProgressSpinnerModule, MatTableModule, MatSortModule, InrPipe, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent, CmsRowActionButtonComponent, CmsIconEditComponent, CmsIconToggleStatusComponent],
   templateUrl: './scholarship-type-list.component.html',
   styleUrl: './scholarship-type-list.component.scss',
 })

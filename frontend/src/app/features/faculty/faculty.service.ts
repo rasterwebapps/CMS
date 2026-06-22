@@ -98,11 +98,13 @@ export class FacultyService {
     documentType: string,
     file: File,
     remarks?: string,
+    force = false,
   ): Observable<FacultyDocument> {
     const formData = new FormData();
     formData.append('documentType', documentType);
     formData.append('file', file);
     if (remarks) formData.append('remarks', remarks);
+    if (force) formData.append('force', 'true');
     return this.http.post<FacultyDocument>(
       `${this.baseUrl}/${facultyId}/documents/upload`,
       formData,

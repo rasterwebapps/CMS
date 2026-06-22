@@ -20,6 +20,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { DOCUMENT_SUBMISSION_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
+import { CmsIconViewComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-document-submission-list',
@@ -32,6 +33,7 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
+      CmsIconViewComponent,
   ],
   templateUrl: './document-submission-list.component.html',
   styleUrl: './document-submission-list.component.scss',

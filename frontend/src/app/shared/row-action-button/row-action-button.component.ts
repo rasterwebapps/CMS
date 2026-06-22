@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { MatTooltipModule, TooltipPosition } from '@angular/material/tooltip';
 
-export type RowActionVariant = 'accent' | 'success' | 'info' | 'danger' | 'neutral';
+export type RowActionVariant = 'accent' | 'success' | 'info' | 'danger' | 'neutral' | 'warning';
 
 /**
  * Single source of truth for table row-action buttons across the app —

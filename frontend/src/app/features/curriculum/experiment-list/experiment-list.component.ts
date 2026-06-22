@@ -17,6 +17,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { TourService } from '../../../shared/tour/tour.service';
 import { EXPERIMENT_LIST_TOUR } from '../../../shared/tour/tours/experiment.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-experiment-list',
@@ -33,7 +34,10 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
-    CmsRowActionButtonComponent],
+    CmsRowActionButtonComponent,
+    CmsIconDeleteComponent,
+    CmsIconEditComponent,
+],
   templateUrl: './experiment-list.component.html',
   styleUrl: './experiment-list.component.scss',
 })

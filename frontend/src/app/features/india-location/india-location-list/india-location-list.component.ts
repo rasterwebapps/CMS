@@ -24,6 +24,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { INDIA_LOCATION_LIST_TOUR } from '../../../shared/tour/tours/india-location.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
+import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-india-location-list',
@@ -40,6 +41,8 @@ import { PermissionService } from '../../../core/permissions/permission.service'
     CmsStatusBadgeComponent,
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
+      CmsIconEditComponent,
+      CmsIconToggleStatusComponent,
   ],
   templateUrl: './india-location-list.component.html',
   styleUrl: './india-location-list.component.scss',

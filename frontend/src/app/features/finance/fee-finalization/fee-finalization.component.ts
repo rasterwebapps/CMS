@@ -20,6 +20,7 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments';
+import { CmsIconEditComponent } from '../../../shared/icons';
 
 interface YearFeeRow {
   yearNumber: number;
@@ -40,6 +41,7 @@ interface Program { id: number; name: string; durationYears: number; }
     MatTableModule, MatTooltipModule,
     MatPaginatorModule, MatSortModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent,
+      CmsIconEditComponent,
   ],
   templateUrl: './fee-finalization.component.html',
   styleUrl: './fee-finalization.component.scss',

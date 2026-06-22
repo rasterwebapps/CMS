@@ -4,10 +4,12 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.cms.config.PermSecurityBean;
 import com.cms.dto.DocumentFileDownload;
 import com.cms.dto.FacultyDocumentHistoryResponse;
 import com.cms.dto.FacultyDocumentRequest;
@@ -33,15 +35,18 @@ public class FacultyDocumentService {
     private final FacultyDocumentHistoryRepository historyRepository;
     private final FacultyRepository facultyRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final PermSecurityBean permSecurityBean;
 
     public FacultyDocumentService(FacultyDocumentRepository documentRepository,
                                    FacultyDocumentHistoryRepository historyRepository,
                                    FacultyRepository facultyRepository,
-                                   CurrentUserResolver currentUserResolver) {
+                                   CurrentUserResolver currentUserResolver,
+                                   PermSecurityBean permSecurityBean) {
         this.documentRepository = documentRepository;
         this.historyRepository = historyRepository;
         this.facultyRepository = facultyRepository;
         this.currentUserResolver = currentUserResolver;
+        this.permSecurityBean = permSecurityBean;
     }
 
     public List<FacultyDocumentResponse> findByFacultyId(Long facultyId) {
@@ -122,9 +127,14 @@ public class FacultyDocumentService {
         documentRepository.deleteById(id);
     }
 
-    @Transactional
     public FacultyDocumentResponse uploadFile(Long facultyId, DocumentType documentType,
                                                String remarks, MultipartFile file) {
+        return uploadFile(facultyId, documentType, remarks, file, false);
+    }
+
+    @Transactional
+    public FacultyDocumentResponse uploadFile(Long facultyId, DocumentType documentType,
+                                               String remarks, MultipartFile file, boolean forceOverride) {
         if (documentType == null) {
             throw new IllegalArgumentException("documentType is required");
         }
@@ -145,7 +155,12 @@ public class FacultyDocumentService {
             .orElseGet(() -> new FacultyDocument(faculty, documentType, DocumentVerificationStatus.NOT_UPLOADED));
 
         if (document.getStatus() == DocumentVerificationStatus.VERIFIED) {
-            throw new IllegalStateException("Verified documents cannot be replaced");
+            if (!forceOverride) {
+                throw new IllegalStateException("Verified documents cannot be replaced");
+            }
+            if (!permSecurityBean.has("DOCUMENT_VERIFIED_OVERRIDE")) {
+                throw new AccessDeniedException("Replacing a verified document requires override permission");
+            }
         }
 
         DocumentVerificationStatus previousStatus = document.getId() != null ? document.getStatus() : null;

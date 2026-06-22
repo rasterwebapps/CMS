@@ -17,6 +17,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { COMMUNITY_LIST_TOUR } from '../../../shared/tour/tours/community.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-community-list',
@@ -33,7 +34,9 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
     CmsStatusBadgeComponent,
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
-  ],
+    CmsIconEditComponent,
+  CmsIconToggleStatusComponent,
+],
   templateUrl: './community-list.component.html',
   styleUrl: './community-list.component.scss',
 })

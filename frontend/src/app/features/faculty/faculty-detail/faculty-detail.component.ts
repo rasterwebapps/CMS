@@ -90,6 +90,10 @@ export class FacultyDetailComponent implements OnInit {
     return this.permissionService.has('FACULTY_MANAGE');
   }
 
+  protected canForceReplaceDocuments(): boolean {
+    return this.permissionService.has('DOCUMENT_VERIFIED_OVERRIDE');
+  }
+
   protected editFaculty(): void {
     if (!this.canManageFaculty()) return;
 

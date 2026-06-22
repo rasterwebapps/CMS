@@ -14,6 +14,7 @@ import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-system-configuration-list',
@@ -26,6 +27,8 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
     RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatTooltipModule,
     CmsRowActionButtonComponent,
+      CmsIconDeleteComponent,
+      CmsIconEditComponent,
   ],
   templateUrl: './system-configuration-list.component.html',
   styleUrl: './system-configuration-list.component.scss',

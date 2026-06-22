@@ -4,8 +4,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { EnquiryService } from '../enquiry.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
@@ -41,6 +44,7 @@ import { printFeeReceipt, printRefundVoucher, downloadRefundVoucher, RefundVouch
     MatTabsModule,
     MatButtonModule,
     MatIconModule,
+    MatDialogModule,
     CmsEmptyStateComponent,
     CmsStatusBadgeComponent,
     CmsSkeletonComponent,
@@ -57,6 +61,10 @@ export class EnquiryDetailComponent implements OnInit {
   private readonly enquiryService = inject(EnquiryService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  private readonly permissionService = inject(PermissionService);
+  private readonly dialog = inject(MatDialog);
+
+  private forceReplaceDocument: EnquiryDocument | null = null;
 
   protected readonly enquiry              = signal<Enquiry | null>(null);
   protected readonly documents            = signal<EnquiryDocument[]>([]);
@@ -64,6 +72,7 @@ export class EnquiryDetailComponent implements OnInit {
   protected readonly statusHistory        = signal<EnquiryStatusHistoryResponse[]>([]);
   protected readonly creditApplications   = signal<EnquiryCreditApplication[]>([]);
   protected readonly loading              = signal(true);
+  protected readonly verifyingDocumentId  = signal<number | null>(null);
   protected readonly selectedReceipt      = signal<ReceiptDisplayData | null>(null);
 
   protected readonly selectedTabIndex = signal(0);
@@ -190,6 +199,78 @@ export class EnquiryDetailComponent implements OnInit {
     this.enquiryService.downloadDocumentFile(d.enquiryId, d.id).subscribe({
       next: (blob) => this.triggerDownload(blob, d.fileName ?? d.documentType),
       error: () => this.toast.error('Failed to download document'),
+    });
+  }
+
+  /** Whether the current user can force-replace an already-VERIFIED document (BR-26 override). */
+  protected canForceReplace(): boolean {
+    return this.permissionService.has('DOCUMENT_VERIFIED_OVERRIDE');
+  }
+
+  /** Whether the current user can verify documents (re-verification after a force-replace, etc.). */
+  protected canVerifyDocuments(): boolean {
+    return this.permissionService.has('DOCUMENT_VERIFICATION_MANAGE');
+  }
+
+  /**
+   * Verifies an UPLOADED document directly from this screen. Needed because the
+   * dedicated verification screen only loads enquiries in DOCUMENTS_SUBMITTED
+   * status, so a document reset to UPLOADED by a force-replace on a later-stage
+   * enquiry (e.g. ADMITTED) has nowhere else to be re-verified.
+   */
+  protected verifyDocumentFile(d: EnquiryDocument): void {
+    if (!this.canVerifyDocuments() || d.status !== 'UPLOADED' || this.verifyingDocumentId() !== null) return;
+    this.verifyingDocumentId.set(d.id);
+    this.enquiryService.verifyDocument(d.enquiryId, d.id).subscribe({
+      next: (saved) => {
+        this.documents.update((docs) => docs.map((x) => (x.id === d.id ? saved : x)));
+        this.toast.success(`${d.documentType} verified`);
+        this.verifyingDocumentId.set(null);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? `Failed to verify ${d.documentType}`);
+        this.verifyingDocumentId.set(null);
+      },
+    });
+  }
+
+  /** Opens the file picker to force-replace a VERIFIED document, resetting it to Uploaded. */
+  protected forceReplaceDocumentFile(d: EnquiryDocument, input: HTMLInputElement): void {
+    if (!this.canForceReplace() || d.status !== 'VERIFIED') return;
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: 'Force Replace Document',
+          message: `"${d.documentType}" is verified. Replacing it will reset its status to Uploaded and require re-verification. Continue?`,
+          confirmText: 'Replace',
+          cancelText: 'Cancel',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) return;
+        this.forceReplaceDocument = d;
+        input.value = '';
+        input.click();
+      });
+  }
+
+  protected onForceReplaceFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    const doc = this.forceReplaceDocument;
+    this.forceReplaceDocument = null;
+    input.value = '';
+    if (!file || !doc) return;
+
+    this.enquiryService.uploadDocumentFile(doc.enquiryId, doc.documentType, file, undefined, true).subscribe({
+      next: (saved) => {
+        this.documents.update((docs) => docs.map((x) => (x.id === doc.id ? saved : x)));
+        this.toast.success(`${doc.documentType} replaced`);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? `Failed to replace ${doc.documentType}`);
+      },
     });
   }
 

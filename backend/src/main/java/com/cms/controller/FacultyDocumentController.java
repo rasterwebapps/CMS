@@ -96,9 +96,10 @@ public class FacultyDocumentController {
             @PathVariable Long facultyId,
             @RequestParam("documentType") DocumentType documentType,
             @RequestParam(value = "remarks", required = false) String remarks,
+            @RequestParam(value = "force", required = false, defaultValue = "false") boolean force,
             @RequestPart("file") MultipartFile file) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(documentService.uploadFile(facultyId, documentType, remarks, file));
+            .body(documentService.uploadFile(facultyId, documentType, remarks, file, force));
     }
 
     @GetMapping("/{id}/download")

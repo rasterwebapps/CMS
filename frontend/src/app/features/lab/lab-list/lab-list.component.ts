@@ -17,6 +17,7 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-lab-list',
@@ -33,6 +34,9 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
     MatDialogModule,
     MatTooltipModule,
     CmsRowActionButtonComponent,
+      CmsIconDeleteComponent,
+      CmsIconEditComponent,
+      CmsIconViewComponent,
   ],
   templateUrl: './lab-list.component.html',
   styleUrl: './lab-list.component.scss',

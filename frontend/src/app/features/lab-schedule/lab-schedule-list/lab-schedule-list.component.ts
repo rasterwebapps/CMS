@@ -17,6 +17,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
+import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-lab-schedule-list',
@@ -27,7 +28,10 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],
+    MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
+    CmsIconDeleteComponent,
+    CmsIconEditComponent,
+  ],
   templateUrl: './lab-schedule-list.component.html',
   styleUrl: './lab-schedule-list.component.scss',
 })

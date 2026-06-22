@@ -15,6 +15,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-examination-list',
@@ -23,7 +24,10 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
     CmsEmptyStateComponent,
     CmsRowActionButtonComponent,
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatProgressSpinnerModule, MatDialogModule, MatTooltipModule],
+    MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
+    CmsIconDeleteComponent,
+    CmsIconEditComponent,
+  ],
   templateUrl: './examination-list.component.html',
   styleUrl: './examination-list.component.scss',
 })

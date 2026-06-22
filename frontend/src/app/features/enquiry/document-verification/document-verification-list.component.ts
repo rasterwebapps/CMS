@@ -17,6 +17,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
+import { CmsIconViewComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-document-verification-list',
@@ -28,6 +29,7 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
     CmsEmptyStateComponent,
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
+      CmsIconViewComponent,
   ],
   templateUrl: './document-verification-list.component.html',
   styleUrl: './document-verification-list.component.scss',

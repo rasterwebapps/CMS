@@ -16,6 +16,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { PROGRAM_LIST_TOUR } from '../../../shared/tour/tours/program.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-program-list',
@@ -32,6 +33,9 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
     CmsStatusBadgeComponent,
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
+      CmsIconDeleteComponent,
+      CmsIconEditComponent,
+      CmsIconToggleStatusComponent,
   ],
   templateUrl: './program-list.component.html',
   styleUrl: './program-list.component.scss',

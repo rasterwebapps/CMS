@@ -10,8 +10,10 @@ import { Enquiry, EnquiryDocument } from '../enquiry.model';
 import { DocumentTypeInfo } from '../../program/program.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 
 const MAX_DOCUMENT_UPLOAD_BYTES = 10 * 1024 * 1024;
 const ALLOWED_UPLOAD_MIME_TYPES = new Set([
@@ -33,7 +35,7 @@ interface VerificationRow {
 @Component({
   selector: 'app-document-verification-detail',
   standalone: true,
-  imports: [LowerCasePipe, MatIconModule, CmsStatusBadgeComponent],
+  imports: [LowerCasePipe, MatIconModule, MatDialogModule, CmsStatusBadgeComponent],
   templateUrl: './document-verification-detail.component.html',
   styleUrl: './document-verification-detail.component.scss',
 })
@@ -44,6 +46,7 @@ export class DocumentVerificationDetailComponent implements OnInit {
   private readonly programService    = inject(ProgramService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast             = inject(ToastService);
+  private readonly dialog            = inject(MatDialog);
 
   protected readonly loading   = signal(true);
   protected readonly enquiry   = signal<Enquiry | null>(null);
@@ -99,6 +102,11 @@ export class DocumentVerificationDetailComponent implements OnInit {
 
   protected canVerify(): boolean {
     return this.permissionService.has('DOCUMENT_VERIFICATION_MANAGE');
+  }
+
+  /** Authorized reviewers can force-replace an already-VERIFIED document (BR-26 override). */
+  protected canForceReplace(): boolean {
+    return this.permissionService.has('DOCUMENT_VERIFIED_OVERRIDE');
   }
 
   protected initials(name: string): string {
@@ -294,7 +302,45 @@ export class DocumentVerificationDetailComponent implements OnInit {
     const file = input.files?.[0] ?? null;
     input.value = ''; // allow re-selecting the same file
     if (!enquiryId || !file || !this.canVerify()) return;
+    this.validateAndUpload(enquiryId, row, file, false);
+  }
 
+  // ── Force-replace a VERIFIED file (DOCUMENT_VERIFIED_OVERRIDE) ─────────────
+
+  /**
+   * Opens the file picker for an already-VERIFIED document row so an
+   * authorized reviewer can force-replace it. This bypasses the normal
+   * VERIFIED lock and resets the document to UPLOADED for re-verification.
+   */
+  protected onForceReplaceFile(row: VerificationRow, input: HTMLInputElement): void {
+    if (row.saving || !this.canForceReplace() || row.status !== 'VERIFIED') return;
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: 'Force Replace Document',
+          message: `"${this.formatDocType(row.documentType)}" is verified. Replacing it will reset its status to Uploaded and require re-verification. Continue?`,
+          confirmText: 'Replace',
+          cancelText: 'Cancel',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) return;
+        input.value = '';
+        input.click();
+      });
+  }
+
+  protected onForceFileSelected(row: VerificationRow, event: Event): void {
+    const enquiryId = this.enquiry()?.id;
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    if (!enquiryId || !file || !this.canForceReplace()) return;
+    this.validateAndUpload(enquiryId, row, file, true);
+  }
+
+  private validateAndUpload(enquiryId: number, row: VerificationRow, file: File, force: boolean): void {
     if (file.size > MAX_DOCUMENT_UPLOAD_BYTES) {
       this.toast.warning('Only PDF, JPG, PNG files are allowed (max 10 MB)');
       return;
@@ -311,7 +357,7 @@ export class DocumentVerificationDetailComponent implements OnInit {
     }
 
     this.updateRow(row.documentType, { saving: true });
-    this.enquiryService.uploadDocumentFile(enquiryId, row.documentType, file).subscribe({
+    this.enquiryService.uploadDocumentFile(enquiryId, row.documentType, file, undefined, force).subscribe({
       next: saved => {
         this.updateRow(row.documentType, { document: saved, status: saved.status, saving: false });
         this.toast.success(`${this.formatDocType(row.documentType)} replaced — click Verify to approve`);

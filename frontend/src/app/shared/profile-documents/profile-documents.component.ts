@@ -14,6 +14,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -26,6 +27,7 @@ import { DocumentTypeInfo } from '../../features/program/program.model';
 import { ToastService } from '../../core/toast/toast.service';
 import { CmsStatusBadgeComponent } from '../status-badge/status-badge.component';
 import { CmsEmptyStateComponent } from '../empty-state/empty-state.component';
+import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 
 export type ProfileEntityType = 'FACULTY' | 'STUDENT';
 
@@ -60,6 +62,7 @@ interface DocumentSlotGroup {
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    MatDialogModule,
     CmsStatusBadgeComponent,
     CmsEmptyStateComponent,
   ],
@@ -72,6 +75,13 @@ export class ProfileDocumentsComponent implements OnChanges {
   @Input() programId?: number;
   @Input() canManage = false;
   @Input() canVerify = false;
+  /**
+   * When true, an authorized reviewer (DOCUMENT_VERIFIED_OVERRIDE) can replace
+   * an already-VERIFIED document, resetting its status to UPLOADED. BR-26
+   * otherwise treats VERIFIED as terminal/read-only. Never applies in
+   * selfService mode.
+   */
+  @Input() canForceReplace = false;
   /**
    * When true the component is in self-service mode (BR-30):
    * • Upload/replace uses /profile/me/documents/upload
@@ -89,6 +99,7 @@ export class ProfileDocumentsComponent implements OnChanges {
   private readonly programService   = inject(ProgramService);
   private readonly profileService   = inject(ProfileService);
   private readonly toast            = inject(ToastService);
+  private readonly dialog           = inject(MatDialog);
 
   protected readonly loading = signal(false);
   protected readonly slots = signal<DocumentSlot[]>([]);
@@ -339,42 +350,78 @@ export class ProfileDocumentsComponent implements OnChanges {
   /** Delete a document in self-service mode (before VERIFIED). */
   protected deleteSlot(slot: DocumentSlot): void {
     if (!this.selfService || !slot.documentId || !this.canMutate(slot)) return;
-    if (!confirm(`Remove "${slot.label}"? You can re-upload it later.`)) return;
-    this.updateSlot(slot.documentType, { saving: true });
-    this.profileService.deleteMyDocument(slot.documentId).subscribe({
-      next: () => {
-        this.updateSlot(slot.documentType, {
-          status: 'NOT_UPLOADED', documentId: undefined, hasFile: false,
-          verifiedBy: undefined, verifiedAt: undefined, saving: false,
+    const documentId = slot.documentId;
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: 'Remove Document',
+          message: `Remove "${slot.label}"? You can re-upload it later.`,
+          confirmText: 'Remove',
+          cancelText: 'Cancel',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) return;
+        this.updateSlot(slot.documentType, { saving: true });
+        this.profileService.deleteMyDocument(documentId).subscribe({
+          next: () => {
+            this.updateSlot(slot.documentType, {
+              status: 'NOT_UPLOADED', documentId: undefined, hasFile: false,
+              verifiedBy: undefined, verifiedAt: undefined, saving: false,
+            });
+            this.toast.success(`${slot.label} removed`);
+          },
+          error: (err) => {
+            const msg = err?.error?.message ?? `Failed to remove ${slot.label}`;
+            this.toast.error(msg);
+            this.updateSlot(slot.documentType, { saving: false });
+          },
         });
-        this.toast.success(`${slot.label} removed`);
-      },
-      error: (err) => {
-        const msg = err?.error?.message ?? `Failed to remove ${slot.label}`;
-        this.toast.error(msg);
-        this.updateSlot(slot.documentType, { saving: false });
-      },
-    });
+      });
   }
 
   protected triggerUpload(slot: DocumentSlot): void {
     if (!this.canManage || slot.status === 'VERIFIED' || slot.saving) return;
-    let input = this.fileInputs.get(slot.documentType);
+    this.openFilePicker(slot, false);
+  }
+
+  /** Replace an already-VERIFIED document, bypassing the normal lock (requires DOCUMENT_VERIFIED_OVERRIDE). */
+  protected forceReplace(slot: DocumentSlot): void {
+    if (!this.canForceReplace || this.selfService || slot.status !== 'VERIFIED' || slot.saving) return;
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: 'Force Replace Document',
+          message: `"${slot.label}" is verified. Replacing it will reset its status to Uploaded and require re-verification. Continue?`,
+          confirmText: 'Replace',
+          cancelText: 'Cancel',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (confirmed) this.openFilePicker(slot, true);
+      });
+  }
+
+  private openFilePicker(slot: DocumentSlot, force: boolean): void {
+    const key = `${slot.documentType}:${force}`;
+    let input = this.fileInputs.get(key);
     if (!input) {
       input = document.createElement('input');
       input.type = 'file';
       input.accept = '.pdf,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.doc,.docx';
       input.addEventListener('change', (e) => {
         const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) this.doUpload(slot, file);
+        if (file) this.doUpload(slot, file, force);
         input!.value = '';
       });
-      this.fileInputs.set(slot.documentType, input);
+      this.fileInputs.set(key, input);
     }
     input.click();
   }
 
-  private doUpload(slot: DocumentSlot, file: File): void {
+  private doUpload(slot: DocumentSlot, file: File, force = false): void {
     const MAX = 10 * 1024 * 1024;
     if (file.size > MAX) {
       this.toast.error(`${file.name} exceeds the 10 MB limit`);
@@ -390,7 +437,8 @@ export class ProfileDocumentsComponent implements OnChanges {
 
     const onSuccess = (id: number, status: string): void => {
       this.updateSlot(slot.documentType, {
-        status, documentId: id, hasFile: true, remarks: undefined, saving: false,
+        status, documentId: id, hasFile: true, remarks: undefined,
+        verifiedBy: undefined, verifiedAt: undefined, saving: false,
       });
       this.toast.success(`${slot.label} uploaded`);
     };
@@ -408,12 +456,12 @@ export class ProfileDocumentsComponent implements OnChanges {
     }
 
     if (this.entityType === 'FACULTY') {
-      this.facultyService.uploadDocument(this.entityId, slot.documentType, file).subscribe({
+      this.facultyService.uploadDocument(this.entityId, slot.documentType, file, undefined, force).subscribe({
         next: (saved) => onSuccess(saved.id, saved.status),
         error: onError,
       });
     } else {
-      this.admissionService.uploadDocument(this.entityId, slot.documentType, file).subscribe({
+      this.admissionService.uploadDocument(this.entityId, slot.documentType, file, undefined, force).subscribe({
         next: (saved) => onSuccess(saved.id, saved.verificationStatus),
         error: onError,
       });

@@ -18,6 +18,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { REFERRAL_TYPE_LIST_TOUR } from '../../../shared/tour/tours/referral-type.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-referral-type-list',
@@ -35,6 +36,8 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
     CmsStatusBadgeComponent,
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
+      CmsIconEditComponent,
+      CmsIconToggleStatusComponent,
   ],
   templateUrl: './referral-type-list.component.html',
   styleUrl: './referral-type-list.component.scss',

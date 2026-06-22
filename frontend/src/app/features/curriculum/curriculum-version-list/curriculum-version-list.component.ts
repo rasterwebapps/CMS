@@ -17,6 +17,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { TourService } from '../../../shared/tour/tour.service';
 import { CURRICULUM_VERSION_LIST_TOUR } from '../../../shared/tour/tours/curriculum-version.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { CmsIconEditComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-curriculum-version-list',
@@ -31,7 +32,8 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
     CmsStatusBadgeComponent,
     CmsRowActionButtonComponent,
     CmsTourButtonComponent,
-  ],
+    CmsIconEditComponent,
+],
   templateUrl: './curriculum-version-list.component.html',
   styleUrl: './curriculum-version-list.component.scss',
 })

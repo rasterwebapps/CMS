@@ -17,6 +17,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { TourService } from '../../../shared/tour/tour.service';
 import { SYLLABUS_LIST_TOUR } from '../../../shared/tour/tours/syllabus.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-syllabus-list',
@@ -33,7 +34,10 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
-    CmsRowActionButtonComponent],
+    CmsRowActionButtonComponent,
+    CmsIconDeleteComponent,
+    CmsIconEditComponent,
+],
   templateUrl: './syllabus-list.component.html',
   styleUrl: './syllabus-list.component.scss',
 })

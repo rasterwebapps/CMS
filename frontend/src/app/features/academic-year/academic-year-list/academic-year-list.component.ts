@@ -17,6 +17,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { ACADEMIC_YEAR_LIST_TOUR } from '../../../shared/tour/tours/academic-year.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
 
 @Component({
   selector: 'app-academic-year-list',
@@ -34,7 +35,10 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
     MatDialogModule,
     MatTooltipModule,
     CmsRowActionButtonComponent,
-  ],
+    CmsIconDeleteComponent,
+  CmsIconEditComponent,
+  CmsIconViewComponent,
+],
   templateUrl: './academic-year-list.component.html',
   styleUrl: './academic-year-list.component.scss',
 })
