@@ -1,11 +1,11 @@
 package com.cms.service;
 
-import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -42,6 +42,8 @@ public class OneBookIntegrationService {
 
     private static final Logger log = LoggerFactory.getLogger(OneBookIntegrationService.class);
 
+    private static final DateTimeFormatter ONEBOOK_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+
     private final OneBookConfigService config;
     private final OneBookPaymentRequestRepository obRepo;
     private final EnquiryRepository enquiryRepo;
@@ -50,6 +52,7 @@ public class OneBookIntegrationService {
     private final FeeRefundRepository refundRepo;
     private final StudentRepository studentRepo;
     private final StudentScholarshipRepository scholarshipRepo;
+    private final ApplicationNumberSequenceService numberSequenceService;
     private final ObjectMapper objectMapper;
     private final RestClient restClient = RestClient.create();
 
@@ -62,6 +65,7 @@ public class OneBookIntegrationService {
             FeeRefundRepository refundRepo,
             StudentRepository studentRepo,
             StudentScholarshipRepository scholarshipRepo,
+            ApplicationNumberSequenceService numberSequenceService,
             ObjectMapper objectMapper) {
         this.config = config;
         this.obRepo = obRepo;
@@ -71,6 +75,7 @@ public class OneBookIntegrationService {
         this.refundRepo = refundRepo;
         this.studentRepo = studentRepo;
         this.scholarshipRepo = scholarshipRepo;
+        this.numberSequenceService = numberSequenceService;
         this.objectMapper = objectMapper;
     }
 
@@ -100,9 +105,9 @@ public class OneBookIntegrationService {
                 "Commission recipient for enquiry #" + enquiryId,
                 recipient.name(), recipient.accountNumber(), recipient.bankName(), recipient.ifsc());
 
-        // Build and persist the request row
         OneBookPaymentRequest obRequest = new OneBookPaymentRequest();
         obRequest.setReferenceId(generateReferenceId());
+        obRequest.setInvoiceNumber(numberSequenceService.nextCommissionNumber(LocalDate.now().getYear()));
         obRequest.setPaymentType("COMMISSION");
         obRequest.setEntityId(enquiryId);
         obRequest.setEntityTable("enquiries");
@@ -116,28 +121,21 @@ public class OneBookIntegrationService {
         obRequest.setApprovedAt(Instant.now());
         obRequest = obRepo.save(obRequest);
 
-        Map<String, Object> payload = buildCommissionPayload(obRequest, enquiry, recipient);
+        Map<String, Object> payload = buildPaymentRegisterPayload(
+                obRequest, recipient.id(), recipient.name(), "PAYMENT");
 
-        String rawResponse = null;
         try {
-            rawResponse = callOneBookApi(payload);
-
+            createPaymentRegister(payload);
             obRequest.setStatus("TRANSMITTED");
             obRequest.setTransmittedAt(Instant.now());
-            obRequest.setOnebookRawResponse(rawResponse);
-
-            String txnId = extractField(rawResponse, "transactionId");
-            if (txnId != null) obRequest.setOnebookTxnId(txnId);
-
             enquiry.setCommissionPaymentStatus(CommissionPaymentStatus.TRANSMITTED);
-            log.info("Commission payment transmitted to OneBook. ref={} enquiry={}", obRequest.getReferenceId(), enquiryId);
-
+            log.info("Commission payment register sent to OneBook. invoiceNumber={} enquiry={}",
+                    obRequest.getInvoiceNumber(), enquiryId);
         } catch (RestClientException e) {
-            String errorMsg = "OneBook API call failed: " + e.getMessage();
-            log.error("Failed to push commission payment to OneBook. ref={} error={}", obRequest.getReferenceId(), e.getMessage());
+            log.error("Failed to push commission payment to OneBook. invoiceNumber={} error={}",
+                    obRequest.getInvoiceNumber(), e.getMessage());
             obRequest.setStatus("FAILED");
-            obRequest.setErrorMessage(errorMsg);
-            if (rawResponse != null) obRequest.setOnebookRawResponse(rawResponse);
+            obRequest.setErrorMessage("OneBook API call failed: " + e.getMessage());
             enquiry.setCommissionPaymentStatus(CommissionPaymentStatus.FAILED);
         }
 
@@ -176,6 +174,7 @@ public class OneBookIntegrationService {
 
         OneBookPaymentRequest obRequest = new OneBookPaymentRequest();
         obRequest.setReferenceId(generateReferenceId());
+        obRequest.setInvoiceNumber(numberSequenceService.nextRefundNumber(LocalDate.now().getYear()));
         obRequest.setPaymentType("REFUND");
         obRequest.setEntityId(refundId);
         obRequest.setEntityTable("fee_refunds");
@@ -191,20 +190,18 @@ public class OneBookIntegrationService {
         obRequest.setApprovedAt(Instant.now());
         obRequest = obRepo.save(obRequest);
 
-        Map<String, Object> payload = buildGenericPayload(obRequest, "Fee refund — receipt " + refund.getOriginalReceiptNumber());
+        Map<String, Object> payload = buildPaymentRegisterPayload(
+                obRequest, student != null ? student.getId() : null, refund.getStudentName(), "REFUND");
 
-        String rawResponse = null;
         try {
-            rawResponse = callOneBookApi(payload);
+            createPaymentRegister(payload);
             obRequest.setStatus("TRANSMITTED");
             obRequest.setTransmittedAt(Instant.now());
-            obRequest.setOnebookRawResponse(rawResponse);
-            String txnId = extractField(rawResponse, "transactionId");
-            if (txnId != null) obRequest.setOnebookTxnId(txnId);
-            refund.setStatus("TRANSMITTED");
-            log.info("Refund transmitted to OneBook. ref={} refund={}", obRequest.getReferenceId(), refundId);
+            log.info("Refund payment register sent to OneBook. invoiceNumber={} refund={}",
+                    obRequest.getInvoiceNumber(), refundId);
         } catch (RestClientException e) {
-            log.error("Failed to push refund to OneBook. ref={} error={}", obRequest.getReferenceId(), e.getMessage());
+            log.error("Failed to push refund to OneBook. invoiceNumber={} error={}",
+                    obRequest.getInvoiceNumber(), e.getMessage());
             obRequest.setStatus("FAILED");
             obRequest.setErrorMessage("OneBook API call failed: " + e.getMessage());
             refund.setStatus("PAYMENT_FAILED");
@@ -242,6 +239,7 @@ public class OneBookIntegrationService {
 
         OneBookPaymentRequest obRequest = new OneBookPaymentRequest();
         obRequest.setReferenceId(generateReferenceId());
+        obRequest.setInvoiceNumber(numberSequenceService.nextDisbursementNumber(LocalDate.now().getYear()));
         obRequest.setPaymentType("SCHOLARSHIP");
         obRequest.setEntityId(scholarshipId);
         obRequest.setEntityTable("student_scholarships");
@@ -257,19 +255,18 @@ public class OneBookIntegrationService {
         catch (JsonProcessingException ignored) {}
         obRequest = obRepo.save(obRequest);
 
-        Map<String, Object> payload = buildGenericPayload(obRequest, "Scholarship disbursement — " + studentName);
+        Map<String, Object> payload = buildPaymentRegisterPayload(
+                obRequest, student.getId(), studentName, "PAYMENT");
 
-        String rawResponse = null;
         try {
-            rawResponse = callOneBookApi(payload);
+            createPaymentRegister(payload);
             obRequest.setStatus("TRANSMITTED");
             obRequest.setTransmittedAt(Instant.now());
-            obRequest.setOnebookRawResponse(rawResponse);
-            String txnId = extractField(rawResponse, "transactionId");
-            if (txnId != null) obRequest.setOnebookTxnId(txnId);
-            log.info("Scholarship disbursement transmitted to OneBook. ref={} scholarshipId={}", obRequest.getReferenceId(), scholarshipId);
+            log.info("Scholarship disbursement register sent to OneBook. invoiceNumber={} scholarshipId={}",
+                    obRequest.getInvoiceNumber(), scholarshipId);
         } catch (RestClientException e) {
-            log.error("Failed to push scholarship to OneBook. ref={} error={}", obRequest.getReferenceId(), e.getMessage());
+            log.error("Failed to push scholarship to OneBook. invoiceNumber={} error={}",
+                    obRequest.getInvoiceNumber(), e.getMessage());
             obRequest.setStatus("FAILED");
             obRequest.setErrorMessage("OneBook API call failed: " + e.getMessage());
         }
@@ -278,7 +275,7 @@ public class OneBookIntegrationService {
         return obRequest;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── OneBook API calls ───────────────────────────────────────────────────────
 
     private void assertIntegrationReady() {
         if (!config.isEnabled()) {
@@ -293,89 +290,118 @@ public class OneBookIntegrationService {
         }
     }
 
-    private String callOneBookApi(Map<String, Object> payload) {
-        String base = config.getApiUrl();
-        if (!base.endsWith("/")) base = base + "/";
-        String endpoint = base + "one-book/api/payment-register/add-from-other-app";
+    /** Fetches a fresh JWT from OneBook's auth server. Not cached — a new token is requested for every push. */
+    private String authenticate() {
+        String endpoint = normalizeBase(config.getApiUrl()) + "authserver/api/auth";
 
-        String credentials = config.getUsername() + ":" + config.getPassword();
-        String basicToken = Base64.getEncoder()
-                .encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("Username", config.getUsername());
+        body.put("password", config.getPassword());
+        body.put("branchId", config.getBranchId());
+        body.put("organizationId", config.getOrgId());
+        body.put("zoneName", config.getZoneName());
 
-        return restClient.post()
+        Map<?, ?> response = restClient.post()
                 .uri(endpoint)
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("Authorization", "Basic " + basicToken)
-                .body(payload)
+                .body(body)
                 .retrieve()
-                .body(String.class);
+                .body(Map.class);
+
+        Object token = response != null ? response.get("token") : null;
+        if (token == null) {
+            throw new IllegalStateException("OneBook authentication response did not contain a token");
+        }
+        return token.toString();
     }
 
-    private Map<String, Object> buildGenericPayload(OneBookPaymentRequest req, String description) {
+    /**
+     * Creates a payment register in OneBook. OneBook does not return the
+     * assigned register id synchronously — it calls back into
+     * /webhooks/onebook/posting-track-update with the id once created, and
+     * /webhooks/onebook/posting-track-completion once the payment itself is
+     * completed. A 2xx response here only confirms OneBook accepted the
+     * register, not that it has been paid.
+     */
+    private void createPaymentRegister(Map<String, Object> registerPayload) {
+        String token = authenticate();
+        String endpoint = normalizeBase(config.getApiUrl()) + "one-book/api/payment-registers-add-from-other-applications";
+
+        restClient.post()
+                .uri(endpoint)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + token)
+                .body(List.of(registerPayload))
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private String normalizeBase(String apiUrl) {
+        return apiUrl.endsWith("/") ? apiUrl : apiUrl + "/";
+    }
+
+    // ── Payload building ─────────────────────────────────────────────────────
+
+    /**
+     * Builds the payment-register payload per OneBook's real API contract.
+     * payeeType is always OTHERS — commission/refund/scholarship recipients
+     * (agents, staff, faculty, students) have no supplier-master equivalent
+     * in OneBook, unlike OnePharmacy's supplier-purchase use case this
+     * contract was originally documented for. sourcePayeeId/supplierId reuse
+     * the recipient's own entity id since there's no supplier master to
+     * reference. invoiceNumber/documentNumber are the same generated
+     * refund/commission/disbursement number; documentId is the source
+     * entity's own primary key (enquiry/refund/scholarship application id).
+     */
+    private Map<String, Object> buildPaymentRegisterPayload(
+            OneBookPaymentRequest req, Long payeeId, String payeeName, String documentType) {
+        String nowIso = LocalDate.now().atStartOfDay().format(ONEBOOK_DATETIME);
+
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("referenceId", req.getReferenceId());
-        payload.put("orgId", config.getOrgId());
+        payload.put("applicationName", config.getAppName());
+        payload.put("payerName", config.getPaperName());
+        payload.put("payeeType", "OTHERS");
+        payload.put("sourcePayeeId", payeeId);
+        payload.put("payeeName", payeeName);
+        payload.put("supplierId", payeeId);
+        payload.put("invoiceNumber", req.getInvoiceNumber());
+        payload.put("invoiceDate", nowIso);
+        payload.put("paymentRegisterDocumentType", documentType);
+        payload.put("documentId", req.getEntityId());
+        payload.put("documentNumber", req.getInvoiceNumber());
+        payload.put("dueDate", nowIso);
+        payload.put("netBillAmount", req.getAmount());
+        payload.put("payableAmount", req.getAmount());
+        payload.put("paidAmount", BigDecimal.ZERO);
+        payload.put("cancelled", false);
+        payload.put("transactionType", "CREDIT");
+        payload.put("invoiceFilePath", "");
         payload.put("branchId", config.getBranchId());
-        payload.put("appName", config.getAppName());
-        payload.put("paperName", config.getPaperName());
-        payload.put("paymentType", req.getPaymentType());
-        payload.put("amount", req.getAmount());
-        payload.put("currency", "INR");
-        payload.put("recipientName", req.getRecipientName());
-        if (req.getRecipientAccount() != null) payload.put("recipientAccount", req.getRecipientAccount());
-        if (req.getRecipientIfsc() != null)    payload.put("recipientIfsc", req.getRecipientIfsc());
-        if (req.getRecipientBankName() != null) payload.put("recipientBankName", req.getRecipientBankName());
-        payload.put("description", description);
+        payload.put("organizationId", config.getOrgId());
+        payload.put("createdBy", req.getApprovedBy());
+        payload.put("modifiedBy", req.getApprovedBy());
         return payload;
     }
 
-    private Map<String, Object> buildCommissionPayload(OneBookPaymentRequest req, Enquiry enquiry, RecipientDetails recipient) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("referenceId", req.getReferenceId());
-        payload.put("orgId", config.getOrgId());
-        payload.put("branchId", config.getBranchId());
-        payload.put("appName", config.getAppName());
-        payload.put("paperName", config.getPaperName());
-        payload.put("paymentType", req.getPaymentType());
-        payload.put("amount", req.getAmount());
-        payload.put("currency", "INR");
-        payload.put("recipientName", recipient.name());
-        payload.put("recipientAccount", recipient.accountNumber());
-        payload.put("recipientIfsc", recipient.ifsc());
-        payload.put("recipientBankName", recipient.bankName());
-        payload.put("description", buildDescription(enquiry));
-
-        Map<String, Object> meta = new LinkedHashMap<>();
-        meta.put("enquiryId", enquiry.getId());
-        meta.put("enquiryName", enquiry.getName());
-        meta.put("commissionSource", enquiry.getCommissionSource() != null
-                ? enquiry.getCommissionSource().name() : null);
-        payload.put("metadata", meta);
-        return payload;
-    }
-
-    private String buildDescription(Enquiry e) {
-        String source = e.getCommissionSource() != null ? e.getCommissionSource().name() : "REFERRAL";
-        return "Commission payment — " + source + " — " + e.getName() + " (Enquiry #" + e.getId() + ")";
-    }
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private RecipientDetails resolveRecipient(Enquiry enquiry) {
         CommissionSource source = enquiry.getCommissionSource();
         if (source == CommissionSource.AGENT && enquiry.getAgent() != null) {
             var a = enquiry.getAgent();
-            return new RecipientDetails(a.getName(), a.getBankAccountNumber(),
+            return new RecipientDetails(a.getId(), a.getName(), a.getBankAccountNumber(),
                     a.getBankIfscCode(), a.getBankName());
         }
         if (source == CommissionSource.STAFF_REFERRER && enquiry.getReferredStaffId() != null) {
             return staffRepo.findById(enquiry.getReferredStaffId())
-                    .map(s -> new RecipientDetails(s.getName(), s.getBankAccountNumber(),
+                    .map(s -> new RecipientDetails(s.getId(), s.getName(), s.getBankAccountNumber(),
                             s.getBankIfscCode(), s.getBankName()))
                     .orElse(RecipientDetails.UNKNOWN);
         }
         if (source == CommissionSource.FACULTY_REFERRER && enquiry.getReferredFacultyId() != null) {
             return facultyRepo.findById(enquiry.getReferredFacultyId())
                     .map(f -> new RecipientDetails(
-                            f.getFirstName() + " " + f.getLastName(),
+                            f.getId(), f.getFirstName() + " " + f.getLastName(),
                             f.getBankAccountNumber(), f.getBankIfscCode(), f.getBankName()))
                     .orElse(RecipientDetails.UNKNOWN);
         }
@@ -396,24 +422,14 @@ public class OneBookIntegrationService {
         }
     }
 
+    /** Internal-only correlation id for our own logs/audit — no longer sent to or matched against OneBook. */
     private String generateReferenceId() {
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String unique = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
         return "OB-" + date + "-" + unique;
     }
 
-    private String extractField(String json, String field) {
-        if (json == null || json.isBlank()) return null;
-        try {
-            Map<?, ?> map = objectMapper.readValue(json, Map.class);
-            Object val = map.get(field);
-            return val != null ? val.toString() : null;
-        } catch (JsonProcessingException e) {
-            return null;
-        }
-    }
-
-    record RecipientDetails(String name, String accountNumber, String ifsc, String bankName) {
-        static final RecipientDetails UNKNOWN = new RecipientDetails(null, null, null, null);
+    record RecipientDetails(Long id, String name, String accountNumber, String ifsc, String bankName) {
+        static final RecipientDetails UNKNOWN = new RecipientDetails(null, null, null, null, null);
     }
 }

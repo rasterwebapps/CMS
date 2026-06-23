@@ -523,6 +523,31 @@
 - [x] **R1-4.3.7** Create `features/maintenance/` with list, form, and workflow components
 - [x] **R1-4.3.8** Create maintenance routes (lazy-loaded)
 
+### R1-M4.4 — Commission Explorer & OneBook Payment Gateway Integration
+
+> **Business Requirements:** See [BR-34](BUSINESS_REQUIREMENTS.md#br-34-onebook-payment-gateway-integration).
+
+**Backend:**
+- [x] **R1-4.4.1** Create `StaffReferrer` entity, CRUD, and permissions
+- [x] **R1-4.4.2** Create `CommissionPayout` model (replaces `AgentCommissionPayout`) and Commission Explorer service/controller — push-to-OneBook workflow, approve/reject (with required reason, reopenable) split from settle, full-amount-only payout settlement
+- [x] **R1-4.4.3** Create `OneBookConfigService` and `OneBookIntegrationService` — outbound payment-register push for commission, fee refund, and scholarship disbursement against OneBook's real published API contract (JWT auth via `/authserver/api/auth`; `payment-registers-add-from-other-applications`; invoice/document-shaped payload with generated invoice numbers); bank-detail guard blocking pushes with missing recipient bank details
+- [x] **R1-4.4.4** Create `OneBookWebhookController`/`OneBookWebhookService` — two real inbound callbacks (`/webhooks/onebook/posting-track-update`, `/webhooks/onebook/posting-track-completion`), secret-header authenticated, correlated by the generated `invoiceNumber`, each entry processed independently
+- [x] **R1-4.4.5** Add bank detail fields (6) to `Student` entity/DTOs/service required by the bank-detail guard
+- [x] **R1-4.4.6** Add `COMMISSION_SETTLE` permission separate from `COMMISSION_MANAGE`; `REJECTED` `CommissionPaymentStatus` value with rejection reason/by/at on `Enquiry`
+- [x] **R1-4.4.7** Flyway migrations V219–V231, V236
+- [x] **R1-4.4.7b** Add `ApplicationNumberSequenceService.nextCommissionNumber`/`nextDisbursementNumber`; `commission_number`/`disbursement_number` columns on `Enquiry`/`ScholarshipDisbursement`
+- [ ] **R1-4.4.8** Surface scholarship OneBook rejection/failure status (currently logged only, not visible or retryable in any screen — known gap, see BR-34)
+- [ ] **R1-4.4.9** Write unit + controller tests (95% coverage)
+- [ ] **R1-4.4.10** Create manual test cases: `docs/manual-test-cases/onebook-integration.md`
+- [ ] **R1-4.4.10b** Out of scope: OneBook edit/delete/fetch-by-id register endpoints and Supplier Master Sync — no post-push cancellation flow exists in OneCMS to call them from, and supplier sync is pharmacy-only (see BR-34)
+
+**Frontend:**
+- [x] **R1-4.4.11** Create `IntegrationsSettingsComponent` (Settings → Integrations) for OneBook credentials with show/hide password
+- [x] **R1-4.4.12** Create Commission Explorer screen with side-flyout payout recording, approve/reject/settle actions gated by permission
+- [x] **R1-4.4.13** Add OneBook push button with retry + status tracking to Fee Refund List
+
+> **Status:** Fully built and wired end-to-end; `onebook.enabled` defaults to `false` and all credential keys are seeded blank, so the integration is dormant until a college's real OneBook org/branch/login is entered.
+
 ---
 
 ## 📝 R1-M5: Assessment & Reporting

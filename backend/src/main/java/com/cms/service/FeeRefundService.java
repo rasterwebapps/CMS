@@ -206,7 +206,9 @@ public class FeeRefundService {
         if ("PAID".equals(internalStatus)) {
             LocalDate paymentDate = obRequest.getOnebookPaidDate() != null
                     ? obRequest.getOnebookPaidDate() : LocalDate.now();
-            String refundNumber = unifiedReceiptService.generateRefundNumber(paymentDate.getYear());
+            // Reuse the number already generated and sent to OneBook as invoiceNumber at push
+            // time, rather than generating a second one now — they must be the same number.
+            String refundNumber = obRequest.getInvoiceNumber();
             Instant now = Instant.now();
 
             if ("ENQUIRY".equals(refund.getEntityType())) {

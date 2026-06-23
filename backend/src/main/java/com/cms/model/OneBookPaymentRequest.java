@@ -79,6 +79,22 @@ public class OneBookPaymentRequest {
     @Column(name = "onebook_raw_response", columnDefinition = "jsonb")
     private String onebookRawResponse;
 
+    /** Generated refund/commission/disbursement number — sent to OneBook as invoiceNumber/documentNumber. */
+    @Column(name = "invoice_number", length = 60)
+    private String invoiceNumber;
+
+    @Column(name = "onebook_payment_number")
+    private String onebookPaymentNumber;
+
+    @Column(name = "onebook_bank_name", length = 150)
+    private String onebookBankName;
+
+    @Column(name = "onebook_payment_by")
+    private String onebookPaymentBy;
+
+    @Column(name = "onebook_batch_number", length = 100)
+    private String onebookBatchNumber;
+
     @Column(name = "request_metadata", columnDefinition = "jsonb")
     private String requestMetadata;
 
@@ -136,6 +152,16 @@ public class OneBookPaymentRequest {
     public void setOnebookRemarks(String onebookRemarks) { this.onebookRemarks = onebookRemarks; }
     public String getOnebookRawResponse() { return onebookRawResponse; }
     public void setOnebookRawResponse(String onebookRawResponse) { this.onebookRawResponse = onebookRawResponse; }
+    public String getInvoiceNumber() { return invoiceNumber; }
+    public void setInvoiceNumber(String invoiceNumber) { this.invoiceNumber = invoiceNumber; }
+    public String getOnebookPaymentNumber() { return onebookPaymentNumber; }
+    public void setOnebookPaymentNumber(String onebookPaymentNumber) { this.onebookPaymentNumber = onebookPaymentNumber; }
+    public String getOnebookBankName() { return onebookBankName; }
+    public void setOnebookBankName(String onebookBankName) { this.onebookBankName = onebookBankName; }
+    public String getOnebookPaymentBy() { return onebookPaymentBy; }
+    public void setOnebookPaymentBy(String onebookPaymentBy) { this.onebookPaymentBy = onebookPaymentBy; }
+    public String getOnebookBatchNumber() { return onebookBatchNumber; }
+    public void setOnebookBatchNumber(String onebookBatchNumber) { this.onebookBatchNumber = onebookBatchNumber; }
     public String getRequestMetadata() { return requestMetadata; }
     public void setRequestMetadata(String requestMetadata) { this.requestMetadata = requestMetadata; }
     public String getApprovedBy() { return approvedBy; }

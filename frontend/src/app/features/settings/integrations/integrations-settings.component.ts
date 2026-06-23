@@ -115,6 +115,15 @@ export class IntegrationsSettingsComponent implements OnInit {
       placeholder: 'SKS College Of Nursing',
     },
     {
+      key: 'onebook.zone_name',
+      label: 'Zone Name',
+      description: 'Timezone identifier sent on every OneBook authentication request.',
+      value: 'Asia/Calcutta',
+      dataType: 'STRING',
+      id: null,
+      placeholder: 'Asia/Calcutta',
+    },
+    {
       key: 'onebook.integration_date',
       label: 'Date of Integration',
       description: 'Date OneCMS was integrated with OneBook. Used for audit and tracking.',

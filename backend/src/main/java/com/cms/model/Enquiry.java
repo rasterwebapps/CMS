@@ -137,6 +137,10 @@ public class Enquiry {
     @Column(name = "commission_rejected_at")
     private Instant commissionRejectedAt;
 
+    /** Generated once OneBook confirms the commission payout as PAID (see OneBookPaymentRequest.invoiceNumber). */
+    @Column(name = "commission_number", length = 30)
+    private String commissionNumber;
+
     // Year-wise guideline fees stored as JSON
     @Column(name = "year_wise_fees", columnDefinition = "TEXT")
     private String yearWiseFees;
@@ -378,6 +382,9 @@ public class Enquiry {
 
     public Instant getCommissionRejectedAt() { return commissionRejectedAt; }
     public void setCommissionRejectedAt(Instant commissionRejectedAt) { this.commissionRejectedAt = commissionRejectedAt; }
+
+    public String getCommissionNumber() { return commissionNumber; }
+    public void setCommissionNumber(String commissionNumber) { this.commissionNumber = commissionNumber; }
 
     public String getYearWiseFees() {
         return yearWiseFees;

@@ -18,6 +18,8 @@ public class ApplicationNumberSequenceService {
     public static final String ADMISSION_SERIES = "ADMISSION_NUMBER";
     public static final String RECEIPT_SERIES = "RECEIPT_NUMBER";
     public static final String REFUND_SERIES = "REFUND_NUMBER";
+    public static final String COMMISSION_SERIES = "COMMISSION_NUMBER";
+    public static final String DISBURSEMENT_SERIES = "DISBURSEMENT_NUMBER";
 
     private final ApplicationNumberSequenceRepository sequenceRepository;
 
@@ -82,6 +84,32 @@ public class ApplicationNumberSequenceService {
             "RFD",
             5,
             "Global refund number generated for every payment reversal"
+        );
+    }
+
+    @Transactional
+    public String nextCommissionNumber(int year) {
+        return nextNumber(
+            COMMISSION_SERIES,
+            "Commission Number",
+            "CALENDAR_YEAR",
+            String.valueOf(year),
+            "COM",
+            5,
+            "Global commission number generated when a commission payout is pushed to OneBook"
+        );
+    }
+
+    @Transactional
+    public String nextDisbursementNumber(int year) {
+        return nextNumber(
+            DISBURSEMENT_SERIES,
+            "Disbursement Number",
+            "CALENDAR_YEAR",
+            String.valueOf(year),
+            "DSB",
+            5,
+            "Global scholarship disbursement number generated when a disbursement is pushed to OneBook"
         );
     }
 

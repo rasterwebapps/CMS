@@ -111,7 +111,7 @@
                   [value]="fieldValue('onebook.api_url')"
                   (input)="setFieldValue('onebook.api_url', $any($event.target).value)"
                   placeholder="https://172.16.x.x:8080" />
-                <p class="field-hint">OneCMS will call <code>{{ fieldValue('onebook.api_url') || 'https://…' }}/one-book/api/payment-register/add-from-other-app</code></p>
+                <p class="field-hint">OneCMS will call <code>{{ fieldValue('onebook.api_url') || 'https://…' }}/one-book/api/payment-registers-add-from-other-applications</code></p>
               </div>
 
               <!-- Username -->
@@ -183,6 +183,16 @@
                   placeholder="SKS College Of Nursing" />
               </div>
 
+              <!-- Zone Name -->
+              <div class="field-wrap">
+                <label class="field-label" for="ob-zone-name">Zone Name</label>
+                <input id="ob-zone-name" type="text" class="field-input"
+                  [value]="fieldValue('onebook.zone_name')"
+                  (input)="setFieldValue('onebook.zone_name', $any($event.target).value)"
+                  placeholder="Asia/Calcutta" />
+                <p class="field-hint">Timezone sent on every OneBook authentication request.</p>
+              </div>
+
               <!-- Date of Integration -->
               <div class="field-wrap">
                 <label class="field-label" for="ob-int-date">Date of Integration</label>
@@ -203,8 +213,8 @@
               <span class="material-symbols-rounded" aria-hidden="true">webhook</span>
             </div>
             <div>
-              <h2 class="int-card__title">Inbound Webhook</h2>
-              <p class="int-card__sub">OneBook calls back to <code>/webhooks/onebook/payment-status</code> to update payment statuses. The secret below must be configured in OneBook.</p>
+              <h2 class="int-card__title">Inbound Callbacks</h2>
+              <p class="int-card__sub">OneBook calls back into OneCMS twice per payment register — once right after it's created (to deliver its register id) and once when the payment completes. The secret below must be configured in OneBook for both.</p>
             </div>
           </div>
 
@@ -231,8 +241,12 @@
             </div>
 
             <div class="webhook-url-row">
-              <span class="webhook-url-label">Callback URL for OneBook</span>
-              <code class="webhook-url">{{ '[your-server]' }}/api/webhooks/onebook/payment-status</code>
+              <span class="webhook-url-label">Register-created callback URL</span>
+              <code class="webhook-url">{{ '[your-server]' }}/api/webhooks/onebook/posting-track-update</code>
+            </div>
+            <div class="webhook-url-row">
+              <span class="webhook-url-label">Payment-completed callback URL</span>
+              <code class="webhook-url">{{ '[your-server]' }}/api/webhooks/onebook/posting-track-completion</code>
             </div>
           </div>
         </section>

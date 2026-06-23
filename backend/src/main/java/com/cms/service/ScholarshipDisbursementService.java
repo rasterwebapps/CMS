@@ -122,6 +122,7 @@ public class ScholarshipDisbursementService {
         disbursement.setTransactionReference(obRequest.getOnebookTxnId());
         disbursement.setRemarks(remarks);
         disbursement.setDisbursedBy(obRequest.getApprovedBy() != null ? obRequest.getApprovedBy() : "onebook");
+        disbursement.setDisbursementNumber(obRequest.getInvoiceNumber());
         disbursementRepository.save(disbursement);
     }
 

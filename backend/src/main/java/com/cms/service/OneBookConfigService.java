@@ -59,6 +59,10 @@ public class OneBookConfigService {
         return get("onebook.webhook_secret", "");
     }
 
+    public String getZoneName() {
+        return get("onebook.zone_name", "Asia/Calcutta");
+    }
+
     private String get(String key, String defaultValue) {
         return repo.findByConfigKey(key)
                 .map(c -> c.getConfigValue())

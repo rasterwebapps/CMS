@@ -67,6 +67,10 @@ public class ScholarshipDisbursement {
     @Column(name = "disbursed_by", length = 100)
     private String disbursedBy;
 
+    /** Generated when disbursed via OneBook (see OneBookPaymentRequest.invoiceNumber); null for manual disbursements. */
+    @Column(name = "disbursement_number", length = 30)
+    private String disbursementNumber;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -95,6 +99,8 @@ public class ScholarshipDisbursement {
     public void setRemarks(String remarks) { this.remarks = remarks; }
     public String getDisbursedBy() { return disbursedBy; }
     public void setDisbursedBy(String disbursedBy) { this.disbursedBy = disbursedBy; }
+    public String getDisbursementNumber() { return disbursementNumber; }
+    public void setDisbursementNumber(String disbursementNumber) { this.disbursementNumber = disbursementNumber; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }

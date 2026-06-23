@@ -39,6 +39,8 @@
 - [BR-30: Multi-Dimension Fee Structure (Quota × State × Gender × Student Type)](#br-30-multi-dimension-fee-structure-quota--state--gender--student-type)
 - [BR-31: Student Data Import — Legacy Migration](#br-31-student-data-import--legacy-migration)
 - [BR-32: Master Lifecycle Status Management](#br-32-master-lifecycle-status-management)
+- [BR-33: Institution Master & Staff Referrer Institution Scoping](#br-33-institution-master--staff-referrer-institution-scoping)
+- [BR-34: OneBook Payment Gateway Integration](#br-34-onebook-payment-gateway-integration)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -1394,6 +1396,9 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-06-23 | BR-34 | **Rewrote OneBook integration against OneBook's real published API spec** (previously placeholder field names/auth, now confirmed wrong): JWT auth flow replaces HTTP Basic; outbound create payload rewritten to OneBook's invoice/document-register shape (`payeeType: OTHERS`, `invoiceNumber`/`documentNumber` = a newly generated refund/commission/disbursement number, `documentId` = source entity PK, `paymentRegisterDocumentType: PAYMENT`/`REFUND`, `transactionType: CREDIT` always); removed response-body id/success parsing since the real synchronous response carries neither — success is now HTTP-status-only. Replaced the single placeholder `/webhooks/onebook/payment-status` webhook with the two real OneBook callbacks (`posting-track-update`, `posting-track-completion`), both correlated by the generated `invoiceNumber` rather than an echoed `referenceId`. Added `ApplicationNumberSequenceService.nextCommissionNumber`/`nextDisbursementNumber`; `FeeRefund.refundNumber`/`Enquiry.commissionNumber`/`ScholarshipDisbursement.disbursementNumber` now reuse the number generated at push time instead of regenerating on completion. Supplier Master Sync (pharmacy-only piece of the same spec) explicitly out of scope. Migration V236. | — |
+| 2026-06-23 | BR-34 | OneBook outbound push now parses the synchronous response body for OneBook's own id and a success/failure indicator (previously only an HTTP-exception check, which would have silently treated a logical "rejected" response as transmitted). The id is stored as `onebookTxnId` and is now also a valid correlation key for the inbound webhook — `OneBookWebhookService.process` and `OneBookPaymentRequestRepository.findByOnebookTxnId` look up by `transactionId` when `referenceId` is absent or unmatched, since OneBook's callback may use only its own id rather than echoing ours back. Response field names (`id`/`transactionId`/`status`/`success`) are best-guess placeholders pending OneBook's actual API docs — flagged in BR-34 for confirmation. | — |
+| 2026-06-23 | BR-34 | Documented OneBook payment gateway integration (previously undocumented though already built): outbound push for commission/refund/scholarship payment registers, inbound `/webhooks/onebook/payment-status` callback, config keys, permissions. Webhook updated to accept either a single payment register or a JSON array of registers in one call (OneBook's stated contract — "payment registers only, single or list"), processing each independently and returning a per-register result array. Flagged scholarship rejection as a known lifecycle gap (no visible status/retry, unlike commission and refund) pending a design decision. | — |
 | 2026-06-22 | BR-32, BR-33 | Added `Institution` master (sister-concern institutions of SKSCON) with standard CRUD/uniqueness/lifecycle pattern (added to BR-32 scope). `StaffReferrer.institution` (free text) replaced with `institution_id` FK; added `employeeCode` field. Name and employee code uniqueness rescoped from global to per-institution. Migrations V232–V234. | — |
 | 2026-06-20 | BR-26 | Added `DOCUMENT_VERIFIED_OVERRIDE` permission (DEV_ADMIN/SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN only, migration V230) allowing an authorized reviewer to force-replace a `VERIFIED` faculty, admission, or enquiry document via `force=true` on the existing upload endpoint, resetting it to `UPLOADED` for re-verification. Also added the previously-missing VERIFIED lock to `EnquiryDocumentService.uploadFile` (it had none) so enquiry documents now follow the same lock/override model; "Force Replace" surfaced on the Document Verification queue screen and the Enquiry detail Documents tab. Self-service uploads remain hard-locked once `VERIFIED`. | — |
 | 2026-06-09 | BR-7 | Student fee payment history now includes approved refund vouchers as negative reversal entries (with original receipt reference) so cashflow and reversals are visible in one timeline. | — |
@@ -2031,6 +2036,108 @@ Staff Referrers may only be linked to a known sister-concern institution of SKSC
 
 - Migrations V232 (institutions table + `INSTITUTION_VIEW`/`INSTITUTION_MANAGE` permissions), V233 (`institution_id` FK, backfilling any pre-existing free-text values into new `Institution` rows, with an `Unspecified` inactive fallback institution for blank values), V234 (`employee_code` column, backfilling pre-existing rows with `LEGACY-<id>` placeholders).
 - Deactivated institutions remain visible (read-only) on existing referrer records but are not selectable for new ones.
+
+---
+
+## BR-34: OneBook Payment Gateway Integration
+
+### Business Rule
+
+OneBook is the college's external accounting/payment application. Three payment types originate in OneCMS and are routed through OneBook for actual money movement: **commission payouts** (to agents, staff referrers, faculty referrers), **fee refunds**, and **scholarship disbursements**. OneCMS never marks one of these as paid on its own — it transmits a payment register to OneBook and waits for OneBook to report the outcome back via callbacks into OneCMS's own endpoints. The integration is config-gated and disabled by default until a college's real OneBook credentials are entered.
+
+> **Contract source:** Rewritten against OneBook's actual published "Payment Register" API spec (a generic contract used across integrating applications — OnePharmacy is its documented example client; OneCMS uses the same endpoints with its own field values). The original build (pre-2026-06-23) used best-guess placeholder field names and HTTP Basic Auth; both are now confirmed wrong and replaced below. Supplier Master Sync (a pharmacy-only piece of the same spec) is explicitly out of scope for OneCMS.
+
+### Authentication
+
+Every outbound call requires a fresh JWT — `OneBookIntegrationService.authenticate()` calls `POST {onebook.api_url}/authserver/api/auth` with `{Username, password, branchId, organizationId, zoneName}` and reads `token` from the response. **Not cached** — a new token is requested on every push (chosen for simplicity over the alternative of caching the 24h-valid token).
+
+### Outbound — OneCMS Creates a Payment Register
+
+| Payment Type | Triggered From | Service Method |
+|---|---|---|
+| Commission | Commission Explorer — approve / push to OneBook | `OneBookIntegrationService.pushCommissionPayment` |
+| Fee Refund | Fee Refund List — push to OneBook | `OneBookIntegrationService.pushRefundPayment` |
+| Scholarship Disbursement | Scholarship Application — disburse via OneBook | `OneBookIntegrationService.pushScholarshipPayment` |
+
+Each push:
+1. Generates an `invoiceNumber` up front — the refund number (`RFD-yyyy-NNNNN`), a new commission number (`COM-yyyy-NNNNN`), or a new disbursement number (`DSB-yyyy-NNNNN`) via `ApplicationNumberSequenceService`. This number is generated **once**, stored on `OneBookPaymentRequest.invoiceNumber`, sent to OneBook, and reused verbatim as the domain entity's own number (`FeeRefund.refundNumber`, `Enquiry.commissionNumber`, `ScholarshipDisbursement.disbursementNumber`) only once OneBook confirms the payment — never regenerated a second time.
+2. Creates a `OneBookPaymentRequest` row ("payment register") — `PENDING` status, recipient bank details, amount, the generated `invoiceNumber`, plus an internal-only `referenceId` (`OB-yyyyMMdd-XXXXXXXX`, used only in OneCMS's own UI/logs, never sent to or matched against OneBook).
+3. Calls `POST {onebook.api_url}/one-book/api/payment-registers-add-from-other-applications` with `Authorization: Bearer {jwt}`, body wrapped in a one-element JSON array per OneBook's documented shape. Field mapping:
+
+   | OneBook Field | OneCMS Value |
+   |---|---|
+   | `applicationName` | `onebook.app_name` (e.g. `ONECMS`) |
+   | `payerName` | `onebook.paper_name` (e.g. `SKS College Of Nursing`) |
+   | `payeeType` | Always `OTHERS` — agents/staff/faculty/students have no supplier-master equivalent in OneBook |
+   | `sourcePayeeId`, `supplierId` | Recipient's own entity id (agent/staff/faculty/student id) — reused for both since there's no supplier master to reference |
+   | `payeeName` | Recipient's name |
+   | `invoiceNumber`, `documentNumber` | The generated refund/commission/disbursement number (same value for both) |
+   | `documentId` | The source entity's own primary key (enquiry id / refund id / scholarship application id) |
+   | `paymentRegisterDocumentType` | `PAYMENT` for commission and scholarship; `REFUND` for fee refunds |
+   | `transactionType` | Always `CREDIT` |
+   | `netBillAmount`, `payableAmount` | The payout amount; `paidAmount` is `0.00` at creation |
+   | `invoiceDate`, `dueDate` | Push date (no separate due-date concept for these payout types) |
+   | `invoiceFilePath` | Empty string — no invoice file exists for these payout types |
+   | `branchId`, `organizationId` | `onebook.branch_id`, `onebook.org_id` |
+   | `createdBy`, `modifiedBy` | The approving/disbursing user |
+
+4. **The synchronous response carries no register id** — just an ack (`{"message": "..."}`). Success/failure is judged purely on HTTP status: any 2xx is `TRANSMITTED`; any non-2xx or network exception is `FAILED`. The register's actual OneBook-assigned id and final payment outcome arrive later via the two inbound callbacks below.
+5. **Bank-detail guard:** the push is blocked before any API call if the recipient is missing name, account number, bank name, or IFSC. Enquiry-sourced refunds are blocked entirely since enquiry records carry no bank details — those must be refunded manually.
+
+**Out of scope for this round:** OneBook's edit/delete-register and fetch-by-id endpoints are not wired up — there is no existing flow anywhere in OneCMS that cancels or edits a commission/refund/scholarship payout once it's already been transmitted (rejection is backend- and UI-gated to `PENDING` only — see `CommissionExplorerService.reject()`), so there is nothing to call them from yet. Revisit if a post-push cancellation feature is ever added.
+
+### Inbound — OneBook Calls Back Into OneCMS
+
+Unlike a single generic webhook, OneBook's real contract calls back into **two different endpoints OneCMS exposes**, both authenticated the same way as before — `X-OneBook-Secret` header checked against `onebook.webhook_secret`:
+
+| Endpoint | When OneBook Calls It | Payload (key fields) |
+|---|---|---|
+| `PUT /webhooks/onebook/posting-track-update` | Immediately after accepting a new payment register | `invoiceNumber`/`documentNumber` (correlation key), `oneBookPaymentRegisterId`, `status`, `comment` |
+| `PUT /webhooks/onebook/posting-track-completion` | Once the payment itself is completed or fails | `invoiceNumber`/`documentNumber`, `status`, `paymentNumber`, `bankName`, `paymentMode`, `transactionNumber`, `paymentDate`, `paymentBy`, `batchNumber` |
+
+Both accept a JSON array body (OneBook's documented shape, even for a single register) and reply with a flat `{"message": "true"}` ack, matching OneBook's documented response — not a per-entry result array. Each entry in the array is still processed independently server-side (`OneBookWebhookService.processPostingTrackUpdate` / `processPostingTrackCompletion`); an unmatched entry is logged and skipped rather than failing the whole call.
+
+**Correlation key:** matched purely by `invoiceNumber` (`OneBookPaymentRequestRepository.findByInvoiceNumber`) — this is the one identifier OneCMS generates that's guaranteed unique and is the same value sent as both `invoiceNumber` and `documentNumber` in the original create call.
+
+On `posting-track-completion`, OneBook's reported status maps to an internal status, then propagates to the originating record:
+
+| OneBook Status | Internal Status | Effect |
+|---|---|---|
+| `SUCCESS`, `COMPLETED`, `PAID` | `PAID` | Commission → enquiry `commissionPaymentStatus = PAID`, `Enquiry.commissionNumber` set to the generated invoice number. Refund → refund finalized (`APPROVED`), refund/installment rows stamped with payment date, mode, transaction reference; `FeeRefund.refundNumber` set to the same invoice number generated at push time (not regenerated). Scholarship → `ScholarshipDisbursement` record created from the register's stored metadata (academic year, term, remarks), `disbursementNumber` set to the same invoice number. |
+| `FAILED`, `REJECTED`, `CANCELLED`, `ERROR` | `FAILED` | Commission → `commissionPaymentStatus = FAILED` (visible/retryable in Commission Explorer). Refund → `status = PAYMENT_FAILED` (visible/retryable in Fee Refund List). Scholarship → **logged only; not yet surfaced or retryable in any screen — see Known Gap below.** |
+| Anything else | `PROCESSING` | No status change on the source record; awaiting a further callback. |
+
+The `OneBookPaymentRequest` register row always records the raw OneBook status, payment number, bank name, payment mode/by, batch number, paid date, and raw response JSON regardless of payment type.
+
+### Known Gap — Scholarship Rejection Has No Visible Lifecycle End
+
+Commission and refund both have a list screen that shows `FAILED` status and lets the user retry the push. Scholarship disbursement does not: a `FAILED`/`REJECTED` callback for a scholarship register is logged server-side only — there is no field on `StudentScholarship` or `ScholarshipDisbursement` that reflects it, and no screen lists pending/failed OneBook scholarship registers. This needs a design decision (where the failure surfaces, whether a retry action is added) before it can be called complete — tracked for follow-up, not fixed as part of this entry.
+
+### Configuration
+
+| Config Key | Purpose |
+|---|---|
+| `onebook.enabled` | Master switch. `false` by default — commissions/refunds/scholarships are settled manually until turned on. |
+| `onebook.api_url`, `onebook.username`, `onebook.password` | OneBook API base URL and auth-server credentials. |
+| `onebook.org_id`, `onebook.branch_id`, `onebook.app_name`, `onebook.paper_name`, `onebook.zone_name` | Identifiers OneBook uses to attribute the payment to this institution and authenticate the JWT request. |
+| `onebook.webhook_secret` | Shared secret OneBook sends in `X-OneBook-Secret` on both inbound callbacks. |
+| `onebook.integration_date` | Informational/audit only. |
+
+Configured from Settings → Integrations (`IntegrationsSettingsComponent`); requires `SYSTEM_CONFIG_MANAGE`.
+
+### Permissions
+
+- `COMMISSION_MANAGE` — approve/reject a commission and trigger the OneBook push.
+- `COMMISSION_SETTLE` — record the actual payout for an already-approved commission, separate from approve/reject authority; granted to DEV_ADMIN, SUPPORT_ADMIN, ADMIN, COLLEGE_ADMIN.
+- Refund/scholarship pushes use the existing refund (`FEE_REFUND_APPROVE` family) and scholarship disbursement (`SCHOLARSHIP_DISBURSE`) permissions — no new permission was needed for those.
+
+### Migration Notes
+
+- V223 seeded the integration config with a Bearer-token/tenant-ID model; V226 replaced it with username/password + org/branch/app/paper; V236 added `onebook.zone_name` and the columns needed for the real contract (`invoice_number`, `onebook_payment_number`, `onebook_bank_name`, `onebook_payment_by`, `onebook_batch_number` on `onebook_payment_requests`; `commission_number` on `enquiries`; `disbursement_number` on `scholarship_disbursements`).
+- V224 created `onebook_payment_requests`; V225 added request-metadata JSON (used to recover academic year/term/remarks for scholarship disbursement creation on the success callback).
+- V227 added the 6 bank-detail fields to `Student` required by the bank-detail guard.
+- V231 added commission rejection reason/by/at to `Enquiry` plus the `REJECTED` `CommissionPaymentStatus` value.
+- No migration was needed for the new commission/disbursement number sequences — `ApplicationNumberSequenceService` auto-creates a sequence row on first use of a new series code.
 
 ---
 

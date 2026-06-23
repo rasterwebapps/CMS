@@ -9,7 +9,7 @@ import com.cms.model.OneBookPaymentRequest;
 
 public interface OneBookPaymentRequestRepository extends JpaRepository<OneBookPaymentRequest, Long> {
 
-    Optional<OneBookPaymentRequest> findByReferenceId(String referenceId);
+    Optional<OneBookPaymentRequest> findByInvoiceNumber(String invoiceNumber);
 
     List<OneBookPaymentRequest> findByEntityIdAndPaymentTypeOrderByCreatedAtDesc(Long entityId, String paymentType);
 
