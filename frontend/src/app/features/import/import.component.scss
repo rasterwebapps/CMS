@@ -410,7 +410,11 @@
   tr:last-child td { border-bottom: none; }
 
   .cell-num  { font-family: var(--cms-font-mono); text-align: center; width: 60px; }
-  .cell-code { font-family: var(--cms-font-mono); font-size: var(--cms-text-sm); color: var(--cms-text-secondary); }
+  // Named distinctly from the global `.cell-code` chip (styles.scss) — that
+  // utility paints a solid `--cms-primary` badge background with white text;
+  // reusing its name here let that background bleed through behind text
+  // recolored for a plain background.
+  .cell-col-mono { font-family: var(--cms-font-mono); font-size: var(--cms-text-sm); color: var(--cms-text-secondary); }
 }
 
 .error-row--warn td { background: rgba(245,158,11,0.04); color: #92400e; }

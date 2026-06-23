@@ -332,7 +332,7 @@
             <tr [class.error-row--warn]="e.severity === 'WARNING'">
               <td>{{ e.sheet }}</td>
               <td class="cell-num">{{ e.rowNumber }}</td>
-              <td class="cell-code">{{ e.column }}</td>
+              <td class="cell-col-mono">{{ e.column }}</td>
               <td>{{ e.message }}</td>
             </tr>
           }
