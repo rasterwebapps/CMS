@@ -121,7 +121,6 @@ export class CommissionExplorerListComponent implements OnInit {
   // ── Payout modal ─────────────────────────────────────────────────────────────
   protected readonly payoutTarget  = signal<CommissionRecord | null>(null);
   protected readonly payoutForm: FormGroup = this.fb.group({
-    amount:               [null as number | null, [Validators.required, Validators.min(0.01)]],
     payoutDate:           ['', [Validators.required]],
     paymentMode:          [null as string | null, [Validators.required]],
     transactionReference: [''],
@@ -328,7 +327,6 @@ export class CommissionExplorerListComponent implements OnInit {
   protected openPayoutModal(r: CommissionRecord, event: Event): void {
     event.stopPropagation();
     this.payoutForm.reset({
-      amount: r.commissionOutstanding > 0 ? r.commissionOutstanding : r.commissionAmount,
       payoutDate: new Date().toISOString().slice(0, 10),
       paymentMode: null,
       transactionReference: '',
@@ -350,7 +348,7 @@ export class CommissionExplorerListComponent implements OnInit {
     const v = this.payoutForm.value;
     this.actionLoading.set(true);
     this.explorerService.recordPayout(target.enquiryId, {
-      amount:               v.amount,
+      amount:               target.commissionAmount,
       payoutDate:           v.payoutDate,
       paymentMode:          v.paymentMode,
       transactionReference: v.transactionReference?.trim() || undefined,

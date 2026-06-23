@@ -170,6 +170,13 @@ public class CommissionExplorerService {
                     + "or partially paid. Current: " + currentStatus);
         }
 
+        BigDecimal commissionAmount = enquiry.getCommissionAmount() != null
+                ? enquiry.getCommissionAmount() : BigDecimal.ZERO;
+        if (request.amount().compareTo(commissionAmount) != 0) {
+            throw new IllegalArgumentException(
+                    "Payout amount must equal the full commission amount of " + commissionAmount);
+        }
+
         PaymentMode mode;
         try {
             mode = PaymentMode.valueOf(request.paymentMode().toUpperCase());
@@ -199,18 +206,10 @@ public class CommissionExplorerService {
 
         payoutRepository.save(payout);
 
-        // Recalculate paid amount and update status
-        BigDecimal totalPaid = payoutRepository.sumAmountByEnquiryId(enquiryId);
-        enquiry.setCommissionPaidAmount(totalPaid);
-
-        BigDecimal commissionDue = enquiry.getCommissionAmount() != null
-                ? enquiry.getCommissionAmount() : BigDecimal.ZERO;
-
-        if (totalPaid.compareTo(commissionDue) >= 0) {
-            enquiry.setCommissionPaymentStatus(CommissionPaymentStatus.PAID);
-        } else {
-            enquiry.setCommissionPaymentStatus(CommissionPaymentStatus.PARTIAL);
-        }
+        // Payout amount was validated above to equal the full commission amount, so this always settles the
+        // enquiry in one shot — PARTIAL is never produced going forward.
+        enquiry.setCommissionPaidAmount(commissionAmount);
+        enquiry.setCommissionPaymentStatus(CommissionPaymentStatus.PAID);
 
         enquiryRepository.save(enquiry);
         return toResponse(enquiry);
