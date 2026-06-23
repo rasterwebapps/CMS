@@ -448,3 +448,17 @@
   .doc-hdr { flex-direction: column; align-items: flex-start; }
   .search-bar__input { width: 150px; }
 }
+
+// #tour-docsub-content is a tour-anchor wrapper with no global CSS of its own. It sits
+// between .mlp-page (flex column) and .content-card.mlp-table-card, so
+// without this it isn't a flex item and .mlp-table-card's flex:1 can't
+// stretch the card to fill remaining screen height — the table stays
+// content-sized and the paginator sits under the last row instead of
+// pinning to the bottom (the receipts-list/fee-refund-list reference
+// pattern has no such intermediate div).
+#tour-docsub-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}

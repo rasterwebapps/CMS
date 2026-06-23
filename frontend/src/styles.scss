@@ -5250,6 +5250,28 @@ html.large-text {
 // the table-wrapper handles its own internal scroll instead.
 // Pagination footer is therefore always visible at the viewport bottom —
 // even when there are zero or very few rows.
+//
+// Missing link: every routed page renders as a direct child of
+// main.app-content (Angular inserts the route component there with no
+// wrapper element). That child has no specified height, so it's a normal
+// block box sized to its own content — meaning `height: 100% !important`
+// on .mlp-page etc. below has no containing block to resolve against and
+// computes to nothing. This rule gives every routed page host a real,
+// definite height (100% of app-content's flex-computed height) so the
+// percentage chain below actually has something to resolve against.
+// Without this, list screens only "looked" fixed-height because their
+// row count happened to be tall enough to fill the viewport on its own.
+//
+// :not(router-outlet) matters: the routed component is inserted as a
+// SIBLING of <router-outlet>, not a replacement for it — the outlet tag
+// itself stays in the DOM as an empty element. Without this exclusion it
+// also got height:100%, producing one full-height blank box before the
+// real page content (the screen "going blank until you scroll" bug).
+main.app-content > :not(router-outlet) {
+  display: block;
+  height: 100%;
+  min-height: 0;
+}
 // ─────────────────────────────────────────────────────────────
 
 // ── Shorthand: all page root selectors that carry a paginated table ──

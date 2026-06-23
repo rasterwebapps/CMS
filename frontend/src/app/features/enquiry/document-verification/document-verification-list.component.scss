@@ -309,3 +309,17 @@
   padding: 0; margin: -1px; overflow: hidden;
   clip: rect(0,0,0,0); white-space: nowrap; border-width: 0;
 }
+
+// #tour-docverif-content is a tour-anchor wrapper with no global CSS of its own. It sits
+// between .mlp-page (flex column) and .content-card.mlp-table-card, so
+// without this it isn't a flex item and .mlp-table-card's flex:1 can't
+// stretch the card to fill remaining screen height — the table stays
+// content-sized and the paginator sits under the last row instead of
+// pinning to the bottom (the receipts-list/fee-refund-list reference
+// pattern has no such intermediate div).
+#tour-docverif-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
