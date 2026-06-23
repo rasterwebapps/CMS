@@ -5,8 +5,8 @@
     <div class="ce-overlay" role="dialog" aria-modal="true" aria-labelledby="payout-dialog-title">
       <div class="ce-dialog">
         <div class="ce-dialog__header">
-          <span class="material-icons ce-dialog__icon" aria-hidden="true">{{ isCashOnly() ? 'attach_money' : 'payments' }}</span>
-          <h3 id="payout-dialog-title">{{ isCashOnly() ? 'Record Cash Payment' : 'Record Commission Payout' }}</h3>
+          <span class="material-symbols-rounded ce-dialog__icon" aria-hidden="true">payments</span>
+          <h3 id="payout-dialog-title">Record Commission Payout</h3>
         </div>
 
         <div class="ce-dialog__summary">
@@ -54,21 +54,19 @@
           </div>
 
           <div class="field-row">
-            @if (!isCashOnly()) {
-              <div class="field-group">
-                <label class="field-label" for="po-mode">Payment Mode <span class="required-star">*</span></label>
-                <select id="po-mode" class="field-select" formControlName="paymentMode"
-                  [class.field-select--error]="payoutForm.get('paymentMode')?.invalid && payoutForm.get('paymentMode')?.touched">
-                  <option [value]="null">Select mode…</option>
-                  @for (mode of paymentModes; track mode) {
-                    <option [value]="mode">{{ mode | paymentModeLabel }}</option>
-                  }
-                </select>
-                @if (payoutForm.get('paymentMode')?.invalid && payoutForm.get('paymentMode')?.touched) {
-                  <p class="field-error">Payment mode is required</p>
+            <div class="field-group">
+              <label class="field-label" for="po-mode">Payment Mode <span class="required-star">*</span></label>
+              <select id="po-mode" class="field-select" formControlName="paymentMode"
+                [class.field-select--error]="payoutForm.get('paymentMode')?.invalid && payoutForm.get('paymentMode')?.touched">
+                <option [value]="null">Select mode…</option>
+                @for (mode of paymentModes; track mode) {
+                  <option [value]="mode">{{ mode | paymentModeLabel }}</option>
                 }
-              </div>
-            }
+              </select>
+              @if (payoutForm.get('paymentMode')?.invalid && payoutForm.get('paymentMode')?.touched) {
+                <p class="field-error">Payment mode is required</p>
+              }
+            </div>
             <div class="field-group">
               <label class="field-label" for="po-ref">Transaction Reference</label>
               <input id="po-ref" class="field-input" formControlName="transactionReference"
@@ -90,6 +88,96 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  }
+
+  <!-- ── Reject modal ────────────────────────────────────────────────────────── -->
+  @if (rejectTarget()) {
+    <div class="ce-overlay" role="dialog" aria-modal="true" aria-labelledby="reject-dialog-title">
+      <div class="ce-dialog">
+        <div class="ce-dialog__header">
+          <span class="material-symbols-rounded ce-dialog__icon" aria-hidden="true">close</span>
+          <h3 id="reject-dialog-title">Reject Commission</h3>
+        </div>
+
+        <div class="ce-dialog__summary">
+          <div class="ce-summary-row">
+            <span class="ce-summary-label">Student</span>
+            <span class="ce-summary-value">{{ rejectTarget()!.studentName }}</span>
+          </div>
+          <div class="ce-summary-row">
+            <span class="ce-summary-label">Referrer</span>
+            <span class="ce-summary-value">{{ referrerLabel(rejectTarget()!) }}</span>
+          </div>
+          <div class="ce-summary-row">
+            <span class="ce-summary-label">Commission Amount</span>
+            <span class="ce-summary-value ce-amount">{{ rejectTarget()!.commissionAmount | inr }}</span>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="reject-reason">Reason <span class="required-star">*</span></label>
+          <textarea id="reject-reason" class="field-textarea" rows="3"
+            placeholder="Why is this commission being rejected?"
+            [value]="rejectReason()"
+            (input)="rejectReason.set($any($event.target).value)"
+            [class.field-input--error]="rejectReasonTouched() && !rejectReason().trim()"></textarea>
+          @if (rejectReasonTouched() && !rejectReason().trim()) {
+            <p class="field-error">A rejection reason is required</p>
+          }
+        </div>
+
+        <div class="ce-dialog__footer">
+          <button type="button" class="btn-secondary" (click)="closeRejectModal()"
+            [disabled]="actionLoading()">Cancel</button>
+          <button type="button" class="btn-danger" [disabled]="actionLoading()" (click)="submitReject()">
+            @if (actionLoading()) { <span class="btn-spinner"></span> } Reject Commission
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Approve confirmation modal ──────────────────────────────────────────── -->
+  @if (approveTarget()) {
+    <div class="ce-overlay" role="dialog" aria-modal="true" aria-labelledby="approve-dialog-title">
+      <div class="ce-dialog">
+        <div class="ce-dialog__header">
+          <span class="material-symbols-rounded ce-dialog__icon" aria-hidden="true">check_circle</span>
+          <h3 id="approve-dialog-title">Approve Commission</h3>
+        </div>
+
+        <div class="ce-dialog__summary">
+          <div class="ce-summary-row">
+            <span class="ce-summary-label">Student</span>
+            <span class="ce-summary-value">{{ approveTarget()!.studentName }}</span>
+          </div>
+          <div class="ce-summary-row">
+            <span class="ce-summary-label">Referrer</span>
+            <span class="ce-summary-value">{{ referrerLabel(approveTarget()!) }}</span>
+          </div>
+          <div class="ce-summary-row">
+            <span class="ce-summary-label">Commission Amount</span>
+            <span class="ce-summary-value ce-amount">{{ approveTarget()!.commissionAmount | inr }}</span>
+          </div>
+        </div>
+
+        <p class="ce-dialog__confirm-text">
+          @if (oneBookEnabled()) {
+            This will transmit the payment to OneBook for processing. Are you sure you want to approve it?
+          } @else {
+            This will mark the commission as approved and ready for cash/other-mode settlement. Are you sure you want to approve it?
+          }
+        </p>
+
+        <div class="ce-dialog__footer">
+          <button type="button" class="btn-secondary" (click)="closeApproveModal()"
+            [disabled]="actionLoading()">Cancel</button>
+          <button type="button" class="btn-primary" [disabled]="actionLoading()" (click)="confirmApprove()">
+            @if (actionLoading()) { <span class="btn-spinner"></span> } Approve
+          </button>
+        </div>
       </div>
     </div>
   }
@@ -118,7 +206,7 @@
     </div>
     <div class="ce-stat">
       <span class="ce-stat__label">Awaiting Approval</span>
-      <span class="ce-stat__value ce-stat__value--requested">{{ totalRequested() }}</span>
+      <span class="ce-stat__value ce-stat__value--requested">{{ totalAwaitingApproval() }}</span>
     </div>
   </div>
 
@@ -146,26 +234,6 @@
       }
     </div>
 
-    <select class="mlp-filter-select"
-      [value]="filterStatus()"
-      (change)="filterStatus.set($any($event.target).value)"
-      aria-label="Filter by status">
-      <option value="">All Statuses</option>
-      @for (s of statusOptions; track s.value) {
-        <option [value]="s.value">{{ s.label }}</option>
-      }
-    </select>
-
-    <select class="mlp-filter-select"
-      [value]="filterSource()"
-      (change)="filterSource.set($any($event.target).value)"
-      aria-label="Filter by referral source">
-      <option value="">All Sources</option>
-      @for (s of sourceOptions; track s.value) {
-        <option [value]="s.value">{{ s.label }}</option>
-      }
-    </select>
-
     <div class="date-range-group">
       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -185,6 +253,26 @@
         (change)="filterTo.set($any($event.target).value)"
         aria-label="To date" />
     </div>
+
+    <select class="mlp-filter-select"
+      [value]="filterStatus()"
+      (change)="filterStatus.set($any($event.target).value)"
+      aria-label="Filter by status">
+      <option value="">All Statuses</option>
+      @for (s of statusOptions; track s.value) {
+        <option [value]="s.value">{{ s.label }}</option>
+      }
+    </select>
+
+    <select class="mlp-filter-select"
+      [value]="filterSource()"
+      (change)="filterSource.set($any($event.target).value)"
+      aria-label="Filter by referral source">
+      <option value="">All Sources</option>
+      @for (s of sourceOptions; track s.value) {
+        <option [value]="s.value">{{ s.label }}</option>
+      }
+    </select>
 
     @if (hasFilters()) {
       <button class="btn-clear-filters" (click)="clearFilters()" aria-label="Clear all filters">
@@ -211,7 +299,8 @@
         [subtitle]="hasFilters() ? 'Try adjusting your filters.' : 'No commissions with an amount have been recorded yet.'"
       />
     } @else {
-      <table mat-table [dataSource]="dataSource" matSort class="cms-table">
+      <div class="table-wrapper">
+      <table mat-table [dataSource]="dataSource" matSort multiTemplateDataRows class="mlp-table">
 
         <!-- Student Name -->
         <ng-container matColumnDef="studentName">
@@ -286,46 +375,34 @@
 
         <!-- Actions -->
         <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef></th>
+          <th mat-header-cell *matHeaderCellDef class="cell-actions"></th>
           <td mat-cell *matCellDef="let r" class="cell-actions">
-            <!-- Request payment (PENDING only, any viewer) -->
-            @if (r.commissionPaymentStatus === 'PENDING') {
-              <cms-row-action-btn variant="accent" [iconOnly]="true"
-                tooltip="Request payment approval" ariaLabel="Request payment approval"
+          <div class="cell-actions__inner">
+            <!-- Approve / Reject (PENDING, manage only) -->
+            @if (canManage() && r.commissionPaymentStatus === 'PENDING') {
+              <cms-row-action-btn variant="danger" [iconOnly]="true"
+                tooltip="Reject commission" ariaLabel="Reject commission"
                 [disabled]="actionLoading()"
-                (clicked)="requestPayment(r, $event)">
-                <span class="material-icons">send</span>
+                (clicked)="openRejectModal(r, $event)">
+                <span class="material-symbols-rounded">close</span>
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="accent" [iconOnly]="true"
+                [tooltip]="oneBookEnabled() ? 'Approve &amp; send to OneBook' : 'Approve commission'"
+                [ariaLabel]="oneBookEnabled() ? 'Approve and send to OneBook' : 'Approve commission'"
+                [disabled]="actionLoading()"
+                (clicked)="openApproveModal(r, $event)">
+                <span class="material-symbols-rounded">check</span>
               </cms-row-action-btn>
             }
 
-            <!-- Payout actions (PAYMENT_REQUESTED or PARTIAL, manage only) -->
-            @if (canManage() && (r.commissionPaymentStatus === 'PAYMENT_REQUESTED' || r.commissionPaymentStatus === 'PARTIAL')) {
-              @if (!oneBookEnabled()) {
-                <!-- OneBook OFF: full record payout (all modes) -->
-                <cms-row-action-btn variant="accent" [iconOnly]="true"
-                  tooltip="Record payout" ariaLabel="Record payout"
-                  [disabled]="actionLoading()"
-                  (clicked)="openPayoutModal(r, $event, false)">
-                  <span class="material-icons">payments</span>
-                </cms-row-action-btn>
-              } @else {
-                @if (oneBookAllowCash()) {
-                  <!-- OneBook ON + cash allowed: record cash payout -->
-                  <cms-row-action-btn variant="accent" [iconOnly]="true"
-                    tooltip="Record cash payment" ariaLabel="Record cash payment"
-                    [disabled]="actionLoading()"
-                    (clicked)="openPayoutModal(r, $event, true)">
-                    <span class="material-icons">attach_money</span>
-                  </cms-row-action-btn>
-                }
-                <!-- OneBook ON: approve and transmit to OneBook -->
-                <cms-row-action-btn variant="accent" [iconOnly]="true"
-                  tooltip="Approve &amp; send to OneBook" ariaLabel="Approve and send to OneBook"
-                  [disabled]="actionLoading()"
-                  (clicked)="approveViaOneBook(r, $event)">
-                  <span class="material-icons">send_to_mobile</span>
-                </cms-row-action-btn>
-              }
+            <!-- Record payout / settlement (PAYMENT_REQUESTED or PARTIAL — only reachable when OneBook is off) -->
+            @if ((canManage() || canSettle()) && (r.commissionPaymentStatus === 'PAYMENT_REQUESTED' || r.commissionPaymentStatus === 'PARTIAL')) {
+              <cms-row-action-btn variant="accent" [iconOnly]="true"
+                tooltip="Record payout" ariaLabel="Record payout"
+                [disabled]="actionLoading()"
+                (clicked)="openPayoutModal(r, $event)">
+                <span class="material-symbols-rounded">payments</span>
+              </cms-row-action-btn>
             }
 
             <!-- Retry for FAILED transmissions (OneBook ON only) -->
@@ -333,18 +410,30 @@
               <cms-row-action-btn variant="accent" [iconOnly]="true"
                 tooltip="Retry transmission to OneBook" ariaLabel="Retry transmission to OneBook"
                 [disabled]="actionLoading()"
-                (clicked)="approveViaOneBook(r, $event)">
-                <span class="material-icons">replay</span>
+                (clicked)="retryOneBook(r, $event)">
+                <span class="material-symbols-rounded">replay</span>
+              </cms-row-action-btn>
+            }
+
+            <!-- Reopen a rejected commission (manage only) -->
+            @if (canManage() && r.commissionPaymentStatus === 'REJECTED') {
+              <cms-row-action-btn variant="neutral" [iconOnly]="true"
+                tooltip="Reopen — send back to pending" ariaLabel="Reopen commission"
+                [disabled]="actionLoading()"
+                (clicked)="reopen(r, $event)">
+                <span class="material-symbols-rounded">restart_alt</span>
               </cms-row-action-btn>
             }
 
             <!-- Expand/collapse -->
-            <cms-row-action-btn variant="neutral" [iconOnly]="true"
-              [tooltip]="isExpanded(r) ? 'Hide history' : 'View payout history'"
-              [ariaLabel]="isExpanded(r) ? 'Hide history' : 'View payout history'"
-              (clicked)="toggleRow(r)">
-              <span class="material-icons">{{ isExpanded(r) ? 'expand_less' : 'expand_more' }}</span>
-            </cms-row-action-btn>
+            <button type="button" class="ce-expand-toggle"
+              [class.ce-expand-toggle--open]="isExpanded(r)"
+              [matTooltip]="isExpanded(r) ? 'Hide history' : 'View payout history'"
+              [attr.aria-label]="isExpanded(r) ? 'Hide history' : 'View payout history'"
+              (click)="toggleRow(r)">
+              <span class="material-symbols-rounded">expand_more</span>
+            </button>
+          </div>
           </td>
         </ng-container>
 
@@ -354,11 +443,32 @@
             @if (isExpanded(r)) {
               <div class="ce-detail">
                 <div class="ce-detail__meta">
-                  <span><strong>Enquiry Date:</strong> {{ r.enquiryDate | appDate }}</span>
-                  <span><strong>Status:</strong> {{ r.enquiryStatus }}</span>
-                  <span><strong>Referral Type:</strong> {{ r.referralTypeName || '—' }}</span>
-                  <span><strong>Source:</strong> {{ referrerType(r) || '—' }}</span>
+                  <div class="ce-detail__chip">
+                    <span class="ce-detail__chip-label">Enquiry Date</span>
+                    <span class="ce-detail__chip-value">{{ r.enquiryDate | appDate }}</span>
+                  </div>
+                  <div class="ce-detail__chip">
+                    <span class="ce-detail__chip-label">Enquiry Status</span>
+                    <span class="badge badge--neutral">{{ r.enquiryStatus }}</span>
+                  </div>
+                  <div class="ce-detail__chip">
+                    <span class="ce-detail__chip-label">Referral Type</span>
+                    <span class="ce-detail__chip-value">{{ r.referralTypeName || '—' }}</span>
+                  </div>
                 </div>
+
+                @if (r.commissionPaymentStatus === 'REJECTED' && r.rejectionReason) {
+                  <p class="ce-detail__section-title">Rejection</p>
+                  <div class="ce-detail__meta ce-detail__onebook">
+                    <span><strong>Reason:</strong> {{ r.rejectionReason }}</span>
+                    @if (r.rejectedBy) {
+                      <span><strong>Rejected by:</strong> {{ r.rejectedBy }}</span>
+                    }
+                    @if (r.rejectedAt) {
+                      <span><strong>Rejected at:</strong> {{ r.rejectedAt | appDate }}</span>
+                    }
+                  </div>
+                }
 
                 @if (r.oneBookReferenceId) {
                   <p class="ce-detail__section-title">OneBook Integration</p>
@@ -395,7 +505,7 @@
                           <td>{{ p.payoutDate | appDate }}</td>
                           <td class="cell-amount">{{ p.amount | inr }}</td>
                           <td>{{ p.paymentMode | paymentModeLabel }}</td>
-                          <td class="cell-code">{{ p.transactionReference || '—' }}</td>
+                          <td class="cell-ref-mono">{{ p.transactionReference || '—' }}</td>
                           <td>{{ p.paidBy || '—' }}</td>
                           <td>{{ p.remarks || '—' }}</td>
                         </tr>
@@ -412,13 +522,15 @@
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
         <tr mat-row *matRowDef="let r; columns: displayedColumns;"
-            class="cms-table__row"
+            class="mlp-row cms-table__row"
             [class.cms-table__row--expanded]="isExpanded(r)">
         </tr>
         <tr mat-row *matRowDef="let r; columns: ['expandedDetail']"
-            class="cms-table__detail-row">
+            class="cms-table__detail-row"
+            [class.cms-table__detail-row--collapsed]="!isExpanded(r)">
         </tr>
       </table>
+      </div>
 
       <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons />
     }

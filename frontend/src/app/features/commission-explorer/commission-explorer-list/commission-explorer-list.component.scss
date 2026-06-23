@@ -36,6 +36,47 @@
   }
 }
 
+// ── Date range filter ─────────────────────────────────────────────────────────
+.date-range-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-list-filter-radius);
+  padding: 0 10px;
+  height: var(--cms-list-filter-height);
+  color: var(--cms-text-muted);
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover { border-color: var(--cms-border-hover); }
+  &:focus-within { border-color: var(--cms-primary); box-shadow: 0 0 0 3px var(--cms-primary-ring); }
+
+  svg { flex-shrink: 0; }
+}
+
+.date-range-label {
+  font-size: var(--cms-text-xs);
+  font-weight: 500;
+  color: var(--cms-text-muted);
+  white-space: nowrap;
+}
+
+.date-input {
+  border: none;
+  background: transparent;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-primary);
+  font-family: var(--cms-font-ui);
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  width: 96px;
+}
+
+.date-sep { color: var(--cms-text-muted); font-size: var(--cms-text-xs); }
+
 // ── Payout modal overlay ─────────────────────────────────────────────────────
 .ce-overlay {
   position: fixed;
@@ -108,8 +149,14 @@
   font-size: 13px;
 }
 
+.ce-dialog__confirm-text {
+  font-size: 13px;
+  color: var(--cms-text-secondary);
+  margin: 14px 0 4px;
+}
+
 .ce-summary-label { color: var(--cms-text-secondary); }
-.ce-summary-value { font-weight: 600; color: var(--cms-text-primary); }
+.ce-summary-value { font-weight: 600; color: var(--cms-text-primary); text-transform: capitalize; }
 .ce-amount { color: var(--cms-primary); font-size: 15px; }
 .ce-amount--outstanding { color: var(--cms-warning); font-size: 15px; font-weight: 700; }
 
@@ -121,6 +168,7 @@
   font-weight: 600;
   font-size: 13.5px;
   color: var(--cms-text-primary);
+  text-transform: capitalize;
 }
 
 .cell-sub {
@@ -151,19 +199,68 @@
 .cell-amount--paid { color: var(--cms-success); font-weight: 600; }
 .cell-amount--outstanding { color: var(--cms-warning); font-weight: 600; }
 
-.cell-code {
+// Named distinctly from the global `.cell-code` chip (styles.scss) — that
+// utility paints a solid `--cms-primary` badge background with white text,
+// which isn't what a plain payout reference value should look like. Reusing
+// its name here previously meant the global background bled through behind
+// text recolored for a plain background, rendering as a solid color block.
+.cell-ref-mono {
   font-family: monospace;
   font-size: 12px;
   color: var(--cms-text-secondary);
 }
 
+// Angular Material's table is a real <table> (table-layout: auto), so each
+// <td>/<th> is natively `display: table-cell` — that's what makes the browser
+// center it on the row's full height and keep header/body column widths in
+// sync for free. Forcing `display: flex` directly on the cell (an earlier,
+// wrong fix) pulls it out of table-cell layout entirely: it stops
+// participating in row-height vertical centering (content snaps to the top)
+// and stops contributing to the column's auto-computed width (header and
+// body cells can then disagree on width). Keep the cell itself a plain
+// table-cell and do the flex alignment in `.cell-actions__inner` instead.
 .cell-actions {
+  width: 150px;
+  min-width: 150px;
+  max-width: 150px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.cell-actions__inner {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
-  white-space: nowrap;
-  min-width: 100px;
+}
+
+// Expand/collapse — a plain circular chevron, deliberately lighter than the
+// bordered cms-row-action-btn actions so it doesn't read as another action.
+.ce-expand-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--cms-text-secondary);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+
+  .material-symbols-rounded {
+    font-size: 20px;
+    transition: transform .2s ease;
+  }
+
+  &:hover { background: var(--cms-bg-muted); color: var(--cms-text-primary); }
+
+  &--open {
+    color: var(--cms-primary);
+    .material-symbols-rounded { transform: rotate(180deg); }
+  }
 }
 
 // ── Badges ───────────────────────────────────────────────────────────────────
@@ -210,7 +307,7 @@
   cursor: pointer;
   transition: background .15s;
 
-  .material-icons { font-size: 18px; }
+  .material-symbols-rounded { font-size: 18px; }
 
   &:disabled { opacity: .4; cursor: not-allowed; }
 
@@ -241,26 +338,52 @@
 }
 
 // ── Expanded detail ───────────────────────────────────────────────────────────
-.cell-expanded {
+// `.mlp-table td.mat-mdc-cell { padding: 10px 16px !important; }` (global
+// styles.scss) has a `td` type selector our plain `.cell-expanded` class
+// lacks, so it wins the specificity tie despite both being !important —
+// adding the column class here outranks it instead of relying on source order.
+td.mat-mdc-cell.cell-expanded.cdk-column-expandedDetail {
   padding: 0 !important;
   border-bottom: none;
 }
 
 .ce-detail {
-  padding: 12px 20px 16px;
+  margin: 16px;
+  padding: 16px;
   background: var(--cms-bg-muted);
-  border-top: 1px solid var(--cms-border-default);
-  border-bottom: 1px solid var(--cms-border-default);
+  border: 1px solid rgba(var(--cms-primary-rgb), .5);
+  border-radius: 8px;
 
   &__meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
-    font-size: 12.5px;
-    color: var(--cms-text-secondary);
-    margin-bottom: 12px;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
 
-    strong { color: var(--cms-text-primary); }
+  &__chip {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    background: var(--cms-bg-card);
+    border: 1px solid var(--cms-border-default);
+    border-radius: 8px;
+    padding: 6px 12px;
+    min-width: 110px;
+  }
+
+  &__chip-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--cms-text-secondary);
+  }
+
+  &__chip-value {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--cms-text-primary);
   }
 
   &__section-title {
@@ -320,8 +443,60 @@
 }
 
 // ── Row states ────────────────────────────────────────────────────────────────
-.cms-table__detail-row { height: 0; }
-.cms-table__row--expanded { background: var(--cms-bg-muted); }
+// This is a real <table> (Material's MDC table uses native table-row/
+// table-cell display), so `height: 0` on the collapsed detail <tr> is only a
+// hint — the browser still reserves at least one line-height for the empty
+// <td>'s inline formatting context, leaving a persistent few-pixel gap
+// between every pair of data rows no matter how it's overridden. `display:
+// none` removes the row from layout entirely, which is the only way to get
+// a true zero-height collapsed state in a real table.
+.cms-table__detail-row--collapsed { display: none; }
+
+// The MDC table paints background on the <td>, not the <tr> — setting it on
+// the row itself (as a naive fix would) silently does nothing.
+//
+// There are two concentric rounded 1px primary-color borders here:
+//   - an outer one around the expanded data row PLUS the detail panel
+//     below it, as a single unbroken shape (no seam at the row/panel join)
+//   - an inner one around just the detail panel itself (`.ce-detail` above
+//     has its own plain `border` for that — it's a <div>, not bound by
+//     border-collapse, so a real border works fine there)
+//
+// A real `border` does NOT work for the outer one — a global reset sets
+// every <table> to `border-collapse: collapse` (styles.css base reset), and
+// under that model browsers (a) ignore `border-radius` on <td> entirely and
+// (b) resolve a cell's own `border` against the conflicting border-bottom of
+// the row above it via the collapsed-border model, which can silently drop
+// it altogether. box-shadow isn't part of the border-collapse model, so it
+// always paints and respects border-radius correctly.
+//
+// The data row spans several <td>s in one <tr>, so a single inset shadow
+// per cell would only box each cell individually. Instead: every row cell
+// gets a top edge, and only the first/last cell also gets a left/right edge
+// plus the matching top corner radius. The single colspan'd detail <td>
+// below picks up the same left/right edges plus a bottom edge and bottom
+// corner radius. Neither has a bottom/top edge at the row/panel join, so
+// together they read as one unbroken rounded border around both.
+.cms-table__row--expanded td.mat-mdc-cell {
+  background: var(--cms-bg-muted) !important;
+  box-shadow: inset 0 1px 0 0 var(--cms-primary);
+
+  &:first-child {
+    box-shadow: inset 0 1px 0 0 var(--cms-primary), inset 1px 0 0 0 var(--cms-primary);
+    border-top-left-radius: 8px;
+  }
+
+  &:last-child {
+    box-shadow: inset 0 1px 0 0 var(--cms-primary), inset -1px 0 0 0 var(--cms-primary);
+    border-top-right-radius: 8px;
+  }
+}
+
+.cms-table__detail-row:not(.cms-table__detail-row--collapsed) td.cell-expanded {
+  box-shadow: inset 1px 0 0 0 var(--cms-primary), inset -1px 0 0 0 var(--cms-primary), inset 0 -1px 0 0 var(--cms-primary);
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
 
 // ── Spinner in button ─────────────────────────────────────────────────────────
 .btn-spinner {
