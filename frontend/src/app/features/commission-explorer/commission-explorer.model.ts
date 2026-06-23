@@ -41,6 +41,11 @@ export interface CommissionRecord {
   oneBookStatus: string | null;
   oneBookTransmittedAt: string | null;
   oneBookTxnId: string | null;
+
+  // Rejection tracking (null unless commissionPaymentStatus = REJECTED)
+  rejectionReason: string | null;
+  rejectedBy: string | null;
+  rejectedAt: string | null;
 }
 
 export interface CommissionPayoutRequest {
@@ -53,12 +58,13 @@ export interface CommissionPayoutRequest {
 
 export const COMMISSION_STATUS_OPTIONS = [
   { value: 'PENDING',            label: 'Pending' },
-  { value: 'PAYMENT_REQUESTED',  label: 'Payment Requested' },
+  { value: 'PAYMENT_REQUESTED',  label: 'Awaiting Payment' },
   { value: 'PARTIAL',            label: 'Partial' },
   { value: 'PAID',               label: 'Paid' },
   { value: 'TRANSMITTED',        label: 'Transmitted' },
   { value: 'PROCESSING',         label: 'Processing' },
   { value: 'FAILED',             label: 'Failed' },
+  { value: 'REJECTED',           label: 'Rejected' },
 ] as const;
 
 export const COMMISSION_SOURCE_OPTIONS = [

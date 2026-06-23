@@ -39,5 +39,10 @@ public record CommissionExplorerResponse(
     String oneBookReferenceId,
     String oneBookStatus,
     Instant oneBookTransmittedAt,
-    String oneBookTxnId
+    String oneBookTxnId,
+
+    // Rejection tracking (null unless commissionPaymentStatus = REJECTED)
+    String rejectionReason,
+    String rejectedBy,
+    Instant rejectedAt
 ) {}

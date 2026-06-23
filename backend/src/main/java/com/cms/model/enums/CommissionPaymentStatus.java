@@ -9,7 +9,7 @@ public enum CommissionPaymentStatus {
     NOT_APPLICABLE,
     /** Commission accrued but no payout recorded yet. */
     PENDING,
-    /** A payment has been requested but not yet approved/recorded. */
+    /** Approved by an admin/manager; awaiting cash/other-mode settlement (OneBook disabled). */
     PAYMENT_REQUESTED,
     /** Some payouts recorded but commission not fully paid out. */
     PARTIAL,
@@ -20,6 +20,8 @@ public enum CommissionPaymentStatus {
     /** OneBook has accepted and is processing the payment. */
     PROCESSING,
     /** OneBook reported a payment failure; retry or handle manually. */
-    FAILED
+    FAILED,
+    /** Admin/manager rejected the commission payout; reopen to send back to PENDING. */
+    REJECTED
 }
 

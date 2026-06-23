@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.CommissionExplorerResponse;
 import com.cms.dto.CommissionPayoutRequest;
+import com.cms.dto.CommissionRejectionRequest;
 import com.cms.service.CommissionExplorerService;
 
 import jakarta.validation.Valid;
@@ -32,7 +33,7 @@ public class CommissionExplorerController {
     }
 
     @GetMapping
-    @PreAuthorize("@perm.has('COMMISSION_VIEW')")
+    @PreAuthorize("@perm.hasAny('COMMISSION_VIEW', 'COMMISSION_MANAGE', 'COMMISSION_SETTLE')")
     public ResponseEntity<List<CommissionExplorerResponse>> findAll(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String source,
@@ -45,26 +46,33 @@ public class CommissionExplorerController {
                 service.findAll(status, source, referralTypeId, agentId, fromDate, toDate, search));
     }
 
-    @PostMapping("/{enquiryId}/request-payment")
-    @PreAuthorize("@perm.has('COMMISSION_VIEW')")
-    public ResponseEntity<CommissionExplorerResponse> requestPayment(
-            @PathVariable Long enquiryId,
-            Principal principal) {
-        String requestedBy = principal != null ? principal.getName() : "system";
-        return ResponseEntity.ok(service.requestPayment(enquiryId, requestedBy));
-    }
-
-    @PostMapping("/{enquiryId}/approve-onebook")
+    @PostMapping("/{enquiryId}/approve")
     @PreAuthorize("@perm.has('COMMISSION_MANAGE')")
-    public ResponseEntity<CommissionExplorerResponse> approvePayout(
+    public ResponseEntity<CommissionExplorerResponse> approve(
             @PathVariable Long enquiryId,
             Principal principal) {
         String approvedBy = principal != null ? principal.getName() : "system";
-        return ResponseEntity.ok(service.approvePayout(enquiryId, approvedBy));
+        return ResponseEntity.ok(service.approve(enquiryId, approvedBy));
+    }
+
+    @PostMapping("/{enquiryId}/reject")
+    @PreAuthorize("@perm.has('COMMISSION_MANAGE')")
+    public ResponseEntity<CommissionExplorerResponse> reject(
+            @PathVariable Long enquiryId,
+            @Valid @RequestBody CommissionRejectionRequest request,
+            Principal principal) {
+        String rejectedBy = principal != null ? principal.getName() : "system";
+        return ResponseEntity.ok(service.reject(enquiryId, request.reason(), rejectedBy));
+    }
+
+    @PostMapping("/{enquiryId}/reopen")
+    @PreAuthorize("@perm.has('COMMISSION_MANAGE')")
+    public ResponseEntity<CommissionExplorerResponse> reopen(@PathVariable Long enquiryId) {
+        return ResponseEntity.ok(service.reopen(enquiryId));
     }
 
     @PostMapping("/{enquiryId}/payouts")
-    @PreAuthorize("@perm.has('COMMISSION_MANAGE')")
+    @PreAuthorize("@perm.hasAny('COMMISSION_SETTLE', 'COMMISSION_MANAGE')")
     public ResponseEntity<CommissionExplorerResponse> recordPayout(
             @PathVariable Long enquiryId,
             @Valid @RequestBody CommissionPayoutRequest request,

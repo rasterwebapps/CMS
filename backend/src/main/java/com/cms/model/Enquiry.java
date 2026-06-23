@@ -127,6 +127,16 @@ public class Enquiry {
     @Column(name = "commission_payment_status", nullable = false, length = 20)
     private CommissionPaymentStatus commissionPaymentStatus = CommissionPaymentStatus.NOT_APPLICABLE;
 
+    /** Reason entered by the admin/manager when rejecting a commission payout. */
+    @Column(name = "commission_rejection_reason", columnDefinition = "TEXT")
+    private String commissionRejectionReason;
+
+    @Column(name = "commission_rejected_by", length = 150)
+    private String commissionRejectedBy;
+
+    @Column(name = "commission_rejected_at")
+    private Instant commissionRejectedAt;
+
     // Year-wise guideline fees stored as JSON
     @Column(name = "year_wise_fees", columnDefinition = "TEXT")
     private String yearWiseFees;
@@ -359,6 +369,15 @@ public class Enquiry {
             ? commissionPaymentStatus
             : CommissionPaymentStatus.NOT_APPLICABLE;
     }
+
+    public String getCommissionRejectionReason() { return commissionRejectionReason; }
+    public void setCommissionRejectionReason(String commissionRejectionReason) { this.commissionRejectionReason = commissionRejectionReason; }
+
+    public String getCommissionRejectedBy() { return commissionRejectedBy; }
+    public void setCommissionRejectedBy(String commissionRejectedBy) { this.commissionRejectedBy = commissionRejectedBy; }
+
+    public Instant getCommissionRejectedAt() { return commissionRejectedAt; }
+    public void setCommissionRejectedAt(Instant commissionRejectedAt) { this.commissionRejectedAt = commissionRejectedAt; }
 
     public String getYearWiseFees() {
         return yearWiseFees;

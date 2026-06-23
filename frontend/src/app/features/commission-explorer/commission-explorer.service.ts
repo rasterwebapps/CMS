@@ -29,15 +29,19 @@ export class CommissionExplorerService {
     return this.http.get<CommissionRecord[]>(this.base, { params });
   }
 
-  requestPayment(enquiryId: number): Observable<CommissionRecord> {
-    return this.http.post<CommissionRecord>(`${this.base}/${enquiryId}/request-payment`, {});
-  }
-
   recordPayout(enquiryId: number, request: CommissionPayoutRequest): Observable<CommissionRecord> {
     return this.http.post<CommissionRecord>(`${this.base}/${enquiryId}/payouts`, request);
   }
 
-  approvePayout(enquiryId: number): Observable<CommissionRecord> {
-    return this.http.post<CommissionRecord>(`${this.base}/${enquiryId}/approve-onebook`, {});
+  approve(enquiryId: number): Observable<CommissionRecord> {
+    return this.http.post<CommissionRecord>(`${this.base}/${enquiryId}/approve`, {});
+  }
+
+  reject(enquiryId: number, reason: string): Observable<CommissionRecord> {
+    return this.http.post<CommissionRecord>(`${this.base}/${enquiryId}/reject`, { reason });
+  }
+
+  reopen(enquiryId: number): Observable<CommissionRecord> {
+    return this.http.post<CommissionRecord>(`${this.base}/${enquiryId}/reopen`, {});
   }
 }

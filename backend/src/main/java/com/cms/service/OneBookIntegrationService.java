@@ -85,7 +85,8 @@ public class OneBookIntegrationService {
                 .orElseThrow(() -> new EntityNotFoundException("Enquiry not found: " + enquiryId));
 
         CommissionPaymentStatus currentStatus = enquiry.getCommissionPaymentStatus();
-        if (currentStatus != CommissionPaymentStatus.PAYMENT_REQUESTED
+        if (currentStatus != CommissionPaymentStatus.PENDING
+                && currentStatus != CommissionPaymentStatus.PAYMENT_REQUESTED
                 && currentStatus != CommissionPaymentStatus.FAILED) {
             throw new IllegalStateException(
                     "Cannot transmit to OneBook from status: " + currentStatus);

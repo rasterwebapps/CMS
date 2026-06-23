@@ -1,12 +1,14 @@
 package com.cms.service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.config.PermSecurityBean;
 import com.cms.dto.CommissionExplorerResponse;
 import com.cms.dto.CommissionPayoutRequest;
 import com.cms.dto.CommissionPayoutResponse;
@@ -36,6 +38,8 @@ public class CommissionExplorerService {
     private final StaffReferrerRepository staffReferrerRepository;
     private final FacultyRepository facultyRepository;
     private final StudentRepository studentRepository;
+    private final OneBookConfigService oneBookConfigService;
+    private final PermSecurityBean permSecurityBean;
 
     public CommissionExplorerService(
             EnquiryRepository enquiryRepository,
@@ -44,7 +48,9 @@ public class CommissionExplorerService {
             OneBookIntegrationService obService,
             StaffReferrerRepository staffReferrerRepository,
             FacultyRepository facultyRepository,
-            StudentRepository studentRepository) {
+            StudentRepository studentRepository,
+            OneBookConfigService oneBookConfigService,
+            PermSecurityBean permSecurityBean) {
         this.enquiryRepository = enquiryRepository;
         this.payoutRepository = payoutRepository;
         this.obRepo = obRepo;
@@ -52,6 +58,8 @@ public class CommissionExplorerService {
         this.staffReferrerRepository = staffReferrerRepository;
         this.facultyRepository = facultyRepository;
         this.studentRepository = studentRepository;
+        this.oneBookConfigService = oneBookConfigService;
+        this.permSecurityBean = permSecurityBean;
     }
 
     public List<CommissionExplorerResponse> findAll(
@@ -70,21 +78,81 @@ public class CommissionExplorerService {
         List<Enquiry> enquiries = enquiryRepository.findCommissions(
                 statusEnum, sourceEnum, referralTypeId, agentId, fromDate, toDate, searchTrim);
 
+        // A settle-only user (no full view/manage rights) must not see commissions
+        // that haven't been approved yet — only rows ready for cash/other-mode settlement.
+        if (!permSecurityBean.hasAny("COMMISSION_VIEW", "COMMISSION_MANAGE")) {
+            enquiries = enquiries.stream()
+                    .filter(e -> e.getCommissionPaymentStatus() == CommissionPaymentStatus.PAYMENT_REQUESTED
+                              || e.getCommissionPaymentStatus() == CommissionPaymentStatus.PARTIAL)
+                    .toList();
+        }
+
         return enquiries.stream().map(this::toResponse).toList();
     }
 
+    /**
+     * Admin/manager approves a PENDING commission (or retries a FAILED OneBook
+     * transmission). If OneBook is enabled the payment is transmitted immediately;
+     * otherwise it moves to PAYMENT_REQUESTED (awaiting cash/other-mode settlement
+     * via {@link #recordPayout}).
+     */
     @Transactional
-    public CommissionExplorerResponse requestPayment(Long enquiryId, String requestedBy) {
+    public CommissionExplorerResponse approve(Long enquiryId, String approvedBy) {
+        Enquiry enquiry = enquiryRepository.findById(enquiryId)
+                .orElseThrow(() -> new EntityNotFoundException("Enquiry not found: " + enquiryId));
+
+        CommissionPaymentStatus currentStatus = enquiry.getCommissionPaymentStatus();
+        if (currentStatus != CommissionPaymentStatus.PENDING
+                && currentStatus != CommissionPaymentStatus.FAILED) {
+            throw new IllegalStateException(
+                    "Commission can only be approved from PENDING (or retried from FAILED). Current: "
+                    + currentStatus);
+        }
+
+        if (oneBookConfigService.isEnabled()) {
+            obService.pushCommissionPayment(enquiryId, approvedBy);
+        } else {
+            enquiry.setCommissionPaymentStatus(CommissionPaymentStatus.PAYMENT_REQUESTED);
+            enquiryRepository.save(enquiry);
+        }
+        return toResponse(enquiry);
+    }
+
+    @Transactional
+    public CommissionExplorerResponse reject(Long enquiryId, String reason, String rejectedBy) {
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("A rejection reason is required.");
+        }
+
         Enquiry enquiry = enquiryRepository.findById(enquiryId)
                 .orElseThrow(() -> new EntityNotFoundException("Enquiry not found: " + enquiryId));
 
         if (enquiry.getCommissionPaymentStatus() != CommissionPaymentStatus.PENDING) {
             throw new IllegalStateException(
-                    "Payment can only be requested when status is PENDING. Current: "
+                    "Commission can only be rejected from PENDING. Current: "
                     + enquiry.getCommissionPaymentStatus());
         }
 
-        enquiry.setCommissionPaymentStatus(CommissionPaymentStatus.PAYMENT_REQUESTED);
+        enquiry.setCommissionPaymentStatus(CommissionPaymentStatus.REJECTED);
+        enquiry.setCommissionRejectionReason(reason.trim());
+        enquiry.setCommissionRejectedBy(rejectedBy);
+        enquiry.setCommissionRejectedAt(Instant.now());
+        enquiryRepository.save(enquiry);
+        return toResponse(enquiry);
+    }
+
+    @Transactional
+    public CommissionExplorerResponse reopen(Long enquiryId) {
+        Enquiry enquiry = enquiryRepository.findById(enquiryId)
+                .orElseThrow(() -> new EntityNotFoundException("Enquiry not found: " + enquiryId));
+
+        if (enquiry.getCommissionPaymentStatus() != CommissionPaymentStatus.REJECTED) {
+            throw new IllegalStateException(
+                    "Only a rejected commission can be reopened. Current: "
+                    + enquiry.getCommissionPaymentStatus());
+        }
+
+        enquiry.setCommissionPaymentStatus(CommissionPaymentStatus.PENDING);
         enquiryRepository.save(enquiry);
         return toResponse(enquiry);
     }
@@ -95,10 +163,11 @@ public class CommissionExplorerService {
                 .orElseThrow(() -> new EntityNotFoundException("Enquiry not found: " + enquiryId));
 
         CommissionPaymentStatus currentStatus = enquiry.getCommissionPaymentStatus();
-        if (currentStatus == CommissionPaymentStatus.NOT_APPLICABLE
-                || currentStatus == CommissionPaymentStatus.PAID) {
+        if (currentStatus != CommissionPaymentStatus.PAYMENT_REQUESTED
+                && currentStatus != CommissionPaymentStatus.PARTIAL) {
             throw new IllegalStateException(
-                    "Cannot record payout for commission with status: " + currentStatus);
+                    "Payout can only be recorded once a commission is approved (PAYMENT_REQUESTED) "
+                    + "or partially paid. Current: " + currentStatus);
         }
 
         PaymentMode mode;
@@ -144,14 +213,6 @@ public class CommissionExplorerService {
         }
 
         enquiryRepository.save(enquiry);
-        return toResponse(enquiry);
-    }
-
-    @Transactional
-    public CommissionExplorerResponse approvePayout(Long enquiryId, String approvedBy) {
-        obService.pushCommissionPayment(enquiryId, approvedBy);
-        Enquiry enquiry = enquiryRepository.findById(enquiryId)
-                .orElseThrow(() -> new EntityNotFoundException("Enquiry not found: " + enquiryId));
         return toResponse(enquiry);
     }
 
@@ -212,7 +273,10 @@ public class CommissionExplorerService {
                 latestOb != null ? latestOb.getReferenceId() : null,
                 latestOb != null ? latestOb.getStatus() : null,
                 latestOb != null ? latestOb.getTransmittedAt() : null,
-                latestOb != null ? latestOb.getOnebookTxnId() : null);
+                latestOb != null ? latestOb.getOnebookTxnId() : null,
+                e.getCommissionRejectionReason(),
+                e.getCommissionRejectedBy(),
+                e.getCommissionRejectedAt());
     }
 
     private String resolveStaffName(Long staffId) {

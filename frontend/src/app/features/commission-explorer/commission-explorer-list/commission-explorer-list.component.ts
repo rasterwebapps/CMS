@@ -51,6 +51,7 @@ export class CommissionExplorerListComponent implements OnInit {
   @ViewChild(MatSort)      set sort(v: MatSort)           { if (v) this.dataSource.sort = v; }
 
   protected readonly canManage = computed(() => this.permService.has('COMMISSION_MANAGE'));
+  protected readonly canSettle = computed(() => this.permService.has('COMMISSION_SETTLE'));
 
   protected readonly displayedColumns = [
     'studentName', 'referrer', 'program', 'commissionAmount',
@@ -64,7 +65,6 @@ export class CommissionExplorerListComponent implements OnInit {
 
   // ── OneBook config ────────────────────────────────────────────────────────────
   protected readonly oneBookEnabled  = signal(false);
-  protected readonly oneBookAllowCash = signal(true);
 
   // ── State ────────────────────────────────────────────────────────────────────
   protected readonly loading       = signal(false);
@@ -108,8 +108,8 @@ export class CommissionExplorerListComponent implements OnInit {
     this.filteredRecords().reduce((s, r) => s + (r.commissionPaidAmount ?? 0), 0));
   protected readonly totalOutstanding = computed(() =>
     this.filteredRecords().reduce((s, r) => s + (r.commissionOutstanding ?? 0), 0));
-  protected readonly totalRequested = computed(() =>
-    this.filteredRecords().filter(r => r.commissionPaymentStatus === 'PAYMENT_REQUESTED').length);
+  protected readonly totalAwaitingApproval = computed(() =>
+    this.filteredRecords().filter(r => r.commissionPaymentStatus === 'PENDING').length);
 
   protected readonly hasFilters = computed(() =>
     !!this.filterSearch() || !!this.filterStatus() || !!this.filterSource() ||
@@ -120,7 +120,6 @@ export class CommissionExplorerListComponent implements OnInit {
 
   // ── Payout modal ─────────────────────────────────────────────────────────────
   protected readonly payoutTarget  = signal<CommissionRecord | null>(null);
-  protected readonly isCashOnly    = signal(false);
   protected readonly payoutForm: FormGroup = this.fb.group({
     amount:               [null as number | null, [Validators.required, Validators.min(0.01)]],
     payoutDate:           ['', [Validators.required]],
@@ -128,6 +127,14 @@ export class CommissionExplorerListComponent implements OnInit {
     transactionReference: [''],
     remarks:              [''],
   });
+
+  // ── Reject modal ──────────────────────────────────────────────────────────────
+  protected readonly rejectTarget = signal<CommissionRecord | null>(null);
+  protected readonly rejectReason = signal('');
+  protected readonly rejectReasonTouched = signal(false);
+
+  // ── Approve confirmation modal ───────────────────────────────────────────────
+  protected readonly approveTarget = signal<CommissionRecord | null>(null);
 
   constructor() {
     effect(() => {
@@ -146,7 +153,6 @@ export class CommissionExplorerListComponent implements OnInit {
       next: (configs) => {
         const get = (key: string) => configs.find(c => c.configKey === key)?.configValue ?? '';
         this.oneBookEnabled.set(get('onebook.enabled') === 'true');
-        this.oneBookAllowCash.set(get('onebook.allow_cash_in_cms') !== 'false');
       },
     });
   }
@@ -179,13 +185,14 @@ export class CommissionExplorerListComponent implements OnInit {
   protected statusLabel(s: string | null): string {
     const map: Record<string, string> = {
       PENDING:           'Pending',
-      PAYMENT_REQUESTED: 'Requested',
+      PAYMENT_REQUESTED: 'Awaiting Payment',
       PARTIAL:           'Partial',
       PAID:              'Paid',
       NOT_APPLICABLE:    'N/A',
       TRANSMITTED:       'Transmitted',
       PROCESSING:        'Processing',
       FAILED:            'Failed',
+      REJECTED:          'Rejected',
     };
     return s ? (map[s] ?? s) : '—';
   }
@@ -200,6 +207,7 @@ export class CommissionExplorerListComponent implements OnInit {
       TRANSMITTED:       'badge--transmitted',
       PROCESSING:        'badge--processing',
       FAILED:            'badge--danger',
+      REJECTED:          'badge--danger',
     };
     return s ? (map[s] ?? '') : '';
   }
@@ -219,28 +227,40 @@ export class CommissionExplorerListComponent implements OnInit {
     return r.commissionSource ? (map[r.commissionSource] ?? '') : '';
   }
 
-  // ── Request payment ───────────────────────────────────────────────────────────
-  protected requestPayment(r: CommissionRecord, event: Event): void {
+  // ── Approve (OneBook push if enabled, else moves to awaiting-payment) ────────
+  protected openApproveModal(r: CommissionRecord, event: Event): void {
     event.stopPropagation();
+    this.approveTarget.set(r);
+  }
+
+  protected closeApproveModal(): void {
+    this.approveTarget.set(null);
+  }
+
+  protected confirmApprove(): void {
+    const target = this.approveTarget();
+    if (!target) return;
+
     this.actionLoading.set(true);
-    this.explorerService.requestPayment(r.enquiryId).subscribe({
+    this.explorerService.approve(target.enquiryId).subscribe({
       next: (updated) => {
         this.updateRecord(updated);
-        this.toast.success('Payment request submitted');
+        this.toast.success(this.oneBookEnabled() ? 'Payment transmitted to OneBook' : 'Commission approved — awaiting payment');
+        this.closeApproveModal();
         this.actionLoading.set(false);
       },
       error: (err) => {
-        this.toast.error(this.apiError(err, 'Failed to request payment'));
+        this.toast.error(this.apiError(err, 'Failed to approve commission'));
         this.actionLoading.set(false);
       },
     });
   }
 
-  // ── Approve via OneBook ───────────────────────────────────────────────────────
-  protected approveViaOneBook(r: CommissionRecord, event: Event): void {
+  // ── Retry OneBook transmission (FAILED only) ─────────────────────────────────
+  protected retryOneBook(r: CommissionRecord, event: Event): void {
     event.stopPropagation();
     this.actionLoading.set(true);
-    this.explorerService.approvePayout(r.enquiryId).subscribe({
+    this.explorerService.approve(r.enquiryId).subscribe({
       next: (updated) => {
         this.updateRecord(updated);
         this.toast.success('Payment transmitted to OneBook');
@@ -253,14 +273,64 @@ export class CommissionExplorerListComponent implements OnInit {
     });
   }
 
-  // ── Record payout ────────────────────────────────────────────────────────────
-  protected openPayoutModal(r: CommissionRecord, event: Event, cashOnly = false): void {
+  // ── Reject ────────────────────────────────────────────────────────────────────
+  protected openRejectModal(r: CommissionRecord, event: Event): void {
     event.stopPropagation();
-    this.isCashOnly.set(cashOnly);
+    this.rejectReason.set('');
+    this.rejectTarget.set(r);
+  }
+
+  protected closeRejectModal(): void {
+    this.rejectTarget.set(null);
+    this.rejectReason.set('');
+    this.rejectReasonTouched.set(false);
+  }
+
+  protected submitReject(): void {
+    const target = this.rejectTarget();
+    const reason = this.rejectReason().trim();
+    if (!reason) { this.rejectReasonTouched.set(true); return; }
+    if (!target) return;
+
+    this.actionLoading.set(true);
+    this.explorerService.reject(target.enquiryId, reason).subscribe({
+      next: (updated) => {
+        this.updateRecord(updated);
+        this.toast.success('Commission rejected');
+        this.closeRejectModal();
+        this.actionLoading.set(false);
+      },
+      error: (err) => {
+        this.toast.error(this.apiError(err, 'Failed to reject commission'));
+        this.actionLoading.set(false);
+      },
+    });
+  }
+
+  // ── Reopen a rejected commission ─────────────────────────────────────────────
+  protected reopen(r: CommissionRecord, event: Event): void {
+    event.stopPropagation();
+    this.actionLoading.set(true);
+    this.explorerService.reopen(r.enquiryId).subscribe({
+      next: (updated) => {
+        this.updateRecord(updated);
+        this.toast.success('Commission reopened — back to pending');
+        this.actionLoading.set(false);
+      },
+      error: (err) => {
+        this.toast.error(this.apiError(err, 'Failed to reopen commission'));
+        this.actionLoading.set(false);
+      },
+    });
+  }
+
+  // ── Record payout (settlement) ───────────────────────────────────────────────
+  protected openPayoutModal(r: CommissionRecord, event: Event): void {
+    event.stopPropagation();
     this.payoutForm.reset({
       amount: r.commissionOutstanding > 0 ? r.commissionOutstanding : r.commissionAmount,
       payoutDate: new Date().toISOString().slice(0, 10),
-      paymentMode: cashOnly ? 'CASH' : null,
+      paymentMode: null,
       transactionReference: '',
       remarks: '',
     });
@@ -269,7 +339,6 @@ export class CommissionExplorerListComponent implements OnInit {
 
   protected closePayoutModal(): void {
     this.payoutTarget.set(null);
-    this.isCashOnly.set(false);
     this.payoutForm.reset();
   }
 
