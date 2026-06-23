@@ -248,6 +248,7 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Faculty',            icon: 'groups',              route: '/faculty',                 permissions: ['FACULTY_VIEW', 'FACULTY_MANAGE'] },
         { label: 'Faculty Doc Config', icon: 'rule',                route: '/faculty/document-config', permissions: ['FACULTY_MANAGE'] },
         { label: 'Fee Structures',     icon: 'account_balance',     route: '/fee-structures',          permissions: ['FEE_STRUCTURE_VIEW', 'FEE_STRUCTURE_MANAGE'] },
+        { label: 'Institutions',       icon: 'corporate_fare',      route: '/institutions',            permissions: ['INSTITUTION_VIEW', 'INSTITUTION_MANAGE'] },
         { label: 'Labs',               icon: 'science',             route: '/labs',                    permissions: ['LAB_VIEW', 'LAB_MANAGE'] },
         { label: 'Location Master',    icon: 'public',              route: '/india-locations',         permissions: ['INDIA_LOCATION_VIEW', 'INDIA_LOCATION_MANAGE'] },
         { label: 'Number Sequences',   icon: 'pin',                 route: '/number-sequences',        permissions: ['NUMBER_SEQUENCE_VIEW'] },

@@ -44,17 +44,45 @@
               } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
                 <p class="field-error">
                   @if (form.get('name')?.hasError('required')) { Name is required }
-                  @else if (form.get('name')?.hasError('uniqueField')) { This name is already registered }
+                  @else if (form.get('name')?.hasError('duplicate')) { This name is already registered at this institution }
                   @else { Invalid name }
                 </p>
               }
             </div>
 
             <div class="field-group">
-              <label for="sr-institution" class="field-label">Institution</label>
-              <input id="sr-institution" class="field-input" formControlName="institution"
-                placeholder="Sister concern college name" autocomplete="off" />
-              <p class="field-hint">The college or institution this staff member works at</p>
+              <label for="sr-institution" class="field-label">Institution <span class="required-star">*</span></label>
+              <select id="sr-institution" class="field-select" formControlName="institutionId"
+                [class.field-input--error]="form.get('institutionId')?.invalid && form.get('institutionId')?.touched">
+                <option [ngValue]="null">Select institution</option>
+                @for (inst of institutions(); track inst.id) {
+                  <option [ngValue]="inst.id" [disabled]="!inst.isActive && inst.id !== originalInstitutionId()">
+                    {{ inst.name }}{{ !inst.isActive ? ' (Inactive)' : '' }}
+                  </option>
+                }
+              </select>
+              <p class="field-hint">Sister-concern institution this staff member belongs to</p>
+              @if (form.get('institutionId')?.invalid && form.get('institutionId')?.touched) {
+                <p class="field-error">Institution is required</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="sr-employee-code" class="field-label">Employee Code <span class="required-star">*</span></label>
+              <input id="sr-employee-code" class="field-input" formControlName="employeeCode"
+                placeholder="e.g., EMP1023" autocomplete="off"
+                [class.field-input--error]="form.get('employeeCode')?.invalid && form.get('employeeCode')?.touched" />
+              @if (form.get('employeeCode')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('employeeCode')?.invalid && form.get('employeeCode')?.touched) {
+                <p class="field-error">
+                  @if (form.get('employeeCode')?.hasError('required')) { Employee code is required }
+                  @else if (form.get('employeeCode')?.hasError('duplicate')) { This employee code is already used at this institution }
+                  @else { Invalid employee code }
+                </p>
+              } @else {
+                <p class="field-hint">Must be unique within the selected institution</p>
+              }
             </div>
 
             <div class="field-row">

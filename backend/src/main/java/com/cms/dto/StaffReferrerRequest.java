@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import com.cms.model.enums.BankAccountType;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record StaffReferrerRequest(
@@ -15,7 +16,12 @@ public record StaffReferrerRequest(
 
     String email,
 
-    String institution,
+    @NotBlank(message = "Employee code is required")
+    @Size(max = 50, message = "Employee code must not exceed 50 characters")
+    String employeeCode,
+
+    @NotNull(message = "Institution is required")
+    Long institutionId,
 
     BigDecimal commissionAmount,
 

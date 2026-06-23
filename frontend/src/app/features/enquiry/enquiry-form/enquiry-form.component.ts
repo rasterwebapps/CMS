@@ -198,7 +198,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
   protected readonly studentList = signal<{ id: number; fullName: string; rollNumber: string }[]>([]);
   protected readonly alumniList = signal<{ id: number; fullName: string; rollNumber: string }[]>([]);
   protected readonly facultyList = signal<{ id: number; fullName: string; employeeCode: string; commissionAmount?: number | null }[]>([]);
-  protected readonly staffList   = signal<{ id: number; name: string; institution: string | null; commissionAmount: number | null }[]>([]);
+  protected readonly staffList   = signal<{ id: number; name: string; institutionName: string; commissionAmount: number | null }[]>([]);
   protected readonly personSearchTerm = signal('');
   protected readonly personSearchOpen = signal(false);
   // Agent search signals
@@ -288,7 +288,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
     const term = this.personSearchTerm().trim().toLowerCase();
     if (term.length < MIN_AUTOCOMPLETE_CHARS) return [];
     return this.staffList()
-      .filter(s => s.name.toLowerCase().includes(term) || (s.institution ?? '').toLowerCase().includes(term))
+      .filter(s => s.name.toLowerCase().includes(term) || s.institutionName.toLowerCase().includes(term))
       .slice(0, 20);
   });
   /** Filtered agent list based on the current agent search term. */
@@ -753,7 +753,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
     if (this.staffList().length > 0) return;
     this.staffReferrerService.getActive().subscribe({
       next: (data) => this.staffList.set(
-        data.map(s => ({ id: s.id, name: s.name, institution: s.institution, commissionAmount: s.commissionAmount ?? null }))
+        data.map(s => ({ id: s.id, name: s.name, institutionName: s.institutionName, commissionAmount: s.commissionAmount ?? null }))
       ),
       error: () => {},
     });

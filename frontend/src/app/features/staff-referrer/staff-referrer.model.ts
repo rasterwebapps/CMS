@@ -5,7 +5,9 @@ export interface StaffReferrer {
   name: string;
   phone: string | null;
   email: string | null;
-  institution: string | null;
+  employeeCode: string;
+  institutionId: number;
+  institutionName: string;
   commissionAmount: number | null;
   isActive: boolean;
   panNumber?: string;
@@ -24,7 +26,8 @@ export interface StaffReferrerRequest {
   name: string;
   phone?: string;
   email?: string;
-  institution?: string;
+  employeeCode: string;
+  institutionId: number;
   commissionAmount?: number | null;
   isActive?: boolean;
   panNumber?: string;

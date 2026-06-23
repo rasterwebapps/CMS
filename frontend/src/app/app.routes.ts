@@ -949,6 +949,31 @@ export const routes: Routes = [
         (m) => m.BloodGroupFormComponent
       ),
   },
+  // ── Masters: Institution ─────────────────────────────────────────────────
+  {
+    path: 'institutions',
+    canActivate: [authGuard, requiresPermission('INSTITUTION_VIEW', 'INSTITUTION_MANAGE')],
+    loadComponent: () =>
+      import('./features/institution/institution-list/institution-list.component').then(
+        (m) => m.InstitutionListComponent
+      ),
+  },
+  {
+    path: 'institutions/new',
+    canActivate: [authGuard, requiresPermission('INSTITUTION_MANAGE')],
+    loadComponent: () =>
+      import('./features/institution/institution-form/institution-form.component').then(
+        (m) => m.InstitutionFormComponent
+      ),
+  },
+  {
+    path: 'institutions/:id/edit',
+    canActivate: [authGuard, requiresPermission('INSTITUTION_MANAGE')],
+    loadComponent: () =>
+      import('./features/institution/institution-form/institution-form.component').then(
+        (m) => m.InstitutionFormComponent
+      ),
+  },
   // ── India Locations / Location Master (Countries, States & Districts) ────────────────────
   {
     path: 'india-locations',

@@ -11,8 +11,10 @@ import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.Institution;
 import com.cms.model.StaffReferrer;
 import com.cms.repository.CommissionPayoutRepository;
+import com.cms.repository.InstitutionRepository;
 import com.cms.repository.StaffReferrerRepository;
 
 @Service
@@ -21,21 +23,32 @@ public class StaffReferrerService {
 
     private final StaffReferrerRepository repository;
     private final CommissionPayoutRepository commissionPayoutRepository;
+    private final InstitutionRepository institutionRepository;
 
     public StaffReferrerService(StaffReferrerRepository repository,
-                                CommissionPayoutRepository commissionPayoutRepository) {
+                                CommissionPayoutRepository commissionPayoutRepository,
+                                InstitutionRepository institutionRepository) {
         this.repository = repository;
         this.commissionPayoutRepository = commissionPayoutRepository;
+        this.institutionRepository = institutionRepository;
     }
 
     @Transactional
     public StaffReferrerResponse create(StaffReferrerRequest request) {
         String name = requireTrimmed(request.name(), "Name is required");
-        if (repository.existsByNameIgnoreCase(name)) {
-            throw new IllegalArgumentException("A staff referrer with the name '" + name + "' already exists");
+        String employeeCode = requireTrimmed(request.employeeCode(), "Employee code is required");
+        Institution institution = findInstitutionOrThrow(request.institutionId());
+
+        if (repository.existsByInstitutionIdAndNameIgnoreCase(institution.getId(), name)) {
+            throw new IllegalArgumentException(
+                "A staff referrer with the name '" + name + "' already exists at this institution");
+        }
+        if (repository.existsByInstitutionIdAndEmployeeCodeIgnoreCase(institution.getId(), employeeCode)) {
+            throw new IllegalArgumentException(
+                "A staff referrer with the employee code '" + employeeCode + "' already exists at this institution");
         }
         StaffReferrer entity = new StaffReferrer();
-        applyFields(entity, request, name);
+        applyFields(entity, request, name, employeeCode, institution);
         return toResponse(repository.save(entity));
     }
 
@@ -57,10 +70,18 @@ public class StaffReferrerService {
         StaffReferrer entity = repository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Staff referrer not found: " + id));
         String name = requireTrimmed(request.name(), "Name is required");
-        if (repository.existsByNameIgnoreCaseAndIdNot(name, id)) {
-            throw new IllegalArgumentException("A staff referrer with the name '" + name + "' already exists");
+        String employeeCode = requireTrimmed(request.employeeCode(), "Employee code is required");
+        Institution institution = findInstitutionOrThrow(request.institutionId());
+
+        if (repository.existsByInstitutionIdAndNameIgnoreCaseAndIdNot(institution.getId(), name, id)) {
+            throw new IllegalArgumentException(
+                "A staff referrer with the name '" + name + "' already exists at this institution");
         }
-        applyFields(entity, request, name);
+        if (repository.existsByInstitutionIdAndEmployeeCodeIgnoreCaseAndIdNot(institution.getId(), employeeCode, id)) {
+            throw new IllegalArgumentException(
+                "A staff referrer with the employee code '" + employeeCode + "' already exists at this institution");
+        }
+        applyFields(entity, request, name, employeeCode, institution);
         return toResponse(repository.save(entity));
     }
 
@@ -102,19 +123,38 @@ public class StaffReferrerService {
         return findById(id);
     }
 
-    public boolean nameExists(String name, Long excludeId) {
+    public boolean nameExists(String name, Long institutionId, Long excludeId) {
         String trimmed = name == null ? "" : name.trim();
+        if (institutionId == null || trimmed.isEmpty()) return false;
         if (excludeId != null) {
-            return repository.existsByNameIgnoreCaseAndIdNot(trimmed, excludeId);
+            return repository.existsByInstitutionIdAndNameIgnoreCaseAndIdNot(institutionId, trimmed, excludeId);
         }
-        return repository.existsByNameIgnoreCase(trimmed);
+        return repository.existsByInstitutionIdAndNameIgnoreCase(institutionId, trimmed);
     }
 
-    private void applyFields(StaffReferrer e, StaffReferrerRequest r, String name) {
+    public boolean employeeCodeExists(String employeeCode, Long institutionId, Long excludeId) {
+        String trimmed = employeeCode == null ? "" : employeeCode.trim();
+        if (institutionId == null || trimmed.isEmpty()) return false;
+        if (excludeId != null) {
+            return repository.existsByInstitutionIdAndEmployeeCodeIgnoreCaseAndIdNot(institutionId, trimmed, excludeId);
+        }
+        return repository.existsByInstitutionIdAndEmployeeCodeIgnoreCase(institutionId, trimmed);
+    }
+
+    private Institution findInstitutionOrThrow(Long institutionId) {
+        if (institutionId == null) {
+            throw new IllegalArgumentException("Institution is required");
+        }
+        return institutionRepository.findById(institutionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Institution not found: " + institutionId));
+    }
+
+    private void applyFields(StaffReferrer e, StaffReferrerRequest r, String name, String employeeCode, Institution institution) {
         e.setName(name);
         e.setPhone(trim(r.phone()));
         e.setEmail(trim(r.email()));
-        e.setInstitution(trim(r.institution()));
+        e.setEmployeeCode(employeeCode);
+        e.setInstitution(institution);
         e.setCommissionAmount(r.commissionAmount());
         e.setIsActive(r.isActive() != null ? r.isActive() : Boolean.TRUE.equals(e.getIsActive() == null ? true : e.getIsActive()));
         e.setPanNumber(trim(r.panNumber()));
@@ -141,7 +181,8 @@ public class StaffReferrerService {
 
     private StaffReferrerResponse toResponse(StaffReferrer e) {
         return new StaffReferrerResponse(
-            e.getId(), e.getName(), e.getPhone(), e.getEmail(), e.getInstitution(),
+            e.getId(), e.getName(), e.getPhone(), e.getEmail(), e.getEmployeeCode(),
+            e.getInstitution().getId(), e.getInstitution().getName(),
             e.getCommissionAmount(), e.getIsActive(),
             e.getPanNumber(), e.getAadhaarNumber(),
             e.getBankAccountNumber(), e.getBankIfscCode(), e.getBankBranch(),

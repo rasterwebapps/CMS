@@ -18,6 +18,7 @@ import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.model.StaffReferrer;
 import com.cms.repository.CommissionPayoutRepository;
+import com.cms.repository.InstitutionRepository;
 import com.cms.repository.StaffReferrerRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,12 +28,14 @@ class StaffReferrerLifecycleStatusToggleTest {
     private StaffReferrerRepository staffReferrerRepository;
     @Mock
     private CommissionPayoutRepository commissionPayoutRepository;
+    @Mock
+    private InstitutionRepository institutionRepository;
 
     private StaffReferrerService staffReferrerService;
 
     @BeforeEach
     void setUp() {
-        staffReferrerService = new StaffReferrerService(staffReferrerRepository, commissionPayoutRepository);
+        staffReferrerService = new StaffReferrerService(staffReferrerRepository, commissionPayoutRepository, institutionRepository);
     }
 
     @Test

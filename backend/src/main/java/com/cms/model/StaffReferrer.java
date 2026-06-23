@@ -14,9 +14,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -35,8 +38,12 @@ public class StaffReferrer {
 
     private String email;
 
-    /** Name of the sister-concern institution this staff belongs to. */
-    private String institution;
+    @Column(name = "employee_code", nullable = false, length = 50)
+    private String employeeCode;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "institution_id", nullable = false)
+    private Institution institution;
 
     @Column(name = "commission_amount", precision = 12, scale = 2)
     private BigDecimal commissionAmount;
@@ -87,8 +94,10 @@ public class StaffReferrer {
     public void setPhone(String phone) { this.phone = phone; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
-    public String getInstitution() { return institution; }
-    public void setInstitution(String institution) { this.institution = institution; }
+    public String getEmployeeCode() { return employeeCode; }
+    public void setEmployeeCode(String employeeCode) { this.employeeCode = employeeCode; }
+    public Institution getInstitution() { return institution; }
+    public void setInstitution(Institution institution) { this.institution = institution; }
     public BigDecimal getCommissionAmount() { return commissionAmount; }
     public void setCommissionAmount(BigDecimal commissionAmount) { this.commissionAmount = commissionAmount; }
     public Boolean getIsActive() { return isActive; }

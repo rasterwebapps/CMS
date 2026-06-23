@@ -12,7 +12,11 @@ public interface StaffReferrerRepository extends JpaRepository<StaffReferrer, Lo
 
     List<StaffReferrer> findByNameContainingIgnoreCase(String name);
 
-    boolean existsByNameIgnoreCase(String name);
+    boolean existsByInstitutionIdAndNameIgnoreCase(Long institutionId, String name);
 
-    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
+    boolean existsByInstitutionIdAndNameIgnoreCaseAndIdNot(Long institutionId, String name, Long id);
+
+    boolean existsByInstitutionIdAndEmployeeCodeIgnoreCase(Long institutionId, String employeeCode);
+
+    boolean existsByInstitutionIdAndEmployeeCodeIgnoreCaseAndIdNot(Long institutionId, String employeeCode, Long id);
 }

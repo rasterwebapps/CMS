@@ -1,27 +1,29 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { StaffReferrerService } from '../staff-referrer.service';
-import { StaffReferrer } from '../staff-referrer.model';
+import { InstitutionService } from '../institution.service';
+import { Institution } from '../institution.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { INSTITUTION_LIST_TOUR } from '../../../shared/tour/tours/institution.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
 
 @Component({
-  selector: 'app-staff-referrer-list',
+  selector: 'app-institution-list',
   standalone: true,
   imports: [
     RouterLink,
-    InrPipe,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
@@ -30,18 +32,21 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
     CmsEmptyStateComponent,
     CmsViewToggleComponent,
     CmsStatusBadgeComponent,
+    CmsTourButtonComponent,
     CmsRowActionButtonComponent,
-      CmsIconEditComponent,
-      CmsIconToggleStatusComponent,
+    CmsIconEditComponent,
+    CmsIconToggleStatusComponent,
   ],
-  templateUrl: './staff-referrer-list.component.html',
-  styleUrl: './staff-referrer-list.component.scss',
+  templateUrl: './institution-list.component.html',
+  styleUrl: './institution-list.component.scss',
 })
-export class StaffReferrerListComponent implements OnInit {
-  private readonly service = inject(StaffReferrerService);
+export class InstitutionListComponent implements OnInit {
+  private readonly institutionService = inject(InstitutionService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly permissionService = inject(PermissionService);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -50,37 +55,34 @@ export class StaffReferrerListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  private readonly VIEW_MODE_KEY = 'staff-referrer-view-mode';
-
-  protected readonly displayedColumns = ['name', 'employeeCode', 'phone', 'institutionName', 'commissionAmount', 'isActive', 'actions'];
-  protected readonly dataSource = new MatTableDataSource<StaffReferrer>([]);
+  protected readonly canManage = computed(() => this.permissionService.has('INSTITUTION_MANAGE'));
+  protected readonly displayedColumns = computed(() =>
+    this.canManage() ? ['name', 'code', 'isActive', 'actions'] : ['name', 'code', 'isActive'],
+  );
+  protected readonly dataSource = new MatTableDataSource<Institution>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
-  protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
+  protected readonly viewMode = signal<'card' | 'table'>('table');
 
-  private readonly allItems = signal<StaffReferrer[]>([]);
+  private readonly allItems = signal<Institution[]>([]);
 
   protected readonly totalCount = computed(() => this.allItems().length);
-  protected readonly activeCount = computed(() => this.allItems().filter(s => s.isActive).length);
 
   protected readonly filteredItems = computed(() => {
     const q = this.searchValue().trim().toLowerCase();
     if (!q) return this.allItems();
-    return this.allItems().filter(s =>
-      s.name.toLowerCase().includes(q) ||
-      (s.phone?.toLowerCase().includes(q) ?? false) ||
-      s.employeeCode.toLowerCase().includes(q) ||
-      s.institutionName.toLowerCase().includes(q),
+    return this.allItems().filter(
+      i => i.name.toLowerCase().includes(q) || i.code.toLowerCase().includes(q),
     );
   });
 
   ngOnInit(): void {
+    this.tourService.register('institution-list', INSTITUTION_LIST_TOUR);
     this.load();
   }
 
   protected setViewMode(mode: 'card' | 'table'): void {
     this.viewMode.set(mode);
-    localStorage.setItem(this.VIEW_MODE_KEY, mode);
   }
 
   protected applyFilter(event: Event): void {
@@ -95,51 +97,57 @@ export class StaffReferrerListComponent implements OnInit {
     this.dataSource.filter = '';
   }
 
-  protected edit(item: StaffReferrer): void {
-    void this.router.navigate(['/staff-referrers', item.id, 'edit']);
+  protected edit(item: Institution): void {
+    if (!this.canManage()) {
+      this.toast.error('You do not have permission to edit institutions');
+      return;
+    }
+    void this.router.navigate(['/institutions', item.id, 'edit']);
   }
 
-  protected toggleStatus(item: StaffReferrer): void {
+  protected toggleStatus(item: Institution): void {
+    if (!this.canManage()) {
+      this.toast.error('You do not have permission to update institution status');
+      return;
+    }
     const nextAction = item.isActive ? 'Deactivate' : 'Activate';
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          title: `${nextAction} Staff Referrer`,
-          message: `${nextAction} "${item.name}"?`,
+          title: `${nextAction} Institution`,
+          message: `${nextAction} "${item.name}" (${item.code})?`,
           confirmText: nextAction,
           cancelText: 'Cancel',
         },
       })
       .afterClosed()
-      .subscribe((confirmed) => { if (confirmed) this.doToggle(item); });
+      .subscribe((confirmed) => {
+        if (confirmed) this.doToggle(item);
+      });
   }
 
   protected handleEmptyAction(): void {
     if (this.searchValue()) {
       this.clearFilter();
     } else {
-      void this.router.navigate(['/staff-referrers/new']);
+      if (!this.canManage()) {
+        this.toast.error('You do not have permission to add institutions');
+        return;
+      }
+      void this.router.navigate(['/institutions/new']);
     }
   }
 
-  private loadViewMode(): 'card' | 'table' {
-    const stored = localStorage.getItem(this.VIEW_MODE_KEY);
-    return stored === 'table' ? 'table' : 'card';
-  }
-
-  private doToggle(item: StaffReferrer): void {
+  private doToggle(item: Institution): void {
     this.loading.set(true);
-    const request$ = item.isActive
-      ? this.service.deactivate(item.id)
-      : this.service.reactivate(item.id);
-    request$.subscribe({
+    this.institutionService.updateStatus(item.id, { isActive: !item.isActive }).subscribe({
       next: () => {
-        this.toast.success(`Staff referrer ${item.isActive ? 'deactivated' : 'activated'} successfully`);
+        this.toast.success(`Institution ${item.isActive ? 'deactivated' : 'activated'} successfully`);
         this.load();
       },
       error: (err) => {
         this.toast.error(
-          err?.error?.message ?? `Failed to ${item.isActive ? 'deactivate' : 'activate'} staff referrer`,
+          err?.error?.message ?? `Failed to ${item.isActive ? 'deactivate' : 'activate'} institution`,
         );
         this.loading.set(false);
       },
@@ -148,13 +156,16 @@ export class StaffReferrerListComponent implements OnInit {
 
   private load(): void {
     this.loading.set(true);
-    this.service.getAll().subscribe({
+    this.institutionService.getAll().subscribe({
       next: (data) => {
         this.allItems.set(data);
         this.dataSource.data = data;
         this.loading.set(false);
       },
-      error: () => { this.toast.error('Failed to load'); this.loading.set(false); },
+      error: () => {
+        this.toast.error('Failed to load institutions');
+        this.loading.set(false);
+      },
     });
   }
 }

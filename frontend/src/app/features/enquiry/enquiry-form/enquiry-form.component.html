@@ -516,9 +516,7 @@
                             @for (s of filteredStaff(); track s.id) {
                               <button type="button" class="person-search-item" (click)="selectPerson(s.id, s.name, 'STAFF', s.commissionAmount)">
                                 <span class="person-name">{{ s.name }}</span>
-                                @if (s.institution) {
-                                  <span class="person-code">{{ s.institution }}</span>
-                                }
+                                <span class="person-code">{{ s.institutionName }}</span>
                               </button>
                             }
                           } @else {

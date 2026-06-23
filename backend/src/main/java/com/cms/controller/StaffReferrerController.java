@@ -93,7 +93,17 @@ public class StaffReferrerController {
     @PreAuthorize("@perm.has('STAFF_REFERRER_MANAGE')")
     public ResponseEntity<Boolean> nameExists(
             @RequestParam String value,
+            @RequestParam Long institutionId,
             @RequestParam(required = false) Long excludeId) {
-        return ResponseEntity.ok(service.nameExists(value, excludeId));
+        return ResponseEntity.ok(service.nameExists(value, institutionId, excludeId));
+    }
+
+    @GetMapping("/employee-code-exists")
+    @PreAuthorize("@perm.has('STAFF_REFERRER_MANAGE')")
+    public ResponseEntity<Boolean> employeeCodeExists(
+            @RequestParam String value,
+            @RequestParam Long institutionId,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(service.employeeCodeExists(value, institutionId, excludeId));
     }
 }

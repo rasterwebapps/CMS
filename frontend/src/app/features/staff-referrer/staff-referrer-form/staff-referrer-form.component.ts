@@ -8,6 +8,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { StaffReferrerService } from '../staff-referrer.service';
 import { StaffReferrerRequest, STAFF_REFERRER_BANK_ACCOUNT_TYPE_OPTIONS } from '../staff-referrer.model';
+import { InstitutionService } from '../../institution/institution.service';
+import { Institution } from '../../institution/institution.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
@@ -32,6 +34,7 @@ export class StaffReferrerFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly service = inject(StaffReferrerService);
+  private readonly institutionService = inject(InstitutionService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly http = inject(HttpClient);
@@ -42,6 +45,8 @@ export class StaffReferrerFormComponent implements OnInit {
   protected readonly pageTitle = signal('Add Staff Referrer');
 
   protected readonly bankAccountTypeOptions = STAFF_REFERRER_BANK_ACCOUNT_TYPE_OPTIONS;
+  protected readonly institutions = signal<Institution[]>([]);
+  protected readonly originalInstitutionId = signal<number | null>(null);
 
   protected readonly previewName = signal('');
   protected readonly previewPhone = signal('');
@@ -57,7 +62,7 @@ export class StaffReferrerFormComponent implements OnInit {
 
   protected readonly TIPS: CmsTip[] = [
     { icon: 'person',         title: 'Identity',     subtitle: "Use the staff member's legal name as it will appear on payout records." },
-    { icon: 'location_on',    title: 'Institution',  subtitle: 'Enter the name of the sister concern college this staff belongs to.' },
+    { icon: 'location_on',    title: 'Institution',  subtitle: 'Select the sister-concern institution this staff belongs to. Name and employee code only need to be unique within that institution.' },
     { icon: 'currency_rupee', title: 'Commission',   subtitle: 'Override the STAFF referral type commission only if this person has a special rate.' },
     { icon: 'account_balance', title: 'Bank Details', subtitle: 'Required to disburse commission payouts. PAN + bank info should match.' },
   ];
@@ -68,7 +73,8 @@ export class StaffReferrerFormComponent implements OnInit {
     name: ['', [Validators.required, Validators.maxLength(255)]],
     phone: [''],
     email: [''],
-    institution: [''],
+    employeeCode: ['', [Validators.required, Validators.maxLength(50)]],
+    institutionId: [null as number | null, [Validators.required]],
     commissionAmount: [null as number | null, [Validators.min(0)]],
     isActive: [true],
     panNumber: ['', [Validators.maxLength(20)]],
@@ -87,13 +93,24 @@ export class StaffReferrerFormComponent implements OnInit {
       .subscribe(v => {
         this.previewName.set((v.name ?? '').trim());
         this.previewPhone.set((v.phone ?? '').trim());
-        this.previewInstitution.set((v.institution ?? '').trim());
+        const institution = this.institutions().find(i => i.id === v.institutionId);
+        this.previewInstitution.set(institution?.name ?? '');
         this.previewComm.set(v.commissionAmount != null && v.commissionAmount !== '' ? Number(v.commissionAmount) : null);
         this.previewActive.set(!!v.isActive);
       });
   }
 
   ngOnInit(): void {
+    this.institutionService.getAll().subscribe({
+      next: (items) => {
+        this.institutions.set(items);
+        const institutionId = this.form.get('institutionId')?.value;
+        const institution = items.find(i => i.id === institutionId);
+        if (institution) this.previewInstitution.set(institution.name);
+      },
+      error: () => this.toast.error('Failed to load institutions'),
+    });
+
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.itemId = Number(id);
@@ -104,7 +121,8 @@ export class StaffReferrerFormComponent implements OnInit {
         next: (item) => {
           this.form.patchValue({
             name: item.name, phone: item.phone, email: item.email,
-            institution: item.institution,
+            employeeCode: item.employeeCode,
+            institutionId: item.institutionId,
             commissionAmount: item.commissionAmount,
             isActive: item.isActive,
             panNumber: item.panNumber || '',
@@ -116,6 +134,7 @@ export class StaffReferrerFormComponent implements OnInit {
             bankBranch: item.bankBranch || '',
             bankAccountType: item.bankAccountType ?? null,
           });
+          this.originalInstitutionId.set(item.institutionId);
           this.loading.set(false);
         },
         error: () => { this.toast.error('Failed to load'); void this.router.navigate(['/staff-referrers']); },
@@ -125,13 +144,32 @@ export class StaffReferrerFormComponent implements OnInit {
   }
 
   private setupUniquenessValidators(): void {
+    const institutionScope = () => {
+      const institutionId = this.form.get('institutionId')?.value;
+      return institutionId ? { institutionId } : null;
+    };
+
     const nameCtrl = this.form.get('name');
     if (nameCtrl) {
       nameCtrl.setAsyncValidators(
-        uniqueFieldValidator(this.http, `${environment.apiUrl}/staff-referrers/name-exists`, () => this.itemId)
+        uniqueFieldValidator(this.http, `${environment.apiUrl}/staff-referrers/name-exists`, () => this.itemId, institutionScope)
       );
-      nameCtrl.updateValueAndValidity({ emitEvent: false });
     }
+    const codeCtrl = this.form.get('employeeCode');
+    if (codeCtrl) {
+      codeCtrl.setAsyncValidators(
+        uniqueFieldValidator(this.http, `${environment.apiUrl}/staff-referrers/employee-code-exists`, () => this.itemId, institutionScope)
+      );
+    }
+    // Re-run name/code uniqueness whenever the institution scope changes.
+    this.form.get('institutionId')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        nameCtrl?.updateValueAndValidity({ emitEvent: false });
+        codeCtrl?.updateValueAndValidity({ emitEvent: false });
+      });
+    nameCtrl?.updateValueAndValidity({ emitEvent: false });
+    codeCtrl?.updateValueAndValidity({ emitEvent: false });
   }
 
   protected onSubmit(): void {
@@ -141,7 +179,8 @@ export class StaffReferrerFormComponent implements OnInit {
       name: v.name.trim(),
       phone: v.phone || undefined,
       email: v.email || undefined,
-      institution: v.institution?.trim() || undefined,
+      employeeCode: v.employeeCode.trim(),
+      institutionId: v.institutionId,
       commissionAmount: v.commissionAmount ?? undefined,
       isActive: v.isActive,
       panNumber: v.panNumber?.trim()?.toUpperCase() || undefined,

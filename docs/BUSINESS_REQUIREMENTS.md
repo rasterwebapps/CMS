@@ -1394,6 +1394,7 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-06-22 | BR-32, BR-33 | Added `Institution` master (sister-concern institutions of SKSCON) with standard CRUD/uniqueness/lifecycle pattern (added to BR-32 scope). `StaffReferrer.institution` (free text) replaced with `institution_id` FK; added `employeeCode` field. Name and employee code uniqueness rescoped from global to per-institution. Migrations V232–V234. | — |
 | 2026-06-20 | BR-26 | Added `DOCUMENT_VERIFIED_OVERRIDE` permission (DEV_ADMIN/SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN only, migration V230) allowing an authorized reviewer to force-replace a `VERIFIED` faculty, admission, or enquiry document via `force=true` on the existing upload endpoint, resetting it to `UPLOADED` for re-verification. Also added the previously-missing VERIFIED lock to `EnquiryDocumentService.uploadFile` (it had none) so enquiry documents now follow the same lock/override model; "Force Replace" surfaced on the Document Verification queue screen and the Enquiry detail Documents tab. Self-service uploads remain hard-locked once `VERIFIED`. | — |
 | 2026-06-09 | BR-7 | Student fee payment history now includes approved refund vouchers as negative reversal entries (with original receipt reference) so cashflow and reversals are visible in one timeline. | — |
 | 2026-06-03 | BR-31 | **Student Data Import — Legacy Migration:** Added full BR for bulk student migration. Documents 9-item pre-conditions checklist (programs, courses, academic years, cohorts + seat allocations, fee structures, fee states, WALK_IN referral type, country seed); recommended course-wise import strategy with step-by-step workflow and rationale (error isolation, cohort verification, fee structure uniformity per course); fee history multi-payment row explanation (`year_1_fee`..`year_6_fee` = annual fee split per programme year, not per-payment; subsequent rows per student leave fee structure columns blank); 44-column Students sheet with all personal/demographic/family/address/registration/classification fields; Qualifications sheet (8 fields); Fee History sheet (16 fields); Step 2 defaults panel including `admission_category`; cohort assignment logic (error if cohort missing for course+AY); fee state inference from address state; boolean strict-format rule (`TRUE`/`FALSE` only); unique number conflict check for 4 registration numbers; 3-pass import execution flow; post-import state; and permissions (`IMPORT_DATA`). | — |
@@ -1986,6 +1987,7 @@ Master screens must use a unified lifecycle status contract for activate/deactiv
 - `Referral Type`
 - `Agent`
 - `Staff Referrer`
+- `Institution`
 
 ### API Contract Standard
 
@@ -2005,6 +2007,30 @@ Master screens must use a unified lifecycle status contract for activate/deactiv
 ### Backward Compatibility
 
 - Existing `/deactivate` and `/reactivate` endpoints remain available but delegate to the same status-update service logic.
+
+---
+
+## BR-33: Institution Master & Staff Referrer Institution Scoping
+
+### Business Rule
+
+Staff Referrers may only be linked to a known sister-concern institution of SKSCON, selected from an admin-managed `Institution` master — not entered as free text. A referrer's `name` and `employeeCode` only need to be unique **within their institution**, not globally.
+
+### Scope
+
+- New `Institution` master (`institutions` table; `name`, `code`, `description`, `isActive`) — same CRUD/uniqueness/lifecycle pattern as other masters (see BR-32).
+- `StaffReferrer.institution` (free-text `VARCHAR`) replaced with `institution_id` FK to `institutions` (`NOT NULL`).
+- `StaffReferrer.employeeCode` added (`NOT NULL`).
+
+### Uniqueness Rule
+
+- `(institution_id, LOWER(name))` and `(institution_id, LOWER(employee_code))` are each unique. The previous global unique-name constraint on `staff_referrers` is removed.
+- `/staff-referrers/name-exists` and `/staff-referrers/employee-code-exists` both require an `institutionId` query param to scope the check.
+
+### Migration Notes
+
+- Migrations V232 (institutions table + `INSTITUTION_VIEW`/`INSTITUTION_MANAGE` permissions), V233 (`institution_id` FK, backfilling any pre-existing free-text values into new `Institution` rows, with an `Unspecified` inactive fallback institution for blank values), V234 (`employee_code` column, backfilling pre-existing rows with `LEGACY-<id>` placeholders).
+- Deactivated institutions remain visible (read-only) on existing referrer records but are not selectable for new ones.
 
 ---
 

@@ -4,8 +4,15 @@
   font-size: var(--cms-text-md);
   font-weight: 600;
   color: var(--cms-text-primary);
-  margin-bottom: 10px;
+  margin-bottom: 2px;
   letter-spacing: -0.01em;
+}
+
+.agt-card__sub {
+  font-size: var(--cms-text-xs);
+  font-family: var(--cms-font-mono);
+  color: var(--cms-text-muted);
+  margin-bottom: 10px;
 }
 
 .agt-card__contact-row {
