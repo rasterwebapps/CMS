@@ -35,12 +35,13 @@ class ScholarshipDisbursementServiceTest {
     @Mock private ScholarshipDisbursementRepository disbursementRepository;
     @Mock private StudentScholarshipRepository applicationRepository;
     @Mock private AcademicYearRepository academicYearRepository;
+    @Mock private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private ScholarshipDisbursementService service;
     private StudentScholarship application;
 
     @BeforeEach
     void setUp() {
-        service = new ScholarshipDisbursementService(disbursementRepository, applicationRepository, academicYearRepository);
+        service = new ScholarshipDisbursementService(disbursementRepository, applicationRepository, academicYearRepository, objectMapper);
         Program program = new Program("Bachelor", "BACH", 4);
         Student student = new Student("S1", "A", "B", "a@test.com", program, 1, LocalDate.now(), StudentStatus.ACTIVE);
         student.setId(1L);

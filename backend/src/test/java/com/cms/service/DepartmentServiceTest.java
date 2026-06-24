@@ -47,6 +47,7 @@ class SpecialityServiceTest {
             "Computer Science",
             "CS",
             "Speciality of Computer Science",
+            null,
             null
         );
 
@@ -131,6 +132,7 @@ class SpecialityServiceTest {
             "Computer Science Updated",
             "CSU",
             "New Description",
+            null,
             null
         );
 
@@ -157,7 +159,7 @@ class SpecialityServiceTest {
     @Test
     void shouldThrowWhenUpdatingSpecialityWithDuplicateName() {
         Speciality existing = createSpeciality(1L, "Computer Science", "CS", "Desc", null);
-        SpecialityRequest request = new SpecialityRequest("Mathematics", "CS", "Desc", null);
+        SpecialityRequest request = new SpecialityRequest("Mathematics", "CS", "Desc", null, null);
 
         when(specialityRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(specialityRepository.existsByNameIgnoreCaseAndIdNot("Mathematics", 1L)).thenReturn(true);
@@ -173,7 +175,7 @@ class SpecialityServiceTest {
     @Test
     void shouldThrowWhenUpdatingSpecialityWithDuplicateCode() {
         Speciality existing = createSpeciality(1L, "Computer Science", "CS", "Desc", null);
-        SpecialityRequest request = new SpecialityRequest("Computer Science", "MATH", "Desc", null);
+        SpecialityRequest request = new SpecialityRequest("Computer Science", "MATH", "Desc", null, null);
 
         when(specialityRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(specialityRepository.existsByNameIgnoreCaseAndIdNot("Computer Science", 1L)).thenReturn(false);
@@ -189,7 +191,7 @@ class SpecialityServiceTest {
 
     @Test
     void shouldThrowExceptionWhenUpdatingNonExistentSpeciality() {
-        SpecialityRequest request = new SpecialityRequest("Name", "CODE", "Desc", null);
+        SpecialityRequest request = new SpecialityRequest("Name", "CODE", "Desc", null, null);
 
         when(specialityRepository.findById(999L)).thenReturn(Optional.empty());
 

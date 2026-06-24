@@ -8,8 +8,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,10 +24,13 @@ import com.cms.dto.EnquiryDocumentResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Enquiry;
 import com.cms.model.EnquiryDocument;
+import com.cms.model.Program;
+import com.cms.model.ProgramDocumentRequirement;
 import com.cms.model.ReferralType;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.model.enums.ProgramDocumentCategory;
 import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.EnquiryStatusHistoryRepository;
 import com.cms.repository.EnquiryRepository;
@@ -43,6 +48,8 @@ class EnquiryDocumentServiceTest {
     private com.cms.repository.EnquiryStatusHistoryRepository statusHistoryRepository;
     @Mock
     private com.cms.util.CurrentUserResolver currentUserResolver;
+    @Mock
+    private com.cms.config.PermSecurityBean permSecurityBean;
 
     private EnquiryDocumentService documentService;
 
@@ -51,7 +58,7 @@ class EnquiryDocumentServiceTest {
     @BeforeEach
     void setUp() {
         documentService = new EnquiryDocumentService(documentRepository, historyRepository, enquiryRepository,
-            statusHistoryRepository, currentUserResolver);
+            statusHistoryRepository, currentUserResolver, permSecurityBean);
 
         testEnquiry = new Enquiry("Test", "test@email.com", "1234567890", null,
             java.time.LocalDate.now(), new ReferralType("Walk In", "WALK_IN", java.math.BigDecimal.ZERO, false, "Walk in", true), EnquiryStatus.FEES_PAID);
@@ -207,6 +214,9 @@ class EnquiryDocumentServiceTest {
     @Test
     void shouldReturnAllSubmittedWhenMandatoryDocsPresent() {
         testEnquiry.setStatus(EnquiryStatus.FEES_PAID);
+        testEnquiry.setProgram(programWithMandatoryTypes(
+            DocumentType.TENTH_MARKSHEET, DocumentType.TWELFTH_MARKSHEET,
+            DocumentType.TRANSFER_CERTIFICATE, DocumentType.AADHAR_CARD, DocumentType.PASSPORT_PHOTO));
 
         EnquiryDocument doc1 = createDocument(1L, testEnquiry, com.cms.model.enums.DocumentType.TENTH_MARKSHEET);
         doc1.setStatus(DocumentVerificationStatus.UPLOADED);
@@ -219,7 +229,7 @@ class EnquiryDocumentServiceTest {
         EnquiryDocument doc5 = createDocument(5L, testEnquiry, com.cms.model.enums.DocumentType.PASSPORT_PHOTO);
         doc5.setStatus(DocumentVerificationStatus.UPLOADED);
 
-        when(enquiryRepository.existsById(1L)).thenReturn(true);
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
         when(documentRepository.findByEnquiryId(1L)).thenReturn(List.of(doc1, doc2, doc3, doc4, doc5));
 
         com.cms.dto.MissingDocumentsResponse response = documentService.allMandatoryDocumentsSubmitted(1L);
@@ -230,7 +240,11 @@ class EnquiryDocumentServiceTest {
 
     @Test
     void shouldReturnMissingDocsWhenSomeMandatoryDocsAbsent() {
-        when(enquiryRepository.existsById(1L)).thenReturn(true);
+        testEnquiry.setProgram(programWithMandatoryTypes(
+            DocumentType.TENTH_MARKSHEET, DocumentType.TWELFTH_MARKSHEET,
+            DocumentType.TRANSFER_CERTIFICATE, DocumentType.AADHAR_CARD, DocumentType.PASSPORT_PHOTO));
+
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
         when(documentRepository.findByEnquiryId(1L)).thenReturn(List.of());
 
         com.cms.dto.MissingDocumentsResponse response = documentService.allMandatoryDocumentsSubmitted(1L);
@@ -241,7 +255,7 @@ class EnquiryDocumentServiceTest {
 
     @Test
     void shouldThrowWhenEnquiryNotFoundOnMandatoryCheck() {
-        when(enquiryRepository.existsById(999L)).thenReturn(false);
+        when(enquiryRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> documentService.allMandatoryDocumentsSubmitted(999L))
             .isInstanceOf(ResourceNotFoundException.class)
@@ -250,7 +264,10 @@ class EnquiryDocumentServiceTest {
 
     @Test
     void shouldReturnAllVerifiedWhenAllMandatoryDocsAreVerified() {
-        when(enquiryRepository.existsById(1L)).thenReturn(true);
+        testEnquiry.setProgram(programWithMandatoryTypes(
+            DocumentType.TENTH_MARKSHEET, DocumentType.TWELFTH_MARKSHEET,
+            DocumentType.TRANSFER_CERTIFICATE, DocumentType.AADHAR_CARD, DocumentType.PASSPORT_PHOTO));
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
 
         List<EnquiryDocument> docs = List.of(
             createDocWithStatus(1L, testEnquiry, DocumentType.TENTH_MARKSHEET, DocumentVerificationStatus.VERIFIED),
@@ -272,7 +289,10 @@ class EnquiryDocumentServiceTest {
 
     @Test
     void shouldReturnUnverifiedListWhenSomeDocumentsOnlyUploaded() {
-        when(enquiryRepository.existsById(1L)).thenReturn(true);
+        testEnquiry.setProgram(programWithMandatoryTypes(
+            DocumentType.TENTH_MARKSHEET, DocumentType.TWELFTH_MARKSHEET,
+            DocumentType.TRANSFER_CERTIFICATE, DocumentType.AADHAR_CARD, DocumentType.PASSPORT_PHOTO));
+        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
 
         List<EnquiryDocument> docs = List.of(
             createDocWithStatus(1L, testEnquiry, DocumentType.TENTH_MARKSHEET, DocumentVerificationStatus.UPLOADED),
@@ -297,7 +317,7 @@ class EnquiryDocumentServiceTest {
 
     @Test
     void shouldThrowWhenEnquiryNotFoundOnVerificationCheck() {
-        when(enquiryRepository.existsById(999L)).thenReturn(false);
+        when(enquiryRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> documentService.allMandatoryDocumentsVerified(999L))
             .isInstanceOf(ResourceNotFoundException.class)
@@ -347,7 +367,8 @@ class EnquiryDocumentServiceTest {
                 "file", "/uploads/new.png", "image/png", new byte[]{1, 2, 3}
             );
 
-        // remarks=null means existing remarks should be preserved
+        // Remarks are always overwritten on upload (even with null) so a previous
+        // rejection reason doesn't linger on the active record.
         EnquiryDocumentResponse response = documentService.uploadFile(
             1L, DocumentType.TENTH_MARKSHEET, null, file
         );
@@ -358,7 +379,7 @@ class EnquiryDocumentServiceTest {
         assertThat(response.contentType()).isEqualTo("image/png");
         assertThat(response.fileSize()).isEqualTo(3L);
         assertThat(response.status()).isEqualTo(DocumentVerificationStatus.UPLOADED);
-        assertThat(response.remarks()).isEqualTo("old remarks");
+        assertThat(response.remarks()).isNull();
     }
 
     @Test
@@ -474,5 +495,15 @@ class EnquiryDocumentServiceTest {
         doc.setCreatedAt(now);
         doc.setUpdatedAt(now);
         return doc;
+    }
+
+    private Program programWithMandatoryTypes(DocumentType... types) {
+        Program program = new Program("Bachelor", "BACHELOR", 4);
+        Set<ProgramDocumentRequirement> reqs = new HashSet<>();
+        for (DocumentType type : types) {
+            reqs.add(new ProgramDocumentRequirement(type, ProgramDocumentCategory.MANDATORY));
+        }
+        program.setDocumentRequirements(reqs);
+        return program;
     }
 }

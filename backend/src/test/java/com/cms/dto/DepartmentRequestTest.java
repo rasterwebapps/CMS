@@ -28,6 +28,7 @@ class SpecialityRequestTest {
             "Computer Science",
             "CS",
             "Speciality of Computer Science",
+            null,
             null
         );
 
@@ -46,7 +47,8 @@ class SpecialityRequestTest {
             "Computer Science",
             "CS",
             "Speciality of Computer Science",
-            42L
+            42L,
+            null
         );
 
         Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
@@ -57,7 +59,7 @@ class SpecialityRequestTest {
 
     @Test
     void shouldFailValidationWhenNameIsBlank() {
-        SpecialityRequest request = new SpecialityRequest("", "CS", "Description", null);
+        SpecialityRequest request = new SpecialityRequest("", "CS", "Description", null, null);
 
         Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
@@ -67,7 +69,7 @@ class SpecialityRequestTest {
 
     @Test
     void shouldFailValidationWhenNameIsNull() {
-        SpecialityRequest request = new SpecialityRequest(null, "CS", "Description", null);
+        SpecialityRequest request = new SpecialityRequest(null, "CS", "Description", null, null);
 
         Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
@@ -77,7 +79,7 @@ class SpecialityRequestTest {
 
     @Test
     void shouldFailValidationWhenCodeIsBlank() {
-        SpecialityRequest request = new SpecialityRequest("Computer Science", "", "Description", null);
+        SpecialityRequest request = new SpecialityRequest("Computer Science", "", "Description", null, null);
 
         Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
@@ -87,7 +89,7 @@ class SpecialityRequestTest {
 
     @Test
     void shouldFailValidationWhenCodeIsNull() {
-        SpecialityRequest request = new SpecialityRequest("Computer Science", null, "Description", null);
+        SpecialityRequest request = new SpecialityRequest("Computer Science", null, "Description", null, null);
 
         Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
@@ -98,7 +100,7 @@ class SpecialityRequestTest {
     @Test
     void shouldFailValidationWhenNameExceeds255Characters() {
         String longName = "a".repeat(256);
-        SpecialityRequest request = new SpecialityRequest(longName, "CS", "Description", null);
+        SpecialityRequest request = new SpecialityRequest(longName, "CS", "Description", null, null);
 
         Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
@@ -110,7 +112,7 @@ class SpecialityRequestTest {
     @Test
     void shouldFailValidationWhenCodeExceeds50Characters() {
         String longCode = "a".repeat(51);
-        SpecialityRequest request = new SpecialityRequest("Computer Science", longCode, "Description", null);
+        SpecialityRequest request = new SpecialityRequest("Computer Science", longCode, "Description", null, null);
 
         Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
@@ -123,7 +125,7 @@ class SpecialityRequestTest {
     void shouldFailValidationWhenDescriptionExceeds1000Characters() {
         String longDescription = "a".repeat(1001);
         SpecialityRequest request = new SpecialityRequest(
-            "Computer Science", "CS", longDescription, null
+            "Computer Science", "CS", longDescription, null, null
         );
 
         Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
@@ -135,7 +137,7 @@ class SpecialityRequestTest {
 
     @Test
     void shouldAllowNullDescription() {
-        SpecialityRequest request = new SpecialityRequest("Computer Science", "CS", null, null);
+        SpecialityRequest request = new SpecialityRequest("Computer Science", "CS", null, null, null);
 
         Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 
@@ -144,7 +146,7 @@ class SpecialityRequestTest {
 
     @Test
     void shouldAllowNullHodFacultyId() {
-        SpecialityRequest request = new SpecialityRequest("Computer Science", "CS", "Description", null);
+        SpecialityRequest request = new SpecialityRequest("Computer Science", "CS", "Description", null, null);
 
         Set<ConstraintViolation<SpecialityRequest>> violations = validator.validate(request);
 

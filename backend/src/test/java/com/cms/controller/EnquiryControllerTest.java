@@ -43,6 +43,7 @@ import com.cms.model.enums.PaymentMode;
 import com.cms.service.EnquiryDocumentService;
 import com.cms.service.EnquiryPaymentService;
 import com.cms.service.EnquiryService;
+import com.cms.service.PaymentCollectionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @WebMvcTest(controllers = EnquiryController.class)
@@ -63,6 +64,9 @@ class EnquiryControllerTest {
 
     @MockitoBean
     private EnquiryPaymentService enquiryPaymentService;
+
+    @MockitoBean
+    private PaymentCollectionService paymentCollectionService;
 
     @Test
     void shouldCreateEnquiry() throws Exception {
@@ -337,7 +341,7 @@ class EnquiryControllerTest {
     @Test
     void shouldFinalizeFees() throws Exception {
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("100000.00"), new BigDecimal("5000.00"), "Early bird", null, null
+            new BigDecimal("100000.00"), new BigDecimal("5000.00"), "Early bird", null, null, null
         );
 
         com.cms.dto.FeeFinalizationResponse response = new com.cms.dto.FeeFinalizationResponse(
@@ -466,9 +470,10 @@ class EnquiryControllerTest {
             1L, "B.Tech CS", null, null, LocalDate.of(2024, 6, 15),
             1L, "Walk In", null, false,
             status, null, null, "Remarks",
-            new BigDecimal("50000.00"), null, null, null, null, null, null,
-            null, null, null, null, null, null,
-            convertedStudentId, null, null, null, null, null, null, null, null, null, now, now, null,
+            new BigDecimal("50000.00"), null, null, null, null, null,
+            null, null, null, null, null, null, null,
+            convertedStudentId, null, null, null, null, null, null, null, null, null, null,
+            now, now, null,
             LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE,
             null, null, null, null, null, null, null
         );

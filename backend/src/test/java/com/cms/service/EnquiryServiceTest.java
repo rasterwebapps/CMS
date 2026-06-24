@@ -3,6 +3,7 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -53,6 +54,7 @@ import com.cms.repository.CohortRepository;
 import com.cms.repository.LocationCountryRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
+import com.cms.repository.StaffReferrerRepository;
 import com.cms.repository.StudentRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -98,6 +100,9 @@ class EnquiryServiceTest {
     @Mock
     private com.cms.repository.AgentCommissionGuidelineRepository agentCommissionGuidelineRepository;
 
+    @Mock
+    private StaffReferrerRepository staffReferrerRepository;
+
     private EnquiryService enquiryService;
 
     private Program testProgram;
@@ -125,6 +130,7 @@ class EnquiryServiceTest {
             numberSequenceService,
             countryRepository,
             agentCommissionGuidelineRepository,
+            staffReferrerRepository,
             cohortRepository
         );
         org.mockito.Mockito.lenient()
@@ -193,20 +199,25 @@ class EnquiryServiceTest {
         nursingCourse.setId(2L);
         testReferralType.setHasCommission(true);
         testReferralType.setCommissionAmount(new BigDecimal("25000.00"));
-        EnquiryRequest request = basicEnquiryRequest(
+        EnquiryRequest request = new EnquiryRequest(
             "Mani", "mani@email.com", "9876543210", 1L, 2L,
             LocalDate.of(2024, 6, 15), 1L, EnquiryStatus.ENQUIRED,
             null, "BSc Nursing", null,
             new BigDecimal("2345000.00"), new BigDecimal("25000.00"), new BigDecimal("2345000.00"), null,
             StudentType.DAY_SCHOLAR,
-            null, "Tamil Nadu", null
+            null, "Tamil Nadu", null,
+            null, null, null,
+            LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE,
+            com.cms.model.enums.AdmissionQuota.MANAGEMENT, 1L
         );
         FeeStructureResponse currentYearTuition = feeResponse(1L, FeeType.TUITION, new BigDecimal("1000000.00"));
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(courseRepository.findById(2L)).thenReturn(Optional.of(nursingCourse));
         when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(testReferralType));
-        when(feeStructureService.findByProgramIdAndCourseId(1L, 2L)).thenReturn(List.of(currentYearTuition));
+        when(feeStructureService.findForEnquiry(1L, 2L, com.cms.model.enums.AdmissionQuota.MANAGEMENT, 1L,
+            com.cms.model.enums.Gender.FEMALE, StudentType.DAY_SCHOLAR))
+            .thenReturn(Optional.of(List.of(currentYearTuition)));
         when(enquiryRepository.save(any(Enquiry.class))).thenAnswer(inv -> {
             Enquiry saved = inv.getArgument(0);
             saved.setId(1L);
@@ -219,7 +230,8 @@ class EnquiryServiceTest {
 
         assertThat(response.finalCalculatedFee()).isEqualByComparingTo(new BigDecimal("1000000.00"));
         assertThat(response.feeDiscussedAmount()).isEqualByComparingTo(new BigDecimal("1000000.00"));
-        verify(feeStructureService).findByProgramIdAndCourseId(1L, 2L);
+        verify(feeStructureService).findForEnquiry(1L, 2L, com.cms.model.enums.AdmissionQuota.MANAGEMENT, 1L,
+            com.cms.model.enums.Gender.FEMALE, StudentType.DAY_SCHOLAR);
     }
 
     @Test
@@ -552,12 +564,13 @@ class EnquiryServiceTest {
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
-        when(enquiryRepository.findByEnquiryDateBetween(from, to)).thenReturn(List.of(enquiry));
+        when(enquiryRepository.findByDateRangeOrActivePipeline(eq(from), eq(to), any()))
+            .thenReturn(List.of(enquiry));
 
         List<EnquiryResponse> responses = enquiryService.findByDateRange(from, to);
 
         assertThat(responses).hasSize(1);
-        verify(enquiryRepository).findByEnquiryDateBetween(from, to);
+        verify(enquiryRepository).findByDateRangeOrActivePipeline(eq(from), eq(to), any());
     }
 
     @Test
@@ -696,7 +709,7 @@ class EnquiryServiceTest {
         enquiry.setFinalCalculatedFee(new BigDecimal("100000.00"));
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("100000.00"), new BigDecimal("5000.00"), "Early bird discount", null, null
+            new BigDecimal("100000.00"), new BigDecimal("5000.00"), "Early bird discount", null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -718,7 +731,7 @@ class EnquiryServiceTest {
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("50000.00"), null, null, null, null
+            new BigDecimal("50000.00"), null, null, null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -736,7 +749,7 @@ class EnquiryServiceTest {
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("50000.00"), null, null, null, null
+            new BigDecimal("50000.00"), null, null, null, null, null
         );
 
         assertThatThrownBy(() -> enquiryService.finalizeFees(1L, request, "admin"))
@@ -749,7 +762,7 @@ class EnquiryServiceTest {
         when(enquiryRepository.findById(999L)).thenReturn(Optional.empty());
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("50000.00"), null, null, null, null
+            new BigDecimal("50000.00"), null, null, null, null, null
         );
 
         assertThatThrownBy(() -> enquiryService.finalizeFees(999L, request, "admin"))
@@ -765,7 +778,7 @@ class EnquiryServiceTest {
 
         // Trying to finalize with a higher fee (increase not allowed)
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("120000.00"), null, null, null, null
+            new BigDecimal("120000.00"), null, null, null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -783,7 +796,7 @@ class EnquiryServiceTest {
         // finalCalculatedFee is null
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("100000.00"), null, null, null, null
+            new BigDecimal("100000.00"), null, null, null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -801,7 +814,7 @@ class EnquiryServiceTest {
 
         // Finalizing at exact original amount (no increase, no discount)
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("100000.00"), null, null, null, null
+            new BigDecimal("100000.00"), null, null, null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -822,7 +835,7 @@ class EnquiryServiceTest {
 
         // Finalizing with discount (reduction allowed)
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("100000.00"), new BigDecimal("10000.00"), "Merit scholarship", null, null
+            new BigDecimal("100000.00"), new BigDecimal("10000.00"), "Merit scholarship", null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -844,7 +857,7 @@ class EnquiryServiceTest {
 
         // Discount provided but no reason — must be rejected
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("100000.00"), new BigDecimal("5000.00"), null, null, null
+            new BigDecimal("100000.00"), new BigDecimal("5000.00"), null, null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -862,7 +875,7 @@ class EnquiryServiceTest {
 
         // Blank reason — must also be rejected
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("100000.00"), new BigDecimal("5000.00"), "   ", null, null
+            new BigDecimal("100000.00"), new BigDecimal("5000.00"), "   ", null, null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -1193,7 +1206,7 @@ class EnquiryServiceTest {
         enquiry.setFinalCalculatedFee(new BigDecimal("100000.00"));
 
         com.cms.dto.FeeFinalizationRequest request = new com.cms.dto.FeeFinalizationRequest(
-            new BigDecimal("100000.00"), null, null, "[50000,50000]", null
+            new BigDecimal("100000.00"), null, null, "[50000,50000]", null, null
         );
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
@@ -1437,7 +1450,7 @@ class EnquiryServiceTest {
         org.mockito.ArgumentCaptor<Student> studentCaptor = org.mockito.ArgumentCaptor.forClass(Student.class);
         verify(studentRepository, org.mockito.Mockito.times(2)).save(studentCaptor.capture());
         Student persistedStudent = studentCaptor.getValue();
-        assertThat(persistedStudent.getAdmissionNumber()).isEqualTo("ADM-2425-0001");
+        assertThat(persistedStudent.getAdmissionNumber()).isEqualTo("2024650001");
         assertThat(persistedStudent.getDateOfBirth()).isEqualTo(LocalDate.of(2005, 5, 10));
         assertThat(persistedStudent.getGender()).isEqualTo(com.cms.model.enums.Gender.MALE);
         assertThat(persistedStudent.getAadharNumber()).isEqualTo("1234-5678-9012");

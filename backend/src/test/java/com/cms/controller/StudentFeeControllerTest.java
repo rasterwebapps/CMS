@@ -35,6 +35,8 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.PaymentMode;
 import com.cms.service.FeeExplorerService;
 import com.cms.service.FeeFinalizationService;
+import com.cms.service.FeeRefundService;
+import com.cms.service.OneBookIntegrationService;
 import com.cms.service.PaymentCollectionService;
 import com.cms.service.PenaltyCalculationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -60,6 +62,12 @@ class StudentFeeControllerTest {
 
     @MockitoBean
     private FeeExplorerService feeExplorerService;
+
+    @MockitoBean
+    private FeeRefundService feeRefundService;
+
+    @MockitoBean
+    private OneBookIntegrationService oneBookService;
 
     @Test
     void shouldFinalizeFeeAllocation() throws Exception {
@@ -365,12 +373,12 @@ class StudentFeeControllerTest {
                 new StudentFeeAllocationResponse.InstallmentFeeDetail(
                     10L, 1, 1, "Year 1 - Semester 1", new BigDecimal("100000.00"),
                     LocalDate.of(2025, 6, 1), new BigDecimal("50000.00"),
-                    new BigDecimal("50000.00"), BigDecimal.ZERO, "PARTIAL"
+                    new BigDecimal("50000.00"), BigDecimal.ZERO, "PARTIAL", true
                 ),
                 new StudentFeeAllocationResponse.InstallmentFeeDetail(
                     11L, 1, 2, "Year 1 - Semester 2", new BigDecimal("100000.00"),
                     LocalDate.of(2025, 12, 1), BigDecimal.ZERO,
-                    new BigDecimal("100000.00"), BigDecimal.ZERO, "PENDING"
+                    new BigDecimal("100000.00"), BigDecimal.ZERO, "PENDING", true
                 )
             ),
             now, now
@@ -414,7 +422,7 @@ class StudentFeeControllerTest {
                     1L, "John Doe", "CS2024001", "B.Tech Computer Science",
                     4, new BigDecimal("200000.00"), new BigDecimal("50000.00"),
                     new BigDecimal("150000.00"), new BigDecimal("1500.00"),
-                    "FINALIZED"
+                    "FINALIZED", null, null
                 )
             )
         );

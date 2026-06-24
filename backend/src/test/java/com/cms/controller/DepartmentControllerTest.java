@@ -46,7 +46,7 @@ class SpecialityControllerTest {
     @Test
     void shouldCreateSpeciality() throws Exception {
         SpecialityRequest request = new SpecialityRequest(
-            "Computer Science", "CS", "Speciality of Computer Science", null
+            "Computer Science", "CS", "Speciality of Computer Science", null, null
         );
 
         Instant now = Instant.now();
@@ -70,7 +70,7 @@ class SpecialityControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenNameIsBlank() throws Exception {
-        SpecialityRequest request = new SpecialityRequest("", "CS", "Description", null);
+        SpecialityRequest request = new SpecialityRequest("", "CS", "Description", null, null);
 
         mockMvc.perform(post("/specialities")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -80,7 +80,7 @@ class SpecialityControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenCodeIsBlank() throws Exception {
-        SpecialityRequest request = new SpecialityRequest("Computer Science", "", "Description", null);
+        SpecialityRequest request = new SpecialityRequest("Computer Science", "", "Description", null, null);
 
         mockMvc.perform(post("/specialities")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -169,7 +169,7 @@ class SpecialityControllerTest {
     @Test
     void shouldUpdateSpeciality() throws Exception {
         SpecialityRequest request = new SpecialityRequest(
-            "Computer Science Updated", "CSU", "Updated Description", null
+            "Computer Science Updated", "CSU", "Updated Description", null, null
         );
 
         Instant now = Instant.now();
@@ -192,7 +192,7 @@ class SpecialityControllerTest {
 
     @Test
     void shouldReturnNotFoundWhenUpdatingNonExistentSpeciality() throws Exception {
-        SpecialityRequest request = new SpecialityRequest("Name", "CODE", "Description", null);
+        SpecialityRequest request = new SpecialityRequest("Name", "CODE", "Description", null, null);
 
         when(specialityService.update(eq(999L), any(SpecialityRequest.class)))
             .thenThrow(new ResourceNotFoundException("Speciality not found with id: 999"));
@@ -207,7 +207,7 @@ class SpecialityControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenUpdatingWithInvalidData() throws Exception {
-        SpecialityRequest request = new SpecialityRequest("", "", "Description", null);
+        SpecialityRequest request = new SpecialityRequest("", "", "Description", null, null);
 
         mockMvc.perform(put("/specialities/1")
                 .contentType(MediaType.APPLICATION_JSON)
