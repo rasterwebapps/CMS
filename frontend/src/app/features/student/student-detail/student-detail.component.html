@@ -319,10 +319,10 @@
                     <div class="fee-entry__hdr-left">
                       <h4 class="fee-entry__term">{{ entry.termLabel }}</h4>
                       <span class="cms-badge"
-                        [class.cms-badge--soft-success]="entry.status === 'PAID'"
-                        [class.cms-badge--soft-warning]="entry.status === 'PARTIAL'"
-                        [class.cms-badge--soft-error]="entry.status === 'UNPAID'"
-                        [class.cms-badge--soft-default]="entry.status === 'WAIVED'">
+                        [class.cms-badge--soft-green]="entry.status === 'PAID'"
+                        [class.cms-badge--soft-amber]="entry.status === 'PARTIAL'"
+                        [class.cms-badge--soft-red]="entry.status === 'UNPAID'"
+                        [class.cms-badge--soft-gray]="entry.status === 'WAIVED'">
                         {{ entry.status }}
                       </span>
                     </div>
