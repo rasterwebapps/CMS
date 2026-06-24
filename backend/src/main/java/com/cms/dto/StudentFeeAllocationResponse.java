@@ -49,6 +49,7 @@ public record StudentFeeAllocationResponse(
         BigDecimal amountPaid,
         BigDecimal pendingAmount,
         BigDecimal penaltyAmount,
-        String paymentStatus
+        String paymentStatus,
+        boolean collectibleNow
     ) {}
 }

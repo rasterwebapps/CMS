@@ -3,6 +3,7 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -56,6 +57,7 @@ class PaymentCollectionServiceTest {
     @Mock private FeeRefundRepository refundRepository;
     @Mock private UnifiedReceiptService unifiedReceiptService;
     @Mock private EnquiryCreditApplicationRepository creditApplicationRepository;
+    @Mock private TermInstanceService termInstanceService;
 
     private PaymentCollectionService service;
 
@@ -69,10 +71,14 @@ class PaymentCollectionServiceTest {
     void setUp() {
         service = new PaymentCollectionService(allocationRepository, semesterFeeRepository,
             installmentRepository, studentRepository, enquiryRepository, enquiryPaymentRepository,
-            refundRepository, unifiedReceiptService, creditApplicationRepository);
+            refundRepository, unifiedReceiptService, creditApplicationRepository, termInstanceService);
         lenient().when(enquiryRepository.findByConvertedStudentId(anyLong())).thenReturn(Optional.empty());
         lenient().when(refundRepository.findByStudentIdAndStatusOrderByPaymentDateDescIdDesc(anyLong(), any()))
             .thenReturn(List.of());
+        // Default: every installment is open for collection, matching pre-existing test expectations.
+        // Tests that specifically exercise term-gating override this with explicit stubs.
+        lenient().when(termInstanceService.resolveJoiningStartYear(any())).thenReturn(2024);
+        lenient().when(termInstanceService.isSemesterFeeCollectibleNow(anyInt(), anyInt(), any())).thenReturn(true);
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -106,11 +112,12 @@ class PaymentCollectionServiceTest {
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
         when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
             .thenReturn(List.of(semesterFee1, semesterFee2));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
-        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
+        when(unifiedReceiptService.generateReceiptNumber(anyInt())).thenReturn("RCP-2026-00001");
         when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CollectPaymentResponse response = service.collectPayment(1L, request);
@@ -129,12 +136,12 @@ class PaymentCollectionServiceTest {
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
         when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
             .thenReturn(List.of(semesterFee1, semesterFee2));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
         when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
-        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
+        when(unifiedReceiptService.generateReceiptNumber(anyInt())).thenReturn("RCP-2026-00001");
         when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CollectPaymentResponse response = service.collectPayment(1L, request);
@@ -158,7 +165,7 @@ class PaymentCollectionServiceTest {
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
         when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
             .thenReturn(List.of(semesterFee1, semesterFee2));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(new BigDecimal("200000"));
@@ -166,7 +173,7 @@ class PaymentCollectionServiceTest {
 
         assertThatThrownBy(() -> service.collectPayment(1L, request))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("exceeds total outstanding balance");
+            .hasMessageContaining("exceeds the amount currently due");
     }
 
     @Test
@@ -176,12 +183,12 @@ class PaymentCollectionServiceTest {
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
         when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
             .thenReturn(List.of(semesterFee1, semesterFee2));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(new BigDecimal("200000"));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(new BigDecimal("150000"));
-        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
+        when(unifiedReceiptService.generateReceiptNumber(anyInt())).thenReturn("RCP-2026-00001");
         when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CollectPaymentResponse response = service.collectPayment(1L, request);
@@ -199,12 +206,12 @@ class PaymentCollectionServiceTest {
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
         when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
             .thenReturn(List.of(semesterFee1, semesterFee2));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
         when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
-        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
+        when(unifiedReceiptService.generateReceiptNumber(anyInt())).thenReturn("RCP-2026-00001");
         when(installmentRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         CollectPaymentResponse response = service.collectPayment(1L, request);
@@ -223,12 +230,12 @@ class PaymentCollectionServiceTest {
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
         when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
             .thenReturn(List.of(semesterFee1, semesterFee2));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(new BigDecimal("200000"));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
-        when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
+        when(unifiedReceiptService.generateReceiptNumber(anyInt())).thenReturn("RCP-2026-00001");
         when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CollectPaymentResponse response = service.collectPayment(1L, request);
@@ -256,7 +263,7 @@ class PaymentCollectionServiceTest {
             new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null
         );
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.empty());
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.collectPayment(1L, request))
             .isInstanceOf(ResourceNotFoundException.class);
@@ -269,7 +276,7 @@ class PaymentCollectionServiceTest {
             new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null
         );
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
 
         assertThatThrownBy(() -> service.collectPayment(1L, request))
             .isInstanceOf(IllegalStateException.class)
@@ -282,7 +289,7 @@ class PaymentCollectionServiceTest {
             new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null
         );
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(testAllocation));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
         when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
             .thenReturn(List.of(semesterFee1, semesterFee2));
         when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(new BigDecimal("200000"));
@@ -290,7 +297,7 @@ class PaymentCollectionServiceTest {
 
         assertThatThrownBy(() -> service.collectPayment(1L, request))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("No pending fees");
+            .hasMessageContaining("No fees are currently due");
     }
 
     @Test

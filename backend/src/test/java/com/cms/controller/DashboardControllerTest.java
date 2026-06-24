@@ -48,7 +48,8 @@ class DashboardControllerTest {
             Map.of("PRESENT", 7L, "ABSENT", 3L),
             Map.of("NEW", 5L, "ENROLLED", 5L),
             BigDecimal.valueOf(50000),
-            BigDecimal.valueOf(10000)
+            BigDecimal.valueOf(10000),
+            3L
         );
 
         when(dashboardService.getSummary()).thenReturn(response);

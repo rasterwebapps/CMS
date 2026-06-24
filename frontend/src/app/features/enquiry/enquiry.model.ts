@@ -7,6 +7,8 @@ export interface Enquiry {
   programName: string;
   courseId: number | null;
   courseName: string | null;
+  academicYearId: number | null;
+  academicYearName: string | null;
   enquiryDate: string;
   status: string;
   agentId: number | null;
@@ -60,6 +62,7 @@ export interface EnquiryRequest {
   phone?: string;
   programId?: number;
   courseId?: number;
+  academicYearId?: number | null;
   enquiryDate: string;
   referralTypeId: number;
   status?: string;
@@ -270,6 +273,7 @@ export interface InstallmentFeeStatus {
   paidAmount: number;
   outstanding: number;
   dueDate: string | null;
+  collectibleNow: boolean;
 }
 
 export interface EnquiryYearWiseFeeStatusResponse {

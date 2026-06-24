@@ -55,6 +55,7 @@ public class FeeFinalizationService {
     private final StudentScholarshipService studentScholarshipService;
     private final TermBillingScheduleRepository billingScheduleRepository;
     private final AcademicYearRepository academicYearRepository;
+    private final TermInstanceService termInstanceService;
     private final ObjectMapper objectMapper;
 
     public FeeFinalizationService(StudentFeeAllocationRepository allocationRepository,
@@ -67,6 +68,7 @@ public class FeeFinalizationService {
                                    StudentScholarshipService studentScholarshipService,
                                    TermBillingScheduleRepository billingScheduleRepository,
                                    AcademicYearRepository academicYearRepository,
+                                   TermInstanceService termInstanceService,
                                    ObjectMapper objectMapper) {
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
@@ -78,6 +80,7 @@ public class FeeFinalizationService {
         this.studentScholarshipService = studentScholarshipService;
         this.billingScheduleRepository = billingScheduleRepository;
         this.academicYearRepository = academicYearRepository;
+        this.termInstanceService = termInstanceService;
         this.objectMapper = objectMapper;
     }
 
@@ -261,6 +264,8 @@ public class FeeFinalizationService {
             .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
             .orElse(BigDecimal.ZERO);
 
+        int joiningStartYear = termInstanceService.resolveJoiningStartYear(allocation.getStudent());
+
         List<StudentFeeAllocationResponse.InstallmentFeeDetail> details = new ArrayList<>();
         for (SemesterFee sf : semesterFees) {
             BigDecimal feeInstallmentPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
@@ -286,9 +291,13 @@ public class FeeFinalizationService {
                 paymentStatus = "PENDING";
             }
 
+            boolean collectibleNow = termInstanceService.isSemesterFeeCollectibleNow(
+                joiningStartYear, sf.getYearNumber(), sf.getSemesterSequence());
+
             details.add(new StudentFeeAllocationResponse.InstallmentFeeDetail(
                 sf.getId(), sf.getYearNumber(), sf.getSemesterSequence(), sf.getSemesterLabel(),
-                sf.getAmount(), sf.getDueDate(), totalPaid, pending, penaltyAmount, paymentStatus
+                sf.getAmount(), sf.getDueDate(), totalPaid, pending, penaltyAmount, paymentStatus,
+                collectibleNow
             ));
         }
 

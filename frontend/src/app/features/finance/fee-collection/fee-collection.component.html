@@ -225,12 +225,13 @@
               <div class="sem-row"
                    [class.sem-row--paid]="row.isPaid"
                    [class.sem-row--next]="row.isNext"
-                   [class.sem-row--overdue]="!row.isPaid && isOverdue(row.dueDate)">
+                   [class.sem-row--overdue]="!row.isPaid && row.collectibleNow && isOverdue(row.dueDate)"
+                   [class.sem-row--locked]="!row.isPaid && !row.collectibleNow">
                 <span class="sem-seq" [class.sem-seq--next]="row.isNext">{{ i + 1 }}</span>
                 <span class="sem-label">
                   {{ row.label }}
                   @if (row.isNext) { <span class="next-pill">Next →</span> }
-                  @if (!row.isPaid && isOverdue(row.dueDate)) { <span class="overdue-pill">Overdue</span> }
+                  @if (!row.isPaid && row.collectibleNow && isOverdue(row.dueDate)) { <span class="overdue-pill">Overdue</span> }
                 </span>
                 <span class="sem-due align-right mono">{{ row.dueDate ? (row.dueDate | appDate:'short') : '—' }}</span>
                 <span class="sem-fee align-right mono">{{ row.fee | inr:false:false }}</span>
@@ -240,10 +241,11 @@
                 </span>
                 <span class="sem-badge align-center"
                       [class.sem-badge--paid]="row.isPaid"
-                      [class.sem-badge--partial]="!row.isPaid && row.paid > 0"
-                      [class.sem-badge--overdue]="!row.isPaid && isOverdue(row.dueDate)"
-                      [class.sem-badge--pending]="!row.isPaid && row.paid === 0 && !isOverdue(row.dueDate)">
-                  {{ row.isPaid ? 'Paid' : row.paid > 0 ? 'Partial' : isOverdue(row.dueDate) ? 'Overdue' : 'Pending' }}
+                      [class.sem-badge--locked]="!row.isPaid && !row.collectibleNow"
+                      [class.sem-badge--partial]="!row.isPaid && row.collectibleNow && row.paid > 0"
+                      [class.sem-badge--overdue]="!row.isPaid && row.collectibleNow && isOverdue(row.dueDate)"
+                      [class.sem-badge--pending]="!row.isPaid && row.collectibleNow && row.paid === 0 && !isOverdue(row.dueDate)">
+                  {{ row.isPaid ? 'Paid' : !row.collectibleNow ? 'Not yet open' : row.paid > 0 ? 'Partial' : isOverdue(row.dueDate) ? 'Overdue' : 'Pending' }}
                 </span>
               </div>
             }

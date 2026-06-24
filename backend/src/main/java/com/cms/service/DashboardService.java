@@ -20,6 +20,7 @@ import com.cms.dto.DashboardTrendsResponse;
 import com.cms.dto.FrontOfficeDashboardResponse;
 import com.cms.dto.FrontOfficeEnquiryItem;
 import com.cms.model.Attendance;
+import com.cms.model.Enquiry;
 import com.cms.model.EnquiryPayment;
 import com.cms.model.Equipment;
 import com.cms.model.MaintenanceRequest;
@@ -62,6 +63,7 @@ public class DashboardService {
     private final EnquiryRepository enquiryRepository;
     private final EnquiryPaymentRepository enquiryPaymentRepository;
     private final AdmissionRepository admissionRepository;
+    private final FeeExplorerService feeExplorerService;
 
     public DashboardService(StudentRepository studentRepository,
                             FacultyRepository facultyRepository,
@@ -76,7 +78,8 @@ public class DashboardService {
                             AttendanceRepository attendanceRepository,
                             EnquiryRepository enquiryRepository,
                             EnquiryPaymentRepository enquiryPaymentRepository,
-                            AdmissionRepository admissionRepository) {
+                            AdmissionRepository admissionRepository,
+                            FeeExplorerService feeExplorerService) {
         this.studentRepository = studentRepository;
         this.facultyRepository = facultyRepository;
         this.specialityRepository = specialityRepository;
@@ -91,6 +94,7 @@ public class DashboardService {
         this.enquiryRepository = enquiryRepository;
         this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.admissionRepository = admissionRepository;
+        this.feeExplorerService = feeExplorerService;
     }
 
     /**
@@ -116,14 +120,41 @@ public class DashboardService {
         Map<String, Long> enquiryFunnel = buildEnquiryFunnelMap();
         BigDecimal feeCollectedThisMonth = computeFeeCollectedThisMonth();
         BigDecimal feeOutstanding = computeFeeOutstanding();
+        long collectPaymentEligibleCount = computeCollectPaymentEligibleCount();
 
         return new DashboardSummaryResponse(
             totalStudents, totalFaculty, totalSpecialities, totalSubjects,
             totalPrograms, totalLabs, totalEquipment, totalExaminations,
             totalFeePayments, totalMaintenanceRequests, totalAttendanceRecords,
             equipmentByStatus, maintenanceByStatus, studentsByStatus, attendanceByStatus,
-            enquiryFunnel, feeCollectedThisMonth, feeOutstanding
+            enquiryFunnel, feeCollectedThisMonth, feeOutstanding, collectPaymentEligibleCount
         );
+    }
+
+    /**
+     * Counts the exact same rows the Fee Collection screen lists: enquiries in a
+     * payment-eligible status with an outstanding balance, plus converted students
+     * with an outstanding balance. Mirrors EnquiryPaymentService's eligibility rule
+     * and FeeExplorerService's outstanding calculation so the nav badge never drifts
+     * from what the page actually shows.
+     */
+    private long computeCollectPaymentEligibleCount() {
+        List<Enquiry> eligibleEnquiries = enquiryRepository.findByStatusIn(EnquiryPaymentService.PAYMENT_ELIGIBLE_STATUSES);
+        List<Long> enquiryIds = eligibleEnquiries.stream().map(Enquiry::getId).toList();
+        Map<Long, BigDecimal> paidMap = enquiryPaymentRepository.paidTotalsForIds(enquiryIds);
+
+        long enquiryCount = eligibleEnquiries.stream()
+            .filter(e -> e.getFinalizedNetFee() != null)
+            .filter(e -> e.getFinalizedNetFee()
+                .subtract(paidMap.getOrDefault(e.getId(), BigDecimal.ZERO))
+                .compareTo(BigDecimal.ZERO) > 0)
+            .count();
+
+        long studentCount = feeExplorerService.search(null).students().stream()
+            .filter(s -> s.totalPending().compareTo(BigDecimal.ZERO) > 0)
+            .count();
+
+        return enquiryCount + studentCount;
     }
 
     /**

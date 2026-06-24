@@ -51,6 +51,7 @@ public class PaymentCollectionService {
     private final FeeRefundRepository refundRepository;
     private final UnifiedReceiptService unifiedReceiptService;
     private final EnquiryCreditApplicationRepository creditApplicationRepository;
+    private final TermInstanceService termInstanceService;
 
     public PaymentCollectionService(StudentFeeAllocationRepository allocationRepository,
                                      SemesterFeeRepository semesterFeeRepository,
@@ -60,7 +61,8 @@ public class PaymentCollectionService {
                                      EnquiryPaymentRepository enquiryPaymentRepository,
                                      FeeRefundRepository refundRepository,
                                      UnifiedReceiptService unifiedReceiptService,
-                                     EnquiryCreditApplicationRepository creditApplicationRepository) {
+                                     EnquiryCreditApplicationRepository creditApplicationRepository,
+                                     TermInstanceService termInstanceService) {
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
         this.installmentRepository = installmentRepository;
@@ -70,6 +72,7 @@ public class PaymentCollectionService {
         this.refundRepository = refundRepository;
         this.unifiedReceiptService = unifiedReceiptService;
         this.creditApplicationRepository = creditApplicationRepository;
+        this.termInstanceService = termInstanceService;
     }
 
     @Transactional
@@ -88,6 +91,7 @@ public class PaymentCollectionService {
 
         List<SemesterFee> semesterFees = semesterFeeRepository
             .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
+        int joiningStartYear = termInstanceService.resolveJoiningStartYear(student);
 
         // Enquiry payments act as pre-payment credit — distribute in installment order before accepting new payment.
         Optional<Enquiry> sourceEnquiry = enquiryRepository.findByConvertedStudentId(studentId);
@@ -99,13 +103,14 @@ public class PaymentCollectionService {
             .orElse(BigDecimal.ZERO);
         BigDecimal remainingEnquiryCredit = totalEnquiryCredit.subtract(alreadyAppliedCredit).max(BigDecimal.ZERO);
 
-        BigDecimal totalOutstanding = calculateTotalOutstanding(semesterFees, remainingEnquiryCredit, sourceEnquiry);
-        if (totalOutstanding.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalStateException("No pending fees found for student: " + student.getRollNumber());
+        BigDecimal collectibleOutstanding = calculateCollectibleOutstanding(
+            semesterFees, remainingEnquiryCredit, sourceEnquiry, joiningStartYear);
+        if (collectibleOutstanding.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("No fees are currently due for collection for student: " + student.getRollNumber());
         }
-        if (request.amount().compareTo(totalOutstanding) > 0) {
+        if (request.amount().compareTo(collectibleOutstanding) > 0) {
             throw new IllegalStateException(
-                "Payment amount (" + request.amount() + ") exceeds total outstanding balance: " + totalOutstanding
+                "Payment amount (" + request.amount() + ") exceeds the amount currently due: " + collectibleOutstanding
             );
         }
 
@@ -129,6 +134,9 @@ public class PaymentCollectionService {
         for (SemesterFee sf : semesterFees) {
             if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
                 break;
+            }
+            if (!termInstanceService.isSemesterFeeCollectibleNow(joiningStartYear, sf.getYearNumber(), sf.getSemesterSequence())) {
+                continue;
             }
 
             BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
@@ -202,13 +210,29 @@ public class PaymentCollectionService {
         );
     }
 
-    private BigDecimal calculateTotalOutstanding(List<SemesterFee> semesterFees,
-                                                  BigDecimal netRemainingEnquiryCredit,
-                                                  Optional<Enquiry> sourceEnquiry) {
+    /**
+     * Sums outstanding only across installments that are currently open for collection
+     * (their TermInstance is OPEN or LOCKED, not still PLANNED) — future terms are excluded
+     * from the collectible cap even though they still count toward the student's full balance
+     * shown elsewhere (e.g. the Fee Explorer).
+     */
+    private BigDecimal calculateCollectibleOutstanding(List<SemesterFee> semesterFees,
+                                                         BigDecimal netRemainingEnquiryCredit,
+                                                         Optional<Enquiry> sourceEnquiry,
+                                                         int joiningStartYear) {
         BigDecimal totalOutstanding = BigDecimal.ZERO;
         BigDecimal remainingCredit = netRemainingEnquiryCredit;
 
         for (SemesterFee sf : semesterFees) {
+            // Mirror collectPayment()'s loop exactly: a not-yet-open installment is skipped
+            // entirely, including credit consumption, so credit carries forward to the next
+            // collectible installment instead of being absorbed by a future, untouched one.
+            boolean collectibleNow = termInstanceService.isSemesterFeeCollectibleNow(
+                joiningStartYear, sf.getYearNumber(), sf.getSemesterSequence());
+            if (!collectibleNow) {
+                continue;
+            }
+
             BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
             BigDecimal alreadyCredited = sourceEnquiry.isPresent()
                 ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(

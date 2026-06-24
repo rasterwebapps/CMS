@@ -12,6 +12,7 @@ import com.cms.dto.TermInstanceDto;
 import com.cms.dto.TermInstanceUpdateRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
+import com.cms.model.Student;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
@@ -71,6 +72,40 @@ public class TermInstanceService {
 
         termInstanceRepository.save(odd);
         termInstanceRepository.save(even);
+    }
+
+    /**
+     * Returns the calendar year fee collection should anchor to for a student: their cohort's
+     * admission academic year, or the current calendar year when no cohort is assigned.
+     * Mirrors the anchor FeeFinalizationService already uses when generating SemesterFee due dates.
+     */
+    public int resolveJoiningStartYear(Student student) {
+        return student.getCohort() != null
+            ? student.getCohort().getAdmissionAcademicYear().getStartYear()
+            : LocalDate.now().getYear();
+    }
+
+    /**
+     * Returns whether a student's installment (program yearNumber + semesterSequence, where
+     * 1 = ODD term, 2 = EVEN term) is open for collection right now — i.e. its TermInstance has
+     * been opened (or already locked) by an admin, not merely PLANNED.
+     */
+    public boolean isSemesterFeeCollectibleNow(int joiningStartYear, int yearNumber, Integer semesterSequence) {
+        int targetStartYear = joiningStartYear + (yearNumber - 1);
+        TermType termType = semesterSequence != null && semesterSequence == 2 ? TermType.EVEN : TermType.ODD;
+        return isTermCollectibleNow(targetStartYear, termType);
+    }
+
+    /**
+     * Returns whether the term instance for the given calendar start year + term type has been
+     * opened for collection (status OPEN or LOCKED) rather than still PLANNED. An academic year
+     * or term instance that isn't configured yet is treated as not collectible — it's a future term.
+     */
+    public boolean isTermCollectibleNow(int targetStartYear, TermType termType) {
+        return academicYearRepository.findByNameStartingWith(String.valueOf(targetStartYear))
+            .flatMap(ay -> termInstanceRepository.findByAcademicYearIdAndTermType(ay.getId(), termType))
+            .map(ti -> ti.getStatus() != TermInstanceStatus.PLANNED)
+            .orElse(false);
     }
 
     public List<TermInstanceDto> getTermInstancesByAcademicYear(Long academicYearId) {

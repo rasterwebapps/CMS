@@ -136,7 +136,7 @@ export class FeeCollectionComponent implements OnInit {
 
   protected readonly semesterRows = computed<Array<{
     label: string; fee: number; paid: number; outstanding: number;
-    dueDate: string | null; isPaid: boolean; isNext: boolean;
+    dueDate: string | null; isPaid: boolean; isNext: boolean; collectibleNow: boolean;
   }>>(() => {
     const entry = this.selectedEntry();
     if (!entry) return [];
@@ -145,27 +145,31 @@ export class FeeCollectionComponent implements OnInit {
       const fs = this.feeStatus();
       if (!fs) return [];
       const sems = fs.installmentBreakdown;
-      const immediatePayableIndex = sems.findIndex(s => this.hasCollectableOutstanding(s.outstanding));
+      const immediatePayableIndex = sems.findIndex(s =>
+        this.hasCollectableOutstanding(s.outstanding) && s.collectibleNow);
       return sems.map((s, i) => ({
-        label:       s.installmentLabel,
-        fee:         this.normalizeMoney(s.allocatedFee),
-        paid:        this.normalizeMoney(s.paidAmount),
-        outstanding: this.normalizeMoney(s.outstanding),
-        dueDate:     s.dueDate,
-        isPaid:      this.normalizeMoney(s.outstanding) === 0,
-        isNext:      i === immediatePayableIndex,
+        label:          s.installmentLabel,
+        fee:            this.normalizeMoney(s.allocatedFee),
+        paid:           this.normalizeMoney(s.paidAmount),
+        outstanding:    this.normalizeMoney(s.outstanding),
+        dueDate:        s.dueDate,
+        isPaid:         this.normalizeMoney(s.outstanding) === 0,
+        isNext:         i === immediatePayableIndex,
+        collectibleNow: s.collectibleNow,
       }));
     } else {
       const sems = this.studentSemesters();
-      const immediatePayableIndex = sems.findIndex(s => this.hasCollectableOutstanding(s.pendingAmount));
+      const immediatePayableIndex = sems.findIndex(s =>
+        this.hasCollectableOutstanding(s.pendingAmount) && s.collectibleNow);
       return sems.map((s, i) => ({
-        label:       s.installmentLabel,
-        fee:         this.normalizeMoney(s.amount),
-        paid:        this.normalizeMoney(s.amountPaid),
-        outstanding: this.normalizeMoney(s.pendingAmount),
-        dueDate:     s.dueDate,
-        isPaid:      this.normalizeMoney(s.pendingAmount) === 0,
-        isNext:      i === immediatePayableIndex,
+        label:          s.installmentLabel,
+        fee:            this.normalizeMoney(s.amount),
+        paid:           this.normalizeMoney(s.amountPaid),
+        outstanding:    this.normalizeMoney(s.pendingAmount),
+        dueDate:        s.dueDate,
+        isPaid:         this.normalizeMoney(s.pendingAmount) === 0,
+        isNext:         i === immediatePayableIndex,
+        collectibleNow: s.collectibleNow,
       }));
     }
   });
@@ -173,10 +177,14 @@ export class FeeCollectionComponent implements OnInit {
   protected readonly totalFee         = computed(() => this.semesterRows().reduce((s, r) => s + r.fee, 0));
   protected readonly totalPaid        = computed(() => this.semesterRows().reduce((s, r) => s + r.paid, 0));
   protected readonly totalOutstanding = computed(() => this.semesterRows().reduce((s, r) => s + r.outstanding, 0));
+  // Amount actually payable right now — excludes installments whose term hasn't opened yet
+  // (e.g. next year's fee), even though they still count toward totalOutstanding above.
+  protected readonly collectibleOutstanding = computed(() =>
+    this.semesterRows().reduce((s, r) => s + (r.collectibleNow ? r.outstanding : 0), 0));
   protected readonly amountMax = computed<number | null>(() => {
     const rows = this.semesterRows();
     if (rows.length > 0) {
-      return this.totalOutstanding();
+      return this.collectibleOutstanding();
     }
     return null;
   });
@@ -356,8 +364,11 @@ export class FeeCollectionComponent implements OnInit {
         next: (fs) => {
           this.feeStatus.set(fs);
           const sems = fs.installmentBreakdown;
-          const nextSem = sems.find(s => this.hasCollectableOutstanding(s.outstanding));
-          const prefill = this.normalizeMoney(nextSem ? nextSem.outstanding : fs.totalOutstanding);
+          const nextSem = sems.find(s => this.hasCollectableOutstanding(s.outstanding) && s.collectibleNow);
+          const collectibleNow = sems
+            .filter(s => s.collectibleNow)
+            .reduce((acc, s) => acc + this.normalizeMoney(s.outstanding), 0);
+          const prefill = this.normalizeMoney(nextSem ? nextSem.outstanding : collectibleNow);
           if (!this.form.get('amount')?.value) {
             this.form.patchValue({ amount: this.hasCollectableOutstanding(prefill) ? prefill : null });
           }
@@ -371,10 +382,11 @@ export class FeeCollectionComponent implements OnInit {
         next: (alloc) => {
           this.studentSemesters.set(alloc.installmentFees);
           const sems = alloc.installmentFees;
-          const nextSem = sems.find(s => this.hasCollectableOutstanding(s.pendingAmount));
-          const prefill = this.normalizeMoney(
-            nextSem ? nextSem.pendingAmount : sems.reduce((acc, sf) => acc + sf.pendingAmount, 0)
-          );
+          const nextSem = sems.find(s => this.hasCollectableOutstanding(s.pendingAmount) && s.collectibleNow);
+          const collectibleNow = sems
+            .filter(s => s.collectibleNow)
+            .reduce((acc, s) => acc + this.normalizeMoney(s.pendingAmount), 0);
+          const prefill = this.normalizeMoney(nextSem ? nextSem.pendingAmount : collectibleNow);
           if (!this.form.get('amount')?.value) {
             this.form.patchValue({ amount: this.hasCollectableOutstanding(prefill) ? prefill : null });
           }

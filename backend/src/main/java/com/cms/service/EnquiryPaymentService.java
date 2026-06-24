@@ -50,7 +50,8 @@ public class EnquiryPaymentService {
         "NOT_INTERESTED", "CANCELLED", "CLOSED", "CONVERTED"
     );
 
-    private static final Set<EnquiryStatus> PAYMENT_ELIGIBLE_STATUSES = Set.of(
+    // Public: also reused by DashboardService to count fee-collection-eligible enquiries for the nav badge.
+    public static final Set<EnquiryStatus> PAYMENT_ELIGIBLE_STATUSES = Set.of(
         EnquiryStatus.FEES_FINALIZED,
         EnquiryStatus.PARTIALLY_PAID,
         EnquiryStatus.FEES_PAID,
@@ -71,6 +72,7 @@ public class EnquiryPaymentService {
     private final AcademicYearRepository academicYearRepository;
     private final TermBillingScheduleRepository billingScheduleRepository;
     private final FeeRefundRepository feeRefundRepository;
+    private final TermInstanceService termInstanceService;
 
     public EnquiryPaymentService(EnquiryPaymentRepository enquiryPaymentRepository,
                                   EnquiryRepository enquiryRepository,
@@ -79,7 +81,8 @@ public class EnquiryPaymentService {
                                   UnifiedReceiptService unifiedReceiptService,
                                   AcademicYearRepository academicYearRepository,
                                   TermBillingScheduleRepository billingScheduleRepository,
-                                  FeeRefundRepository feeRefundRepository) {
+                                  FeeRefundRepository feeRefundRepository,
+                                  TermInstanceService termInstanceService) {
         this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.enquiryRepository = enquiryRepository;
         this.statusHistoryRepository = statusHistoryRepository;
@@ -88,6 +91,7 @@ public class EnquiryPaymentService {
         this.academicYearRepository = academicYearRepository;
         this.billingScheduleRepository = billingScheduleRepository;
         this.feeRefundRepository = feeRefundRepository;
+        this.termInstanceService = termInstanceService;
     }
 
     @Transactional
@@ -102,16 +106,20 @@ public class EnquiryPaymentService {
         BigDecimal effectiveTotalFee = computeEffectiveTotalFee(enquiry);
         BigDecimal totalPaidBefore = Optional.ofNullable(enquiryPaymentRepository.sumAmountPaidByEnquiryId(enquiryId))
             .orElse(BigDecimal.ZERO);
-        BigDecimal outstandingBefore = effectiveTotalFee.subtract(totalPaidBefore).max(BigDecimal.ZERO);
+
+        // The collection cap is the amount currently due (open/locked terms only) — a future,
+        // not-yet-opened term's fee can't be collected here even if the overall balance is larger.
+        BigDecimal collectibleTotalFee = computeCollectibleTotalFee(enquiry);
+        BigDecimal collectibleOutstandingBefore = collectibleTotalFee.subtract(totalPaidBefore).max(BigDecimal.ZERO);
         if (request.amountPaid().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalStateException("Payment amount must be greater than zero");
         }
-        if (outstandingBefore.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalStateException("No outstanding balance is available for this enquiry");
+        if (collectibleOutstandingBefore.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("No fees are currently due for collection for this enquiry");
         }
-        if (request.amountPaid().compareTo(outstandingBefore) > 0) {
+        if (request.amountPaid().compareTo(collectibleOutstandingBefore) > 0) {
             throw new IllegalStateException(
-                "Payment amount (" + request.amountPaid() + ") exceeds outstanding balance: " + outstandingBefore
+                "Payment amount (" + request.amountPaid() + ") exceeds the amount currently due: " + collectibleOutstandingBefore
             );
         }
 
@@ -295,8 +303,9 @@ public class EnquiryPaymentService {
                 int semSeq = ((entry.termNumber() - 1) % 2) + 1;
                 LocalDate dueDate = dueForYear(yearNumber, semSeq, baseStartYear,
                     baseOddDue, baseEvenDue, baseDate);
+                boolean collectibleNow = isTermCollectibleNow(yearNumber, semSeq, baseStartYear);
                 installmentBreakdown.add(new InstallmentFeeStatus(
-                    entry.termNumber(), entry.installmentLabel(), allocated, paid, outstanding, dueDate));
+                    entry.termNumber(), entry.installmentLabel(), allocated, paid, outstanding, dueDate, collectibleNow));
                 termRemaining = termRemaining.subtract(paid);
             }
         } else if (!yearEntries.isEmpty()) {
@@ -320,12 +329,14 @@ public class EnquiryPaymentService {
 
                 BigDecimal paid1 = semRem.min(sem1Amount);
                 installmentBreakdown.add(new InstallmentFeeStatus(
-                    sem1Seq, sem1Label, sem1Amount, paid1, sem1Amount.subtract(paid1), sem1Due));
+                    sem1Seq, sem1Label, sem1Amount, paid1, sem1Amount.subtract(paid1), sem1Due,
+                    isTermCollectibleNow(entry.yearNumber(), 1, baseStartYear)));
                 semRem = semRem.subtract(paid1).max(BigDecimal.ZERO);
 
                 BigDecimal paid2 = semRem.min(sem2Amount);
                 installmentBreakdown.add(new InstallmentFeeStatus(
-                    sem2Seq, sem2Label, sem2Amount, paid2, sem2Amount.subtract(paid2), sem2Due));
+                    sem2Seq, sem2Label, sem2Amount, paid2, sem2Amount.subtract(paid2), sem2Due,
+                    isTermCollectibleNow(entry.yearNumber(), 2, baseStartYear)));
                 semRem = semRem.subtract(paid2).max(BigDecimal.ZERO);
             }
         } else {
@@ -336,8 +347,10 @@ public class EnquiryPaymentService {
             totalFee = fallback.compareTo(BigDecimal.ZERO) > 0 ? fallback : yearTotalFee;
             if (totalFee.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal paid = totalPaid.min(totalFee);
+                // No installment breakdown configured for this enquiry — can't subdivide into
+                // terms, so there's nothing to gate; treat the lump sum as collectible now.
                 installmentBreakdown.add(new InstallmentFeeStatus(
-                    1, "Full Program Fee", totalFee, paid, totalFee.subtract(paid), baseDate));
+                    1, "Full Program Fee", totalFee, paid, totalFee.subtract(paid), baseDate, true));
             }
         }
 
@@ -368,6 +381,55 @@ public class EnquiryPaymentService {
             if (sum.compareTo(BigDecimal.ZERO) > 0) return sum;
         }
         return enquiry.getFinalizedNetFee() != null ? enquiry.getFinalizedNetFee() : BigDecimal.ZERO;
+    }
+
+    /**
+     * Returns the portion of the fee schedule that's currently due for collection — terms whose
+     * TermInstance hasn't been opened yet (still PLANNED, e.g. next year's fee) are excluded even
+     * though they still count toward {@link #computeEffectiveTotalFee}'s full balance.
+     */
+    private BigDecimal computeCollectibleTotalFee(Enquiry enquiry) {
+        AcademicYear currentAy = academicYearRepository.findByIsCurrentTrue().orElse(null);
+        int baseStartYear = currentAy != null ? currentAy.getStartYear() : LocalDate.now().getYear();
+
+        List<TermWiseFeeEntry> termEntries = parseTermWiseFees(enquiry.getSemesterWiseFees());
+        if (!termEntries.isEmpty()) {
+            return termEntries.stream()
+                .filter(entry -> {
+                    int yearNumber = (entry.termNumber() + 1) / 2;
+                    int semSeq = ((entry.termNumber() - 1) % 2) + 1;
+                    return isTermCollectibleNow(yearNumber, semSeq, baseStartYear);
+                })
+                .map(TermWiseFeeEntry::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+
+        List<YearWiseFeeEntry> yearEntries = parseYearWiseFees(enquiry.getYearWiseFees());
+        if (!yearEntries.isEmpty()) {
+            BigDecimal sum = BigDecimal.ZERO;
+            for (YearWiseFeeEntry entry : yearEntries) {
+                BigDecimal sem1Amount = entry.amount().divide(BigDecimal.TWO, 0, RoundingMode.FLOOR);
+                BigDecimal sem2Amount = entry.amount().subtract(sem1Amount);
+                if (isTermCollectibleNow(entry.yearNumber(), 1, baseStartYear)) {
+                    sum = sum.add(sem1Amount);
+                }
+                if (isTermCollectibleNow(entry.yearNumber(), 2, baseStartYear)) {
+                    sum = sum.add(sem2Amount);
+                }
+            }
+            return sum;
+        }
+
+        // No installment breakdown configured — can't subdivide into terms; treat the full
+        // (legacy) fee as collectible, same as computeEffectiveTotalFee's fallback.
+        return computeEffectiveTotalFee(enquiry);
+    }
+
+    /** semSeq 1 = ODD term, 2 = EVEN term. */
+    private boolean isTermCollectibleNow(int yearNumber, int semSeq, int baseStartYear) {
+        int targetStartYear = baseStartYear + (yearNumber - 1);
+        TermType termType = semSeq == 2 ? TermType.EVEN : TermType.ODD;
+        return termInstanceService.isTermCollectibleNow(targetStartYear, termType);
     }
 
     private List<YearWiseFeeEntry> parseYearWiseFees(String json) {

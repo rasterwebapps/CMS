@@ -25,6 +25,7 @@ public record EnquiryYearWiseFeeStatusResponse(
         BigDecimal allocatedFee,
         BigDecimal paidAmount,
         BigDecimal outstanding,
-        LocalDate dueDate
+        LocalDate dueDate,
+        boolean collectibleNow
     ) {}
 }

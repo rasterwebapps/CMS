@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.DashboardSummaryResponse;
 import com.cms.dto.DashboardTrendsResponse;
+import com.cms.dto.FeeExplorerResponse;
 import com.cms.dto.FrontOfficeDashboardResponse;
 import com.cms.model.Enquiry;
 import com.cms.model.EnquiryPayment;
@@ -55,6 +57,7 @@ class DashboardServiceTest {
     @Mock private EnquiryRepository enquiryRepository;
     @Mock private EnquiryPaymentRepository enquiryPaymentRepository;
     @Mock private AdmissionRepository admissionRepository;
+    @Mock private FeeExplorerService feeExplorerService;
 
     private DashboardService dashboardService;
 
@@ -65,7 +68,8 @@ class DashboardServiceTest {
             subjectRepository, programRepository, labRepository,
             equipmentRepository, examinationRepository, paymentReceiptRepository,
             maintenanceRequestRepository, attendanceRepository,
-            enquiryRepository, enquiryPaymentRepository, admissionRepository
+            enquiryRepository, enquiryPaymentRepository, admissionRepository,
+            feeExplorerService
         );
     }
 
@@ -87,7 +91,10 @@ class DashboardServiceTest {
         when(studentRepository.findAll()).thenReturn(List.of());
         when(attendanceRepository.findAll()).thenReturn(List.of());
         when(enquiryRepository.findAll()).thenReturn(List.of());
+        when(enquiryRepository.findByStatusIn(any())).thenReturn(List.of());
         when(enquiryPaymentRepository.findAll()).thenReturn(List.of());
+        when(enquiryPaymentRepository.paidTotalsForIds(any())).thenReturn(Map.of());
+        when(feeExplorerService.search(null)).thenReturn(new FeeExplorerResponse(List.of()));
         when(paymentReceiptRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(List.of());
 
@@ -132,7 +139,10 @@ class DashboardServiceTest {
         when(studentRepository.findAll()).thenReturn(List.of());
         when(attendanceRepository.findAll()).thenReturn(List.of());
         when(enquiryRepository.findAll()).thenReturn(List.of());
+        when(enquiryRepository.findByStatusIn(any())).thenReturn(List.of());
         when(enquiryPaymentRepository.findAll()).thenReturn(List.of());
+        when(enquiryPaymentRepository.paidTotalsForIds(any())).thenReturn(Map.of());
+        when(feeExplorerService.search(null)).thenReturn(new FeeExplorerResponse(List.of()));
         when(paymentReceiptRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(List.of());
 

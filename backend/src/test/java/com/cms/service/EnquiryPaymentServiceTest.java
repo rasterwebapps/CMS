@@ -3,6 +3,8 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,6 +31,7 @@ import com.cms.model.EnquiryPayment;
 import com.cms.model.ReferralType;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.PaymentMode;
+import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
@@ -61,16 +64,23 @@ class EnquiryPaymentServiceTest {
     @Mock
     private FeeRefundRepository feeRefundRepository;
 
+    @Mock
+    private TermInstanceService termInstanceService;
+
     private EnquiryPaymentService enquiryPaymentService;
 
     private Enquiry testEnquiry;
 
     @BeforeEach
     void setUp() {
+        // Default: every term is open for collection, matching pre-existing test expectations.
+        // Tests that specifically exercise term-gating override this with explicit stubs.
+        lenient().when(termInstanceService.isTermCollectibleNow(anyInt(), any(TermType.class))).thenReturn(true);
+
         enquiryPaymentService = new EnquiryPaymentService(
             enquiryPaymentRepository, enquiryRepository, statusHistoryRepository,
             new ObjectMapper(), unifiedReceiptService, academicYearRepository, billingScheduleRepository,
-            feeRefundRepository
+            feeRefundRepository, termInstanceService
         );
 
         testEnquiry = new Enquiry("Ravi Kumar", "ravi@email.com", "9876543210", null,
@@ -96,7 +106,7 @@ class EnquiryPaymentServiceTest {
         EnquiryPayment savedPayment = createPayment(1L, testEnquiry, new BigDecimal("100000.00"), "RCP-20240701-ABCD1234");
         savedPayment.setCreatedAt(Instant.now());
 
-        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(enquiryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testEnquiry));
         when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
         when(enquiryPaymentRepository.save(any(EnquiryPayment.class))).thenReturn(savedPayment);
         when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(BigDecimal.ZERO);
@@ -127,7 +137,7 @@ class EnquiryPaymentServiceTest {
         EnquiryPayment savedPayment = createPayment(1L, testEnquiry, new BigDecimal("50000.00"), "RCP-20240701-EFGH5678");
         savedPayment.setCreatedAt(Instant.now());
 
-        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(enquiryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testEnquiry));
         when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
         when(enquiryPaymentRepository.save(any(EnquiryPayment.class))).thenReturn(savedPayment);
         when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(BigDecimal.ZERO);
@@ -154,7 +164,7 @@ class EnquiryPaymentServiceTest {
             null
         );
 
-        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(enquiryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testEnquiry));
 
         assertThatThrownBy(() -> enquiryPaymentService.collectPayment(1L, request, "cashier"))
             .isInstanceOf(IllegalStateException.class)
@@ -175,7 +185,7 @@ class EnquiryPaymentServiceTest {
         EnquiryPayment savedPayment = createPayment(1L, testEnquiry, new BigDecimal("30000.00"), "RCP-20240701-IJKL9012");
         savedPayment.setCreatedAt(Instant.now());
 
-        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(enquiryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testEnquiry));
         when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(new BigDecimal("20000.00"));
         when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
         when(enquiryPaymentRepository.save(any(EnquiryPayment.class))).thenReturn(savedPayment);
@@ -196,7 +206,7 @@ class EnquiryPaymentServiceTest {
             new BigDecimal("50000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null
         );
 
-        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(enquiryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testEnquiry));
 
         assertThatThrownBy(() -> enquiryPaymentService.collectPayment(1L, request, "cashier"))
             .isInstanceOf(IllegalStateException.class)
@@ -211,7 +221,7 @@ class EnquiryPaymentServiceTest {
             new BigDecimal("50000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null
         );
 
-        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(enquiryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testEnquiry));
 
         assertThatThrownBy(() -> enquiryPaymentService.collectPayment(1L, request, "cashier"))
             .isInstanceOf(IllegalStateException.class)
@@ -229,7 +239,7 @@ class EnquiryPaymentServiceTest {
         EnquiryPayment savedPayment = createPayment(1L, testEnquiry, new BigDecimal("50000.00"), "RCP-20240701-ADMT0001");
         savedPayment.setCreatedAt(Instant.now());
 
-        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(enquiryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testEnquiry));
         when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(BigDecimal.ZERO);
         when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00001");
         when(enquiryPaymentRepository.save(any(EnquiryPayment.class))).thenReturn(savedPayment);
@@ -249,12 +259,12 @@ class EnquiryPaymentServiceTest {
             new BigDecimal("20000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null
         );
 
-        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(enquiryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testEnquiry));
         when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(new BigDecimal("90000.00"));
 
         assertThatThrownBy(() -> enquiryPaymentService.collectPayment(1L, request, "cashier"))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("exceeds outstanding balance");
+            .hasMessageContaining("exceeds the amount currently due");
         verify(enquiryPaymentRepository, never()).save(any(EnquiryPayment.class));
     }
 
@@ -289,7 +299,7 @@ class EnquiryPaymentServiceTest {
         EnquiryPayment savedPayment = createPayment(1L, testEnquiry, new BigDecimal("55000.00"), "RCP-2026-00002");
         savedPayment.setCreatedAt(java.time.Instant.now());
 
-        when(enquiryRepository.findById(1L)).thenReturn(Optional.of(testEnquiry));
+        when(enquiryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testEnquiry));
         when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(1L)).thenReturn(new BigDecimal("55001.00"));
         when(unifiedReceiptService.generateReceiptNumber()).thenReturn("RCP-2026-00002");
         when(enquiryPaymentRepository.save(any(EnquiryPayment.class))).thenReturn(savedPayment);

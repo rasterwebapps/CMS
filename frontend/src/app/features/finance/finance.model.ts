@@ -124,6 +124,7 @@ export interface InstallmentFeeDetail {
   pendingAmount: number;
   penaltyAmount: number;
   paymentStatus: string;
+  collectibleNow: boolean;
 }
 
 export interface InstallmentPaymentDetail {
@@ -305,6 +306,8 @@ export interface UnifiedReceiptSummary {
   payerIdentifier: string | null;   // roll number for students, null for enquiries
   admissionNumber: string | null;
   programName: string | null;
+  academicYearId: number | null;
+  academicYearName: string | null;
   amountPaid: number;
   paymentDate: string;
   paymentMode: string | null;
@@ -347,6 +350,8 @@ export interface FeeRefundSummary {
   rollNumber: string | null;
   admissionNumber: string | null;
   programName: string | null;
+  academicYearId: number | null;
+  academicYearName: string | null;
   refundAmount: number;
   reason: string;
   requestedBy: string | null;

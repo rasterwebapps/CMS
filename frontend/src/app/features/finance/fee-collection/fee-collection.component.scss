@@ -209,6 +209,7 @@
   &--paid       { background: rgba(16,185,129,0.03); }
   &--next       { background: rgba(var(--cms-primary-rgb), 0.04); }
   &--overdue    { background: rgba(239,68,68,0.04); }
+  &--locked     { opacity: 0.55; }
 }
 
 .sem-footer {
@@ -254,6 +255,7 @@
   &--partial { background: rgba(245,158,11,0.12); color: #D97706; }
   &--overdue { background: rgba(239,68,68,0.10); color: #EF4444; }
   &--pending { background: var(--cms-bg-muted); color: var(--cms-text-muted); }
+  &--locked  { background: var(--cms-bg-muted); color: var(--cms-text-muted); }
 }
 
 .outstanding-zero { color: #10B981 !important; }

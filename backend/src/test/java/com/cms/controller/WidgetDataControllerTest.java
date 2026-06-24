@@ -68,7 +68,8 @@ class WidgetDataControllerTest {
             Map.of("PRESENT", 80L, "ABSENT", 20L),
             Map.of("ENQUIRED", 10L, "ENROLLED", 50L),
             BigDecimal.valueOf(250000),
-            BigDecimal.valueOf(75000)
+            BigDecimal.valueOf(75000),
+            7L
         );
 
         adminRole = new AppRole();
@@ -318,7 +319,8 @@ class WidgetDataControllerTest {
             0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L,
             Map.of(), Map.of("OPEN", 0L), Map.of(),
             Map.of(), Map.of("ENQUIRED", 0L),
-            BigDecimal.ZERO, BigDecimal.ZERO
+            BigDecimal.ZERO, BigDecimal.ZERO,
+            0L
         );
         when(dashboardService.getSummary()).thenReturn(zeroSummary);
 
@@ -343,7 +345,8 @@ class WidgetDataControllerTest {
         DashboardSummaryResponse emptySummary = new DashboardSummaryResponse(
             0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L,
             null, null, null, null, null,
-            BigDecimal.ZERO, BigDecimal.ZERO
+            BigDecimal.ZERO, BigDecimal.ZERO,
+            0L
         );
         when(dashboardService.getSummary()).thenReturn(emptySummary);
 
