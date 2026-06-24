@@ -10,6 +10,8 @@ public record FeeRefundSummaryResponse(
     String rollNumber,
     String admissionNumber,
     String programName,
+    Long academicYearId,
+    String academicYearName,
     BigDecimal refundAmount,
     String reason,
     String requestedBy,

@@ -62,7 +62,6 @@ export interface EnquiryRequest {
   phone?: string;
   programId?: number;
   courseId?: number;
-  academicYearId?: number | null;
   enquiryDate: string;
   referralTypeId: number;
   status?: string;

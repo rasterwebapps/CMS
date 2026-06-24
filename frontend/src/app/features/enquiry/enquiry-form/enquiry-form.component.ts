@@ -173,7 +173,10 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
     if (!container) return;
 
     const containerRect = container.getBoundingClientRect();
-    const triggerY      = containerRect.top + containerRect.height * 0.75;
+    // Fixed offset from the top of the viewport (matches .section-wrapper's scroll-margin-top),
+    // not a fraction of container height — a percentage threshold can exceed a short section's
+    // own height, making it impossible for that section to ever register as active while scrolling.
+    const triggerY = containerRect.top + 100;
 
     const sections = Array.from(document.querySelectorAll('.section-wrapper')) as HTMLElement[];
     let activeSection = 0;

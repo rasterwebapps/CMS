@@ -18,6 +18,8 @@ public record EnquiryResponse(
     String programName,
     Long courseId,
     String courseName,
+    Long academicYearId,
+    String academicYearName,
     LocalDate enquiryDate,
     Long referralTypeId,
     String referralTypeName,

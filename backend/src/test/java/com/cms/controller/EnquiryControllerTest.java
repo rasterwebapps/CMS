@@ -467,7 +467,7 @@ class EnquiryControllerTest {
         Long convertedStudentId = status == EnquiryStatus.CONVERTED || status == EnquiryStatus.ADMITTED ? 10L : null;
         return new EnquiryResponse(
             id, name, "ravi@email.com", "9876543210",
-            1L, "B.Tech CS", null, null, LocalDate.of(2024, 6, 15),
+            1L, "B.Tech CS", null, null, null, null, LocalDate.of(2024, 6, 15),
             1L, "Walk In", null, false,
             status, null, null, "Remarks",
             new BigDecimal("50000.00"), null, null, null, null, null,

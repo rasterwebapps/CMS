@@ -73,6 +73,7 @@ export class FeeRefundListComponent implements OnInit {
   protected readonly statusFilter       = signal<'' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'TRANSMITTED' | 'PAYMENT_FAILED'>('');
   protected readonly filterEntityType   = signal<'' | 'STUDENT' | 'ENQUIRY'>('');
   protected readonly filterProgram      = signal('');
+  protected readonly filterAcademicYearId = signal<number | null>(null);
   protected readonly dateFrom           = signal('');
   protected readonly dateTo             = signal('');
   private   readonly allRefunds         = signal<FeeRefundSummary[]>([]);
@@ -80,6 +81,16 @@ export class FeeRefundListComponent implements OnInit {
   protected readonly programs = computed(() =>
     [...new Set(this.allRefunds().map(r => r.programName).filter(Boolean))].sort() as string[]
   );
+
+  protected readonly academicYears = computed(() => {
+    const seen = new Map<number, string>();
+    for (const r of this.allRefunds()) {
+      if (r.academicYearId && r.academicYearName && !seen.has(r.academicYearId)) {
+        seen.set(r.academicYearId, r.academicYearName);
+      }
+    }
+    return [...seen.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => b.name.localeCompare(a.name));
+  });
 
   // ── Side panel ─────────────────────────────────────────────────────────────
   protected readonly selectedRefund = signal<FeeRefundSummary | null>(null);
@@ -105,6 +116,7 @@ export class FeeRefundListComponent implements OnInit {
     const status     = this.statusFilter();
     const entityType = this.filterEntityType();
     const program    = this.filterProgram();
+    const academicYearId = this.filterAcademicYearId();
     const from       = this.dateFrom();
     const to         = this.dateTo();
 
@@ -112,6 +124,7 @@ export class FeeRefundListComponent implements OnInit {
       if (status     && r.status !== status)         return false;
       if (entityType && r.entityType !== entityType) return false;
       if (program    && r.programName !== program)   return false;
+      if (academicYearId && r.academicYearId !== academicYearId) return false;
       if (search) {
         const hay = [
           r.studentName, r.admissionNumber ?? '', r.rollNumber ?? '',
@@ -133,7 +146,7 @@ export class FeeRefundListComponent implements OnInit {
   protected readonly pendingCount     = computed(() => this.allRefunds().filter(r => r.status === 'PENDING').length);
   protected readonly hasActiveFilters = computed(() =>
     !!this.searchValue() || !!this.statusFilter() || !!this.filterEntityType() ||
-    !!this.filterProgram() || !!this.dateFrom() || !!this.dateTo()
+    !!this.filterProgram() || !!this.filterAcademicYearId() || !!this.dateFrom() || !!this.dateTo()
   );
 
   constructor() {
@@ -180,6 +193,7 @@ export class FeeRefundListComponent implements OnInit {
     this.statusFilter.set('');
     this.filterEntityType.set('');
     this.filterProgram.set('');
+    this.filterAcademicYearId.set(null);
     this.dateFrom.set('');
     this.dateTo.set('');
   }

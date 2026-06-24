@@ -13,6 +13,8 @@ public record UnifiedReceiptResponse(
     String payerIdentifier,     // roll number for students, null for enquiries
     String admissionNumber,
     String programName,
+    Long academicYearId,
+    String academicYearName,
     BigDecimal amountPaid,
     LocalDate paymentDate,
     String paymentMode,

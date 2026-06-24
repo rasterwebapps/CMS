@@ -10,6 +10,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry } from '../enquiry.model';
+import { AcademicYearService } from '../../academic-year/academic-year.service';
+import { AcademicYear } from '../../academic-year/academic-year.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
@@ -56,6 +58,7 @@ export const STATUS_LABELS: Record<string, string> = {
 })
 export class EnquiryListComponent implements OnInit {
   private readonly enquiryService = inject(EnquiryService);
+  private readonly academicYearService = inject(AcademicYearService);
   private readonly permissionService = inject(PermissionService);
   private readonly router         = inject(Router);
   private readonly route          = inject(ActivatedRoute);
@@ -83,11 +86,62 @@ export class EnquiryListComponent implements OnInit {
   protected readonly selectedAdmissionQuota = signal<string | null>(null);
   protected readonly selectedAgent         = signal<string | null>(null);
   protected readonly selectedAdmissionSource = signal<string | null>(null);
+  protected readonly selectedAcademicYearIds = signal<Set<number>>(new Set());
+  private   readonly allAcademicYears        = signal<AcademicYear[]>([]);
+  private academicYearsRestoredFromUrl       = false;
   protected readonly computeInitials  = computeInitials;
   protected readonly STATUS_LABELS    = STATUS_LABELS;
-  protected statusMenuOpen    = false;
+  protected statusMenuOpen       = false;
+  protected academicYearMenuOpen = false;
   protected colMenuOpen       = false;
   protected moreFiltersOpen   = false;
+
+  // ── Academic year multiselect ──────────────────────────────────────────────
+  protected readonly academicYearOptions = computed(() =>
+    [...this.allAcademicYears()].sort((a, b) => b.startDate.localeCompare(a.startDate))
+  );
+
+  /** The "current" year plus whichever year starts next — covers enquiries arriving
+   *  for next year's intake before isCurrent has been manually flipped over. */
+  private defaultAcademicYearIds(): Set<number> {
+    const years = this.allAcademicYears();
+    const current = years.find(y => y.isCurrent);
+    if (!current) return new Set();
+    const ids = new Set([current.id]);
+    const next = years
+      .filter(y => y.startDate > current.startDate)
+      .sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
+    if (next) ids.add(next.id);
+    return ids;
+  }
+
+  protected readonly academicYearFilterLabel = computed(() => {
+    const sel = this.selectedAcademicYearIds();
+    if (sel.size === 0) return 'All Years';
+    if (sel.size === 1) {
+      const year = this.allAcademicYears().find(y => sel.has(y.id));
+      return year?.name ?? '1 year';
+    }
+    return `${sel.size} years`;
+  });
+
+  protected isAcademicYearSelected(id: number): boolean {
+    return this.selectedAcademicYearIds().has(id);
+  }
+
+  protected toggleAcademicYear(id: number): void {
+    this.selectedAcademicYearIds.update(s => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+    this.syncUrlFilters();
+  }
+
+  protected clearAcademicYears(): void {
+    this.selectedAcademicYearIds.set(new Set());
+    this.syncUrlFilters();
+  }
 
   protected get moreFiltersCount(): number {
     return (this.selectedStudentType()     !== null ? 1 : 0)
@@ -203,6 +257,7 @@ export class EnquiryListComponent implements OnInit {
       const quota           = this.selectedAdmissionQuota();
       const agent           = this.selectedAgent();
       const source          = this.selectedAdmissionSource();
+      const academicYearIds = this.selectedAcademicYearIds();
 
       const matchSearch    = !search        || row.name.toLowerCase().includes(search) || (row.phone ?? '').includes(search);
       const matchStatus    = statuses.size === 0 || statuses.has(row.status);
@@ -213,9 +268,10 @@ export class EnquiryListComponent implements OnInit {
       const matchQuota     = !quota         || row.admissionQuota === quota;
       const matchAgent     = !agent         || row.agentName === agent;
       const matchSource    = !source        || row.admissionSource === source;
+      const matchYear      = academicYearIds.size === 0 || (row.academicYearId != null && academicYearIds.has(row.academicYearId));
 
       return matchSearch && matchStatus && matchProgram && matchCourse &&
-             matchType && matchReferral && matchQuota && matchAgent && matchSource;
+             matchType && matchReferral && matchQuota && matchAgent && matchSource && matchYear;
     };
 
     // Reactively update the Material filter trigger whenever any filter signal changes
@@ -230,6 +286,7 @@ export class EnquiryListComponent implements OnInit {
         this.selectedAdmissionQuota() ?? '',
         this.selectedAgent() ?? '',
         this.selectedAdmissionSource() ?? '',
+        [...this.selectedAcademicYearIds()].join(','),
       ];
       this.dataSource.filter = parts.join('|') || '_';
       this.dataSource.paginator?.firstPage();
@@ -255,7 +312,20 @@ export class EnquiryListComponent implements OnInit {
     if (p.get('admissionQuota'))  this.selectedAdmissionQuota.set(p.get('admissionQuota'));
     if (p.get('agent'))           this.selectedAgent.set(p.get('agent'));
     if (p.get('admissionSource')) this.selectedAdmissionSource.set(p.get('admissionSource'));
+    const rawYears = p.getAll('academicYearIds').flatMap(s => s.split(',').filter(Boolean)).map(Number);
+    if (rawYears.length) {
+      this.selectedAcademicYearIds.set(new Set(rawYears));
+      this.academicYearsRestoredFromUrl = true;
+    }
     if (this.moreFiltersCount > 0) this.moreFiltersOpen = true;
+
+    this.academicYearService.getAllAcademicYears().subscribe(years => {
+      this.allAcademicYears.set(years);
+      // Default to "current + next" unless the user's own filter state was restored from the URL.
+      if (!this.academicYearsRestoredFromUrl) {
+        this.selectedAcademicYearIds.set(this.defaultAcademicYearIds());
+      }
+    });
 
     this.load();
   }
@@ -283,6 +353,8 @@ export class EnquiryListComponent implements OnInit {
         admissionQuota:  this.selectedAdmissionQuota()   ?? null,
         agent:           this.selectedAgent()            ?? null,
         admissionSource: this.selectedAdmissionSource()  ?? null,
+        academicYearIds: [...this.selectedAcademicYearIds()].length
+          ? [...this.selectedAcademicYearIds()].join(',') : null,
       },
       queryParamsHandling: 'replace',
       replaceUrl: true,
@@ -358,6 +430,7 @@ export class EnquiryListComponent implements OnInit {
     this.selectedAdmissionQuota.set(null);
     this.selectedAgent.set(null);
     this.selectedAdmissionSource.set(null);
+    this.selectedAcademicYearIds.set(new Set());
     this.searchValue.set('');
     this.syncUrlFilters();
     this.load();
@@ -368,7 +441,7 @@ export class EnquiryListComponent implements OnInit {
       || this.selectedProgramId()      !== null || this.selectedCourseId()       !== null
       || this.selectedStudentType()    !== null || this.selectedReferralType()   !== null
       || this.selectedAdmissionQuota() !== null || this.selectedAgent()          !== null
-      || this.selectedAdmissionSource() !== null;
+      || this.selectedAdmissionSource() !== null || this.selectedAcademicYearIds().size > 0;
   }
 
   // ── Program / Course filter handlers ─────────────────────────────────────

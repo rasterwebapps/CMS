@@ -14,11 +14,15 @@ import com.cms.dto.FeeRefundRequest;
 import com.cms.dto.FeeRefundResponse;
 import com.cms.dto.FeeRefundSummaryResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.AcademicYear;
+import com.cms.model.Cohort;
+import com.cms.model.Enquiry;
 import com.cms.model.EnquiryPayment;
 import com.cms.model.FeeInstallment;
 import com.cms.model.FeeRefund;
 import com.cms.model.OneBookPaymentRequest;
 import com.cms.model.PaymentReceipt;
+import com.cms.model.Student;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
@@ -285,10 +289,17 @@ public class FeeRefundService {
             : receiptRepository.findByReceiptNumber(r.getOriginalReceiptNumber())
                 .map(PaymentReceipt::getPaymentMode)
                 .orElse(null);
+        String entityType = r.getEntityType() != null ? r.getEntityType() : "STUDENT";
+        AcademicYear academicYear = "ENQUIRY".equals(entityType)
+            ? (r.getEnquiryId() != null ? enquiryRepository.findById(r.getEnquiryId()).map(Enquiry::getAcademicYear).orElse(null) : null)
+            : (r.getStudentId() != null ? studentRepository.findById(r.getStudentId())
+                .map(Student::getCohort).map(Cohort::getAdmissionAcademicYear).orElse(null) : null);
         return new FeeRefundSummaryResponse(
             r.getId(), r.getOriginalReceiptNumber(),
-            r.getEntityType() != null ? r.getEntityType() : "STUDENT",
+            entityType,
             r.getStudentName(), r.getRollNumber(), r.getAdmissionNumber(), r.getProgramName(),
+            academicYear != null ? academicYear.getId() : null,
+            academicYear != null ? academicYear.getName() : null,
             r.getRefundAmount(), r.getReason(), r.getRequestedBy(),
             r.getRequestedAt() != null ? r.getRequestedAt().toString() : null,
             r.getStatus(),

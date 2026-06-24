@@ -125,6 +125,49 @@
       }
     </div>
 
+    <!-- Academic year multiselect dropdown -->
+    <div class="status-drop-wrap">
+      <button
+        class="status-drop-btn"
+        [class.status-drop-btn--active]="selectedAcademicYearIds().size > 0"
+        (click)="academicYearMenuOpen = !academicYearMenuOpen"
+        aria-haspopup="listbox"
+        [attr.aria-expanded]="academicYearMenuOpen"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        {{ academicYearFilterLabel() }}
+        @if (selectedAcademicYearIds().size > 0) {
+          <span class="status-drop-count">{{ selectedAcademicYearIds().size }}</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        }
+      </button>
+
+      @if (academicYearMenuOpen) {
+        <div class="status-drop-panel" role="listbox" (click)="$event.stopPropagation()">
+          <div class="status-drop-list">
+            @for (ay of academicYearOptions(); track ay.id) {
+              <label class="status-drop-item" role="option" [attr.aria-selected]="isAcademicYearSelected(ay.id)">
+                <span class="status-check" [class.status-check--on]="isAcademicYearSelected(ay.id)">
+                  @if (isAcademicYearSelected(ay.id)) {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  }
+                </span>
+                <input type="checkbox" class="sr-only" [checked]="isAcademicYearSelected(ay.id)" (change)="toggleAcademicYear(ay.id)" />
+                <span>{{ ay.name }}</span>
+                @if (ay.isCurrent) { <span class="status-drop-cnt">Current</span> }
+              </label>
+            }
+          </div>
+          @if (selectedAcademicYearIds().size > 0) {
+            <div class="status-drop-footer">
+              <button class="status-drop-clear" (click)="clearAcademicYears()">Show all years</button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
     <!-- More Filters toggle -->
     <button class="btn-toolbar"
             [class.btn-toolbar--active]="moreFiltersOpen || moreFiltersCount > 0"

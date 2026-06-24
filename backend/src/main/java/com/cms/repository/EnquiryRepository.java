@@ -33,6 +33,9 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long> {
 
     boolean existsByAgentId(Long agentId);
 
+    @Query("SELECT e FROM Enquiry e LEFT JOIN FETCH e.academicYear WHERE e.id IN :ids")
+    List<Enquiry> findByIdInWithAcademicYear(@Param("ids") Collection<Long> ids);
+
     Optional<Enquiry> findByConvertedStudentId(Long studentId);
 
     List<Enquiry> findByConvertedStudentIdIn(Collection<Long> studentIds);

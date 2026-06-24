@@ -41,10 +41,10 @@
         <div class="stepper-hdr">
           <div class="stepper-hdr__top">
             <span class="stepper-hdr__label">Form Progress</span>
-            <span class="stepper-hdr__count">{{ currentEnqStep() }} of {{ enqSteps.length - 1 }}</span>
+            <span class="stepper-hdr__count">{{ currentEnqStep() + 1 }} of {{ enqSteps.length }}</span>
           </div>
           <div class="stepper-hdr__bar">
-            <div class="stepper-hdr__fill" [style.width.%]="(currentEnqStep() / (enqSteps.length - 1)) * 100"></div>
+            <div class="stepper-hdr__fill" [style.width.%]="((currentEnqStep() + 1) / enqSteps.length) * 100"></div>
           </div>
         </div>
 

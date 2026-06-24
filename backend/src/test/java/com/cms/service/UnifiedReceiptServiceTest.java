@@ -21,8 +21,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.UnifiedReceiptResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.PaymentReceipt;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeRefundRepository;
 import com.cms.repository.PaymentReceiptRepository;
+import com.cms.repository.StudentRepository;
 
 @ExtendWith(MockitoExtension.class)
 class UnifiedReceiptServiceTest {
@@ -34,12 +36,17 @@ class UnifiedReceiptServiceTest {
     private FeeRefundRepository refundRepository;
     @Mock
     private ApplicationNumberSequenceService numberSequenceService;
+    @Mock
+    private StudentRepository studentRepository;
+    @Mock
+    private EnquiryRepository enquiryRepository;
 
     private UnifiedReceiptService service;
 
     @BeforeEach
     void setUp() {
-        service = new UnifiedReceiptService(receiptRepository, refundRepository, numberSequenceService);
+        service = new UnifiedReceiptService(receiptRepository, refundRepository, numberSequenceService,
+            studentRepository, enquiryRepository);
     }
 
     // ─── generateReceiptNumber ────────────────────────────────────────────────

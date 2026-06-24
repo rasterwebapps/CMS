@@ -191,7 +191,10 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
     if (!container) return;
 
     const containerRect  = container.getBoundingClientRect();
-    const triggerY       = containerRect.top + containerRect.height * 0.75;
+    // Fixed offset from the top of the viewport, not a fraction of container height — a
+    // percentage threshold can exceed a short section's own height, making it impossible
+    // for that section to ever register as active while scrolling (see enquiry-form fix).
+    const triggerY = containerRect.top + 100;
 
     let active = 0;
     for (let i = 0; i < this.steps.length; i++) {

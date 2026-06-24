@@ -418,6 +418,16 @@
       }
     </select>
 
+    <select class="mlp-filter-select"
+            [value]="filterAcademicYearId() ?? ''"
+            (change)="filterAcademicYearId.set($any($event.target).value ? +$any($event.target).value : null)"
+            aria-label="Filter by academic year">
+      <option value="">All Academic Years</option>
+      @for (ay of academicYears(); track ay.id) {
+        <option [value]="ay.id">{{ ay.name }}</option>
+      }
+    </select>
+
     <div class="date-range-group">
       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

@@ -63,6 +63,10 @@ public class Enquiry {
     @JoinColumn(name = "course_id")
     private Course course;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "academic_year_id")
+    private AcademicYear academicYear;
+
     @Column(name = "enquiry_date", nullable = false)
     private LocalDate enquiryDate;
 
@@ -287,6 +291,14 @@ public class Enquiry {
 
     public void setCourse(Course course) {
         this.course = course;
+    }
+
+    public AcademicYear getAcademicYear() {
+        return academicYear;
+    }
+
+    public void setAcademicYear(AcademicYear academicYear) {
+        this.academicYear = academicYear;
     }
 
     public LocalDate getEnquiryDate() {

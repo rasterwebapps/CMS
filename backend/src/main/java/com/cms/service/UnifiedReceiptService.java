@@ -7,31 +7,48 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.UnifiedReceiptResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.Enquiry;
 import com.cms.model.FeeRefund;
 import com.cms.model.PaymentReceipt;
+import com.cms.model.Student;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeRefundRepository;
 import com.cms.repository.PaymentReceiptRepository;
+import com.cms.repository.StudentRepository;
 
 @Service
 @Transactional(readOnly = true)
 public class UnifiedReceiptService {
 
+    /** id + name of the academic year a STUDENT or ENQUIRY payer is tagged against. */
+    private record YearTag(Long id, String name) {
+        static final YearTag NONE = new YearTag(null, null);
+    }
+
     private final PaymentReceiptRepository receiptRepository;
     private final FeeRefundRepository refundRepository;
     private final ApplicationNumberSequenceService numberSequenceService;
+    private final StudentRepository studentRepository;
+    private final EnquiryRepository enquiryRepository;
 
     public UnifiedReceiptService(PaymentReceiptRepository receiptRepository,
                                   FeeRefundRepository refundRepository,
-                                  ApplicationNumberSequenceService numberSequenceService) {
+                                  ApplicationNumberSequenceService numberSequenceService,
+                                  StudentRepository studentRepository,
+                                  EnquiryRepository enquiryRepository) {
         this.receiptRepository = receiptRepository;
         this.refundRepository = refundRepository;
         this.numberSequenceService = numberSequenceService;
+        this.studentRepository = studentRepository;
+        this.enquiryRepository = enquiryRepository;
     }
 
     /**
@@ -105,12 +122,22 @@ public class UnifiedReceiptService {
         List<UnifiedReceiptResponse> merged = new ArrayList<>();
         Map<String, String> refundStatusByReceipt = getActiveRefundStatusByReceipt();
 
-        receiptRepository.findAllByOrderByCreatedAtDescIdDesc().stream()
-            .map(r -> toResponse(r, "PAYMENT", refundStatusByReceipt.get(r.getReceiptNumber())))
+        List<PaymentReceipt> receipts = receiptRepository.findAllByOrderByCreatedAtDescIdDesc();
+        List<FeeRefund> refunds = refundRepository.findByStatusOrderByCreatedAtDescIdDesc("APPROVED");
+
+        Map<Long, YearTag> studentYears = resolveStudentYears(Stream.concat(
+            receipts.stream().filter(r -> "STUDENT".equals(r.getPayerType())).map(PaymentReceipt::getPayerId),
+            refunds.stream().filter(r -> !"ENQUIRY".equals(r.getEntityType())).map(FeeRefund::getStudentId)));
+        Map<Long, YearTag> enquiryYears = resolveEnquiryYears(Stream.concat(
+            receipts.stream().filter(r -> "ENQUIRY".equals(r.getPayerType())).map(PaymentReceipt::getPayerId),
+            refunds.stream().filter(r -> "ENQUIRY".equals(r.getEntityType())).map(FeeRefund::getEnquiryId)));
+
+        receipts.stream()
+            .map(r -> toResponse(r, "PAYMENT", refundStatusByReceipt.get(r.getReceiptNumber()), studentYears, enquiryYears))
             .forEach(merged::add);
 
-        refundRepository.findByStatusOrderByCreatedAtDescIdDesc("APPROVED").stream()
-            .map(this::toRefundResponse)
+        refunds.stream()
+            .map(r -> toRefundResponse(r, studentYears, enquiryYears))
             .forEach(merged::add);
 
         merged.sort(Comparator.comparing(UnifiedReceiptResponse::createdAt).reversed()
@@ -122,17 +149,18 @@ public class UnifiedReceiptService {
     public UnifiedReceiptResponse getReceiptByNumber(String receiptNumber) {
         String refundStatus = getActiveRefundStatusByReceipt().get(receiptNumber);
         return receiptRepository.findByReceiptNumber(receiptNumber)
-            .map(r -> toResponse(r, "PAYMENT", refundStatus))
+            .map(r -> toResponse(r, "PAYMENT", refundStatus, resolveYearTag(r.getPayerType(), r.getPayerId())))
             .orElseThrow(() -> new ResourceNotFoundException("Receipt not found: " + receiptNumber));
     }
 
     /** Return all receipts for a specific payer. */
     public List<UnifiedReceiptResponse> getReceiptsForPayer(String payerType, Long payerId) {
         Map<String, String> refundStatusByReceipt = getActiveRefundStatusByReceipt();
+        YearTag yearTag = resolveYearTag(payerType, payerId);
         return receiptRepository
             .findByPayerTypeAndPayerIdOrderByCreatedAtDesc(payerType, payerId)
             .stream()
-            .map(r -> toResponse(r, "PAYMENT", refundStatusByReceipt.get(r.getReceiptNumber())))
+            .map(r -> toResponse(r, "PAYMENT", refundStatusByReceipt.get(r.getReceiptNumber()), yearTag))
             .toList();
     }
 
@@ -149,11 +177,46 @@ public class UnifiedReceiptService {
         return statusByReceipt;
     }
 
-    private UnifiedReceiptResponse toResponse(PaymentReceipt r, String receiptType, String refundStatus) {
+    /** A student's academic year is the admission year of the cohort they belong to. */
+    private Map<Long, YearTag> resolveStudentYears(Stream<Long> studentIds) {
+        List<Long> ids = studentIds.filter(java.util.Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) return Map.of();
+        return studentRepository.findByIdInWithRelations(ids).stream()
+            .collect(Collectors.toMap(Student::getId, s -> s.getCohort() != null && s.getCohort().getAdmissionAcademicYear() != null
+                ? new YearTag(s.getCohort().getAdmissionAcademicYear().getId(), s.getCohort().getAdmissionAcademicYear().getName())
+                : YearTag.NONE));
+    }
+
+    /** An enquiry's academic year is whatever it's tagged with (auto-derived or manually set). */
+    private Map<Long, YearTag> resolveEnquiryYears(Stream<Long> enquiryIds) {
+        List<Long> ids = enquiryIds.filter(java.util.Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) return Map.of();
+        return enquiryRepository.findByIdInWithAcademicYear(ids).stream()
+            .collect(Collectors.toMap(Enquiry::getId, e -> e.getAcademicYear() != null
+                ? new YearTag(e.getAcademicYear().getId(), e.getAcademicYear().getName())
+                : YearTag.NONE));
+    }
+
+    private YearTag resolveYearTag(String payerType, Long payerId) {
+        if (payerId == null) return YearTag.NONE;
+        if ("ENQUIRY".equals(payerType)) {
+            return resolveEnquiryYears(Stream.of(payerId)).getOrDefault(payerId, YearTag.NONE);
+        }
+        return resolveStudentYears(Stream.of(payerId)).getOrDefault(payerId, YearTag.NONE);
+    }
+
+    private UnifiedReceiptResponse toResponse(PaymentReceipt r, String receiptType, String refundStatus,
+                                               Map<Long, YearTag> studentYears, Map<Long, YearTag> enquiryYears) {
+        Map<Long, YearTag> years = "ENQUIRY".equals(r.getPayerType()) ? enquiryYears : studentYears;
+        return toResponse(r, receiptType, refundStatus, years.getOrDefault(r.getPayerId(), YearTag.NONE));
+    }
+
+    private UnifiedReceiptResponse toResponse(PaymentReceipt r, String receiptType, String refundStatus, YearTag yearTag) {
         return new UnifiedReceiptResponse(
             r.getId(), r.getReceiptNumber(),
             r.getPayerType(), r.getPayerId(), r.getPayerName(),
             r.getPayerIdentifier(), r.getAdmissionNumber(), r.getProgramName(),
+            yearTag.id(), yearTag.name(),
             r.getAmountPaid(), r.getPaymentDate(), r.getPaymentMode(),
             r.getTransactionReference(), r.getRemarks(),
             r.getInstallmentsCovered(), r.getCollectedBy(), r.getFeeCategory(),
@@ -162,13 +225,16 @@ public class UnifiedReceiptService {
             refundStatus);
     }
 
-    private UnifiedReceiptResponse toRefundResponse(FeeRefund r) {
+    private UnifiedReceiptResponse toRefundResponse(FeeRefund r, Map<Long, YearTag> studentYears, Map<Long, YearTag> enquiryYears) {
         String entityType = r.getEntityType() != null ? r.getEntityType() : "STUDENT";
         Long payerId = "ENQUIRY".equals(entityType) ? r.getEnquiryId() : r.getStudentId();
+        Map<Long, YearTag> years = "ENQUIRY".equals(entityType) ? enquiryYears : studentYears;
+        YearTag yearTag = years.getOrDefault(payerId, YearTag.NONE);
         return new UnifiedReceiptResponse(
             r.getId(), r.getRefundNumber(),
             entityType, payerId, r.getStudentName(),
             r.getRollNumber(), r.getAdmissionNumber(), r.getProgramName(),
+            yearTag.id(), yearTag.name(),
             r.getRefundAmount(), r.getPaymentDate(), r.getPaymentMode(),
             r.getTransactionReference(), r.getReason(),
             "Refund of " + r.getOriginalReceiptNumber(), r.getApprovedBy(), null,

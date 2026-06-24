@@ -58,6 +58,7 @@ export class ReceiptsListComponent implements OnInit {
   protected readonly selectedMode  = signal('');
   protected readonly selectedType  = signal('');
   protected readonly selectedProgram = signal('');
+  protected readonly selectedAcademicYearId = signal<number | null>(null);
   protected readonly dateFrom      = signal('');
   protected readonly dateTo        = signal('');
   private   readonly allReceipts   = signal<UnifiedReceiptSummary[]>([]);
@@ -69,6 +70,16 @@ export class ReceiptsListComponent implements OnInit {
         .map(r => r.programName!)
     )].sort()
   );
+
+  protected readonly academicYears = computed(() => {
+    const seen = new Map<number, string>();
+    for (const r of this.allReceipts()) {
+      if (r.academicYearId && r.academicYearName && !seen.has(r.academicYearId)) {
+        seen.set(r.academicYearId, r.academicYearName);
+      }
+    }
+    return [...seen.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => b.name.localeCompare(a.name));
+  });
 
   // ── Refund initiation ──────────────────────────────────────────────────────
   protected readonly refundTarget = signal<UnifiedReceiptSummary | null>(null);
@@ -82,6 +93,7 @@ export class ReceiptsListComponent implements OnInit {
     const mode    = this.selectedMode();
     const type    = this.selectedType();
     const program = this.selectedProgram();
+    const academicYearId = this.selectedAcademicYearId();
     const from    = this.dateFrom();
     const to      = this.dateTo();
 
@@ -95,6 +107,7 @@ export class ReceiptsListComponent implements OnInit {
       if (mode    && r.paymentMode !== mode)   return false;
       if (type    && r.payerType !== type)     return false;
       if (program && r.programName !== program) return false;
+      if (academicYearId && r.academicYearId !== academicYearId) return false;
       if (from    && r.paymentDate < from)     return false;
       if (to      && r.paymentDate > to)       return false;
       return true;
@@ -105,7 +118,7 @@ export class ReceiptsListComponent implements OnInit {
   protected readonly filteredCount    = computed(() => this.filteredReceipts().length);
   protected readonly hasActiveFilters = computed(() =>
     !!this.searchValue() || !!this.selectedMode() || !!this.selectedType() ||
-    !!this.selectedProgram() || !!this.dateFrom() || !!this.dateTo()
+    !!this.selectedProgram() || !!this.selectedAcademicYearId() || !!this.dateFrom() || !!this.dateTo()
   );
 
   constructor() {
@@ -125,6 +138,7 @@ export class ReceiptsListComponent implements OnInit {
     this.selectedMode.set('');
     this.selectedType.set('');
     this.selectedProgram.set('');
+    this.selectedAcademicYearId.set(null);
     this.dateFrom.set('');
     this.dateTo.set('');
   }

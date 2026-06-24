@@ -9,6 +9,7 @@ import java.time.Month;
 import java.time.Period;
 import java.time.format.TextStyle;
 import java.util.Locale;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
@@ -62,8 +63,10 @@ import com.cms.repository.ReferralTypeRepository;
 import com.cms.model.AgentCommissionGuideline;
 import com.cms.repository.AgentCommissionGuidelineRepository;
 import com.cms.repository.CohortRepository;
+import com.cms.repository.IntakeRuleRepository;
 import com.cms.repository.StaffReferrerRepository;
 import com.cms.repository.StudentRepository;
+import com.cms.model.IntakeRule;
 
 @Service
 @Transactional(readOnly = true)
@@ -100,6 +103,7 @@ public class EnquiryService {
     private final AgentCommissionGuidelineRepository agentCommissionGuidelineRepository;
     private final StaffReferrerRepository staffReferrerRepository;
     private final CohortRepository cohortRepository;
+    private final IntakeRuleRepository intakeRuleRepository;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
                            ProgramRepository programRepository,
@@ -120,7 +124,8 @@ public class EnquiryService {
                            LocationCountryRepository countryRepository,
                            AgentCommissionGuidelineRepository agentCommissionGuidelineRepository,
                            StaffReferrerRepository staffReferrerRepository,
-                           CohortRepository cohortRepository) {
+                           CohortRepository cohortRepository,
+                           IntakeRuleRepository intakeRuleRepository) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
         this.agentRepository = agentRepository;
@@ -141,6 +146,34 @@ public class EnquiryService {
         this.agentCommissionGuidelineRepository = agentCommissionGuidelineRepository;
         this.staffReferrerRepository = staffReferrerRepository;
         this.cohortRepository = cohortRepository;
+        this.intakeRuleRepository = intakeRuleRepository;
+    }
+
+    /**
+     * Resolves the academic year an enquiry belongs to: derived from the program's active
+     * intake window covering the enquiry date, falling back to whichever academic year
+     * starts next. Enquiries target the upcoming intake, never the currently-running year —
+     * admissions only start arriving for a year once the prior one is already underway.
+     */
+    private AcademicYear resolveAcademicYear(Program program, LocalDate enquiryDate) {
+        if (program != null) {
+            for (IntakeRule rule : intakeRuleRepository.findByProgramIdAndIsActiveTrue(program.getId())) {
+                if (!enquiryDate.isBefore(rule.getAdmissionWindowStartDate())
+                        && !enquiryDate.isAfter(rule.getAdmissionWindowEndDate())) {
+                    return rule.getMappedAcademicYear();
+                }
+            }
+        }
+        return resolveUpcomingAcademicYear();
+    }
+
+    private AcademicYear resolveUpcomingAcademicYear() {
+        AcademicYear current = academicYearRepository.findByIsCurrentTrue().orElse(null);
+        LocalDate after = current != null ? current.getStartDate() : LocalDate.now();
+        return academicYearRepository.findAll().stream()
+            .filter(ay -> ay.getStartDate().isAfter(after))
+            .min(Comparator.comparing(AcademicYear::getStartDate))
+            .orElse(current);
     }
 
     @Transactional
@@ -178,6 +211,7 @@ public class EnquiryService {
         );
         enquiry.setAgent(agent);
         enquiry.setCourse(course);
+        enquiry.setAcademicYear(resolveAcademicYear(program, request.enquiryDate()));
         enquiry.setRemarks(request.remarks());
         enquiry.setStudentType(request.studentType());
         enquiry.setDateOfBirth(request.dateOfBirth());
@@ -268,6 +302,7 @@ public class EnquiryService {
         enquiry.setPhone(request.phone());
         enquiry.setProgram(program);
         enquiry.setCourse(course);
+        enquiry.setAcademicYear(resolveAcademicYear(program, request.enquiryDate()));
         enquiry.setEnquiryDate(request.enquiryDate());
         enquiry.setAgent(agent);
         enquiry.setReferralType(referralType);
@@ -938,6 +973,8 @@ public class EnquiryService {
             e.getProgram() != null ? e.getProgram().getName() : null,
             e.getCourse() != null ? e.getCourse().getId() : null,
             e.getCourse() != null ? e.getCourse().getName() : null,
+            e.getAcademicYear() != null ? e.getAcademicYear().getId() : null,
+            e.getAcademicYear() != null ? e.getAcademicYear().getName() : null,
             e.getEnquiryDate(),
             e.getReferralType() != null ? e.getReferralType().getId() : null,
             e.getReferralType() != null ? e.getReferralType().getName() : null,
