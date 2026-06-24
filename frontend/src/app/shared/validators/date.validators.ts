@@ -6,6 +6,17 @@ import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
  */
 
 /**
+ * Parses a date-only value (e.g. "YYYY-MM-DD" from <input type="date">) as a
+ * local-timezone date. `new Date("YYYY-MM-DD")` parses as UTC midnight, which
+ * shifts to the previous day once converted to a positive UTC-offset timezone
+ * (e.g. IST) and causes "today" to be misread as a future date.
+ */
+function parseDateOnlyLocal(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/**
  * Validator: Ensures date is in the past (today or earlier)
  * Usage: control.addValidators(pastDateOnlyValidator())
  * @returns ValidationErrors if date is in the future
@@ -16,7 +27,7 @@ export function pastDateOnlyValidator(): ValidatorFn {
       return null; // Allow null/empty (use @required if mandatory)
     }
 
-    const selectedDate = new Date(control.value);
+    const selectedDate = parseDateOnlyLocal(control.value);
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset time to start of day for fair comparison
 
@@ -44,7 +55,7 @@ export function futureDateOnlyValidator(): ValidatorFn {
       return null; // Allow null/empty (use @required if mandatory)
     }
 
-    const selectedDate = new Date(control.value);
+    const selectedDate = parseDateOnlyLocal(control.value);
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset time to start of day for fair comparison
 
