@@ -134,7 +134,33 @@ export class EnquiryListComponent implements OnInit {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+    const dateRangeChanged = this.syncDateRangeToSelectedYears();
     this.syncUrlFilters();
+    if (dateRangeChanged) this.load();
+  }
+
+  /**
+   * Widens/narrows the backend-fetched date range to span the union of every currently selected
+   * academic year's own start/end dates. Without this, the date range stayed at its "current
+   * calendar month" default regardless of which year was selected — so an enquiry tagged to a
+   * year whose period doesn't overlap this month would never even reach the client to be filtered,
+   * surfacing as "0 results" even though the academic-year filter itself was working correctly.
+   * Returns whether the range actually changed, so callers know whether to re-fetch.
+   */
+  private syncDateRangeToSelectedYears(): boolean {
+    const ids = this.selectedAcademicYearIds();
+    if (ids.size === 0) return false;
+
+    const selected = this.allAcademicYears().filter(y => ids.has(y.id));
+    if (selected.length === 0) return false;
+
+    const newFrom = selected.reduce((min, y) => (y.startDate < min ? y.startDate : min), selected[0].startDate);
+    const newTo   = selected.reduce((max, y) => (y.endDate   > max ? y.endDate   : max), selected[0].endDate);
+
+    if (newFrom === this.dateFrom && newTo === this.dateTo) return false;
+    this.dateFrom = newFrom;
+    this.dateTo   = newTo;
+    return true;
   }
 
   protected clearAcademicYears(): void {
@@ -318,15 +344,24 @@ export class EnquiryListComponent implements OnInit {
     }
     if (this.moreFiltersCount > 0) this.moreFiltersOpen = true;
 
-    this.academicYearService.getAllAcademicYears().subscribe(years => {
-      this.allAcademicYears.set(years);
-      // Default to "current + next" unless the user's own filter state was restored from the URL.
-      if (!this.academicYearsRestoredFromUrl) {
-        this.selectedAcademicYearIds.set(this.defaultAcademicYearIds());
-      }
+    // load() is called from inside this subscribe (not right after it) so the date range is
+    // fully settled — whether restored from the URL or derived from the default academic-year
+    // selection below — before the first backend fetch fires.
+    const dateWasRestoredFromUrl = !!p.get('dateFrom') || !!p.get('dateTo');
+    this.academicYearService.getAllAcademicYears().subscribe({
+      next: (years) => {
+        this.allAcademicYears.set(years);
+        // Default to "current + next" unless the user's own filter state was restored from the URL.
+        if (!this.academicYearsRestoredFromUrl) {
+          this.selectedAcademicYearIds.set(this.defaultAcademicYearIds());
+        }
+        if (!dateWasRestoredFromUrl) {
+          this.syncDateRangeToSelectedYears();
+        }
+        this.load();
+      },
+      error: () => this.load(), // fall back to whatever date range is already set
     });
-
-    this.load();
   }
 
   // ── URL filter sync ───────────────────────────────────────────────────────
