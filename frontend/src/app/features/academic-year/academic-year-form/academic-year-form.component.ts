@@ -10,11 +10,19 @@ import {
 } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { forkJoin, of, switchMap } from 'rxjs';
+import { forkJoin, map, Observable, of, switchMap } from 'rxjs';
 import { AcademicYearService } from '../academic-year.service';
 import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 import {
+  academicYearDateRangeValidator,
+  academicYearOverlapValidator,
+  computeAcademicYearDateBounds,
+  AcademicYearRange,
+} from '../../../shared/validators/academic-year-date.validators';
+import { SettingsService } from '../../settings/settings.service';
+import {
+  AcademicYearFullUpdateRequest,
   AcademicYearRequest,
   CohortSeatAllocationRequest,
   CohortSummary,
@@ -49,6 +57,7 @@ export class AcademicYearFormComponent implements OnInit {
   protected readonly route             = inject(ActivatedRoute);
   private readonly router              = inject(Router);
   private readonly academicYearService = inject(AcademicYearService);
+  private readonly settingsService     = inject(SettingsService);
   private readonly courseService       = inject(CourseService);
   private readonly toast               = inject(ToastService);
   private readonly tourService         = inject(TourService);
@@ -59,6 +68,20 @@ export class AcademicYearFormComponent implements OnInit {
   protected readonly saving     = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly isViewMode = signal(false);
+
+  /** Default fee-collection advance window (days) used until the system configuration loads. */
+  private static readonly DEFAULT_ADVANCE_DAYS = 30;
+  protected readonly advanceDays = signal(AcademicYearFormComponent.DEFAULT_ADVANCE_DAYS);
+
+  /** Every other academic year's date range (this one excluded), used to lock the date pickers. */
+  protected readonly otherAcademicYears = signal<AcademicYearRange[]>([]);
+
+  /** Mirrors the form's live value so `dateBounds` can recompute as a signal. */
+  private readonly formValue = signal<Record<string, string | null | undefined>>({});
+
+  /** <input type="date"> min/max for every date field — locks the picker instead of just flagging it after. */
+  protected readonly dateBounds = computed(() =>
+    computeAcademicYearDateBounds(this.formValue(), this.otherAcademicYears(), this.advanceDays()));
 
   protected readonly isCreateMode = computed(() => !this.isEditMode() && !this.isViewMode());
 
@@ -113,15 +136,22 @@ export class AcademicYearFormComponent implements OnInit {
     evenGraceDays:     [0,  [Validators.required, Validators.min(0)]],
 
     seatAllocations: this.fb.array([]),
+  }, {
+    validators: [
+      academicYearDateRangeValidator(() => this.advanceDays()),
+      academicYearOverlapValidator(() => this.otherAcademicYears()),
+    ],
   });
 
   constructor() {
+    this.formValue.set(this.form.value);
     this.form.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(v => {
         this.previewName.set((v.name ?? '').trim());
         this.previewStart.set(v.startDate || null);
         this.previewEnd.set(v.endDate || null);
+        this.formValue.set(v);
       });
   }
 
@@ -143,7 +173,60 @@ export class AcademicYearFormComponent implements OnInit {
     } else {
       this.loadActiveProgramsForCreate();
     }
+    if (!this.isViewMode()) {
+      this.loadAdvanceDaysConfig();
+      this.loadOtherAcademicYears();
+    }
     this.setupUniquenessValidators();
+  }
+
+  /**
+   * Loads every other academic year's date range (excluding this one, when editing) so the date
+   * pickers can be locked to a window that can't overlap an existing year — mirrors the backend's
+   * AcademicYearRepository.existsOverlapping check.
+   */
+  private loadOtherAcademicYears(): void {
+    this.fetchOtherAcademicYears().subscribe({
+      next: (others) => {
+        this.otherAcademicYears.set(others);
+        this.form.updateValueAndValidity();
+      },
+      error: () => { /* leave empty — no extra picker restriction if this fails */ },
+    });
+  }
+
+  /**
+   * The list loaded on init can go stale if another admin creates/edits a conflicting academic
+   * year while this form is open. The backend's own overlap check remains authoritative regardless,
+   * but re-fetching right before submit (see onSubmit) keeps the inline check/picker lock as fresh
+   * as practically possible at the moment it actually matters.
+   */
+  private fetchOtherAcademicYears(): Observable<AcademicYearRange[]> {
+    return this.academicYearService.getAllAcademicYears().pipe(
+      map(years => years
+        .filter(y => y.id !== this.academicYearId)
+        .map(y => ({ id: y.id, name: y.name, startDate: y.startDate, endDate: y.endDate }))),
+    );
+  }
+
+  /**
+   * Loads the configurable fee-collection advance window (how many days before a term starts its
+   * due date may be set) so the inline date validators match the backend's rule exactly. Falls
+   * back to the default if the config row is missing, mirroring TermBillingScheduleService.
+   */
+  private loadAdvanceDaysConfig(): void {
+    this.settingsService.getByKey('fee.collection_advance_days').subscribe({
+      next: (config) => {
+        const parsed = Number(config.configValue);
+        // Negative values would push "earliest allowed" past the term start, potentially
+        // inverting the allowed range — clamp to 0, mirroring TermBillingScheduleService.
+        if (!Number.isNaN(parsed)) {
+          this.advanceDays.set(Math.max(0, parsed));
+          this.form.updateValueAndValidity();
+        }
+      },
+      error: () => { /* keep default advance window */ },
+    });
   }
 
   private setupUniquenessValidators(): void {
@@ -162,22 +245,97 @@ export class AcademicYearFormComponent implements OnInit {
       return;
     }
 
+    // Refresh the overlap-check list right before submitting — closes most of the window where
+    // another admin's concurrent edit could go undetected client-side (backend remains the
+    // authoritative check regardless).
+    this.fetchOtherAcademicYears().subscribe({
+      next: (others) => {
+        this.otherAcademicYears.set(others);
+        this.form.updateValueAndValidity();
+        this.proceedWithSubmit();
+      },
+      error: () => this.proceedWithSubmit(),
+    });
+  }
+
+  private proceedWithSubmit(): void {
+    if (this.form.invalid) {
+      scrollToFirstInvalid(this.form);
+      return;
+    }
+
+    this.saving.set(true);
+
+    if (this.isEditMode()) {
+      this.submitEdit();
+    } else {
+      this.submitCreate();
+    }
+  }
+
+  /**
+   * Edit mode updates the academic year's dates, both terms' dates, and both billing schedules in
+   * one atomic backend call instead of three sequential ones. Sequential calls deadlocked when an
+   * admin shrank (or widened) the academic year and its term together in the same save — each call
+   * validated its own dates against the other's still-persisted, not-yet-updated value.
+   */
+  private submitEdit(): void {
+    const v = this.form.value;
+    const request: AcademicYearFullUpdateRequest = {
+      name:      (v.name ?? '').trim(),
+      startDate: v.startDate,
+      endDate:   v.endDate,
+      isCurrent: v.isCurrent ?? false,
+      oddTerm:  { startDate: v.oddStartDate,  endDate: v.oddEndDate },
+      evenTerm: { startDate: v.evenStartDate, endDate: v.evenEndDate },
+      oddBilling:  { dueDate: v.oddDueDate,  lateFeeType: v.oddLateFeeType,  lateFeeAmount: v.oddLateFeeAmount,  graceDays: v.oddGraceDays },
+      evenBilling: { dueDate: v.evenDueDate, lateFeeType: v.evenLateFeeType, lateFeeAmount: v.evenLateFeeAmount, graceDays: v.evenGraceDays },
+    };
+
+    this.academicYearService.updateAcademicYearFull(this.academicYearId!, request).pipe(
+      switchMap(() => this.academicYearService.initializeCohorts(this.academicYearId!)),
+      switchMap((allCohorts) => {
+        const rows = this.seatAllocationControls();
+        const updates = rows
+          .map(row => {
+            const code = row.get('courseCode')?.value as string;
+            const cohort = allCohorts.find(c => c.courseCode === code);
+            if (!cohort) return null;
+            return this.academicYearService.updateCohortSeats(cohort.id, {
+              totalSeats:           this.toSeatCount(row.get('totalSeats')?.value),
+              managementPercentage: this.toPercentage(row.get('managementPercentage')?.value),
+            });
+          })
+          .filter((u): u is NonNullable<typeof u> => u !== null);
+        return updates.length ? forkJoin(updates) : of([]);
+      })
+    ).subscribe({
+      next: () => {
+        this.toast.success('Academic year updated');
+        void this.router.navigate(['/academic-years']);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to update');
+        this.saving.set(false);
+      },
+    });
+  }
+
+  /**
+   * Create mode has no deadlock risk — the academic year (and its auto-created terms) doesn't
+   * exist yet, so there's no stale persisted state for the term/billing calls to collide with.
+   */
+  private submitCreate(): void {
     const v = this.form.value;
     const ayRequest: AcademicYearRequest = {
       name:      (v.name ?? '').trim(),
       startDate: v.startDate,
       endDate:   v.endDate,
       isCurrent: v.isCurrent ?? false,
-      cohortSeatAllocations: this.isEditMode() ? undefined : this.buildSeatAllocations(),
+      cohortSeatAllocations: this.buildSeatAllocations(),
     };
 
-    this.saving.set(true);
-
-    const ay$ = this.isEditMode()
-      ? this.academicYearService.updateAcademicYear(this.academicYearId!, ayRequest)
-      : this.academicYearService.createAcademicYear(ayRequest);
-
-    ay$.pipe(
+    this.academicYearService.createAcademicYear(ayRequest).pipe(
       switchMap(ay =>
         this.academicYearService.getTermInstancesByAcademicYear(ay.id).pipe(
           switchMap(terms => {
@@ -195,37 +353,17 @@ export class AcademicYearFormComponent implements OnInit {
                   this.academicYearService.createOrUpdateTermBillingSchedule(evenBilling),
                 ]);
               }),
-              switchMap(() => {
-                if (!this.isEditMode()) return of([]);
-                return this.academicYearService.initializeCohorts(this.academicYearId!).pipe(
-                  switchMap(allCohorts => {
-                    const rows = this.seatAllocationControls();
-                    const updates = rows
-                      .map(row => {
-                        const code = row.get('courseCode')?.value as string;
-                        const cohort = allCohorts.find(c => c.courseCode === code);
-                        if (!cohort) return null;
-                        return this.academicYearService.updateCohortSeats(cohort.id, {
-                          totalSeats:           this.toSeatCount(row.get('totalSeats')?.value),
-                          managementPercentage: this.toPercentage(row.get('managementPercentage')?.value),
-                        });
-                      })
-                      .filter((u): u is NonNullable<typeof u> => u !== null);
-                    return updates.length ? forkJoin(updates) : of([]);
-                  })
-                );
-              }),
             );
           })
         )
       )
     ).subscribe({
       next: () => {
-        this.toast.success(this.isEditMode() ? 'Academic year updated' : 'Academic year created');
+        this.toast.success('Academic year created');
         void this.router.navigate(['/academic-years']);
       },
       error: (err) => {
-        this.toast.error(err?.error?.message ?? (this.isEditMode() ? 'Failed to update' : 'Failed to create'));
+        this.toast.error(err?.error?.message ?? 'Failed to create');
         this.saving.set(false);
       },
     });
@@ -318,6 +456,16 @@ export class AcademicYearFormComponent implements OnInit {
     if (ctrl.errors['maxlength'])  return `Max ${ctrl.errors['maxlength'].requiredLength} characters`;
     if (ctrl.errors['min'])        return 'Must be 0 or more';
     if (ctrl.errors['duplicate'])  return 'This name already exists';
+    if (ctrl.errors['dateOrder'])  return 'End date must be after start date';
+    if (ctrl.errors['outOfAcademicYear']) return "Must fall within the academic year's dates";
+    if (ctrl.errors['termOverlap']) return 'Overlaps with the other term\'s dates';
+    if (ctrl.errors['dueDateRange']) {
+      const { earliest, latest } = ctrl.errors['dueDateRange'];
+      return `Due date must be between ${earliest} and ${latest}`;
+    }
+    if (ctrl.errors['academicYearOverlap']) {
+      return `Dates overlap with academic year "${ctrl.errors['academicYearOverlap'].name}"`;
+    }
     return '';
   }
 

@@ -52,21 +52,28 @@ public class TermInstanceService {
 
     @Transactional
     public void createTermInstancesForAcademicYear(AcademicYear academicYear) {
-        int startYear = academicYear.getStartDate().getYear();
+        // Derived from the academic year's own chosen dates rather than a fixed calendar
+        // pattern — this college's academic year start month varies (follows the NEET/
+        // counselling calendar), so a hardcoded June/December split would be wrong whenever
+        // a year doesn't start in June.
+        LocalDate start = academicYear.getStartDate();
+        LocalDate end = academicYear.getEndDate();
+        LocalDate oddEnd = start.plusMonths(6).minusDays(1);
+        LocalDate evenStart = start.plusMonths(6);
 
         TermInstance odd = new TermInstance(
             academicYear,
             TermType.ODD,
-            LocalDate.of(startYear, 6, 1),
-            LocalDate.of(startYear, 11, 30),
+            start,
+            oddEnd,
             TermInstanceStatus.PLANNED
         );
 
         TermInstance even = new TermInstance(
             academicYear,
             TermType.EVEN,
-            LocalDate.of(startYear, 12, 1),
-            LocalDate.of(startYear + 1, 5, 31),
+            evenStart,
+            end,
             TermInstanceStatus.PLANNED
         );
 
@@ -129,11 +136,12 @@ public class TermInstanceService {
         TermInstance instance = termInstanceRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + id));
 
-        if (request.startDate() != null) {
-            instance.setStartDate(request.startDate());
-        }
-        if (request.endDate() != null) {
-            instance.setEndDate(request.endDate());
+        if (request.startDate() != null || request.endDate() != null) {
+            LocalDate newStart = request.startDate() != null ? request.startDate() : instance.getStartDate();
+            LocalDate newEnd = request.endDate() != null ? request.endDate() : instance.getEndDate();
+            validateTermDates(instance, newStart, newEnd);
+            instance.setStartDate(newStart);
+            instance.setEndDate(newEnd);
         }
         if (request.status() != null) {
             validateStatusTransition(instance.getStatus(), request.status());
@@ -151,6 +159,48 @@ public class TermInstanceService {
             courseOfferingService.deactivateAllOfferingsForTermInstance(id);
         }
         return toDto(saved);
+    }
+
+    /**
+     * Term dates may equal the academic year's own start/end (inclusive) but must not exceed
+     * them, and must not overlap the sibling term (ODD vs EVEN) — gaps between the two are fine,
+     * since this college's term boundaries aren't always contiguous.
+     */
+    private void validateTermDates(TermInstance instance, LocalDate start, LocalDate end) {
+        AcademicYear academicYear = instance.getAcademicYear();
+        assertTermWithinAcademicYear(start, end, academicYear.getStartDate(), academicYear.getEndDate());
+
+        TermType siblingType = instance.getTermType() == TermType.ODD ? TermType.EVEN : TermType.ODD;
+        termInstanceRepository.findByAcademicYearIdAndTermType(academicYear.getId(), siblingType)
+            .ifPresent(sibling -> assertTermsDoNotOverlap(
+                start, end, sibling.getStartDate(), sibling.getEndDate(), siblingType.toString()));
+    }
+
+    /**
+     * Pure date-rule check shared with AcademicYearService.updateFull(), which validates a new
+     * academic year's bounds together with its terms' new bounds in one combined pass rather than
+     * checking each side against the other's still-persisted (not-yet-updated) value — sequencing
+     * those as separate calls created a chicken-and-egg deadlock when shrinking/widening both at
+     * once (e.g. the academic year's own shrink guard would reject the new dates because the term
+     * hadn't been narrowed yet, and vice versa for the term's own bounds check).
+     */
+    void assertTermWithinAcademicYear(LocalDate termStart, LocalDate termEnd, LocalDate ayStart, LocalDate ayEnd) {
+        if (!termEnd.isAfter(termStart)) {
+            throw new IllegalArgumentException("Term end date must be after start date");
+        }
+        if (termStart.isBefore(ayStart) || termEnd.isAfter(ayEnd)) {
+            throw new IllegalArgumentException(
+                "Term dates must fall within the academic year's dates (" + ayStart + " to " + ayEnd + ")");
+        }
+    }
+
+    /** Pure date-rule check shared with AcademicYearService.updateFull() — see assertTermWithinAcademicYear. */
+    void assertTermsDoNotOverlap(LocalDate aStart, LocalDate aEnd, LocalDate bStart, LocalDate bEnd, String bLabel) {
+        boolean overlaps = !aStart.isAfter(bEnd) && !bStart.isAfter(aEnd);
+        if (overlaps) {
+            throw new IllegalArgumentException(
+                "Term dates overlap with the " + bLabel + " term (" + bStart + " to " + bEnd + ")");
+        }
     }
 
     private void validateStatusTransition(TermInstanceStatus current, TermInstanceStatus next) {

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.AcademicYearFullUpdateRequest;
 import com.cms.dto.AcademicYearRequest;
 import com.cms.dto.AcademicYearResponse;
 import com.cms.service.AcademicYearService;
@@ -62,6 +63,15 @@ public class AcademicYearController {
             @PathVariable Long id,
             @Valid @RequestBody AcademicYearRequest request) {
         AcademicYearResponse response = academicYearService.update(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}/full")
+    @PreAuthorize("@perm.has('ACADEMIC_YEAR_MANAGE')")
+    public ResponseEntity<AcademicYearResponse> updateFull(
+            @PathVariable Long id,
+            @Valid @RequestBody AcademicYearFullUpdateRequest request) {
+        AcademicYearResponse response = academicYearService.updateFull(id, request);
         return ResponseEntity.ok(response);
     }
 

@@ -23,10 +23,14 @@ import com.cms.dto.TermBillingScheduleRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.TermBillingSchedule;
+import com.cms.model.TermInstance;
 import com.cms.model.enums.LateFeeType;
+import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.SystemConfigurationRepository;
 import com.cms.repository.TermBillingScheduleRepository;
+import com.cms.repository.TermInstanceRepository;
 
 @ExtendWith(MockitoExtension.class)
 class TermBillingScheduleServiceTest {
@@ -37,14 +41,24 @@ class TermBillingScheduleServiceTest {
     @Mock
     private AcademicYearRepository academicYearRepository;
 
+    @Mock
+    private TermInstanceRepository termInstanceRepository;
+
+    @Mock
+    private SystemConfigurationRepository systemConfigurationRepository;
+
     private TermBillingScheduleService service;
 
     private AcademicYear testAcademicYear;
+    private TermInstance oddTermInstance;
 
     @BeforeEach
     void setUp() {
-        service = new TermBillingScheduleService(scheduleRepository, academicYearRepository);
+        service = new TermBillingScheduleService(
+            scheduleRepository, academicYearRepository, termInstanceRepository, systemConfigurationRepository);
         testAcademicYear = createAcademicYear(1L, "2026-2027");
+        oddTermInstance = createTermInstance(testAcademicYear, TermType.ODD,
+            LocalDate.of(2026, 6, 1), LocalDate.of(2026, 11, 30));
     }
 
     @Test
@@ -57,6 +71,8 @@ class TermBillingScheduleServiceTest {
             LocalDate.of(2026, 7, 31), LateFeeType.FLAT, new BigDecimal("500"), 5);
 
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
+            .thenReturn(Optional.of(oddTermInstance));
         when(scheduleRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
             .thenReturn(Optional.empty());
         when(scheduleRepository.save(any(TermBillingSchedule.class))).thenReturn(saved);
@@ -83,6 +99,8 @@ class TermBillingScheduleServiceTest {
             LocalDate.of(2026, 7, 31), LateFeeType.FLAT, new BigDecimal("500"), 5);
 
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
+            .thenReturn(Optional.of(oddTermInstance));
         when(scheduleRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
             .thenReturn(Optional.of(existing));
         when(scheduleRepository.save(any(TermBillingSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -118,6 +136,8 @@ class TermBillingScheduleServiceTest {
 
         when(scheduleRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
+            .thenReturn(Optional.of(oddTermInstance));
         when(scheduleRepository.save(any(TermBillingSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
         TermBillingScheduleDto dto = service.update(1L, request);
@@ -297,6 +317,8 @@ class TermBillingScheduleServiceTest {
             LocalDate.of(2026, 7, 31), LateFeeType.FLAT, new BigDecimal("500"), 0);
 
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
+            .thenReturn(Optional.of(oddTermInstance));
         when(scheduleRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
             .thenReturn(Optional.empty());
         when(scheduleRepository.save(any(TermBillingSchedule.class))).thenReturn(saved);
@@ -304,6 +326,130 @@ class TermBillingScheduleServiceTest {
         TermBillingScheduleDto dto = service.createOrUpdate(request);
 
         assertThat(dto.graceDays()).isEqualTo(0);
+    }
+
+    @Test
+    void shouldRejectDueDateAfterTermEndDate() {
+        TermBillingScheduleRequest request = new TermBillingScheduleRequest(
+            1L, TermType.ODD, LocalDate.of(2026, 12, 1),
+            LateFeeType.FLAT, new BigDecimal("500"), 0);
+
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
+            .thenReturn(Optional.of(oddTermInstance));
+
+        assertThatThrownBy(() -> service.createOrUpdate(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("ODD");
+
+        verify(scheduleRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void shouldRejectDueDateBeforeAdvanceWindow() {
+        // ODD term starts 2026-06-01; default advance window is 30 days -> earliest allowed is 2026-05-02.
+        TermBillingScheduleRequest request = new TermBillingScheduleRequest(
+            1L, TermType.ODD, LocalDate.of(2026, 4, 1),
+            LateFeeType.FLAT, new BigDecimal("500"), 0);
+
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
+            .thenReturn(Optional.of(oddTermInstance));
+
+        assertThatThrownBy(() -> service.createOrUpdate(request))
+            .isInstanceOf(IllegalArgumentException.class);
+
+        verify(scheduleRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void shouldAllowDueDateWithinAdvanceWindowBeforeTermStart() {
+        // 10 days before the ODD term's 2026-06-01 start, well within the default 30-day window.
+        TermBillingScheduleRequest request = new TermBillingScheduleRequest(
+            1L, TermType.ODD, LocalDate.of(2026, 5, 22),
+            LateFeeType.FLAT, new BigDecimal("500"), 0);
+
+        TermBillingSchedule saved = createSchedule(1L, testAcademicYear, TermType.ODD,
+            LocalDate.of(2026, 5, 22), LateFeeType.FLAT, new BigDecimal("500"), 0);
+
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
+            .thenReturn(Optional.of(oddTermInstance));
+        when(scheduleRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
+            .thenReturn(Optional.empty());
+        when(scheduleRepository.save(any(TermBillingSchedule.class))).thenReturn(saved);
+
+        TermBillingScheduleDto dto = service.createOrUpdate(request);
+
+        assertThat(dto.dueDate()).isEqualTo(LocalDate.of(2026, 5, 22));
+    }
+
+    @Test
+    void shouldRespectConfiguredAdvanceDaysOverDefault() {
+        // Config overrides the 30-day default down to 5 -> 2026-05-22 (10 days early) should now fail.
+        TermBillingScheduleRequest request = new TermBillingScheduleRequest(
+            1L, TermType.ODD, LocalDate.of(2026, 5, 22),
+            LateFeeType.FLAT, new BigDecimal("500"), 0);
+
+        com.cms.model.SystemConfiguration config = new com.cms.model.SystemConfiguration(
+            "fee.collection_advance_days", "5", "desc", com.cms.model.enums.ConfigDataType.INTEGER, "FEE", true);
+
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
+            .thenReturn(Optional.of(oddTermInstance));
+        when(systemConfigurationRepository.findByConfigKey("fee.collection_advance_days"))
+            .thenReturn(Optional.of(config));
+
+        assertThatThrownBy(() -> service.createOrUpdate(request))
+            .isInstanceOf(IllegalArgumentException.class);
+
+        verify(scheduleRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void shouldClampNegativeConfiguredAdvanceDaysToZero() {
+        // A negative config value would otherwise push "earliest allowed" past the term start,
+        // potentially inverting the allowed range. 2026-05-25 is 7 days before ODD's start
+        // (2026-06-01) — would pass with the 30-day default, but must fail once clamped to 0.
+        TermBillingScheduleRequest request = new TermBillingScheduleRequest(
+            1L, TermType.ODD, LocalDate.of(2026, 5, 25),
+            LateFeeType.FLAT, new BigDecimal("500"), 0);
+
+        com.cms.model.SystemConfiguration config = new com.cms.model.SystemConfiguration(
+            "fee.collection_advance_days", "-10", "desc", com.cms.model.enums.ConfigDataType.INTEGER, "FEE", true);
+
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD))
+            .thenReturn(Optional.of(oddTermInstance));
+        when(systemConfigurationRepository.findByConfigKey("fee.collection_advance_days"))
+            .thenReturn(Optional.of(config));
+
+        assertThatThrownBy(() -> service.createOrUpdate(request))
+            .isInstanceOf(IllegalArgumentException.class);
+
+        verify(scheduleRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void shouldThrowWhenNoTermInstanceConfiguredForDueDateValidation() {
+        TermBillingScheduleRequest request = new TermBillingScheduleRequest(
+            1L, TermType.EVEN, LocalDate.of(2027, 1, 31),
+            LateFeeType.FLAT, new BigDecimal("500"), 0);
+
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.EVEN))
+            .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.createOrUpdate(request))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("EVEN");
+
+        verify(scheduleRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    private TermInstance createTermInstance(AcademicYear academicYear, TermType termType,
+                                             LocalDate startDate, LocalDate endDate) {
+        return new TermInstance(academicYear, termType, startDate, endDate, TermInstanceStatus.PLANNED);
     }
 
     private AcademicYear createAcademicYear(Long id, String name) {

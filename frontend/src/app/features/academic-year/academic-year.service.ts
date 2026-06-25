@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
   AcademicYear,
+  AcademicYearFullUpdateRequest,
   AcademicYearRequest,
   CalendarEvent,
   CalendarEventRequest,
@@ -55,6 +56,10 @@ export class AcademicYearService {
 
   updateAcademicYear(id: number, request: AcademicYearRequest): Observable<AcademicYear> {
     return this.http.put<AcademicYear>(`${this.academicYearUrl}/${id}`, request);
+  }
+
+  updateAcademicYearFull(id: number, request: AcademicYearFullUpdateRequest): Observable<AcademicYear> {
+    return this.http.put<AcademicYear>(`${this.academicYearUrl}/${id}/full`, request);
   }
 
   deleteAcademicYear(id: number): Observable<void> {

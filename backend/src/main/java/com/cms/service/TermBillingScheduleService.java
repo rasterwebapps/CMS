@@ -13,22 +13,35 @@ import com.cms.dto.TermBillingScheduleRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.TermBillingSchedule;
+import com.cms.model.TermInstance;
 import com.cms.model.enums.LateFeeType;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.SystemConfigurationRepository;
 import com.cms.repository.TermBillingScheduleRepository;
+import com.cms.repository.TermInstanceRepository;
 
 @Service
 @Transactional(readOnly = true)
 public class TermBillingScheduleService {
 
+    /** Falls back to this many days if the config row is missing rather than hard-failing fee billing. */
+    private static final int DEFAULT_ADVANCE_DAYS = 30;
+    private static final String ADVANCE_DAYS_CONFIG_KEY = "fee.collection_advance_days";
+
     private final TermBillingScheduleRepository scheduleRepository;
     private final AcademicYearRepository academicYearRepository;
+    private final TermInstanceRepository termInstanceRepository;
+    private final SystemConfigurationRepository systemConfigurationRepository;
 
     public TermBillingScheduleService(TermBillingScheduleRepository scheduleRepository,
-                                       AcademicYearRepository academicYearRepository) {
+                                       AcademicYearRepository academicYearRepository,
+                                       TermInstanceRepository termInstanceRepository,
+                                       SystemConfigurationRepository systemConfigurationRepository) {
         this.scheduleRepository = scheduleRepository;
         this.academicYearRepository = academicYearRepository;
+        this.termInstanceRepository = termInstanceRepository;
+        this.systemConfigurationRepository = systemConfigurationRepository;
     }
 
     @Transactional
@@ -36,6 +49,7 @@ public class TermBillingScheduleService {
         AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Academic year not found with id: " + request.academicYearId()));
+        validateDueDate(request.academicYearId(), request.termType(), request.dueDate());
 
         TermBillingSchedule schedule = scheduleRepository
             .findByAcademicYearIdAndTermType(request.academicYearId(), request.termType())
@@ -60,6 +74,7 @@ public class TermBillingScheduleService {
         AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Academic year not found with id: " + request.academicYearId()));
+        validateDueDate(request.academicYearId(), request.termType(), request.dueDate());
 
         schedule.setAcademicYear(academicYear);
         schedule.setTermType(request.termType());
@@ -112,6 +127,37 @@ public class TermBillingScheduleService {
             long daysLate = ChronoUnit.DAYS.between(effectiveDueDate, paymentDate);
             return schedule.getLateFeeAmount().multiply(BigDecimal.valueOf(daysLate));
         }
+    }
+
+    /**
+     * Due date must not be later than the term's own end date, but is allowed to fall before the
+     * term even starts — up to a configurable number of days — so collection can run ahead of the
+     * term opening rather than being confined strictly inside it.
+     */
+    private void validateDueDate(Long academicYearId, TermType termType, LocalDate dueDate) {
+        TermInstance term = termInstanceRepository.findByAcademicYearIdAndTermType(academicYearId, termType)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "No " + termType + " term instance configured for academic year " + academicYearId));
+
+        LocalDate earliestAllowed = term.getStartDate().minusDays(resolveAdvanceDays());
+        if (dueDate.isBefore(earliestAllowed) || dueDate.isAfter(term.getEndDate())) {
+            throw new IllegalArgumentException(
+                "Due date must be between " + earliestAllowed + " and " + term.getEndDate()
+                    + " for the " + termType + " term");
+        }
+    }
+
+    /** Negative values would push the earliest-allowed due date past the term start; clamp to 0. */
+    private int resolveAdvanceDays() {
+        return systemConfigurationRepository.findByConfigKey(ADVANCE_DAYS_CONFIG_KEY)
+            .map(config -> {
+                try {
+                    return Math.max(0, Integer.parseInt(config.getConfigValue()));
+                } catch (NumberFormatException e) {
+                    return DEFAULT_ADVANCE_DAYS;
+                }
+            })
+            .orElse(DEFAULT_ADVANCE_DAYS);
     }
 
     private TermBillingScheduleDto toDto(TermBillingSchedule s) {

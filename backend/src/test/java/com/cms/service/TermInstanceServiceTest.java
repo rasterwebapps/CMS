@@ -101,6 +101,37 @@ class TermInstanceServiceTest {
     }
 
     @Test
+    void shouldDeriveTermWindowsFromNonJuneStartDate() {
+        // This college's academic year start month varies year to year (follows the
+        // NEET/counselling calendar) — verify a Nov 1 start derives correct windows rather
+        // than the old hardcoded June/December pattern.
+        AcademicYear novemberStart = createAcademicYear(2L, "2026-2027",
+            LocalDate.of(2026, 11, 1), LocalDate.of(2027, 10, 31));
+
+        when(termInstanceRepository.save(any(TermInstance.class))).thenAnswer(inv -> {
+            TermInstance ti = inv.getArgument(0);
+            ti.setId(1L);
+            ti.setCreatedAt(Instant.now());
+            ti.setUpdatedAt(Instant.now());
+            return ti;
+        });
+
+        termInstanceService.createTermInstancesForAcademicYear(novemberStart);
+
+        ArgumentCaptor<TermInstance> captor = ArgumentCaptor.forClass(TermInstance.class);
+        verify(termInstanceRepository, org.mockito.Mockito.times(2)).save(captor.capture());
+
+        List<TermInstance> saved = captor.getAllValues();
+        TermInstance odd = saved.get(0);
+        assertThat(odd.getStartDate()).isEqualTo(LocalDate.of(2026, 11, 1));
+        assertThat(odd.getEndDate()).isEqualTo(LocalDate.of(2027, 4, 30));
+
+        TermInstance even = saved.get(1);
+        assertThat(even.getStartDate()).isEqualTo(LocalDate.of(2027, 5, 1));
+        assertThat(even.getEndDate()).isEqualTo(LocalDate.of(2027, 10, 31));
+    }
+
+    @Test
     void shouldGetTermInstancesByAcademicYear() {
         TermInstance ti = createTermInstance(1L, testAcademicYear, TermType.ODD,
             LocalDate.of(2026, 6, 1), LocalDate.of(2026, 11, 30), TermInstanceStatus.PLANNED);
@@ -166,6 +197,170 @@ class TermInstanceServiceTest {
         assertThat(ti.getStartDate()).isEqualTo(LocalDate.of(2026, 7, 1));
         assertThat(ti.getEndDate()).isEqualTo(LocalDate.of(2026, 12, 15));
         assertThat(ti.getStatus()).isEqualTo(TermInstanceStatus.PLANNED);
+    }
+
+    @Test
+    void shouldAllowTermDatesEqualToAcademicYearBoundaries() {
+        TermInstance ti = createTermInstance(1L, testAcademicYear, TermType.ODD,
+            LocalDate.of(2026, 7, 1), LocalDate.of(2026, 11, 30), TermInstanceStatus.PLANNED);
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(ti));
+        when(termInstanceRepository.save(any(TermInstance.class))).thenReturn(ti);
+
+        // testAcademicYear spans 2026-06-01 to 2027-05-31 — start/end here touch those exact bounds.
+        TermInstanceUpdateRequest request = new TermInstanceUpdateRequest(
+            LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31), null);
+
+        termInstanceService.updateTermInstance(1L, request);
+
+        assertThat(ti.getStartDate()).isEqualTo(LocalDate.of(2026, 6, 1));
+        assertThat(ti.getEndDate()).isEqualTo(LocalDate.of(2027, 5, 31));
+    }
+
+    @Test
+    void shouldRejectTermStartDateBeforeAcademicYearStart() {
+        TermInstance ti = createTermInstance(1L, testAcademicYear, TermType.ODD,
+            LocalDate.of(2026, 6, 1), LocalDate.of(2026, 11, 30), TermInstanceStatus.PLANNED);
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(ti));
+
+        TermInstanceUpdateRequest request = new TermInstanceUpdateRequest(
+            LocalDate.of(2026, 5, 1), null, null);
+
+        assertThatThrownBy(() -> termInstanceService.updateTermInstance(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("academic year");
+
+        verify(termInstanceRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectTermEndDateAfterAcademicYearEnd() {
+        TermInstance ti = createTermInstance(1L, testAcademicYear, TermType.EVEN,
+            LocalDate.of(2026, 12, 1), LocalDate.of(2027, 5, 31), TermInstanceStatus.PLANNED);
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(ti));
+
+        TermInstanceUpdateRequest request = new TermInstanceUpdateRequest(
+            null, LocalDate.of(2027, 6, 15), null);
+
+        assertThatThrownBy(() -> termInstanceService.updateTermInstance(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("academic year");
+
+        verify(termInstanceRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectTermEndDateNotAfterStartDate() {
+        TermInstance ti = createTermInstance(1L, testAcademicYear, TermType.ODD,
+            LocalDate.of(2026, 6, 1), LocalDate.of(2026, 11, 30), TermInstanceStatus.PLANNED);
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(ti));
+
+        TermInstanceUpdateRequest request = new TermInstanceUpdateRequest(
+            LocalDate.of(2026, 11, 30), LocalDate.of(2026, 11, 1), null);
+
+        assertThatThrownBy(() -> termInstanceService.updateTermInstance(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Term end date must be after start date");
+
+        verify(termInstanceRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectTermDatesOverlappingSiblingTerm() {
+        TermInstance odd = createTermInstance(1L, testAcademicYear, TermType.ODD,
+            LocalDate.of(2026, 6, 1), LocalDate.of(2026, 11, 30), TermInstanceStatus.PLANNED);
+        TermInstance even = createTermInstance(2L, testAcademicYear, TermType.EVEN,
+            LocalDate.of(2026, 12, 1), LocalDate.of(2027, 5, 31), TermInstanceStatus.PLANNED);
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(odd));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.EVEN))
+            .thenReturn(Optional.of(even));
+
+        // Stretching the ODD term's end into December collides with the EVEN term's Dec 1 start.
+        TermInstanceUpdateRequest request = new TermInstanceUpdateRequest(
+            null, LocalDate.of(2026, 12, 5), null);
+
+        assertThatThrownBy(() -> termInstanceService.updateTermInstance(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("EVEN");
+
+        verify(termInstanceRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldAllowGapBetweenSiblingTerms() {
+        TermInstance odd = createTermInstance(1L, testAcademicYear, TermType.ODD,
+            LocalDate.of(2026, 6, 1), LocalDate.of(2026, 11, 30), TermInstanceStatus.PLANNED);
+        TermInstance even = createTermInstance(2L, testAcademicYear, TermType.EVEN,
+            LocalDate.of(2026, 12, 15), LocalDate.of(2027, 5, 31), TermInstanceStatus.PLANNED);
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(odd));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.EVEN))
+            .thenReturn(Optional.of(even));
+        when(termInstanceRepository.save(any(TermInstance.class))).thenReturn(odd);
+
+        // ODD shrinks to end Nov 20, leaving a gap before EVEN starts Dec 15 — gaps are allowed.
+        TermInstanceUpdateRequest request = new TermInstanceUpdateRequest(
+            null, LocalDate.of(2026, 11, 20), null);
+
+        termInstanceService.updateTermInstance(1L, request);
+
+        assertThat(odd.getEndDate()).isEqualTo(LocalDate.of(2026, 11, 20));
+    }
+
+    @Test
+    void shouldAllowAssertTermWithinAcademicYearAtExactBoundaries() {
+        termInstanceService.assertTermWithinAcademicYear(
+            LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31),
+            LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31));
+        // No exception — inclusive boundary is allowed.
+    }
+
+    @Test
+    void shouldRejectAssertTermWithinAcademicYearWhenStartBeforeBounds() {
+        assertThatThrownBy(() -> termInstanceService.assertTermWithinAcademicYear(
+            LocalDate.of(2026, 5, 1), LocalDate.of(2026, 11, 30),
+            LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("academic year");
+    }
+
+    @Test
+    void shouldRejectAssertTermWithinAcademicYearWhenEndAfterBounds() {
+        assertThatThrownBy(() -> termInstanceService.assertTermWithinAcademicYear(
+            LocalDate.of(2026, 6, 1), LocalDate.of(2027, 6, 15),
+            LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("academic year");
+    }
+
+    @Test
+    void shouldRejectAssertTermWithinAcademicYearWhenEndNotAfterStart() {
+        assertThatThrownBy(() -> termInstanceService.assertTermWithinAcademicYear(
+            LocalDate.of(2026, 11, 30), LocalDate.of(2026, 11, 1),
+            LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Term end date must be after start date");
+    }
+
+    @Test
+    void shouldRejectAssertTermsDoNotOverlapWhenRangesIntersect() {
+        assertThatThrownBy(() -> termInstanceService.assertTermsDoNotOverlap(
+            LocalDate.of(2026, 6, 1), LocalDate.of(2026, 12, 5),
+            LocalDate.of(2026, 12, 1), LocalDate.of(2027, 5, 31), "EVEN"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("EVEN");
+    }
+
+    @Test
+    void shouldAllowAssertTermsDoNotOverlapWhenThereIsAGap() {
+        termInstanceService.assertTermsDoNotOverlap(
+            LocalDate.of(2026, 6, 1), LocalDate.of(2026, 11, 20),
+            LocalDate.of(2026, 12, 15), LocalDate.of(2027, 5, 31), "EVEN");
+        // No exception — a gap between the two terms is allowed.
     }
 
     @Test

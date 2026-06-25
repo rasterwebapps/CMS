@@ -85,6 +85,7 @@
                   <label class="field-label">Start Date</label>
                   @if (!isViewMode()) {
                     <input type="date" class="field-input" formControlName="startDate"
+                      [attr.min]="dateBounds().ayStartMin" [attr.max]="dateBounds().ayStartMax"
                       [class.field-input--error]="isInvalid('startDate')" />
                     @if (isInvalid('startDate')) { <p class="field-error">{{ getError('startDate') }}</p> }
                   } @else {
@@ -95,6 +96,7 @@
                   <label class="field-label">End Date</label>
                   @if (!isViewMode()) {
                     <input type="date" class="field-input" formControlName="endDate"
+                      [attr.min]="dateBounds().ayEndMin" [attr.max]="dateBounds().ayEndMax"
                       [class.field-input--error]="isInvalid('endDate')" />
                     @if (isInvalid('endDate')) { <p class="field-error">{{ getError('endDate') }}</p> }
                   } @else {
@@ -172,12 +174,13 @@
                     </div>
                   }
                   @if (!isViewMode()) {
-                    <p class="term-col__hint">First semester — typically 1st October to 31st March</p>
+                    <p class="term-col__hint">First semester — typically 1st June to 30th November</p>
                   }
                   <div class="field-group">
                     <label class="field-label">Start Date</label>
                     @if (!isViewMode()) {
                       <input type="date" class="field-input" formControlName="oddStartDate"
+                        [attr.min]="dateBounds().oddStartMin" [attr.max]="dateBounds().oddStartMax"
                         [class.field-input--error]="isInvalid('oddStartDate')" />
                       @if (isInvalid('oddStartDate')) { <p class="field-error">{{ getError('oddStartDate') }}</p> }
                     } @else {
@@ -188,6 +191,7 @@
                     <label class="field-label">End Date</label>
                     @if (!isViewMode()) {
                       <input type="date" class="field-input" formControlName="oddEndDate"
+                        [attr.min]="dateBounds().oddEndMin" [attr.max]="dateBounds().oddEndMax"
                         [class.field-input--error]="isInvalid('oddEndDate')" />
                       @if (isInvalid('oddEndDate')) { <p class="field-error">{{ getError('oddEndDate') }}</p> }
                     } @else {
@@ -250,12 +254,13 @@
                     </div>
                   }
                   @if (!isViewMode()) {
-                    <p class="term-col__hint">Second semester — typically 1st April to 30th September</p>
+                    <p class="term-col__hint">Second semester — typically 1st December to 31st May</p>
                   }
                   <div class="field-group">
                     <label class="field-label">Start Date</label>
                     @if (!isViewMode()) {
                       <input type="date" class="field-input" formControlName="evenStartDate"
+                        [attr.min]="dateBounds().evenStartMin" [attr.max]="dateBounds().evenStartMax"
                         [class.field-input--error]="isInvalid('evenStartDate')" />
                       @if (isInvalid('evenStartDate')) { <p class="field-error">{{ getError('evenStartDate') }}</p> }
                     } @else {
@@ -266,6 +271,7 @@
                     <label class="field-label">End Date</label>
                     @if (!isViewMode()) {
                       <input type="date" class="field-input" formControlName="evenEndDate"
+                        [attr.min]="dateBounds().evenEndMin" [attr.max]="dateBounds().evenEndMax"
                         [class.field-input--error]="isInvalid('evenEndDate')" />
                       @if (isInvalid('evenEndDate')) { <p class="field-error">{{ getError('evenEndDate') }}</p> }
                     } @else {
@@ -476,6 +482,7 @@
                     <label class="field-label">Fee Due Date</label>
                     @if (!isViewMode()) {
                       <input type="date" class="field-input" formControlName="oddDueDate"
+                        [attr.min]="dateBounds().oddDueMin" [attr.max]="dateBounds().oddDueMax"
                         [class.field-input--error]="isInvalid('oddDueDate')" />
                       @if (isInvalid('oddDueDate')) { <p class="field-error">{{ getError('oddDueDate') }}</p> }
                     } @else {
@@ -524,6 +531,7 @@
                     <label class="field-label">Fee Due Date</label>
                     @if (!isViewMode()) {
                       <input type="date" class="field-input" formControlName="evenDueDate"
+                        [attr.min]="dateBounds().evenDueMin" [attr.max]="dateBounds().evenDueMax"
                         [class.field-input--error]="isInvalid('evenDueDate')" />
                       @if (isInvalid('evenDueDate')) { <p class="field-error">{{ getError('evenDueDate') }}</p> }
                     } @else {

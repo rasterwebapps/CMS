@@ -136,6 +136,36 @@ export interface TermBillingScheduleRequest {
   graceDays: number;
 }
 
+export interface TermDatesRequest {
+  startDate: string;
+  endDate: string;
+}
+
+export interface TermBillingDetailsRequest {
+  dueDate: string;
+  lateFeeType: LateFeeType;
+  lateFeeAmount: number;
+  graceDays: number;
+}
+
+/**
+ * Updates the academic year's own dates together with both terms' dates and billing details in
+ * one request, so the backend can validate the full combined target state atomically. Submitting
+ * these as three separate sequential calls (AY, then terms, then billing) deadlocked whenever an
+ * edit shrank or widened the academic year and its term together in the same save — each call
+ * validated its own dates against the other's still-persisted, not-yet-updated value.
+ */
+export interface AcademicYearFullUpdateRequest {
+  name: string;
+  startDate: string;
+  endDate: string;
+  isCurrent: boolean;
+  oddTerm: TermDatesRequest;
+  evenTerm: TermDatesRequest;
+  oddBilling: TermBillingDetailsRequest;
+  evenBilling: TermBillingDetailsRequest;
+}
+
 export type EnrollmentStatus = 'ENROLLED' | 'COMPLETED' | 'DROPPED';
 
 export interface StudentTermEnrollment {
