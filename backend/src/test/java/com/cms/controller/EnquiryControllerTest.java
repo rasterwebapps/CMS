@@ -464,7 +464,7 @@ class EnquiryControllerTest {
 
     private EnquiryResponse createResponse(Long id, String name, EnquiryStatus status) {
         Instant now = Instant.now();
-        Long convertedStudentId = status == EnquiryStatus.CONVERTED || status == EnquiryStatus.ADMITTED ? 10L : null;
+        Long convertedStudentId = status == EnquiryStatus.ADMITTED ? 10L : null;
         return new EnquiryResponse(
             id, name, "ravi@email.com", "9876543210",
             1L, "B.Tech CS", null, null, null, null, LocalDate.of(2024, 6, 15),
@@ -475,7 +475,7 @@ class EnquiryControllerTest {
             convertedStudentId, null, null, null, null, null, null, null, null, null, null,
             now, now, null,
             LocalDate.of(2000, 1, 1), com.cms.model.enums.Gender.FEMALE,
-            null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null
         );
     }
 

@@ -214,21 +214,6 @@ class EnquiryPaymentServiceTest {
     }
 
     @Test
-    void shouldRejectPaymentForClosedStatus() {
-        testEnquiry.setStatus(EnquiryStatus.CLOSED);
-
-        EnquiryPaymentRequest request = new EnquiryPaymentRequest(
-            new BigDecimal("50000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null
-        );
-
-        when(enquiryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testEnquiry));
-
-        assertThatThrownBy(() -> enquiryPaymentService.collectPayment(1L, request, "cashier"))
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("Payment cannot be collected for enquiry status: CLOSED");
-    }
-
-    @Test
     void shouldCollectPaymentForAdmittedStatusWithoutRegressingStatus() {
         testEnquiry.setStatus(EnquiryStatus.ADMITTED);
 

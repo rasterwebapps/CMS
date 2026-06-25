@@ -58,6 +58,8 @@ class DashboardServiceTest {
     @Mock private EnquiryPaymentRepository enquiryPaymentRepository;
     @Mock private AdmissionRepository admissionRepository;
     @Mock private FeeExplorerService feeExplorerService;
+    @Mock private EnquiryPaymentService enquiryPaymentService;
+    @Mock private FeeFinalizationService feeFinalizationService;
 
     private DashboardService dashboardService;
 
@@ -69,7 +71,7 @@ class DashboardServiceTest {
             equipmentRepository, examinationRepository, paymentReceiptRepository,
             maintenanceRequestRepository, attendanceRepository,
             enquiryRepository, enquiryPaymentRepository, admissionRepository,
-            feeExplorerService
+            feeExplorerService, enquiryPaymentService, feeFinalizationService
         );
     }
 

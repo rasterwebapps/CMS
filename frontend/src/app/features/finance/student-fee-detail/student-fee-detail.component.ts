@@ -152,6 +152,11 @@ export class StudentFeeDetailComponent implements OnInit {
     return labels.length > 0 ? labels.join(', ') : '—';
   }
 
+  // Where the "Back" link returns to — set from the entry point (Collect Payment vs Fee
+  // Explorer) so cancelling or finishing a payment doesn't strand the user on the wrong screen.
+  protected readonly backRoute       = signal('/student-fees');
+  protected readonly backQueryParams = signal<Record<string, string>>({});
+
   private studentId!: number;
 
   constructor() {
@@ -168,7 +173,21 @@ export class StudentFeeDetailComponent implements OnInit {
   ngOnInit(): void {
     this.studentId = Number(this.route.snapshot.paramMap.get('studentId'));
     this.tourService.register('student-fee-detail', STUDENT_FEE_DETAIL_TOUR);
+    this.resolveBackTarget();
     this.loadAll();
+  }
+
+  private resolveBackTarget(): void {
+    const qp = this.route.snapshot.queryParamMap;
+    if (qp.get('returnTo') !== 'fee-collection') return;
+
+    this.backRoute.set('/fee-collection');
+    const restored: Record<string, string> = {};
+    for (const key of ['search', 'type', 'status']) {
+      const value = qp.get(key);
+      if (value) restored[key] = value;
+    }
+    this.backQueryParams.set(restored);
   }
 
   protected isOverdue(dueDate: string | null): boolean {

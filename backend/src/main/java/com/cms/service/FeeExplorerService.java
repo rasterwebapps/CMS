@@ -37,6 +37,7 @@ public class FeeExplorerService {
     private final EnquiryRepository enquiryRepository;
     private final EnquiryPaymentRepository enquiryPaymentRepository;
     private final AdmissionRepository admissionRepository;
+    private final PaymentCollectionService paymentCollectionService;
 
     public FeeExplorerService(StudentRepository studentRepository,
                                StudentFeeAllocationRepository allocationRepository,
@@ -45,7 +46,8 @@ public class FeeExplorerService {
                                PenaltyRepository penaltyRepository,
                                EnquiryRepository enquiryRepository,
                                EnquiryPaymentRepository enquiryPaymentRepository,
-                               AdmissionRepository admissionRepository) {
+                               AdmissionRepository admissionRepository,
+                               PaymentCollectionService paymentCollectionService) {
         this.studentRepository = studentRepository;
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
@@ -54,6 +56,7 @@ public class FeeExplorerService {
         this.enquiryRepository = enquiryRepository;
         this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.admissionRepository = admissionRepository;
+        this.paymentCollectionService = paymentCollectionService;
     }
 
     public FeeExplorerResponse search(String query) {
@@ -101,12 +104,14 @@ public class FeeExplorerService {
                     .subtract(enquiryCredit)
                     .max(BigDecimal.ZERO);
 
+                BigDecimal collectibleOutstanding = paymentCollectionService.getCollectibleOutstanding(student);
                 summaries.add(new FeeExplorerResponse.StudentFeeSummary(
                     student.getId(), student.getFullName(), student.getRollNumber(),
                     programName,
                     student.getProgram() != null ? student.getProgram().getDurationYears() : null,
                     allocation.getNetFee(), totalPaid, totalPending, totalPenalty,
-                    allocation.getStatus().name(), yearOfStudy, academicYearName
+                    allocation.getStatus().name(), yearOfStudy, academicYearName,
+                    collectibleOutstanding
                 ));
             } else {
                 summaries.add(new FeeExplorerResponse.StudentFeeSummary(
@@ -114,7 +119,7 @@ public class FeeExplorerService {
                     programName,
                     student.getProgram() != null ? student.getProgram().getDurationYears() : null,
                     BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                    "NOT_ALLOCATED", yearOfStudy, academicYearName
+                    "NOT_ALLOCATED", yearOfStudy, academicYearName, BigDecimal.ZERO
                 ));
             }
         }

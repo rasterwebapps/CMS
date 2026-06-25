@@ -89,8 +89,10 @@ public class FeeFinalizationService {
         Enquiry enquiry = enquiryRepository.findByConvertedStudentId(studentId)
             .orElseThrow(() -> new ResourceNotFoundException(
                 "No linked enquiry found for student: " + studentId));
+        return parseYearWiseFeesJson(enquiry.getYearWiseFees());
+    }
 
-        String json = enquiry.getYearWiseFees();
+    private List<YearFeeFromEnquiry> parseYearWiseFeesJson(String json) {
         if (json == null || json.isBlank()) {
             return List.of();
         }
@@ -115,6 +117,40 @@ public class FeeFinalizationService {
     /** Returns true if a fee allocation already exists for this student. */
     public boolean allocationExists(Long studentId) {
         return allocationRepository.existsByStudentId(studentId);
+    }
+
+    /**
+     * Closes the gap between admission (student record created) and fee collection becoming
+     * possible on the student side: called right at conversion time so the allocation exists
+     * immediately, instead of waiting for someone to first open the student's Fee Detail page
+     * (the previous, implicit trigger). A no-op when the enquiry's fees haven't been finalized
+     * yet (no year-wise fee schedule to build from) — the lazy fallback on Fee Detail still
+     * covers that ordering. Swallows failures rather than risking the admission transaction:
+     * this is a convenience step, not a precondition for admitting a student.
+     */
+    @Transactional
+    public void autoFinalizeFromEnquiry(Student student, Enquiry enquiry, String performedBy) {
+        if (allocationRepository.existsByStudentId(student.getId())) {
+            return;
+        }
+        List<YearFeeFromEnquiry> yearFees = parseYearWiseFeesJson(enquiry.getYearWiseFees());
+        if (yearFees.isEmpty()) {
+            return;
+        }
+        try {
+            BigDecimal totalFee = yearFees.stream()
+                .map(YearFeeFromEnquiry::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            StudentFeeAllocationRequest request = new StudentFeeAllocationRequest(
+                student.getId(), totalFee, null, null, null,
+                yearFees.stream()
+                    .map(f -> new StudentFeeAllocationRequest.YearFee(f.yearNumber(), f.amount()))
+                    .toList()
+            );
+            finalize(request, performedBy);
+        } catch (Exception e) {
+            // Fall back to the lazy auto-init on the student's Fee Detail page.
+        }
     }
 
     @Transactional

@@ -674,7 +674,7 @@ public class DataLoader implements CommandLineRunner {
         e3.setFinalizedBy("admin");
         enquiryRepository.save(e3);
 
-        Enquiry e4 = new Enquiry("Sneha Iyer",     "sneha.iyer@email.com",     "9000000004", diplomaProgram, LocalDate.of(2024, 12, 10), online,  EnquiryStatus.CONVERTED);
+        Enquiry e4 = new Enquiry("Sneha Iyer",     "sneha.iyer@email.com",     "9000000004", diplomaProgram, LocalDate.of(2024, 12, 10), online,  EnquiryStatus.ADMITTED);
         e4.setCourse(gnmCourse); e4.setRemarks("Online enquiry, documents submitted and converted to student.");
         e4.setConvertedStudentId(6L);
         enquiryRepository.save(e4);

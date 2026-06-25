@@ -211,6 +211,33 @@ public class PaymentCollectionService {
     }
 
     /**
+     * Public entry point for screens (e.g. Collect Payment list) that need the same
+     * currently-due figure used at actual collection time, without performing a collection.
+     * Returns ZERO for students with no finalized allocation.
+     */
+    public BigDecimal getCollectibleOutstanding(Student student) {
+        StudentFeeAllocation allocation = allocationRepository.findByStudentId(student.getId()).orElse(null);
+        if (allocation == null) {
+            return BigDecimal.ZERO;
+        }
+
+        List<SemesterFee> semesterFees = semesterFeeRepository
+            .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
+        int joiningStartYear = termInstanceService.resolveJoiningStartYear(student);
+
+        Optional<Enquiry> sourceEnquiry = enquiryRepository.findByConvertedStudentId(student.getId());
+        BigDecimal totalEnquiryCredit = sourceEnquiry
+            .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
+            .orElse(BigDecimal.ZERO);
+        BigDecimal alreadyAppliedCredit = sourceEnquiry
+            .map(e -> creditApplicationRepository.sumAmountAppliedByEnquiryId(e.getId()))
+            .orElse(BigDecimal.ZERO);
+        BigDecimal remainingEnquiryCredit = totalEnquiryCredit.subtract(alreadyAppliedCredit).max(BigDecimal.ZERO);
+
+        return calculateCollectibleOutstanding(semesterFees, remainingEnquiryCredit, sourceEnquiry, joiningStartYear);
+    }
+
+    /**
      * Sums outstanding only across installments that are currently open for collection
      * (their TermInstance is OPEN or LOCKED, not still PLANNED) — future terms are excluded
      * from the collectible cap even though they still count toward the student's full balance

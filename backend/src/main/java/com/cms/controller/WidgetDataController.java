@@ -693,19 +693,18 @@ public class WidgetDataController {
         long enquired   = sum(raw,
             EnquiryStatus.ENQUIRED, EnquiryStatus.INTERESTED, EnquiryStatus.NOT_INTERESTED,
             EnquiryStatus.FEES_FINALIZED, EnquiryStatus.FEES_PAID, EnquiryStatus.PARTIALLY_PAID,
-            EnquiryStatus.DOCUMENTS_SUBMITTED, EnquiryStatus.ADMITTED, EnquiryStatus.CONVERTED,
-            EnquiryStatus.CLOSED);
+            EnquiryStatus.DOCUMENTS_SUBMITTED, EnquiryStatus.ADMITTED);
         long interested = sum(raw,
             EnquiryStatus.INTERESTED, EnquiryStatus.FEES_FINALIZED, EnquiryStatus.FEES_PAID,
             EnquiryStatus.PARTIALLY_PAID, EnquiryStatus.DOCUMENTS_SUBMITTED,
-            EnquiryStatus.ADMITTED, EnquiryStatus.CONVERTED);
+            EnquiryStatus.ADMITTED);
         long finalized  = sum(raw,
             EnquiryStatus.FEES_FINALIZED, EnquiryStatus.FEES_PAID, EnquiryStatus.PARTIALLY_PAID,
-            EnquiryStatus.DOCUMENTS_SUBMITTED, EnquiryStatus.ADMITTED, EnquiryStatus.CONVERTED);
+            EnquiryStatus.DOCUMENTS_SUBMITTED, EnquiryStatus.ADMITTED);
         long paid       = sum(raw,
             EnquiryStatus.FEES_PAID, EnquiryStatus.DOCUMENTS_SUBMITTED,
-            EnquiryStatus.ADMITTED, EnquiryStatus.CONVERTED);
-        long admitted   = sum(raw, EnquiryStatus.ADMITTED, EnquiryStatus.CONVERTED);
+            EnquiryStatus.ADMITTED);
+        long admitted   = sum(raw, EnquiryStatus.ADMITTED);
 
         List<FunnelStage> stages = List.of(
             new FunnelStage("enquired",   "Enquiry",        enquired,   null),
@@ -839,7 +838,7 @@ public class WidgetDataController {
 
     /**
      * Agent leaderboard — top referral agents by leads & conversion %.
-     * Source: Enquiry.agent grouped, conversions = ADMITTED|CONVERTED.
+     * Source: Enquiry.agent grouped, conversions = ADMITTED.
      */
     @GetMapping("/agent-performance")
     @PreAuthorize("@perm.hasAny('ENQUIRY_VIEW','STUDENT_VIEW','REPORT_VIEW')")
@@ -856,7 +855,7 @@ public class WidgetDataController {
             long[] s = stats.computeIfAbsent(id, k -> new long[2]);
             s[0]++;
             EnquiryStatus st = e.getStatus();
-            if (st == EnquiryStatus.ADMITTED || st == EnquiryStatus.CONVERTED) s[1]++;
+            if (st == EnquiryStatus.ADMITTED) s[1]++;
         }
 
         List<AgentLeaderboardRow> rows = stats.entrySet().stream()
@@ -1214,17 +1213,16 @@ public class WidgetDataController {
             .map(FeeDemand::getOutstandingAmount).filter(v -> v.compareTo(BigDecimal.ZERO) > 0)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
         long activeEnquiries = enquiryRepository.findAll().stream()
-            .filter(e -> e.getStatus() != null && e.getStatus() != EnquiryStatus.CLOSED
+            .filter(e -> e.getStatus() != null
                       && e.getStatus() != EnquiryStatus.NOT_INTERESTED
-                      && e.getStatus() != EnquiryStatus.ADMITTED
-                      && e.getStatus() != EnquiryStatus.CONVERTED)
+                      && e.getStatus() != EnquiryStatus.ADMITTED)
             .count();
         var recentEnquiries = enquiryRepository.findAll().stream()
             .filter(e -> e.getCreatedAt() != null && !e.getCreatedAt().isBefore(thirtyDaysAgo)
                       && e.getCreatedAt().isBefore(tomorrowStart))
             .toList();
         long converted = recentEnquiries.stream()
-            .filter(e -> e.getStatus() == EnquiryStatus.ADMITTED || e.getStatus() == EnquiryStatus.CONVERTED)
+            .filter(e -> e.getStatus() == EnquiryStatus.ADMITTED)
             .count();
         int conversion30d = pctOfNullable(converted, Math.max(1L, recentEnquiries.size()));
 

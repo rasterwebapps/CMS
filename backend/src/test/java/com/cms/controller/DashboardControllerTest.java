@@ -95,7 +95,7 @@ class DashboardControllerTest {
     void shouldGetFrontOfficeDashboard() throws Exception {
         FrontOfficeDashboardResponse response = new FrontOfficeDashboardResponse(
             3L, 50L, 5L, BigDecimal.valueOf(12000), 4L, 8.0,
-            Map.of("ENQUIRED", 10L, "CONVERTED", 4L),
+            Map.of("ENQUIRED", 10L, "ADMITTED", 4L),
             List.of(new FrontOfficeEnquiryItem(1L, "John Doe", "B.Sc Nursing", "Walk-in", "ENQUIRED", java.time.LocalDate.now())),
             List.of("5 admissions pending review")
         );

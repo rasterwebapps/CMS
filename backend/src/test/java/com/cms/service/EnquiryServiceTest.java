@@ -106,6 +106,12 @@ class EnquiryServiceTest {
     @Mock
     private com.cms.repository.IntakeRuleRepository intakeRuleRepository;
 
+    @Mock
+    private EnquiryPaymentService enquiryPaymentService;
+
+    @Mock
+    private FeeFinalizationService feeFinalizationService;
+
     private EnquiryService enquiryService;
 
     private Program testProgram;
@@ -135,10 +141,15 @@ class EnquiryServiceTest {
             agentCommissionGuidelineRepository,
             staffReferrerRepository,
             cohortRepository,
-            intakeRuleRepository
+            intakeRuleRepository,
+            enquiryPaymentService,
+            feeFinalizationService
         );
         org.mockito.Mockito.lenient()
             .when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(java.math.BigDecimal.ZERO);
+        org.mockito.Mockito.lenient()
+            .when(enquiryPaymentService.getCollectibleOutstanding(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
             .thenReturn(java.math.BigDecimal.ZERO);
         org.mockito.Mockito.lenient()
             .when(enquiryPaymentRepository.paidTotalsForIds(org.mockito.ArgumentMatchers.any()))

@@ -134,7 +134,9 @@ export class FeeExplorerComponent implements OnInit {
   }
 
   protected viewDetails(student: StudentFeeSummary): void {
-    void this.router.navigate(['/student-fees', student.studentId]);
+    void this.router.navigate(['/student-fees', student.studentId], {
+      queryParams: { returnTo: 'fee-explorer' },
+    });
   }
 
   private load(search?: string): void {

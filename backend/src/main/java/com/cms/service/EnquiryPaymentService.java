@@ -47,7 +47,7 @@ public class EnquiryPaymentService {
         new TypeReference<>() {};
 
     private static final Set<String> PAYMENT_BLOCKED_STATUSES = Set.of(
-        "NOT_INTERESTED", "CANCELLED", "CLOSED", "CONVERTED"
+        "NOT_INTERESTED", "CANCELLED"
     );
 
     // Public: also reused by DashboardService to count fee-collection-eligible enquiries for the nav badge.
@@ -381,6 +381,14 @@ public class EnquiryPaymentService {
             if (sum.compareTo(BigDecimal.ZERO) > 0) return sum;
         }
         return enquiry.getFinalizedNetFee() != null ? enquiry.getFinalizedNetFee() : BigDecimal.ZERO;
+    }
+
+    /**
+     * Public entry point for screens (e.g. Collect Payment list) that need the same
+     * currently-due figure used at actual collection time, without performing a collection.
+     */
+    public BigDecimal getCollectibleOutstanding(Enquiry enquiry, BigDecimal totalPaid) {
+        return computeCollectibleTotalFee(enquiry).subtract(totalPaid).max(BigDecimal.ZERO);
     }
 
     /**

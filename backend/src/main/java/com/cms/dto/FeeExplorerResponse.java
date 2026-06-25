@@ -18,6 +18,7 @@ public record FeeExplorerResponse(
         BigDecimal totalPenalty,
         String allocationStatus,
         Integer yearOfStudy,
-        String academicYearName
+        String academicYearName,
+        BigDecimal collectibleOutstanding
     ) {}
 }

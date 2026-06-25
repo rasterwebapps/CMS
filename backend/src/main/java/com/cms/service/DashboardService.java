@@ -64,6 +64,8 @@ public class DashboardService {
     private final EnquiryPaymentRepository enquiryPaymentRepository;
     private final AdmissionRepository admissionRepository;
     private final FeeExplorerService feeExplorerService;
+    private final EnquiryPaymentService enquiryPaymentService;
+    private final FeeFinalizationService feeFinalizationService;
 
     public DashboardService(StudentRepository studentRepository,
                             FacultyRepository facultyRepository,
@@ -79,7 +81,9 @@ public class DashboardService {
                             EnquiryRepository enquiryRepository,
                             EnquiryPaymentRepository enquiryPaymentRepository,
                             AdmissionRepository admissionRepository,
-                            FeeExplorerService feeExplorerService) {
+                            FeeExplorerService feeExplorerService,
+                            EnquiryPaymentService enquiryPaymentService,
+                            FeeFinalizationService feeFinalizationService) {
         this.studentRepository = studentRepository;
         this.facultyRepository = facultyRepository;
         this.specialityRepository = specialityRepository;
@@ -95,6 +99,8 @@ public class DashboardService {
         this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.admissionRepository = admissionRepository;
         this.feeExplorerService = feeExplorerService;
+        this.enquiryPaymentService = enquiryPaymentService;
+        this.feeFinalizationService = feeFinalizationService;
     }
 
     /**
@@ -133,10 +139,11 @@ public class DashboardService {
 
     /**
      * Counts the exact same rows the Fee Collection screen lists: enquiries in a
-     * payment-eligible status with an outstanding balance, plus converted students
-     * with an outstanding balance. Mirrors EnquiryPaymentService's eligibility rule
-     * and FeeExplorerService's outstanding calculation so the nav badge never drifts
-     * from what the page actually shows.
+     * payment-eligible status with a currently-collectible balance (term-gated, and
+     * excluding enquiries already handed off to a converted student's finalized
+     * allocation), plus students with a currently-collectible balance. Uses the same
+     * collectibleOutstanding figures the screen itself renders, so the nav badge
+     * can't drift from what the page actually shows.
      */
     private long computeCollectPaymentEligibleCount() {
         List<Enquiry> eligibleEnquiries = enquiryRepository.findByStatusIn(EnquiryPaymentService.PAYMENT_ELIGIBLE_STATUSES);
@@ -145,13 +152,16 @@ public class DashboardService {
 
         long enquiryCount = eligibleEnquiries.stream()
             .filter(e -> e.getFinalizedNetFee() != null)
-            .filter(e -> e.getFinalizedNetFee()
-                .subtract(paidMap.getOrDefault(e.getId(), BigDecimal.ZERO))
+            .filter(e -> !(e.getConvertedStudentId() != null
+                && feeFinalizationService.allocationExists(e.getConvertedStudentId())))
+            .filter(e -> enquiryPaymentService
+                .getCollectibleOutstanding(e, paidMap.getOrDefault(e.getId(), BigDecimal.ZERO))
                 .compareTo(BigDecimal.ZERO) > 0)
             .count();
 
         long studentCount = feeExplorerService.search(null).students().stream()
-            .filter(s -> s.totalPending().compareTo(BigDecimal.ZERO) > 0)
+            .filter(s -> s.collectibleOutstanding() != null
+                && s.collectibleOutstanding().compareTo(BigDecimal.ZERO) > 0)
             .count();
 
         return enquiryCount + studentCount;
@@ -287,7 +297,7 @@ public class DashboardService {
         LocalDate weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate weekEnd   = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
         long conversionsThisWeek = enquiryRepository
-            .findByEnquiryDateBetweenAndStatus(weekStart, weekEnd, EnquiryStatus.CONVERTED)
+            .findByEnquiryDateBetweenAndStatus(weekStart, weekEnd, EnquiryStatus.ADMITTED)
             .size();
 
         // Conversion rate: conversions this week relative to all-time enquiries (per spec).

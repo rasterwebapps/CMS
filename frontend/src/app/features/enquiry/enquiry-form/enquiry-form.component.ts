@@ -81,7 +81,6 @@ const ENQUIRY_STATUS_LABELS: Record<string, string> = {
   DOCUMENTS_SUBMITTED: 'Documents Submitted',
   DOCUMENTS_VERIFIED: 'Documents Verified',
   ADMITTED: 'Admitted',
-  CLOSED: 'Closed',
 };
 
 const MIN_AUTOCOMPLETE_CHARS = 2;
@@ -217,7 +216,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
     { value: 'MANAGEMENT',  label: 'Management Quota' },
     { value: 'COUNSELLING', label: 'Counselling Quota' },
   ];
-  protected readonly statusOptions = ['ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'DOCUMENTS_VERIFIED', 'ADMITTED', 'CLOSED'];
+  protected readonly statusOptions = ['ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED', 'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'DOCUMENTS_VERIFIED', 'ADMITTED'];
   protected readonly statusLabelMap = ENQUIRY_STATUS_LABELS;
   /** Max date for enquiry date input — today as YYYY-MM-DD string */
   protected readonly maxDateStr: string = new Date().toISOString().split('T')[0];
@@ -445,7 +444,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
     }
   }
   private applyStatusLocks(status: string): void {
-    if (['ADMITTED', 'CLOSED'].includes(status)) {
+    if (status === 'ADMITTED') {
       void this.router.navigate(['/enquiries', this.itemId]);
       return;
     }

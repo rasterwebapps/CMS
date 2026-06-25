@@ -51,6 +51,8 @@ class FeeExplorerServiceTest {
     private EnquiryPaymentRepository enquiryPaymentRepository;
     @Mock
     private AdmissionRepository admissionRepository;
+    @Mock
+    private PaymentCollectionService paymentCollectionService;
 
     private FeeExplorerService service;
 
@@ -61,8 +63,12 @@ class FeeExplorerServiceTest {
     void setUp() {
         service = new FeeExplorerService(studentRepository, allocationRepository,
             semesterFeeRepository, installmentRepository, penaltyRepository,
-            enquiryRepository, enquiryPaymentRepository, admissionRepository);
-        when(admissionRepository.findByStudentIdIn(any())).thenReturn(List.of());
+            enquiryRepository, enquiryPaymentRepository, admissionRepository,
+            paymentCollectionService);
+        when(admissionRepository.findByStudentIdInFetchJoiningYear(any())).thenReturn(List.of());
+        org.mockito.Mockito.lenient()
+            .when(paymentCollectionService.getCollectibleOutstanding(any()))
+            .thenReturn(BigDecimal.ZERO);
 
         testProgram = new Program();
         testProgram.setId(1L);

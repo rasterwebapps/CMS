@@ -35,7 +35,6 @@ export const STATUS_LABELS: Record<string, string> = {
   DOCUMENTS_SUBMITTED:  'Docs Submitted',
   DOCUMENTS_VERIFIED:   'Docs Verified',
   ADMITTED:             'Admitted',
-  CLOSED:               'Closed',
 };
 
 @Component({
@@ -207,7 +206,7 @@ export class EnquiryListComponent implements OnInit {
 
   protected readonly ALL_STATUSES = [
     'ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED',
-    'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'DOCUMENTS_VERIFIED', 'ADMITTED', 'CLOSED',
+    'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'DOCUMENTS_VERIFIED', 'ADMITTED',
   ];
 
   // ── Per-status counts from full loaded data ───────────────────────────────
@@ -223,7 +222,7 @@ export class EnquiryListComponent implements OnInit {
   protected readonly totalCount     = computed(() => this.allEnquiries().length);
   protected readonly filteredCount  = computed(() => this.dataSource.filteredData.length);
   protected readonly pipelineCount  = computed(() =>
-    this.allEnquiries().filter(e => !['NOT_INTERESTED', 'CLOSED', 'ADMITTED'].includes(e.status)).length);
+    this.allEnquiries().filter(e => !['NOT_INTERESTED', 'ADMITTED'].includes(e.status)).length);
   protected readonly interestedCount = computed(() =>
     this.allEnquiries().filter(e => e.status === 'INTERESTED').length);
   protected readonly admittedCount  = computed(() =>
@@ -490,7 +489,6 @@ export class EnquiryListComponent implements OnInit {
       case 'ENQUIRED':       return ['INTERESTED', 'NOT_INTERESTED'];
       case 'NOT_INTERESTED': return ['INTERESTED'];
       case 'FEES_FINALIZED': return ['NOT_INTERESTED'];
-      case 'CLOSED':         return ['ENQUIRED'];
       default:               return [];
     }
   }
@@ -523,7 +521,7 @@ export class EnquiryListComponent implements OnInit {
   }
 
   protected canCollectPayment(item: Enquiry): boolean {
-    const blockedStatuses = ['NOT_INTERESTED', 'CANCELLED', 'CLOSED', 'ADMITTED', 'CONVERTED'];
+    const blockedStatuses = ['NOT_INTERESTED', 'CANCELLED', 'ADMITTED'];
     return item.finalizedNetFee !== null && item.finalizedNetFee !== undefined &&
       !blockedStatuses.includes(item.status) &&
       this.permissionService.has('FEE_COLLECT');
@@ -535,7 +533,7 @@ export class EnquiryListComponent implements OnInit {
   }
 
   protected canDelete(item: Enquiry): boolean { return item.status === 'ENQUIRED'; }
-  protected canEdit(item: Enquiry): boolean   { return !['ADMITTED', 'CLOSED'].includes(item.status); }
+  protected canEdit(item: Enquiry): boolean   { return item.status !== 'ADMITTED'; }
 
   // ── Actions ───────────────────────────────────────────────────────────────
   protected edit(item: Enquiry): void    { void this.router.navigate(['/enquiries', item.id, 'edit']); }

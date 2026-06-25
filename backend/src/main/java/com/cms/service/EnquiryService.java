@@ -79,7 +79,6 @@ public class EnquiryService {
         map.put(EnquiryStatus.ENQUIRED,       EnumSet.of(EnquiryStatus.INTERESTED, EnquiryStatus.NOT_INTERESTED));
         map.put(EnquiryStatus.NOT_INTERESTED, EnumSet.of(EnquiryStatus.INTERESTED));
         map.put(EnquiryStatus.FEES_FINALIZED, EnumSet.of(EnquiryStatus.NOT_INTERESTED));
-        map.put(EnquiryStatus.CLOSED,         EnumSet.of(EnquiryStatus.ENQUIRED));
         ALLOWED_MANUAL_TRANSITIONS = Map.copyOf(map);
     }
 
@@ -104,6 +103,8 @@ public class EnquiryService {
     private final StaffReferrerRepository staffReferrerRepository;
     private final CohortRepository cohortRepository;
     private final IntakeRuleRepository intakeRuleRepository;
+    private final EnquiryPaymentService enquiryPaymentService;
+    private final FeeFinalizationService feeFinalizationService;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
                            ProgramRepository programRepository,
@@ -125,7 +126,9 @@ public class EnquiryService {
                            AgentCommissionGuidelineRepository agentCommissionGuidelineRepository,
                            StaffReferrerRepository staffReferrerRepository,
                            CohortRepository cohortRepository,
-                           IntakeRuleRepository intakeRuleRepository) {
+                           IntakeRuleRepository intakeRuleRepository,
+                           EnquiryPaymentService enquiryPaymentService,
+                           FeeFinalizationService feeFinalizationService) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
         this.agentRepository = agentRepository;
@@ -147,6 +150,8 @@ public class EnquiryService {
         this.staffReferrerRepository = staffReferrerRepository;
         this.cohortRepository = cohortRepository;
         this.intakeRuleRepository = intakeRuleRepository;
+        this.enquiryPaymentService = enquiryPaymentService;
+        this.feeFinalizationService = feeFinalizationService;
     }
 
     /**
@@ -429,13 +434,13 @@ public class EnquiryService {
 
         Enquiry saved = enquiryRepository.save(enquiry);
         recordHistory(saved, oldStatus, EnquiryStatus.ADMITTED, "system", null);
+        feeFinalizationService.autoFinalizeFromEnquiry(student, saved, "system");
         return toResponse(saved);
     }
 
     /** Terminal statuses — enquiries in these states are excluded from the "always visible" pipeline set. */
     private static final Set<EnquiryStatus> TERMINAL_STATUSES = EnumSet.of(
             EnquiryStatus.ADMITTED,
-            EnquiryStatus.CLOSED,
             EnquiryStatus.NOT_INTERESTED);
 
     /**
@@ -621,6 +626,8 @@ public class EnquiryService {
         recordHistory(saved, oldStatus, EnquiryStatus.ADMITTED, performedBy,
             "Admitted: student ID " + savedStudent.getId() + ", admission number "
                 + savedStudent.getAdmissionNumber() + ", admission created");
+
+        feeFinalizationService.autoFinalizeFromEnquiry(savedStudent, saved, performedBy);
 
         BigDecimal paid = enquiryPaymentRepository.sumAmountPaidByEnquiryId(saved.getId());
         return toResponse(saved, paid, savedStudent.getAdmissionNumber());
@@ -964,6 +971,15 @@ public class EnquiryService {
     }
 
     private EnquiryResponse toResponse(Enquiry e, BigDecimal totalPaid, String admissionNumber) {
+        // ADMITTED is the terminal enquiry-side status — there is no separate CONVERTED state.
+        // Once the converted student has a finalized fee allocation, collection has moved to
+        // the student side — report nothing collectible here so this enquiry stops appearing
+        // in Collect Payment alongside its own student row.
+        boolean handedOffToStudentSide = e.getConvertedStudentId() != null
+            && feeFinalizationService.allocationExists(e.getConvertedStudentId());
+        BigDecimal collectibleOutstanding = e.getFinalizedNetFee() != null && !handedOffToStudentSide
+            ? enquiryPaymentService.getCollectibleOutstanding(e, totalPaid)
+            : null;
         return new EnquiryResponse(
             e.getId(),
             e.getName(),
@@ -1019,7 +1035,8 @@ public class EnquiryService {
             admissionNumber,
             e.getAdmissionSource(),
             e.getCommissionAmount(),
-            e.getGuidelineCommissionAmount()
+            e.getGuidelineCommissionAmount(),
+            collectibleOutstanding
         );
     }
 

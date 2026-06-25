@@ -218,6 +218,7 @@ export class FeeCollectionComponent implements OnInit {
   ngOnInit(): void {
     this.tourService.register('fee-collection', FEE_COLLECTION_TOUR);
     this.tourService.register('collect-balance', COLLECT_BALANCE_TOUR);
+    this.restoreFiltersFromQueryParams();
     this.loadAll(() => this.applyDeepLink());
 
     // Subscribe (not snapshot) so browser back/forward updates the view after data is loaded.
@@ -259,7 +260,7 @@ export class FeeCollectionComponent implements OnInit {
           .map(e => this.enquiryToEntry(e));
 
         const studentEntries: FeeEntry[] = (students.students ?? [])
-              .filter(s => this.hasCollectableOutstanding(s.totalPending))
+              .filter(s => this.hasCollectableOutstanding(s.collectibleOutstanding))
           .map(s => this.studentToEntry(s));
 
         const all = [...enquiryEntries, ...studentEntries]
@@ -294,19 +295,42 @@ export class FeeCollectionComponent implements OnInit {
     }
   }
 
+  // Restores search/type/status from the URL — used when returning here from a student's
+  // Fee Detail page (back link), so the list looks exactly like it did before navigating away.
+  private restoreFiltersFromQueryParams(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const search = params.get('search');
+    const type = params.get('type');
+    const status = params.get('status');
+    if (search) this.searchTerm.set(search);
+    if (type === 'ENQUIRY' || type === 'STUDENT' || type === 'ALL') this.filterType.set(type);
+    if (status === 'OVERDUE' || status === 'OUTSTANDING' || status === 'ALL') this.filterStatus.set(status);
+  }
+
+  // Carries the current filter state along when leaving for a student's Fee Detail page,
+  // so the back link there can return here with the list exactly as it was left.
+  private buildReturnQueryParams(): Record<string, string> {
+    const params: Record<string, string> = { returnTo: 'fee-collection' };
+    if (this.searchTerm()) params['search'] = this.searchTerm();
+    if (this.filterType() !== 'ALL') params['type'] = this.filterType();
+    if (this.filterStatus() !== 'ALL') params['status'] = this.filterStatus();
+    return params;
+  }
+
   private canCollectEnquiryBalance(enquiry: Enquiry): boolean {
-    // CONVERTED = student record + fee allocation exist; collection moves to the student side.
-    // ADMITTED  = student record created but fee allocation may not exist yet; keep on enquiry side.
-    const blockedStatuses = ['NOT_INTERESTED', 'CANCELLED', 'CLOSED', 'CONVERTED'];
+    // ADMITTED is the terminal enquiry-side status — there is no separate CONVERTED state.
+    // Once the converted student has a finalized allocation, collectibleOutstanding is null
+    // (see backend EnquiryService.toResponse), so it's excluded via getEnquiryOutstanding below.
+    const blockedStatuses = ['NOT_INTERESTED', 'CANCELLED'];
     return enquiry.finalizedNetFee !== null && enquiry.finalizedNetFee !== undefined &&
       !blockedStatuses.includes(enquiry.status) &&
       this.hasCollectableOutstanding(this.getEnquiryOutstanding(enquiry));
   }
 
+  // Capped to current + past dues — excludes installments whose term hasn't opened yet,
+  // even though those still count toward the enquiry's full finalizedNetFee balance.
   private getEnquiryOutstanding(enquiry: Enquiry): number {
-    const totalFee = enquiry.finalizedNetFee ?? 0;
-    const totalPaid = enquiry.totalPaidAmount ?? 0;
-    return this.normalizeMoney(Math.max(0, totalFee - totalPaid));
+    return this.normalizeMoney(enquiry.collectibleOutstanding ?? 0);
   }
 
   private enquiryToEntry(e: Enquiry): FeeEntry {
@@ -317,7 +341,7 @@ export class FeeCollectionComponent implements OnInit {
       rollNumber: null,
       programName: e.programName ?? '—', courseName: e.courseName,
       totalFee, totalPaid,
-      totalOutstanding: this.normalizeMoney(Math.max(0, totalFee - totalPaid)),
+      totalOutstanding: this.getEnquiryOutstanding(e),
       nextDueDate: null, nextDueLabel: null,
     };
   }
@@ -329,7 +353,9 @@ export class FeeCollectionComponent implements OnInit {
       programName: s.programName ?? '—', courseName: null,
       totalFee: this.normalizeMoney(s.totalFee),
       totalPaid: this.normalizeMoney(s.totalPaid),
-      totalOutstanding: this.normalizeMoney(s.totalPending),
+      // Capped to current + past dues — excludes not-yet-open future terms, even though
+      // those still count toward totalPending (the full balance shown in Fee Explorer).
+      totalOutstanding: this.normalizeMoney(s.collectibleOutstanding),
       nextDueDate: null, nextDueLabel: null,
     };
   }
@@ -341,7 +367,9 @@ export class FeeCollectionComponent implements OnInit {
     }
 
     if (entry.type === 'STUDENT') {
-      void this.router.navigate(['/student-fees', entry.id]);
+      void this.router.navigate(['/student-fees', entry.id], {
+        queryParams: this.buildReturnQueryParams(),
+      });
       return;
     }
 

@@ -64,5 +64,6 @@ public record EnquiryResponse(
     String admissionNumber,
     String admissionSource,
     BigDecimal commissionAmount,
-    BigDecimal guidelineCommissionAmount
+    BigDecimal guidelineCommissionAmount,
+    BigDecimal collectibleOutstanding
 ) {}

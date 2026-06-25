@@ -212,6 +212,7 @@ export interface StudentFeeSummary {
   allocationStatus: string;
   yearOfStudy?: number;
   academicYearName?: string;
+  collectibleOutstanding: number;
 }
 
 export interface EnquiryYearFee {

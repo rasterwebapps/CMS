@@ -54,6 +54,7 @@ export interface Enquiry {
   admissionSource?: 'ENQUIRY_FLOW' | 'DIRECT_ADMIT' | null;
   commissionAmount?: number | null;
   guidelineCommissionAmount?: number | null;
+  collectibleOutstanding: number | null;
 }
 
 export interface EnquiryRequest {
