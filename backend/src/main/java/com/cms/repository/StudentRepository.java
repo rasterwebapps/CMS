@@ -1,5 +1,6 @@
 package com.cms.repository;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -76,4 +77,10 @@ public interface StudentRepository extends JpaRepository<Student, Long>, JpaSpec
     long countByCohortIdAndAdmissionCategory(Long cohortId, AdmissionCategory admissionCategory);
     long countByCohortAdmissionAcademicYearIdAndAdmissionCategory(Long academicYearId, AdmissionCategory admissionCategory);
     long countByCohortAdmissionAcademicYearId(Long academicYearId);
+
+    @Query("SELECT s.status, COUNT(s) FROM Student s GROUP BY s.status")
+    List<Object[]> countByStatusGrouped();
+
+    @Query(value = "SELECT EXTRACT(YEAR FROM admission_date)::int, EXTRACT(MONTH FROM admission_date)::int, COUNT(*) FROM students WHERE admission_date BETWEEN :from AND :to GROUP BY 1, 2", nativeQuery = true)
+    List<Object[]> countAdmissionsByYearMonth(@Param("from") LocalDate from, @Param("to") LocalDate to);
 }

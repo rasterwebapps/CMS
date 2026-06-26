@@ -8,7 +8,6 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,12 +17,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.DashboardSummaryResponse;
 import com.cms.dto.DashboardTrendsResponse;
-import com.cms.dto.FeeExplorerResponse;
 import com.cms.dto.FrontOfficeDashboardResponse;
 import com.cms.model.Enquiry;
 import com.cms.model.EnquiryPayment;
-import com.cms.model.Program;
-import com.cms.model.ReferralType;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AttendanceRepository;
@@ -37,6 +33,7 @@ import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.MaintenanceRequestRepository;
 import com.cms.repository.ProgramRepository;
+import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.SubjectRepository;
 
@@ -57,7 +54,7 @@ class DashboardServiceTest {
     @Mock private EnquiryRepository enquiryRepository;
     @Mock private EnquiryPaymentRepository enquiryPaymentRepository;
     @Mock private AdmissionRepository admissionRepository;
-    @Mock private FeeExplorerService feeExplorerService;
+    @Mock private StudentFeeAllocationRepository allocationRepository;
     @Mock private EnquiryPaymentService enquiryPaymentService;
     @Mock private FeeFinalizationService feeFinalizationService;
 
@@ -71,7 +68,7 @@ class DashboardServiceTest {
             equipmentRepository, examinationRepository, paymentReceiptRepository,
             maintenanceRequestRepository, attendanceRepository,
             enquiryRepository, enquiryPaymentRepository, admissionRepository,
-            feeExplorerService, enquiryPaymentService, feeFinalizationService
+            allocationRepository, enquiryPaymentService, feeFinalizationService
         );
     }
 
@@ -88,15 +85,15 @@ class DashboardServiceTest {
         when(paymentReceiptRepository.count()).thenReturn(10L);
         when(maintenanceRequestRepository.count()).thenReturn(10L);
         when(attendanceRepository.count()).thenReturn(10L);
-        when(equipmentRepository.findAll()).thenReturn(List.of());
-        when(maintenanceRequestRepository.findAll()).thenReturn(List.of());
-        when(studentRepository.findAll()).thenReturn(List.of());
-        when(attendanceRepository.findAll()).thenReturn(List.of());
-        when(enquiryRepository.findAll()).thenReturn(List.of());
-        when(enquiryRepository.findByStatusIn(any())).thenReturn(List.of());
-        when(enquiryPaymentRepository.findAll()).thenReturn(List.of());
-        when(enquiryPaymentRepository.paidTotalsForIds(any())).thenReturn(Map.of());
-        when(feeExplorerService.search(null)).thenReturn(new FeeExplorerResponse(List.of()));
+        when(equipmentRepository.countByStatusGrouped()).thenReturn(List.of());
+        when(maintenanceRequestRepository.countByStatusGrouped()).thenReturn(List.of());
+        when(studentRepository.countByStatusGrouped()).thenReturn(List.of());
+        when(attendanceRepository.countByStatusGrouped()).thenReturn(List.of());
+        when(enquiryRepository.countByStatusGrouped()).thenReturn(List.of());
+        when(enquiryRepository.sumFinalizedNetFee()).thenReturn(BigDecimal.ZERO);
+        when(enquiryPaymentRepository.sumAllAmountPaid()).thenReturn(BigDecimal.ZERO);
+        when(enquiryRepository.countPaymentEligibleWithOutstanding()).thenReturn(0L);
+        when(allocationRepository.countFinalizedAllocations()).thenReturn(0L);
         when(paymentReceiptRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(List.of());
 
@@ -136,15 +133,15 @@ class DashboardServiceTest {
         when(paymentReceiptRepository.count()).thenReturn(0L);
         when(maintenanceRequestRepository.count()).thenReturn(0L);
         when(attendanceRepository.count()).thenReturn(0L);
-        when(equipmentRepository.findAll()).thenReturn(List.of());
-        when(maintenanceRequestRepository.findAll()).thenReturn(List.of());
-        when(studentRepository.findAll()).thenReturn(List.of());
-        when(attendanceRepository.findAll()).thenReturn(List.of());
-        when(enquiryRepository.findAll()).thenReturn(List.of());
-        when(enquiryRepository.findByStatusIn(any())).thenReturn(List.of());
-        when(enquiryPaymentRepository.findAll()).thenReturn(List.of());
-        when(enquiryPaymentRepository.paidTotalsForIds(any())).thenReturn(Map.of());
-        when(feeExplorerService.search(null)).thenReturn(new FeeExplorerResponse(List.of()));
+        when(equipmentRepository.countByStatusGrouped()).thenReturn(List.of());
+        when(maintenanceRequestRepository.countByStatusGrouped()).thenReturn(List.of());
+        when(studentRepository.countByStatusGrouped()).thenReturn(List.of());
+        when(attendanceRepository.countByStatusGrouped()).thenReturn(List.of());
+        when(enquiryRepository.countByStatusGrouped()).thenReturn(List.of());
+        when(enquiryRepository.sumFinalizedNetFee()).thenReturn(BigDecimal.ZERO);
+        when(enquiryPaymentRepository.sumAllAmountPaid()).thenReturn(BigDecimal.ZERO);
+        when(enquiryRepository.countPaymentEligibleWithOutstanding()).thenReturn(0L);
+        when(allocationRepository.countFinalizedAllocations()).thenReturn(0L);
         when(paymentReceiptRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(List.of());
 
@@ -157,8 +154,9 @@ class DashboardServiceTest {
 
     @Test
     void shouldReturnTrendsWithSixMonths() {
-        when(studentRepository.findAll()).thenReturn(List.of());
-        when(paymentReceiptRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
+        when(studentRepository.countAdmissionsByYearMonth(any(LocalDate.class), any(LocalDate.class)))
+            .thenReturn(List.of());
+        when(paymentReceiptRepository.sumAmountByYearMonth(any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(List.of());
 
         DashboardTrendsResponse trends = dashboardService.getTrends();
@@ -177,7 +175,7 @@ class DashboardServiceTest {
         when(admissionRepository.count()).thenReturn(0L);
         when(enquiryPaymentRepository.findByPaymentDate(today)).thenReturn(List.of());
         when(enquiryRepository.findByEnquiryDateBetweenAndStatus(any(LocalDate.class), any(LocalDate.class), any())).thenReturn(List.of());
-        when(enquiryRepository.findAll()).thenReturn(List.of(todayEnquiry));
+        when(enquiryRepository.countByStatusGrouped()).thenReturn(List.of());
 
         FrontOfficeDashboardResponse response = dashboardService.getFrontOfficeDashboard();
 
@@ -198,7 +196,7 @@ class DashboardServiceTest {
         when(admissionRepository.count()).thenReturn(0L);
         when(enquiryPaymentRepository.findByPaymentDate(today)).thenReturn(List.of());
         when(enquiryRepository.findByEnquiryDateBetweenAndStatus(any(LocalDate.class), any(LocalDate.class), any())).thenReturn(List.of());
-        when(enquiryRepository.findAll()).thenReturn(List.of());
+        when(enquiryRepository.countByStatusGrouped()).thenReturn(List.of());
 
         FrontOfficeDashboardResponse response = dashboardService.getFrontOfficeDashboard();
 
@@ -217,11 +215,10 @@ class DashboardServiceTest {
         when(admissionRepository.count()).thenReturn(0L);
         when(enquiryPaymentRepository.findByPaymentDate(today)).thenReturn(List.of(todayPayment));
         when(enquiryRepository.findByEnquiryDateBetweenAndStatus(any(LocalDate.class), any(LocalDate.class), any())).thenReturn(List.of());
-        when(enquiryRepository.findAll()).thenReturn(List.of());
+        when(enquiryRepository.countByStatusGrouped()).thenReturn(List.of());
 
         FrontOfficeDashboardResponse response = dashboardService.getFrontOfficeDashboard();
 
         assertThat(response.feeCollectedToday()).isEqualByComparingTo(BigDecimal.valueOf(5000));
     }
 }
-

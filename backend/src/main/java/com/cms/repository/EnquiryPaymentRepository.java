@@ -32,4 +32,7 @@ public interface EnquiryPaymentRepository extends JpaRepository<EnquiryPayment, 
     List<EnquiryPayment> findByPaymentDate(LocalDate paymentDate);
 
     Optional<EnquiryPayment> findByReceiptNumber(String receiptNumber);
+
+    @Query("SELECT COALESCE(SUM(p.amountPaid), 0) FROM EnquiryPayment p WHERE p.refundedAt IS NULL")
+    BigDecimal sumAllAmountPaid();
 }

@@ -19,13 +19,7 @@ import com.cms.dto.DashboardTrendPoint;
 import com.cms.dto.DashboardTrendsResponse;
 import com.cms.dto.FrontOfficeDashboardResponse;
 import com.cms.dto.FrontOfficeEnquiryItem;
-import com.cms.model.Attendance;
-import com.cms.model.Enquiry;
 import com.cms.model.EnquiryPayment;
-import com.cms.model.Equipment;
-import com.cms.model.MaintenanceRequest;
-import com.cms.model.Student;
-import com.cms.model.enums.AdmissionStatus;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AttendanceRepository;
@@ -39,6 +33,7 @@ import com.cms.repository.LabRepository;
 import com.cms.repository.MaintenanceRequestRepository;
 import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.ProgramRepository;
+import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.SubjectRepository;
 
@@ -63,7 +58,7 @@ public class DashboardService {
     private final EnquiryRepository enquiryRepository;
     private final EnquiryPaymentRepository enquiryPaymentRepository;
     private final AdmissionRepository admissionRepository;
-    private final FeeExplorerService feeExplorerService;
+    private final StudentFeeAllocationRepository allocationRepository;
     private final EnquiryPaymentService enquiryPaymentService;
     private final FeeFinalizationService feeFinalizationService;
 
@@ -81,7 +76,7 @@ public class DashboardService {
                             EnquiryRepository enquiryRepository,
                             EnquiryPaymentRepository enquiryPaymentRepository,
                             AdmissionRepository admissionRepository,
-                            FeeExplorerService feeExplorerService,
+                            StudentFeeAllocationRepository allocationRepository,
                             EnquiryPaymentService enquiryPaymentService,
                             FeeFinalizationService feeFinalizationService) {
         this.studentRepository = studentRepository;
@@ -98,7 +93,7 @@ public class DashboardService {
         this.enquiryRepository = enquiryRepository;
         this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.admissionRepository = admissionRepository;
-        this.feeExplorerService = feeExplorerService;
+        this.allocationRepository = allocationRepository;
         this.enquiryPaymentService = enquiryPaymentService;
         this.feeFinalizationService = feeFinalizationService;
     }
@@ -138,114 +133,93 @@ public class DashboardService {
     }
 
     /**
-     * Counts the exact same rows the Fee Collection screen lists: enquiries in a
-     * payment-eligible status with a currently-collectible balance (term-gated, and
-     * excluding enquiries already handed off to a converted student's finalized
-     * allocation), plus students with a currently-collectible balance. Uses the same
-     * collectibleOutstanding figures the screen itself renders, so the nav badge
-     * can't drift from what the page actually shows.
+     * Fast badge count for the Fee Collection nav badge.
+     * Enquiry side: native SQL — counts payment-eligible enquiries with finalized fees
+     * that still have an outstanding balance and haven't been handed off to a student allocation.
+     * Student side: counts FINALIZED allocations (fast single-row aggregate; avoids loading
+     * all students + N+1 per student that the previous feeExplorerService.search(null) caused).
      */
     private long computeCollectPaymentEligibleCount() {
-        List<Enquiry> eligibleEnquiries = enquiryRepository.findByStatusIn(EnquiryPaymentService.PAYMENT_ELIGIBLE_STATUSES);
-        List<Long> enquiryIds = eligibleEnquiries.stream().map(Enquiry::getId).toList();
-        Map<Long, BigDecimal> paidMap = enquiryPaymentRepository.paidTotalsForIds(enquiryIds);
-
-        long enquiryCount = eligibleEnquiries.stream()
-            .filter(e -> e.getFinalizedNetFee() != null)
-            .filter(e -> !(e.getConvertedStudentId() != null
-                && feeFinalizationService.allocationExists(e.getConvertedStudentId())))
-            .filter(e -> enquiryPaymentService
-                .getCollectibleOutstanding(e, paidMap.getOrDefault(e.getId(), BigDecimal.ZERO))
-                .compareTo(BigDecimal.ZERO) > 0)
-            .count();
-
-        long studentCount = feeExplorerService.search(null).students().stream()
-            .filter(s -> s.collectibleOutstanding() != null
-                && s.collectibleOutstanding().compareTo(BigDecimal.ZERO) > 0)
-            .count();
-
+        long enquiryCount = enquiryRepository.countPaymentEligibleWithOutstanding();
+        long studentCount = allocationRepository.countFinalizedAllocations();
         return enquiryCount + studentCount;
     }
 
     /**
      * Returns 6-month trend data for enrolments and fee collection.
+     * Uses two aggregated DB queries (instead of findAll + 6 per-month queries).
      */
     public DashboardTrendsResponse getTrends() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM yyyy");
         YearMonth current = YearMonth.now();
+        YearMonth fromMonth = current.minusMonths(5);
+
+        LocalDate fromDate = fromMonth.atDay(1);
+        LocalDate toDate = current.atEndOfMonth();
+
+        Map<YearMonth, Long> enrollmentByMonth = new LinkedHashMap<>();
+        for (Object[] row : studentRepository.countAdmissionsByYearMonth(fromDate, toDate)) {
+            enrollmentByMonth.put(
+                YearMonth.of(((Number) row[0]).intValue(), ((Number) row[1]).intValue()),
+                ((Number) row[2]).longValue());
+        }
+
+        Map<YearMonth, Long> feesByMonth = new LinkedHashMap<>();
+        for (Object[] row : paymentReceiptRepository.sumAmountByYearMonth(fromDate, toDate)) {
+            feesByMonth.put(
+                YearMonth.of(((Number) row[0]).intValue(), ((Number) row[1]).intValue()),
+                ((Number) row[2]).longValue());
+        }
 
         List<DashboardTrendPoint> enrolmentTrend = new ArrayList<>();
         List<DashboardTrendPoint> feeCollectionTrend = new ArrayList<>();
-
-        List<Student> allStudents = studentRepository.findAll();
-
         for (int i = 5; i >= 0; i--) {
             YearMonth ym = current.minusMonths(i);
             String label = ym.format(formatter);
-
-            long enrolled = allStudents.stream()
-                .filter(s -> s.getAdmissionDate() != null
-                    && YearMonth.from(s.getAdmissionDate()).equals(ym))
-                .count();
-            enrolmentTrend.add(new DashboardTrendPoint(label, enrolled));
-
-            LocalDate start = ym.atDay(1);
-            LocalDate end = ym.atEndOfMonth();
-            BigDecimal monthlyFees = paymentReceiptRepository.findByPaymentDateBetween(start, end).stream()
-                .map(com.cms.model.PaymentReceipt::getAmountPaid)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-            feeCollectionTrend.add(new DashboardTrendPoint(label, monthlyFees.longValue()));
+            enrolmentTrend.add(new DashboardTrendPoint(label, enrollmentByMonth.getOrDefault(ym, 0L)));
+            feeCollectionTrend.add(new DashboardTrendPoint(label, feesByMonth.getOrDefault(ym, 0L)));
         }
 
         return new DashboardTrendsResponse(enrolmentTrend, feeCollectionTrend);
     }
 
     private Map<String, Long> buildEquipmentStatusMap() {
-        List<Equipment> allEquipment = equipmentRepository.findAll();
         Map<String, Long> map = new LinkedHashMap<>();
-        for (Equipment eq : allEquipment) {
-            String status = eq.getStatus().name();
-            map.merge(status, 1L, Long::sum);
+        for (Object[] row : equipmentRepository.countByStatusGrouped()) {
+            map.put(row[0].toString(), (Long) row[1]);
         }
         return map;
     }
 
     private Map<String, Long> buildMaintenanceStatusMap() {
-        List<MaintenanceRequest> allMaintenance = maintenanceRequestRepository.findAll();
         Map<String, Long> map = new LinkedHashMap<>();
-        for (MaintenanceRequest mr : allMaintenance) {
-            String status = mr.getStatus().name();
-            map.merge(status, 1L, Long::sum);
+        for (Object[] row : maintenanceRequestRepository.countByStatusGrouped()) {
+            map.put(row[0].toString(), (Long) row[1]);
         }
         return map;
     }
 
     private Map<String, Long> buildStudentStatusMap() {
-        List<Student> allStudents = studentRepository.findAll();
         Map<String, Long> map = new LinkedHashMap<>();
-        for (Student s : allStudents) {
-            String status = s.getStatus().name();
-            map.merge(status, 1L, Long::sum);
+        for (Object[] row : studentRepository.countByStatusGrouped()) {
+            map.put(row[0].toString(), (Long) row[1]);
         }
         return map;
     }
 
     private Map<String, Long> buildAttendanceStatusMap() {
-        List<Attendance> allAttendance = attendanceRepository.findAll();
         Map<String, Long> map = new LinkedHashMap<>();
-        for (Attendance a : allAttendance) {
-            String status = a.getStatus().name();
-            map.merge(status, 1L, Long::sum);
+        for (Object[] row : attendanceRepository.countByStatusGrouped()) {
+            map.put(row[0].toString(), (Long) row[1]);
         }
         return map;
     }
 
     private Map<String, Long> buildEnquiryFunnelMap() {
         Map<String, Long> map = new LinkedHashMap<>();
-        enquiryRepository.findAll().forEach(e -> {
-            String status = e.getStatus().name();
-            map.merge(status, 1L, Long::sum);
-        });
+        for (Object[] row : enquiryRepository.countByStatusGrouped()) {
+            map.put(row[0].toString(), (Long) row[1]);
+        }
         return map;
     }
 
@@ -259,14 +233,8 @@ public class DashboardService {
     }
 
     private BigDecimal computeFeeOutstanding() {
-        BigDecimal totalFinalized = enquiryRepository.findAll().stream()
-            .map(e -> e.getFinalizedNetFee() != null ? e.getFinalizedNetFee() : BigDecimal.ZERO)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalPaid = enquiryPaymentRepository.findAll().stream()
-            .map(EnquiryPayment::getAmountPaid)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
+        BigDecimal totalFinalized = enquiryRepository.sumFinalizedNetFee();
+        BigDecimal totalPaid = enquiryPaymentRepository.sumAllAmountPaid();
         BigDecimal outstanding = totalFinalized.subtract(totalPaid);
         return outstanding.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : outstanding;
     }
@@ -304,7 +272,7 @@ public class DashboardService {
         // This shows what fraction of the total pipeline converted this week.
         double conversionRate = (double) conversionsThisWeek / Math.max(totalEnquiryCount, 1) * 100;
 
-        // Enquiry funnel (reuse existing logic)
+        // Enquiry funnel — compute once and reuse below
         Map<String, Long> enquiryFunnel = buildEnquiryFunnelMap();
 
         // Today's enquiries (up to 10), mapped to lightweight items
@@ -320,8 +288,8 @@ public class DashboardService {
             ))
             .toList();
 
-        // Pending action items (human-readable strings)
-        List<String> pendingActionItems = buildPendingActionItems(totalAdmissions, feeCollectedToday);
+        // Pending action items (human-readable strings) — pass already-computed funnel
+        List<String> pendingActionItems = buildPendingActionItems(totalAdmissions, feeCollectedToday, enquiryFunnel);
 
         return new FrontOfficeDashboardResponse(
             todayEnquiryCount,
@@ -336,12 +304,11 @@ public class DashboardService {
         );
     }
 
-    private List<String> buildPendingActionItems(long pendingAdmissionsCount, BigDecimal feeCollectedToday) {
+    private List<String> buildPendingActionItems(long pendingAdmissionsCount, BigDecimal feeCollectedToday, Map<String, Long> funnel) {
         List<String> items = new ArrayList<>();
         if (pendingAdmissionsCount > 0) {
             items.add(pendingAdmissionsCount + " " + pluralize(pendingAdmissionsCount, "admission", "admissions") + " pending review");
         }
-        Map<String, Long> funnel = buildEnquiryFunnelMap();
         long docsSubmitted = funnel.getOrDefault(EnquiryStatus.DOCUMENTS_SUBMITTED.name(), 0L);
         if (docsSubmitted > 0) {
             items.add(docsSubmitted + " " + pluralize(docsSubmitted, "application", "applications") + " with documents submitted — awaiting conversion");

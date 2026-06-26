@@ -35,4 +35,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
                                                @Param("status") AttendanceStatus status);
 
     boolean existsByStudentIdAndSubjectIdAndDateAndType(Long studentId, Long subjectId, LocalDate date, AttendanceType type);
+
+    @Query("SELECT a.status, COUNT(a) FROM Attendance a GROUP BY a.status")
+    List<Object[]> countByStatusGrouped();
 }

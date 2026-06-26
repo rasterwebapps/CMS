@@ -27,4 +27,7 @@ public interface StudentFeeAllocationRepository extends JpaRepository<StudentFee
     List<StudentFeeAllocation> findByStatus(FeeAllocationStatus status);
 
     boolean existsByStudentId(Long studentId);
+
+    @Query("SELECT COUNT(a) FROM StudentFeeAllocation a WHERE a.status = com.cms.model.enums.FeeAllocationStatus.FINALIZED")
+    long countFinalizedAllocations();
 }

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import com.cms.model.Equipment;
 import com.cms.model.enums.EquipmentCategory;
@@ -26,4 +27,7 @@ public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
     boolean existsByAssetCodeIgnoreCaseAndIdNot(String assetCode, Long id);
 
     List<Equipment> findByLabIdAndCategory(Long labId, EquipmentCategory category);
+
+    @Query("SELECT e.status, COUNT(e) FROM Equipment e GROUP BY e.status")
+    List<Object[]> countByStatusGrouped();
 }

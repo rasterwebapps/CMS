@@ -30,4 +30,7 @@ public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceR
 
     @Query("SELECT mr FROM MaintenanceRequest mr WHERE mr.status <> 'COMPLETED' AND mr.status <> 'CANCELLED'")
     List<MaintenanceRequest> findPendingRequests();
+
+    @Query("SELECT m.status, COUNT(m) FROM MaintenanceRequest m GROUP BY m.status")
+    List<Object[]> countByStatusGrouped();
 }
