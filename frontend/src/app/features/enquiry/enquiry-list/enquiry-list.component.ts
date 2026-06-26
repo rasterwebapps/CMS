@@ -351,13 +351,19 @@ export class EnquiryListComponent implements OnInit {
     this.academicYearService.getAllAcademicYears().subscribe({
       next: (years) => {
         this.allAcademicYears.set(years);
-        // Default to "current + next" unless the user's own filter state was restored from the URL.
-        if (!this.academicYearsRestoredFromUrl) {
+        // Apply the default academic year only on a genuinely fresh page load (no URL state at
+        // all). If the URL already has an explicit date range but no academic-year param — a URL
+        // snapshot taken before the years subscription completed — imposing the default year on
+        // top of a narrow date range silently excludes every record, producing "0 results".
+        if (!this.academicYearsRestoredFromUrl && !dateWasRestoredFromUrl) {
           this.selectedAcademicYearIds.set(this.defaultAcademicYearIds());
         }
         if (!dateWasRestoredFromUrl) {
           this.syncDateRangeToSelectedYears();
         }
+        // Keep the URL in sync with whatever defaults were just applied so any future
+        // back-navigation restores the exact filter state (including academicYearIds).
+        this.syncUrlFilters();
         this.load();
       },
       error: () => this.load(), // fall back to whatever date range is already set
