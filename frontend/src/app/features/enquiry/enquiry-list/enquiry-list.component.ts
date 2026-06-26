@@ -77,7 +77,7 @@ export class EnquiryListComponent implements OnInit {
   protected readonly dataSource      = new MatTableDataSource<Enquiry>([]);
   protected readonly loading         = signal(false);
   protected readonly searchValue     = signal('');
-  protected readonly selectedStatuses      = signal<Set<string>>(new Set());
+  protected readonly selectedStatuses      = signal<Set<string>>(new Set(['ENQUIRED', 'INTERESTED']));
   protected readonly selectedProgramId     = signal<number | null>(null);
   protected readonly selectedCourseId      = signal<number | null>(null);
   protected readonly selectedStudentType   = signal<string | null>(null);
