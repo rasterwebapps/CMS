@@ -537,7 +537,12 @@
                 <tbody>
                   @for (ctrl of yearFeesArray.controls; track $index) {
                     <tr [formGroup]="$any(ctrl)">
-                      <td class="la-fee-year-label">Year {{ $index + 1 }}</td>
+                      <td class="la-fee-year-label">
+                        Year {{ $index + 1 }}
+                        @if (academicYearLabelForRow($index)) {
+                          <span class="la-fee-year-ay">({{ academicYearLabelForRow($index) }})</span>
+                        }
+                      </td>
                       <td class="la-fee-computed la-fee-guideline la-td-right">
                         {{ ctrl.get('masterFee')?.value ? (ctrl.get('masterFee')?.value | inr:false:false) : '—' }}
                       </td>

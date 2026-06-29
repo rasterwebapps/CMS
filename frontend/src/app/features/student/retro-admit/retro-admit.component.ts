@@ -300,7 +300,9 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
     this.form.get('joiningAcademicYearId')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(id => {
-        this.form.get('yearOfStudy')?.setValue(this.computeYearOfStudy(id), { emitEvent: false });
+        const yos = this.computeYearOfStudy(id);
+        this.form.get('yearOfStudy')?.setValue(yos, { emitEvent: false });
+        this.updateYearFeeRequiredness(yos);
       });
 
     this.yearFeesArray.valueChanges
@@ -357,14 +359,29 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
   private rebuildYearFees(count: number): void {
     const arr = this.yearFeesArray;
     while (arr.length > 0) arr.removeAt(0);
+    const yos = this.form.get('yearOfStudy')?.value ?? 1;
     for (let i = 1; i <= count; i++) {
       arr.push(this.fb.group({
         yearNumber: [i],
         masterFee:  [null as number | null],
-        actualFee:  [null as number | null, [Validators.required, Validators.min(0.01)]],
+        actualFee:  [null as number | null, i <= yos ? [Validators.required, Validators.min(0.01)] : []],
       }, { validators: this.actualFeeNotGreaterThanGuideline }));
     }
     this.tryLoadFeeGuideline();
+  }
+
+  private updateYearFeeRequiredness(yearOfStudy: number): void {
+    const arr = this.yearFeesArray;
+    for (let i = 0; i < arr.length; i++) {
+      const ctrl = arr.at(i).get('actualFee');
+      if (!ctrl) continue;
+      if (i + 1 <= yearOfStudy) {
+        ctrl.setValidators([Validators.required, Validators.min(0.01)]);
+      } else {
+        ctrl.clearValidators();
+      }
+      ctrl.updateValueAndValidity({ emitEvent: false });
+    }
   }
 
   private actualFeeNotGreaterThanGuideline(group: AbstractControl) {
@@ -608,6 +625,18 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
     return this.fifoCollected().get(yearNumber) ?? 0;
   }
 
+  protected academicYearLabelForRow(rowIndex: number): string {
+    const joiningYearId = this.form.get('joiningAcademicYearId')?.value as number | null;
+    if (!joiningYearId) return '';
+    const joiningYear = this.academicYears().find(y => y.id === joiningYearId);
+    if (!joiningYear) return '';
+    const joinStart = parseInt(joiningYear.name.substring(0, 4), 10);
+    if (isNaN(joinStart)) return '';
+    const targetStart = joinStart + rowIndex;
+    const targetEnd = targetStart + 1;
+    return `${targetStart}–${String(targetEnd).slice(-2)}`;
+  }
+
   protected get totalGuidelineFee(): number {
     return this.yearFeesArray.controls.reduce((sum, ctrl) => sum + +(ctrl.get('masterFee')?.value || 0), 0);
   }
@@ -658,9 +687,10 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
     const v = this.form.value;
 
     const yearFees = (v.yearFees as { yearNumber: number; masterFee: number | null; actualFee: number | null }[])
+      .filter(yf => (yf.actualFee ?? 0) > 0)
       .map(yf => ({
         yearNumber: yf.yearNumber,
-        totalFee:   yf.actualFee ?? 0,
+        totalFee:   yf.actualFee!,
       }));
 
     const payments = (v.payments as {

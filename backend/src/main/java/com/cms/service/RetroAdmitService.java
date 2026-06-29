@@ -55,11 +55,6 @@ import com.cms.repository.TermBillingScheduleRepository;
 @Service
 public class RetroAdmitService {
 
-    private static final String[] ORDINALS = {
-        "First", "Second", "Third", "Fourth", "Fifth", "Sixth",
-        "Seventh", "Eighth", "Ninth", "Tenth", "Eleventh", "Twelfth"
-    };
-
     private final StudentRepository studentRepository;
     private final AdmissionRepository admissionRepository;
     private final EnquiryRepository enquiryRepository;
@@ -296,10 +291,9 @@ public class RetroAdmitService {
                 }
 
                 if (isYearly) {
-                    int globalSeq = yearFee.yearNumber();
                     semesterFeeRepository.save(new SemesterFee(
                             savedAllocation, yearFee.yearNumber(),
-                            "Year " + yearFee.yearNumber() + " - " + ordinalLabel(globalSeq),
+                            "Year " + yearFee.yearNumber() + " - Annual",
                             yearFee.totalFee(),
                             oddDueDate != null ? oddDueDate : LocalDate.of(targetStartYear, 6, 30),
                             1
@@ -307,19 +301,17 @@ public class RetroAdmitService {
                 } else {
                     BigDecimal sem1 = yearFee.totalFee().divide(BigDecimal.TWO, 0, RoundingMode.FLOOR);
                     BigDecimal sem2 = yearFee.totalFee().subtract(sem1);
-                    int globalSem1 = (yearFee.yearNumber() - 1) * 2 + 1;
-                    int globalSem2 = globalSem1 + 1;
 
                     semesterFeeRepository.save(new SemesterFee(
                             savedAllocation, yearFee.yearNumber(),
-                            "Year " + yearFee.yearNumber() + " - " + ordinalLabel(globalSem1),
+                            "Year " + yearFee.yearNumber() + " - First Semester",
                             sem1,
                             oddDueDate != null ? oddDueDate : LocalDate.of(targetStartYear, 6, 30),
                             1
                     ));
                     semesterFeeRepository.save(new SemesterFee(
                             savedAllocation, yearFee.yearNumber(),
-                            "Year " + yearFee.yearNumber() + " - " + ordinalLabel(globalSem2),
+                            "Year " + yearFee.yearNumber() + " - Second Semester",
                             sem2,
                             evenDueDate != null ? evenDueDate : LocalDate.of(targetStartYear, 11, 30),
                             2
@@ -396,11 +388,6 @@ public class RetroAdmitService {
                 paymentRowsCreated,
                 totalHistoricalPaid
         );
-    }
-
-    private static String ordinalLabel(int seq) {
-        if (seq >= 1 && seq <= ORDINALS.length) return ORDINALS[seq - 1] + " Installment";
-        return "Installment " + seq;
     }
 
     private static LocalDate shiftDueYear(LocalDate base, int fromYear, int toYear) {
