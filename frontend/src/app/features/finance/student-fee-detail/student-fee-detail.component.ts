@@ -66,6 +66,7 @@ export class StudentFeeDetailComponent implements OnInit {
   protected readonly saving            = signal(false);
   protected readonly denominationValid = signal(false);
   protected readonly receipt           = signal<ReceiptDisplayData | null>(null);
+  protected readonly advanceMode       = signal(false);
 
   protected readonly paymentModes = PAYMENT_MODES;
   protected readonly getPaymentModeLabel = getPaymentModeLabel;
@@ -103,9 +104,18 @@ export class StudentFeeDetailComponent implements OnInit {
   protected readonly totalOutstanding = computed(() =>
     this.semesterRows().reduce((s, r) => s + r.outstanding, 0)
   );
-  protected readonly amountMax = computed<number | null>(() =>
-    this.semesterRows().length > 0 ? this.totalOutstanding() : null
+  protected readonly collectibleNowOutstanding = computed(() =>
+    (this.allocation()?.installmentFees ?? [])
+      .filter(s => s.collectibleNow)
+      .reduce((sum, s) => sum + s.pendingAmount, 0)
   );
+  protected readonly hasAdvanceScope = computed(() =>
+    this.totalOutstanding() > 0 && this.totalOutstanding() > this.collectibleNowOutstanding()
+  );
+  protected readonly amountMax = computed<number | null>(() => {
+    if (this.semesterRows().length === 0) return null;
+    return this.advanceMode() ? this.totalOutstanding() : this.collectibleNowOutstanding();
+  });
   protected readonly nextDueSemester = computed(() =>
     this.allocation()?.installmentFees.find(sf => sf.pendingAmount > 0) ?? null
   );
@@ -195,8 +205,17 @@ export class StudentFeeDetailComponent implements OnInit {
   }
 
   // ── Payment form ──────────────────────────────────────────────────────────────
+  protected toggleAdvanceMode(): void {
+    const next = !this.advanceMode();
+    this.advanceMode.set(next);
+    this.updateAmountValidators();
+    const prefillAmt = next ? this.totalOutstanding() : this.collectibleNowOutstanding();
+    if (prefillAmt > 0) this.form.patchValue({ amount: prefillAmt });
+  }
+
   protected cancelForm(): void {
     this.form.reset();
+    this.advanceMode.set(false);
     this.denominationValid.set(false);
     this.prefillForm();
   }
@@ -235,7 +254,11 @@ export class StudentFeeDetailComponent implements OnInit {
     this.saving.set(true);
     this.showConfirmModal.set(false);
 
-    this.finance.collectPayment(this.studentId, req).subscribe({
+    const collect$ = this.advanceMode()
+      ? this.finance.collectAdvancePayment(this.studentId, req)
+      : this.finance.collectPayment(this.studentId, req);
+
+    collect$.subscribe({
       next: (res) => {
         this.saving.set(false);
         const alloc = this.allocation();
@@ -268,6 +291,7 @@ export class StudentFeeDetailComponent implements OnInit {
   protected doneWithReceipt(): void {
     this.receipt.set(null);
     this.form.reset();
+    this.advanceMode.set(false);
     this.denominationValid.set(false);
     this.loadAll();
   }
@@ -292,8 +316,8 @@ export class StudentFeeDetailComponent implements OnInit {
 
   // ── Data loading ──────────────────────────────────────────────────────────────
   private prefillForm(): void {
-    const nextSem = this.semesterRows().find(r => r.outstanding > 0);
-    const prefill = nextSem ? nextSem.outstanding : this.totalOutstanding();
+    const collectible = this.allocation()?.installmentFees.find(s => s.collectibleNow && s.pendingAmount > 0);
+    const prefill = collectible ? collectible.pendingAmount : this.collectibleNowOutstanding();
     this.form.patchValue({
       paymentDate: new Date().toISOString().split('T')[0],
       amount: prefill > 0 ? prefill : null,

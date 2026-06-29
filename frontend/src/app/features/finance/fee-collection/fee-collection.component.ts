@@ -1,15 +1,15 @@
-import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, effect, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DecimalPipe } from '@angular/common';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
-import { forkJoin } from 'rxjs';
+import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { FinanceService } from '../finance.service';
 import { Enquiry, EnquiryPaymentRequest, EnquiryYearWiseFeeStatusResponse } from '../../enquiry/enquiry.model';
@@ -48,6 +48,8 @@ export interface FeeEntry {
   nextDueLabel: string | null;
 }
 
+const DEFAULT_PAGE_SIZE = 25;
+
 @Component({
   selector: 'app-fee-collection',
   standalone: true,
@@ -68,7 +70,7 @@ export interface FeeEntry {
   templateUrl: './fee-collection.component.html',
   styleUrl: './fee-collection.component.scss',
 })
-export class FeeCollectionComponent implements OnInit {
+export class FeeCollectionComponent implements OnInit, OnDestroy {
   private readonly route          = inject(ActivatedRoute);
   private readonly router         = inject(Router);
   private readonly enquiryService = inject(EnquiryService);
@@ -77,15 +79,28 @@ export class FeeCollectionComponent implements OnInit {
   private readonly fb             = inject(FormBuilder);
   private readonly tourService    = inject(TourService);
 
-  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
-    if (value) this.dataSource.paginator = value;
-  }
+  // Server-side paginator — NOT wired to dataSource
+  @ViewChild(MatPaginator) paginator?: MatPaginator;
   @ViewChild(MatSort) set sort(value: MatSort) {
     if (value) this.dataSource.sort = value;
   }
 
+  // ── Private server-side state ─────────────────────────────────────────────
+  private readonly allEnquiries           = signal<Enquiry[]>([]);
+  private readonly currentStudentEntries  = signal<FeeEntry[]>([]);
+  protected studentTotal                  = 0;
+  private currentStudentPage              = 0;
+  private currentStudentPageSize          = DEFAULT_PAGE_SIZE;
+  private readonly destroy$               = new Subject<void>();
+  private readonly searchSubject$         = new Subject<string>();
+
   protected readonly loading          = signal(true);
-  protected readonly feeEntries       = signal<FeeEntry[]>([]);
+  protected readonly feeEntries       = computed<FeeEntry[]>(() => [
+    ...this.allEnquiries()
+      .filter(e => this.canCollectEnquiryBalance(e))
+      .map(e => this.enquiryToEntry(e)),
+    ...this.currentStudentEntries(),
+  ]);
   protected readonly selectedEntry    = signal<FeeEntry | null>(null);
   protected readonly feeStatus        = signal<EnquiryYearWiseFeeStatusResponse | null>(null);
   protected readonly studentSemesters = signal<InstallmentFeeDetail[]>([]);
@@ -109,16 +124,19 @@ export class FeeCollectionComponent implements OnInit {
     const today  = new Date();
 
     return this.feeEntries().filter(e => {
-      if (term) {
+      if (type !== 'ALL' && e.type !== type) return false;
+      if (status === 'OVERDUE'     && !(e.nextDueDate && new Date(e.nextDueDate) < today)) return false;
+      if (status === 'OUTSTANDING' && !this.hasCollectableOutstanding(e.totalOutstanding)) return false;
+
+      // Students: search applied server-side; only name/roll check needed for enquiries
+      if (e.type === 'ENQUIRY' && term) {
         const matchesName    = e.name.toLowerCase().includes(term);
         const matchesRoll    = !!e.rollNumber && e.rollNumber.toLowerCase().includes(term);
         const matchesProgram = e.programName.toLowerCase().includes(term);
         const matchesCourse  = !!e.courseName && e.courseName.toLowerCase().includes(term);
         if (!matchesName && !matchesRoll && !matchesProgram && !matchesCourse) return false;
       }
-      if (type !== 'ALL' && e.type !== type) return false;
-      if (status === 'OVERDUE'     && !(e.nextDueDate && new Date(e.nextDueDate) < today)) return false;
-      return status !== 'OUTSTANDING' || this.hasCollectableOutstanding(e.totalOutstanding);
+      return true;
     });
   });
 
@@ -200,7 +218,6 @@ export class FeeCollectionComponent implements OnInit {
   constructor() {
     effect(() => {
       this.dataSource.data = this.filteredEntries();
-      if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
     });
 
     effect(() => {
@@ -220,6 +237,26 @@ export class FeeCollectionComponent implements OnInit {
     this.tourService.register('collect-balance', COLLECT_BALANCE_TOUR);
     this.restoreFiltersFromQueryParams();
     this.loadAll(() => this.applyDeepLink());
+
+    // Paginator page events → server-side student page reload
+    setTimeout(() => {
+      this.paginator?.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
+        this.currentStudentPage     = ev.pageIndex;
+        this.currentStudentPageSize = ev.pageSize;
+        this.loadStudentPage();
+      });
+    }, 0);
+
+    // Debounced search → reset to page 0 + reload students
+    this.searchSubject$.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(() => {
+      this.currentStudentPage = 0;
+      if (this.paginator) this.paginator.pageIndex = 0;
+      this.loadStudentPage();
+    });
 
     // Subscribe (not snapshot) so browser back/forward updates the view after data is loaded.
     this.route.queryParamMap.subscribe(params => {
@@ -248,37 +285,51 @@ export class FeeCollectionComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   private loadAll(onComplete?: () => void): void {
     this.loading.set(true);
-    forkJoin({
-      enquiries: this.enquiryService.getEnquiries(),
-      students:  this.financeService.searchStudentFees(),
-    }).subscribe({
-      next: ({ enquiries, students }) => {
-        const enquiryEntries: FeeEntry[] = enquiries
-          .filter(e => this.canCollectEnquiryBalance(e))
-          .map(e => this.enquiryToEntry(e));
-
-        const studentEntries: FeeEntry[] = (students.students ?? [])
-              .filter(s => this.hasCollectableOutstanding(s.collectibleOutstanding))
-          .map(s => this.studentToEntry(s));
-
-        const all = [...enquiryEntries, ...studentEntries]
-          .filter(entry => this.hasCollectableOutstanding(entry.totalOutstanding))
-          .sort((a, b) => {
-          if (!a.nextDueDate && !b.nextDueDate) return a.name.localeCompare(b.name);
-          if (!a.nextDueDate) return 1;
-          if (!b.nextDueDate) return -1;
-          return a.nextDueDate.localeCompare(b.nextDueDate);
-          });
-
-        this.feeEntries.set(all);
-        this.loading.set(false);
-        onComplete?.();
+    this.enquiryService.getEnquiries().subscribe({
+      next: (enquiries) => {
+        this.allEnquiries.set(enquiries);
+        this.loadStudentPage(() => {
+          this.loading.set(false);
+          onComplete?.();
+        });
       },
       error: () => {
         this.toast.error('Failed to load fee data');
         this.loading.set(false);
+      },
+    });
+  }
+
+  private loadStudentPage(callback?: () => void): void {
+    const search = this.searchTerm();
+    this.financeService.searchStudentFeesPage({
+      search: search.length >= 2 ? search : undefined,
+      page:   this.currentStudentPage,
+      size:   this.currentStudentPageSize,
+    }).subscribe({
+      next: (page) => {
+        const entries = page.content
+          .filter(s => this.hasCollectableOutstanding(s.collectibleOutstanding))
+          .map(s => this.studentToEntry(s));
+        this.currentStudentEntries.set(entries);
+        this.studentTotal = page.totalElements;
+        if (this.paginator) {
+          this.paginator.length    = page.totalElements;
+          this.paginator.pageIndex = page.number;
+          this.paginator.pageSize  = page.size;
+        }
+        callback?.();
+      },
+      error: () => {
+        this.toast.error('Failed to load student fees');
+        callback?.();
       },
     });
   }
@@ -534,7 +585,9 @@ export class FeeCollectionComponent implements OnInit {
   }
 
   protected onSearch(event: Event): void {
-    this.searchTerm.set((event.target as HTMLInputElement).value);
+    const val = (event.target as HTMLInputElement).value;
+    this.searchTerm.set(val);
+    this.searchSubject$.next(val);
   }
 
   protected setFilterType(value: FilterType): void {

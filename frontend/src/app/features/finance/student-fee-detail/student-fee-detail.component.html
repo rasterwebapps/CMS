@@ -19,8 +19,14 @@
              <path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/>
            </svg>
         </div>
-        <h3 class="sfd-confirm-modal__title">Confirm Payment</h3>
-        <p class="sfd-confirm-modal__sub">Verify the details — this cannot be undone.</p>
+        <h3 class="sfd-confirm-modal__title">{{ advanceMode() ? 'Confirm Advance Payment' : 'Confirm Payment' }}</h3>
+        <p class="sfd-confirm-modal__sub">
+          @if (advanceMode()) {
+            This covers future semester fees — payment cannot be undone.
+          } @else {
+            Verify the details — this cannot be undone.
+          }
+        </p>
         <div class="sfd-confirm-rows">
           <div class="sfd-confirm-row">
             <span class="sfd-confirm-row__label">Student</span>
@@ -242,7 +248,7 @@
                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/>
             </svg>
-            Collect Payment
+            {{ advanceMode() ? 'Advance Payment' : 'Collect Payment' }}
           </div>
           @if (totalOutstanding() > 0) {
             <span class="form-hdr__due">{{ totalOutstanding() | inr }} due</span>
@@ -250,6 +256,23 @@
             <span class="form-hdr__cleared">All cleared</span>
           }
         </div>
+
+        @if (hasAdvanceScope()) {
+          <div class="advance-toggle" [class.advance-toggle--on]="advanceMode()">
+            <button type="button" class="advance-toggle__btn" (click)="toggleAdvanceMode()" [attr.aria-pressed]="advanceMode()">
+              <span class="advance-toggle__track">
+                <span class="advance-toggle__thumb"></span>
+              </span>
+              <span class="advance-toggle__label">
+                @if (advanceMode()) {
+                  Advance mode — future semesters included
+                } @else {
+                  Enable Advance Payment (include future terms)
+                }
+              </span>
+            </button>
+          </div>
+        }
 
         <div class="form-fields">
           <form [formGroup]="form" (ngSubmit)="onSubmit()">
@@ -328,11 +351,13 @@
             <div class="form-footer">
               <button type="button" class="btn-cancel" (click)="cancelForm()">Reset</button>
               <button type="submit" class="btn-submit"
-                      [disabled]="saving() || totalOutstanding() === 0 || form.invalid || (isCashMode() && !denominationValid())">
+                      [disabled]="saving() || (amountMax() ?? 0) <= 0 || form.invalid || (isCashMode() && !denominationValid())">
                 @if (totalOutstanding() === 0) {
                   All Fees Cleared
+                } @else if (!advanceMode() && collectibleNowOutstanding() === 0) {
+                  No Fees Due This Term
                 } @else {
-                  Collect Payment
+                  {{ advanceMode() ? 'Collect Advance' : 'Collect Payment' }}
                 }
               </button>
             </div>

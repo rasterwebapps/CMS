@@ -3,6 +3,10 @@ package com.cms.controller;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -107,17 +111,36 @@ public class StudentFeeController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PostMapping("/{studentId}/collect-advance")
+    @PreAuthorize("@perm.has('FEE_COLLECT')")
+    public ResponseEntity<CollectPaymentResponse> collectAdvancePayment(
+            @PathVariable Long studentId,
+            @Valid @RequestBody CollectPaymentRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            paymentCollectionService.collectAdvancePayment(studentId, request));
+    }
+
     @GetMapping("/{studentId}/penalties")
     public ResponseEntity<PenaltyResponse> getPenalties(@PathVariable Long studentId) {
         PenaltyResponse response = penaltyCalculationService.calculatePenalties(studentId);
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Paginated fee explorer. When called with page/size params, returns a Spring Page of
+     * StudentFeeSummary records. Falls back to the legacy unpaged response when the ?legacy=true
+     * param is present (used by the old non-paginated client).
+     */
     @GetMapping("/explorer")
-    public ResponseEntity<FeeExplorerResponse> explorer(
-            @RequestParam(required = false) String search) {
-        FeeExplorerResponse response = feeExplorerService.search(search);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> explorer(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "false") boolean legacy,
+            @PageableDefault(size = 25, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        if (legacy) {
+            return ResponseEntity.ok(feeExplorerService.search(search));
+        }
+        Page<FeeExplorerResponse.StudentFeeSummary> page = feeExplorerService.searchPageable(search, pageable);
+        return ResponseEntity.ok(page);
     }
 
     /** Unified refund initiation — auto-detects entity type (STUDENT or ENQUIRY) from the receipt. */

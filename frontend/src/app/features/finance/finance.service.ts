@@ -6,7 +6,8 @@ import {
   FeeState, FeeStructure, FeeStructureRequest,
   StudentFeeAllocation, StudentFeeAllocationRequest,
   CollectPaymentRequest, CollectPaymentResponse,
-  PenaltyResponse, FeeExplorerResult, Receipt, ReceiptSummary, BulkFeeStructureRequest,
+  PenaltyResponse, FeeExplorerResult, FeeExplorerParams, Page, StudentFeeSummary,
+  Receipt, ReceiptSummary, BulkFeeStructureRequest,
   GroupedFeeStructure, EnquiryYearFee, CreateAllocationRequest, UnifiedReceiptSummary,
   FeeRefundRequest, FeeRefundResponse, FeeRefundSummary,
   FeeRefundApprovalRequest, FeeRefundRejectionRequest, EnquiryCreditApplication,
@@ -111,13 +112,26 @@ export class FinanceService {
     return this.http.post<CollectPaymentResponse>(`${this.studentFeeUrl}/${studentId}/collect`, request);
   }
 
+  collectAdvancePayment(studentId: number, request: CollectPaymentRequest): Observable<CollectPaymentResponse> {
+    return this.http.post<CollectPaymentResponse>(`${this.studentFeeUrl}/${studentId}/collect-advance`, request);
+  }
+
   getPenalties(studentId: number): Observable<PenaltyResponse> {
     return this.http.get<PenaltyResponse>(`${this.studentFeeUrl}/${studentId}/penalties`);
   }
 
   searchStudentFees(search?: string): Observable<FeeExplorerResult> {
-    const params = search ? `?search=${encodeURIComponent(search)}` : '';
+    const params = search ? `?search=${encodeURIComponent(search)}&legacy=true` : '?legacy=true';
     return this.http.get<FeeExplorerResult>(`${this.studentFeeUrl}/explorer${params}`);
+  }
+
+  searchStudentFeesPage(p: FeeExplorerParams): Observable<Page<StudentFeeSummary>> {
+    let params = new HttpParams()
+      .set('page', p.page ?? 0)
+      .set('size', p.size ?? 25);
+    if (p.sort)   params = params.set('sort', p.sort);
+    if (p.search && p.search.length >= 2) params = params.set('search', p.search);
+    return this.http.get<Page<StudentFeeSummary>>(`${this.studentFeeUrl}/explorer`, { params });
   }
 
   getReceipts(studentId: number): Observable<Receipt[]> {

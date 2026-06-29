@@ -211,6 +211,130 @@ public class PaymentCollectionService {
     }
 
     /**
+     * Collects a payment without the term gate — the amount can cover any semester (past, current,
+     * or future/PLANNED) up to the student's total outstanding balance. Used for advance payments
+     * initiated from the per-student Finance tab, not the bulk Collect Payment list.
+     */
+    @Transactional
+    public CollectPaymentResponse collectAdvancePayment(Long studentId, CollectPaymentRequest request) {
+        Student student = studentRepository.findById(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
+
+        StudentFeeAllocation allocation = allocationRepository.findByStudentIdForUpdate(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Fee allocation not found for student: " + student.getRollNumber()));
+
+        if (allocation.getStatus() != FeeAllocationStatus.FINALIZED) {
+            throw new IllegalStateException(
+                "Fee allocation is not finalized for student: " + student.getRollNumber());
+        }
+
+        List<SemesterFee> semesterFees = semesterFeeRepository
+            .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
+
+        Optional<Enquiry> sourceEnquiry = enquiryRepository.findByConvertedStudentId(studentId);
+        BigDecimal totalEnquiryCredit = sourceEnquiry
+            .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
+            .orElse(BigDecimal.ZERO);
+        BigDecimal alreadyAppliedCredit = sourceEnquiry
+            .map(e -> creditApplicationRepository.sumAmountAppliedByEnquiryId(e.getId()))
+            .orElse(BigDecimal.ZERO);
+        BigDecimal remainingEnquiryCredit = totalEnquiryCredit.subtract(alreadyAppliedCredit).max(BigDecimal.ZERO);
+
+        BigDecimal totalOutstanding = calculateTotalOutstanding(semesterFees, remainingEnquiryCredit, sourceEnquiry);
+        if (totalOutstanding.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("No outstanding fees for student: " + student.getRollNumber());
+        }
+        if (request.amount().compareTo(totalOutstanding) > 0) {
+            throw new IllegalStateException(
+                "Payment amount (" + request.amount() + ") exceeds total outstanding: " + totalOutstanding);
+        }
+
+        BigDecimal remaining = request.amount();
+        List<String> allocationDetails = new ArrayList<>();
+        List<SemesterPaymentDetail> installmentBreakdown = new ArrayList<>();
+        String receiptNumber = (request.receiptNumber() != null && !request.receiptNumber().isBlank())
+            ? request.receiptNumber()
+            : unifiedReceiptService.generateReceiptNumber(request.paymentDate().getYear());
+
+        String creditSourceReceipts = sourceEnquiry
+            .map(e -> enquiryPaymentRepository.findByEnquiryIdOrderByPaymentDateDesc(e.getId())
+                .stream()
+                .sorted(Comparator.comparing(EnquiryPayment::getPaymentDate))
+                .map(EnquiryPayment::getReceiptNumber)
+                .collect(Collectors.joining(", ")))
+            .orElse(receiptNumber);
+
+        for (SemesterFee sf : semesterFees) {
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
+
+            BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+            BigDecimal alreadyCredited = sourceEnquiry.isPresent()
+                ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
+                    sourceEnquiry.get().getId(), sf.getId())
+                : BigDecimal.ZERO;
+            BigDecimal capacity = sf.getAmount().subtract(alreadyPaid).subtract(alreadyCredited).max(BigDecimal.ZERO);
+            BigDecimal creditForThis = remainingEnquiryCredit.min(capacity);
+            remainingEnquiryCredit = remainingEnquiryCredit.subtract(creditForThis);
+
+            if (creditForThis.compareTo(BigDecimal.ZERO) > 0 && sourceEnquiry.isPresent()) {
+                creditApplicationRepository.save(new EnquiryCreditApplication(
+                    sourceEnquiry.get(), student, sf, creditForThis, creditSourceReceipts, Instant.now()));
+            }
+
+            BigDecimal pendingForSemester = capacity.subtract(creditForThis).max(BigDecimal.ZERO);
+            if (pendingForSemester.compareTo(BigDecimal.ZERO) <= 0) continue;
+
+            BigDecimal payForThisSemester = remaining.min(pendingForSemester);
+            FeeInstallment installment = new FeeInstallment(
+                sf, student, payForThisSemester,
+                request.paymentDate(), request.paymentMode(), receiptNumber
+            );
+            installment.setTransactionReference(request.transactionReference());
+            installment.setRemarks(request.remarks());
+            installmentRepository.save(installment);
+
+            allocationDetails.add(sf.getSemesterLabel() + ": ₹" + payForThisSemester.toPlainString());
+            installmentBreakdown.add(new SemesterPaymentDetail(
+                sf.getSemesterLabel(), sf.getYearNumber(), sf.getSemesterSequence(), payForThisSemester
+            ));
+            remaining = remaining.subtract(payForThisSemester);
+        }
+
+        if (allocationDetails.isEmpty()) {
+            throw new IllegalStateException("No pending fees found for student: " + student.getRollNumber());
+        }
+
+        BigDecimal amountActuallyPaid = request.amount().subtract(remaining);
+        String installmentsCovered = installmentBreakdown.stream()
+            .map(SemesterPaymentDetail::installmentLabel)
+            .collect(Collectors.joining(", "));
+
+        String feeCategory = allocation.isHasHostelFee() ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
+
+        unifiedReceiptService.saveStudentReceipt(
+            receiptNumber,
+            student.getId(), student.getFullName(), student.getRollNumber(), student.getAdmissionNumber(),
+            student.getCourse() != null ? student.getCourse().getName()
+                : student.getProgram() != null ? student.getProgram().getName() : null,
+            amountActuallyPaid,
+            request.paymentDate(), request.paymentMode().name(),
+            request.transactionReference(), request.remarks(),
+            installmentsCovered, null, feeCategory);
+
+        return new CollectPaymentResponse(
+            receiptNumber, student.getId(), student.getFullName(), student.getRollNumber(),
+            amountActuallyPaid, request.paymentDate(), request.paymentMode(),
+            request.transactionReference(), request.remarks(),
+            String.join("; ", allocationDetails),
+            installmentBreakdown,
+            feeCategory,
+            java.time.Instant.now(),
+            remaining.max(BigDecimal.ZERO)
+        );
+    }
+
+    /**
      * Public entry point for screens (e.g. Collect Payment list) that need the same
      * currently-due figure used at actual collection time, without performing a collection.
      * Returns ZERO for students with no finalized allocation.
@@ -273,6 +397,29 @@ public class PaymentCollectionService {
         }
 
         return totalOutstanding;
+    }
+
+    /** Same as calculateCollectibleOutstanding but without the term-gate — covers all semesters. */
+    private BigDecimal calculateTotalOutstanding(List<SemesterFee> semesterFees,
+                                                  BigDecimal netRemainingEnquiryCredit,
+                                                  Optional<Enquiry> sourceEnquiry) {
+        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal remainingCredit = netRemainingEnquiryCredit;
+
+        for (SemesterFee sf : semesterFees) {
+            BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+            BigDecimal alreadyCredited = sourceEnquiry.isPresent()
+                ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
+                    sourceEnquiry.get().getId(), sf.getId())
+                : BigDecimal.ZERO;
+            BigDecimal capacity = sf.getAmount().subtract(alreadyPaid).subtract(alreadyCredited).max(BigDecimal.ZERO);
+            BigDecimal creditForThis = remainingCredit.min(capacity);
+            remainingCredit = remainingCredit.subtract(creditForThis);
+
+            total = total.add(capacity.subtract(creditForThis).max(BigDecimal.ZERO));
+        }
+
+        return total;
     }
 
     public List<ReceiptResponse> getReceipts(Long studentId) {

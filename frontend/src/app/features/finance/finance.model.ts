@@ -199,6 +199,23 @@ export interface FeeExplorerResult {
   students: StudentFeeSummary[];
 }
 
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+}
+
+export interface FeeExplorerParams {
+  search?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
 export interface StudentFeeSummary {
   studentId: number;
   studentName: string;

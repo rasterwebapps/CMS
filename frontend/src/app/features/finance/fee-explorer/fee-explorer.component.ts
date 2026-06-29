@@ -1,7 +1,8 @@
-import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, computed, DestroyRef, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FinanceService } from '../finance.service';
@@ -17,56 +18,57 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsIconViewComponent } from '../../../shared/icons';
 
+const DEFAULT_PAGE_SIZE = 25;
+const SEARCH_MIN_LENGTH = 2;
+
 @Component({
   selector: 'app-fee-explorer',
   standalone: true,
   imports: [
     InrPipe, MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent,
-    CmsRowActionButtonComponent,
-      CmsIconViewComponent,
+    CmsRowActionButtonComponent, CmsIconViewComponent,
   ],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',
 })
 export class FeeExplorerComponent implements OnInit {
   private readonly financeService = inject(FinanceService);
-  private readonly router = inject(Router);
-  private readonly toast = inject(ToastService);
-  private readonly tourService = inject(TourService);
+  private readonly router         = inject(Router);
+  private readonly route          = inject(ActivatedRoute);
+  private readonly toast          = inject(ToastService);
+  private readonly tourService    = inject(TourService);
 
-  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
-    if (value) this.dataSource.paginator = value;
-  }
-  @ViewChild(MatSort) set sort(value: MatSort) {
-    if (value) this.dataSource.sort = value;
-  }
+  // Server-side paginator: NOT wired to dataSource
+  @ViewChild(MatPaginator) paginator?: MatPaginator;
+  @ViewChild(MatSort) matSort?: MatSort;
 
   protected readonly displayedColumns = [
     'rollNumber', 'studentName', 'programName', 'totalFee',
     'totalPaid', 'totalPending', 'totalPenalty', 'allocationStatus', 'actions',
   ];
-  protected readonly dataSource = new MatTableDataSource<StudentFeeSummary>([]);
-  protected readonly loading    = signal(false);
-  protected readonly searchValue = signal('');
+  protected readonly dataSource    = new MatTableDataSource<StudentFeeSummary>([]);
+  protected readonly loading       = signal(false);
+  protected readonly searchValue   = signal('');
   protected readonly computeInitials = computeInitials;
+  protected totalElements          = 0;
 
-  // ── Filters ──────────────────────────────────────────────────────────────
+  // ── Client-side within-page filters ─────────────────────────────────────
   protected filterProgram      = signal<string>('ALL');
   protected filterAcademicYear = signal<string>('ALL');
   protected filterYearOfStudy  = signal<string>('ALL');
   protected filterAllocStatus  = signal<string>('ALL');
 
-  private readonly _allData = signal<StudentFeeSummary[]>([]);
+  private readonly _pageData = signal<StudentFeeSummary[]>([]);
 
   protected readonly programs = computed(() =>
-    [...new Set(this._allData().map(r => r.programName).filter(Boolean))].sort() as string[]
+    [...new Set(this._pageData().map(r => r.programName).filter(Boolean))].sort() as string[]
   );
   protected readonly academicYears = computed(() =>
-    [...new Set(this._allData().map(r => r.academicYearName).filter(Boolean))].sort() as string[]
+    [...new Set(this._pageData().map(r => r.academicYearName).filter(Boolean))].sort() as string[]
   );
   protected readonly yearsOfStudy = computed(() =>
-    [...new Set(this._allData().map(r => r.yearOfStudy).filter((v): v is number => v != null))]
+    [...new Set(this._pageData().map(r => r.yearOfStudy).filter((v): v is number => v != null))]
       .sort((a, b) => a - b)
   );
   protected readonly ALLOC_STATUSES = [
@@ -82,55 +84,68 @@ export class FeeExplorerComponent implements OnInit {
     this.filterAllocStatus()  !== 'ALL'
   );
 
+  // ── Pagination / state ────────────────────────────────────────────────────
+  private currentPage     = 0;
+  private currentPageSize = DEFAULT_PAGE_SIZE;
+
+  private readonly destroy$      = new Subject<void>();
+  private readonly searchSubject = new Subject<string>();
+
   ngOnInit(): void {
     this.tourService.register('fee-explorer', FEE_EXPLORER_TOUR);
-    this.load();
+
+    // URL params drive state — initial load + back-nav restore
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      this.searchValue.set(params['search'] ?? '');
+      this.currentPage     = params['page'] ? +params['page'] : 0;
+      this.currentPageSize = params['size'] ? +params['size'] : DEFAULT_PAGE_SIZE;
+      this.loadPage();
+    });
+
+    // Paginator page events → URL navigate (triggers param subscription above)
+    setTimeout(() => {
+      this.paginator?.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
+        this.navigate({ page: ev.pageIndex, size: ev.pageSize });
+      });
+    }, 0);
+
+    // Debounced search
+    this.searchSubject.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(val => {
+      if (val.length === 0 || val.length >= SEARCH_MIN_LENGTH) {
+        this.navigate({ search: val || null, page: 0 });
+      }
+    });
   }
 
-  protected applyFilter(event: Event): void {
-    this.searchValue.set((event.target as HTMLInputElement).value);
-    this._applyFilters();
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  protected onSearchInput(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.searchValue.set(val);
+    this.searchSubject.next(val);
   }
 
   protected clearFilter(): void {
     this.searchValue.set('');
-    this._applyFilters();
+    this.navigate({ search: null, page: 0 });
   }
 
-  protected onFilterChange(): void { this._applyFilters(); }
+  protected onFilterChange(): void { this._applyClientFilters(); }
 
   protected clearAllFilters(): void {
-    this.searchValue.set('');
     this.filterProgram.set('ALL');
     this.filterAcademicYear.set('ALL');
     this.filterYearOfStudy.set('ALL');
     this.filterAllocStatus.set('ALL');
-    this._applyFilters();
-  }
-
-  protected searchFromApi(): void {
-    this.load(this.searchValue());
-  }
-
-  private _applyFilters(): void {
-    const term    = this.searchValue().toLowerCase().trim();
-    const program = this.filterProgram();
-    const ay      = this.filterAcademicYear();
-    const yos     = this.filterYearOfStudy();
-    const status  = this.filterAllocStatus();
-
-    this.dataSource.filterPredicate = (row: StudentFeeSummary) => {
-      if (program !== 'ALL' && (row.programName ?? '') !== program)                return false;
-      if (ay      !== 'ALL' && (row.academicYearName ?? '') !== ay)                return false;
-      if (yos     !== 'ALL' && String(row.yearOfStudy ?? '') !== yos)              return false;
-      if (status  !== 'ALL' && row.allocationStatus !== status)                    return false;
-      if (!term) return true;
-      return row.studentName.toLowerCase().includes(term) ||
-             (row.rollNumber ?? '').toLowerCase().includes(term);
-    };
-    const any = term || program !== 'ALL' || ay !== 'ALL' || yos !== 'ALL' || status !== 'ALL';
-    this.dataSource.filter = any ? (term || program || ay || yos || status || '_') : '';
-    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+    this.searchValue.set('');
+    this.navigate({ search: null, page: 0 });
   }
 
   protected viewDetails(student: StudentFeeSummary): void {
@@ -139,13 +154,37 @@ export class FeeExplorerComponent implements OnInit {
     });
   }
 
-  private load(search?: string): void {
+  private navigate(patch: Partial<{ search: string | null; page: number; size: number }>): void {
+    const p: Record<string, string | number | null> = {
+      search: 'search' in patch ? patch.search ?? null : this.searchValue() || null,
+      page:   'page'   in patch ? patch.page!          : this.currentPage,
+      size:   'size'   in patch ? patch.size!          : this.currentPageSize,
+    };
+    // Drop null/default values to keep URL clean
+    const qp: Record<string, string | number> = {};
+    if (p['search']) qp['search'] = p['search'] as string;
+    if ((p['page'] as number) > 0) qp['page'] = p['page'] as number;
+    if ((p['size'] as number) !== DEFAULT_PAGE_SIZE) qp['size'] = p['size'] as number;
+    void this.router.navigate([], { relativeTo: this.route, queryParams: qp });
+  }
+
+  private loadPage(): void {
     this.loading.set(true);
-    this.financeService.searchStudentFees(search).subscribe({
-      next: (result) => {
-        this._allData.set(result.students);
-        this.dataSource.data = result.students;
-        this._applyFilters();
+    this.financeService.searchStudentFeesPage({
+      search:  this.searchValue() || undefined,
+      page:    this.currentPage,
+      size:    this.currentPageSize,
+    }).subscribe({
+      next: (page) => {
+        this._pageData.set(page.content);
+        this.dataSource.data = page.content;
+        this.totalElements   = page.totalElements;
+        if (this.paginator) {
+          this.paginator.length    = page.totalElements;
+          this.paginator.pageIndex = page.number;
+          this.paginator.pageSize  = page.size;
+        }
+        this._applyClientFilters();
         this.loading.set(false);
       },
       error: () => {
@@ -153,5 +192,27 @@ export class FeeExplorerComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  private _applyClientFilters(): void {
+    const program = this.filterProgram();
+    const ay      = this.filterAcademicYear();
+    const yos     = this.filterYearOfStudy();
+    const status  = this.filterAllocStatus();
+
+    const anyDropdown = program !== 'ALL' || ay !== 'ALL' || yos !== 'ALL' || status !== 'ALL';
+    if (!anyDropdown) {
+      this.dataSource.filter = '';
+      return;
+    }
+
+    this.dataSource.filterPredicate = (row: StudentFeeSummary) => {
+      if (program !== 'ALL' && (row.programName ?? '') !== program)   return false;
+      if (ay      !== 'ALL' && (row.academicYearName ?? '') !== ay)   return false;
+      if (yos     !== 'ALL' && String(row.yearOfStudy ?? '') !== yos) return false;
+      if (status  !== 'ALL' && row.allocationStatus !== status)       return false;
+      return true;
+    };
+    this.dataSource.filter = program + ay + yos + status;
   }
 }
