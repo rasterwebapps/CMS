@@ -614,6 +614,7 @@
               [programId]="student()?.programId"
               [canManage]="canManageDocuments()"
               [canVerify]="canManageDocuments()"
+              [canForceReplace]="canForceReplaceDocuments()"
             />
           } @else {
             <p class="no-data-note">No admission record found for this student.</p>

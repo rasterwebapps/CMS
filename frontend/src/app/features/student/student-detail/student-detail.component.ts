@@ -392,6 +392,10 @@ export class StudentDetailComponent implements OnInit {
     return this.permissionService.has('DOCUMENT_SUBMISSION_MANAGE');
   }
 
+  protected canForceReplaceDocuments(): boolean {
+    return this.permissionService.has('DOCUMENT_VERIFIED_OVERRIDE');
+  }
+
   protected canEditStudent(): boolean {
     return this.permissionService.has('STUDENT_EDIT');
   }
