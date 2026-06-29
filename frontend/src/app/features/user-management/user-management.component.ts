@@ -124,7 +124,13 @@ export class UserManagementComponent implements OnInit {
     this.svc.updateUser(target.id, this.editForm).subscribe({
       next: (updated) => {
         this.users.update(list => list.map(u => u.id === updated.id ? updated : u));
-        this.toast.success('User updated');
+        // Refresh the current user's own permissions in case their role changed.
+        // The affected user must reload the page for the new role to take effect.
+        this.perm.load();
+        const roleChanged = this.editForm.roleName && this.editForm.roleName !== target.roleName;
+        this.toast.success(roleChanged
+          ? 'User updated. They must reload the page for the new role to take effect.'
+          : 'User updated');
         this.closePanel();
         this.saving.set(false);
       },

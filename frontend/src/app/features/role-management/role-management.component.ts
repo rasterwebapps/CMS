@@ -287,7 +287,10 @@ export class RoleManagementComponent implements OnInit {
     this.svc.updateRolePermissions(target.id, Array.from(this.editPermCodes())).subscribe({
       next: (updated) => {
         this.roles.update(list => list.map(r => r.id === updated.id ? updated : r));
-        this.toast.success('Role permissions updated');
+        // Reload the current user's permissions so the admin's own session reflects
+        // any changes immediately. Other logged-in users need to reload the page.
+        this.perm.load();
+        this.toast.success('Permissions saved. Users with this role must reload the page to see changes.');
         this.closePanel();
         this.saving.set(false);
       },
