@@ -60,7 +60,7 @@ services:
     build: ./frontend
     container_name: cms-frontend
     ports:
-      - "80:80"
+      - "8090:80"
       - "8443:443"
     environment:
       KEYCLOAK_URL:            https://dev.raster.in:212
