@@ -136,6 +136,16 @@ public class PaymentCollectionService {
                 break;
             }
             if (!termInstanceService.isSemesterFeeCollectibleNow(joiningStartYear, sf.getYearNumber(), sf.getSemesterSequence())) {
+                // If this non-open semester has outstanding balance, block all later semesters —
+                // a student cannot collect future-year fees while an earlier year is still due.
+                BigDecimal skippedPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+                BigDecimal skippedCredited = sourceEnquiry.isPresent()
+                    ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
+                        sourceEnquiry.get().getId(), sf.getId())
+                    : BigDecimal.ZERO;
+                if (sf.getAmount().subtract(skippedPaid).subtract(skippedCredited).compareTo(BigDecimal.ZERO) > 0) {
+                    break;
+                }
                 continue;
             }
 
@@ -381,6 +391,16 @@ public class PaymentCollectionService {
             boolean collectibleNow = termInstanceService.isSemesterFeeCollectibleNow(
                 joiningStartYear, sf.getYearNumber(), sf.getSemesterSequence());
             if (!collectibleNow) {
+                // Mirror collectPayment()'s break logic: if this non-open semester has outstanding
+                // balance, stop counting — later semesters are not collectible either.
+                BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+                BigDecimal alreadyCredited = sourceEnquiry.isPresent()
+                    ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
+                        sourceEnquiry.get().getId(), sf.getId())
+                    : BigDecimal.ZERO;
+                if (sf.getAmount().subtract(alreadyPaid).subtract(alreadyCredited).compareTo(BigDecimal.ZERO) > 0) {
+                    break;
+                }
                 continue;
             }
 
