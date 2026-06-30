@@ -27,8 +27,7 @@
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      <input class="search-bar__input" [value]="searchValue()" (input)="applyFilter($event)"
-             (keyup.enter)="searchFromApi()"
+      <input class="search-bar__input" [value]="searchValue()" (input)="onSearchInput($event)"
              placeholder="Search by name or roll no." type="text" aria-label="Search student fees" />
       @if (searchValue()) {
         <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
