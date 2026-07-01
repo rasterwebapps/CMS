@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { TitleCasePipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -100,6 +100,17 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
   protected totalElements = 0;
   protected currentPage = 0;
   protected currentPageSize = 25;
+  protected sortActive = 'fullName';
+  protected sortDirection: 'asc' | 'desc' = 'asc';
+  private readonly sortMap: Record<string, string> = {
+    fullName: 'firstName',
+    employeeCode: 'employeeCode',
+    phone: 'phone',
+    email: 'email',
+    specialityName: 'speciality.name',
+    designation: 'designation.name',
+    status: 'status',
+  };
 
   protected readonly hasActiveFilters = computed(() =>
     this.selectedSpecialityId() !== null ||
@@ -139,6 +150,13 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
   protected clearFilter(): void {
     this.searchValue.set('');
     this.searchSubject.next('');
+  }
+
+  protected onSortChange(sort: Sort): void {
+    this.sortActive = sort.active;
+    this.sortDirection = sort.direction as 'asc' | 'desc';
+    this.currentPage = 0;
+    this.loadPage();
   }
 
   protected onSpecialityChange(specialityId: number | null): void {
@@ -291,6 +309,8 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
       documentReview: documentReview !== 'ALL' ? documentReview : undefined,
       page: this.currentPage,
       size: this.currentPageSize,
+      sort: this.sortMap[this.sortActive] ?? this.sortActive,
+      direction: this.sortDirection,
     }).subscribe({
       next: (page) => {
         this.dataSource.data = page.content;

@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject, Subscription } from 'rxjs';
@@ -73,6 +73,12 @@ export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDest
   protected totalElements = 0;
   protected currentPage = 0;
   protected currentPageSize = 25;
+  protected sortActive = 'name';
+  protected sortDirection: 'asc' | 'desc' = 'asc';
+  private readonly sortMap: Record<string, string> = {
+    name: 'name', employeeCode: 'employeeCode', phone: 'phone',
+    institutionName: 'institution.name', commissionAmount: 'commissionAmount', isActive: 'isActive',
+  };
 
   ngOnInit(): void {
     this.searchSubject.pipe(
@@ -108,6 +114,13 @@ export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDest
   protected clearFilter(): void {
     this.searchValue.set('');
     this.searchSubject.next('');
+  }
+
+  protected onSortChange(sort: Sort): void {
+    this.sortActive = sort.active;
+    this.sortDirection = sort.direction as 'asc' | 'desc';
+    this.currentPage = 0;
+    this.loadPage();
   }
 
   protected edit(item: StaffReferrer): void {
@@ -164,7 +177,7 @@ export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDest
   private loadPage(): void {
     this.loading.set(true);
     const search = this.searchValue().trim() || undefined;
-    this.service.getPage({ search, page: this.currentPage, size: this.currentPageSize }).subscribe({
+    this.service.getPage({ search, page: this.currentPage, size: this.currentPageSize, sort: this.sortMap[this.sortActive] ?? this.sortActive, direction: this.sortDirection }).subscribe({
       next: (page) => {
         this.dataSource.data = page.content;
         this.totalElements = page.totalElements;

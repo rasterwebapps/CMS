@@ -24,11 +24,12 @@ export class AgentService {
     return this.http.get<Agent[]>(this.agentUrl);
   }
 
-  getPage(p: { search?: string; page?: number; size?: number }): Observable<Page<Agent>> {
+  getPage(p: { search?: string; page?: number; size?: number; sort?: string; direction?: 'asc' | 'desc' }): Observable<Page<Agent>> {
     let params = new HttpParams()
       .set('page', p.page ?? 0)
       .set('size', p.size ?? 25);
     if (p.search) params = params.set('search', p.search);
+    if (p.sort)   params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
     return this.http.get<Page<Agent>>(`${this.agentUrl}/page`, { params });
   }
 

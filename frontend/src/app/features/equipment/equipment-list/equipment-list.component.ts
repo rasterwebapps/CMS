@@ -2,7 +2,7 @@ import { Component, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild 
 import { Router, RouterLink } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject, Subscription } from 'rxjs';
@@ -74,6 +74,12 @@ export class EquipmentListComponent implements OnInit, AfterViewInit, OnDestroy 
   protected totalElements = 0;
   protected currentPage = 0;
   protected currentPageSize = 25;
+  protected sortActive = 'name';
+  protected sortDirection: 'asc' | 'desc' = 'asc';
+  private readonly sortMap: Record<string, string> = {
+    name: 'name', model: 'model', labName: 'lab.name',
+    category: 'category', status: 'status', purchaseDate: 'purchaseDate',
+  };
 
   ngOnInit(): void {
     this.tourService.register('equipment-list', EQUIPMENT_LIST_TOUR);
@@ -105,6 +111,13 @@ export class EquipmentListComponent implements OnInit, AfterViewInit, OnDestroy 
   protected clearFilter(): void {
     this.searchValue.set('');
     this.searchSubject.next('');
+  }
+
+  protected onSortChange(sort: Sort): void {
+    this.sortActive = sort.active;
+    this.sortDirection = sort.direction as 'asc' | 'desc';
+    this.currentPage = 0;
+    this.loadPage();
   }
 
   protected setViewMode(mode: 'card' | 'table'): void {
@@ -145,7 +158,7 @@ export class EquipmentListComponent implements OnInit, AfterViewInit, OnDestroy 
   private loadPage(): void {
     this.loading.set(true);
     const search = this.searchValue().trim() || undefined;
-    this.equipmentService.getPage({ search, page: this.currentPage, size: this.currentPageSize }).subscribe({
+    this.equipmentService.getPage({ search, page: this.currentPage, size: this.currentPageSize, sort: this.sortMap[this.sortActive] ?? this.sortActive, direction: this.sortDirection }).subscribe({
       next: (page) => {
         this.dataSource.data = page.content;
         this.totalElements = page.totalElements;

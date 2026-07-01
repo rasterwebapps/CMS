@@ -32,6 +32,8 @@ export class FacultyService {
     documentReview?: FacultyDocumentReviewFilter;
     page?: number;
     size?: number;
+    sort?: string;
+    direction?: 'asc' | 'desc';
   }): Observable<Page<Faculty>> {
     let params = new HttpParams()
       .set('page', p.page ?? 0)
@@ -41,6 +43,7 @@ export class FacultyService {
     if (p.status)           params = params.set('status', p.status);
     if (p.documentReview && p.documentReview !== 'ALL')
                             params = params.set('documentReview', p.documentReview);
+    if (p.sort)             params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
     return this.http.get<Page<Faculty>>(`${this.baseUrl}/page`, { params });
   }
 

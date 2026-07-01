@@ -19,11 +19,12 @@ export class StaffReferrerService {
     return this.http.get<StaffReferrer[]>(this.url);
   }
 
-  getPage(p: { search?: string; page?: number; size?: number }): Observable<Page<StaffReferrer>> {
+  getPage(p: { search?: string; page?: number; size?: number; sort?: string; direction?: 'asc' | 'desc' }): Observable<Page<StaffReferrer>> {
     let params = new HttpParams()
       .set('page', p.page ?? 0)
       .set('size', p.size ?? 25);
     if (p.search) params = params.set('search', p.search);
+    if (p.sort)   params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
     return this.http.get<Page<StaffReferrer>>(`${this.url}/page`, { params });
   }
 

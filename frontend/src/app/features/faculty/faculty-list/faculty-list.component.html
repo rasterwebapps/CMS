@@ -146,7 +146,9 @@
     <!-- Table view -->
     <div class="content-card mlp-table-card">
       <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+        <table mat-table [dataSource]="dataSource" matSort matSortDisableClear
+               [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+               (matSortChange)="onSortChange($event)" class="modern-table">
           <ng-container matColumnDef="employeeCode">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Employee Code</th>
             <td mat-cell *matCellDef="let faculty">
@@ -189,7 +191,7 @@
           </ng-container>
 
           <ng-container matColumnDef="documentReview">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Documents</th>
+            <th mat-header-cell *matHeaderCellDef class="cell-align-center">Documents</th>
             <td mat-cell *matCellDef="let faculty" class="cell-align-center">
               @let reviewBadge = documentReviewBadge(faculty);
               <button
