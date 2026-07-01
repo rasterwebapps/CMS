@@ -9,6 +9,15 @@
       </div>
       <p class="mlp-sub">Track and manage student admission records</p>
     </div>
+    @if (canExport()) {
+      <div class="mlp-hdr-actions">
+        <cms-export-button
+          [disabled]="exporting()"
+          (export)="onExport($event)"
+          tooltip="Export admissions as Excel or PDF"
+        />
+      </div>
+    }
   </div>
 
   <!-- ── Toolbar ────────────────────────────────────────────────── -->
@@ -281,9 +290,11 @@
             <th mat-header-cell *matHeaderCellDef class="actions-col"></th>
             <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
               <div class="row-actions">
-                <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete admission" (clicked)="delete(row)">
-                  <cms-icon-delete [size]="14" />
-                </cms-row-action-btn>
+                @if (canDelete()) {
+                  <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete admission" (clicked)="delete(row)">
+                    <cms-icon-delete [size]="14" />
+                  </cms-row-action-btn>
+                }
                 @if (canEdit(row)) {
                   <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit admission" (clicked)="edit(row)">
                     <cms-icon-edit [size]="14" />

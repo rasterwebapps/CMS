@@ -1,11 +1,13 @@
-import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatSortModule } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { StaffReferrerService } from '../staff-referrer.service';
 import { StaffReferrer } from '../staff-referrer.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -31,26 +33,36 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
     CmsViewToggleComponent,
     CmsStatusBadgeComponent,
     CmsRowActionButtonComponent,
-      CmsIconEditComponent,
-      CmsIconToggleStatusComponent,
+    CmsIconEditComponent,
+    CmsIconToggleStatusComponent,
   ],
   templateUrl: './staff-referrer-list.component.html',
   styleUrl: './staff-referrer-list.component.scss',
 })
-export class StaffReferrerListComponent implements OnInit {
+export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly service = inject(StaffReferrerService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
-  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
-    if (value) this.dataSource.paginator = value;
-  }
-  @ViewChild(MatSort) set sort(value: MatSort) {
-    if (value) this.dataSource.sort = value;
-  }
-
   private readonly VIEW_MODE_KEY = 'staff-referrer-view-mode';
+  private readonly destroy$ = new Subject<void>();
+  private readonly searchSubject = new Subject<string>();
+  private _paginator?: MatPaginator;
+  private _paginatorSub?: Subscription;
+
+  @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
+    if (!p || p === this._paginator) return;
+    this._paginatorSub?.unsubscribe();
+    this._paginator = p;
+    p.pageIndex = this.currentPage;
+    p.pageSize = this.currentPageSize;
+    this._paginatorSub = p.page.pipe(takeUntil(this.destroy$)).subscribe((e: PageEvent) => {
+      this.currentPage = e.pageIndex;
+      this.currentPageSize = e.pageSize;
+      this.loadPage();
+    });
+  }
 
   protected readonly displayedColumns = ['name', 'employeeCode', 'phone', 'institutionName', 'commissionAmount', 'isActive', 'actions'];
   protected readonly dataSource = new MatTableDataSource<StaffReferrer>([]);
@@ -58,24 +70,28 @@ export class StaffReferrerListComponent implements OnInit {
   protected readonly searchValue = signal('');
   protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
 
-  private readonly allItems = signal<StaffReferrer[]>([]);
-
-  protected readonly totalCount = computed(() => this.allItems().length);
-  protected readonly activeCount = computed(() => this.allItems().filter(s => s.isActive).length);
-
-  protected readonly filteredItems = computed(() => {
-    const q = this.searchValue().trim().toLowerCase();
-    if (!q) return this.allItems();
-    return this.allItems().filter(s =>
-      s.name.toLowerCase().includes(q) ||
-      (s.phone?.toLowerCase().includes(q) ?? false) ||
-      s.employeeCode.toLowerCase().includes(q) ||
-      s.institutionName.toLowerCase().includes(q),
-    );
-  });
+  protected totalElements = 0;
+  protected currentPage = 0;
+  protected currentPageSize = 25;
 
   ngOnInit(): void {
-    this.load();
+    this.searchSubject.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(() => {
+      this.currentPage = 0;
+      this.loadPage();
+    });
+    this.loadPage();
+  }
+
+  ngAfterViewInit(): void {}
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this._paginatorSub?.unsubscribe();
   }
 
   protected setViewMode(mode: 'card' | 'table'): void {
@@ -86,13 +102,12 @@ export class StaffReferrerListComponent implements OnInit {
   protected applyFilter(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.searchValue.set(value);
-    this.dataSource.filter = value.trim().toLowerCase();
-    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+    this.searchSubject.next(value);
   }
 
   protected clearFilter(): void {
     this.searchValue.set('');
-    this.dataSource.filter = '';
+    this.searchSubject.next('');
   }
 
   protected edit(item: StaffReferrer): void {
@@ -135,7 +150,7 @@ export class StaffReferrerListComponent implements OnInit {
     request$.subscribe({
       next: () => {
         this.toast.success(`Staff referrer ${item.isActive ? 'deactivated' : 'activated'} successfully`);
-        this.load();
+        this.loadPage();
       },
       error: (err) => {
         this.toast.error(
@@ -146,15 +161,20 @@ export class StaffReferrerListComponent implements OnInit {
     });
   }
 
-  private load(): void {
+  private loadPage(): void {
     this.loading.set(true);
-    this.service.getAll().subscribe({
-      next: (data) => {
-        this.allItems.set(data);
-        this.dataSource.data = data;
+    const search = this.searchValue().trim() || undefined;
+    this.service.getPage({ search, page: this.currentPage, size: this.currentPageSize }).subscribe({
+      next: (page) => {
+        this.dataSource.data = page.content;
+        this.totalElements = page.totalElements;
+        if (this._paginator) {
+          this._paginator.length = page.totalElements;
+          this._paginator.pageIndex = page.number;
+        }
         this.loading.set(false);
       },
-      error: () => { this.toast.error('Failed to load'); this.loading.set(false); },
+      error: () => { this.toast.error('Failed to load staff referrers'); this.loading.set(false); },
     });
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
@@ -117,5 +117,26 @@ export class StudentService {
 
   getTransferHistory(studentId: number): Observable<ProgramTransferRecord[]> {
     return this.http.get<ProgramTransferRecord[]>(`${this.baseUrl}/${studentId}/program-transfers`);
+  }
+
+  exportStudents(
+    format: 'excel' | 'pdf',
+    filters: {
+      programId?: number | null;
+      courseId?: number | null;
+      academicYearId?: number | null;
+      status?: string | null;
+      studentType?: string | null;
+      search?: string | null;
+    } = {},
+  ): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (filters.programId)      params = params.set('programId', filters.programId);
+    if (filters.courseId)       params = params.set('courseId', filters.courseId);
+    if (filters.academicYearId) params = params.set('academicYearId', filters.academicYearId);
+    if (filters.status)         params = params.set('status', filters.status);
+    if (filters.studentType)    params = params.set('studentType', filters.studentType);
+    if (filters.search && filters.search.length >= 3) params = params.set('search', filters.search);
+    return this.http.get(`${this.baseUrl}/export`, { params, responseType: 'blob' });
   }
 }

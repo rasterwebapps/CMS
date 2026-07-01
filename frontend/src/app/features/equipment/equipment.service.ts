@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { Equipment, EquipmentRequest } from './equipment.model';
+import { Equipment, EquipmentRequest, Page } from './equipment.model';
 
 @Injectable({
   providedIn: 'root',
@@ -13,6 +13,14 @@ export class EquipmentService {
 
   getAll(): Observable<Equipment[]> {
     return this.http.get<Equipment[]>(this.baseUrl);
+  }
+
+  getPage(p: { search?: string; page?: number; size?: number }): Observable<Page<Equipment>> {
+    let params = new HttpParams()
+      .set('page', p.page ?? 0)
+      .set('size', p.size ?? 25);
+    if (p.search) params = params.set('search', p.search);
+    return this.http.get<Page<Equipment>>(`${this.baseUrl}/page`, { params });
   }
 
   getById(id: number): Observable<Equipment> {

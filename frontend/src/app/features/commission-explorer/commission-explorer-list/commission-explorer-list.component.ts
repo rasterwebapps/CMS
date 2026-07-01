@@ -1,15 +1,19 @@
 import {
-  Component, computed, effect, inject, OnInit, signal, ViewChild,
+  AfterViewInit, Component, computed, inject, OnDestroy, OnInit, signal, ViewChild,
 } from '@angular/core';
 import {
   FormBuilder, FormGroup, ReactiveFormsModule, Validators,
 } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatSortModule } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
+
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { SettingsService } from '../../settings/settings.service';
@@ -19,6 +23,7 @@ import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.p
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
+import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { CommissionExplorerService } from '../commission-explorer.service';
 import {
   CommissionRecord,
@@ -27,6 +32,8 @@ import {
 } from '../commission-explorer.model';
 import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 
+const DEFAULT_PAGE_SIZE = 25;
+
 @Component({
   selector: 'app-commission-explorer-list',
   standalone: true,
@@ -34,92 +41,73 @@ import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
     ReactiveFormsModule,
     InrPipe, AppDatePipe, PaymentModeLabelPipe,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent,
+    ExportButtonComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
   ],
   templateUrl: './commission-explorer-list.component.html',
   styleUrl:    './commission-explorer-list.component.scss',
 })
-export class CommissionExplorerListComponent implements OnInit {
+export class CommissionExplorerListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly explorerService  = inject(CommissionExplorerService);
   private readonly permService      = inject(PermissionService);
   private readonly toast            = inject(ToastService);
   private readonly fb               = inject(FormBuilder);
   private readonly settingsService  = inject(SettingsService);
+  private readonly router           = inject(Router);
+  private readonly route            = inject(ActivatedRoute);
 
-  @ViewChild(MatPaginator) set paginator(v: MatPaginator) { if (v) this.dataSource.paginator = v; }
-  @ViewChild(MatSort)      set sort(v: MatSort)           { if (v) this.dataSource.sort = v; }
+  @ViewChild(MatPaginator) paginator?: MatPaginator;
 
   protected readonly canManage = computed(() => this.permService.has('COMMISSION_MANAGE'));
   protected readonly canSettle = computed(() => this.permService.has('COMMISSION_SETTLE'));
+  protected readonly canExport = computed(() => this.permService.has('COMMISSION_EXPORT'));
 
   protected readonly displayedColumns = [
     'studentName', 'referrer', 'program', 'commissionAmount',
     'paidAmount', 'outstanding', 'status', 'actions',
   ];
 
-  protected readonly dataSource   = new MatTableDataSource<CommissionRecord>([]);
+  protected readonly dataSource    = new MatTableDataSource<CommissionRecord>([]);
   protected readonly statusOptions = COMMISSION_STATUS_OPTIONS;
   protected readonly sourceOptions = COMMISSION_SOURCE_OPTIONS;
   protected readonly paymentModes  = PAYMENT_MODES;
 
   // ── OneBook config ────────────────────────────────────────────────────────────
-  protected readonly oneBookEnabled  = signal(false);
+  protected readonly oneBookEnabled = signal(false);
 
   // ── State ────────────────────────────────────────────────────────────────────
   protected readonly loading       = signal(false);
+  protected readonly exporting     = signal(false);
   protected readonly actionLoading = signal(false);
 
-  private readonly allRecords = signal<CommissionRecord[]>([]);
+  // ── Filters (synced from URL params) ──────────────────────────────────────────
+  protected readonly filterSearch = signal('');
+  protected readonly filterStatus = signal('');
+  protected readonly filterSource = signal('');
+  protected readonly filterFrom   = signal('');
+  protected readonly filterTo     = signal('');
 
-  // ── Filters (client-side after initial load) ─────────────────────────────────
-  protected readonly filterSearch  = signal('');
-  protected readonly filterStatus  = signal('');
-  protected readonly filterSource  = signal('');
-  protected readonly filterFrom    = signal('');
-  protected readonly filterTo      = signal('');
-
-  protected readonly filteredRecords = computed(() => {
-    const search = this.filterSearch().trim().toLowerCase();
-    const status = this.filterStatus();
-    const source = this.filterSource();
-    const from   = this.filterFrom();
-    const to     = this.filterTo();
-
-    return this.allRecords().filter(r => {
-      if (search) {
-        const hay = [r.studentName, r.agentName, r.staffReferrerName,
-                     r.referredFacultyName, r.admissionNumber, r.referralTypeName]
-          .filter(Boolean).join(' ').toLowerCase();
-        if (!hay.includes(search)) return false;
-      }
-      if (status && r.commissionPaymentStatus !== status) return false;
-      if (source && r.commissionSource !== source)         return false;
-      if (from   && r.enquiryDate < from)                  return false;
-      if (to     && r.enquiryDate > to)                    return false;
-      return true;
-    });
-  });
-
-  // ── Summary stats ────────────────────────────────────────────────────────────
-  protected readonly totalDue = computed(() =>
-    this.filteredRecords().reduce((s, r) => s + (r.commissionAmount ?? 0), 0));
-  protected readonly totalPaid = computed(() =>
-    this.filteredRecords().reduce((s, r) => s + (r.commissionPaidAmount ?? 0), 0));
-  protected readonly totalOutstanding = computed(() =>
-    this.filteredRecords().reduce((s, r) => s + (r.commissionOutstanding ?? 0), 0));
-  protected readonly totalAwaitingApproval = computed(() =>
-    this.filteredRecords().filter(r => r.commissionPaymentStatus === 'PENDING').length);
+  // ── Server-side pagination state ──────────────────────────────────────────────
+  protected totalElements   = 0;
+  private currentPage       = 0;
+  private currentPageSize   = DEFAULT_PAGE_SIZE;
 
   protected readonly hasFilters = computed(() =>
     !!this.filterSearch() || !!this.filterStatus() || !!this.filterSource() ||
     !!this.filterFrom() || !!this.filterTo());
 
+  // ── Page-level summary stats (computed from current page) ────────────────────
+  protected totalDue             = 0;
+  protected totalPaid            = 0;
+  protected totalOutstanding     = 0;
+  protected totalAwaitingApproval = 0;
+
   // ── Expanded row ─────────────────────────────────────────────────────────────
   protected readonly expandedRow = signal<CommissionRecord | null>(null);
 
   // ── Payout modal ─────────────────────────────────────────────────────────────
-  protected readonly payoutTarget  = signal<CommissionRecord | null>(null);
+  protected readonly payoutTarget = signal<CommissionRecord | null>(null);
   protected readonly payoutForm: FormGroup = this.fb.group({
     payoutDate:           ['', [Validators.required]],
     paymentMode:          [null as string | null, [Validators.required]],
@@ -128,23 +116,46 @@ export class CommissionExplorerListComponent implements OnInit {
   });
 
   // ── Reject modal ──────────────────────────────────────────────────────────────
-  protected readonly rejectTarget = signal<CommissionRecord | null>(null);
-  protected readonly rejectReason = signal('');
+  protected readonly rejectTarget       = signal<CommissionRecord | null>(null);
+  protected readonly rejectReason       = signal('');
   protected readonly rejectReasonTouched = signal(false);
 
   // ── Approve confirmation modal ───────────────────────────────────────────────
   protected readonly approveTarget = signal<CommissionRecord | null>(null);
 
-  constructor() {
-    effect(() => {
-      this.dataSource.data = this.filteredRecords();
-      if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
-    });
-  }
+  private readonly destroy$      = new Subject<void>();
+  private readonly searchSubject = new Subject<string>();
 
   ngOnInit(): void {
     this.loadOneBookConfig();
-    this.load();
+
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      this.filterSearch.set(params['search'] ?? '');
+      this.filterStatus.set(params['status'] ?? '');
+      this.filterSource.set(params['source'] ?? '');
+      this.filterFrom.set(params['fromDate'] ?? '');
+      this.filterTo.set(params['toDate'] ?? '');
+      this.currentPage     = params['page'] ? +params['page'] : 0;
+      this.currentPageSize = params['size'] ? +params['size'] : DEFAULT_PAGE_SIZE;
+      this.loadPage();
+    });
+
+    this.searchSubject.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(val => this.navigate({ search: val || null, page: 0 }));
+  }
+
+  ngAfterViewInit(): void {
+    this.paginator?.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
+      this.navigate({ page: ev.pageIndex, size: ev.pageSize });
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private loadOneBookConfig(): void {
@@ -156,20 +167,99 @@ export class CommissionExplorerListComponent implements OnInit {
     });
   }
 
-  protected load(): void {
+  private loadPage(): void {
     this.loading.set(true);
-    this.explorerService.getAll().subscribe({
-      next: (records) => { this.allRecords.set(records); this.loading.set(false); },
-      error: (err)     => { this.toast.error(this.apiError(err, 'Failed to load commission records')); this.loading.set(false); },
+    this.explorerService.getAllPage({
+      search:      this.filterSearch().length >= 2 ? this.filterSearch() : undefined,
+      status:      this.filterStatus() || undefined,
+      source:      this.filterSource() || undefined,
+      fromDate:    this.filterFrom() || undefined,
+      toDate:      this.filterTo() || undefined,
+      page:        this.currentPage,
+      size:        this.currentPageSize,
+    }).subscribe({
+      next: page => {
+        this.dataSource.data  = page.content;
+        this.totalElements    = page.totalElements;
+        if (this.paginator) {
+          this.paginator.length    = page.totalElements;
+          this.paginator.pageIndex = page.number;
+          this.paginator.pageSize  = page.size;
+        }
+        // Recompute page-level stats
+        this.totalDue              = page.content.reduce((s, r) => s + (r.commissionAmount ?? 0), 0);
+        this.totalPaid             = page.content.reduce((s, r) => s + (r.commissionPaidAmount ?? 0), 0);
+        this.totalOutstanding      = page.content.reduce((s, r) => s + (r.commissionOutstanding ?? 0), 0);
+        this.totalAwaitingApproval = page.content.filter(r => r.commissionPaymentStatus === 'PENDING').length;
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.toast.error(this.apiError(err, 'Failed to load commission records'));
+        this.loading.set(false);
+      },
     });
   }
 
-  protected clearFilters(): void {
+  protected onSearch(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.filterSearch.set(val);
+    this.searchSubject.next(val);
+  }
+
+  protected clearSearch(): void {
     this.filterSearch.set('');
-    this.filterStatus.set('');
-    this.filterSource.set('');
-    this.filterFrom.set('');
-    this.filterTo.set('');
+    this.searchSubject.next('');
+  }
+
+  protected clearFilters(): void {
+    this.navigate({ search: null, status: null, source: null, fromDate: null, toDate: null, page: 0 });
+  }
+
+  protected navigate(patch: Partial<{
+    search: string | null; status: string | null; source: string | null;
+    fromDate: string | null; toDate: string | null; page: number; size: number;
+  }>): void {
+    const cur = this.route.snapshot.queryParams;
+    const merged = {
+      search:  'search'  in patch ? patch.search  : (cur['search'] ?? null),
+      status:  'status'  in patch ? patch.status  : (cur['status'] ?? null),
+      source:  'source'  in patch ? patch.source  : (cur['source'] ?? null),
+      fromDate:'fromDate'in patch ? patch.fromDate : (cur['fromDate'] ?? null),
+      toDate:  'toDate'  in patch ? patch.toDate  : (cur['toDate'] ?? null),
+      page:    'page'    in patch ? patch.page    : this.currentPage,
+      size:    'size'    in patch ? patch.size    : this.currentPageSize,
+    };
+    const queryParams = Object.fromEntries(
+      Object.entries(merged).filter(([, v]) => v !== null && v !== undefined && v !== ''),
+    );
+    void this.router.navigate([], { relativeTo: this.route, queryParams });
+  }
+
+  protected onExport(format: ExportFormat): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.explorerService.exportCommissions(format, {
+      search:   this.filterSearch().trim() || null,
+      status:   this.filterStatus() || null,
+      source:   this.filterSource() || null,
+      fromDate: this.filterFrom() || null,
+      toDate:   this.filterTo() || null,
+    }).subscribe({
+      next: (blob) => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `commissions.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
   }
 
   protected toggleRow(row: CommissionRecord): void {
@@ -226,7 +316,7 @@ export class CommissionExplorerListComponent implements OnInit {
     return r.commissionSource ? (map[r.commissionSource] ?? '') : '';
   }
 
-  // ── Approve (OneBook push if enabled, else moves to awaiting-payment) ────────
+  // ── Approve ───────────────────────────────────────────────────────────────────
   protected openApproveModal(r: CommissionRecord, event: Event): void {
     event.stopPropagation();
     this.approveTarget.set(r);
@@ -242,11 +332,11 @@ export class CommissionExplorerListComponent implements OnInit {
 
     this.actionLoading.set(true);
     this.explorerService.approve(target.enquiryId).subscribe({
-      next: (updated) => {
-        this.updateRecord(updated);
+      next: () => {
         this.toast.success(this.oneBookEnabled() ? 'Payment transmitted to OneBook' : 'Commission approved — awaiting payment');
         this.closeApproveModal();
         this.actionLoading.set(false);
+        this.loadPage();
       },
       error: (err) => {
         this.toast.error(this.apiError(err, 'Failed to approve commission'));
@@ -260,10 +350,10 @@ export class CommissionExplorerListComponent implements OnInit {
     event.stopPropagation();
     this.actionLoading.set(true);
     this.explorerService.approve(r.enquiryId).subscribe({
-      next: (updated) => {
-        this.updateRecord(updated);
+      next: () => {
         this.toast.success('Payment transmitted to OneBook');
         this.actionLoading.set(false);
+        this.loadPage();
       },
       error: (err) => {
         this.toast.error(this.apiError(err, 'Failed to transmit payment to OneBook'));
@@ -293,11 +383,11 @@ export class CommissionExplorerListComponent implements OnInit {
 
     this.actionLoading.set(true);
     this.explorerService.reject(target.enquiryId, reason).subscribe({
-      next: (updated) => {
-        this.updateRecord(updated);
+      next: () => {
         this.toast.success('Commission rejected');
         this.closeRejectModal();
         this.actionLoading.set(false);
+        this.loadPage();
       },
       error: (err) => {
         this.toast.error(this.apiError(err, 'Failed to reject commission'));
@@ -311,10 +401,10 @@ export class CommissionExplorerListComponent implements OnInit {
     event.stopPropagation();
     this.actionLoading.set(true);
     this.explorerService.reopen(r.enquiryId).subscribe({
-      next: (updated) => {
-        this.updateRecord(updated);
+      next: () => {
         this.toast.success('Commission reopened — back to pending');
         this.actionLoading.set(false);
+        this.loadPage();
       },
       error: (err) => {
         this.toast.error(this.apiError(err, 'Failed to reopen commission'));
@@ -354,22 +444,17 @@ export class CommissionExplorerListComponent implements OnInit {
       transactionReference: v.transactionReference?.trim() || undefined,
       remarks:              v.remarks?.trim() || undefined,
     }).subscribe({
-      next: (updated) => {
-        this.updateRecord(updated);
+      next: () => {
         this.toast.success('Payout recorded');
         this.closePayoutModal();
         this.actionLoading.set(false);
+        this.loadPage();
       },
       error: (err) => {
         this.toast.error(this.apiError(err, 'Failed to record payout'));
         this.actionLoading.set(false);
       },
     });
-  }
-
-  private updateRecord(updated: CommissionRecord): void {
-    this.allRecords.update(records =>
-      records.map(r => r.enquiryId === updated.enquiryId ? updated : r));
   }
 
   private apiError(err: unknown, fallback: string): string {

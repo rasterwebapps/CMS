@@ -2,6 +2,9 @@ package com.cms.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +16,8 @@ import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Institution;
 import com.cms.model.StaffReferrer;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import com.cms.repository.CommissionPayoutRepository;
 import com.cms.repository.InstitutionRepository;
 import com.cms.repository.StaffReferrerRepository;
@@ -54,6 +59,23 @@ public class StaffReferrerService {
 
     public List<StaffReferrerResponse> findAll() {
         return repository.findAll().stream().map(this::toResponse).toList();
+    }
+
+    public Page<StaffReferrerResponse> findPage(String search, Pageable pageable) {
+        Specification<StaffReferrer> spec = Specification.where(null);
+        if (search != null && !search.trim().isEmpty()) {
+            String pattern = "%" + search.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> {
+                Join<StaffReferrer, Institution> institution = root.join("institution", JoinType.INNER);
+                return cb.or(
+                    cb.like(cb.lower(root.get("name")), pattern),
+                    cb.like(cb.lower(root.get("phone")), pattern),
+                    cb.like(cb.lower(root.get("employeeCode")), pattern),
+                    cb.like(cb.lower(institution.get("name")), pattern)
+                );
+            });
+        }
+        return repository.findAll(spec, pageable).map(this::toResponse);
     }
 
     public List<StaffReferrerResponse> findActive() {

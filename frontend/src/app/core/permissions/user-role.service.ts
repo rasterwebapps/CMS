@@ -56,8 +56,18 @@ export class UserRoleService {
   }
 
   // ── Permissions ───────────────────────────────────────────────
+  /** All permissions with tier info — for the Permission Tier Management screen (DEV_ADMIN only). */
   getAllPermissions(): Observable<AllPermissionsResponse[]> {
     return this.http.get<AllPermissionsResponse[]>(`${this.base}/permissions/all`);
+  }
+
+  /** Permissions the current user is allowed to delegate to sub-roles — for the Role editor picker. */
+  getDelegatablePermissions(): Observable<AllPermissionsResponse[]> {
+    return this.http.get<AllPermissionsResponse[]>(`${this.base}/permissions/delegatable`);
+  }
+
+  updatePermissionTier(id: number, tier: number): Observable<AllPermissionsResponse> {
+    return this.http.put<AllPermissionsResponse>(`${this.base}/permissions/${id}/tier`, { tier });
   }
 
   // ── Dashboard ─────────────────────────────────────────────────

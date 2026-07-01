@@ -96,6 +96,38 @@ public class FeeExplorerService {
         return new PageImpl<>(content, pageable, idPage.getTotalElements());
     }
 
+    /**
+     * Unbounded version for export: applies the search spec then post-filters by the client-side
+     * dimensions (program name, academic year name, yearOfStudy, allocationStatus).
+     */
+    public List<FeeExplorerResponse.StudentFeeSummary> searchAll(
+            String search, String program, String academicYear, Integer yearOfStudy, String allocationStatus) {
+
+        Specification<Student> spec = Specification.where(null);
+        if (search != null && search.length() >= 2) spec = spec.and(StudentSpecification.bySearch(search));
+
+        List<Student> students = studentRepository.findAll(spec);
+        List<Long> ids = students.stream().map(Student::getId).toList();
+
+        Map<Long, Admission> admByStudent = admissionRepository
+            .findByStudentIdInFetchJoiningYear(ids)
+            .stream().collect(Collectors.toMap(a -> a.getStudent().getId(), a -> a, (a, b) -> a));
+
+        return students.stream()
+            .map(s -> buildSummary(s, admByStudent.get(s.getId()), null))
+            .filter(r -> {
+                if (program != null && !program.isBlank() && !program.equals("ALL")
+                        && !program.equalsIgnoreCase(r.programName())) return false;
+                if (academicYear != null && !academicYear.isBlank() && !academicYear.equals("ALL")
+                        && !academicYear.equalsIgnoreCase(r.academicYearName())) return false;
+                if (yearOfStudy != null && !Objects.equals(r.yearOfStudy(), yearOfStudy)) return false;
+                if (allocationStatus != null && !allocationStatus.isBlank() && !allocationStatus.equals("ALL")
+                        && !allocationStatus.equalsIgnoreCase(r.allocationStatus())) return false;
+                return true;
+            })
+            .toList();
+    }
+
     public FeeExplorerResponse search(String query) {
         List<Student> students = findStudents(query);
 

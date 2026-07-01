@@ -4,11 +4,12 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.cms.model.Faculty;
 import com.cms.model.enums.FacultyStatus;
 
-public interface FacultyRepository extends JpaRepository<Faculty, Long> {
+public interface FacultyRepository extends JpaRepository<Faculty, Long>, JpaSpecificationExecutor<Faculty> {
 
     Optional<Faculty> findByEmployeeCode(String employeeCode);
 

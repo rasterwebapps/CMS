@@ -94,18 +94,44 @@ public class AdmissionService {
             .toList();
     }
 
+    public List<AdmissionResponse> findExplorerAll(
+            Long programId, Long courseId, Long academicYearId,
+            String status, String studentType, String search) {
+
+        Specification<Admission> spec = buildSpec(programId, courseId, academicYearId, status, studentType, search);
+        List<Admission> admissions = admissionRepository.findAll(spec);
+
+        Collection<Long> studentIds = admissions.stream().map(a -> a.getStudent().getId()).toList();
+        Map<Long, String> studentTypeMap = new java.util.HashMap<>();
+        enquiryRepository.findByConvertedStudentIdIn(studentIds).forEach(e -> {
+            if (e.getConvertedStudentId() != null)
+                studentTypeMap.put(e.getConvertedStudentId(),
+                    e.getStudentType() != null ? e.getStudentType().name() : null);
+        });
+
+        return admissions.stream()
+            .map(a -> toResponse(a, studentTypeMap.get(a.getStudent().getId())))
+            .toList();
+    }
+
+    private Specification<Admission> buildSpec(Long programId, Long courseId, Long academicYearId,
+                                                String status, String studentType, String search) {
+        Specification<Admission> spec = Specification.where(null);
+        if (programId != null)                             spec = spec.and(AdmissionSpecification.byProgramId(programId));
+        if (courseId != null)                              spec = spec.and(AdmissionSpecification.byCourseId(courseId));
+        if (academicYearId != null)                        spec = spec.and(AdmissionSpecification.byAcademicYearId(academicYearId));
+        if (status != null && !status.isBlank())           spec = spec.and(AdmissionSpecification.byStatus(status));
+        if (studentType != null && !studentType.isBlank()) spec = spec.and(AdmissionSpecification.byStudentType(studentType));
+        if (search != null && search.length() >= 3)        spec = spec.and(AdmissionSpecification.bySearch(search));
+        return spec;
+    }
+
     public Page<AdmissionResponse> findExplorer(
             Long programId, Long courseId, Long academicYearId,
             String status, String studentType, String search,
             Pageable pageable) {
 
-        Specification<Admission> spec = Specification.where(null);
-        if (programId != null)                          spec = spec.and(AdmissionSpecification.byProgramId(programId));
-        if (courseId != null)                           spec = spec.and(AdmissionSpecification.byCourseId(courseId));
-        if (academicYearId != null)                     spec = spec.and(AdmissionSpecification.byAcademicYearId(academicYearId));
-        if (status != null && !status.isBlank())        spec = spec.and(AdmissionSpecification.byStatus(status));
-        if (studentType != null && !studentType.isBlank()) spec = spec.and(AdmissionSpecification.byStudentType(studentType));
-        if (search != null && search.length() >= 3)    spec = spec.and(AdmissionSpecification.bySearch(search));
+        Specification<Admission> spec = buildSpec(programId, courseId, academicYearId, status, studentType, search);
 
         // Step 1: ID + count query via spec (lightweight — no associations fetched)
         Page<Admission> idPage = admissionRepository.findAll(spec, pageable);

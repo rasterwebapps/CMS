@@ -38,6 +38,14 @@ public class Permission {
     @Column(length = 500)
     private String description;
 
+    /**
+     * Delegation tier (1–4).
+     * 1 = Dev Only, 2 = Support+, 3 = Hold Only (senior roles hold; only Support+ delegates),
+     * 4 = Open (anyone who holds it can delegate it).
+     */
+    @Column(nullable = false)
+    private int tier = 4;
+
     @ManyToMany(mappedBy = "permissions", fetch = FetchType.LAZY)
     private Set<AppRole> roles = new HashSet<>();
 
@@ -93,6 +101,14 @@ public class Permission {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public int getTier() {
+        return tier;
+    }
+
+    public void setTier(int tier) {
+        this.tier = tier;
     }
 
     public Set<AppRole> getRoles() {

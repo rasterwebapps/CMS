@@ -6,6 +6,9 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +26,7 @@ import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.repository.DesignationRepository;
+import com.cms.repository.FacultySpecification;
 import com.cms.repository.SpecialityRepository;
 import com.cms.repository.FacultyDocumentRepository;
 import com.cms.repository.FacultyRepository;
@@ -98,6 +102,28 @@ public class FacultyService {
         return facultyRepository.findAll().stream()
             .map(this::toResponse)
             .toList();
+    }
+
+    public Page<FacultyResponse> findPage(String search, Long specialityId,
+                                          FacultyStatus status, String documentReview,
+                                          Pageable pageable) {
+        Specification<Faculty> spec = FacultySpecification.distinct();
+        if (search != null && !search.trim().isEmpty()) {
+            spec = spec.and(FacultySpecification.bySearch(search.trim()));
+        }
+        if (specialityId != null) {
+            spec = spec.and(FacultySpecification.bySpecialityId(specialityId));
+        }
+        if (status != null) {
+            spec = spec.and(FacultySpecification.byStatus(status));
+        }
+        if (documentReview != null && !"ALL".equalsIgnoreCase(documentReview)) {
+            Specification<Faculty> docFilter = FacultySpecification.byDocumentReview(documentReview);
+            if (docFilter != null) {
+                spec = spec.and(docFilter);
+            }
+        }
+        return facultyRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     public FacultyResponse findById(Long id) {

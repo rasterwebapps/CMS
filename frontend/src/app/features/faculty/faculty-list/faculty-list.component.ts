@@ -1,13 +1,15 @@
-import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, AfterViewInit, signal, computed, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { TitleCasePipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatSortModule } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { FacultyService } from '../faculty.service';
 import {
   FACULTY_DOCUMENT_REVIEW_FILTER_OPTIONS,
@@ -48,14 +50,14 @@ import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } fr
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
-      CmsIconDeleteComponent,
-      CmsIconEditComponent,
-      CmsIconViewComponent,
+    CmsIconDeleteComponent,
+    CmsIconEditComponent,
+    CmsIconViewComponent,
   ],
   templateUrl: './faculty-list.component.html',
   styleUrl: './faculty-list.component.scss',
 })
-export class FacultyListComponent implements OnInit {
+export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly facultyService = inject(FacultyService);
   private readonly specialityService = inject(SpecialityService);
   private readonly router = inject(Router);
@@ -64,12 +66,22 @@ export class FacultyListComponent implements OnInit {
   private readonly tourService = inject(TourService);
 
   private readonly VIEW_MODE_KEY = 'faculty-view-mode';
+  private readonly destroy$ = new Subject<void>();
+  private readonly searchSubject = new Subject<string>();
+  private _paginator?: MatPaginator;
+  private _paginatorSub?: Subscription;
 
-  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
-    if (value) this.dataSource.paginator = value;
-  }
-  @ViewChild(MatSort) set sort(value: MatSort) {
-    if (value) this.dataSource.sort = value;
+  @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
+    if (!p || p === this._paginator) return;
+    this._paginatorSub?.unsubscribe();
+    this._paginator = p;
+    p.pageIndex = this.currentPage;
+    p.pageSize = this.currentPageSize;
+    this._paginatorSub = p.page.pipe(takeUntil(this.destroy$)).subscribe((e: PageEvent) => {
+      this.currentPage = e.pageIndex;
+      this.currentPageSize = e.pageSize;
+      this.loadPage();
+    });
   }
 
   protected readonly displayedColumns: readonly string[] = ['employeeCode', 'fullName', 'phone', 'email', 'specialityName', 'designation', 'status', 'documentReview', 'actions'];
@@ -78,7 +90,6 @@ export class FacultyListComponent implements OnInit {
   protected readonly searchValue = signal('');
   protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
 
-  private readonly allFaculty = signal<Faculty[]>([]);
   protected readonly specialities = signal<Speciality[]>([]);
   protected readonly selectedSpecialityId = signal<number | null>(null);
   protected readonly selectedStatus = signal<FacultyStatus | null>(null);
@@ -86,30 +97,9 @@ export class FacultyListComponent implements OnInit {
   protected readonly statusOptions = FACULTY_STATUS_OPTIONS;
   protected readonly documentReviewOptions = FACULTY_DOCUMENT_REVIEW_FILTER_OPTIONS;
 
-  protected readonly filteredFaculty = computed(() => {
-    const q = this.searchValue().trim().toLowerCase();
-    const deptId = this.selectedSpecialityId();
-    const status = this.selectedStatus();
-    const deptName = deptId
-      ? (this.specialities().find(d => d.id === deptId)?.name ?? '')
-      : '';
-
-    return this.allFaculty().filter(item => {
-      if (deptName && !item.specialityName.toLowerCase().includes(deptName.toLowerCase())) return false;
-      if (status && item.status !== status) return false;
-      if (!this.matchesDocumentReview(item)) return false;
-      if (q && !(
-        item.fullName.toLowerCase().includes(q) ||
-        item.employeeCode.toLowerCase().includes(q) ||
-        (item.email ?? '').toLowerCase().includes(q) ||
-        item.specialityName.toLowerCase().includes(q)
-      )) return false;
-      return true;
-    });
-  });
-
-  protected readonly totalCount = computed(() => this.allFaculty().length);
-  protected readonly activeCount = computed(() => this.allFaculty().filter(f => f.status === 'ACTIVE').length);
+  protected totalElements = 0;
+  protected currentPage = 0;
+  protected currentPageSize = 25;
 
   protected readonly hasActiveFilters = computed(() =>
     this.selectedSpecialityId() !== null ||
@@ -120,45 +110,62 @@ export class FacultyListComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('faculty-list', FACULTY_LIST_TOUR);
-    this.dataSource.sortingDataAccessor = (item, property) => {
-      if (property === 'documentReview') return this.documentReviewSortValue(item);
-      return String((item as unknown as Record<string, unknown>)[property] ?? '').toLowerCase();
-    };
+    this.searchSubject.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(() => {
+      this.currentPage = 0;
+      this.loadPage();
+    });
     this.loadSpecialities();
-    this.loadFaculty();
+    this.loadPage();
+  }
+
+  ngAfterViewInit(): void {}
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this._paginatorSub?.unsubscribe();
   }
 
   protected applyFilter(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.searchValue.set(value);
-    this.syncTableData();
+    this.searchSubject.next(value);
   }
 
   protected clearFilter(): void {
     this.searchValue.set('');
-    this.syncTableData();
+    this.searchSubject.next('');
   }
 
   protected onSpecialityChange(specialityId: number | null): void {
     this.selectedSpecialityId.set(specialityId);
-    this.syncTableData();
+    this.currentPage = 0;
+    this.loadPage();
   }
 
   protected onDocumentReviewChange(value: FacultyDocumentReviewFilter): void {
     this.selectedDocumentReview.set(value);
-    this.syncTableData();
+    this.currentPage = 0;
+    this.loadPage();
   }
 
   protected onStatusChange(status: FacultyStatus | null): void {
     this.selectedStatus.set(status);
-    this.syncTableData();
+    this.currentPage = 0;
+    this.loadPage();
   }
 
   protected clearFilters(): void {
     this.selectedSpecialityId.set(null);
     this.selectedStatus.set(null);
     this.selectedDocumentReview.set('ALL');
-    this.clearFilter();
+    this.searchValue.set('');
+    this.currentPage = 0;
+    this.loadPage();
   }
 
   protected setViewMode(mode: 'card' | 'table'): void {
@@ -255,7 +262,7 @@ export class FacultyListComponent implements OnInit {
     this.facultyService.delete(faculty.id).subscribe({
       next: () => {
         this.toast.success('Faculty deleted successfully');
-        this.loadFaculty();
+        this.loadPage();
       },
       error: (err) => {
         this.toast.error(err?.error?.message ?? 'Failed to delete faculty');
@@ -271,12 +278,27 @@ export class FacultyListComponent implements OnInit {
     });
   }
 
-  private loadFaculty(): void {
+  private loadPage(): void {
     this.loading.set(true);
-    this.facultyService.getAll().subscribe({
-      next: (facultyList) => {
-        this.allFaculty.set(facultyList);
-        this.syncTableData();
+    const search = this.searchValue().trim() || undefined;
+    const specialityId = this.selectedSpecialityId() ?? undefined;
+    const status = this.selectedStatus() ?? undefined;
+    const documentReview = this.selectedDocumentReview();
+    this.facultyService.getPage({
+      search,
+      specialityId,
+      status,
+      documentReview: documentReview !== 'ALL' ? documentReview : undefined,
+      page: this.currentPage,
+      size: this.currentPageSize,
+    }).subscribe({
+      next: (page) => {
+        this.dataSource.data = page.content;
+        this.totalElements = page.totalElements;
+        if (this._paginator) {
+          this._paginator.length = page.totalElements;
+          this._paginator.pageIndex = page.number;
+        }
         this.loading.set(false);
       },
       error: () => {
@@ -284,35 +306,6 @@ export class FacultyListComponent implements OnInit {
         this.loading.set(false);
       },
     });
-  }
-
-  private syncTableData(): void {
-    this.dataSource.data = this.filteredFaculty();
-    this.dataSource.paginator?.firstPage();
-  }
-
-  private matchesDocumentReview(faculty: Faculty): boolean {
-    const review = this.documentReview(faculty);
-    switch (this.selectedDocumentReview()) {
-      case 'NEEDS_VERIFICATION': return review.pendingVerificationCount > 0;
-      case 'REJECTED': return review.rejectedCount > 0;
-      case 'MISSING_REQUIRED': return review.missingRequiredCount > 0;
-      case 'FULLY_VERIFIED': return this.isFullyVerified(review);
-      case 'NO_DOCUMENTS': return !review.hasAnyDocuments;
-      case 'HAS_ANY_DOCUMENTS': return review.hasAnyDocuments;
-      case 'ALL':
-      default: return true;
-    }
-  }
-
-  private documentReviewSortValue(faculty: Faculty): string {
-    const review = this.documentReview(faculty);
-    if (review.rejectedCount > 0) return `1-${review.rejectedCount}`;
-    if (review.pendingVerificationCount > 0) return `2-${review.pendingVerificationCount}`;
-    if (review.missingRequiredCount > 0) return `3-${review.missingRequiredCount}`;
-    if (this.isFullyVerified(review)) return '4-verified';
-    if (!review.hasAnyDocuments) return '5-empty';
-    return '6-documents';
   }
 
   private isFullyVerified(review: FacultyDocumentReviewSummary): boolean {

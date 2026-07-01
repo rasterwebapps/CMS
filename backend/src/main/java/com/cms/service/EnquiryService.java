@@ -18,8 +18,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.cms.repository.EnquirySpecification;
 
 import com.cms.dto.EnquiryConversionPrefillResponse;
 import com.cms.dto.EnquiryConversionRequest;
@@ -515,16 +521,53 @@ public class EnquiryService {
         ).stream().map(this::toResponse).toList();
     }
 
+    public Page<EnquiryResponse> findDocumentPendingPage(
+            String search, Long programId, Long courseId, String studentType, Pageable pageable) {
+        Specification<Enquiry> spec = EnquirySpecification.byStatuses(
+            List.of(EnquiryStatus.FEES_PAID, EnquiryStatus.PARTIALLY_PAID));
+        if (search != null && search.length() >= 2)    spec = spec.and(EnquirySpecification.bySearch(search));
+        if (programId != null)                          spec = spec.and(EnquirySpecification.byProgramId(programId));
+        if (courseId != null)                           spec = spec.and(EnquirySpecification.byCourseId(courseId));
+        if (studentType != null && !studentType.isBlank()) spec = spec.and(EnquirySpecification.byStudentType(studentType));
+        Page<Enquiry> page = enquiryRepository.findAll(spec, pageable);
+        List<EnquiryResponse> content = page.getContent().stream().map(this::toResponse).toList();
+        return new PageImpl<>(content, pageable, page.getTotalElements());
+    }
+
     public List<EnquiryResponse> findDocumentVerificationPending() {
         return enquiryRepository.findByStatus(EnquiryStatus.DOCUMENTS_SUBMITTED).stream()
             .map(this::toResponse)
             .toList();
     }
 
+    public Page<EnquiryResponse> findDocumentVerificationPendingPage(
+            String search, Long programId, Long courseId, String studentType, Pageable pageable) {
+        Specification<Enquiry> spec = EnquirySpecification.byStatus(EnquiryStatus.DOCUMENTS_SUBMITTED);
+        if (search != null && search.length() >= 2)    spec = spec.and(EnquirySpecification.bySearch(search));
+        if (programId != null)                          spec = spec.and(EnquirySpecification.byProgramId(programId));
+        if (courseId != null)                           spec = spec.and(EnquirySpecification.byCourseId(courseId));
+        if (studentType != null && !studentType.isBlank()) spec = spec.and(EnquirySpecification.byStudentType(studentType));
+        Page<Enquiry> page = enquiryRepository.findAll(spec, pageable);
+        List<EnquiryResponse> content = page.getContent().stream().map(this::toResponse).toList();
+        return new PageImpl<>(content, pageable, page.getTotalElements());
+    }
+
     public List<EnquiryResponse> findAdmissionPending() {
         return enquiryRepository.findByStatus(EnquiryStatus.DOCUMENTS_VERIFIED).stream()
             .map(this::toResponse)
             .toList();
+    }
+
+    public Page<EnquiryResponse> findAdmissionPendingPage(
+            String search, Long programId, Long courseId, String studentType, Pageable pageable) {
+        Specification<Enquiry> spec = EnquirySpecification.byStatus(EnquiryStatus.DOCUMENTS_VERIFIED);
+        if (search != null && search.length() >= 2)    spec = spec.and(EnquirySpecification.bySearch(search));
+        if (programId != null)                          spec = spec.and(EnquirySpecification.byProgramId(programId));
+        if (courseId != null)                           spec = spec.and(EnquirySpecification.byCourseId(courseId));
+        if (studentType != null && !studentType.isBlank()) spec = spec.and(EnquirySpecification.byStudentType(studentType));
+        Page<Enquiry> page = enquiryRepository.findAll(spec, pageable);
+        List<EnquiryResponse> content = page.getContent().stream().map(this::toResponse).toList();
+        return new PageImpl<>(content, pageable, page.getTotalElements());
     }
 
     @Transactional

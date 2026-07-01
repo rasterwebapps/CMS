@@ -195,25 +195,34 @@
       <h1 class="mlp-title">Commission <em>Explorer</em></h1>
       <p class="mlp-sub">Track referral commissions — pending, requested, and paid.</p>
     </div>
+    @if (canExport()) {
+      <div class="mlp-hdr-actions">
+        <cms-export-button
+          [disabled]="exporting()"
+          (export)="onExport($event)"
+          tooltip="Export commissions as Excel or PDF"
+        />
+      </div>
+    }
   </div>
 
   <!-- ── Summary stats ───────────────────────────────────────────────────────── -->
   <div class="ce-stats anim-rise anim-rise--d1">
     <div class="ce-stat">
       <span class="ce-stat__label">Total Commission Due</span>
-      <span class="ce-stat__value">{{ totalDue() | inr }}</span>
+      <span class="ce-stat__value">{{ totalDue | inr }}</span>
     </div>
     <div class="ce-stat">
       <span class="ce-stat__label">Paid Out</span>
-      <span class="ce-stat__value ce-stat__value--paid">{{ totalPaid() | inr }}</span>
+      <span class="ce-stat__value ce-stat__value--paid">{{ totalPaid | inr }}</span>
     </div>
     <div class="ce-stat">
       <span class="ce-stat__label">Outstanding</span>
-      <span class="ce-stat__value ce-stat__value--outstanding">{{ totalOutstanding() | inr }}</span>
+      <span class="ce-stat__value ce-stat__value--outstanding">{{ totalOutstanding | inr }}</span>
     </div>
     <div class="ce-stat">
       <span class="ce-stat__label">Awaiting Approval</span>
-      <span class="ce-stat__value ce-stat__value--requested">{{ totalAwaitingApproval() }}</span>
+      <span class="ce-stat__value ce-stat__value--requested">{{ totalAwaitingApproval }}</span>
     </div>
   </div>
 
@@ -227,11 +236,11 @@
       </svg>
       <input class="search-bar__input"
         [value]="filterSearch()"
-        (input)="filterSearch.set($any($event.target).value)"
+        (input)="onSearch($event)"
         placeholder="Search by name, referrer, admission no."
         type="text" aria-label="Search commissions" />
       @if (filterSearch()) {
-        <button class="search-bar__clear" (click)="filterSearch.set('')" aria-label="Clear">
+        <button class="search-bar__clear" (click)="clearSearch()" aria-label="Clear">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                fill="none" stroke="currentColor" stroke-width="2.5"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -251,19 +260,19 @@
       <span class="date-range-label">From</span>
       <input class="date-input" type="date"
         [value]="filterFrom()"
-        (change)="filterFrom.set($any($event.target).value)"
+        (change)="navigate({fromDate: $any($event.target).value || null, page: 0})"
         aria-label="From date" />
       <span class="date-sep">—</span>
       <span class="date-range-label">To</span>
       <input class="date-input" type="date"
         [value]="filterTo()"
-        (change)="filterTo.set($any($event.target).value)"
+        (change)="navigate({toDate: $any($event.target).value || null, page: 0})"
         aria-label="To date" />
     </div>
 
     <select class="mlp-filter-select"
       [value]="filterStatus()"
-      (change)="filterStatus.set($any($event.target).value)"
+      (change)="navigate({status: $any($event.target).value || null, page: 0})"
       aria-label="Filter by status">
       <option value="">All Statuses</option>
       @for (s of statusOptions; track s.value) {
@@ -273,7 +282,7 @@
 
     <select class="mlp-filter-select"
       [value]="filterSource()"
-      (change)="filterSource.set($any($event.target).value)"
+      (change)="navigate({source: $any($event.target).value || null, page: 0})"
       aria-label="Filter by referral source">
       <option value="">All Sources</option>
       @for (s of sourceOptions; track s.value) {
@@ -299,7 +308,7 @@
       <div class="mlp-loading">
         <mat-spinner diameter="36" />
       </div>
-    } @else if (filteredRecords().length === 0) {
+    } @else if (dataSource.data.length === 0) {
       <cms-empty-state
         icon="account_balance_wallet"
         title="No commission records found"
@@ -539,7 +548,7 @@
       </table>
       </div>
 
-      <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons />
+      <mat-paginator [length]="totalElements" [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons />
     }
   </div>
 

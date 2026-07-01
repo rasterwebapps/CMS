@@ -1,14 +1,18 @@
 import {
-  Component, computed, effect, inject, ElementRef, OnInit, signal, ViewChild,
+  AfterViewInit, Component, computed, inject, ElementRef, OnDestroy, OnInit, signal, ViewChild,
 } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TitleCasePipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatSortModule } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
+
 import { FinanceService } from '../finance.service';
 import { FeeRefundSummary } from '../finance.model';
 import { SettingsService } from '../../settings/settings.service';
@@ -30,6 +34,8 @@ import { CmsIconViewComponent } from '../../../shared/icons';
 
 type PanelMode = 'view' | 'approve' | 'reject';
 
+const DEFAULT_PAGE_SIZE = 25;
+
 @Component({
   selector: 'app-fee-refund-list',
   standalone: true,
@@ -40,20 +46,21 @@ type PanelMode = 'view' | 'approve' | 'reject';
     CmsRowActionButtonComponent, CmsTypeBadgeComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
-      CmsIconViewComponent,
+    CmsIconViewComponent,
   ],
   templateUrl: './fee-refund-list.component.html',
   styleUrl: './fee-refund-list.component.scss',
 })
-export class FeeRefundListComponent implements OnInit {
+export class FeeRefundListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly financeService  = inject(FinanceService);
   private readonly settingsService = inject(SettingsService);
   private readonly toast           = inject(ToastService);
   private readonly fb              = inject(FormBuilder);
   private readonly tourService     = inject(TourService);
+  private readonly router          = inject(Router);
+  private readonly route           = inject(ActivatedRoute);
 
-  @ViewChild(MatPaginator) set paginator(v: MatPaginator) { if (v) this.dataSource.paginator = v; }
-  @ViewChild(MatSort)      set sort(v: MatSort)           { if (v) this.dataSource.sort = v; }
+  @ViewChild(MatPaginator) paginator?: MatPaginator;
   @ViewChild('panelBody')  private panelBody!: ElementRef<HTMLElement>;
 
   protected readonly displayedColumns = [
@@ -61,36 +68,31 @@ export class FeeRefundListComponent implements OnInit {
     'refundAmount', 'requestedBy', 'status', 'actions',
   ];
 
-  protected readonly dataSource    = new MatTableDataSource<FeeRefundSummary>([]);
-  protected readonly paymentModes  = PAYMENT_MODES;
+  protected readonly dataSource   = new MatTableDataSource<FeeRefundSummary>([]);
+  protected readonly paymentModes = PAYMENT_MODES;
 
-  protected readonly oneBookEnabled     = signal(false);
-  protected readonly oneBookAllowCash   = signal(true);
+  protected readonly oneBookEnabled    = signal(false);
+  protected readonly oneBookAllowCash  = signal(true);
 
-  protected readonly loading            = signal(false);
-  protected readonly submittingOneBook  = signal(false);
-  protected readonly searchValue        = signal('');
-  protected readonly statusFilter       = signal<'' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'TRANSMITTED' | 'PAYMENT_FAILED'>('');
-  protected readonly filterEntityType   = signal<'' | 'STUDENT' | 'ENQUIRY'>('');
-  protected readonly filterProgram      = signal('');
-  protected readonly filterAcademicYearId = signal<number | null>(null);
-  protected readonly dateFrom           = signal('');
-  protected readonly dateTo             = signal('');
-  private   readonly allRefunds         = signal<FeeRefundSummary[]>([]);
+  protected readonly loading           = signal(false);
+  protected readonly submittingOneBook = signal(false);
 
-  protected readonly programs = computed(() =>
-    [...new Set(this.allRefunds().map(r => r.programName).filter(Boolean))].sort() as string[]
+  // ── Filters (synced from URL params) ──────────────────────────────────────
+  protected readonly searchValue      = signal('');
+  protected readonly statusFilter     = signal('');
+  protected readonly filterEntityType = signal('');
+  protected readonly dateFrom         = signal('');
+  protected readonly dateTo           = signal('');
+
+  // ── Server-side pagination state ──────────────────────────────────────────
+  protected totalElements   = 0;
+  private currentPage       = 0;
+  private currentPageSize   = DEFAULT_PAGE_SIZE;
+
+  protected readonly hasActiveFilters = computed(() =>
+    !!this.searchValue() || !!this.statusFilter() || !!this.filterEntityType() ||
+    !!this.dateFrom() || !!this.dateTo()
   );
-
-  protected readonly academicYears = computed(() => {
-    const seen = new Map<number, string>();
-    for (const r of this.allRefunds()) {
-      if (r.academicYearId && r.academicYearName && !seen.has(r.academicYearId)) {
-        seen.set(r.academicYearId, r.academicYearName);
-      }
-    }
-    return [...seen.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => b.name.localeCompare(a.name));
-  });
 
   // ── Side panel ─────────────────────────────────────────────────────────────
   protected readonly selectedRefund = signal<FeeRefundSummary | null>(null);
@@ -111,49 +113,10 @@ export class FeeRefundListComponent implements OnInit {
     rejectionReason: ['', [Validators.required, Validators.minLength(5)]],
   });
 
-  protected readonly filteredRefunds = computed(() => {
-    const search     = this.searchValue().trim().toLowerCase();
-    const status     = this.statusFilter();
-    const entityType = this.filterEntityType();
-    const program    = this.filterProgram();
-    const academicYearId = this.filterAcademicYearId();
-    const from       = this.dateFrom();
-    const to         = this.dateTo();
-
-    return this.allRefunds().filter(r => {
-      if (status     && r.status !== status)         return false;
-      if (entityType && r.entityType !== entityType) return false;
-      if (program    && r.programName !== program)   return false;
-      if (academicYearId && r.academicYearId !== academicYearId) return false;
-      if (search) {
-        const hay = [
-          r.studentName, r.admissionNumber ?? '', r.rollNumber ?? '',
-          r.originalReceiptNumber, r.programName ?? '',
-        ].join(' ').toLowerCase();
-        if (!hay.includes(search)) return false;
-      }
-      if (from || to) {
-        const date = r.requestedAt.substring(0, 10);
-        if (from && date < from) return false;
-        if (to   && date > to)   return false;
-      }
-      return true;
-    });
-  });
-
-  protected readonly totalCount       = computed(() => this.allRefunds().length);
-  protected readonly filteredCount    = computed(() => this.filteredRefunds().length);
-  protected readonly pendingCount     = computed(() => this.allRefunds().filter(r => r.status === 'PENDING').length);
-  protected readonly hasActiveFilters = computed(() =>
-    !!this.searchValue() || !!this.statusFilter() || !!this.filterEntityType() ||
-    !!this.filterProgram() || !!this.filterAcademicYearId() || !!this.dateFrom() || !!this.dateTo()
-  );
+  private readonly destroy$      = new Subject<void>();
+  private readonly searchSubject = new Subject<string>();
 
   constructor() {
-    effect(() => {
-      this.dataSource.data = this.filteredRefunds();
-      if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
-    });
     this.approvalForm.get('paymentMode')?.valueChanges.subscribe(() => {
       this.approvalForm.get('transactionReference')?.updateValueAndValidity();
       this.denominationValid.set(false);
@@ -162,8 +125,35 @@ export class FeeRefundListComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('fee-refund-list', FEE_REFUND_LIST_TOUR);
-    this.load();
     this.loadOneBookConfig();
+
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      this.searchValue.set(params['search'] ?? '');
+      this.statusFilter.set(params['status'] ?? '');
+      this.filterEntityType.set(params['entityType'] ?? '');
+      this.dateFrom.set(params['fromDate'] ?? '');
+      this.dateTo.set(params['toDate'] ?? '');
+      this.currentPage     = params['page'] ? +params['page'] : 0;
+      this.currentPageSize = params['size'] ? +params['size'] : DEFAULT_PAGE_SIZE;
+      this.loadPage();
+    });
+
+    this.searchSubject.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(val => this.navigate({ search: val || null, page: 0 }));
+  }
+
+  ngAfterViewInit(): void {
+    this.paginator?.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
+      this.navigate({ page: ev.pageIndex, size: ev.pageSize });
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private loadOneBookConfig(): void {
@@ -180,22 +170,64 @@ export class FeeRefundListComponent implements OnInit {
     return new Date().toISOString().split('T')[0];
   }
 
-  private load(): void {
+  private loadPage(): void {
     this.loading.set(true);
-    this.financeService.getAllRefunds().subscribe({
-      next: data => { this.allRefunds.set(data); this.loading.set(false); },
-      error: ()   => { this.loading.set(false); this.toast.error('Failed to load refund requests.'); },
+    this.financeService.getFeeRefundsPage({
+      search:     this.searchValue().length >= 2 ? this.searchValue() : undefined,
+      status:     this.statusFilter() || undefined,
+      entityType: this.filterEntityType() || undefined,
+      fromDate:   this.dateFrom() || undefined,
+      toDate:     this.dateTo() || undefined,
+      page:       this.currentPage,
+      size:       this.currentPageSize,
+    }).subscribe({
+      next: page => {
+        this.dataSource.data = page.content;
+        this.totalElements   = page.totalElements;
+        if (this.paginator) {
+          this.paginator.length    = page.totalElements;
+          this.paginator.pageIndex = page.number;
+          this.paginator.pageSize  = page.size;
+        }
+        this.loading.set(false);
+      },
+      error: () => { this.toast.error('Failed to load refund requests.'); this.loading.set(false); },
     });
   }
 
-  protected clearFilters(): void {
+  protected onSearch(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.searchValue.set(val);
+    this.searchSubject.next(val);
+  }
+
+  protected clearSearch(): void {
     this.searchValue.set('');
-    this.statusFilter.set('');
-    this.filterEntityType.set('');
-    this.filterProgram.set('');
-    this.filterAcademicYearId.set(null);
-    this.dateFrom.set('');
-    this.dateTo.set('');
+    this.searchSubject.next('');
+  }
+
+  protected clearFilters(): void {
+    this.navigate({ search: null, status: null, entityType: null, fromDate: null, toDate: null, page: 0 });
+  }
+
+  protected navigate(patch: Partial<{
+    search: string | null; status: string | null; entityType: string | null;
+    fromDate: string | null; toDate: string | null; page: number; size: number;
+  }>): void {
+    const cur = this.route.snapshot.queryParams;
+    const merged = {
+      search:     'search'     in patch ? patch.search     : (cur['search'] ?? null),
+      status:     'status'     in patch ? patch.status     : (cur['status'] ?? null),
+      entityType: 'entityType' in patch ? patch.entityType : (cur['entityType'] ?? null),
+      fromDate:   'fromDate'   in patch ? patch.fromDate   : (cur['fromDate'] ?? null),
+      toDate:     'toDate'     in patch ? patch.toDate     : (cur['toDate'] ?? null),
+      page:       'page'       in patch ? patch.page       : this.currentPage,
+      size:       'size'       in patch ? patch.size       : this.currentPageSize,
+    };
+    const queryParams = Object.fromEntries(
+      Object.entries(merged).filter(([, v]) => v !== null && v !== undefined && v !== ''),
+    );
+    void this.router.navigate([], { relativeTo: this.route, queryParams });
   }
 
   // ── Panel ──────────────────────────────────────────────────────────────────
@@ -235,8 +267,8 @@ export class FeeRefundListComponent implements OnInit {
         }
         const updatedStatus = isFailure ? 'PAYMENT_FAILED' : 'TRANSMITTED';
         const updated: FeeRefundSummary = { ...target, status: updatedStatus as FeeRefundSummary['status'] };
-        this.allRefunds.update(list => list.map(r => r.id === target.id ? updated : r));
         this.selectedRefund.set(updated);
+        this.loadPage();
       },
       error: (err) => {
         this.submittingOneBook.set(false);
@@ -291,16 +323,9 @@ export class FeeRefundListComponent implements OnInit {
       next: (updated) => {
         this.approving.set(false);
         this.toast.success('Refund approved — balance restored and reversal voucher issued');
-        this.allRefunds.update(list =>
-          list.map(r => r.id === updated.id ? updated : r)
-            .sort((a, b) => {
-              if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
-              if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
-              return b.requestedAt.localeCompare(a.requestedAt);
-            })
-        );
         this.selectedRefund.set(updated);
         this.panelMode.set('view');
+        this.loadPage();
       },
       error: (err) => {
         this.approving.set(false);
@@ -321,11 +346,9 @@ export class FeeRefundListComponent implements OnInit {
       next: (updated) => {
         this.rejecting.set(false);
         this.toast.success('Refund request rejected');
-        this.allRefunds.update(list =>
-          list.map(r => r.id === updated.id ? updated : r)
-        );
         this.selectedRefund.set(updated);
         this.panelMode.set('view');
+        this.loadPage();
       },
       error: (err) => {
         this.rejecting.set(false);

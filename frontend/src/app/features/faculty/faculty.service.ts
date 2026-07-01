@@ -9,6 +9,8 @@ import {
   FacultyDocumentTypeRequirementRequest,
   FacultyRequest,
   FacultyStatus,
+  FacultyDocumentReviewFilter,
+  Page,
 } from './faculty.model';
 
 @Injectable({
@@ -21,6 +23,25 @@ export class FacultyService {
 
   getAll(): Observable<Faculty[]> {
     return this.http.get<Faculty[]>(this.baseUrl);
+  }
+
+  getPage(p: {
+    search?: string;
+    specialityId?: number;
+    status?: FacultyStatus;
+    documentReview?: FacultyDocumentReviewFilter;
+    page?: number;
+    size?: number;
+  }): Observable<Page<Faculty>> {
+    let params = new HttpParams()
+      .set('page', p.page ?? 0)
+      .set('size', p.size ?? 25);
+    if (p.search)           params = params.set('search', p.search);
+    if (p.specialityId != null) params = params.set('specialityId', p.specialityId.toString());
+    if (p.status)           params = params.set('status', p.status);
+    if (p.documentReview && p.documentReview !== 'ALL')
+                            params = params.set('documentReview', p.documentReview);
+    return this.http.get<Page<Faculty>>(`${this.baseUrl}/page`, { params });
   }
 
   getById(id: number): Observable<Faculty> {

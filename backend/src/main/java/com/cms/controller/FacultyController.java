@@ -2,6 +2,10 @@ package com.cms.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -74,6 +78,16 @@ public class FacultyController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         facultyService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<FacultyResponse>> findPage(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long specialityId,
+            @RequestParam(required = false) FacultyStatus status,
+            @RequestParam(required = false) String documentReview,
+            @PageableDefault(size = 25, sort = "firstName", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(facultyService.findPage(search, specialityId, status, documentReview, pageable));
     }
 
     @GetMapping("/nrts-exists")

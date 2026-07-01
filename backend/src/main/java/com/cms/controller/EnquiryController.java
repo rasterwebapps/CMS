@@ -5,8 +5,15 @@ import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -36,6 +43,7 @@ import com.cms.dto.MissingDocumentsResponse;
 import com.cms.dto.EnquiryStatusHistoryResponse;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.service.EnquiryDocumentService;
+import com.cms.service.EnquiryExportService;
 import com.cms.service.EnquiryPaymentService;
 import com.cms.service.EnquiryService;
 import com.cms.service.PaymentCollectionService;
@@ -50,33 +58,54 @@ public class EnquiryController {
     private final EnquiryDocumentService enquiryDocumentService;
     private final EnquiryPaymentService enquiryPaymentService;
     private final PaymentCollectionService paymentCollectionService;
+    private final EnquiryExportService enquiryExportService;
 
     public EnquiryController(EnquiryService enquiryService,
                               EnquiryDocumentService enquiryDocumentService,
                               EnquiryPaymentService enquiryPaymentService,
-                              PaymentCollectionService paymentCollectionService) {
+                              PaymentCollectionService paymentCollectionService,
+                              EnquiryExportService enquiryExportService) {
         this.enquiryService = enquiryService;
         this.enquiryDocumentService = enquiryDocumentService;
         this.enquiryPaymentService = enquiryPaymentService;
         this.paymentCollectionService = paymentCollectionService;
+        this.enquiryExportService = enquiryExportService;
     }
 
     @GetMapping("/document-pending")
     @PreAuthorize("@perm.has('ENQUIRY_VIEW')")
-    public ResponseEntity<List<EnquiryResponse>> findDocumentPending() {
-        return ResponseEntity.ok(enquiryService.findDocumentPending());
+    public ResponseEntity<Page<EnquiryResponse>> findDocumentPending(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long programId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) String studentType,
+            @PageableDefault(size = 25, sort = "enquiryDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(
+            enquiryService.findDocumentPendingPage(search, programId, courseId, studentType, pageable));
     }
 
     @GetMapping("/document-verification-pending")
     @PreAuthorize("@perm.has('DOCUMENT_VERIFICATION_MANAGE')")
-    public ResponseEntity<List<EnquiryResponse>> findDocumentVerificationPending() {
-        return ResponseEntity.ok(enquiryService.findDocumentVerificationPending());
+    public ResponseEntity<Page<EnquiryResponse>> findDocumentVerificationPending(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long programId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) String studentType,
+            @PageableDefault(size = 25, sort = "enquiryDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(
+            enquiryService.findDocumentVerificationPendingPage(search, programId, courseId, studentType, pageable));
     }
 
     @GetMapping("/admission-pending")
     @PreAuthorize("@perm.has('ENQUIRY_VIEW')")
-    public ResponseEntity<List<EnquiryResponse>> findAdmissionPending() {
-        return ResponseEntity.ok(enquiryService.findAdmissionPending());
+    public ResponseEntity<Page<EnquiryResponse>> findAdmissionPending(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long programId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) String studentType,
+            @PageableDefault(size = 25, sort = "enquiryDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(
+            enquiryService.findAdmissionPendingPage(search, programId, courseId, studentType, pageable));
     }
 
     @PostMapping
@@ -232,5 +261,38 @@ public class EnquiryController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         enquiryService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("@perm.has('ENQUIRY_EXPORT')")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+
+        List<EnquiryResponse> data = (fromDate != null && toDate != null)
+            ? enquiryService.findByDateRange(fromDate, toDate)
+            : enquiryService.findAll();
+
+        try {
+            if ("pdf".equalsIgnoreCase(format)) {
+                byte[] bytes = enquiryExportService.toPdf(data);
+                String filename = "enquiries-" + LocalDate.now() + ".pdf";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            } else {
+                byte[] bytes = enquiryExportService.toExcel(data);
+                String filename = "enquiries-" + LocalDate.now() + ".xlsx";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

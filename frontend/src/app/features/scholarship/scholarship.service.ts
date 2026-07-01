@@ -1,9 +1,10 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
   DisbursementRequest,
+  Page,
   ScholarshipApplication,
   ScholarshipApplicationRequest,
   ScholarshipApprovalRequest,
@@ -86,6 +87,14 @@ export class ScholarshipService {
 
   getPendingApplications(): Observable<ScholarshipApplication[]> {
     return this.http.get<ScholarshipApplication[]>(`${this.baseUrl}/scholarship-applications`);
+  }
+
+  getPendingApplicationsPage(p: {
+    search?: string; page?: number; size?: number;
+  }): Observable<Page<ScholarshipApplication>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search) params = params.set('search', p.search);
+    return this.http.get<Page<ScholarshipApplication>>(`${this.baseUrl}/scholarship-applications`, { params });
   }
 
   approve(id: number, request: ScholarshipApprovalRequest): Observable<ScholarshipApplication> {

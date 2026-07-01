@@ -38,33 +38,25 @@
     </div>
 
     <div class="filter-group">
-      <select class="filter-sel" [value]="filterProgram()"
+      <select class="filter-sel" [value]="filterProgramId() ?? ''"
               (change)="onProgramChange($any($event.target).value)" aria-label="Filter by program">
-        <option value="ALL">All Programs</option>
-        @for (p of programs(); track p) {
-          <option [value]="p">{{ p }}</option>
+        <option value="">All Programs</option>
+        @for (p of programs; track p.id) {
+          <option [value]="p.id">{{ p.name }}</option>
         }
       </select>
 
-      <select class="filter-sel" [value]="filterCourse()"
+      <select class="filter-sel" [value]="filterCourseId() ?? ''"
               (change)="onCourseChange($any($event.target).value)" aria-label="Filter by course">
-        <option value="ALL">All Courses</option>
-        @for (c of courses(); track c) {
-          <option [value]="c">{{ c }}</option>
-        }
-      </select>
-
-      <select class="filter-sel" [value]="filterStatus()"
-              (change)="onStatusChange($any($event.target).value)" aria-label="Filter by verification status">
-        <option value="ALL">All Statuses</option>
-        @for (s of VERIFICATION_STATUSES; track s.value) {
-          <option [value]="s.value">{{ s.label }}</option>
+        <option value="">All Courses</option>
+        @for (c of filteredCourses(); track c.id) {
+          <option [value]="c.id">{{ c.name }}</option>
         }
       </select>
 
       <select class="filter-sel" [value]="filterStudentType()"
               (change)="onStudentTypeChange($any($event.target).value)" aria-label="Filter by student type">
-        <option value="ALL">All Types</option>
+        <option value="">All Types</option>
         <option value="DAY_SCHOLAR">Day Scholar</option>
         <option value="HOSTELER">Hosteler</option>
       </select>
@@ -82,11 +74,7 @@
 
     <div class="toolbar-end">
       @if (!loading()) {
-        <span class="row-count">
-          @if (filteredCount() < totalCount()) { {{ filteredCount() }} of {{ totalCount() }} }
-          @else { {{ totalCount() }} }
-          candidates
-        </span>
+        <span class="row-count">{{ totalElements }} candidates</span>
       }
 
       <div class="col-menu-wrap">
@@ -223,19 +211,19 @@
 
           <tr class="mat-row" *matNoDataRow>
             <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding:0;border:none;">
-              @if (totalCount() === 0) {
-                <cms-empty-state
-                  icon="verified"
-                  title="No candidates pending"
-                  subtitle="Candidates with submitted documents will appear here automatically."
-                />
-              } @else {
+              @if (hasActiveFilters()) {
                 <cms-empty-state
                   icon="search_off"
                   title="No records match your filters"
                   subtitle="Try adjusting or clearing your filters."
                   actionLabel="Clear Filters"
                   (actionClick)="clearFilters()"
+                />
+              } @else {
+                <cms-empty-state
+                  icon="verified"
+                  title="No candidates pending"
+                  subtitle="Candidates with submitted documents will appear here automatically."
                 />
               }
             </td>
@@ -244,11 +232,8 @@
       </div>
 
       <div class="table-footer">
-        <span class="row-count">
-          @if (filteredCount() < totalCount()) { {{ filteredCount() }} of {{ totalCount() }} candidates }
-          @else { {{ totalCount() }} candidates }
-        </span>
-        <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="25" showFirstLastButtons />
+        <span class="row-count">{{ totalElements }} candidates</span>
+        <mat-paginator [length]="totalElements" [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="25" showFirstLastButtons />
       </div>
     }
   </div>

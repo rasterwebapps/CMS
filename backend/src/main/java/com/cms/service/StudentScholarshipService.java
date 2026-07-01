@@ -33,6 +33,11 @@ import com.cms.repository.ScholarshipTypeRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.StudentScholarshipEligibilityRepository;
 import com.cms.repository.StudentScholarshipRepository;
+import com.cms.repository.StudentScholarshipSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 @Service
 @Transactional(readOnly = true)
@@ -84,6 +89,16 @@ public class StudentScholarshipService {
         return studentScholarshipRepository.findByStatusOrderByApplicationDateAsc(ScholarshipStatus.PENDING).stream()
             .map(this::toResponse)
             .toList();
+    }
+
+    public Page<ScholarshipApplicationResponse> getPendingApplicationsPage(String search, Pageable pageable) {
+        Specification<StudentScholarship> spec = StudentScholarshipSpecification.byStatus(ScholarshipStatus.PENDING);
+        if (search != null && search.length() >= 2) {
+            spec = spec.and(StudentScholarshipSpecification.bySearch(search));
+        }
+        Page<StudentScholarship> page = studentScholarshipRepository.findAll(spec, pageable);
+        List<ScholarshipApplicationResponse> content = page.getContent().stream().map(this::toResponse).toList();
+        return new PageImpl<>(content, pageable, page.getTotalElements());
     }
 
     @Transactional

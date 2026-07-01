@@ -5,6 +5,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +31,7 @@ import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.FeeRefundRepository;
+import com.cms.repository.FeeRefundSpecification;
 import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.StudentRepository;
 
@@ -280,6 +285,20 @@ public class FeeRefundService {
             .stream()
             .map(this::toSummaryResponse)
             .toList();
+    }
+
+    public Page<FeeRefundSummaryResponse> getAllRefundsPage(
+            String search, String status, String entityType,
+            LocalDate fromDate, LocalDate toDate, Pageable pageable) {
+        Specification<FeeRefund> spec = Specification.where(null);
+        if (search != null && search.length() >= 2)     spec = spec.and(FeeRefundSpecification.bySearch(search));
+        if (status != null && !status.isBlank())        spec = spec.and(FeeRefundSpecification.byStatus(status));
+        if (entityType != null && !entityType.isBlank()) spec = spec.and(FeeRefundSpecification.byEntityType(entityType));
+        if (fromDate != null)                           spec = spec.and(FeeRefundSpecification.byDateFrom(fromDate));
+        if (toDate != null)                             spec = spec.and(FeeRefundSpecification.byDateTo(toDate));
+        Page<FeeRefund> page = refundRepository.findAll(spec, pageable);
+        List<FeeRefundSummaryResponse> content = page.getContent().stream().map(this::toSummaryResponse).toList();
+        return new PageImpl<>(content, pageable, page.getTotalElements());
     }
 
     private FeeRefundSummaryResponse toSummaryResponse(FeeRefund r) {

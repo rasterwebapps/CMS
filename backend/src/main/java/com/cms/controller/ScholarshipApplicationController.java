@@ -3,6 +3,10 @@ package com.cms.controller;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.DisbursementRequest;
@@ -47,8 +52,10 @@ public class ScholarshipApplicationController {
 
     @GetMapping
     @PreAuthorize("@perm.has('SCHOLARSHIP_APPROVE')")
-    public ResponseEntity<List<ScholarshipApplicationResponse>> pending() {
-        return ResponseEntity.ok(studentScholarshipService.getPendingApplications());
+    public ResponseEntity<Page<ScholarshipApplicationResponse>> pending(
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 25, sort = "applicationDate", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(studentScholarshipService.getPendingApplicationsPage(search, pageable));
     }
 
     @PutMapping("/{id}/approve")

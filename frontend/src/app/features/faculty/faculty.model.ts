@@ -264,3 +264,13 @@ export const FACULTY_DOCUMENT_SLOTS: FacultyDocumentSlot[] = [
   { type: 'SCANNED_SIGNATURE',               label: 'Scanned Signature',           group: 'Identity' },
   { type: 'E_SIGNATURE',                     label: 'e-Signature',                 group: 'Identity' },
 ];
+
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+}

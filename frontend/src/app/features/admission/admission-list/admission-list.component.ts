@@ -40,6 +40,8 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { ADMISSION_LIST_TOUR } from '../../../shared/tour/tours/admission.tours';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
+import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
+import { PermissionService } from '../../../core/permissions/permission.service';
 
 const DEFAULT_PAGE_SIZE = 25;
 const SEARCH_MIN_LENGTH = 3;
@@ -74,9 +76,10 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsRowActionButtonComponent,
     CmsStatusBadgeComponent,
     CmsIconDeleteComponent,
-  CmsIconEditComponent,
-  CmsIconViewComponent,
-],
+    CmsIconEditComponent,
+    CmsIconViewComponent,
+    ExportButtonComponent,
+  ],
   templateUrl: './admission-list.component.html',
   styleUrl: './admission-list.component.scss',
 })
@@ -90,6 +93,7 @@ export class AdmissionListComponent implements OnInit, AfterViewInit, OnDestroy 
   private readonly toast               = inject(ToastService);
   private readonly dialog              = inject(MatDialog);
   private readonly tourService         = inject(TourService);
+  protected readonly permissionService = inject(PermissionService);
   // DestroyRef kept for future signal-based teardown
   private readonly _destroyRef         = inject(DestroyRef);
 
@@ -175,7 +179,11 @@ export class AdmissionListComponent implements OnInit, AfterViewInit, OnDestroy 
   private readonly destroy$ = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
 
-  protected colMenuOpen = false;
+  protected colMenuOpen        = false;
+  protected readonly exporting = signal(false);
+
+  protected readonly canExport = computed(() => this.permissionService.has('ADMISSION_EXPORT'));
+  protected readonly canDelete = computed(() => this.permissionService.has('ADMISSION_DELETE'));
 
   ngOnInit(): void {
     this.tourService.register('admission-list', ADMISSION_LIST_TOUR);
@@ -369,7 +377,37 @@ export class AdmissionListComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   protected canEdit(item: AdmissionResponse): boolean {
-    return !['GRADUATED', 'WITHDRAWN', 'EXPELLED'].includes(item.studentStatus ?? '');
+    return !['GRADUATED', 'WITHDRAWN', 'EXPELLED'].includes(item.studentStatus ?? '')
+      && this.permissionService.has('ADMISSION_EDIT');
+  }
+
+  protected onExport(format: ExportFormat): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.admissionService.exportAdmissions(format, {
+      programId:      this.filterProgramId(),
+      courseId:       this.filterCourseId(),
+      academicYearId: this.filterAcademicYearId(),
+      status:         this.filterStatus() || null,
+      studentType:    this.filterStudentType() || null,
+      search:         this.searchTerm().length >= 3 ? this.searchTerm() : null,
+    }).subscribe({
+      next: (blob) => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const filename = `admissions-${new Date().toISOString().slice(0, 10)}.${ext}`;
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
   }
 
   protected edit(item: AdmissionResponse): void {

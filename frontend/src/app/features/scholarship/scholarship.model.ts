@@ -1,3 +1,13 @@
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+}
+
 export type DiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT' | 'FULL_WAIVER';
 export type ScholarshipStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ON_HOLD' | 'CANCELLED';
 export type DisbursementFrequency = 'ANNUAL' | 'TERM_BASED' | 'ONE_TIME';

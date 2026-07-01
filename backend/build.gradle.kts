@@ -34,6 +34,8 @@ dependencies {
 
     // Excel import / export
     implementation("org.apache.poi:poi-ooxml:5.3.0")
+    // PDF export
+    implementation("com.github.librepdf:openpdf:1.3.35")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")

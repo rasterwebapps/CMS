@@ -24,6 +24,7 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
 import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
+import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 
 export const STATUS_LABELS: Record<string, string> = {
   ENQUIRED:             'Enquired',
@@ -48,9 +49,10 @@ export const STATUS_LABELS: Record<string, string> = {
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
-      CmsIconDeleteComponent,
-      CmsIconEditComponent,
-      CmsIconViewComponent,
+    CmsIconDeleteComponent,
+    CmsIconEditComponent,
+    CmsIconViewComponent,
+    ExportButtonComponent,
   ],
   templateUrl: './enquiry-list.component.html',
   styleUrl: './enquiry-list.component.scss',
@@ -92,8 +94,12 @@ export class EnquiryListComponent implements OnInit {
   protected readonly STATUS_LABELS    = STATUS_LABELS;
   protected statusMenuOpen       = false;
   protected academicYearMenuOpen = false;
-  protected colMenuOpen       = false;
-  protected moreFiltersOpen   = false;
+  protected colMenuOpen        = false;
+  protected moreFiltersOpen    = false;
+  protected readonly exporting = signal(false);
+
+  protected readonly canAdd    = computed(() => this.permissionService.has('ENQUIRY_CREATE'));
+  protected readonly canExport = computed(() => this.permissionService.has('ENQUIRY_EXPORT'));
 
   // ── Academic year multiselect ──────────────────────────────────────────────
   protected readonly academicYearOptions = computed(() =>
@@ -573,8 +579,12 @@ export class EnquiryListComponent implements OnInit {
       this.permissionService.has('DOCUMENT_SUBMISSION_MANAGE');
   }
 
-  protected canDelete(item: Enquiry): boolean { return item.status === 'ENQUIRED'; }
-  protected canEdit(item: Enquiry): boolean   { return item.status !== 'ADMITTED'; }
+  protected canDelete(item: Enquiry): boolean {
+    return item.status === 'ENQUIRED' && this.permissionService.has('ENQUIRY_DELETE');
+  }
+  protected canEdit(item: Enquiry): boolean {
+    return item.status !== 'ADMITTED' && this.permissionService.has('ENQUIRY_EDIT');
+  }
 
   // ── Actions ───────────────────────────────────────────────────────────────
   protected edit(item: Enquiry): void    { void this.router.navigate(['/enquiries', item.id, 'edit']); }
@@ -617,18 +627,26 @@ export class EnquiryListComponent implements OnInit {
   }
 
   // ── Export ────────────────────────────────────────────────────────────────
-  protected exportCsv(): void {
-    const rows    = this.dataSource.filteredData;
-    const headers = ['Name', 'Phone', 'Course', 'Type', 'Date', 'Referral', 'Status', 'Agent'];
-    const cells   = rows.map(e => [
-      e.name, e.phone ?? '', e.courseName ?? '', e.studentType ?? '',
-      e.enquiryDate, e.referralTypeName ?? '', this.statusLabel(e.status), e.agentName ?? '',
-    ]);
-    const csv = [headers, ...cells].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-    const a   = Object.assign(document.createElement('a'), { href: url, download: `enquiries-${new Date().toISOString().slice(0, 10)}.csv` });
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  protected onExport(format: ExportFormat): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.enquiryService.exportEnquiries(format, this.dateFrom, this.dateTo).subscribe({
+      next: (blob) => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const filename = `enquiries-${new Date().toISOString().slice(0, 10)}.${ext}`;
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
   }
 
   // ── Load ──────────────────────────────────────────────────────────────────

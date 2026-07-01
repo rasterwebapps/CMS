@@ -666,6 +666,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'permission-tiers',
+    canActivate: withPermission('PERMISSION_TIER_MANAGE'),
+    loadComponent: () =>
+      import('./features/permission-tier/permission-tier.component').then(
+        (m) => m.PermissionTierComponent
+      ),
+  },
+  {
     path: 'settings',
     canActivate: withPermission('SETTINGS_VIEW', 'SETTINGS_MANAGE'),
     loadComponent: () =>
@@ -1151,6 +1159,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/role-management/role-management.component').then(
         (m) => m.RoleManagementComponent
+      ),
+  },
+  {
+    path: 'permission-tiers',
+    canActivate: withPermission('PERMISSION_TIER_MANAGE'),
+    loadComponent: () =>
+      import('./features/permission-tier/permission-tier.component').then(
+        (m) => m.PermissionTierComponent
       ),
   },
   {

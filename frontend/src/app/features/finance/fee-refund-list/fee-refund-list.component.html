@@ -354,12 +354,7 @@
          <h1 class="mlp-title">Fee <em>Refunds</em></h1>
          <cms-tour-button tourKey="fee-refund-list" [iconOnly]="true" iconVariant="info-circle" />
        </div>
-       <p class="mlp-sub">
-         All refund requests — pending approval sorted to the top.
-         @if (pendingCount() > 0) {
-           <span class="rfl-pending-badge">{{ pendingCount() }} pending</span>
-         }
-       </p>
+       <p class="mlp-sub">All refund requests — pending approval sorted to the top.</p>
      </div>
    </div>
 
@@ -374,13 +369,13 @@
       <input
         class="search-bar__input"
         [value]="searchValue()"
-        (input)="searchValue.set($any($event.target).value)"
+        (input)="onSearch($event)"
         placeholder="Search student, receipt, admission…"
         type="text"
         aria-label="Search refunds"
       />
       @if (searchValue()) {
-        <button class="search-bar__clear" (click)="searchValue.set('')" aria-label="Clear search">
+        <button class="search-bar__clear" (click)="clearSearch()" aria-label="Clear search">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                fill="none" stroke="currentColor" stroke-width="2.5"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -391,7 +386,7 @@
     </div>
 
     <select class="mlp-filter-select" [value]="statusFilter()"
-            (change)="statusFilter.set($any($event.target).value)"
+            (change)="navigate({status: $any($event.target).value || null, page: 0})"
             aria-label="Filter by status">
       <option value="">All Statuses</option>
       <option value="PENDING">Pending</option>
@@ -402,30 +397,11 @@
     </select>
 
     <select class="mlp-filter-select" [value]="filterEntityType()"
-            (change)="filterEntityType.set($any($event.target).value)"
+            (change)="navigate({entityType: $any($event.target).value || null, page: 0})"
             aria-label="Filter by payer type">
       <option value="">All Types</option>
       <option value="STUDENT">Student</option>
       <option value="ENQUIRY">Pre-enrollment</option>
-    </select>
-
-    <select class="mlp-filter-select" [value]="filterProgram()"
-            (change)="filterProgram.set($any($event.target).value)"
-            aria-label="Filter by program">
-      <option value="">All Programs</option>
-      @for (p of programs(); track p) {
-        <option [value]="p">{{ p }}</option>
-      }
-    </select>
-
-    <select class="mlp-filter-select"
-            [value]="filterAcademicYearId() ?? ''"
-            (change)="filterAcademicYearId.set($any($event.target).value ? +$any($event.target).value : null)"
-            aria-label="Filter by academic year">
-      <option value="">All Academic Years</option>
-      @for (ay of academicYears(); track ay.id) {
-        <option [value]="ay.id">{{ ay.name }}</option>
-      }
     </select>
 
     <div class="date-range-group">
@@ -440,7 +416,7 @@
         class="date-input"
         type="date"
         [value]="dateFrom()"
-        (change)="dateFrom.set($any($event.target).value)"
+        (change)="navigate({fromDate: $any($event.target).value || null, page: 0})"
         aria-label="From date"
       />
       <span class="date-sep">—</span>
@@ -449,7 +425,7 @@
         class="date-input"
         type="date"
         [value]="dateTo()"
-        (change)="dateTo.set($any($event.target).value)"
+        (change)="navigate({toDate: $any($event.target).value || null, page: 0})"
         aria-label="To date"
       />
     </div>
@@ -609,7 +585,7 @@
           </tr>
         </table>
       </div>
-      <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="25" showFirstLastButtons />
+      <mat-paginator [length]="totalElements" [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="25" showFirstLastButtons />
     }
   </div>
 

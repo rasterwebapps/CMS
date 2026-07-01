@@ -6,12 +6,13 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.cms.model.PaymentReceipt;
 
-public interface PaymentReceiptRepository extends JpaRepository<PaymentReceipt, Long> {
+public interface PaymentReceiptRepository extends JpaRepository<PaymentReceipt, Long>, JpaSpecificationExecutor<PaymentReceipt> {
 
     List<PaymentReceipt> findAllByOrderByCreatedAtDescIdDesc();
 

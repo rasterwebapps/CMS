@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
@@ -9,6 +9,7 @@ import {
   AgentStatusUpdateResponse,
   AgentCommissionGuideline,
   AgentCommissionGuidelineRequest,
+  Page,
 } from './agent.model';
 
 @Injectable({
@@ -21,6 +22,14 @@ export class AgentService {
 
   getAgents(): Observable<Agent[]> {
     return this.http.get<Agent[]>(this.agentUrl);
+  }
+
+  getPage(p: { search?: string; page?: number; size?: number }): Observable<Page<Agent>> {
+    let params = new HttpParams()
+      .set('page', p.page ?? 0)
+      .set('size', p.size ?? 25);
+    if (p.search) params = params.set('search', p.search);
+    return this.http.get<Page<Agent>>(`${this.agentUrl}/page`, { params });
   }
 
   getActiveAgents(): Observable<Agent[]> {

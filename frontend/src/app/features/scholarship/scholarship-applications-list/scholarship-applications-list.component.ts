@@ -1,13 +1,20 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import {
+  AfterViewInit, Component, inject, OnDestroy, OnInit, signal, ViewChild, computed,
+} from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatTableModule } from '@angular/material/table';
-import { MatSortModule, Sort } from '@angular/material/sort';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatSortModule } from '@angular/material/sort';
+import { MatIconModule } from '@angular/material/icon';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
+
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { SCHOLARSHIP_APPLICATIONS_TOUR } from '../../../shared/tour/tours/student.tours';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -15,87 +22,136 @@ import { ScholarshipApplication } from '../scholarship.model';
 import { ScholarshipService } from '../scholarship.service';
 import { ScholarshipApproveDialogComponent } from '../approve-dialog/scholarship-approve-dialog.component';
 import { ScholarshipRejectDialogComponent } from '../reject-dialog/scholarship-reject-dialog.component';
-import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+
+const DEFAULT_PAGE_SIZE = 25;
 
 @Component({
   selector: 'app-scholarship-applications-list',
   standalone: true,
-  imports: [MatIconModule, MatProgressSpinnerModule, MatDialogModule, MatTableModule, MatSortModule, AppDatePipe, InrPipe,
-            CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsRowActionButtonComponent],
+  imports: [
+    MatIconModule, MatDialogModule, MatTableModule, MatPaginatorModule, MatSortModule,
+    AppDatePipe, InrPipe,
+    CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsRowActionButtonComponent,
+  ],
   templateUrl: './scholarship-applications-list.component.html',
   styleUrl: './scholarship-applications-list.component.scss',
 })
-export class ScholarshipApplicationsListComponent implements OnInit {
+export class ScholarshipApplicationsListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly scholarshipService = inject(ScholarshipService);
-  private readonly toast = inject(ToastService);
-  private readonly dialog = inject(MatDialog);
-  private readonly tourService = inject(TourService);
+  private readonly toast              = inject(ToastService);
+  private readonly dialog             = inject(MatDialog);
+  private readonly tourService        = inject(TourService);
+  private readonly router             = inject(Router);
+  private readonly route              = inject(ActivatedRoute);
 
-  protected readonly loading = signal(false);
-  protected readonly applications = signal<ScholarshipApplication[]>([]);
+  @ViewChild(MatPaginator) paginator?: MatPaginator;
+
+  protected readonly loading     = signal(false);
+  protected readonly searchQuery = signal('');
+  protected readonly dataSource  = new MatTableDataSource<ScholarshipApplication>([]);
   protected readonly displayedColumns = ['studentName', 'scholarshipName', 'academicYearName', 'applicationDate', 'status', 'approvedAmount', 'actions'];
-  protected readonly sortState = signal<Sort>({ active: '', direction: '' });
-  protected readonly sortedApplications = computed(() => this.sortRows(this.applications(), this.sortState()));
+
+  protected totalElements  = 0;
+  private currentPage      = 0;
+  private currentPageSize  = DEFAULT_PAGE_SIZE;
+
+  protected readonly hasActiveFilters = computed(() => this.searchQuery().length >= 2);
+
+  private readonly destroy$      = new Subject<void>();
+  private readonly searchSubject = new Subject<string>();
 
   ngOnInit(): void {
     this.tourService.register('scholarship-applications', SCHOLARSHIP_APPLICATIONS_TOUR);
-    this.load();
+
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      this.searchQuery.set(params['search'] ?? '');
+      this.currentPage     = params['page'] ? +params['page'] : 0;
+      this.currentPageSize = params['size'] ? +params['size'] : DEFAULT_PAGE_SIZE;
+      this.loadPage();
+    });
+
+    this.searchSubject.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(val => this.navigate({ search: val || null, page: 0 }));
+  }
+
+  ngAfterViewInit(): void {
+    this.paginator?.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
+      this.navigate({ page: ev.pageIndex, size: ev.pageSize });
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private loadPage(): void {
+    this.loading.set(true);
+    this.scholarshipService.getPendingApplicationsPage({
+      search: this.searchQuery().length >= 2 ? this.searchQuery() : undefined,
+      page:   this.currentPage,
+      size:   this.currentPageSize,
+    }).subscribe({
+      next: page => {
+        this.dataSource.data = page.content;
+        this.totalElements   = page.totalElements;
+        if (this.paginator) {
+          this.paginator.length    = page.totalElements;
+          this.paginator.pageIndex = page.number;
+          this.paginator.pageSize  = page.size;
+        }
+        this.loading.set(false);
+      },
+      error: () => { this.toast.error('Failed to load applications'); this.loading.set(false); },
+    });
+  }
+
+  protected onSearch(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(val);
+    this.searchSubject.next(val);
+  }
+
+  protected clearSearch(): void {
+    this.searchQuery.set('');
+    this.searchSubject.next('');
   }
 
   protected startTour(): void {
     this.tourService.start('scholarship-applications');
   }
 
-  protected onSort(sort: Sort): void { this.sortState.set(sort); }
-
   protected approve(row: ScholarshipApplication): void {
     const ref = this.dialog.open(ScholarshipApproveDialogComponent, {
-      width: '520px',
-      maxWidth: '95vw',
-      data: { application: row },
+      width: '520px', maxWidth: '95vw', data: { application: row },
     });
     ref.afterClosed().subscribe((updated: ScholarshipApplication | undefined) => {
-      if (updated) this.load();
+      if (updated) this.loadPage();
     });
   }
 
   protected reject(row: ScholarshipApplication): void {
     const ref = this.dialog.open(ScholarshipRejectDialogComponent, {
-      width: '480px',
-      maxWidth: '95vw',
-      data: { application: row },
+      width: '480px', maxWidth: '95vw', data: { application: row },
     });
     ref.afterClosed().subscribe((updated: ScholarshipApplication | undefined) => {
-      if (updated) this.load();
+      if (updated) this.loadPage();
     });
   }
 
-  private sortRows(rows: ScholarshipApplication[], sort: Sort): ScholarshipApplication[] {
-    if (!sort.active || !sort.direction) return rows;
-    const factor = sort.direction === 'asc' ? 1 : -1;
-    return [...rows].sort((a, b) => {
-      const av = this.sortValue(a, sort.active);
-      const bv = this.sortValue(b, sort.active);
-      if (av === bv) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
-      return av < bv ? -1 * factor : factor;
-    });
-  }
-
-  private sortValue(row: ScholarshipApplication, column: string): string | number | null | undefined {
-    if (column === 'approvedAmount') return row.approvedAmount ?? 0;
-    return String((row as unknown as Record<string, unknown>)[column] ?? '').toLowerCase();
-  }
-
-  private load(): void {
-    this.loading.set(true);
-    this.scholarshipService.getPendingApplications().subscribe({
-      next: data => { this.applications.set(data); this.loading.set(false); },
-      error: () => { this.toast.error('Failed to load applications'); this.loading.set(false); },
-    });
+  private navigate(patch: Partial<{ search: string | null; page: number; size: number }>): void {
+    const cur = this.route.snapshot.queryParams;
+    const merged = {
+      search: 'search' in patch ? patch.search : (cur['search'] ?? null),
+      page:   'page'   in patch ? patch.page   : this.currentPage,
+      size:   'size'   in patch ? patch.size   : this.currentPageSize,
+    };
+    const queryParams = Object.fromEntries(
+      Object.entries(merged).filter(([, v]) => v !== null && v !== undefined && v !== ''),
+    );
+    void this.router.navigate([], { relativeTo: this.route, queryParams });
   }
 }
-
-
-

@@ -106,4 +106,25 @@ export class AdmissionService {
       responseType: 'blob',
     });
   }
+
+  exportAdmissions(
+    format: 'excel' | 'pdf',
+    filters: {
+      programId?: number | null;
+      courseId?: number | null;
+      academicYearId?: number | null;
+      status?: string | null;
+      studentType?: string | null;
+      search?: string | null;
+    } = {},
+  ): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (filters.programId)      params = params.set('programId', filters.programId);
+    if (filters.courseId)       params = params.set('courseId', filters.courseId);
+    if (filters.academicYearId) params = params.set('academicYearId', filters.academicYearId);
+    if (filters.status)         params = params.set('status', filters.status);
+    if (filters.studentType)    params = params.set('studentType', filters.studentType);
+    if (filters.search && filters.search.length >= 3) params = params.set('search', filters.search);
+    return this.http.get(`${this.baseUrl}/export`, { params, responseType: 'blob' });
+  }
 }

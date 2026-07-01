@@ -17,6 +17,7 @@ import {
   EnquiryYearWiseFeeStatusResponse,
   DocumentVerificationStatus,
   EnquiryCreditApplication,
+  Page,
 } from './enquiry.model';
 
 @Injectable({
@@ -54,8 +55,36 @@ export class EnquiryService {
     return this.http.get<Enquiry[]>(`${this.baseUrl}/document-pending`);
   }
 
+  getDocumentPendingPage(p: {
+    search?: string; programId?: number | null; courseId?: number | null;
+    studentType?: string | null; page?: number; size?: number;
+  }): Observable<Page<Enquiry>> {
+    let params = new HttpParams()
+      .set('page', p.page ?? 0)
+      .set('size', p.size ?? 25);
+    if (p.search)      params = params.set('search', p.search);
+    if (p.programId)   params = params.set('programId', p.programId);
+    if (p.courseId)    params = params.set('courseId', p.courseId);
+    if (p.studentType) params = params.set('studentType', p.studentType);
+    return this.http.get<Page<Enquiry>>(`${this.baseUrl}/document-pending`, { params });
+  }
+
   getAdmissionPending(): Observable<Enquiry[]> {
     return this.http.get<Enquiry[]>(`${this.baseUrl}/admission-pending`);
+  }
+
+  getAdmissionPendingPage(p: {
+    search?: string; programId?: number | null; courseId?: number | null;
+    studentType?: string | null; page?: number; size?: number;
+  }): Observable<Page<Enquiry>> {
+    let params = new HttpParams()
+      .set('page', p.page ?? 0)
+      .set('size', p.size ?? 25);
+    if (p.search)      params = params.set('search', p.search);
+    if (p.programId)   params = params.set('programId', p.programId);
+    if (p.courseId)    params = params.set('courseId', p.courseId);
+    if (p.studentType) params = params.set('studentType', p.studentType);
+    return this.http.get<Page<Enquiry>>(`${this.baseUrl}/admission-pending`, { params });
   }
 
   createEnquiry(request: EnquiryRequest): Observable<Enquiry> {
@@ -201,6 +230,20 @@ export class EnquiryService {
     return this.http.get<Enquiry[]>(`${this.baseUrl}/document-verification-pending`);
   }
 
+  getDocumentVerificationPendingPage(p: {
+    search?: string; programId?: number | null; courseId?: number | null;
+    studentType?: string | null; page?: number; size?: number;
+  }): Observable<Page<Enquiry>> {
+    let params = new HttpParams()
+      .set('page', p.page ?? 0)
+      .set('size', p.size ?? 25);
+    if (p.search)      params = params.set('search', p.search);
+    if (p.programId)   params = params.set('programId', p.programId);
+    if (p.courseId)    params = params.set('courseId', p.courseId);
+    if (p.studentType) params = params.set('studentType', p.studentType);
+    return this.http.get<Page<Enquiry>>(`${this.baseUrl}/document-verification-pending`, { params });
+  }
+
   verifyDocument(enquiryId: number, documentId: number): Observable<EnquiryDocument> {
     return this.http.put<EnquiryDocument>(
       `${this.baseUrl}/${enquiryId}/documents/${documentId}/verify`,
@@ -230,5 +273,12 @@ export class EnquiryService {
 
   getCreditApplications(enquiryId: number): Observable<EnquiryCreditApplication[]> {
     return this.http.get<EnquiryCreditApplication[]>(`${this.baseUrl}/${enquiryId}/credit-applications`);
+  }
+
+  exportEnquiries(format: 'excel' | 'pdf', fromDate?: string, toDate?: string): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (fromDate) params = params.set('fromDate', fromDate);
+    if (toDate)   params = params.set('toDate', toDate);
+    return this.http.get(`${this.baseUrl}/export`, { params, responseType: 'blob' });
   }
 }

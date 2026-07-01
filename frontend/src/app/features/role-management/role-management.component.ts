@@ -109,7 +109,7 @@ export class RoleManagementComponent implements OnInit {
       },
       error: () => { this.toast.error('Failed to load roles'); this.loading.set(false); },
     });
-    this.svc.getAllPermissions().subscribe({ next: (p) => this.allPerms.set(p) });
+    this.svc.getDelegatablePermissions().subscribe({ next: (p) => this.allPerms.set(p) });
   }
 
   // ── Role card expand / collapse ───────────────────────────────

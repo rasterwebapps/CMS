@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -42,6 +43,7 @@ import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.service.AcademicQualificationService;
 import com.cms.service.AdmissionDocumentService;
+import com.cms.service.AdmissionExportService;
 import com.cms.service.AdmissionService;
 
 import jakarta.validation.Valid;
@@ -53,13 +55,16 @@ public class AdmissionController {
     private final AdmissionService admissionService;
     private final AcademicQualificationService academicQualificationService;
     private final AdmissionDocumentService admissionDocumentService;
+    private final AdmissionExportService admissionExportService;
 
     public AdmissionController(AdmissionService admissionService,
                                AcademicQualificationService academicQualificationService,
-                               AdmissionDocumentService admissionDocumentService) {
+                               AdmissionDocumentService admissionDocumentService,
+                               AdmissionExportService admissionExportService) {
         this.admissionService = admissionService;
         this.academicQualificationService = academicQualificationService;
         this.admissionDocumentService = admissionDocumentService;
+        this.admissionExportService = admissionExportService;
     }
 
     @PostMapping
@@ -186,5 +191,41 @@ public class AdmissionController {
             .contentType(MediaType.parseMediaType(download.contentType()))
             .contentLength(download.data().length)
             .body(resource);
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("@perm.has('ADMISSION_EXPORT')")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(required = false) Long programId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long academicYearId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String studentType,
+            @RequestParam(required = false) String search) {
+
+        List<AdmissionResponse> data = admissionService.findExplorerAll(
+            programId, courseId, academicYearId, status, studentType, search);
+
+        try {
+            if ("pdf".equalsIgnoreCase(format)) {
+                byte[] bytes = admissionExportService.toPdf(data);
+                String filename = "admissions-" + LocalDate.now() + ".pdf";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            } else {
+                byte[] bytes = admissionExportService.toExcel(data);
+                String filename = "admissions-" + LocalDate.now() + ".xlsx";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

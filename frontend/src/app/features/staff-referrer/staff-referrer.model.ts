@@ -56,3 +56,13 @@ export const STAFF_REFERRER_BANK_ACCOUNT_TYPE_OPTIONS: { value: BankAccountType;
   { value: 'CURRENT', label: 'Current' },
   { value: 'SALARY', label: 'Salary' },
 ];
+
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+}

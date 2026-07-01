@@ -134,6 +134,25 @@ export class FinanceService {
     return this.http.get<Page<StudentFeeSummary>>(`${this.studentFeeUrl}/explorer`, { params });
   }
 
+  exportFeeExplorer(
+    format: 'excel' | 'pdf',
+    filters: {
+      search?: string | null;
+      program?: string | null;
+      academicYear?: string | null;
+      yearOfStudy?: number | null;
+      allocationStatus?: string | null;
+    } = {},
+  ): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (filters.search && filters.search.length >= 2) params = params.set('search', filters.search);
+    if (filters.program && filters.program !== 'ALL')         params = params.set('program', filters.program);
+    if (filters.academicYear && filters.academicYear !== 'ALL') params = params.set('academicYear', filters.academicYear);
+    if (filters.yearOfStudy != null)                           params = params.set('yearOfStudy', filters.yearOfStudy);
+    if (filters.allocationStatus && filters.allocationStatus !== 'ALL') params = params.set('allocationStatus', filters.allocationStatus);
+    return this.http.get(`${this.studentFeeUrl}/explorer/export`, { params, responseType: 'blob' });
+  }
+
   getReceipts(studentId: number): Observable<Receipt[]> {
     return this.http.get<Receipt[]>(`${this.studentFeeUrl}/${studentId}/receipts`);
   }
@@ -151,6 +170,19 @@ export class FinanceService {
     return this.http.get<UnifiedReceiptSummary[]>(`${environment.apiUrl}/receipts`);
   }
 
+  getUnifiedReceiptsPage(p: {
+    search?: string; paymentMode?: string; payerType?: string;
+    fromDate?: string; toDate?: string; page?: number; size?: number;
+  }): Observable<Page<UnifiedReceiptSummary>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search)      params = params.set('search', p.search);
+    if (p.paymentMode) params = params.set('paymentMode', p.paymentMode);
+    if (p.payerType)   params = params.set('payerType', p.payerType);
+    if (p.fromDate)    params = params.set('fromDate', p.fromDate);
+    if (p.toDate)      params = params.set('toDate', p.toDate);
+    return this.http.get<Page<UnifiedReceiptSummary>>(`${environment.apiUrl}/receipts`, { params });
+  }
+
   /** Returns a single receipt by its receipt number. Backed by GET /api/v1/receipts/{receiptNumber}. */
   getReceiptByNumber(receiptNumber: string): Observable<UnifiedReceiptSummary> {
     return this.http.get<UnifiedReceiptSummary>(`${environment.apiUrl}/receipts/${encodeURIComponent(receiptNumber)}`);
@@ -164,6 +196,19 @@ export class FinanceService {
   /** Returns all refunds — PENDING first (403 if caller lacks FEE_REFUND_APPROVE). */
   getAllRefunds(): Observable<FeeRefundSummary[]> {
     return this.http.get<FeeRefundSummary[]>(`${this.studentFeeUrl}/refunds`);
+  }
+
+  getFeeRefundsPage(p: {
+    search?: string; status?: string; entityType?: string;
+    fromDate?: string; toDate?: string; page?: number; size?: number;
+  }): Observable<Page<FeeRefundSummary>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search)      params = params.set('search', p.search);
+    if (p.status)      params = params.set('status', p.status);
+    if (p.entityType)  params = params.set('entityType', p.entityType);
+    if (p.fromDate)    params = params.set('fromDate', p.fromDate);
+    if (p.toDate)      params = params.set('toDate', p.toDate);
+    return this.http.get<Page<FeeRefundSummary>>(`${this.studentFeeUrl}/refunds`, { params });
   }
 
   /** Returns all PENDING refund requests (403 if caller lacks FEE_REFUND_APPROVE). */

@@ -7,6 +7,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,6 +24,7 @@ import com.cms.model.UserDashboardWidgetConfig;
 import com.cms.repository.AppUserRepository;
 import com.cms.repository.PermissionRepository;
 import com.cms.repository.UserDashboardWidgetConfigRepository;
+import com.cms.service.AuditLogService;
 import com.cms.service.UserPermissionService;
 
 @RestController
@@ -31,15 +35,18 @@ public class PermissionController {
     private final PermissionRepository permissionRepository;
     private final UserPermissionService userPermissionService;
     private final UserDashboardWidgetConfigRepository userWidgetConfigRepo;
+    private final AuditLogService auditLogService;
 
     public PermissionController(AppUserRepository appUserRepository,
                                 PermissionRepository permissionRepository,
                                 UserPermissionService userPermissionService,
-                                UserDashboardWidgetConfigRepository userWidgetConfigRepo) {
+                                UserDashboardWidgetConfigRepository userWidgetConfigRepo,
+                                AuditLogService auditLogService) {
         this.appUserRepository    = appUserRepository;
         this.permissionRepository = permissionRepository;
         this.userPermissionService = userPermissionService;
         this.userWidgetConfigRepo  = userWidgetConfigRepo;
+        this.auditLogService       = auditLogService;
     }
 
     /**
@@ -59,7 +66,6 @@ public class PermissionController {
             .sorted()
             .toList();
 
-        // User-level override takes priority; fall back to role default
         List<WidgetConfigDto> widgetConfigs;
         List<UserDashboardWidgetConfig> userConfigs =
             userWidgetConfigRepo.findByUserIdOrderByWidgetOrderAsc(user.getId());
@@ -89,17 +95,93 @@ public class PermissionController {
         return ResponseEntity.ok(response);
     }
 
-    /** Returns all defined permissions with code, displayName and category for the editor UI. */
+    /**
+     * Returns ALL permissions with tier info — for the Permission Tier Management screen.
+     * Requires PERMISSION_TIER_MANAGE (DEV_ADMIN only).
+     */
     @GetMapping("/all")
     @PreAuthorize("@perm.has('ROLE_VIEW')")
     public ResponseEntity<List<PermissionDetail>> getAllPermissions() {
         List<PermissionDetail> details = permissionRepository.findAll().stream()
             .sorted(java.util.Comparator.comparing(Permission::getCategory)
                 .thenComparing(Permission::getCode))
-            .map(p -> new PermissionDetail(p.getCode(), p.getDisplayName(), p.getCategory()))
+            .map(p -> new PermissionDetail(p.getId(), p.getCode(), p.getDisplayName(), p.getCategory(), p.getTier()))
             .toList();
         return ResponseEntity.ok(details);
     }
 
-    public record PermissionDetail(String code, String displayName, String category) {}
+    /**
+     * Returns only the permissions that the current user is permitted to delegate
+     * (assign to sub-roles). Used by the Role Management editor picker.
+     *
+     * Delegation rules by tier:
+     *   Tier 1 → only hierarchy_level 1 (DEV_ADMIN)
+     *   Tier 2 → hierarchy_level ≤ 2 (DEV_ADMIN, SUPPORT_ADMIN)
+     *   Tier 3 → hierarchy_level ≤ 2 (same as tier 2 — senior roles hold but cannot delegate)
+     *   Tier 4 → anyone
+     */
+    @GetMapping("/delegatable")
+    @PreAuthorize("@perm.has('ROLE_VIEW')")
+    public ResponseEntity<List<PermissionDetail>> getDelegatablePermissions(
+            @AuthenticationPrincipal Jwt jwt) {
+        int callerLevel = resolveHierarchyLevel(jwt);
+        List<PermissionDetail> details = permissionRepository.findAll().stream()
+            .filter(p -> canDelegate(p.getTier(), callerLevel))
+            .sorted(java.util.Comparator.comparing(Permission::getCategory)
+                .thenComparing(Permission::getCode))
+            .map(p -> new PermissionDetail(p.getId(), p.getCode(), p.getDisplayName(), p.getCategory(), p.getTier()))
+            .toList();
+        return ResponseEntity.ok(details);
+    }
+
+    /**
+     * Updates the tier of a single permission.
+     * Requires PERMISSION_TIER_MANAGE (DEV_ADMIN only).
+     * Changes are audit-logged.
+     */
+    @PutMapping("/{id}/tier")
+    @PreAuthorize("@perm.has('PERMISSION_TIER_MANAGE')")
+    public ResponseEntity<PermissionDetail> updateTier(
+            @PathVariable Long id,
+            @RequestBody TierUpdateRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        if (request.tier() < 1 || request.tier() > 4) {
+            throw new IllegalArgumentException("Tier must be between 1 and 4");
+        }
+        Permission perm = permissionRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Permission not found with id: " + id));
+
+        int previousTier = perm.getTier();
+        perm.setTier(request.tier());
+        permissionRepository.save(perm);
+
+        String actor = jwt.getClaimAsString("preferred_username");
+        auditLogService.record(actor, "PERMISSION_TIER_CHANGED", "Permission",
+            String.valueOf(id),
+            "'" + perm.getCode() + "' tier changed from " + previousTier + " to " + request.tier());
+
+        return ResponseEntity.ok(
+            new PermissionDetail(perm.getId(), perm.getCode(), perm.getDisplayName(), perm.getCategory(), perm.getTier()));
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private int resolveHierarchyLevel(Jwt jwt) {
+        String username = jwt.getClaimAsString("preferred_username");
+        AppUser user = appUserRepository.findByKeycloakUsername(username)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "No app user record found for username: " + username));
+        return user.getAppRole() != null ? user.getAppRole().getHierarchyLevel() : Integer.MAX_VALUE;
+    }
+
+    static boolean canDelegate(int tier, int callerLevel) {
+        return switch (tier) {
+            case 1 -> callerLevel <= 1;
+            case 2, 3 -> callerLevel <= 2;
+            default -> true;
+        };
+    }
+
+    public record PermissionDetail(Long id, String code, String displayName, String category, int tier) {}
+    public record TierUpdateRequest(int tier) {}
 }

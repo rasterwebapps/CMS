@@ -5,6 +5,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,8 +81,6 @@ public class CommissionExplorerService {
         List<Enquiry> enquiries = enquiryRepository.findCommissions(
                 statusEnum, sourceEnum, referralTypeId, agentId, fromDate, toDate, searchTrim);
 
-        // A settle-only user (no full view/manage rights) must not see commissions
-        // that haven't been approved yet — only rows ready for cash/other-mode settlement.
         if (!permSecurityBean.hasAny("COMMISSION_VIEW", "COMMISSION_MANAGE")) {
             enquiries = enquiries.stream()
                     .filter(e -> e.getCommissionPaymentStatus() == CommissionPaymentStatus.PAYMENT_REQUESTED
@@ -88,6 +89,35 @@ public class CommissionExplorerService {
         }
 
         return enquiries.stream().map(this::toResponse).toList();
+    }
+
+    public Page<CommissionExplorerResponse> findPage(
+            String status,
+            String source,
+            Long referralTypeId,
+            Long agentId,
+            LocalDate fromDate,
+            LocalDate toDate,
+            String search,
+            Pageable pageable) {
+
+        CommissionPaymentStatus statusEnum = resolveStatus(status);
+        CommissionSource sourceEnum = source != null ? CommissionSource.valueOf(source) : null;
+        String searchTrim = (search != null && !search.isBlank()) ? search.trim() : null;
+
+        // Settle-only users: force status filter to PAYMENT_REQUESTED if no status given
+        if (!permSecurityBean.hasAny("COMMISSION_VIEW", "COMMISSION_MANAGE") && statusEnum == null) {
+            statusEnum = CommissionPaymentStatus.PAYMENT_REQUESTED;
+        }
+
+        Page<Enquiry> page = enquiryRepository.findCommissionsPage(
+                statusEnum, sourceEnum, referralTypeId, agentId, fromDate, toDate, searchTrim, pageable);
+        List<CommissionExplorerResponse> content = page.getContent().stream().map(this::toResponse).toList();
+        return new PageImpl<>(content, pageable, page.getTotalElements());
+    }
+
+    private CommissionPaymentStatus resolveStatus(String status) {
+        return status != null ? CommissionPaymentStatus.valueOf(status) : null;
     }
 
     /**

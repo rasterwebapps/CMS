@@ -154,6 +154,16 @@ public class AppRoleService {
                 ? List.of()
                 : permissionRepository.findByCodeIn(permissionCodes);
 
+            // Tier enforcement: requester can only delegate permissions within their tier authority.
+            // Tier 1 → level 1 only; Tier 2 & 3 → level ≤ 2; Tier 4 → anyone.
+            for (Permission p : permissions) {
+                if (!canDelegateByTier(p.getTier(), requesterLevel)) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "You cannot delegate permission '" + p.getCode()
+                            + "' — it is above your delegation authority (tier " + p.getTier() + ")");
+                }
+            }
+
             role.getPermissions().clear();
             role.getPermissions().addAll(permissions);
         }
@@ -262,6 +272,14 @@ public class AppRoleService {
             .map(Permission::getCode)
             .sorted()
             .toList();
+    }
+
+    private static boolean canDelegateByTier(int tier, int requesterLevel) {
+        return switch (tier) {
+            case 1 -> requesterLevel <= 1;
+            case 2, 3 -> requesterLevel <= 2;
+            default -> true;
+        };
     }
 
     private void ensureRoleIsEditable(AppRole role, int requesterLevel) {

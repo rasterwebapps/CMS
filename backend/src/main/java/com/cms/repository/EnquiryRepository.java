@@ -6,7 +6,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,7 +23,7 @@ import com.cms.model.enums.Gender;
 
 import jakarta.persistence.LockModeType;
 
-public interface EnquiryRepository extends JpaRepository<Enquiry, Long> {
+public interface EnquiryRepository extends JpaRepository<Enquiry, Long>, JpaSpecificationExecutor<Enquiry> {
 
     List<Enquiry> findByStatus(EnquiryStatus status);
 
@@ -84,6 +87,38 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long> {
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate,
             @Param("search") String search);
+
+    @Query(value = """
+        SELECT e FROM Enquiry e
+        WHERE e.commissionAmount IS NOT NULL AND e.commissionAmount > 0
+          AND (:status IS NULL OR e.commissionPaymentStatus = :status)
+          AND (:source IS NULL OR e.commissionSource = :source)
+          AND (:referralTypeId IS NULL OR e.referralType.id = :referralTypeId)
+          AND (:agentId IS NULL OR e.agent.id = :agentId)
+          AND (:fromDate IS NULL OR e.enquiryDate >= :fromDate)
+          AND (:toDate IS NULL OR e.enquiryDate <= :toDate)
+          AND (:search IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))
+        """,
+        countQuery = """
+        SELECT COUNT(e) FROM Enquiry e
+        WHERE e.commissionAmount IS NOT NULL AND e.commissionAmount > 0
+          AND (:status IS NULL OR e.commissionPaymentStatus = :status)
+          AND (:source IS NULL OR e.commissionSource = :source)
+          AND (:referralTypeId IS NULL OR e.referralType.id = :referralTypeId)
+          AND (:agentId IS NULL OR e.agent.id = :agentId)
+          AND (:fromDate IS NULL OR e.enquiryDate >= :fromDate)
+          AND (:toDate IS NULL OR e.enquiryDate <= :toDate)
+          AND (:search IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))
+        """)
+    Page<Enquiry> findCommissionsPage(
+            @Param("status") CommissionPaymentStatus status,
+            @Param("source") CommissionSource source,
+            @Param("referralTypeId") Long referralTypeId,
+            @Param("agentId") Long agentId,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate,
+            @Param("search") String search,
+            Pageable pageable);
 
     @Query("SELECT COUNT(e) FROM Enquiry e WHERE e.program.id = :programId AND e.admissionQuota = :quota AND e.feeState.id = :feeStateId AND e.gender = :gender AND e.status IN :statuses")
     long countByFeeGroupParams(

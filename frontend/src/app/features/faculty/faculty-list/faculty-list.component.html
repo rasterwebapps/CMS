@@ -91,7 +91,7 @@
       }
     </div>
   } @else if (viewMode() === 'card') {
-    @if (filteredFaculty().length === 0) {
+    @if (dataSource.data.length === 0) {
       <cms-empty-state
         icon="group"
         [title]="hasActiveFilters() ? 'No results found' : 'No faculty yet'"
@@ -101,7 +101,7 @@
       ></cms-empty-state>
     } @else {
       <div id="tour-fac-content" class="mlp-cards-grid">
-        @for (item of filteredFaculty(); track item.id) {
+        @for (item of dataSource.data; track item.id) {
           <div class="mlp-card anim-rise">
             <div class="mlp-card__actions">
               <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View" ariaLabel="View faculty" (clicked)="viewFaculty(item)">
@@ -135,6 +135,12 @@
           </div>
         }
       </div>
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="25"
+        showFirstLastButtons
+      ></mat-paginator>
     }
   } @else {
     <!-- Table view -->
@@ -235,6 +241,7 @@
       </div>
 
       <mat-paginator
+        [length]="totalElements"
         [pageSizeOptions]="[5, 10, 25, 50]"
         [pageSize]="25"
         showFirstLastButtons

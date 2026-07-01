@@ -1,0 +1,140 @@
+<div class="pt-page">
+
+  <!-- ══ PAGE HEADER ════════════════════════════════════════════════════════ -->
+  <div class="pt-hdr anim-rise">
+    <div class="pt-hdr-left">
+      <h1 class="pt-title">Permission <em>Tiers</em></h1>
+      <p class="pt-sub">Control which roles can hold and delegate each permission. Changes are audit-logged.</p>
+    </div>
+    @if (dirtyCount() > 0) {
+      <div class="pt-hdr-actions">
+        <button class="btn-ghost" (click)="discardAll()" [disabled]="saving()">Discard</button>
+        <button class="btn-primary" (click)="requestSave()" [disabled]="saving()">
+          @if (saving()) { <span class="pt-spinner"></span> }
+          Save {{ dirtyCount() }} Change{{ dirtyCount() > 1 ? 's' : '' }}
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- ══ TIER LEGEND ════════════════════════════════════════════════════════ -->
+  <div class="pt-legend anim-rise">
+    @for (tier of tiers; track tier) {
+      <div class="pt-legend-item" [style.--tier-color]="tierMeta[tier].color">
+        <span class="pt-legend-badge">T{{ tier }}</span>
+        <div class="pt-legend-text">
+          <span class="pt-legend-name">{{ tierMeta[tier].label }}</span>
+          <span class="pt-legend-desc">{{ tierMeta[tier].desc }}</span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- ══ PERMISSION MATRIX ═════════════════════════════════════════════════ -->
+  @if (loading()) {
+    <div class="pt-state-center"><mat-spinner diameter="32"></mat-spinner></div>
+  } @else {
+    <div class="pt-matrix anim-rise">
+      @for (group of groups(); track group.category) {
+        <div class="pt-group" [attr.data-cat]="group.category" [class.pt-group--open]="group.expanded">
+
+          <!-- Group header -->
+          <div class="pt-group__hdr" (click)="toggleGroup(group)" role="button" tabindex="0"
+               (keydown.enter)="toggleGroup(group)" (keydown.space)="toggleGroup(group)">
+            <span class="pt-group__dot" [style.background]="catColorOf(group.category)"></span>
+            <span class="pt-group__label">{{ group.category }}</span>
+            <span class="pt-group__count">{{ group.rows.length }} permissions</span>
+            <svg class="pt-group__chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+
+          <!-- Permission rows -->
+          @if (group.expanded) {
+            <div class="pt-group__rows">
+              <!-- Column headers (only on first visible group) -->
+              <div class="pt-row pt-row--header">
+                <div class="pt-row__perm">Permission</div>
+                <div class="pt-row__tiers">
+                  @for (tier of tiers; track tier) {
+                    <div class="pt-row__tier-col" [style.color]="tierMeta[tier].color">
+                      T{{ tier }} — {{ tierMeta[tier].label }}
+                    </div>
+                  }
+                </div>
+                <div class="pt-row__status"></div>
+              </div>
+
+              @for (row of group.rows; track row.id) {
+                <div class="pt-row" [class.pt-row--dirty]="row.dirty">
+                  <!-- Permission info -->
+                  <div class="pt-row__perm">
+                    <span class="pt-row__name">{{ row.displayName }}</span>
+                    <span class="pt-row__code">{{ row.code }}</span>
+                  </div>
+
+                  <!-- Tier radio buttons -->
+                  <div class="pt-row__tiers">
+                    @for (tier of tiers; track tier) {
+                      <label class="pt-tier-opt"
+                             [class.pt-tier-opt--selected]="row.pendingTier === tier"
+                             [style.--opt-color]="tierMeta[tier].color"
+                             [matTooltip]="tierMeta[tier].desc"
+                             matTooltipPosition="above">
+                        <input type="radio"
+                               [name]="'tier-' + row.id"
+                               [value]="tier"
+                               [(ngModel)]="row.pendingTier"
+                               (ngModelChange)="markDirty(row)" />
+                        <span class="pt-tier-opt__pip"></span>
+                        <span class="pt-tier-opt__label">T{{ tier }}</span>
+                      </label>
+                    }
+                  </div>
+
+                  <!-- Dirty indicator -->
+                  <div class="pt-row__status">
+                    @if (row.dirty) {
+                      <span class="pt-dirty-badge"
+                            [matTooltip]="'Was T' + row.currentTier + ' — unsaved'">
+                        T{{ row.currentTier }} → T{{ row.pendingTier }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ══ CONFIRMATION DIALOG ═══════════════════════════════════════════════ -->
+  @if (showConfirm()) {
+    <div class="pt-overlay" (click)="cancelConfirm()">
+      <div class="pt-dialog" (click)="$event.stopPropagation()">
+        <div class="pt-dialog__icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+               stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <h2 class="pt-dialog__title">Apply {{ dirtyCount() }} tier change{{ dirtyCount() > 1 ? 's' : '' }}?</h2>
+        <p class="pt-dialog__body">
+          This affects which roles can hold and delegate these permissions. Changes are
+          audit-logged and take effect immediately for any new role assignments.
+          Existing role_permissions rows are not altered.
+        </p>
+        <div class="pt-dialog__actions">
+          <button class="btn-ghost" (click)="cancelConfirm()">Cancel</button>
+          <button class="btn-primary" (click)="confirmSave()">Yes, Apply Changes</button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

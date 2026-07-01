@@ -10,14 +10,19 @@
       <p class="enq-pg-sub mlp-sub">Track and manage prospective student enquiries</p>
     </div>
     <div class="enq-pg-actions">
-      <button class="btn-export" (click)="exportCsv()" matTooltip="Export to CSV" aria-label="Export CSV">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Export
-      </button>
-      <button class="btn-primary" routerLink="/enquiries/new" aria-label="Add new enquiry" id="tour-enq-add-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add Enquiry
-      </button>
+      @if (canExport()) {
+        <cms-export-button
+          [disabled]="exporting()"
+          (export)="onExport($event)"
+          tooltip="Export enquiries as Excel or PDF"
+        />
+      }
+      @if (canAdd()) {
+        <button class="btn-primary" routerLink="/enquiries/new" aria-label="Add new enquiry" id="tour-enq-add-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Enquiry
+        </button>
+      }
     </div>
   </div>
 

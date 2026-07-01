@@ -17,6 +17,8 @@ import { FEE_EXPLORER_TOUR } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsIconViewComponent } from '../../../shared/icons';
+import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
+import { PermissionService } from '../../../core/permissions/permission.service';
 
 const DEFAULT_PAGE_SIZE = 25;
 const SEARCH_MIN_LENGTH = 2;
@@ -27,17 +29,18 @@ const SEARCH_MIN_LENGTH = 2;
   imports: [
     InrPipe, MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent,
-    CmsRowActionButtonComponent, CmsIconViewComponent,
+    CmsRowActionButtonComponent, CmsIconViewComponent, ExportButtonComponent,
   ],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',
 })
 export class FeeExplorerComponent implements OnInit {
-  private readonly financeService = inject(FinanceService);
-  private readonly router         = inject(Router);
-  private readonly route          = inject(ActivatedRoute);
-  private readonly toast          = inject(ToastService);
-  private readonly tourService    = inject(TourService);
+  private readonly financeService    = inject(FinanceService);
+  private readonly router            = inject(Router);
+  private readonly route             = inject(ActivatedRoute);
+  private readonly toast             = inject(ToastService);
+  private readonly tourService       = inject(TourService);
+  private readonly permissionService = inject(PermissionService);
 
   // Server-side paginator: NOT wired to dataSource
   @ViewChild(MatPaginator) paginator?: MatPaginator;
@@ -49,9 +52,12 @@ export class FeeExplorerComponent implements OnInit {
   ];
   protected readonly dataSource    = new MatTableDataSource<StudentFeeSummary>([]);
   protected readonly loading       = signal(false);
+  protected readonly exporting     = signal(false);
   protected readonly searchValue   = signal('');
   protected readonly computeInitials = computeInitials;
   protected totalElements          = 0;
+
+  protected readonly canExport = computed(() => this.permissionService.has('STUDENT_FEE_EXPORT'));
 
   // ── Client-side within-page filters ─────────────────────────────────────
   protected filterProgram      = signal<string>('ALL');
@@ -90,6 +96,33 @@ export class FeeExplorerComponent implements OnInit {
 
   private readonly destroy$      = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
+
+  protected onExport(format: ExportFormat): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.financeService.exportFeeExplorer(format, {
+      search:           this.searchValue() || null,
+      program:          this.filterProgram() !== 'ALL' ? this.filterProgram() : null,
+      academicYear:     this.filterAcademicYear() !== 'ALL' ? this.filterAcademicYear() : null,
+      yearOfStudy:      this.filterYearOfStudy() !== 'ALL' ? Number(this.filterYearOfStudy()) : null,
+      allocationStatus: this.filterAllocStatus() !== 'ALL' ? this.filterAllocStatus() : null,
+    }).subscribe({
+      next: (blob) => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `fee-explorer.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
+  }
 
   ngOnInit(): void {
     this.tourService.register('fee-explorer', FEE_EXPLORER_TOUR);

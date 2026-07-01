@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
@@ -7,6 +7,7 @@ import {
   StaffReferrerRequest,
   StaffReferrerStatusUpdateRequest,
   StaffReferrerStatusUpdateResponse,
+  Page,
 } from './staff-referrer.model';
 
 @Injectable({ providedIn: 'root' })
@@ -16,6 +17,14 @@ export class StaffReferrerService {
 
   getAll(): Observable<StaffReferrer[]> {
     return this.http.get<StaffReferrer[]>(this.url);
+  }
+
+  getPage(p: { search?: string; page?: number; size?: number }): Observable<Page<StaffReferrer>> {
+    let params = new HttpParams()
+      .set('page', p.page ?? 0)
+      .set('size', p.size ?? 25);
+    if (p.search) params = params.set('search', p.search);
+    return this.http.get<Page<StaffReferrer>>(`${this.url}/page`, { params });
   }
 
   getActive(): Observable<StaffReferrer[]> {

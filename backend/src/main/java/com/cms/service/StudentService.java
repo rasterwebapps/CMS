@@ -195,6 +195,19 @@ public class StudentService {
         return responses;
     }
 
+    /** Unbounded export: same spec as paginated explorer, returns all matching rows. */
+    public List<StudentResponse> findExplorerAll(Long programId, Long courseId, Long academicYearId,
+            String status, String studentType, String search) {
+        Specification<Student> spec = Specification.where(null);
+        if (programId != null)                              spec = spec.and(StudentSpecification.byProgramId(programId));
+        if (courseId != null)                               spec = spec.and(StudentSpecification.byCourseId(courseId));
+        if (academicYearId != null)                         spec = spec.and(StudentSpecification.byAcademicYearId(academicYearId));
+        if (status != null && !status.isBlank())            spec = spec.and(StudentSpecification.byStatus(status));
+        if (studentType != null && !studentType.isBlank())  spec = spec.and(StudentSpecification.byStudentType(studentType));
+        if (search != null && search.length() >= 3)         spec = spec.and(StudentSpecification.bySearch(search));
+        return enrichAndMap(studentRepository.findAll(spec));
+    }
+
     /** Paginated explorer: server-side filtering + 3-query fetch pattern. */
     public Page<StudentResponse> findExplorer(
             Long programId, Long courseId, Long academicYearId,

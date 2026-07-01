@@ -2,6 +2,9 @@ package com.cms.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,6 +13,8 @@ import com.cms.dto.EquipmentResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Equipment;
 import com.cms.model.Lab;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import com.cms.model.enums.EquipmentCategory;
 import com.cms.model.enums.EquipmentStatus;
 import com.cms.repository.EquipmentRepository;
@@ -58,6 +63,22 @@ public class EquipmentService {
         return equipmentRepository.findAll().stream()
             .map(this::toResponse)
             .toList();
+    }
+
+    public Page<EquipmentResponse> findPage(String search, Pageable pageable) {
+        Specification<Equipment> spec = Specification.where(null);
+        if (search != null && !search.trim().isEmpty()) {
+            String pattern = "%" + search.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> {
+                Join<Equipment, Lab> lab = root.join("lab", JoinType.INNER);
+                return cb.or(
+                    cb.like(cb.lower(root.get("name")), pattern),
+                    cb.like(cb.lower(root.get("model")), pattern),
+                    cb.like(cb.lower(lab.get("name")), pattern)
+                );
+            });
+        }
+        return equipmentRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     public EquipmentResponse findById(Long id) {

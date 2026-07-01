@@ -10,6 +10,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +27,7 @@ import com.cms.model.Student;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeRefundRepository;
 import com.cms.repository.PaymentReceiptRepository;
+import com.cms.repository.PaymentReceiptSpecification;
 import com.cms.repository.StudentRepository;
 
 @Service
@@ -115,6 +121,33 @@ public class UnifiedReceiptService {
             transactionReference, remarks, installmentsCovered, collectedBy);
         receipt.setFeeCategory(feeCategory);
         receiptRepository.save(receipt);
+    }
+
+    public Page<UnifiedReceiptResponse> getPaymentsPage(
+            String search, String paymentMode, String payerType,
+            LocalDate fromDate, LocalDate toDate, Pageable pageable) {
+        Specification<PaymentReceipt> spec = Specification.where(null);
+        if (search != null && search.length() >= 2)   spec = spec.and(PaymentReceiptSpecification.bySearch(search));
+        if (paymentMode != null && !paymentMode.isBlank()) spec = spec.and(PaymentReceiptSpecification.byPaymentMode(paymentMode));
+        if (payerType != null && !payerType.isBlank())     spec = spec.and(PaymentReceiptSpecification.byPayerType(payerType));
+        if (fromDate != null)                              spec = spec.and(PaymentReceiptSpecification.byDateFrom(fromDate));
+        if (toDate != null)                                spec = spec.and(PaymentReceiptSpecification.byDateTo(toDate));
+
+        Page<PaymentReceipt> page = receiptRepository.findAll(spec, pageable);
+        Map<String, String> refundStatusByReceipt = getActiveRefundStatusByReceipt();
+
+        List<Long> payerIds = page.getContent().stream().map(PaymentReceipt::getPayerId).distinct().toList();
+        List<Long> studentIds = page.getContent().stream()
+            .filter(r -> "STUDENT".equals(r.getPayerType())).map(PaymentReceipt::getPayerId).distinct().toList();
+        List<Long> enquiryIds = page.getContent().stream()
+            .filter(r -> "ENQUIRY".equals(r.getPayerType())).map(PaymentReceipt::getPayerId).distinct().toList();
+        Map<Long, YearTag> studentYears = resolveStudentYears(studentIds.stream());
+        Map<Long, YearTag> enquiryYears = resolveEnquiryYears(enquiryIds.stream());
+
+        List<UnifiedReceiptResponse> content = page.getContent().stream()
+            .map(r -> toResponse(r, "PAYMENT", refundStatusByReceipt.get(r.getReceiptNumber()), studentYears, enquiryYears))
+            .toList();
+        return new PageImpl<>(content, pageable, page.getTotalElements());
     }
 
     /** Return all receipts (payments + refunds) ordered newest first. */

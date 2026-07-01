@@ -1,5 +1,6 @@
 package com.cms.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -7,7 +8,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -37,6 +42,7 @@ import com.cms.dto.StudentFeeAllocationResponse;
 import com.cms.dto.YearFeeFromEnquiry;
 import com.cms.model.OneBookPaymentRequest;
 import com.cms.service.FeeExplorerService;
+import com.cms.service.FeeExportService;
 import com.cms.service.FeeFinalizationService;
 import com.cms.service.FeeRefundService;
 import com.cms.service.OneBookIntegrationService;
@@ -53,6 +59,7 @@ public class StudentFeeController {
     private final PaymentCollectionService paymentCollectionService;
     private final PenaltyCalculationService penaltyCalculationService;
     private final FeeExplorerService feeExplorerService;
+    private final FeeExportService feeExportService;
     private final FeeRefundService feeRefundService;
     private final OneBookIntegrationService oneBookService;
 
@@ -60,12 +67,14 @@ public class StudentFeeController {
                                  PaymentCollectionService paymentCollectionService,
                                  PenaltyCalculationService penaltyCalculationService,
                                  FeeExplorerService feeExplorerService,
+                                 FeeExportService feeExportService,
                                  FeeRefundService feeRefundService,
                                  OneBookIntegrationService oneBookService) {
         this.feeFinalizationService = feeFinalizationService;
         this.paymentCollectionService = paymentCollectionService;
         this.penaltyCalculationService = penaltyCalculationService;
         this.feeExplorerService = feeExplorerService;
+        this.feeExportService = feeExportService;
         this.feeRefundService = feeRefundService;
         this.oneBookService = oneBookService;
     }
@@ -143,6 +152,41 @@ public class StudentFeeController {
         return ResponseEntity.ok(page);
     }
 
+    @GetMapping("/explorer/export")
+    @PreAuthorize("@perm.has('STUDENT_FEE_EXPORT')")
+    public ResponseEntity<byte[]> exportExplorer(
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String program,
+            @RequestParam(required = false) String academicYear,
+            @RequestParam(required = false) Integer yearOfStudy,
+            @RequestParam(required = false) String allocationStatus) {
+
+        List<FeeExplorerResponse.StudentFeeSummary> data =
+            feeExplorerService.searchAll(search, program, academicYear, yearOfStudy, allocationStatus);
+
+        try {
+            if ("pdf".equalsIgnoreCase(format)) {
+                byte[] bytes = feeExportService.toPdf(data);
+                String filename = "fee-explorer-" + LocalDate.now() + ".pdf";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            } else {
+                byte[] bytes = feeExportService.toExcel(data);
+                String filename = "fee-explorer-" + LocalDate.now() + ".xlsx";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     /** Unified refund initiation — auto-detects entity type (STUDENT or ENQUIRY) from the receipt. */
     @PostMapping("/refunds")
     @PreAuthorize("@perm.has('FEE_REFUND')")
@@ -156,8 +200,14 @@ public class StudentFeeController {
 
     @GetMapping("/refunds")
     @PreAuthorize("@perm.has('FEE_REFUND_APPROVE')")
-    public ResponseEntity<List<FeeRefundSummaryResponse>> getAllRefunds() {
-        return ResponseEntity.ok(feeRefundService.getAllRefunds());
+    public ResponseEntity<Page<FeeRefundSummaryResponse>> getAllRefunds(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String entityType,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @PageableDefault(size = 25, sort = "requestedAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(feeRefundService.getAllRefundsPage(search, status, entityType, fromDate, toDate, pageable));
     }
 
     @GetMapping("/refunds/pending")

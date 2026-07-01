@@ -50,9 +50,12 @@ export interface UpdateUserRequest {
 }
 
 export interface AllPermissionsResponse {
+  id: number;
   category: string;
   code: string;
   displayName: string;
+  /** 1=Dev Only, 2=Support+, 3=Hold Only, 4=Delegatable */
+  tier: number;
 }
 
 /** Grouped view for the permission matrix editor. */

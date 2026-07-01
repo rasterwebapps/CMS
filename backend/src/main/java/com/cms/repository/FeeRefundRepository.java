@@ -3,11 +3,12 @@ package com.cms.repository;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
 import com.cms.model.FeeRefund;
 
-public interface FeeRefundRepository extends JpaRepository<FeeRefund, Long> {
+public interface FeeRefundRepository extends JpaRepository<FeeRefund, Long>, JpaSpecificationExecutor<FeeRefund> {
 
     List<FeeRefund> findByStatusOrderByRequestedAtDescIdDesc(String status);
 

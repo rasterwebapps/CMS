@@ -1,12 +1,16 @@
 package com.cms.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,6 +35,7 @@ import com.cms.dto.StudentRequest;
 import com.cms.dto.StudentResponse;
 import com.cms.model.enums.StudentStatus;
 import com.cms.service.RollNumberGeneratorService;
+import com.cms.service.StudentExportService;
 import com.cms.service.StudentService;
 
 import jakarta.validation.Valid;
@@ -41,10 +46,14 @@ public class StudentController {
 
     private final StudentService studentService;
     private final RollNumberGeneratorService rollNumberGeneratorService;
+    private final StudentExportService studentExportService;
 
-    public StudentController(StudentService studentService, RollNumberGeneratorService rollNumberGeneratorService) {
+    public StudentController(StudentService studentService,
+                             RollNumberGeneratorService rollNumberGeneratorService,
+                             StudentExportService studentExportService) {
         this.studentService = studentService;
         this.rollNumberGeneratorService = rollNumberGeneratorService;
+        this.studentExportService = studentExportService;
     }
 
     @PostMapping
@@ -96,6 +105,42 @@ public class StudentController {
             @PageableDefault(size = 25, sort = "admissionNumber", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(studentService.findExplorer(
             programId, courseId, academicYearId, status, studentType, search, pageable));
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("@perm.has('STUDENT_EXPORT')")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(required = false) Long programId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long academicYearId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String studentType,
+            @RequestParam(required = false) String search) {
+
+        List<StudentResponse> data = studentService.findExplorerAll(
+            programId, courseId, academicYearId, status, studentType, search);
+
+        try {
+            if ("pdf".equalsIgnoreCase(format)) {
+                byte[] bytes = studentExportService.toPdf(data);
+                String filename = "students-" + LocalDate.now() + ".pdf";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            } else {
+                byte[] bytes = studentExportService.toExcel(data);
+                String filename = "students-" + LocalDate.now() + ".xlsx";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/without-roll-number")

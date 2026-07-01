@@ -51,7 +51,7 @@
 
   <!-- ── Card view ────────────────────────────────────────────── -->
   @else if (viewMode() === 'card') {
-    @if (filteredItems().length === 0) {
+    @if (dataSource.data.length === 0) {
       <cms-empty-state
         [icon]="searchValue() ? 'search_off' : 'people'"
         [title]="searchValue() ? 'No staff referrers found' : 'No staff referrers yet'"
@@ -61,7 +61,7 @@
       ></cms-empty-state>
     } @else {
       <div class="mlp-cards-grid">
-        @for (item of filteredItems(); track item.id; let i = $index) {
+        @for (item of dataSource.data; track item.id; let i = $index) {
           <div class="mlp-card agt-card" [style.animation-delay]="(i * 0.05) + 's'">
             <div class="mlp-card__actions">
               <cms-row-action-btn variant="warning" [iconOnly]="true"
@@ -100,6 +100,12 @@
           </div>
         }
       </div>
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="25"
+        showFirstLastButtons
+      ></mat-paginator>
     }
   }
 
@@ -175,6 +181,7 @@
       </div>
 
       <mat-paginator
+        [length]="totalElements"
         [pageSizeOptions]="[5, 10, 25, 50]"
         [pageSize]="25"
         showFirstLastButtons

@@ -38,6 +38,8 @@ import { computeInitials } from '../../../shared/utils/initials';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
+import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
+import { PermissionService } from '../../../core/permissions/permission.service';
 
 const DEFAULT_PAGE_SIZE = 25;
 const SEARCH_MIN_LENGTH = 3;
@@ -63,14 +65,15 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
     CmsStatusBadgeComponent,
+    ExportButtonComponent,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
     MatDialogModule,
     MatTooltipModule,
-      CmsIconDeleteComponent,
-      CmsIconEditComponent,
-      CmsIconViewComponent,
+    CmsIconDeleteComponent,
+    CmsIconEditComponent,
+    CmsIconViewComponent,
   ],
   templateUrl: './student-list.component.html',
   styleUrl: './student-list.component.scss',
@@ -86,6 +89,7 @@ export class StudentListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly dialog              = inject(MatDialog);
   private readonly tourService         = inject(TourService);
   private readonly _destroyRef         = inject(DestroyRef);
+  private readonly permissionService   = inject(PermissionService);
 
   @ViewChild(MatPaginator) paginator?: MatPaginator;
   @ViewChild(MatSort) matSort?: MatSort;
@@ -124,7 +128,12 @@ export class StudentListComponent implements OnInit, AfterViewInit, OnDestroy {
   // ── Table (server-side — paginator/sort NOT wired to dataSource) ──
   protected readonly dataSource = new MatTableDataSource<Student>([]);
   protected readonly loading    = signal(false);
+  protected readonly exporting  = signal(false);
   protected totalElements       = 0;
+
+  // ── Permission guards ────────────────────────────────────────
+  protected readonly canExport = computed(() => this.permissionService.has('STUDENT_EXPORT'));
+  protected readonly canDelete = computed(() => this.permissionService.has('STUDENT_DELETE'));
 
   // ── Master data for filter dropdowns ────────────────────────
   protected programs: Program[]           = [];
@@ -170,6 +179,34 @@ export class StudentListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly searchSubject = new Subject<string>();
 
   protected colMenuOpen = false;
+
+  protected onExport(format: ExportFormat): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.studentService.exportStudents(format, {
+      programId:      this.filterProgramId(),
+      courseId:       this.filterCourseId(),
+      academicYearId: this.filterAcademicYearId(),
+      status:         this.filterStatus() || null,
+      studentType:    this.filterStudentType() || null,
+      search:         this.searchTerm().length >= SEARCH_MIN_LENGTH ? this.searchTerm() : null,
+    }).subscribe({
+      next: (blob) => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `students.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
+  }
 
   ngOnInit(): void {
     this.tourService.register('student-list', STUDENT_LIST_TOUR);
