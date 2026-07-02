@@ -65,7 +65,7 @@ public class SecurityConfig {
 
     @Bean
     @ConditionalOnMissingBean(JwtDecoder.class)
-    public JwtDecoder jwtDecoder() {
+    public JwtDecoder jwtDecoder(RevocationJwtValidator revocationValidator) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
         OAuth2TokenValidator<Jwt> issuerValidator = jwt -> {
             Set<String> issuers = allowedIssuers.stream()
@@ -88,7 +88,8 @@ public class SecurityConfig {
 
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
             JwtValidators.createDefault(),
-            issuerValidator
+            issuerValidator,
+            revocationValidator
         ));
         return decoder;
     }

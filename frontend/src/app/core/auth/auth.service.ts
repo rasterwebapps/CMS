@@ -56,6 +56,20 @@ export class AuthService {
   }
 
   async logout(): Promise<void> {
+    // Revoke the access token server-side before ending the Keycloak session.
+    // This ensures the token is immediately invalid even within its remaining lifetime.
+    // Uses fetch() directly to avoid the circular DI path through authInterceptor.
+    const token = this.keycloak?.token;
+    if (token) {
+      try {
+        await fetch(`${environment.apiUrl}/auth/revoke`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch {
+        // Don't block logout if the revoke call fails
+      }
+    }
     await this.keycloak?.logout({ redirectUri: window.location.origin });
   }
 
