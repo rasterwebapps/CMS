@@ -1,10 +1,12 @@
-import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { BloodGroupService } from '../blood-group.service';
 import { BloodGroup } from '../blood-group.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -35,12 +37,12 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
-  CmsIconToggleStatusComponent,
-],
+    CmsIconToggleStatusComponent,
+  ],
   templateUrl: './blood-group-list.component.html',
   styleUrl: './blood-group-list.component.scss',
 })
-export class BloodGroupListComponent implements OnInit {
+export class BloodGroupListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly bloodGroupService = inject(BloodGroupService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
@@ -48,11 +50,22 @@ export class BloodGroupListComponent implements OnInit {
   private readonly permissionService = inject(PermissionService);
   private readonly tourService = inject(TourService);
 
-  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
-    if (value) this.dataSource.paginator = value;
-  }
-  @ViewChild(MatSort) set sort(value: MatSort) {
-    if (value) this.dataSource.sort = value;
+  private readonly destroy$ = new Subject<void>();
+  private readonly searchSubject = new Subject<string>();
+  private _paginator?: MatPaginator;
+  private _paginatorSub?: Subscription;
+
+  @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
+    if (!p || p === this._paginator) return;
+    this._paginatorSub?.unsubscribe();
+    this._paginator = p;
+    p.pageIndex = this.currentPage;
+    p.pageSize = this.currentPageSize;
+    this._paginatorSub = p.page.pipe(takeUntil(this.destroy$)).subscribe((e: PageEvent) => {
+      this.currentPage = e.pageIndex;
+      this.currentPageSize = e.pageSize;
+      this.loadPage();
+    });
   }
 
   protected readonly canManage = computed(() => this.permissionService.has('BLOOD_GROUP_MANAGE'));
@@ -64,22 +77,34 @@ export class BloodGroupListComponent implements OnInit {
   protected readonly searchValue = signal('');
   protected readonly viewMode = signal<'card' | 'table'>('table');
 
-  private readonly allItems = signal<BloodGroup[]>([]);
-
-  protected readonly totalCount = computed(() => this.allItems().length);
-  protected readonly activeCount = computed(() => this.allItems().filter(b => b.isActive).length);
-
-  protected readonly filteredItems = computed(() => {
-    const q = this.searchValue().trim().toLowerCase();
-    if (!q) return this.allItems();
-    return this.allItems().filter(
-      b => b.name.toLowerCase().includes(q) || b.code.toLowerCase().includes(q),
-    );
-  });
+  protected totalElements = 0;
+  protected currentPage = 0;
+  protected currentPageSize = 25;
+  protected sortActive = 'name';
+  protected sortDirection: 'asc' | 'desc' = 'asc';
+  private readonly sortMap: Record<string, string> = {
+    name: 'name', code: 'code', isActive: 'isActive',
+  };
 
   ngOnInit(): void {
     this.tourService.register('blood-group-list', BLOOD_GROUP_LIST_TOUR);
-    this.load();
+    this.searchSubject.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(() => {
+      this.currentPage = 0;
+      this.loadPage();
+    });
+    this.loadPage();
+  }
+
+  ngAfterViewInit(): void {}
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this._paginatorSub?.unsubscribe();
   }
 
   protected setViewMode(mode: 'card' | 'table'): void {
@@ -89,13 +114,19 @@ export class BloodGroupListComponent implements OnInit {
   protected applyFilter(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.searchValue.set(value);
-    this.dataSource.filter = value.trim().toLowerCase();
-    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+    this.searchSubject.next(value);
   }
 
   protected clearFilter(): void {
     this.searchValue.set('');
-    this.dataSource.filter = '';
+    this.searchSubject.next('');
+  }
+
+  protected onSortChange(sort: Sort): void {
+    this.sortActive = sort.active;
+    this.sortDirection = sort.direction as 'asc' | 'desc';
+    this.currentPage = 0;
+    this.loadPage();
   }
 
   protected edit(item: BloodGroup): void {
@@ -112,19 +143,16 @@ export class BloodGroupListComponent implements OnInit {
       return;
     }
     const nextAction = item.isActive ? 'Deactivate' : 'Activate';
-    this.dialog
-      .open(ConfirmDialogComponent, {
-        data: {
-          title: `${nextAction} Blood Group`,
-          message: `${nextAction} "${item.name}" (${item.code})?`,
-          confirmText: nextAction,
-          cancelText: 'Cancel',
-        },
-      })
-      .afterClosed()
-      .subscribe((confirmed) => {
-        if (confirmed) this.doToggle(item);
-      });
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: `${nextAction} Blood Group`,
+        message: `${nextAction} "${item.name}" (${item.code})?`,
+        confirmText: nextAction,
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe((confirmed) => {
+      if (confirmed) this.doToggle(item);
+    });
   }
 
   protected handleEmptyAction(): void {
@@ -147,7 +175,7 @@ export class BloodGroupListComponent implements OnInit {
     request$.subscribe({
       next: () => {
         this.toast.success(`Blood group ${item.isActive ? 'deactivated' : 'activated'} successfully`);
-        this.load();
+        this.loadPage();
       },
       error: (err) => {
         this.toast.error(
@@ -158,18 +186,20 @@ export class BloodGroupListComponent implements OnInit {
     });
   }
 
-  private load(): void {
+  private loadPage(): void {
     this.loading.set(true);
-    this.bloodGroupService.getBloodGroups().subscribe({
-      next: (data) => {
-        this.allItems.set(data);
-        this.dataSource.data = data;
+    const search = this.searchValue().trim() || undefined;
+    this.bloodGroupService.getPage({ search, page: this.currentPage, size: this.currentPageSize, sort: this.sortMap[this.sortActive] ?? this.sortActive, direction: this.sortDirection }).subscribe({
+      next: (page) => {
+        this.dataSource.data = page.content;
+        this.totalElements = page.totalElements;
+        if (this._paginator) {
+          this._paginator.length = page.totalElements;
+          this._paginator.pageIndex = page.number;
+        }
         this.loading.set(false);
       },
-      error: () => {
-        this.toast.error('Failed to load blood groups');
-        this.loading.set(false);
-      },
+      error: () => { this.toast.error('Failed to load blood groups'); this.loading.set(false); },
     });
   }
 }

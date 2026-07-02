@@ -27,6 +27,13 @@ export class ScholarshipService {
     return this.http.get<ScholarshipType[]>(`${this.baseUrl}/scholarships`);
   }
 
+  getScholarshipTypesPage(p: { search?: string; page?: number; size?: number; sort?: string; direction?: 'asc' | 'desc' }): Observable<Page<ScholarshipType>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search) params = params.set('search', p.search);
+    if (p.sort) params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
+    return this.http.get<Page<ScholarshipType>>(`${this.baseUrl}/scholarships/page`, { params });
+  }
+
   getScholarshipType(id: number): Observable<ScholarshipType> {
     return this.http.get<ScholarshipType>(`${this.baseUrl}/scholarships/${id}`);
   }

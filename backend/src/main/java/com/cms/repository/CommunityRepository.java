@@ -4,10 +4,11 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.cms.model.Community;
 
-public interface CommunityRepository extends JpaRepository<Community, Long> {
+public interface CommunityRepository extends JpaRepository<Community, Long>, JpaSpecificationExecutor<Community> {
     List<Community> findByIsActiveTrueOrderByNameAsc();
     List<Community> findAllByOrderByNameAsc();
     boolean existsByCode(String code);

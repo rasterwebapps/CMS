@@ -2,6 +2,10 @@ package com.cms.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -78,6 +82,13 @@ public class SpecialityController {
             @PathVariable Long id,
             @Valid @RequestBody ActiveStatusUpdateRequest request) {
         return ResponseEntity.ok(specialityService.updateStatus(id, request));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<SpecialityResponse>> findPage(
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 25, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(specialityService.findPage(search, pageable));
     }
 
     @GetMapping("/name-exists")

@@ -7,6 +7,7 @@ import {
   DesignationRequest,
   DesignationStatusUpdateRequest,
   DesignationStatusUpdateResponse,
+  Page,
 } from './designation.model';
 
 @Injectable({ providedIn: 'root' })
@@ -16,6 +17,13 @@ export class DesignationService {
 
   getAll(activeOnly = false): Observable<DesignationMaster[]> {
     return this.http.get<DesignationMaster[]>(`${this.baseUrl}?activeOnly=${activeOnly}`);
+  }
+
+  getPage(p: { search?: string; page?: number; size?: number; sort?: string; direction?: 'asc' | 'desc' }): Observable<Page<DesignationMaster>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search) params = params.set('search', p.search);
+    if (p.sort) params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
+    return this.http.get<Page<DesignationMaster>>(`${this.baseUrl}/page`, { params });
   }
 
   getById(id: number): Observable<DesignationMaster> {

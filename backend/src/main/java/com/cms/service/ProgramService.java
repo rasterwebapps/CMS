@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -83,6 +86,19 @@ public class ProgramService {
         return programRepository.findAll().stream()
             .map(this::toResponse)
             .toList();
+    }
+
+    public Page<ProgramResponse> findPage(String search, Pageable pageable) {
+        if (search == null || search.isBlank()) {
+            return programRepository.findAll(pageable).map(this::toResponse);
+        }
+        String pattern = "%" + search.trim().toLowerCase() + "%";
+        Specification<Program> spec = (root, query, cb) ->
+            cb.or(
+                cb.like(cb.lower(root.get("name")), pattern),
+                cb.like(cb.lower(root.get("code")), pattern)
+            );
+        return programRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     public ProgramResponse findById(Long id) {

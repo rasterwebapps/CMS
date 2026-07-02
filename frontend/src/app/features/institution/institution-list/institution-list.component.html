@@ -43,59 +43,69 @@
     </div>
   </div>
 
-  <div id="tour-inst-content">
-
-  <!-- Loading / content -->
+  <!-- Loading -->
   @if (loading()) {
     <div class="mlp-loading-grid">
       @for (n of [1,2,3,4,5,6]; track n) {
         <div class="mlp-card-skeleton"></div>
       }
     </div>
-  } @else {
-    <!-- Card view -->
-    @if (viewMode() === 'card') {
-      @if (filteredItems().length === 0) {
-        <cms-empty-state
-          icon="account_balance"
-          [title]="searchValue() ? 'No institutions found' : 'No institutions yet'"
-          [subtitle]="searchValue() ? 'No institutions match your search.' : 'Add your first sister-concern institution to get started.'"
-          [actionLabel]="searchValue() ? 'Clear Search' : (canManage() ? 'Add Institution' : '')"
-          (actionClick)="handleEmptyAction()"
-        />
-      } @else {
-        <div class="mlp-cards-grid">
-          @for (item of filteredItems(); track item.id) {
-            <div class="mlp-card">
-              <div class="mlp-card__header">
-                <div class="mlp-card__avatar">{{ item.code }}</div>
-                <div class="mlp-card__meta">
-                  <div class="mlp-card__title">{{ item.name }}</div>
-                  <div class="mlp-card__sub">{{ item.code }}</div>
-                </div>
-                <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
-              </div>
-              @if (canManage()) {
-                <div class="mlp-card__actions">
-                  <cms-row-action-btn variant="warning" [iconOnly]="true" (clicked)="toggleStatus(item)"
-                          [tooltip]="item.isActive ? 'Deactivate' : 'Activate'"
-                          [ariaLabel]="item.isActive ? 'Deactivate institution' : 'Activate institution'">
-                     <cms-icon-toggle-status [active]="item.isActive" />
-                    </cms-row-action-btn>
-                  <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit institution" (clicked)="edit(item)">
-                    <cms-icon-edit />
-                  </cms-row-action-btn>
-                 </div>
-              }
-            </div>
-          }
-        </div>
-      }
+  }
+
+  <!-- Card view -->
+  @else if (viewMode() === 'card') {
+    @if (dataSource.data.length === 0) {
+      <cms-empty-state
+        icon="account_balance"
+        [title]="searchValue() ? 'No institutions found' : 'No institutions yet'"
+        [subtitle]="searchValue() ? 'No institutions match your search.' : 'Add your first sister-concern institution to get started.'"
+        [actionLabel]="searchValue() ? 'Clear Search' : (canManage() ? 'Add Institution' : '')"
+        (actionClick)="handleEmptyAction()"
+      />
     } @else {
-      <!-- Table view -->
-      <div class="content-card mlp-table-card">
+      <div id="tour-inst-content" class="mlp-cards-grid">
+        @for (item of dataSource.data; track item.id) {
+          <div class="mlp-card">
+            <div class="mlp-card__header">
+              <div class="mlp-card__avatar">{{ item.code }}</div>
+              <div class="mlp-card__meta">
+                <div class="mlp-card__title">{{ item.name }}</div>
+                <div class="mlp-card__sub">{{ item.code }}</div>
+              </div>
+              <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
+            </div>
+            @if (canManage()) {
+              <div class="mlp-card__actions">
+                <cms-row-action-btn variant="warning" [iconOnly]="true" (clicked)="toggleStatus(item)"
+                        [tooltip]="item.isActive ? 'Deactivate' : 'Activate'"
+                        [ariaLabel]="item.isActive ? 'Deactivate institution' : 'Activate institution'">
+                   <cms-icon-toggle-status [active]="item.isActive" />
+                  </cms-row-action-btn>
+                <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit institution" (clicked)="edit(item)">
+                  <cms-icon-edit />
+                </cms-row-action-btn>
+               </div>
+            }
+          </div>
+        }
+      </div>
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="25"
+        showFirstLastButtons
+      />
+    }
+  }
+
+  <!-- Table view -->
+  @else {
+    <div class="content-card mlp-table-card">
       <div class="table-wrapper">
-      <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+      <table mat-table [dataSource]="dataSource" matSort
+             [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+             matSortDisableClear (matSortChange)="onSortChange($event)"
+             class="modern-table">
 
         <!-- Name -->
         <ng-container matColumnDef="name">
@@ -141,17 +151,18 @@
         <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
         <tr class="mat-row" *matNoDataRow>
-          <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding:0">
-            <cms-empty-state icon="account_balance" title="No institutions found"
-                             subtitle="Try a different search term or add a new institution." />
+          <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding:0; border:none;">
+            <cms-empty-state icon="account_balance"
+              [title]="searchValue() ? 'No institutions found' : 'No institutions yet'"
+              [subtitle]="searchValue() ? 'No institutions match your search.' : 'Add your first sister-concern institution to get started.'"
+              [actionLabel]="searchValue() ? 'Clear Search' : (canManage() ? 'Add Institution' : '')"
+              (actionClick)="handleEmptyAction()" />
           </td>
         </tr>
       </table>
       </div>
-      <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" [pageSize]="25" showFirstLastButtons />
-      </div>
-    }
+      <mat-paginator [length]="totalElements" [pageSizeOptions]="[5, 10, 25, 50]" [pageSize]="25" showFirstLastButtons />
+    </div>
   }
-  </div>
 
 </div>

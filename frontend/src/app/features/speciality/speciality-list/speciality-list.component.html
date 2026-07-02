@@ -52,7 +52,7 @@
       }
     </div>
   } @else if (viewMode() === 'card') {
-    @if (filteredDepts().length === 0) {
+    @if (dataSource.data.length === 0) {
       <cms-empty-state
         [icon]="searchValue() ? 'search_off' : 'domain'"
         [title]="searchValue() ? 'No specialities found' : 'No specialities yet'"
@@ -62,7 +62,7 @@
       ></cms-empty-state>
     } @else {
       <div id="tour-dept-content" class="dept-grid">
-        @for (dept of filteredDepts(); track dept.id; let i = $index) {
+        @for (dept of dataSource.data; track dept.id; let i = $index) {
           <div class="dept-card" [style.animation-delay]="(i * 0.05) + 's'">
             <div class="dept-card__actions">
               <cms-row-action-btn variant="warning" [iconOnly]="true"
@@ -90,11 +90,20 @@
           </div>
         }
       </div>
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="25"
+        showFirstLastButtons
+      ></mat-paginator>
     }
   } @else {
     <div class="content-card mlp-table-card">
       <div class="table-wrapper">
-      <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+      <table mat-table [dataSource]="dataSource" matSort
+             [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+             matSortDisableClear (matSortChange)="onSortChange($event)"
+             class="modern-table">
 
         <ng-container matColumnDef="code">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
@@ -169,6 +178,7 @@
       </div>
 
       <mat-paginator
+        [length]="totalElements"
         [pageSizeOptions]="[5, 10, 25, 50]"
         [pageSize]="25"
         showFirstLastButtons

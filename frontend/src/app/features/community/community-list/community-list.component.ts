@@ -1,10 +1,12 @@
-import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { CommunityService } from '../community.service';
 import { Community } from '../community.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -35,12 +37,12 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
-  CmsIconToggleStatusComponent,
-],
+    CmsIconToggleStatusComponent,
+  ],
   templateUrl: './community-list.component.html',
   styleUrl: './community-list.component.scss',
 })
-export class CommunityListComponent implements OnInit {
+export class CommunityListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly communityService = inject(CommunityService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
@@ -48,11 +50,22 @@ export class CommunityListComponent implements OnInit {
   private readonly permissionService = inject(PermissionService);
   private readonly tourService = inject(TourService);
 
-  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
-    if (value) this.dataSource.paginator = value;
-  }
-  @ViewChild(MatSort) set sort(value: MatSort) {
-    if (value) this.dataSource.sort = value;
+  private readonly destroy$ = new Subject<void>();
+  private readonly searchSubject = new Subject<string>();
+  private _paginator?: MatPaginator;
+  private _paginatorSub?: Subscription;
+
+  @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
+    if (!p || p === this._paginator) return;
+    this._paginatorSub?.unsubscribe();
+    this._paginator = p;
+    p.pageIndex = this.currentPage;
+    p.pageSize = this.currentPageSize;
+    this._paginatorSub = p.page.pipe(takeUntil(this.destroy$)).subscribe((e: PageEvent) => {
+      this.currentPage = e.pageIndex;
+      this.currentPageSize = e.pageSize;
+      this.loadPage();
+    });
   }
 
   protected readonly canManage = computed(() => this.permissionService.has('COMMUNITY_MANAGE'));
@@ -66,22 +79,34 @@ export class CommunityListComponent implements OnInit {
   protected readonly searchValue = signal('');
   protected readonly viewMode = signal<'card' | 'table'>('table');
 
-  private readonly allItems = signal<Community[]>([]);
-
-  protected readonly totalCount = computed(() => this.allItems().length);
-  protected readonly activeCount = computed(() => this.allItems().filter(c => c.isActive).length);
-
-  protected readonly filteredItems = computed(() => {
-    const q = this.searchValue().trim().toLowerCase();
-    if (!q) return this.allItems();
-    return this.allItems().filter(
-      c => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q),
-    );
-  });
+  protected totalElements = 0;
+  protected currentPage = 0;
+  protected currentPageSize = 25;
+  protected sortActive = 'name';
+  protected sortDirection: 'asc' | 'desc' = 'asc';
+  private readonly sortMap: Record<string, string> = {
+    name: 'name', code: 'code', isActive: 'isActive',
+  };
 
   ngOnInit(): void {
     this.tourService.register('community-list', COMMUNITY_LIST_TOUR);
-    this.load();
+    this.searchSubject.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(() => {
+      this.currentPage = 0;
+      this.loadPage();
+    });
+    this.loadPage();
+  }
+
+  ngAfterViewInit(): void {}
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this._paginatorSub?.unsubscribe();
   }
 
   protected setViewMode(mode: 'card' | 'table'): void {
@@ -91,13 +116,19 @@ export class CommunityListComponent implements OnInit {
   protected applyFilter(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.searchValue.set(value);
-    this.dataSource.filter = value.trim().toLowerCase();
-    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+    this.searchSubject.next(value);
   }
 
   protected clearFilter(): void {
     this.searchValue.set('');
-    this.dataSource.filter = '';
+    this.searchSubject.next('');
+  }
+
+  protected onSortChange(sort: Sort): void {
+    this.sortActive = sort.active;
+    this.sortDirection = sort.direction as 'asc' | 'desc';
+    this.currentPage = 0;
+    this.loadPage();
   }
 
   protected edit(item: Community): void {
@@ -114,19 +145,16 @@ export class CommunityListComponent implements OnInit {
       return;
     }
     const nextAction = item.isActive ? 'Deactivate' : 'Activate';
-    this.dialog
-      .open(ConfirmDialogComponent, {
-        data: {
-          title: `${nextAction} Community`,
-          message: `${nextAction} "${item.name}" (${item.code})?`,
-          confirmText: nextAction,
-          cancelText: 'Cancel',
-        },
-      })
-      .afterClosed()
-      .subscribe((confirmed) => {
-        if (confirmed) this.doToggle(item);
-      });
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: `${nextAction} Community`,
+        message: `${nextAction} "${item.name}" (${item.code})?`,
+        confirmText: nextAction,
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe((confirmed) => {
+      if (confirmed) this.doToggle(item);
+    });
   }
 
   protected handleEmptyAction(): void {
@@ -149,7 +177,7 @@ export class CommunityListComponent implements OnInit {
     request$.subscribe({
       next: () => {
         this.toast.success(`Community ${item.isActive ? 'deactivated' : 'activated'} successfully`);
-        this.load();
+        this.loadPage();
       },
       error: (err) => {
         this.toast.error(
@@ -160,18 +188,20 @@ export class CommunityListComponent implements OnInit {
     });
   }
 
-  private load(): void {
+  private loadPage(): void {
     this.loading.set(true);
-    this.communityService.getCommunities().subscribe({
-      next: (data) => {
-        this.allItems.set(data);
-        this.dataSource.data = data;
+    const search = this.searchValue().trim() || undefined;
+    this.communityService.getPage({ search, page: this.currentPage, size: this.currentPageSize, sort: this.sortMap[this.sortActive] ?? this.sortActive, direction: this.sortDirection }).subscribe({
+      next: (page) => {
+        this.dataSource.data = page.content;
+        this.totalElements = page.totalElements;
+        if (this._paginator) {
+          this._paginator.length = page.totalElements;
+          this._paginator.pageIndex = page.number;
+        }
         this.loading.set(false);
       },
-      error: () => {
-        this.toast.error('Failed to load communities');
-        this.loading.set(false);
-      },
+      error: () => { this.toast.error('Failed to load communities'); this.loading.set(false); },
     });
   }
 }

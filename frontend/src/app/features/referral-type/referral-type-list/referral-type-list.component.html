@@ -53,7 +53,7 @@
 
   <!-- ── Card view ────────────────────────────────────────────── -->
   @else if (viewMode() === 'card') {
-    @if (filteredReferralTypes().length === 0) {
+    @if (dataSource.data.length === 0) {
       <cms-empty-state
         [icon]="searchValue() ? 'search_off' : 'label'"
         [title]="searchValue() ? 'No referral types found' : 'No referral types yet'"
@@ -63,10 +63,11 @@
       ></cms-empty-state>
     } @else {
       <div id="tour-rt-content" class="mlp-cards-grid">
-        @for (item of filteredReferralTypes(); track item.id; let i = $index) {
+        @for (item of dataSource.data; track item.id; let i = $index) {
           <div class="mlp-card rt-card" [style.animation-delay]="(i * 0.05) + 's'">
             <div class="mlp-card__actions">
-              <cms-row-action-btn variant="warning" [iconOnly]="true"                       [tooltip]="(item.isActive ? 'Deactivate ' : 'Activate ') + item.name"
+              <cms-row-action-btn variant="warning" [iconOnly]="true"
+                      [tooltip]="(item.isActive ? 'Deactivate ' : 'Activate ') + item.name"
                       [ariaLabel]="item.isActive ? 'Deactivate referral type' : 'Activate referral type'"
                       (clicked)="toggleStatus(item)">
                 <cms-icon-toggle-status [active]="item.isActive" [size]="13" />
@@ -95,6 +96,12 @@
           </div>
         }
       </div>
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="25"
+        showFirstLastButtons
+      ></mat-paginator>
     }
   }
 
@@ -102,7 +109,10 @@
   @else {
     <div class="content-card mlp-table-card">
       <div class="table-wrapper">
-      <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+      <table mat-table [dataSource]="dataSource" matSort
+             [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+             matSortDisableClear (matSortChange)="onSortChange($event)"
+             class="modern-table">
 
         <ng-container matColumnDef="name">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
@@ -122,14 +132,14 @@
         </ng-container>
 
         <ng-container matColumnDef="hasCommission">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Commission?</th>
+          <th mat-header-cell *matHeaderCellDef>Commission?</th>
           <td mat-cell *matCellDef="let row">
             <cms-status-badge [status]="row.hasCommission ? 'YES' : 'NO'" />
           </td>
         </ng-container>
 
         <ng-container matColumnDef="commissionAmount">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Commission Amount (₹)</th>
+          <th mat-header-cell *matHeaderCellDef>Commission Amount (₹)</th>
           <td mat-cell *matCellDef="let row">{{ row.commissionAmount | inr:false:false }}</td>
         </ng-container>
 
@@ -174,6 +184,7 @@
       </div>
 
       <mat-paginator
+        [length]="totalElements"
         [pageSizeOptions]="[5, 10, 25, 50]"
         [pageSize]="25"
         showFirstLastButtons

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
@@ -7,6 +7,7 @@ import {
   BloodGroupRequest,
   BloodGroupStatusUpdateRequest,
   BloodGroupStatusUpdateResponse,
+  Page,
 } from './blood-group.model';
 
 @Injectable({
@@ -18,6 +19,13 @@ export class BloodGroupService {
 
   getBloodGroups(): Observable<BloodGroup[]> {
     return this.http.get<BloodGroup[]>(this.baseUrl);
+  }
+
+  getPage(p: { search?: string; page?: number; size?: number; sort?: string; direction?: 'asc' | 'desc' }): Observable<Page<BloodGroup>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search) params = params.set('search', p.search);
+    if (p.sort) params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
+    return this.http.get<Page<BloodGroup>>(`${this.baseUrl}/page`, { params });
   }
 
   getActiveBloodGroups(): Observable<BloodGroup[]> {

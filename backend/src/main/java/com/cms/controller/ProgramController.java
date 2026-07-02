@@ -2,6 +2,10 @@ package com.cms.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -93,6 +97,13 @@ public class ProgramController {
             @PathVariable Long id,
             @RequestBody ProgramDocumentRequirementsRequest request) {
         return ResponseEntity.ok(programService.setDocumentRequirements(id, request));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<ProgramResponse>> findPage(
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 25, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(programService.findPage(search, pageable));
     }
 
     @GetMapping("/name-exists")

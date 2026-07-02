@@ -2,6 +2,10 @@ package com.cms.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -84,6 +88,14 @@ public class ScholarshipController {
             @Valid @RequestBody ActiveStatusUpdateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(scholarshipTypeService.updateStatus(id, request, username(jwt)));
+    }
+
+    @GetMapping("/page")
+    @PreAuthorize("@perm.has('SCHOLARSHIP_VIEW')")
+    public ResponseEntity<Page<ScholarshipTypeResponse>> findPage(
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 25, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(scholarshipTypeService.findPage(search, pageable));
     }
 
     private static String username(Jwt jwt) {

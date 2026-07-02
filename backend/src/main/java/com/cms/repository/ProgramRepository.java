@@ -4,11 +4,12 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.cms.model.Program;
 import com.cms.model.enums.ProgramStatus;
 
-public interface ProgramRepository extends JpaRepository<Program, Long> {
+public interface ProgramRepository extends JpaRepository<Program, Long>, JpaSpecificationExecutor<Program> {
 
     Optional<Program> findByCode(String code);
 

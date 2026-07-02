@@ -2,6 +2,9 @@ package com.cms.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,6 +64,19 @@ public class SpecialityService {
         return specialityRepository.findByIsActiveTrueOrderByNameAsc().stream()
             .map(this::toResponse)
             .toList();
+    }
+
+    public Page<SpecialityResponse> findPage(String search, Pageable pageable) {
+        if (search == null || search.isBlank()) {
+            return specialityRepository.findAll(pageable).map(this::toResponse);
+        }
+        String pattern = "%" + search.trim().toLowerCase() + "%";
+        Specification<Speciality> spec = (root, query, cb) ->
+            cb.or(
+                cb.like(cb.lower(root.get("name")), pattern),
+                cb.like(cb.lower(root.get("code")), pattern)
+            );
+        return specialityRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     public SpecialityResponse findById(Long id) {

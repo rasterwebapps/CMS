@@ -4,10 +4,11 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.cms.model.ReferralType;
 
-public interface ReferralTypeRepository extends JpaRepository<ReferralType, Long> {
+public interface ReferralTypeRepository extends JpaRepository<ReferralType, Long>, JpaSpecificationExecutor<ReferralType> {
 
     List<ReferralType> findByIsActiveTrue();
 

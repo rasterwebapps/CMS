@@ -2,6 +2,10 @@ package com.cms.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -87,6 +91,13 @@ public class CommunityController {
     @PreAuthorize("@perm.has('COMMUNITY_MANAGE')")
     public ResponseEntity<CommunityResponse> reactivate(@PathVariable Long id) {
         return ResponseEntity.ok(communityService.reactivate(id));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<CommunityResponse>> findPage(
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 25, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(communityService.findPage(search, pageable));
     }
 
     @GetMapping("/name-exists")

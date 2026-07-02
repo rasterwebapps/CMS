@@ -1,10 +1,12 @@
-import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { ProgramService } from '../program.service';
 import { Program, ProgramStatus } from '../program.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -40,43 +42,66 @@ import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconToggleStatusCompon
   templateUrl: './program-list.component.html',
   styleUrl: './program-list.component.scss',
 })
-export class ProgramListComponent implements OnInit {
+export class ProgramListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly programService = inject(ProgramService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly tourService = inject(TourService);
 
-  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
-    if (value) this.dataSource.paginator = value;
-  }
-  @ViewChild(MatSort) set sort(value: MatSort) {
-    if (value) this.dataSource.sort = value;
+  private readonly VIEW_MODE_KEY = 'program-view-mode';
+  private readonly destroy$ = new Subject<void>();
+  private readonly searchSubject = new Subject<string>();
+  private _paginator?: MatPaginator;
+  private _paginatorSub?: Subscription;
+
+  @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
+    if (!p || p === this._paginator) return;
+    this._paginatorSub?.unsubscribe();
+    this._paginator = p;
+    p.pageIndex = this.currentPage;
+    p.pageSize = this.currentPageSize;
+    this._paginatorSub = p.page.pipe(takeUntil(this.destroy$)).subscribe((e: PageEvent) => {
+      this.currentPage = e.pageIndex;
+      this.currentPageSize = e.pageSize;
+      this.loadPage();
+    });
   }
 
   protected readonly displayedColumns = ['code', 'name', 'durationYears', 'totalTerms', 'status', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Program>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
-
-  private readonly allPrograms = signal<Program[]>([]);
-
-  protected readonly programCount = computed(() => this.allPrograms().length);
-
-  protected readonly filteredPrograms = computed(() => {
-    const q = this.searchValue().trim().toLowerCase();
-    if (!q) return this.allPrograms();
-    return this.allPrograms().filter(
-      p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q),
-    );
-  });
-
-  private readonly VIEW_MODE_KEY = 'program-view-mode';
   protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
+
+  protected totalElements = 0;
+  protected currentPage = 0;
+  protected currentPageSize = 25;
+  protected sortActive = 'name';
+  protected sortDirection: 'asc' | 'desc' = 'asc';
+  private readonly sortMap: Record<string, string> = {
+    name: 'name', code: 'code', status: 'status',
+  };
 
   ngOnInit(): void {
     this.tourService.register('program-list', PROGRAM_LIST_TOUR);
-    this.loadPrograms();
+    this.searchSubject.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(() => {
+      this.currentPage = 0;
+      this.loadPage();
+    });
+    this.loadPage();
+  }
+
+  ngAfterViewInit(): void {}
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this._paginatorSub?.unsubscribe();
   }
 
   protected setViewMode(mode: 'card' | 'table'): void {
@@ -85,15 +110,21 @@ export class ProgramListComponent implements OnInit {
   }
 
   protected applyFilter(event: Event): void {
-    const filterValue = (event.target as HTMLInputElement).value;
-    this.searchValue.set(filterValue);
-    this.dataSource.filter = filterValue.trim().toLowerCase();
-    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+    const value = (event.target as HTMLInputElement).value;
+    this.searchValue.set(value);
+    this.searchSubject.next(value);
   }
 
   protected clearFilter(): void {
     this.searchValue.set('');
-    this.dataSource.filter = '';
+    this.searchSubject.next('');
+  }
+
+  protected onSortChange(sort: Sort): void {
+    this.sortActive = sort.active;
+    this.sortDirection = sort.direction as 'asc' | 'desc';
+    this.currentPage = 0;
+    this.loadPage();
   }
 
   protected handleEmptyAction(): void {
@@ -148,7 +179,7 @@ export class ProgramListComponent implements OnInit {
       }).subscribe({
         next: () => {
           this.toast.success(`Program ${action.toLowerCase()}d successfully`);
-          this.loadPrograms();
+          this.loadPage();
         },
         error: (err) => {
           this.toast.error(err?.error?.message ?? `Failed to ${action.toLowerCase()} program`);
@@ -159,8 +190,7 @@ export class ProgramListComponent implements OnInit {
   }
 
   private loadViewMode(): 'card' | 'table' {
-    const stored = localStorage.getItem(this.VIEW_MODE_KEY);
-    return stored === 'table' ? 'table' : 'card';
+    return localStorage.getItem(this.VIEW_MODE_KEY) === 'table' ? 'table' : 'card';
   }
 
   private performDelete(program: Program): void {
@@ -168,7 +198,7 @@ export class ProgramListComponent implements OnInit {
     this.programService.delete(program.id).subscribe({
       next: () => {
         this.toast.success('Program deleted successfully');
-        this.loadPrograms();
+        this.loadPage();
       },
       error: (err) => {
         this.toast.error(err?.error?.message ?? 'Failed to delete program');
@@ -177,18 +207,20 @@ export class ProgramListComponent implements OnInit {
     });
   }
 
-  private loadPrograms(): void {
+  private loadPage(): void {
     this.loading.set(true);
-    this.programService.getAll().subscribe({
-      next: (programs) => {
-        this.allPrograms.set(programs);
-        this.dataSource.data = programs;
+    const search = this.searchValue().trim() || undefined;
+    this.programService.getPage({ search, page: this.currentPage, size: this.currentPageSize, sort: this.sortMap[this.sortActive] ?? this.sortActive, direction: this.sortDirection }).subscribe({
+      next: (page) => {
+        this.dataSource.data = page.content;
+        this.totalElements = page.totalElements;
+        if (this._paginator) {
+          this._paginator.length = page.totalElements;
+          this._paginator.pageIndex = page.number;
+        }
         this.loading.set(false);
       },
-      error: () => {
-        this.toast.error('Failed to load programs');
-        this.loading.set(false);
-      },
+      error: () => { this.toast.error('Failed to load programs'); this.loading.set(false); },
     });
   }
 }

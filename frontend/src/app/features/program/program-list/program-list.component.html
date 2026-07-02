@@ -53,7 +53,7 @@
 
   <!-- ── Card view ────────────────────────────────────────────── -->
   @else if (viewMode() === 'card') {
-    @if (filteredPrograms().length === 0) {
+    @if (dataSource.data.length === 0) {
       <cms-empty-state
         [icon]="searchValue() ? 'search_off' : 'menu_book'"
         [title]="searchValue() ? 'No programs found' : 'No programs yet'"
@@ -63,7 +63,7 @@
       ></cms-empty-state>
     } @else {
       <div id="tour-program-content" class="mlp-cards-grid">
-        @for (program of filteredPrograms(); track program.id; let i = $index) {
+        @for (program of dataSource.data; track program.id; let i = $index) {
           <div class="mlp-card prog-card" [style.animation-delay]="(i * 0.05) + 's'">
             <div class="mlp-card__actions">
               <cms-row-action-btn
@@ -87,13 +87,17 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               {{ program.durationYears }} {{ program.durationYears === 1 ? 'Year' : 'Years' }}
             </div>
-            <div class="prog-card__terms">
-              {{ termCountLabel(program) }}
-            </div>
+            <div class="prog-card__terms">{{ termCountLabel(program) }}</div>
             <cms-status-badge [status]="program.status" />
           </div>
         }
       </div>
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="25"
+        showFirstLastButtons
+      ></mat-paginator>
     }
   }
 
@@ -101,7 +105,10 @@
   @else {
     <div class="content-card mlp-table-card">
       <div class="table-wrapper">
-      <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+      <table mat-table [dataSource]="dataSource" matSort
+             [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+             matSortDisableClear (matSortChange)="onSortChange($event)"
+             class="modern-table">
 
         <ng-container matColumnDef="code">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
@@ -177,7 +184,12 @@
       </table>
       </div>
 
-      <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="25"
+        showFirstLastButtons
+      ></mat-paginator>
     </div>
   }
 
