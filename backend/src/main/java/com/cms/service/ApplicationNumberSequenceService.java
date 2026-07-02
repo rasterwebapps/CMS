@@ -1,6 +1,8 @@
 package com.cms.service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,51 +12,70 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.ApplicationNumberSequenceResponse;
 import com.cms.model.AcademicYear;
-import com.cms.model.ApplicationNumberSequence;
 import com.cms.model.Course;
-import com.cms.repository.ApplicationNumberSequenceRepository;
+import com.cms.model.NumberSequenceCounter;
+import com.cms.model.NumberSeriesDefinition;
+import com.cms.repository.NumberSequenceCounterRepository;
+import com.cms.repository.NumberSeriesDefinitionRepository;
 
 @Service
 @Transactional(readOnly = true)
 public class ApplicationNumberSequenceService {
 
-    public static final String ADMISSION_SERIES = "ADMISSION_NUMBER";
-    public static final String RECEIPT_SERIES = "RECEIPT_NUMBER";
-    public static final String REFUND_SERIES = "REFUND_NUMBER";
-    public static final String COMMISSION_SERIES = "COMMISSION_NUMBER";
+    public static final String ADMISSION_SERIES    = "ADMISSION_NUMBER";
+    public static final String RECEIPT_SERIES      = "RECEIPT_NUMBER";
+    public static final String REFUND_SERIES       = "REFUND_NUMBER";
+    public static final String COMMISSION_SERIES   = "COMMISSION_NUMBER";
     public static final String DISBURSEMENT_SERIES = "DISBURSEMENT_NUMBER";
 
-    private final ApplicationNumberSequenceRepository sequenceRepository;
+    private final NumberSeriesDefinitionRepository definitionRepository;
+    private final NumberSequenceCounterRepository  counterRepository;
 
-    public ApplicationNumberSequenceService(ApplicationNumberSequenceRepository sequenceRepository) {
-        this.sequenceRepository = sequenceRepository;
+    public ApplicationNumberSequenceService(
+            NumberSeriesDefinitionRepository definitionRepository,
+            NumberSequenceCounterRepository counterRepository) {
+        this.definitionRepository = definitionRepository;
+        this.counterRepository    = counterRepository;
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Query methods (read-only)
+    // ─────────────────────────────────────────────────────────────────────────
+
     public List<ApplicationNumberSequenceResponse> findAll() {
-        return sequenceRepository.findAll().stream()
-            .map(this::toResponse)
+        Map<String, NumberSeriesDefinition> defs = definitionIndex();
+        return counterRepository.findAll().stream()
+            .filter(c -> defs.containsKey(c.getSeriesCode()))
+            .map(c -> toResponse(defs.get(c.getSeriesCode()), c))
             .toList();
     }
 
     public Page<ApplicationNumberSequenceResponse> findPage(String search, Pageable pageable) {
-        Specification<ApplicationNumberSequence> spec = Specification.where(null);
+        Map<String, NumberSeriesDefinition> defs = definitionIndex();
+        Specification<NumberSequenceCounter> spec = Specification.where(null);
         if (search != null && !search.isBlank()) {
             String pattern = "%" + search.trim().toLowerCase() + "%";
             spec = spec.and((root, query, cb) -> cb.or(
                 cb.like(cb.lower(root.get("seriesCode")), pattern),
-                cb.like(cb.lower(root.get("seriesName")), pattern),
-                cb.like(cb.lower(root.get("scopeType")), pattern),
-                cb.like(cb.lower(root.get("scopeKey")), pattern),
-                cb.like(cb.lower(root.get("description")), pattern)
+                cb.like(cb.lower(root.get("scopeKey")), pattern)
             ));
         }
-        return sequenceRepository.findAll(spec, pageable).map(this::toResponse);
+        return counterRepository.findAll(spec, pageable)
+            .map(c -> defs.containsKey(c.getSeriesCode())
+                ? toResponse(defs.get(c.getSeriesCode()), c)
+                : null);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Number generation — public API (signatures unchanged from Phase 1)
+    // ─────────────────────────────────────────────────────────────────────────
+
     /**
-     * Generates the next admission number in the format {year}{courseAdmissionCode}{seq}.
-     * Example: 2026650001 for BSc Nursing (code=65) in academic year 2026-27.
-     * Sequence is unique per (year, course) and resets naturally when the academic year rolls over.
+     * Generates the next admission number.
+     * Format: {startYear}{admissionNumberCode}{seq} — e.g. 2026650001.
+     * scope_key = startYear + admissionNumberCode (e.g. "202665").
+     * For retro-admits pass the academic year from the chosen admission date,
+     * not the current academic year — the correct historic counter is then used.
      */
     @Transactional
     public String nextAdmissionNumber(AcademicYear academicYear, Course course) {
@@ -62,130 +83,126 @@ public class ApplicationNumberSequenceService {
             throw new IllegalStateException(
                 "Course must have a roll_number_code configured before an admission number can be generated");
         }
-        int year = academicYear.getStartYear();
-        String courseCode = course.getRollNumberCode();
-        String scopeKey = year + courseCode;
-        String prefix = scopeKey;
-        return doNextNumber(
-            ADMISSION_SERIES,
-            "Admission Number",
-            "CALENDAR_YEAR_COURSE",
-            scopeKey,
-            prefix,
-            4,
-            "Admission number: {year}{courseCode}{seq} — unique per year and course, resets yearly",
-            "",
-            false
-        );
+        String scopeKey = academicYear.getStartYear() + course.getRollNumberCode();
+        return generateNumber(ADMISSION_SERIES, scopeKey);
     }
 
     @Transactional
     public String nextReceiptNumber(int year) {
-        return nextNumber(
-            RECEIPT_SERIES,
-            "Receipt Number",
-            "CALENDAR_YEAR",
-            String.valueOf(year),
-            "RCP",
-            5,
-            "Global receipt number generated for every payment receipt"
-        );
+        return generateNumber(RECEIPT_SERIES, String.valueOf(year));
     }
 
     @Transactional
     public String nextRefundNumber(int year) {
-        return nextNumber(
-            REFUND_SERIES,
-            "Refund Number",
-            "CALENDAR_YEAR",
-            String.valueOf(year),
-            "RFD",
-            5,
-            "Global refund number generated for every payment reversal"
-        );
+        return generateNumber(REFUND_SERIES, String.valueOf(year));
     }
 
     @Transactional
     public String nextCommissionNumber(int year) {
-        return nextNumber(
-            COMMISSION_SERIES,
-            "Commission Number",
-            "CALENDAR_YEAR",
-            String.valueOf(year),
-            "COM",
-            5,
-            "Global commission number generated when a commission payout is pushed to OneBook"
-        );
+        return generateNumber(COMMISSION_SERIES, String.valueOf(year));
     }
 
     @Transactional
     public String nextDisbursementNumber(int year) {
-        return nextNumber(
-            DISBURSEMENT_SERIES,
-            "Disbursement Number",
-            "CALENDAR_YEAR",
-            String.valueOf(year),
-            "DSB",
-            5,
-            "Global scholarship disbursement number generated when a disbursement is pushed to OneBook"
-        );
+        return generateNumber(DISBURSEMENT_SERIES, String.valueOf(year));
     }
+
+    /**
+     * Generic generation method kept for backward-compatibility with any direct callers.
+     * seriesName, scopeType, prefix, sequencePadding, description are now owned by the
+     * series definition in number_series_definitions — the values passed here are ignored.
+     * The series definition must already exist (seeded by migration or created via Phase 3 UI).
+     */
+    @Transactional
+    public synchronized String nextNumber(String seriesCode, String seriesName, String scopeType,
+                                          String scopeKey, String prefix, int sequencePadding,
+                                          String description) {
+        return generateNumber(seriesCode, scopeKey);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Internal engine
+    // ─────────────────────────────────────────────────────────────────────────
 
     @Transactional
-    public synchronized String nextNumber(String seriesCode, String seriesName, String scopeType, String scopeKey,
-                                          String prefix, int sequencePadding, String description) {
-        return doNextNumber(seriesCode, seriesName, scopeType, scopeKey, prefix, sequencePadding, description, "-", true);
-    }
+    private synchronized String generateNumber(String seriesCode, String scopeKey) {
+        NumberSeriesDefinition def = definitionRepository.findBySeriesCode(seriesCode)
+            .orElseThrow(() -> new IllegalStateException(
+                "No series definition found for '" + seriesCode + "'. "
+                + "Create it via Settings → Number Sequences before generating numbers."));
 
-    private synchronized String doNextNumber(String seriesCode, String seriesName, String scopeType, String scopeKey,
-                                             String prefix, int sequencePadding, String description,
-                                             String separator, boolean includeScopeInNumber) {
-        ApplicationNumberSequence sequence = sequenceRepository
+        NumberSequenceCounter counter = counterRepository
             .findBySeriesCodeAndScopeKeyForUpdate(seriesCode, scopeKey)
-            .orElseGet(() -> sequenceRepository.saveAndFlush(new ApplicationNumberSequence(
-                seriesCode, seriesName, scopeType, scopeKey, prefix, sequencePadding, 0,
-                description, separator, includeScopeInNumber)));
+            .orElseGet(() -> {
+                NumberSequenceCounter c = new NumberSequenceCounter();
+                c.setSeriesCode(seriesCode);
+                c.setScopeKey(scopeKey);
+                c.setLastSequence(0);
+                return counterRepository.saveAndFlush(c);
+            });
 
-        int nextSequence = sequence.getLastSequence() + 1;
-        sequence.setSeriesName(seriesName);
-        sequence.setScopeType(scopeType);
-        sequence.setPrefix(prefix);
-        sequence.setSequencePadding(sequencePadding);
-        sequence.setDescription(description);
-        sequence.setSeparator(separator);
-        sequence.setIncludeScopeInNumber(includeScopeInNumber);
-        sequence.setLastSequence(nextSequence);
-        sequenceRepository.save(sequence);
+        int nextSeq = counter.getLastSequence() + 1;
+        counter.setLastSequence(nextSeq);
+        counterRepository.save(counter);
 
-        return format(sequence, nextSequence);
+        return format(def, scopeKey, nextSeq);
     }
 
-    private ApplicationNumberSequenceResponse toResponse(ApplicationNumberSequence sequence) {
+    /**
+     * Formats a generated number from its definition, scope_key, and sequence integer.
+     *
+     * Rules:
+     *   scope omitted when scope_key == "GLOBAL" (NONE scope type)
+     *   prefix absent:  scopeKey + sep + seq  (or just seq when scope omitted)
+     *   prefix present: prefix + sep + scopeKey + sep + seq  (or prefix + sep + seq when scope omitted)
+     *
+     * Examples:
+     *   ADMISSION (prefix=null, sep='', scopeKey='202665', seq=41)  → "2026650041"
+     *   RECEIPT   (prefix='RCP', sep='-', scopeKey='2026', seq=319) → "RCP-2026-00319"
+     *   ASSET     (prefix='AST', sep='-', scopeKey='GLOBAL', seq=5) → "AST-000005"
+     *   INVENTORY (prefix=null,  sep='',  scopeKey='GLOBAL', seq=5) → "00005"
+     */
+    private String format(NumberSeriesDefinition def, String scopeKey, int seq) {
+        String seqStr      = String.format("%0" + def.getSequencePadding() + "d", seq);
+        String sep         = def.getSeparator() != null ? def.getSeparator() : "";
+        boolean hasPrefix  = def.getPrefix() != null && !def.getPrefix().isBlank();
+        boolean includeScope = !"GLOBAL".equals(scopeKey);
+
+        if (!hasPrefix) {
+            return includeScope ? (scopeKey + sep + seqStr) : seqStr;
+        }
+        if (includeScope) {
+            return def.getPrefix() + sep + scopeKey + sep + seqStr;
+        }
+        return def.getPrefix() + sep + seqStr;
+    }
+
+    private ApplicationNumberSequenceResponse toResponse(NumberSeriesDefinition def,
+                                                         NumberSequenceCounter counter) {
+        String lastGenerated = counter.getLastSequence() > 0
+            ? format(def, counter.getScopeKey(), counter.getLastSequence())
+            : "—";
+        String nextPreview = format(def, counter.getScopeKey(), counter.getLastSequence() + 1);
+
         return new ApplicationNumberSequenceResponse(
-            sequence.getId(),
-            sequence.getSeriesCode(),
-            sequence.getSeriesName(),
-            sequence.getScopeType(),
-            sequence.getScopeKey(),
-            sequence.getPrefix(),
-            sequence.getSequencePadding(),
-            sequence.getLastSequence(),
-            sequence.getLastSequence() > 0
-                ? format(sequence, sequence.getLastSequence())
-                : "—",
-            format(sequence, sequence.getLastSequence() + 1),
-            sequence.getDescription(),
-            sequence.getCreatedAt(),
-            sequence.getUpdatedAt()
+            counter.getId(),
+            def.getSeriesCode(),
+            def.getSeriesName(),
+            def.getScopeType(),
+            counter.getScopeKey(),
+            def.getPrefix(),
+            def.getSequencePadding(),
+            counter.getLastSequence(),
+            lastGenerated,
+            nextPreview,
+            def.getDescription(),
+            counter.getCreatedAt(),
+            counter.getUpdatedAt()
         );
     }
 
-    private String format(ApplicationNumberSequence seq, int sequence) {
-        String seqStr = String.format("%0" + seq.getSequencePadding() + "d", sequence);
-        if (!seq.isIncludeScopeInNumber()) {
-            return seq.getPrefix() + seqStr;
-        }
-        String sep = seq.getSeparator() != null ? seq.getSeparator() : "-";
-        return seq.getPrefix() + sep + seq.getScopeKey() + sep + seqStr;
+    private Map<String, NumberSeriesDefinition> definitionIndex() {
+        return definitionRepository.findAll().stream()
+            .collect(Collectors.toMap(NumberSeriesDefinition::getSeriesCode, d -> d));
     }
 }
