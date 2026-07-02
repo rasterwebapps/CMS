@@ -2,6 +2,9 @@ package com.cms.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +34,21 @@ public class ApplicationNumberSequenceService {
         return sequenceRepository.findAll().stream()
             .map(this::toResponse)
             .toList();
+    }
+
+    public Page<ApplicationNumberSequenceResponse> findPage(String search, Pageable pageable) {
+        Specification<ApplicationNumberSequence> spec = Specification.where(null);
+        if (search != null && !search.isBlank()) {
+            String pattern = "%" + search.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                cb.like(cb.lower(root.get("seriesCode")), pattern),
+                cb.like(cb.lower(root.get("seriesName")), pattern),
+                cb.like(cb.lower(root.get("scopeType")), pattern),
+                cb.like(cb.lower(root.get("scopeKey")), pattern),
+                cb.like(cb.lower(root.get("description")), pattern)
+            ));
+        }
+        return sequenceRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     /**

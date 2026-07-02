@@ -19,8 +19,8 @@
       <input
         class="search-bar__input"
         [value]="searchValue()"
-        (input)="searchValue.set($any($event.target).value)"
-        placeholder="Search by sequence, scope or generated number…"
+        (input)="onSearch($event)"
+        placeholder="Search by sequence, scope or description…"
         type="text"
         aria-label="Search number sequences"
       />
@@ -37,18 +37,26 @@
   </div>
 
   <div id="tour-numseq-table" class="content-card mlp-table-card">
-    @if (loading()) {
-      <div class="loading-box">
-        <mat-spinner diameter="36" aria-label="Loading number sequences"></mat-spinner>
-      </div>
-    } @else {
-      <div class="table-wrapper">
-      <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+    <div class="table-wrapper">
+      <table
+        mat-table
+        [dataSource]="dataSource"
+        matSort
+        [matSortActive]="sortActive"
+        [matSortDirection]="sortDirection"
+        matSortDisableClear
+        (matSortChange)="onSortChange($event)"
+        class="modern-table"
+      >
         <ng-container matColumnDef="seriesName">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Series</th>
           <td mat-cell *matCellDef="let row">
-            <span class="cell-name">{{ row.seriesName }}</span>
-            <span class="cell-sub cell-code-sub">{{ row.seriesCode }}</span>
+            @if (loading()) {
+              <span class="skeleton-line"></span>
+            } @else {
+              <span class="cell-name">{{ row.seriesName }}</span>
+              <span class="cell-sub cell-code-sub">{{ row.seriesCode }}</span>
+            }
           </td>
         </ng-container>
 
@@ -61,14 +69,14 @@
         </ng-container>
 
         <ng-container matColumnDef="lastGeneratedNumber">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Last Generated</th>
+          <th mat-header-cell *matHeaderCellDef>Last Generated</th>
           <td mat-cell *matCellDef="let row">
             <span class="code-chip">{{ row.lastGeneratedNumber }}</span>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="nextPreviewNumber">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Next Preview</th>
+          <th mat-header-cell *matHeaderCellDef>Next Preview</th>
           <td mat-cell *matCellDef="let row">
             <span class="code-chip code-chip--sm">{{ row.nextPreviewNumber }}</span>
           </td>
@@ -94,17 +102,20 @@
           <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
             <cms-empty-state
               icon="tag"
-              [title]="hasActiveFilters() ? 'No sequences match your search' : 'No number sequences yet'"
-              [subtitle]="hasActiveFilters() ? 'Try clearing the search.' : 'Sequences will appear once numbers are generated.'"
-              [actionLabel]="hasActiveFilters() ? 'Clear Search' : ''"
+              [title]="searchValue() ? 'No sequences match your search' : 'No number sequences yet'"
+              [subtitle]="searchValue() ? 'Try clearing the search.' : 'Sequences will appear once numbers are generated.'"
+              [actionLabel]="searchValue() ? 'Clear Search' : ''"
               (actionClick)="clearSearch()"
             />
           </td>
         </tr>
       </table>
-      </div>
-      <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons />
-    }
+    </div>
+    <mat-paginator
+      [length]="totalElements"
+      [pageSizeOptions]="[10, 25, 50]"
+      [pageSize]="25"
+      showFirstLastButtons
+    />
   </div>
 </div>
-

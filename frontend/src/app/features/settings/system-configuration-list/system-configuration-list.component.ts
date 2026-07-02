@@ -1,10 +1,12 @@
-import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { SettingsService } from '../settings.service';
 import { SystemConfiguration } from '../settings.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -27,25 +29,35 @@ import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/ic
     RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatTooltipModule,
     CmsRowActionButtonComponent,
-      CmsIconDeleteComponent,
-      CmsIconEditComponent,
+    CmsIconDeleteComponent,
+    CmsIconEditComponent,
   ],
   templateUrl: './system-configuration-list.component.html',
   styleUrl: './system-configuration-list.component.scss',
 })
-export class SystemConfigurationListComponent implements OnInit {
+export class SystemConfigurationListComponent implements OnInit, OnDestroy {
   private readonly settingsService = inject(SettingsService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
   private readonly VIEW_MODE_KEY = 'settings-view-mode';
+  private readonly destroy$ = new Subject<void>();
+  private readonly searchSubject = new Subject<string>();
+  private _paginator?: MatPaginator;
+  private _paginatorSub?: Subscription;
 
-  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
-    if (value) this.dataSource.paginator = value;
-  }
-  @ViewChild(MatSort) set sort(value: MatSort) {
-    if (value) this.dataSource.sort = value;
+  @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
+    if (!p || p === this._paginator) return;
+    this._paginatorSub?.unsubscribe();
+    this._paginator = p;
+    p.pageIndex = this.currentPage;
+    p.pageSize = this.currentPageSize;
+    this._paginatorSub = p.page.pipe(takeUntil(this.destroy$)).subscribe((e: PageEvent) => {
+      this.currentPage = e.pageIndex;
+      this.currentPageSize = e.pageSize;
+      this.loadPage();
+    });
   }
 
   protected readonly displayedColumns: readonly string[] = ['configKey', 'configValue', 'category', 'dataType', 'isEditable', 'actions'];
@@ -54,38 +66,53 @@ export class SystemConfigurationListComponent implements OnInit {
   protected readonly searchValue = signal('');
   protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
 
-  private readonly allSettings = signal<SystemConfiguration[]>([]);
+  protected totalElements = 0;
+  protected currentPage = 0;
+  protected currentPageSize = 25;
+  protected sortActive = 'configKey';
+  protected sortDirection: 'asc' | 'desc' = 'asc';
 
-  protected readonly filteredSettings = computed(() => {
-    const q = this.searchValue().trim().toLowerCase();
-    return this.allSettings().filter(item =>
-      !q ||
-      item.configKey.toLowerCase().includes(q) ||
-      item.configValue.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q),
-    );
-  });
+  private readonly sortMap: Record<string, string> = {
+    configKey: 'configKey',
+    configValue: 'configValue',
+    category: 'category',
+    dataType: 'dataType',
+    isEditable: 'isEditable',
+  };
 
-  protected readonly totalCount = computed(() => this.allSettings().length);
-  protected readonly editableCount = computed(() => this.allSettings().filter(s => s.isEditable).length);
+  ngOnInit(): void {
+    this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe(() => { this.currentPage = 0; this.loadPage(); });
+    this.loadPage();
+  }
 
-  ngOnInit(): void { this.load(); }
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this._paginatorSub?.unsubscribe();
+  }
 
   protected applyFilter(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.searchValue.set(value);
-    this.dataSource.filter = value.trim().toLowerCase();
-    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+    this.searchSubject.next(value);
   }
 
   protected clearFilter(): void {
     this.searchValue.set('');
-    this.dataSource.filter = '';
+    this.searchSubject.next('');
   }
 
   protected setViewMode(mode: 'card' | 'table'): void {
     this.viewMode.set(mode);
     localStorage.setItem(this.VIEW_MODE_KEY, mode);
+  }
+
+  protected onSortChange(sort: Sort): void {
+    this.sortActive = sort.active;
+    this.sortDirection = sort.direction as 'asc' | 'desc';
+    this.currentPage = 0;
+    this.loadPage();
   }
 
   private loadViewMode(): 'card' | 'table' {
@@ -113,17 +140,28 @@ export class SystemConfigurationListComponent implements OnInit {
   private doDelete(item: SystemConfiguration): void {
     this.loading.set(true);
     this.settingsService.delete(item.id).subscribe({
-      next: () => { this.toast.success('Deleted successfully'); this.load(); },
+      next: () => { this.toast.success('Deleted successfully'); this.loadPage(); },
       error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to delete'); this.loading.set(false); },
     });
   }
 
-  private load(): void {
+  private loadPage(): void {
     this.loading.set(true);
-    this.settingsService.getAll().subscribe({
-      next: (data) => {
-        this.allSettings.set(data);
-        this.dataSource.data = data;
+    const search = this.searchValue().trim() || undefined;
+    this.settingsService.getPage({
+      search,
+      page: this.currentPage,
+      size: this.currentPageSize,
+      sort: this.sortMap[this.sortActive] ?? this.sortActive,
+      direction: this.sortDirection,
+    }).subscribe({
+      next: (page) => {
+        this.dataSource.data = page.content;
+        this.totalElements = page.totalElements;
+        if (this._paginator) {
+          this._paginator.length = page.totalElements;
+          this._paginator.pageIndex = page.number;
+        }
         this.loading.set(false);
       },
       error: () => { this.toast.error('Failed to load'); this.loading.set(false); },

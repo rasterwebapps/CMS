@@ -3,6 +3,7 @@ package com.cms.repository;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
@@ -10,7 +11,7 @@ import com.cms.model.ApplicationNumberSequence;
 
 import jakarta.persistence.LockModeType;
 
-public interface ApplicationNumberSequenceRepository extends JpaRepository<ApplicationNumberSequence, Long> {
+public interface ApplicationNumberSequenceRepository extends JpaRepository<ApplicationNumberSequence, Long>, JpaSpecificationExecutor<ApplicationNumberSequence> {
 
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("""

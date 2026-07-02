@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { SystemConfiguration, SystemConfigurationRequest } from './settings.model';
+import { Page, SystemConfiguration, SystemConfigurationRequest } from './settings.model';
 
 @Injectable({
   providedIn: 'root',
@@ -13,6 +13,13 @@ export class SettingsService {
 
   getAll(): Observable<SystemConfiguration[]> {
     return this.http.get<SystemConfiguration[]>(this.baseUrl);
+  }
+
+  getPage(p: { search?: string; page?: number; size?: number; sort?: string; direction?: 'asc' | 'desc' }): Observable<Page<SystemConfiguration>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search) params = params.set('search', p.search);
+    if (p.sort) params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
+    return this.http.get<Page<SystemConfiguration>>(`${this.baseUrl}/page`, { params });
   }
 
   getById(id: number): Observable<SystemConfiguration> {

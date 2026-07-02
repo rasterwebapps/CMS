@@ -3,6 +3,9 @@ package com.cms.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +44,19 @@ public class SystemConfigurationService {
         return systemConfigurationRepository.findAll().stream()
             .map(this::toResponse)
             .toList();
+    }
+
+    public Page<SystemConfigurationResponse> findPage(String search, Pageable pageable) {
+        Specification<SystemConfiguration> spec = Specification.where(null);
+        if (search != null && !search.isBlank()) {
+            String pattern = "%" + search.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                cb.like(cb.lower(root.get("configKey")), pattern),
+                cb.like(cb.lower(root.get("configValue")), pattern),
+                cb.like(cb.lower(root.get("category")), pattern)
+            ));
+        }
+        return systemConfigurationRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     public SystemConfigurationResponse findById(Long id) {
