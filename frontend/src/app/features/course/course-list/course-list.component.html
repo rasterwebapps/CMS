@@ -66,7 +66,7 @@
 
   <!-- ── Card view ────────────────────────────────────────────── -->
   @else if (viewMode() === 'card') {
-    @if (filteredCourses().length === 0) {
+    @if (dataSource.data.length === 0) {
       <cms-empty-state
         [icon]="searchValue() ? 'search_off' : 'menu_book'"
         [title]="searchValue() ? 'No courses found' : 'No courses yet'"
@@ -76,7 +76,7 @@
       ></cms-empty-state>
     } @else {
       <div id="tour-course-content" class="mlp-cards-grid">
-        @for (course of filteredCourses(); track course.id; let i = $index) {
+        @for (course of dataSource.data; track course.id; let i = $index) {
           <div class="mlp-card crs-card" [style.animation-delay]="(i * 0.05) + 's'">
             <div class="mlp-card__actions">
               <cms-row-action-btn
@@ -104,6 +104,12 @@
           </div>
         }
       </div>
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="25"
+        showFirstLastButtons
+      ></mat-paginator>
     }
   }
 
@@ -111,7 +117,10 @@
   @else {
     <div class="content-card mlp-table-card">
       <div class="table-wrapper">
-      <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+      <table mat-table [dataSource]="dataSource" matSort
+             [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+             matSortDisableClear (matSortChange)="onSortChange($event)"
+             class="modern-table">
 
         <ng-container matColumnDef="code">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
@@ -190,6 +199,7 @@
       </div>
 
       <mat-paginator
+        [length]="totalElements"
         [pageSizeOptions]="[5, 10, 25, 50]"
         [pageSize]="25"
         showFirstLastButtons

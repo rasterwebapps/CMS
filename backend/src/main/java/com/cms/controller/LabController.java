@@ -2,6 +2,10 @@ package com.cms.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.LabInChargeAssignmentRequest;
@@ -43,6 +48,16 @@ public class LabController {
     public ResponseEntity<List<LabResponse>> findAll() {
         List<LabResponse> labs = labService.findAll();
         return ResponseEntity.ok(labs);
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<LabResponse>> findPage(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long specialityId,
+            @RequestParam(required = false) String labType,
+            @RequestParam(required = false) String status,
+            @PageableDefault(size = 25, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(labService.findPage(search, specialityId, labType, status, pageable));
     }
 
     @GetMapping("/{id}")

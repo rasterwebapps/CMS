@@ -10,6 +10,9 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -102,6 +105,21 @@ public class AcademicYearService {
         return academicYearRepository.findAll().stream()
             .map(this::toResponse)
             .toList();
+    }
+
+    public Page<AcademicYearResponse> findPage(String search, Boolean isCurrent, Pageable pageable) {
+        Specification<AcademicYear> spec = Specification.where(null);
+        if (search != null && !search.isBlank()) {
+            String pattern = "%" + search.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) ->
+                cb.like(cb.lower(root.get("name")), pattern));
+        }
+        if (isCurrent != null) {
+            Boolean isCurrentFinal = isCurrent;
+            spec = spec.and((root, query, cb) ->
+                cb.equal(root.get("isCurrent"), isCurrentFinal));
+        }
+        return academicYearRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     public AcademicYearResponse findById(Long id) {

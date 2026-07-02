@@ -2,6 +2,9 @@ package com.cms.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +17,8 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Speciality;
 import com.cms.model.Lab;
 import com.cms.model.LabInChargeAssignment;
+import com.cms.model.enums.LabStatus;
+import com.cms.model.enums.LabType;
 import com.cms.repository.SpecialityRepository;
 import com.cms.repository.LabInChargeAssignmentRepository;
 import com.cms.repository.LabRepository;
@@ -62,6 +67,32 @@ public class LabService {
         return labRepository.findAll().stream()
             .map(this::toResponse)
             .toList();
+    }
+
+    public Page<LabResponse> findPage(String search, Long specialityId, String labType, String status, Pageable pageable) {
+        Specification<Lab> spec = Specification.where(null);
+        if (search != null && !search.isBlank()) {
+            String pattern = "%" + search.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                cb.like(cb.lower(root.get("name")), pattern),
+                cb.like(cb.lower(root.get("building")), pattern),
+                cb.like(cb.lower(root.get("roomNumber")), pattern),
+                cb.like(cb.lower(root.join("speciality").get("name")), pattern)
+            ));
+        }
+        if (specialityId != null) {
+            spec = spec.and((root, query, cb) ->
+                cb.equal(root.get("speciality").get("id"), specialityId));
+        }
+        if (labType != null) {
+            spec = spec.and((root, query, cb) ->
+                cb.equal(root.get("labType"), LabType.valueOf(labType)));
+        }
+        if (status != null) {
+            spec = spec.and((root, query, cb) ->
+                cb.equal(root.get("status"), LabStatus.valueOf(status)));
+        }
+        return labRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     public LabResponse findById(Long id) {

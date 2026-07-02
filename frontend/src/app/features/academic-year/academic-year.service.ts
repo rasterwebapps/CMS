@@ -21,6 +21,7 @@ import {
   GenerateDemandsResponse,
   GenerateEnrollmentsResponse,
   DemandStatus,
+  Page,
   SeatAvailabilityResponse,
   StudentTermEnrollment,
   TermInstance,
@@ -40,6 +41,14 @@ export class AcademicYearService {
   // Academic Year methods
   getAllAcademicYears(): Observable<AcademicYear[]> {
     return this.http.get<AcademicYear[]>(this.academicYearUrl);
+  }
+
+  getPage(p: { search?: string; isCurrent?: boolean; page?: number; size?: number; sort?: string; direction?: 'asc' | 'desc' }): Observable<Page<AcademicYear>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search) params = params.set('search', p.search);
+    if (p.isCurrent !== undefined && p.isCurrent !== null) params = params.set('isCurrent', String(p.isCurrent));
+    if (p.sort) params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
+    return this.http.get<Page<AcademicYear>>(`${this.academicYearUrl}/page`, { params });
   }
 
   getAcademicYearById(id: number): Observable<AcademicYear> {

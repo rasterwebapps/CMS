@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
@@ -7,6 +7,7 @@ import {
   LabRequest,
   LabInChargeAssignment,
   LabInChargeAssignmentRequest,
+  Page,
 } from './lab.model';
 
 @Injectable({
@@ -18,6 +19,16 @@ export class LabService {
 
   getAll(): Observable<Lab[]> {
     return this.http.get<Lab[]>(this.baseUrl);
+  }
+
+  getPage(p: { search?: string; specialityId?: number | null; labType?: string | null; status?: string | null; page?: number; size?: number; sort?: string; direction?: 'asc' | 'desc' }): Observable<Page<Lab>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search) params = params.set('search', p.search);
+    if (p.specialityId != null) params = params.set('specialityId', p.specialityId);
+    if (p.labType != null) params = params.set('labType', p.labType);
+    if (p.status != null) params = params.set('status', p.status);
+    if (p.sort) params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
+    return this.http.get<Page<Lab>>(`${this.baseUrl}/page`, { params });
   }
 
   getById(id: number): Observable<Lab> {

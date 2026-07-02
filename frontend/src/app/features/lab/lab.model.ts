@@ -1,5 +1,15 @@
 import { Speciality } from '../speciality/speciality.model';
 
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+}
+
 export type LabType =
   | 'COMPUTER'
   | 'PHYSICS'
