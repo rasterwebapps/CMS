@@ -14,5 +14,6 @@ public record PaymentRowDto(
     PaymentMode paymentMode,
     String receiptNumber,
     String transactionReference,
-    String remarks
+    String remarks,
+    String feeCategory
 ) {}

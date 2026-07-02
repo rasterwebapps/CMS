@@ -530,7 +530,7 @@ export class StudentDetailComponent implements OnInit {
       paymentDate:          p.paymentDate,
       paymentMode:          p.paymentMode,
       transactionReference: null,
-      feeCategory:          null,
+      feeCategory:          p.feeCategory ?? null,
       installmentBreakdown: [{ installmentLabel: entry.termLabel, amountApplied: p.amountPaid }],
     });
   }

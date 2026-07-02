@@ -2,6 +2,7 @@ package com.cms.repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,6 +18,8 @@ public interface PaymentReceiptRepository extends JpaRepository<PaymentReceipt, 
     List<PaymentReceipt> findAllByOrderByCreatedAtDescIdDesc();
 
     Optional<PaymentReceipt> findByReceiptNumber(String receiptNumber);
+
+    List<PaymentReceipt> findByReceiptNumberIn(Collection<String> receiptNumbers);
 
     List<PaymentReceipt> findByPayerTypeAndPayerIdOrderByCreatedAtDesc(String payerType, Long payerId);
 

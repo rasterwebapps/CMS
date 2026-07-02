@@ -273,6 +273,7 @@ export class StudentFeeDetailComponent implements OnInit {
           paymentMode:          String(res.paymentMode),
           transactionReference: res.transactionReference,
           remarks:              res.remarks,
+          feeCategory:          res.feeCategory,
           installmentsCovered:  res.installmentBreakdown.map(i => i.installmentLabel).join(', '),
           installmentBreakdown: res.installmentBreakdown.map(i => ({
             label:  i.installmentLabel,

@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.cms.model.PaymentReceipt;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeDemandRepository;
 import com.cms.repository.FeeInstallmentRepository;
+import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
@@ -45,6 +48,7 @@ public class FeeReportService {
     private final EnquiryRepository enquiryRepository;
     private final EnquiryPaymentRepository enquiryPaymentRepository;
     private final FeeFinalizationService feeFinalizationService;
+    private final PaymentReceiptRepository paymentReceiptRepository;
 
     public FeeReportService(FeeDemandRepository feeDemandRepository,
                              StudentRepository studentRepository,
@@ -54,7 +58,8 @@ public class FeeReportService {
                              FeeInstallmentRepository installmentRepository,
                              EnquiryRepository enquiryRepository,
                              EnquiryPaymentRepository enquiryPaymentRepository,
-                             FeeFinalizationService feeFinalizationService) {
+                             FeeFinalizationService feeFinalizationService,
+                             PaymentReceiptRepository paymentReceiptRepository) {
         this.feeDemandRepository = feeDemandRepository;
         this.studentRepository = studentRepository;
         this.feeDemandService = feeDemandService;
@@ -64,6 +69,7 @@ public class FeeReportService {
         this.enquiryRepository = enquiryRepository;
         this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.feeFinalizationService = feeFinalizationService;
+        this.paymentReceiptRepository = paymentReceiptRepository;
     }
 
     public List<FeeDemandDto> getOutstandingDemands(Long termInstanceId) {
@@ -222,8 +228,12 @@ public class FeeReportService {
             else                                               status = DemandStatus.UNPAID;
 
             List<FeeInstallment> installments = installmentRepository.findBySemesterFeeId(sf.getId());
+            List<String> receiptNums = installments.stream().map(FeeInstallment::getReceiptNumber).toList();
+            Map<String, String> feeCategoryByReceipt = paymentReceiptRepository
+                .findByReceiptNumberIn(receiptNums).stream()
+                .collect(Collectors.toMap(PaymentReceipt::getReceiptNumber, r -> r.getFeeCategory() != null ? r.getFeeCategory() : "", (a, b) -> a));
             List<PaymentRowDto> paymentDtos = installments.stream()
-                .map(fi -> installmentToPaymentDto(fi))
+                .map(fi -> installmentToPaymentDto(fi, feeCategoryByReceipt.getOrDefault(fi.getReceiptNumber(), null)))
                 .collect(Collectors.toCollection(ArrayList::new));
 
             if (creditForThis.compareTo(BigDecimal.ZERO) > 0) {
@@ -256,7 +266,7 @@ public class FeeReportService {
 
     private record SemesterFeePreview(Long id, String label, BigDecimal amount, java.time.LocalDate dueDate) {}
 
-    private PaymentRowDto installmentToPaymentDto(FeeInstallment fi) {
+    private PaymentRowDto installmentToPaymentDto(FeeInstallment fi, String feeCategory) {
         return new PaymentRowDto(
             fi.getId(),
             fi.getPaymentDate(),
@@ -266,7 +276,8 @@ public class FeeReportService {
             fi.getPaymentMode(),
             fi.getReceiptNumber(),
             fi.getTransactionReference(),
-            fi.getRemarks()
+            fi.getRemarks(),
+            feeCategory
         );
     }
 
@@ -280,6 +291,7 @@ public class FeeReportService {
             ep.getPaymentMode(),
             ep.getReceiptNumber(),
             ep.getTransactionReference(),
+            null,
             null
         );
     }

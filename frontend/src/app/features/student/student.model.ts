@@ -145,6 +145,7 @@ export interface TermFeePaymentSummary {
   paymentMode: string;
   receiptNumber: string;
   remarks?: string;
+  feeCategory?: 'TUITION_ONLY' | 'TUITION_AND_HOSTEL' | null;
 }
 
 export interface StudentLedgerEntry {
