@@ -54,7 +54,7 @@
           <!-- Permission rows -->
           @if (group.expanded) {
             <div class="pt-group__rows">
-              <!-- Column headers (only on first visible group) -->
+              <!-- Column headers -->
               <div class="pt-row pt-row--header">
                 <div class="pt-row__perm">Permission</div>
                 <div class="pt-row__tiers">
@@ -67,42 +67,47 @@
                 <div class="pt-row__status"></div>
               </div>
 
-              @for (row of group.rows; track row.id) {
-                <div class="pt-row" [class.pt-row--dirty]="row.dirty">
-                  <!-- Permission info -->
-                  <div class="pt-row__perm">
-                    <span class="pt-row__name">{{ row.displayName }}</span>
-                    <span class="pt-row__code">{{ row.code }}</span>
-                  </div>
+              @for (screen of group.screenGroups; track screen.screenLabel) {
+                <div class="pt-screen">
+                  <div class="pt-screen__label">{{ screen.screenLabel }}</div>
+                  @for (row of screen.rows; track row.id) {
+                    <div class="pt-row" [class.pt-row--dirty]="row.dirty">
+                      <!-- Permission info -->
+                      <div class="pt-row__perm">
+                        <span class="pt-row__name">{{ row.displayName }}</span>
+                        <span class="pt-row__code">{{ row.code }}</span>
+                      </div>
 
-                  <!-- Tier radio buttons -->
-                  <div class="pt-row__tiers">
-                    @for (tier of tiers; track tier) {
-                      <label class="pt-tier-opt"
-                             [class.pt-tier-opt--selected]="row.pendingTier === tier"
-                             [style.--opt-color]="tierMeta[tier].color"
-                             [matTooltip]="tierMeta[tier].desc"
-                             matTooltipPosition="above">
-                        <input type="radio"
-                               [name]="'tier-' + row.id"
-                               [value]="tier"
-                               [(ngModel)]="row.pendingTier"
-                               (ngModelChange)="markDirty(row)" />
-                        <span class="pt-tier-opt__pip"></span>
-                        <span class="pt-tier-opt__label">T{{ tier }}</span>
-                      </label>
-                    }
-                  </div>
+                      <!-- Tier radio buttons -->
+                      <div class="pt-row__tiers">
+                        @for (tier of tiers; track tier) {
+                          <label class="pt-tier-opt"
+                                 [class.pt-tier-opt--selected]="row.pendingTier === tier"
+                                 [style.--opt-color]="tierMeta[tier].color"
+                                 [matTooltip]="tierMeta[tier].desc"
+                                 matTooltipPosition="above">
+                            <input type="radio"
+                                   [name]="'tier-' + row.id"
+                                   [value]="tier"
+                                   [(ngModel)]="row.pendingTier"
+                                   (ngModelChange)="markDirty(row)" />
+                            <span class="pt-tier-opt__pip"></span>
+                            <span class="pt-tier-opt__label">T{{ tier }}</span>
+                          </label>
+                        }
+                      </div>
 
-                  <!-- Dirty indicator -->
-                  <div class="pt-row__status">
-                    @if (row.dirty) {
-                      <span class="pt-dirty-badge"
-                            [matTooltip]="'Was T' + row.currentTier + ' — unsaved'">
-                        T{{ row.currentTier }} → T{{ row.pendingTier }}
-                      </span>
-                    }
-                  </div>
+                      <!-- Dirty indicator -->
+                      <div class="pt-row__status">
+                        @if (row.dirty) {
+                          <span class="pt-dirty-badge"
+                                [matTooltip]="'Was T' + row.currentTier + ' — unsaved'">
+                            T{{ row.currentTier }} → T{{ row.pendingTier }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  }
                 </div>
               }
             </div>

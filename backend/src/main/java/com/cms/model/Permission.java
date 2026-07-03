@@ -38,6 +38,9 @@ public class Permission {
     @Column(length = 500)
     private String description;
 
+    @Column(name = "screen_label", length = 100)
+    private String screenLabel;
+
     /**
      * Delegation tier (1–4).
      * 1 = Dev Only, 2 = Support+, 3 = Hold Only (senior roles hold; only Support+ delegates),
@@ -109,6 +112,14 @@ public class Permission {
 
     public void setTier(int tier) {
         this.tier = tier;
+    }
+
+    public String getScreenLabel() {
+        return screenLabel;
+    }
+
+    public void setScreenLabel(String screenLabel) {
+        this.screenLabel = screenLabel;
     }
 
     public Set<AppRole> getRoles() {

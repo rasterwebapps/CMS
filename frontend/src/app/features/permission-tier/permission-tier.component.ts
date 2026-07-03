@@ -12,15 +12,22 @@ interface PermTierRow {
   code: string;
   displayName: string;
   category: string;
+  screenLabel: string;
   currentTier: number;
   pendingTier: number;
   dirty: boolean;
   saving: boolean;
 }
 
+interface ScreenGroup {
+  screenLabel: string;
+  rows: PermTierRow[];
+}
+
 interface CategoryGroup {
   category: string;
-  rows: PermTierRow[];
+  rows: PermTierRow[];        // flat — used for dirty count / save / discard
+  screenGroups: ScreenGroup[];
   expanded: boolean;
 }
 
@@ -76,7 +83,8 @@ export class PermissionTierComponent implements OnInit {
         for (const p of perms) {
           const row: PermTierRow = {
             id: p.id, code: p.code, displayName: p.displayName,
-            category: p.category, currentTier: p.tier, pendingTier: p.tier,
+            category: p.category, screenLabel: p.screenLabel ?? '',
+            currentTier: p.tier, pendingTier: p.tier,
             dirty: false, saving: false,
           };
           const arr = groupMap.get(p.category) ?? [];
@@ -85,7 +93,19 @@ export class PermissionTierComponent implements OnInit {
         }
         const groups: CategoryGroup[] = Array.from(groupMap.entries())
           .sort(([a], [b]) => a.localeCompare(b))
-          .map(([category, rows]) => ({ category, rows, expanded: true }));
+          .map(([category, rows]) => {
+            const screenMap = new Map<string, PermTierRow[]>();
+            for (const row of rows) {
+              const label = row.screenLabel || 'General';
+              const arr = screenMap.get(label) ?? [];
+              arr.push(row);
+              screenMap.set(label, arr);
+            }
+            const screenGroups: ScreenGroup[] = Array.from(screenMap.entries())
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([screenLabel, srows]) => ({ screenLabel, rows: srows }));
+            return { category, rows, screenGroups, expanded: true };
+          });
         this.groups.set(groups);
         this.loading.set(false);
       },

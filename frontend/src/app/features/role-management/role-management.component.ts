@@ -13,7 +13,7 @@ import { CmsEmptyStateComponent } from '../../shared/empty-state/empty-state.com
 type PanelMode = 'create' | 'edit' | 'widgets' | null;
 
 interface PermSubGroup {
-  prefix: string;
+  screenLabel: string;
   permissions: AllPermissionsResponse[];
 }
 
@@ -75,13 +75,14 @@ export class RoleManagementComponent implements OnInit {
     return Array.from(map.entries()).map(([category, permissions]) => {
       const subMap = new Map<string, AllPermissionsResponse[]>();
       for (const p of permissions) {
-        const prefix = this.resourcePrefix(p.code);
-        const arr = subMap.get(prefix) ?? [];
+        const key = p.screenLabel ?? this.resourcePrefix(p.code);
+        const arr = subMap.get(key) ?? [];
         arr.push(p);
-        subMap.set(prefix, arr);
+        subMap.set(key, arr);
       }
       const subGroups = Array.from(subMap.entries())
-        .map(([prefix, perms]) => ({ prefix, permissions: perms }));
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([screenLabel, perms]) => ({ screenLabel, permissions: perms }));
       return { category, permissions, subGroups };
     });
   });

@@ -35,14 +35,14 @@ public class FacultyDocumentTypeRequirementController {
     }
 
     @PostMapping
-    @PreAuthorize("@perm.has('FACULTY_MANAGE')")
+    @PreAuthorize("@perm.has('FACULTY_DOC_CONFIG_MANAGE')")
     public ResponseEntity<FacultyDocumentTypeRequirementResponse> create(
             @Valid @RequestBody FacultyDocumentTypeRequirementRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("@perm.has('FACULTY_MANAGE')")
+    @PreAuthorize("@perm.has('FACULTY_DOC_CONFIG_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();

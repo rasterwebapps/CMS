@@ -129,6 +129,21 @@
   }
 }
 
+// ── Screen sub-group ─────────────────────────────────────────────────────────
+.pt-screen {
+  &__label {
+    padding: 5px 16px 4px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cms-text-muted);
+    background: var(--cms-bg-subtle, var(--cms-bg-shell));
+    border-top: 1px solid var(--cms-line);
+    border-bottom: 1px solid var(--cms-line);
+  }
+}
+
 // ── Row ───────────────────────────────────────────────────────────────────────
 .pt-row {
   display: grid;

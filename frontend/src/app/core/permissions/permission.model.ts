@@ -56,6 +56,8 @@ export interface AllPermissionsResponse {
   displayName: string;
   /** 1=Dev Only, 2=Support+, 3=Hold Only, 4=Delegatable */
   tier: number;
+  /** Screen name this permission belongs to — set by the backend. */
+  screenLabel: string | null;
 }
 
 /** Grouped view for the permission matrix editor. */

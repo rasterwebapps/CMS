@@ -105,7 +105,7 @@ public class PermissionController {
         List<PermissionDetail> details = permissionRepository.findAll().stream()
             .sorted(java.util.Comparator.comparing(Permission::getCategory)
                 .thenComparing(Permission::getCode))
-            .map(p -> new PermissionDetail(p.getId(), p.getCode(), p.getDisplayName(), p.getCategory(), p.getTier()))
+            .map(p -> new PermissionDetail(p.getId(), p.getCode(), p.getDisplayName(), p.getCategory(), p.getTier(), p.getScreenLabel()))
             .toList();
         return ResponseEntity.ok(details);
     }
@@ -129,7 +129,7 @@ public class PermissionController {
             .filter(p -> canDelegate(p.getTier(), callerLevel))
             .sorted(java.util.Comparator.comparing(Permission::getCategory)
                 .thenComparing(Permission::getCode))
-            .map(p -> new PermissionDetail(p.getId(), p.getCode(), p.getDisplayName(), p.getCategory(), p.getTier()))
+            .map(p -> new PermissionDetail(p.getId(), p.getCode(), p.getDisplayName(), p.getCategory(), p.getTier(), p.getScreenLabel()))
             .toList();
         return ResponseEntity.ok(details);
     }
@@ -182,6 +182,6 @@ public class PermissionController {
         };
     }
 
-    public record PermissionDetail(Long id, String code, String displayName, String category, int tier) {}
+    public record PermissionDetail(Long id, String code, String displayName, String category, int tier, String screenLabel) {}
     public record TierUpdateRequest(int tier) {}
 }

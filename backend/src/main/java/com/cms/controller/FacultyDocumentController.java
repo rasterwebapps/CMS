@@ -66,7 +66,7 @@ public class FacultyDocumentController {
     }
 
     @PostMapping
-    @PreAuthorize("@perm.has('FACULTY_MANAGE')")
+    @PreAuthorize("@perm.has('FACULTY_DOC_CONFIG_MANAGE')")
     public ResponseEntity<FacultyDocumentResponse> addDocument(
             @PathVariable Long facultyId,
             @Valid @RequestBody FacultyDocumentRequest request) {
@@ -75,7 +75,7 @@ public class FacultyDocumentController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@perm.has('FACULTY_MANAGE')")
+    @PreAuthorize("@perm.has('FACULTY_DOC_CONFIG_MANAGE')")
     public ResponseEntity<FacultyDocumentResponse> updateDocument(
             @PathVariable Long facultyId,
             @PathVariable Long id,
@@ -84,14 +84,14 @@ public class FacultyDocumentController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("@perm.has('FACULTY_MANAGE')")
+    @PreAuthorize("@perm.has('FACULTY_DOC_CONFIG_MANAGE')")
     public ResponseEntity<Void> deleteDocument(@PathVariable Long facultyId, @PathVariable Long id) {
         documentService.deleteDocument(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("@perm.has('FACULTY_MANAGE')")
+    @PreAuthorize("@perm.has('FACULTY_DOC_CONFIG_MANAGE')")
     public ResponseEntity<FacultyDocumentResponse> uploadDocument(
             @PathVariable Long facultyId,
             @RequestParam("documentType") DocumentType documentType,

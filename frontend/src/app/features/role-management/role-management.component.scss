@@ -420,6 +420,18 @@
   border-bottom: 1px dashed var(--cms-line);
   &:last-child { border-bottom: none; }
 
+  &__screen-label {
+    flex: 0 0 100%;
+    padding: 5px 10px 4px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cms-text-muted);
+    background: var(--cms-bg-subtle, var(--cms-bg-shell));
+    border-bottom: 1px solid var(--cms-line);
+  }
+
   .perm-item {
     flex: 0 0 25%;   // strict 1-of-4 column — never grows, never shrinks
     max-width: 25%;

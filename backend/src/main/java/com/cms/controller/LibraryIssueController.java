@@ -42,7 +42,7 @@ public class LibraryIssueController {
     }
 
     @PostMapping
-    @PreAuthorize("@perm.has('LIBRARY_ISSUE_MANAGE')")
+    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_MANAGE', 'LIBRARY_QUICK_ISSUE')")
     public ResponseEntity<LibraryIssueResponse> issue(
             @Valid @RequestBody LibraryIssueRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -60,14 +60,14 @@ public class LibraryIssueController {
 
     /** Current authenticated user's own issues (student/faculty portal). */
     @GetMapping("/my")
-    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_MANAGE')")
+    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_MANAGE', 'MY_LIBRARY_VIEW')")
     public ResponseEntity<List<LibraryIssueResponse>> myIssues(@AuthenticationPrincipal Jwt jwt) {
         String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
         return ResponseEntity.ok(issueService.findMyIssues(username));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_MANAGE')")
+    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_MANAGE', 'MY_LIBRARY_VIEW')")
     public ResponseEntity<LibraryIssueResponse> findById(@PathVariable Long id) {
         return ResponseEntity.ok(issueService.findById(id));
     }

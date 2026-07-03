@@ -221,8 +221,9 @@
               <!-- Expanded body: one row per resource prefix -->
               @if (isGroupExpanded(group.category)) {
                 <div class="perm-group__items">
-                  @for (sub of group.subGroups; track sub.prefix) {
+                  @for (sub of group.subGroups; track sub.screenLabel) {
                     <div class="perm-subgroup">
+                      <div class="perm-subgroup__screen-label">{{ sub.screenLabel }}</div>
                       @for (p of sub.permissions; track p.code) {
                         <label class="perm-item" [class.perm-item--checked]="isPermChecked(p.code)">
                           <input type="checkbox" class="perm-checkbox"

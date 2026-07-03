@@ -68,7 +68,7 @@ public class AdmissionController {
     }
 
     @PostMapping
-    @PreAuthorize("@perm.has('ADMISSION_CREATE')")
+    @PreAuthorize("@perm.has('ADMISSION_COMPLETE')")
     public ResponseEntity<AdmissionResponse> create(@Valid @RequestBody AdmissionRequest request) {
         AdmissionResponse response = admissionService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -103,7 +103,7 @@ public class AdmissionController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@perm.has('ADMISSION_CREATE')")
+    @PreAuthorize("@perm.hasAny('ADMISSION_COMPLETE', 'ADMISSION_EDIT')")
     public ResponseEntity<AdmissionResponse> update(@PathVariable Long id,
                                                     @Valid @RequestBody AdmissionRequest request) {
         return ResponseEntity.ok(admissionService.update(id, request));
@@ -118,7 +118,7 @@ public class AdmissionController {
     }
 
     @PostMapping("/{id}/confirm")
-    @PreAuthorize("@perm.has('ADMISSION_CREATE')")
+    @PreAuthorize("@perm.has('ADMISSION_COMPLETE')")
     public ResponseEntity<AdmissionConfirmationDto> confirm(@PathVariable Long id,
                                                             @RequestParam LocalDate admissionDate) {
         return ResponseEntity.ok(admissionService.confirm(id, admissionDate));
