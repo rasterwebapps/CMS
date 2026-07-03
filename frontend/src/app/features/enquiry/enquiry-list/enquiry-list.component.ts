@@ -1,9 +1,10 @@
-import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { MatSortModule, MatSort } from '@angular/material/sort';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
+import { MatTableModule } from '@angular/material/table';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -12,6 +13,11 @@ import { EnquiryService } from '../enquiry.service';
 import { Enquiry } from '../enquiry.model';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear } from '../../academic-year/academic-year.model';
+import { ProgramService } from '../../program/program.service';
+import { CourseService } from '../../course/course.service';
+import { Course } from '../../course/course.model';
+import { ReferralTypeService } from '../../referral-type/referral-type.service';
+import { AgentService } from '../../agent/agent.service';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
@@ -43,7 +49,7 @@ export const STATUS_LABELS: Record<string, string> = {
   standalone: true,
   imports: [
     RouterLink, FormsModule, AppDatePipe,
-    MatTableModule, MatPaginatorModule, MatSortModule,
+    MatTableModule, MatPaginatorModule,
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule, MatMenuModule,
     CmsEmptyStateComponent,
     CmsTourButtonComponent,
@@ -57,59 +63,93 @@ export const STATUS_LABELS: Record<string, string> = {
   templateUrl: './enquiry-list.component.html',
   styleUrl: './enquiry-list.component.scss',
 })
-export class EnquiryListComponent implements OnInit {
-  private readonly enquiryService = inject(EnquiryService);
+export class EnquiryListComponent implements OnInit, OnDestroy {
+  private readonly enquiryService      = inject(EnquiryService);
   private readonly academicYearService = inject(AcademicYearService);
-  private readonly permissionService = inject(PermissionService);
-  private readonly router         = inject(Router);
-  private readonly route          = inject(ActivatedRoute);
-  private readonly toast          = inject(ToastService);
-  private readonly dialog         = inject(MatDialog);
-  private readonly tourService    = inject(TourService);
+  private readonly programService      = inject(ProgramService);
+  private readonly courseService       = inject(CourseService);
+  private readonly referralTypeService = inject(ReferralTypeService);
+  private readonly agentService        = inject(AgentService);
+  private readonly permissionService   = inject(PermissionService);
+  private readonly router              = inject(Router);
+  private readonly route               = inject(ActivatedRoute);
+  private readonly toast               = inject(ToastService);
+  private readonly dialog              = inject(MatDialog);
+  private readonly tourService         = inject(TourService);
 
-  @ViewChild(MatPaginator) set paginator(v: MatPaginator) { if (v) this.dataSource.paginator = v; }
-  @ViewChild(MatSort) set sort(v: MatSort) {
+  private readonly destroy$     = new Subject<void>();
+  private readonly searchSubject = new Subject<string>();
+  private _paginatorSub?: Subscription;
+  private _paginatorRef?: MatPaginator;
+
+  @ViewChild(MatPaginator) set paginator(v: MatPaginator) {
     if (v) {
-      this.dataSource.sort = v;
-      if (!v.active) { v.active = 'enquiryDate'; v.direction = 'asc'; v.sortChange.emit({ active: 'enquiryDate', direction: 'asc' }); }
+      this._paginatorRef = v;
+      v.pageIndex = this.currentPage;
+      v.pageSize  = this.currentPageSize;
+      this._paginatorSub?.unsubscribe();
+      this._paginatorSub = v.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
+        this.currentPage     = ev.pageIndex;
+        this.currentPageSize = ev.pageSize;
+        this.syncUrlFilters();
+        this.loadPage();
+      });
     }
   }
 
-  private readonly allEnquiries      = signal<Enquiry[]>([]);
-  protected readonly dataSource      = new MatTableDataSource<Enquiry>([]);
-  protected readonly loading         = signal(false);
-  protected readonly searchValue     = signal('');
-  protected readonly selectedStatuses      = signal<Set<string>>(new Set(['ENQUIRED', 'INTERESTED']));
-  protected readonly selectedProgramId     = signal<number | null>(null);
-  protected readonly selectedCourseId      = signal<number | null>(null);
-  protected readonly selectedStudentType   = signal<string | null>(null);
-  protected readonly selectedReferralType  = signal<string | null>(null);
-  protected readonly selectedAdmissionQuota = signal<string | null>(null);
-  protected readonly selectedAgent         = signal<string | null>(null);
+  // ── Table (server-side) ──────────────────────────────────────────────────
+  protected readonly rows    = signal<Enquiry[]>([]);
+  protected totalElements    = 0;
+  protected readonly loading = signal(false);
+  private currentPage        = 0;
+  private currentPageSize    = 25;
+
+  // ── Filter state ─────────────────────────────────────────────────────────
+  protected readonly searchValue             = signal('');
+  protected readonly selectedStatuses        = signal<Set<string>>(new Set(['ENQUIRED', 'INTERESTED']));
+  protected readonly selectedProgramId       = signal<number | null>(null);
+  protected readonly selectedCourseId        = signal<number | null>(null);
+  protected readonly selectedStudentType     = signal<string | null>(null);
+  protected readonly selectedReferralType    = signal<string | null>(null);
+  protected readonly selectedAdmissionQuota  = signal<string | null>(null);
+  protected readonly selectedAgent           = signal<string | null>(null);
   protected readonly selectedAdmissionSource = signal<string | null>(null);
   protected readonly selectedAcademicYearIds = signal<Set<number>>(new Set());
-  private   readonly allAcademicYears        = signal<AcademicYear[]>([]);
+  private readonly allAcademicYears_         = signal<AcademicYear[]>([]);
   private academicYearsRestoredFromUrl       = false;
+
   protected readonly computeInitials  = computeInitials;
   protected readonly STATUS_LABELS    = STATUS_LABELS;
   protected statusMenuOpen       = false;
   protected academicYearMenuOpen = false;
-  protected colMenuOpen        = false;
-  protected moreFiltersOpen    = false;
-  protected readonly exporting = signal(false);
+  protected colMenuOpen          = false;
+  protected moreFiltersOpen      = false;
+  protected readonly exporting   = signal(false);
 
   protected readonly canAdd    = computed(() => this.permissionService.has('ENQUIRY_CREATE'));
   protected readonly canExport = computed(() => this.permissionService.has('ENQUIRY_EXPORT'));
 
-  // ── Academic year multiselect ──────────────────────────────────────────────
+  // ── Date range ────────────────────────────────────────────────────────────
+  protected dateFrom: string;
+  protected dateTo:   string;
+
+  // ── Filter dropdown options (loaded from master services on init) ─────────
+  protected programs:   { id: number; name: string }[] = [];
+  protected allCourses: Course[] = [];
+  protected readonly courseOptions = computed(() => {
+    const pid = this.selectedProgramId();
+    return pid ? this.allCourses.filter(c => c.program?.id === pid) : this.allCourses;
+  });
+  protected referralTypeNames: string[] = [];
+  protected agentNames:        string[] = [];
+
+  // ── Academic year multiselect ─────────────────────────────────────────────
   protected readonly academicYearOptions = computed(() =>
-    [...this.allAcademicYears()].sort((a, b) => b.startDate.localeCompare(a.startDate))
+    [...this.allAcademicYears_()].sort((a, b) => b.startDate.localeCompare(a.startDate))
   );
 
-  /** The "current" year plus whichever year starts next — covers enquiries arriving
-   *  for next year's intake before isCurrent has been manually flipped over. */
   private defaultAcademicYearIds(): Set<number> {
-    const years = this.allAcademicYears();
+    const years = this.allAcademicYears_();
     const current = years.find(y => y.isCurrent);
     if (!current) return new Set();
     const ids = new Set([current.id]);
@@ -124,7 +164,7 @@ export class EnquiryListComponent implements OnInit {
     const sel = this.selectedAcademicYearIds();
     if (sel.size === 0) return 'All Years';
     if (sel.size === 1) {
-      const year = this.allAcademicYears().find(y => sel.has(y.id));
+      const year = this.allAcademicYears_().find(y => sel.has(y.id));
       return year?.name ?? '1 year';
     }
     return `${sel.size} years`;
@@ -140,87 +180,25 @@ export class EnquiryListComponent implements OnInit {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
-    const dateRangeChanged = this.syncDateRangeToSelectedYears();
+    this.resetPage();
     this.syncUrlFilters();
-    if (dateRangeChanged) this.load();
-  }
-
-  /**
-   * Widens/narrows the backend-fetched date range to span the union of every currently selected
-   * academic year's own start/end dates. Without this, the date range stayed at its "current
-   * calendar month" default regardless of which year was selected — so an enquiry tagged to a
-   * year whose period doesn't overlap this month would never even reach the client to be filtered,
-   * surfacing as "0 results" even though the academic-year filter itself was working correctly.
-   * Returns whether the range actually changed, so callers know whether to re-fetch.
-   */
-  private syncDateRangeToSelectedYears(): boolean {
-    const ids = this.selectedAcademicYearIds();
-    if (ids.size === 0) return false;
-
-    const selected = this.allAcademicYears().filter(y => ids.has(y.id));
-    if (selected.length === 0) return false;
-
-    const newFrom = selected.reduce((min, y) => (y.startDate < min ? y.startDate : min), selected[0].startDate);
-    const newTo   = selected.reduce((max, y) => (y.endDate   > max ? y.endDate   : max), selected[0].endDate);
-
-    if (newFrom === this.dateFrom && newTo === this.dateTo) return false;
-    this.dateFrom = newFrom;
-    this.dateTo   = newTo;
-    return true;
+    this.loadPage();
   }
 
   protected clearAcademicYears(): void {
     this.selectedAcademicYearIds.set(new Set());
+    this.resetPage();
     this.syncUrlFilters();
+    this.loadPage();
   }
 
   protected get moreFiltersCount(): number {
-    return (this.selectedStudentType()     !== null ? 1 : 0)
-         + (this.selectedReferralType()    !== null ? 1 : 0)
-         + (this.selectedAdmissionQuota()  !== null ? 1 : 0)
-         + (this.selectedAgent()           !== null ? 1 : 0)
-         + (this.selectedAdmissionSource() !== null ? 1 : 0);
+    return (this.selectedStudentType()      !== null ? 1 : 0)
+         + (this.selectedReferralType()     !== null ? 1 : 0)
+         + (this.selectedAdmissionQuota()   !== null ? 1 : 0)
+         + (this.selectedAgent()            !== null ? 1 : 0)
+         + (this.selectedAdmissionSource()  !== null ? 1 : 0);
   }
-
-  // ── Unique program/course lists derived from loaded data ──────────────────
-  protected readonly programOptions = computed(() => {
-    const seen = new Map<number, string>();
-    for (const e of this.allEnquiries()) {
-      if (e.programId && e.programName && !seen.has(e.programId)) {
-        seen.set(e.programId, e.programName);
-      }
-    }
-    return [...seen.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
-  });
-
-  protected readonly courseOptions = computed(() => {
-    const progId = this.selectedProgramId();
-    const seen = new Map<number, string>();
-    for (const e of this.allEnquiries()) {
-      if (e.courseId && e.courseName && !seen.has(e.courseId)) {
-        if (!progId || e.programId === progId) {
-          seen.set(e.courseId, e.courseName);
-        }
-      }
-    }
-    return [...seen.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
-  });
-
-  protected readonly referralTypeOptions = computed(() => {
-    const seen = new Set<string>();
-    return this.allEnquiries()
-      .map(e => e.referralTypeName)
-      .filter((n): n is string => !!n && !seen.has(n) && !!seen.add(n))
-      .sort();
-  });
-
-  protected readonly agentOptions = computed(() => {
-    const seen = new Set<string>();
-    return this.allEnquiries()
-      .map(e => e.agentName)
-      .filter((n): n is string => !!n && !seen.has(n) && !!seen.add(n))
-      .sort();
-  });
 
   // ── Column visibility ─────────────────────────────────────────────────────
   protected readonly ALL_COLS = [
@@ -241,26 +219,6 @@ export class EnquiryListComponent implements OnInit {
     'FEES_PAID', 'PARTIALLY_PAID', 'DOCUMENTS_SUBMITTED', 'DOCUMENTS_VERIFIED', 'ADMITTED',
   ];
 
-  // ── Per-status counts from full loaded data ───────────────────────────────
-  protected readonly statusCounts = computed<Record<string, number>>(() => {
-    const map: Record<string, number> = {};
-    for (const row of this.allEnquiries()) {
-      map[row.status] = (map[row.status] ?? 0) + 1;
-    }
-    return map;
-  });
-
-  // ── Aggregate stats ───────────────────────────────────────────────────────
-  protected readonly totalCount     = computed(() => this.allEnquiries().length);
-  protected readonly filteredCount  = computed(() => this.dataSource.filteredData.length);
-  protected readonly pipelineCount  = computed(() =>
-    this.allEnquiries().filter(e => !['NOT_INTERESTED', 'ADMITTED'].includes(e.status)).length);
-  protected readonly interestedCount = computed(() =>
-    this.allEnquiries().filter(e => e.status === 'INTERESTED').length);
-  protected readonly admittedCount  = computed(() =>
-    this.allEnquiries().filter(e => e.status === 'ADMITTED').length);
-
-  // ── Status dropdown label ─────────────────────────────────────────────────
   protected readonly statusFilterLabel = computed(() => {
     const sel = this.selectedStatuses();
     if (sel.size === 0) return 'Status';
@@ -268,68 +226,16 @@ export class EnquiryListComponent implements OnInit {
     return `${sel.size} statuses`;
   });
 
-  // ── Date range ────────────────────────────────────────────────────────────
-  protected dateFrom: string;
-  protected dateTo:   string;
-
   constructor() {
     const now = new Date();
     this.dateFrom = this.toDateString(new Date(now.getFullYear(), now.getMonth(), 1));
     this.dateTo   = this.toDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-
-    // filterPredicate reads signals directly; the filter string is just a trigger
-    this.dataSource.filterPredicate = (row, _filter) => {
-      const search          = this.searchValue().toLowerCase().trim();
-      const statuses        = this.selectedStatuses();
-      const progId          = this.selectedProgramId();
-      const courseId        = this.selectedCourseId();
-      const studentType     = this.selectedStudentType();
-      const referralType    = this.selectedReferralType();
-      const quota           = this.selectedAdmissionQuota();
-      const agent           = this.selectedAgent();
-      const source          = this.selectedAdmissionSource();
-      const academicYearIds = this.selectedAcademicYearIds();
-
-      const matchSearch    = !search        || row.name.toLowerCase().includes(search) || (row.phone ?? '').includes(search);
-      const matchStatus    = statuses.size === 0 || statuses.has(row.status);
-      const matchProgram   = !progId        || row.programId === progId;
-      const matchCourse    = !courseId      || row.courseId  === courseId;
-      const matchType      = !studentType   || row.studentType === studentType;
-      const matchReferral  = !referralType  || row.referralTypeName === referralType;
-      const matchQuota     = !quota         || row.admissionQuota === quota;
-      const matchAgent     = !agent         || row.agentName === agent;
-      const matchSource    = !source        || row.admissionSource === source;
-      const matchYear      = academicYearIds.size === 0 || (row.academicYearId != null && academicYearIds.has(row.academicYearId));
-
-      return matchSearch && matchStatus && matchProgram && matchCourse &&
-             matchType && matchReferral && matchQuota && matchAgent && matchSource && matchYear;
-    };
-
-    // Reactively update the Material filter trigger whenever any filter signal changes
-    effect(() => {
-      const parts = [
-        this.searchValue().toLowerCase().trim(),
-        [...this.selectedStatuses()].join(','),
-        this.selectedProgramId() ?? '',
-        this.selectedCourseId() ?? '',
-        this.selectedStudentType() ?? '',
-        this.selectedReferralType() ?? '',
-        this.selectedAdmissionQuota() ?? '',
-        this.selectedAgent() ?? '',
-        this.selectedAdmissionSource() ?? '',
-        [...this.selectedAcademicYearIds()].join(','),
-      ];
-      this.dataSource.filter = parts.join('|') || '_';
-      this.dataSource.paginator?.firstPage();
-    });
   }
 
   ngOnInit(): void {
     this.tourService.register('enquiry-list', ENQUIRY_LIST_TOUR);
 
-    // Restore filter state from URL query params (populated when the user
-    // navigated away via a list row action — allows back-navigation to restore
-    // exactly the same search/date/status/program that was active).
+    // Restore filter state from URL query params
     const p = this.route.snapshot.queryParamMap;
     if (p.get('dateFrom')) this.dateFrom = p.get('dateFrom')!;
     if (p.get('dateTo'))   this.dateTo   = p.get('dateTo')!;
@@ -348,41 +254,57 @@ export class EnquiryListComponent implements OnInit {
       this.selectedAcademicYearIds.set(new Set(rawYears));
       this.academicYearsRestoredFromUrl = true;
     }
+    this.currentPage     = p.get('page') ? +p.get('page')! : 0;
+    this.currentPageSize = p.get('size') ? +p.get('size')! : 25;
     if (this.moreFiltersCount > 0) this.moreFiltersOpen = true;
 
-    // load() is called from inside this subscribe (not right after it) so the date range is
-    // fully settled — whether restored from the URL or derived from the default academic-year
-    // selection below — before the first backend fetch fires.
+    // Load filter dropdown options (non-critical — best effort)
+    this.programService.getAll().subscribe({
+      next: list => { this.programs = list; },
+    });
+    this.courseService.getAll().subscribe({
+      next: list => { this.allCourses = list; },
+    });
+    this.referralTypeService.getPage({ size: 1000 }).subscribe({
+      next: page => { this.referralTypeNames = page.content.map(r => r.name); },
+    });
+    this.agentService.getPage({ size: 1000 }).subscribe({
+      next: page => { this.agentNames = page.content.map(a => a.name); },
+    });
+
+    // Debounced search
+    this.searchSubject.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(val => {
+      this.searchValue.set(val);
+      this.resetPage();
+      this.syncUrlFilters();
+      this.loadPage();
+    });
+
+    // Load academic years → apply defaults → first data load
     const dateWasRestoredFromUrl = !!p.get('dateFrom') || !!p.get('dateTo');
     this.academicYearService.getAllAcademicYears().subscribe({
-      next: (years) => {
-        this.allAcademicYears.set(years);
-        // Apply the default academic year only on a genuinely fresh page load (no URL state at
-        // all). If the URL already has an explicit date range but no academic-year param — a URL
-        // snapshot taken before the years subscription completed — imposing the default year on
-        // top of a narrow date range silently excludes every record, producing "0 results".
+      next: years => {
+        this.allAcademicYears_.set(years);
         if (!this.academicYearsRestoredFromUrl && !dateWasRestoredFromUrl) {
           this.selectedAcademicYearIds.set(this.defaultAcademicYearIds());
         }
-        if (!dateWasRestoredFromUrl) {
-          this.syncDateRangeToSelectedYears();
-        }
-        // Keep the URL in sync with whatever defaults were just applied so any future
-        // back-navigation restores the exact filter state (including academicYearIds).
         this.syncUrlFilters();
-        this.load();
+        this.loadPage();
       },
-      error: () => this.load(), // fall back to whatever date range is already set
+      error: () => this.loadPage(),
     });
   }
 
-  // ── URL filter sync ───────────────────────────────────────────────────────
-  /**
-   * Writes current filter values into the URL as query params using
-   * replaceUrl:true so no extra history entries are created.  When the user
-   * navigates to a detail and presses Back, Angular re-navigates to this URL,
-   * the component reinitialises and reads the params back in ngOnInit.
-   */
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // ── URL filter sync (for back-navigation state restoration) ───────────────
   private syncUrlFilters(): void {
     const statuses = [...this.selectedStatuses()];
     void this.router.navigate([], {
@@ -401,10 +323,17 @@ export class EnquiryListComponent implements OnInit {
         admissionSource: this.selectedAdmissionSource()  ?? null,
         academicYearIds: [...this.selectedAcademicYearIds()].length
           ? [...this.selectedAcademicYearIds()].join(',') : null,
+        page: this.currentPage > 0 ? this.currentPage : null,
+        size: this.currentPageSize !== 25 ? this.currentPageSize : null,
       },
       queryParamsHandling: 'replace',
       replaceUrl: true,
     });
+  }
+
+  private resetPage(): void {
+    this.currentPage = 0;
+    if (this._paginatorRef) this._paginatorRef.pageIndex = 0;
   }
 
   // ── Column prefs ──────────────────────────────────────────────────────────
@@ -429,13 +358,14 @@ export class EnquiryListComponent implements OnInit {
 
   // ── Search ────────────────────────────────────────────────────────────────
   protected applyFilter(event: Event): void {
-    this.searchValue.set((event.target as HTMLInputElement).value);
-    this.syncUrlFilters();
+    this.searchSubject.next((event.target as HTMLInputElement).value);
   }
 
   protected clearFilter(): void {
     this.searchValue.set('');
+    this.resetPage();
     this.syncUrlFilters();
+    this.loadPage();
   }
 
   // ── Status multiselect ────────────────────────────────────────────────────
@@ -445,21 +375,26 @@ export class EnquiryListComponent implements OnInit {
       if (next.has(s)) { next.delete(s); } else { next.add(s); }
       return next;
     });
+    this.resetPage();
     this.syncUrlFilters();
+    this.loadPage();
   }
 
   protected isStatusSelected(s: string): boolean { return this.selectedStatuses().has(s); }
 
   protected clearStatuses(): void {
     this.selectedStatuses.set(new Set());
+    this.resetPage();
     this.syncUrlFilters();
+    this.loadPage();
   }
 
   // ── Date range ────────────────────────────────────────────────────────────
   protected onDateRangeChange(): void {
     if (this.dateFrom && this.dateTo) {
+      this.resetPage();
       this.syncUrlFilters();
-      this.load();
+      this.loadPage();
     }
   }
 
@@ -478,8 +413,9 @@ export class EnquiryListComponent implements OnInit {
     this.selectedAdmissionSource.set(null);
     this.selectedAcademicYearIds.set(new Set());
     this.searchValue.set('');
+    this.resetPage();
     this.syncUrlFilters();
-    this.load();
+    this.loadPage();
   }
 
   protected get hasActiveFilters(): boolean {
@@ -490,42 +426,55 @@ export class EnquiryListComponent implements OnInit {
       || this.selectedAdmissionSource() !== null || this.selectedAcademicYearIds().size > 0;
   }
 
-  // ── Program / Course filter handlers ─────────────────────────────────────
+  // ── Filter change handlers ────────────────────────────────────────────────
   protected onProgramChange(value: string): void {
-    const id = value ? Number(value) : null;
-    this.selectedProgramId.set(id);
-    this.selectedCourseId.set(null); // reset course when program changes
+    this.selectedProgramId.set(value ? Number(value) : null);
+    this.selectedCourseId.set(null);
+    this.resetPage();
     this.syncUrlFilters();
+    this.loadPage();
   }
 
   protected onCourseChange(value: string): void {
     this.selectedCourseId.set(value ? Number(value) : null);
+    this.resetPage();
     this.syncUrlFilters();
+    this.loadPage();
   }
 
   protected onStudentTypeChange(value: string): void {
     this.selectedStudentType.set(value || null);
+    this.resetPage();
     this.syncUrlFilters();
+    this.loadPage();
   }
 
   protected onReferralTypeChange(value: string): void {
     this.selectedReferralType.set(value || null);
+    this.resetPage();
     this.syncUrlFilters();
+    this.loadPage();
   }
 
   protected onAdmissionQuotaChange(value: string): void {
     this.selectedAdmissionQuota.set(value || null);
+    this.resetPage();
     this.syncUrlFilters();
+    this.loadPage();
   }
 
   protected onAgentChange(value: string): void {
     this.selectedAgent.set(value || null);
+    this.resetPage();
     this.syncUrlFilters();
+    this.loadPage();
   }
 
   protected onAdmissionSourceChange(value: string): void {
     this.selectedAdmissionSource.set(value || null);
+    this.resetPage();
     this.syncUrlFilters();
+    this.loadPage();
   }
 
   // ── Status helpers ────────────────────────────────────────────────────────
@@ -545,17 +494,10 @@ export class EnquiryListComponent implements OnInit {
   protected onStatusUpdate(item: Enquiry, newStatus: string): void {
     this.enquiryService.updateStatus(item.id, newStatus).subscribe({
       next: updated => {
-        const data = this.allEnquiries();
-        const idx  = data.findIndex(e => e.id === item.id);
-        if (idx >= 0) {
-          const nextData = [...data];
-          nextData[idx] = { ...nextData[idx], status: updated.status };
-          this.allEnquiries.set(nextData);
-          this.dataSource.data = nextData;
-        }
         this.toast.success(`Status → ${this.statusLabel(updated.status)}`);
+        this.loadPage();
       },
-      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to update status'),
+      error: err => this.toast.error(err?.error?.message ?? 'Failed to update status'),
     });
   }
 
@@ -596,7 +538,6 @@ export class EnquiryListComponent implements OnInit {
       this.clearAllFilters();
       return;
     }
-
     void this.router.navigate(['/enquiries/new']);
   }
 
@@ -621,8 +562,8 @@ export class EnquiryListComponent implements OnInit {
   private doDelete(item: Enquiry): void {
     this.loading.set(true);
     this.enquiryService.deleteEnquiry(item.id).subscribe({
-      next:  () => { this.toast.success('Deleted'); this.load(); },
-      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to delete'); this.loading.set(false); },
+      next:  () => { this.toast.success('Deleted'); this.loadPage(); },
+      error: err => { this.toast.error(err?.error?.message ?? 'Failed to delete'); this.loading.set(false); },
     });
   }
 
@@ -631,7 +572,7 @@ export class EnquiryListComponent implements OnInit {
     if (this.exporting()) return;
     this.exporting.set(true);
     this.enquiryService.exportEnquiries(format, this.dateFrom, this.dateTo).subscribe({
-      next: (blob) => {
+      next: blob => {
         const ext = format === 'pdf' ? 'pdf' : 'xlsx';
         const filename = `enquiries-${new Date().toISOString().slice(0, 10)}.${ext}`;
         const url = URL.createObjectURL(blob);
@@ -649,17 +590,44 @@ export class EnquiryListComponent implements OnInit {
     });
   }
 
-  // ── Load ──────────────────────────────────────────────────────────────────
+  // ── Data load ─────────────────────────────────────────────────────────────
   private toDateString(d: Date): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  private load(): void {
+  private loadPage(): void {
     this.loading.set(true);
-    // Load all data for the date range; status filtering is done client-side
-    this.enquiryService.getEnquiriesByDateRange(this.dateFrom, this.dateTo).subscribe({
-      next:  data => { this.allEnquiries.set(data); this.dataSource.data = data; this.loading.set(false); },
-      error: ()   => { this.toast.error('Failed to load'); this.loading.set(false); },
+    const statuses = [...this.selectedStatuses()];
+    const yearIds  = [...this.selectedAcademicYearIds()];
+    this.enquiryService.getPage({
+      search:           this.searchValue() || null,
+      fromDate:         this.dateFrom || null,
+      toDate:           this.dateTo   || null,
+      statuses:         statuses.length ? statuses : undefined,
+      programId:        this.selectedProgramId(),
+      courseId:         this.selectedCourseId(),
+      studentType:      this.selectedStudentType(),
+      referralTypeName: this.selectedReferralType(),
+      admissionQuota:   this.selectedAdmissionQuota(),
+      agentName:        this.selectedAgent(),
+      admissionSource:  this.selectedAdmissionSource(),
+      academicYearIds:  yearIds.length ? yearIds : undefined,
+      page:             this.currentPage,
+      size:             this.currentPageSize,
+    }).subscribe({
+      next: data => {
+        this.rows.set(data.content);
+        this.totalElements = data.totalElements;
+        this.loading.set(false);
+        if (this._paginatorRef) {
+          this._paginatorRef.length    = data.totalElements;
+          this._paginatorRef.pageIndex = this.currentPage;
+        }
+      },
+      error: () => {
+        this.toast.error('Failed to load enquiries');
+        this.loading.set(false);
+      },
     });
   }
 }

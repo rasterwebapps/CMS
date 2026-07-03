@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -134,6 +135,32 @@ public class EnquiryController {
             enquiries = enquiryService.findAll();
         }
         return ResponseEntity.ok(enquiries);
+    }
+
+    @GetMapping("/page")
+    @PreAuthorize("@perm.has('ENQUIRY_VIEW')")
+    public ResponseEntity<Page<EnquiryResponse>> findPage(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(required = false) List<String> statuses,
+            @RequestParam(required = false) Long programId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) String studentType,
+            @RequestParam(required = false) String referralTypeName,
+            @RequestParam(required = false) String admissionQuota,
+            @RequestParam(required = false) String agentName,
+            @RequestParam(required = false) String admissionSource,
+            @RequestParam(required = false) List<Long> academicYearIds,
+            @PageableDefault(size = 25, sort = "enquiryDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        List<EnquiryStatus> statusEnums = statuses == null ? null :
+            statuses.stream()
+                .map(s -> { try { return EnquiryStatus.valueOf(s); } catch (IllegalArgumentException e) { return null; } })
+                .filter(Objects::nonNull)
+                .toList();
+        return ResponseEntity.ok(
+            enquiryService.findPage(search, fromDate, toDate, statusEnums, programId, courseId,
+                studentType, referralTypeName, admissionQuota, agentName, admissionSource, academicYearIds, pageable));
     }
 
     @GetMapping("/{id}")

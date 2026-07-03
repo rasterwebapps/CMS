@@ -6,6 +6,7 @@ import java.util.Collection;
 import org.springframework.data.jpa.domain.Specification;
 
 import com.cms.model.Enquiry;
+import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.StudentType;
 
@@ -61,5 +62,32 @@ public final class EnquirySpecification {
             cb.between(root.get("enquiryDate"), from, to),
             root.get("status").in(terminalStatuses).not()
         );
+    }
+
+    public static Specification<Enquiry> byReferralTypeName(String name) {
+        return (root, query, cb) -> cb.equal(root.get("referralType").get("name"), name);
+    }
+
+    public static Specification<Enquiry> byAgentName(String name) {
+        return (root, query, cb) -> cb.equal(root.get("agent").get("name"), name);
+    }
+
+    public static Specification<Enquiry> byAdmissionQuota(String quota) {
+        return (root, query, cb) -> {
+            try {
+                AdmissionQuota q = AdmissionQuota.valueOf(quota.toUpperCase());
+                return cb.equal(root.get("admissionQuota"), q);
+            } catch (IllegalArgumentException e) {
+                return cb.disjunction();
+            }
+        };
+    }
+
+    public static Specification<Enquiry> byAdmissionSource(String source) {
+        return (root, query, cb) -> cb.equal(root.get("admissionSource"), source);
+    }
+
+    public static Specification<Enquiry> byAcademicYearIds(Collection<Long> ids) {
+        return (root, query, cb) -> root.get("academicYear").get("id").in(ids);
     }
 }

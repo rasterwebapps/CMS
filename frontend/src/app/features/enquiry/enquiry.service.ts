@@ -275,6 +275,40 @@ export class EnquiryService {
     return this.http.get<EnquiryCreditApplication[]>(`${this.baseUrl}/${enquiryId}/credit-applications`);
   }
 
+  getPage(p: {
+    search?: string | null;
+    fromDate?: string | null;
+    toDate?: string | null;
+    statuses?: string[];
+    programId?: number | null;
+    courseId?: number | null;
+    studentType?: string | null;
+    referralTypeName?: string | null;
+    admissionQuota?: string | null;
+    agentName?: string | null;
+    admissionSource?: string | null;
+    academicYearIds?: number[];
+    page?: number;
+    size?: number;
+  }): Observable<Page<Enquiry>> {
+    let params = new HttpParams()
+      .set('page', p.page ?? 0)
+      .set('size', p.size ?? 25);
+    if (p.search)          params = params.set('search', p.search);
+    if (p.fromDate)        params = params.set('fromDate', p.fromDate);
+    if (p.toDate)          params = params.set('toDate', p.toDate);
+    for (const s of (p.statuses ?? []))         params = params.append('statuses', s);
+    if (p.programId)       params = params.set('programId', p.programId);
+    if (p.courseId)        params = params.set('courseId', p.courseId);
+    if (p.studentType)     params = params.set('studentType', p.studentType);
+    if (p.referralTypeName) params = params.set('referralTypeName', p.referralTypeName);
+    if (p.admissionQuota)  params = params.set('admissionQuota', p.admissionQuota);
+    if (p.agentName)       params = params.set('agentName', p.agentName);
+    if (p.admissionSource) params = params.set('admissionSource', p.admissionSource);
+    for (const id of (p.academicYearIds ?? [])) params = params.append('academicYearIds', id);
+    return this.http.get<Page<Enquiry>>(`${this.baseUrl}/page`, { params });
+  }
+
   exportEnquiries(format: 'excel' | 'pdf', fromDate?: string, toDate?: string): Observable<Blob> {
     let params = new HttpParams().set('format', format);
     if (fromDate) params = params.set('fromDate', fromDate);
