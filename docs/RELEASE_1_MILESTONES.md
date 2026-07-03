@@ -536,10 +536,10 @@
 - [x] **R1-4.4.6** Add `COMMISSION_SETTLE` permission separate from `COMMISSION_MANAGE`; `REJECTED` `CommissionPaymentStatus` value with rejection reason/by/at on `Enquiry`
 - [x] **R1-4.4.7** Flyway migrations V219–V231, V236
 - [x] **R1-4.4.7b** Add `ApplicationNumberSequenceService.nextCommissionNumber`/`nextDisbursementNumber`; `commission_number`/`disbursement_number` columns on `Enquiry`/`ScholarshipDisbursement`
-- [ ] **R1-4.4.8** Surface scholarship OneBook rejection/failure status (currently logged only, not visible or retryable in any screen — known gap, see BR-34)
-- [ ] **R1-4.4.9** Write unit + controller tests (95% coverage)
-- [ ] **R1-4.4.10** Create manual test cases: `docs/manual-test-cases/onebook-integration.md`
-- [ ] **R1-4.4.10b** Out of scope: OneBook edit/delete/fetch-by-id register endpoints and Supplier Master Sync — no post-push cancellation flow exists in OneCMS to call them from, and supplier sync is pharmacy-only (see BR-34)
+- [x] **R1-4.4.8** Surface scholarship OneBook rejection/failure status — new `OneBookPaymentSummaryResponse` DTO + `GET /{id}/onebook-payments` endpoint; student detail Scholarships tab shows a OneBook Payments panel with PENDING/TRANSMITTED/PAID/FAILED chips; FAILED rows surface `errorMessage` with icon + tooltip truncation
+- [x] **R1-4.4.9** Write unit + controller tests — `OneBookWebhookServiceTest` (17), `OneBookWebhookControllerTest` (9), `OneBookIntegrationServiceTest` (7 guard-clause), `ScholarshipApplicationControllerTest` (4); also fixed pre-existing broken tests: `ApplicationNumberSequenceServiceTest` rewritten for `NumberSeriesDefinition`/`NumberSequenceCounter` architecture, `FeeReportServiceTest` updated with missing `PaymentReceiptRepository`
+- [x] **R1-4.4.10** Create manual test cases: `docs/manual-test-cases/onebook-integration.md` — 20 TCs covering config, scholarship/commission/refund pushes, webhook callbacks (track-update + track-completion), UI surface, and E2E full cycle
+- [x] **R1-4.4.10b** Out of scope: OneBook edit/delete/fetch-by-id register endpoints and Supplier Master Sync — no post-push cancellation flow exists in OneCMS to call them from, and supplier sync is pharmacy-only (see BR-34)
 
 **Frontend:**
 - [x] **R1-4.4.11** Create `IntegrationsSettingsComponent` (Settings → Integrations) for OneBook credentials with show/hide password
