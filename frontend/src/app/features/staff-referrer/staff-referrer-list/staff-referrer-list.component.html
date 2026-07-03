@@ -8,10 +8,19 @@
       </div>
       <p class="mlp-sub">Sister-concern staff who refer students to the college</p>
     </div>
-    <button class="btn-primary" routerLink="/staff-referrers/new" aria-label="Add staff referrer">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add Staff Referrer
-    </button>
+    <div class="header-actions">
+      @if (canExport()) {
+        <cms-export-button
+          [disabled]="exporting()"
+          (export)="onExport($event)"
+          tooltip="Export staff referrers as Excel or PDF"
+        />
+      }
+      <button class="btn-primary" routerLink="/staff-referrers/new" aria-label="Add staff referrer">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Staff Referrer
+      </button>
+    </div>
   </div>
 
   <!-- ── Toolbar ─────────────────────────────────────────────── -->

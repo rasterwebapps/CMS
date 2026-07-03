@@ -216,6 +216,32 @@ export class FinanceService {
     return this.http.get<FeeRefundSummary[]>(`${this.studentFeeUrl}/refunds/pending`);
   }
 
+  exportReceipts(
+    format: 'excel' | 'pdf',
+    filters: { search?: string | null; paymentMode?: string | null; payerType?: string | null; fromDate?: string | null; toDate?: string | null } = {},
+  ): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (filters.search)      params = params.set('search', filters.search);
+    if (filters.paymentMode) params = params.set('paymentMode', filters.paymentMode);
+    if (filters.payerType)   params = params.set('payerType', filters.payerType);
+    if (filters.fromDate)    params = params.set('fromDate', filters.fromDate);
+    if (filters.toDate)      params = params.set('toDate', filters.toDate);
+    return this.http.get(`${environment.apiUrl}/receipts/export`, { params, responseType: 'blob' });
+  }
+
+  exportRefunds(
+    format: 'excel' | 'pdf',
+    filters: { search?: string | null; status?: string | null; entityType?: string | null; fromDate?: string | null; toDate?: string | null } = {},
+  ): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (filters.search)      params = params.set('search', filters.search);
+    if (filters.status)      params = params.set('status', filters.status);
+    if (filters.entityType)  params = params.set('entityType', filters.entityType);
+    if (filters.fromDate)    params = params.set('fromDate', filters.fromDate);
+    if (filters.toDate)      params = params.set('toDate', filters.toDate);
+    return this.http.get(`${this.studentFeeUrl}/refunds/export`, { params, responseType: 'blob' });
+  }
+
   /** Step 2a — approve a pending refund and record payment details. */
   approveRefund(refundId: number, request: FeeRefundApprovalRequest): Observable<FeeRefundSummary> {
     return this.http.post<FeeRefundSummary>(

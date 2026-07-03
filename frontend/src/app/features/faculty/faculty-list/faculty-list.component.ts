@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, AfterViewInit, signal, computed, ViewChild } from '@angular/core';
+import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { Router, RouterLink } from '@angular/router';
 import { TitleCasePipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -23,7 +24,9 @@ import { SpecialityService } from '../../speciality/speciality.service';
 import { Speciality } from '../../speciality/speciality.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { ExportButtonComponent } from '../../../shared/export-button/export-button.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
@@ -37,6 +40,7 @@ import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } fr
   standalone: true,
   imports: [
     CmsEmptyStateComponent,
+    ExportButtonComponent,
     CmsViewToggleComponent,
     CmsStatusBadgeComponent,
     CmsTourButtonComponent,
@@ -58,12 +62,13 @@ import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } fr
   styleUrl: './faculty-list.component.scss',
 })
 export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
-  private readonly facultyService = inject(FacultyService);
+  private readonly facultyService    = inject(FacultyService);
   private readonly specialityService = inject(SpecialityService);
-  private readonly router = inject(Router);
-  private readonly toast = inject(ToastService);
-  private readonly dialog = inject(MatDialog);
-  private readonly tourService = inject(TourService);
+  private readonly router            = inject(Router);
+  private readonly toast             = inject(ToastService);
+  private readonly dialog            = inject(MatDialog);
+  private readonly tourService       = inject(TourService);
+  private readonly permissionService = inject(PermissionService);
 
   private readonly VIEW_MODE_KEY = 'faculty-view-mode';
   private readonly destroy$ = new Subject<void>();
@@ -86,7 +91,9 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected readonly displayedColumns: readonly string[] = ['employeeCode', 'fullName', 'phone', 'email', 'specialityName', 'designation', 'status', 'documentReview', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Faculty>([]);
-  protected readonly loading = signal(false);
+  protected readonly loading    = signal(false);
+  protected readonly exporting  = signal(false);
+  protected readonly canExport  = computed(() => this.permissionService.has('FACULTY_EXPORT'));
   protected readonly searchValue = signal('');
   protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
 
@@ -273,6 +280,32 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
       className: 'doc-review-badge--neutral',
       tooltip: 'Documents exist for this faculty member.',
     };
+  }
+
+  protected onExport(format: ExportFormat): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.facultyService.exportFaculty(format, {
+      search:         this.searchValue().trim() || null,
+      specialityId:   this.selectedSpecialityId(),
+      status:         this.selectedStatus(),
+      documentReview: this.selectedDocumentReview() !== 'ALL' ? this.selectedDocumentReview() : null,
+    }).subscribe({
+      next: (blob) => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `faculty.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
   }
 
   private performDelete(faculty: Faculty): void {

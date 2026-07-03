@@ -104,6 +104,27 @@ public class FacultyService {
             .toList();
     }
 
+    public List<FacultyResponse> findAll(String search, Long specialityId,
+                                         FacultyStatus status, String documentReview) {
+        Specification<Faculty> spec = FacultySpecification.distinct();
+        if (search != null && !search.trim().isEmpty()) {
+            spec = spec.and(FacultySpecification.bySearch(search.trim()));
+        }
+        if (specialityId != null) {
+            spec = spec.and(FacultySpecification.bySpecialityId(specialityId));
+        }
+        if (status != null) {
+            spec = spec.and(FacultySpecification.byStatus(status));
+        }
+        if (documentReview != null && !"ALL".equalsIgnoreCase(documentReview)) {
+            Specification<Faculty> docFilter = FacultySpecification.byDocumentReview(documentReview);
+            if (docFilter != null) {
+                spec = spec.and(docFilter);
+            }
+        }
+        return facultyRepository.findAll(spec).stream().map(this::toResponse).toList();
+    }
+
     public Page<FacultyResponse> findPage(String search, Long specialityId,
                                           FacultyStatus status, String documentReview,
                                           Pageable pageable) {

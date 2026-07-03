@@ -32,6 +32,19 @@ public class ScholarshipTypeService {
             .toList();
     }
 
+    public List<ScholarshipTypeResponse> findAll(String search) {
+        if (search == null || search.isBlank()) {
+            return scholarshipTypeRepository.findAll().stream().map(this::toResponse).toList();
+        }
+        String pattern = "%" + search.trim().toLowerCase() + "%";
+        Specification<ScholarshipType> spec = (root, query, cb) ->
+            cb.or(
+                cb.like(cb.lower(root.get("name")), pattern),
+                cb.like(cb.lower(root.get("code")), pattern)
+            );
+        return scholarshipTypeRepository.findAll(spec).stream().map(this::toResponse).toList();
+    }
+
     public Page<ScholarshipTypeResponse> findPage(String search, Pageable pageable) {
         if (search == null || search.isBlank()) {
             return scholarshipTypeRepository.findAll(pageable).map(this::toResponse);

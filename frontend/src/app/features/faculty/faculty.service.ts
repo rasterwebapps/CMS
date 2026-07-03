@@ -154,4 +154,16 @@ export class FacultyService {
       responseType: 'blob',
     });
   }
+
+  exportFaculty(
+    format: 'excel' | 'pdf',
+    filters: { search?: string | null; specialityId?: number | null; status?: FacultyStatus | null; documentReview?: string | null } = {},
+  ): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (filters.search)         params = params.set('search', filters.search);
+    if (filters.specialityId != null) params = params.set('specialityId', filters.specialityId.toString());
+    if (filters.status)         params = params.set('status', filters.status);
+    if (filters.documentReview) params = params.set('documentReview', filters.documentReview);
+    return this.http.get(`${this.baseUrl}/export`, { params, responseType: 'blob' });
+  }
 }

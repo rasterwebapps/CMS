@@ -61,6 +61,23 @@ public class StaffReferrerService {
         return repository.findAll().stream().map(this::toResponse).toList();
     }
 
+    public List<StaffReferrerResponse> findAll(String search) {
+        Specification<StaffReferrer> spec = Specification.where(null);
+        if (search != null && !search.trim().isEmpty()) {
+            String pattern = "%" + search.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> {
+                Join<StaffReferrer, Institution> institution = root.join("institution", JoinType.INNER);
+                return cb.or(
+                    cb.like(cb.lower(root.get("name")), pattern),
+                    cb.like(cb.lower(root.get("phone")), pattern),
+                    cb.like(cb.lower(root.get("employeeCode")), pattern),
+                    cb.like(cb.lower(institution.get("name")), pattern)
+                );
+            });
+        }
+        return repository.findAll(spec).stream().map(this::toResponse).toList();
+    }
+
     public Page<StaffReferrerResponse> findPage(String search, Pageable pageable) {
         Specification<StaffReferrer> spec = Specification.where(null);
         if (search != null && !search.trim().isEmpty()) {

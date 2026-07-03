@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
+import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { Router, RouterLink } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -9,8 +10,10 @@ import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { ExportButtonComponent } from '../../../shared/export-button/export-button.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { SCHOLARSHIP_TYPE_LIST_TOUR } from '../../../shared/tour/tours/scholarship.tours';
@@ -32,6 +35,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
     MatIconModule,
     InrPipe,
     CmsEmptyStateComponent,
+    ExportButtonComponent,
     CmsStatusBadgeComponent,
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
@@ -43,10 +47,11 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
 })
 export class ScholarshipTypeListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly scholarshipService = inject(ScholarshipService);
-  private readonly router = inject(Router);
-  private readonly toast = inject(ToastService);
-  private readonly dialog = inject(MatDialog);
-  private readonly tourService = inject(TourService);
+  private readonly router             = inject(Router);
+  private readonly toast              = inject(ToastService);
+  private readonly dialog             = inject(MatDialog);
+  private readonly tourService        = inject(TourService);
+  private readonly permissionService  = inject(PermissionService);
 
   private readonly destroy$ = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
@@ -67,8 +72,10 @@ export class ScholarshipTypeListComponent implements OnInit, AfterViewInit, OnDe
   }
 
   protected readonly displayedColumns = ['code', 'name', 'discountType', 'discountValue', 'renewalRequired', 'active', 'actions'];
-  protected readonly dataSource = new MatTableDataSource<ScholarshipType>([]);
-  protected readonly loading = signal(false);
+  protected readonly dataSource  = new MatTableDataSource<ScholarshipType>([]);
+  protected readonly loading     = signal(false);
+  protected readonly exporting   = signal(false);
+  protected readonly canExport   = computed(() => this.permissionService.has('SCHOLARSHIP_EXPORT'));
   protected readonly searchValue = signal('');
 
   protected totalElements = 0;
@@ -154,6 +161,27 @@ export class ScholarshipTypeListComponent implements OnInit, AfterViewInit, OnDe
           err?.error?.message ?? `Failed to ${row.active ? 'deactivate' : 'activate'} scholarship`,
         ),
       });
+    });
+  }
+
+  protected onExport(format: ExportFormat): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.scholarshipService.exportScholarshipTypes(format, { search: this.searchValue().trim() || null }).subscribe({
+      next: (blob) => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `scholarship-types.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
     });
   }
 

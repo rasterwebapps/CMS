@@ -62,4 +62,10 @@ export class StaffReferrerService {
   ): Observable<StaffReferrerStatusUpdateResponse> {
     return this.http.patch<StaffReferrerStatusUpdateResponse>(`${this.url}/${id}/status`, request);
   }
+
+  exportStaffReferrers(format: 'excel' | 'pdf', filters: { search?: string | null } = {}): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (filters.search) params = params.set('search', filters.search);
+    return this.http.get(`${this.url}/export`, { params, responseType: 'blob' });
+  }
 }

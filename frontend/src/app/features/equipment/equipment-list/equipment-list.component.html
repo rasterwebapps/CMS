@@ -8,10 +8,19 @@
       </div>
       <p class="mlp-sub">Track lab equipment, models, and maintenance status</p>
     </div>
-    <button id="tour-eq-add-btn" class="btn-primary" routerLink="/equipment/new" aria-label="Add new equipment">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add Equipment
-    </button>
+    <div class="header-actions">
+      @if (canExport()) {
+        <cms-export-button
+          [disabled]="exporting()"
+          (export)="onExport($event)"
+          tooltip="Export equipment as Excel or PDF"
+        />
+      }
+      <button id="tour-eq-add-btn" class="btn-primary" routerLink="/equipment/new" aria-label="Add new equipment">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Equipment
+      </button>
+    </div>
   </div>
 
   <!-- Toolbar -->

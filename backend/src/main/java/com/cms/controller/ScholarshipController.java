@@ -1,12 +1,16 @@
 package com.cms.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,6 +30,7 @@ import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.dto.ScholarshipTypeRequest;
 import com.cms.dto.ScholarshipTypeResponse;
+import com.cms.service.ScholarshipTypeExportService;
 import com.cms.service.ScholarshipTypeService;
 
 import jakarta.validation.Valid;
@@ -34,10 +39,13 @@ import jakarta.validation.Valid;
 @RequestMapping("/scholarships")
 public class ScholarshipController {
 
-    private final ScholarshipTypeService scholarshipTypeService;
+    private final ScholarshipTypeService       scholarshipTypeService;
+    private final ScholarshipTypeExportService scholarshipTypeExportService;
 
-    public ScholarshipController(ScholarshipTypeService scholarshipTypeService) {
-        this.scholarshipTypeService = scholarshipTypeService;
+    public ScholarshipController(ScholarshipTypeService scholarshipTypeService,
+                                  ScholarshipTypeExportService scholarshipTypeExportService) {
+        this.scholarshipTypeService       = scholarshipTypeService;
+        this.scholarshipTypeExportService = scholarshipTypeExportService;
     }
 
     @GetMapping
@@ -88,6 +96,34 @@ public class ScholarshipController {
             @Valid @RequestBody ActiveStatusUpdateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(scholarshipTypeService.updateStatus(id, request, username(jwt)));
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("@perm.has('SCHOLARSHIP_EXPORT')")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(required = false) String search) {
+        List<ScholarshipTypeResponse> data = scholarshipTypeService.findAll(search);
+        try {
+            if ("pdf".equalsIgnoreCase(format)) {
+                byte[] bytes = scholarshipTypeExportService.toPdf(data);
+                String filename = "scholarship-types-" + LocalDate.now() + ".pdf";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            } else {
+                byte[] bytes = scholarshipTypeExportService.toExcel(data);
+                String filename = "scholarship-types-" + LocalDate.now() + ".xlsx";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/page")

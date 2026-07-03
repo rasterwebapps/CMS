@@ -96,4 +96,10 @@ export class AgentService {
   deleteGuideline(id: number): Observable<void> {
     return this.http.delete<void>(`${this.guidelineUrl}/${id}`);
   }
+
+  exportAgents(format: 'excel' | 'pdf', filters: { search?: string | null } = {}): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (filters.search) params = params.set('search', filters.search);
+    return this.http.get(`${this.agentUrl}/export`, { params, responseType: 'blob' });
+  }
 }

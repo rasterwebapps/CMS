@@ -81,6 +81,15 @@
        </div>
        <p class="mlp-sub">All payment receipts — student fee installments and pre-enrollment collections.</p>
      </div>
+     @if (canExport()) {
+       <div class="mlp-hdr-actions">
+         <cms-export-button
+           [disabled]="exporting()"
+           (export)="onExport($event)"
+           tooltip="Export receipts as Excel or PDF"
+         />
+       </div>
+     }
    </div>
 
    <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->

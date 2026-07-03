@@ -39,4 +39,10 @@ export class EquipmentService {
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
+
+  exportEquipment(format: 'excel' | 'pdf', filters: { search?: string | null } = {}): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (filters.search) params = params.set('search', filters.search);
+    return this.http.get(`${this.baseUrl}/export`, { params, responseType: 'blob' });
+  }
 }

@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
+import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { Router, RouterLink } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -14,6 +15,8 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
+import { ExportButtonComponent } from '../../../shared/export-button/export-button.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { AGENT_LIST_TOUR } from '../../../shared/tour/tours/agent.tours';
@@ -31,6 +34,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    ExportButtonComponent,
     CmsViewToggleComponent,
     CmsStatusBadgeComponent,
     CmsTourButtonComponent,
@@ -42,11 +46,12 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
   styleUrl: './agent-list.component.scss',
 })
 export class AgentListComponent implements OnInit, AfterViewInit, OnDestroy {
-  private readonly agentService = inject(AgentService);
-  private readonly router = inject(Router);
-  private readonly toast = inject(ToastService);
-  private readonly dialog = inject(MatDialog);
-  private readonly tourService = inject(TourService);
+  private readonly agentService      = inject(AgentService);
+  private readonly router            = inject(Router);
+  private readonly toast             = inject(ToastService);
+  private readonly dialog            = inject(MatDialog);
+  private readonly tourService       = inject(TourService);
+  private readonly permissionService = inject(PermissionService);
 
   private readonly VIEW_MODE_KEY = 'agent-view-mode';
   private readonly destroy$ = new Subject<void>();
@@ -69,7 +74,9 @@ export class AgentListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected readonly displayedColumns = ['name', 'phone', 'email', 'area', 'allottedSeats', 'isActive', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Agent>([]);
-  protected readonly loading = signal(false);
+  protected readonly loading    = signal(false);
+  protected readonly exporting  = signal(false);
+  protected readonly canExport  = computed(() => this.permissionService.has('AGENT_EXPORT'));
   protected readonly searchValue = signal('');
   protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
 
@@ -152,6 +159,27 @@ export class AgentListComponent implements OnInit, AfterViewInit, OnDestroy {
     } else {
       void this.router.navigate(['/agents/new']);
     }
+  }
+
+  protected onExport(format: ExportFormat): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.agentService.exportAgents(format, { search: this.searchValue().trim() || null }).subscribe({
+      next: (blob) => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `agents.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
   }
 
   private loadViewMode(): 'card' | 'table' {

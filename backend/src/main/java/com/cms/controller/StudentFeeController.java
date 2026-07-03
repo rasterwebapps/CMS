@@ -43,6 +43,7 @@ import com.cms.dto.YearFeeFromEnquiry;
 import com.cms.model.OneBookPaymentRequest;
 import com.cms.service.FeeExplorerService;
 import com.cms.service.FeeExportService;
+import com.cms.service.FeeRefundExportService;
 import com.cms.service.FeeFinalizationService;
 import com.cms.service.FeeRefundService;
 import com.cms.service.OneBookIntegrationService;
@@ -61,6 +62,7 @@ public class StudentFeeController {
     private final FeeExplorerService feeExplorerService;
     private final FeeExportService feeExportService;
     private final FeeRefundService feeRefundService;
+    private final FeeRefundExportService feeRefundExportService;
     private final OneBookIntegrationService oneBookService;
 
     public StudentFeeController(FeeFinalizationService feeFinalizationService,
@@ -69,6 +71,7 @@ public class StudentFeeController {
                                  FeeExplorerService feeExplorerService,
                                  FeeExportService feeExportService,
                                  FeeRefundService feeRefundService,
+                                 FeeRefundExportService feeRefundExportService,
                                  OneBookIntegrationService oneBookService) {
         this.feeFinalizationService = feeFinalizationService;
         this.paymentCollectionService = paymentCollectionService;
@@ -76,6 +79,7 @@ public class StudentFeeController {
         this.feeExplorerService = feeExplorerService;
         this.feeExportService = feeExportService;
         this.feeRefundService = feeRefundService;
+        this.feeRefundExportService = feeRefundExportService;
         this.oneBookService = oneBookService;
     }
 
@@ -208,6 +212,39 @@ public class StudentFeeController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @PageableDefault(size = 25, sort = "requestedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(feeRefundService.getAllRefundsPage(search, status, entityType, fromDate, toDate, pageable));
+    }
+
+    @GetMapping("/refunds/export")
+    @PreAuthorize("@perm.has('FEE_REFUND_EXPORT')")
+    public ResponseEntity<byte[]> exportRefunds(
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String entityType,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        List<FeeRefundSummaryResponse> data = feeRefundService.getAllRefundsAll(
+            search, status, entityType, fromDate, toDate);
+        try {
+            if ("pdf".equalsIgnoreCase(format)) {
+                byte[] bytes = feeRefundExportService.toPdf(data);
+                String filename = "fee-refunds-" + LocalDate.now() + ".pdf";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            } else {
+                byte[] bytes = feeRefundExportService.toExcel(data);
+                String filename = "fee-refunds-" + LocalDate.now() + ".xlsx";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/refunds/pending")

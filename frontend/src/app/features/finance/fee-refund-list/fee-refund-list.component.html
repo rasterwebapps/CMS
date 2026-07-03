@@ -356,6 +356,15 @@
        </div>
        <p class="mlp-sub">All refund requests — pending approval sorted to the top.</p>
      </div>
+     @if (canExport()) {
+       <div class="mlp-hdr-actions">
+         <cms-export-button
+           [disabled]="exporting()"
+           (export)="onExport($event)"
+           tooltip="Export refunds as Excel or PDF"
+         />
+       </div>
+     }
    </div>
 
    <!-- ── Filters toolbar ─────────────────────────────────────────────────── -->

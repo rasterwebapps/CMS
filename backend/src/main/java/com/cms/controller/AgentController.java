@@ -1,12 +1,16 @@
 package com.cms.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,6 +28,7 @@ import com.cms.dto.AgentRequest;
 import com.cms.dto.AgentResponse;
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
+import com.cms.service.AgentExportService;
 import com.cms.service.AgentService;
 
 import jakarta.validation.Valid;
@@ -32,10 +37,12 @@ import jakarta.validation.Valid;
 @RequestMapping("/agents")
 public class AgentController {
 
-    private final AgentService agentService;
+    private final AgentService       agentService;
+    private final AgentExportService agentExportService;
 
-    public AgentController(AgentService agentService) {
-        this.agentService = agentService;
+    public AgentController(AgentService agentService, AgentExportService agentExportService) {
+        this.agentService       = agentService;
+        this.agentExportService = agentExportService;
     }
 
     @PostMapping
@@ -104,6 +111,34 @@ public class AgentController {
             @RequestParam(required = false) String search,
             @PageableDefault(size = 25, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(agentService.findPage(search, pageable));
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("@perm.has('AGENT_EXPORT')")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(required = false) String search) {
+        List<AgentResponse> data = agentService.findAll(search);
+        try {
+            if ("pdf".equalsIgnoreCase(format)) {
+                byte[] bytes = agentExportService.toPdf(data);
+                String filename = "agents-" + LocalDate.now() + ".pdf";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            } else {
+                byte[] bytes = agentExportService.toExcel(data);
+                String filename = "agents-" + LocalDate.now() + ".xlsx";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/name-exists")

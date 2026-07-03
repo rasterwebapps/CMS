@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
+import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { Router, RouterLink } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -13,7 +14,9 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { ExportButtonComponent } from '../../../shared/export-button/export-button.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -26,6 +29,7 @@ import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/ic
   standalone: true,
   imports: [
     CmsEmptyStateComponent,
+    ExportButtonComponent,
     CmsStatusBadgeComponent,
     CmsTypeBadgeComponent,
     CmsViewToggleComponent,
@@ -40,11 +44,12 @@ import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/ic
   styleUrl: './equipment-list.component.scss',
 })
 export class EquipmentListComponent implements OnInit, AfterViewInit, OnDestroy {
-  private readonly equipmentService = inject(EquipmentService);
-  private readonly router = inject(Router);
-  private readonly toast = inject(ToastService);
-  private readonly dialog = inject(MatDialog);
-  private readonly tourService = inject(TourService);
+  private readonly equipmentService  = inject(EquipmentService);
+  private readonly router            = inject(Router);
+  private readonly toast             = inject(ToastService);
+  private readonly dialog            = inject(MatDialog);
+  private readonly tourService       = inject(TourService);
+  private readonly permissionService = inject(PermissionService);
 
   private readonly VIEW_MODE_KEY = 'equipment-view-mode';
   private readonly destroy$ = new Subject<void>();
@@ -66,8 +71,10 @@ export class EquipmentListComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   protected readonly displayedColumns: readonly string[] = ['name', 'model', 'labName', 'category', 'status', 'purchaseDate', 'actions'];
-  protected readonly dataSource = new MatTableDataSource<Equipment>([]);
-  protected readonly loading = signal(false);
+  protected readonly dataSource  = new MatTableDataSource<Equipment>([]);
+  protected readonly loading     = signal(false);
+  protected readonly exporting   = signal(false);
+  protected readonly canExport   = computed(() => this.permissionService.has('EQUIPMENT_EXPORT'));
   protected readonly searchValue = signal('');
   protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
 
@@ -145,6 +152,27 @@ export class EquipmentListComponent implements OnInit, AfterViewInit, OnDestroy 
     this.dialog.open(ConfirmDialogComponent, {
       data: { title: 'Delete Equipment', message: `Delete "${item.name}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
     }).afterClosed().subscribe((confirmed) => { if (confirmed) this.doDelete(item); });
+  }
+
+  protected onExport(format: ExportFormat): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.equipmentService.exportEquipment(format, { search: this.searchValue().trim() || null }).subscribe({
+      next: (blob) => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `equipment.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
   }
 
   private doDelete(item: Equipment): void {

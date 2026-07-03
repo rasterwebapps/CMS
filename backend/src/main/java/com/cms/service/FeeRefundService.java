@@ -287,6 +287,18 @@ public class FeeRefundService {
             .toList();
     }
 
+    public List<FeeRefundSummaryResponse> getAllRefundsAll(
+            String search, String status, String entityType,
+            LocalDate fromDate, LocalDate toDate) {
+        Specification<FeeRefund> spec = Specification.where(null);
+        if (search != null && search.length() >= 2)       spec = spec.and(FeeRefundSpecification.bySearch(search));
+        if (status != null && !status.isBlank())          spec = spec.and(FeeRefundSpecification.byStatus(status));
+        if (entityType != null && !entityType.isBlank())  spec = spec.and(FeeRefundSpecification.byEntityType(entityType));
+        if (fromDate != null)                             spec = spec.and(FeeRefundSpecification.byDateFrom(fromDate));
+        if (toDate != null)                               spec = spec.and(FeeRefundSpecification.byDateTo(toDate));
+        return refundRepository.findAll(spec).stream().map(this::toSummaryResponse).toList();
+    }
+
     public Page<FeeRefundSummaryResponse> getAllRefundsPage(
             String search, String status, String entityType,
             LocalDate fromDate, LocalDate toDate, Pageable pageable) {

@@ -1,12 +1,16 @@
 package com.cms.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,6 +28,7 @@ import com.cms.dto.StaffReferrerRequest;
 import com.cms.dto.StaffReferrerResponse;
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
+import com.cms.service.StaffReferrerExportService;
 import com.cms.service.StaffReferrerService;
 
 import jakarta.validation.Valid;
@@ -32,10 +37,12 @@ import jakarta.validation.Valid;
 @RequestMapping("/staff-referrers")
 public class StaffReferrerController {
 
-    private final StaffReferrerService service;
+    private final StaffReferrerService       service;
+    private final StaffReferrerExportService exportService;
 
-    public StaffReferrerController(StaffReferrerService service) {
-        this.service = service;
+    public StaffReferrerController(StaffReferrerService service, StaffReferrerExportService exportService) {
+        this.service       = service;
+        this.exportService = exportService;
     }
 
     @PostMapping
@@ -91,6 +98,34 @@ public class StaffReferrerController {
     @PreAuthorize("@perm.has('STAFF_REFERRER_MANAGE')")
     public ResponseEntity<StaffReferrerResponse> reactivate(@PathVariable Long id) {
         return ResponseEntity.ok(service.reactivate(id));
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("@perm.has('STAFF_REFERRER_EXPORT')")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(required = false) String search) {
+        List<StaffReferrerResponse> data = service.findAll(search);
+        try {
+            if ("pdf".equalsIgnoreCase(format)) {
+                byte[] bytes = exportService.toPdf(data);
+                String filename = "staff-referrers-" + LocalDate.now() + ".pdf";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            } else {
+                byte[] bytes = exportService.toExcel(data);
+                String filename = "staff-referrers-" + LocalDate.now() + ".xlsx";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/page")

@@ -1,6 +1,7 @@
 import {
   AfterViewInit, Component, computed, inject, ElementRef, OnDestroy, OnInit, signal, ViewChild,
 } from '@angular/core';
+import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TitleCasePipe } from '@angular/common';
@@ -20,6 +21,7 @@ import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { ExportButtonComponent } from '../../../shared/export-button/export-button.component';
 import { CashDenominationComponent } from '../../../shared/cash-denomination/cash-denomination.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
@@ -27,6 +29,7 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
 import { TourService } from '../../../shared/tour/tour.service';
 import { FEE_REFUND_LIST_TOUR } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
 import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
 import { printRefundVoucher, downloadRefundVoucher, RefundVoucherData } from '../../../shared/utils/print-receipt.utils';
@@ -42,7 +45,7 @@ const DEFAULT_PAGE_SIZE = 25;
   imports: [
     FormsModule, ReactiveFormsModule, TitleCasePipe,
     InrPipe, PaymentModeLabelPipe, AppDatePipe,
-    CmsEmptyStateComponent, CashDenominationComponent, CmsTourButtonComponent,
+    CmsEmptyStateComponent, ExportButtonComponent, CashDenominationComponent, CmsTourButtonComponent,
     CmsRowActionButtonComponent, CmsTypeBadgeComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
@@ -52,9 +55,10 @@ const DEFAULT_PAGE_SIZE = 25;
   styleUrl: './fee-refund-list.component.scss',
 })
 export class FeeRefundListComponent implements OnInit, AfterViewInit, OnDestroy {
-  private readonly financeService  = inject(FinanceService);
-  private readonly settingsService = inject(SettingsService);
-  private readonly toast           = inject(ToastService);
+  private readonly financeService     = inject(FinanceService);
+  private readonly settingsService    = inject(SettingsService);
+  private readonly toast              = inject(ToastService);
+  private readonly permissionService  = inject(PermissionService);
   private readonly fb              = inject(FormBuilder);
   private readonly tourService     = inject(TourService);
   private readonly router          = inject(Router);
@@ -76,6 +80,8 @@ export class FeeRefundListComponent implements OnInit, AfterViewInit, OnDestroy 
 
   protected readonly loading           = signal(false);
   protected readonly submittingOneBook = signal(false);
+  protected readonly exporting         = signal(false);
+  protected readonly canExport         = computed(() => this.permissionService.has('FEE_REFUND_EXPORT'));
 
   // ── Filters (synced from URL params) ──────────────────────────────────────
   protected readonly searchValue      = signal('');
@@ -208,6 +214,33 @@ export class FeeRefundListComponent implements OnInit, AfterViewInit, OnDestroy 
 
   protected clearFilters(): void {
     this.navigate({ search: null, status: null, entityType: null, fromDate: null, toDate: null, page: 0 });
+  }
+
+  protected onExport(format: ExportFormat): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.financeService.exportRefunds(format, {
+      search:     this.searchValue().length >= 2 ? this.searchValue() : null,
+      status:     this.statusFilter() || null,
+      entityType: this.filterEntityType() || null,
+      fromDate:   this.dateFrom() || null,
+      toDate:     this.dateTo() || null,
+    }).subscribe({
+      next: (blob) => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `refunds.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
   }
 
   protected navigate(patch: Partial<{

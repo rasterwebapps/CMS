@@ -179,7 +179,7 @@ export class App implements OnInit, AfterViewInit {
       items: [
         { label: 'Fee Explorer', icon: 'account_balance_wallet', route: '/student-fees',        permissions: ['STUDENT_FEE_VIEW', 'STUDENT_FEE_CREATE', 'STUDENT_FEE_EDIT', 'STUDENT_FEE_DELETE', 'STUDENT_FEE_EXPORT', 'STUDENT_FEE_MANAGE'] },
         { label: 'Receipts',     icon: 'receipt_long',           route: '/receipts',            permissions: ['RECEIPT_VIEW', 'RECEIPT_EXPORT'] },
-        { label: 'Refunds',      icon: 'assignment_return',      route: '/refund-approvals',    permissions: ['FEE_REFUND_APPROVE'] },
+        { label: 'Refunds',      icon: 'assignment_return',      route: '/refund-approvals',    permissions: ['FEE_REFUND_APPROVE', 'FEE_REFUND_EXPORT'] },
         { label: 'Commissions',  icon: 'handshake',              route: '/commission-explorer', permissions: ['COMMISSION_VIEW', 'COMMISSION_CREATE', 'COMMISSION_EDIT', 'COMMISSION_DELETE', 'COMMISSION_EXPORT', 'COMMISSION_MANAGE'] },
       ],
     },

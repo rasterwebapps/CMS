@@ -150,6 +150,30 @@ public class UnifiedReceiptService {
         return new PageImpl<>(content, pageable, page.getTotalElements());
     }
 
+    /** Unbounded export: same spec as paginated list, returns all matching payment receipts. */
+    public List<UnifiedReceiptResponse> getPaymentsAll(
+            String search, String paymentMode, String payerType,
+            LocalDate fromDate, LocalDate toDate) {
+        Specification<PaymentReceipt> spec = Specification.where(null);
+        if (search != null && search.length() >= 2)        spec = spec.and(PaymentReceiptSpecification.bySearch(search));
+        if (paymentMode != null && !paymentMode.isBlank()) spec = spec.and(PaymentReceiptSpecification.byPaymentMode(paymentMode));
+        if (payerType != null && !payerType.isBlank())     spec = spec.and(PaymentReceiptSpecification.byPayerType(payerType));
+        if (fromDate != null)                              spec = spec.and(PaymentReceiptSpecification.byDateFrom(fromDate));
+        if (toDate != null)                                spec = spec.and(PaymentReceiptSpecification.byDateTo(toDate));
+
+        List<PaymentReceipt> receipts = receiptRepository.findAll(spec);
+        Map<String, String> refundStatusByReceipt = getActiveRefundStatusByReceipt();
+        List<Long> studentIds = receipts.stream()
+            .filter(r -> "STUDENT".equals(r.getPayerType())).map(PaymentReceipt::getPayerId).distinct().toList();
+        List<Long> enquiryIds = receipts.stream()
+            .filter(r -> "ENQUIRY".equals(r.getPayerType())).map(PaymentReceipt::getPayerId).distinct().toList();
+        Map<Long, YearTag> studentYears = resolveStudentYears(studentIds.stream());
+        Map<Long, YearTag> enquiryYears = resolveEnquiryYears(enquiryIds.stream());
+        return receipts.stream()
+            .map(r -> toResponse(r, "PAYMENT", refundStatusByReceipt.get(r.getReceiptNumber()), studentYears, enquiryYears))
+            .toList();
+    }
+
     /** Return all receipts (payments + refunds) ordered newest first. */
     public List<UnifiedReceiptResponse> getAllReceipts() {
         List<UnifiedReceiptResponse> merged = new ArrayList<>();

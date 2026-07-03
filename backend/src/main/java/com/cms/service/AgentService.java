@@ -67,6 +67,20 @@ public class AgentService {
             .toList();
     }
 
+    public List<AgentResponse> findAll(String search) {
+        Specification<Agent> spec = Specification.where(null);
+        if (search != null && !search.trim().isEmpty()) {
+            String pattern = "%" + search.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                cb.like(cb.lower(root.get("name")), pattern),
+                cb.like(cb.lower(root.get("phone")), pattern),
+                cb.like(cb.lower(root.get("email")), pattern),
+                cb.like(cb.lower(root.get("area")), pattern)
+            ));
+        }
+        return agentRepository.findAll(spec).stream().map(this::toResponse).toList();
+    }
+
     public Page<AgentResponse> findPage(String search, Pageable pageable) {
         Specification<Agent> spec = Specification.where(null);
         if (search != null && !search.trim().isEmpty()) {

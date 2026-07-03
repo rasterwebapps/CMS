@@ -65,6 +65,22 @@ public class EquipmentService {
             .toList();
     }
 
+    public List<EquipmentResponse> findAll(String search) {
+        Specification<Equipment> spec = Specification.where(null);
+        if (search != null && !search.trim().isEmpty()) {
+            String pattern = "%" + search.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> {
+                Join<Equipment, Lab> lab = root.join("lab", JoinType.INNER);
+                return cb.or(
+                    cb.like(cb.lower(root.get("name")), pattern),
+                    cb.like(cb.lower(root.get("model")), pattern),
+                    cb.like(cb.lower(lab.get("name")), pattern)
+                );
+            });
+        }
+        return equipmentRepository.findAll(spec).stream().map(this::toResponse).toList();
+    }
+
     public Page<EquipmentResponse> findPage(String search, Pageable pageable) {
         Specification<Equipment> spec = Specification.where(null);
         if (search != null && !search.trim().isEmpty()) {

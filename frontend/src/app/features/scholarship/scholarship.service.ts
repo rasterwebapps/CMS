@@ -130,5 +130,11 @@ export class ScholarshipService {
     return this.http.get<OneBookPaymentTrack[]>(
       `${this.baseUrl}/scholarship-applications/${id}/onebook-payments`);
   }
+
+  exportScholarshipTypes(format: 'excel' | 'pdf', filters: { search?: string | null } = {}): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (filters.search) params = params.set('search', filters.search);
+    return this.http.get(`${this.baseUrl}/scholarships/export`, { params, responseType: 'blob' });
+  }
 }
 

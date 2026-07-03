@@ -1,12 +1,16 @@
 package com.cms.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cms.dto.FacultyRequest;
 import com.cms.dto.FacultyResponse;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.service.FacultyExportService;
 import com.cms.service.FacultyService;
 
 import jakarta.validation.Valid;
@@ -30,10 +35,12 @@ import jakarta.validation.Valid;
 @RequestMapping("/faculty")
 public class FacultyController {
 
-    private final FacultyService facultyService;
+    private final FacultyService       facultyService;
+    private final FacultyExportService facultyExportService;
 
-    public FacultyController(FacultyService facultyService) {
-        this.facultyService = facultyService;
+    public FacultyController(FacultyService facultyService, FacultyExportService facultyExportService) {
+        this.facultyService       = facultyService;
+        this.facultyExportService = facultyExportService;
     }
 
     @PostMapping
@@ -88,6 +95,37 @@ public class FacultyController {
             @RequestParam(required = false) String documentReview,
             @PageableDefault(size = 25, sort = "firstName", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(facultyService.findPage(search, specialityId, status, documentReview, pageable));
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("@perm.has('FACULTY_EXPORT')")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long specialityId,
+            @RequestParam(required = false) FacultyStatus status,
+            @RequestParam(required = false) String documentReview) {
+        List<FacultyResponse> data = facultyService.findAll(search, specialityId, status, documentReview);
+        try {
+            if ("pdf".equalsIgnoreCase(format)) {
+                byte[] bytes = facultyExportService.toPdf(data);
+                String filename = "faculty-" + LocalDate.now() + ".pdf";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            } else {
+                byte[] bytes = facultyExportService.toExcel(data);
+                String filename = "faculty-" + LocalDate.now() + ".xlsx";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/nrts-exists")

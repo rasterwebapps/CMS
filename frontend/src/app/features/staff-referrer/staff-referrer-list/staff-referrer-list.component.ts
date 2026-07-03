@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
+import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { Router, RouterLink } from '@angular/router';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -15,6 +16,8 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
+import { ExportButtonComponent } from '../../../shared/export-button/export-button.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
 
@@ -30,6 +33,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent,
+    ExportButtonComponent,
     CmsViewToggleComponent,
     CmsStatusBadgeComponent,
     CmsRowActionButtonComponent,
@@ -40,10 +44,11 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
   styleUrl: './staff-referrer-list.component.scss',
 })
 export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDestroy {
-  private readonly service = inject(StaffReferrerService);
-  private readonly router = inject(Router);
-  private readonly toast = inject(ToastService);
-  private readonly dialog = inject(MatDialog);
+  private readonly service           = inject(StaffReferrerService);
+  private readonly router            = inject(Router);
+  private readonly toast             = inject(ToastService);
+  private readonly dialog            = inject(MatDialog);
+  private readonly permissionService = inject(PermissionService);
 
   private readonly VIEW_MODE_KEY = 'staff-referrer-view-mode';
   private readonly destroy$ = new Subject<void>();
@@ -65,8 +70,10 @@ export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDest
   }
 
   protected readonly displayedColumns = ['name', 'employeeCode', 'phone', 'institutionName', 'commissionAmount', 'isActive', 'actions'];
-  protected readonly dataSource = new MatTableDataSource<StaffReferrer>([]);
-  protected readonly loading = signal(false);
+  protected readonly dataSource  = new MatTableDataSource<StaffReferrer>([]);
+  protected readonly loading     = signal(false);
+  protected readonly exporting   = signal(false);
+  protected readonly canExport   = computed(() => this.permissionService.has('STAFF_REFERRER_EXPORT'));
   protected readonly searchValue = signal('');
   protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
 
@@ -148,6 +155,27 @@ export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDest
     } else {
       void this.router.navigate(['/staff-referrers/new']);
     }
+  }
+
+  protected onExport(format: ExportFormat): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.service.exportStaffReferrers(format, { search: this.searchValue().trim() || null }).subscribe({
+      next: (blob) => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `staff-referrers.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
   }
 
   private loadViewMode(): 'card' | 'table' {
