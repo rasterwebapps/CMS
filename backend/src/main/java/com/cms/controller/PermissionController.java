@@ -161,7 +161,7 @@ public class PermissionController {
             "'" + perm.getCode() + "' tier changed from " + previousTier + " to " + request.tier());
 
         return ResponseEntity.ok(
-            new PermissionDetail(perm.getId(), perm.getCode(), perm.getDisplayName(), perm.getCategory(), perm.getTier()));
+            new PermissionDetail(perm.getId(), perm.getCode(), perm.getDisplayName(), perm.getCategory(), perm.getTier(), perm.getScreenLabel()));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
