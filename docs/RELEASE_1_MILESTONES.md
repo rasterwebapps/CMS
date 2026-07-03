@@ -86,9 +86,8 @@
 - [x] **R1-0.3.2** Create `docker-compose.yml` with services:
   - Keycloak 26.0 (with realm auto-import)
   - PostgreSQL 17 (for prod profile)
-- [ ] **R1-0.3.3** Verify `docker compose up -d keycloak` starts Keycloak with `cms` realm
-- [ ] **R1-0.3.4** Verify Keycloak admin console is accessible and realm roles exist:
-  - `ROLE_ADMIN`, `ROLE_FACULTY`, `ROLE_STUDENT`, `ROLE_LAB_INCHARGE`, `ROLE_TECHNICIAN`, `ROLE_PARENT`
+- [x] **R1-0.3.3** Verify `docker compose up -d keycloak` starts Keycloak with `cms` realm — confirmed on 172.16.7.209: container healthy, `cms` realm responding, `cms-frontend`/`cms-backend` clients configured, users `devadmin`/`supportadmin`/`collegeadmin` enabled with credentials
+- [x] **R1-0.3.4** Verify Keycloak admin console accessible and realm roles — admin console accessible at `https://172.16.7.209:8180`; realm roles (`ROLE_ADMIN` etc.) are N/A — design evolved to fully DB-driven permissions (`@perm.has()` resolves `preferred_username` → DB role → permission set); no Keycloak realm roles are used or needed anywhere in the codebase; login flow verified: port 80 → 301 HTTPS → nginx 443 (self-signed cert) → Keycloak with `X-Forwarded-Host: cms.nursing.sksh.ac.in` → JWT `iss: https://cms.nursing.sksh.ac.in/realms/cms` matches backend `KEYCLOAK_ALLOWED_ISSUERS`
 
 ---
 
