@@ -428,18 +428,18 @@
 > **Business Requirements:** See [BR-4](BUSINESS_REQUIREMENTS.md#br-4-referral-type-master).
 
 **Backend:**
-- [ ] **R1-4.1a.1** Create `ReferralType` entity (`id`, `name`, `code`, `guidelineValue` [BigDecimal], `description`, `isActive`)
+- [x] **R1-4.1a.1** Create `ReferralType` entity (`id`, `name`, `code`, `commissionAmount`, `hasCommission`, `description`, `isActive`, `isSystemDefined`)
   - Replaces hardcoded `EnquirySource` enum for referral categorization
   - Default types: WALK_IN, PHONE, ONLINE, AGENT_REFERRAL, STAFF, ALUMNI, PARENT, ADVERTISEMENT
-- [ ] **R1-4.1a.2** Create ReferralType service with CRUD operations
-- [ ] **R1-4.1a.3** Create controllers under `/api/v1/referral-types`
-- [ ] **R1-4.1a.4** Create DTOs and Flyway migrations (seed default referral types)
+- [x] **R1-4.1a.2** Create ReferralType service with CRUD operations
+- [x] **R1-4.1a.3** Create controllers under `/referral-types` (GET, POST, PUT, DELETE, PATCH /status, /name-exists, /code-exists, /page)
+- [x] **R1-4.1a.4** Create DTOs and Flyway migrations (seed default referral types — V37_1, V41, V54, V107, V108)
 - [ ] **R1-4.1a.5** Write unit + controller tests (95% coverage)
 - [ ] **R1-4.1a.6** Create manual test cases: `docs/manual-test-cases/referral-type-management.md`
 
 **Frontend:**
-- [ ] **R1-4.1a.7** Create `features/referral-type/` with list and form components
-- [ ] **R1-4.1a.8** Create referral type routes (lazy-loaded)
+- [x] **R1-4.1a.7** Create `features/referral-type/` with list (server-side pagination, card+table toggle) and form (uniqueness validators, preview card)
+- [x] **R1-4.1a.8** Create referral type routes (lazy-loaded) + nav entry in sidebar
 
 ### R1-M4.1b — Enquiry-to-Admission Workflow Enhancement
 

@@ -2,6 +2,10 @@ package com.cms.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,6 +26,8 @@ import com.cms.dto.LibraryRenewRequest;
 import com.cms.model.enums.IssueStatus;
 import com.cms.model.enums.LibraryMemberType;
 import com.cms.service.LibraryIssueService;
+
+import jakarta.validation.Valid;
 
 import jakarta.validation.Valid;
 
@@ -94,5 +100,15 @@ public class LibraryIssueController {
             @PathVariable Long id,
             @RequestBody(required = false) LibraryRenewRequest request) {
         return ResponseEntity.ok(issueService.renew(id, request));
+    }
+
+    @GetMapping("/page")
+    @PreAuthorize("@perm.has('LIBRARY_ISSUE_MANAGE')")
+    public ResponseEntity<Page<LibraryIssueResponse>> findPage(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) IssueStatus status,
+            @RequestParam(required = false) LibraryMemberType memberType,
+            @PageableDefault(size = 25, sort = "issuedDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(issueService.findPage(search, status, memberType, pageable));
     }
 }

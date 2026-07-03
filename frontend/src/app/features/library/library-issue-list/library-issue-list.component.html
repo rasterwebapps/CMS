@@ -29,7 +29,7 @@
     <select
       class="mlp-filter-select"
       [value]="statusFilter() ?? ''"
-      (change)="statusFilter.set($any($event.target).value || null); syncTable()"
+      (change)="statusFilter.set($any($event.target).value || null); onFilterChange()"
       aria-label="Filter by status"
     >
       <option value="">All Statuses</option>
@@ -41,18 +41,13 @@
     <select
       class="mlp-filter-select"
       [value]="memberFilter() ?? ''"
-      (change)="memberFilter.set($any($event.target).value || null); syncTable()"
+      (change)="memberFilter.set($any($event.target).value || null); onFilterChange()"
       aria-label="Filter by member type"
     >
       <option value="">Students &amp; Faculty</option>
       <option value="STUDENT">Students only</option>
       <option value="FACULTY">Faculty only</option>
     </select>
-
-    <label class="checkbox-inline">
-      <input type="checkbox" [checked]="overdueOnly()" (change)="overdueOnly.set($any($event.target).checked); syncTable()" />
-      Overdue only
-    </label>
 
     @if (hasActiveFilters()) {
       <button class="btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button>
@@ -164,6 +159,6 @@
         </tr>
       </table>
     </div>
-    <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons aria-label="Issue register pages" />
+    <mat-paginator [pageSizeOptions]="[25, 50, 100]" [length]="totalElements" showFirstLastButtons aria-label="Issue register pages" />
   }
 </div>

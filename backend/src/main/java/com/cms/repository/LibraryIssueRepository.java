@@ -5,12 +5,13 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.cms.model.LibraryIssue;
 import com.cms.model.enums.IssueStatus;
 import com.cms.model.enums.LibraryMemberType;
 
-public interface LibraryIssueRepository extends JpaRepository<LibraryIssue, Long> {
+public interface LibraryIssueRepository extends JpaRepository<LibraryIssue, Long>, JpaSpecificationExecutor<LibraryIssue> {
 
     List<LibraryIssue> findByStudentId(Long studentId);
 

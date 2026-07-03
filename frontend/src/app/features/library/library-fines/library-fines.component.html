@@ -6,20 +6,6 @@
       <h1 class="mlp-title">Fine <em>Management</em></h1>
       <p class="mlp-sub">View, waive, and collect overdue fines</p>
     </div>
-    <div class="fines-summary">
-      <div class="summary-card summary-card--pending">
-        <span class="summary-card__value">{{ totalPending() }}</span>
-        <span class="summary-card__label">Pending</span>
-      </div>
-      <div class="summary-card summary-card--amount">
-        <span class="summary-card__value">₹{{ totalAmount() | number:'1.2-2' }}</span>
-        <span class="summary-card__label">Outstanding</span>
-      </div>
-      <div class="summary-card summary-card--collected">
-        <span class="summary-card__value">₹{{ totalCollected() | number:'1.2-2' }}</span>
-        <span class="summary-card__label">Collected</span>
-      </div>
-    </div>
   </div>
 
   <!-- Toolbar -->
@@ -38,7 +24,7 @@
     <select
       class="mlp-filter-select"
       [value]="statusFilter() ?? ''"
-      (change)="statusFilter.set($any($event.target).value || null); syncTable()"
+      (change)="statusFilter.set($any($event.target).value || null); onFilterChange()"
       aria-label="Filter by fine status"
     >
       <option value="">All Statuses</option>
@@ -50,7 +36,7 @@
     <select
       class="mlp-filter-select"
       [value]="memberFilter() ?? ''"
-      (change)="memberFilter.set($any($event.target).value || null); syncTable()"
+      (change)="memberFilter.set($any($event.target).value || null); onFilterChange()"
       aria-label="Filter by member type"
     >
       <option value="">Students &amp; Faculty</option>
@@ -164,7 +150,7 @@
         </tr>
       </table>
     </div>
-    <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons aria-label="Fine register pages" />
+    <mat-paginator [pageSizeOptions]="[25, 50, 100]" [length]="totalElements" showFirstLastButtons aria-label="Fine register pages" />
   }
 
 </div>

@@ -1,3 +1,13 @@
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+}
+
 export type BookStatus = 'AVAILABLE' | 'ISSUED' | 'LOST' | 'DAMAGED' | 'WITHDRAWN';
 export type BookSourceOfSupply = 'PURCHASE' | 'DONATION' | 'EXCHANGE';
 

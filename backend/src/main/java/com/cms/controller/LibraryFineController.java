@@ -2,6 +2,10 @@ package com.cms.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cms.dto.LibraryFineDetailResponse;
 import com.cms.dto.LibraryFineRequest;
 import com.cms.model.enums.FineStatus;
+import com.cms.model.enums.LibraryMemberType;
 import com.cms.service.LibraryFineService;
 
 @RestController
@@ -56,5 +61,15 @@ public class LibraryFineController {
         String actor = jwt != null ? jwt.getClaimAsString("preferred_username") : "librarian";
         String remarks = request != null ? request.remarks() : null;
         return ResponseEntity.ok(fineService.collect(id, remarks, actor));
+    }
+
+    @GetMapping("/page")
+    @PreAuthorize("@perm.hasAny('LIBRARY_FINE_VIEW', 'LIBRARY_FINE_MANAGE')")
+    public ResponseEntity<Page<LibraryFineDetailResponse>> findPage(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) FineStatus status,
+            @RequestParam(required = false) LibraryMemberType memberType,
+            @PageableDefault(size = 25, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(fineService.findPage(search, status, memberType, pageable));
     }
 }

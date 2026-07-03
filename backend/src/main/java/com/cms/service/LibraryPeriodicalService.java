@@ -1,7 +1,11 @@
 package com.cms.service;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +16,8 @@ import com.cms.model.LibraryPeriodical;
 import com.cms.model.enums.JournalType;
 import com.cms.model.enums.SubscriptionStatus;
 import com.cms.repository.LibraryPeriodicalRepository;
+
+import jakarta.persistence.criteria.Predicate;
 
 @Service
 @Transactional(readOnly = true)
@@ -32,6 +38,23 @@ public class LibraryPeriodicalService {
 
     public List<LibraryPeriodicalResponse> findAll() {
         return repository.findAll().stream().map(this::toResponse).toList();
+    }
+
+    public Page<LibraryPeriodicalResponse> findPage(String search, SubscriptionStatus subscriptionStatus, JournalType journalType, Pageable pageable) {
+        Specification<LibraryPeriodical> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (search != null && !search.isBlank()) {
+                String p = "%" + search.trim().toLowerCase() + "%";
+                predicates.add(cb.or(
+                    cb.like(cb.lower(root.get("journalName")), p),
+                    cb.like(cb.lower(root.get("organization")), p)
+                ));
+            }
+            if (subscriptionStatus != null) predicates.add(cb.equal(root.get("subscriptionStatus"), subscriptionStatus));
+            if (journalType != null) predicates.add(cb.equal(root.get("journalType"), journalType));
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return repository.findAll(spec, pageable).map(this::toResponse);
     }
 
     public List<LibraryPeriodicalResponse> findByStatus(SubscriptionStatus status) {

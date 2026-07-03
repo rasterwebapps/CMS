@@ -4,11 +4,12 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.cms.model.LibraryBook;
 import com.cms.model.enums.BookStatus;
 
-public interface LibraryBookRepository extends JpaRepository<LibraryBook, Long> {
+public interface LibraryBookRepository extends JpaRepository<LibraryBook, Long>, JpaSpecificationExecutor<LibraryBook> {
 
     Optional<LibraryBook> findByAccessionNumber(String accessionNumber);
 

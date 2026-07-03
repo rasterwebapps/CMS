@@ -29,7 +29,7 @@
       <input class="search-bar__input" [value]="searchValue()" (input)="applyFilter($event)"
              placeholder="Search by journal name, organization, volume..." aria-label="Search periodicals" />
       @if (searchValue()) {
-        <button class="search-bar__clear" (click)="searchValue.set(''); syncTable()" aria-label="Clear search">
+        <button class="search-bar__clear" (click)="clearFilters()" aria-label="Clear search">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -40,7 +40,7 @@
 
     <select class="mlp-filter-select"
       [value]="typeFilter() ?? ''"
-      (change)="typeFilter.set($any($event.target).value || null); syncTable()"
+      (change)="typeFilter.set($any($event.target).value || null); onFilterChange()"
       aria-label="Filter by journal type">
       <option value="">All Types</option>
       @for (opt of typeOptions; track opt.value) {
@@ -50,7 +50,7 @@
 
     <select class="mlp-filter-select"
       [value]="statusFilter() ?? ''"
-      (change)="statusFilter.set($any($event.target).value || null); syncTable()"
+      (change)="statusFilter.set($any($event.target).value || null); onFilterChange()"
       aria-label="Filter by subscription status">
       <option value="">All Statuses</option>
       @for (opt of statusOptions; track opt.value) {
@@ -147,7 +147,7 @@
       </table>
     </div>
 
-    <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons aria-label="Journal register pages" />
+    <mat-paginator [pageSizeOptions]="[25, 50, 100]" [length]="totalElements" showFirstLastButtons aria-label="Journal register pages" />
   }
 
 </div>

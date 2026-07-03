@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
+  Page,
   LibraryBook,
   LibraryBookRequest,
   BookStatus,
@@ -54,6 +55,15 @@ export class LibraryService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
+  getBooksPage(p: { search?: string; status?: BookStatus | null; category?: string | null; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibraryBook>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search)   params = params.set('search', p.search);
+    if (p.status)   params = params.set('status', p.status);
+    if (p.category) params = params.set('category', p.category);
+    if (p.sort)     params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
+    return this.http.get<Page<LibraryBook>>(`${this.baseUrl}/page`, { params });
+  }
+
   checkAccessionNumberExists(accessionNumber: string, excludeId?: number): Observable<{ exists: boolean }> {
     let params = new HttpParams().set('accessionNumber', accessionNumber);
     if (excludeId != null) params = params.set('excludeId', excludeId.toString());
@@ -61,6 +71,15 @@ export class LibraryService {
   }
 
   // ── Fines ─────────────────────────────────────────────────────
+
+  getFinesPage(p: { search?: string; status?: FineStatus | null; memberType?: LibraryMemberType | null; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibraryFineDetail>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search)     params = params.set('search', p.search);
+    if (p.status)     params = params.set('status', p.status);
+    if (p.memberType) params = params.set('memberType', p.memberType);
+    if (p.sort)       params = params.set('sort', `${p.sort},${p.direction ?? 'desc'}`);
+    return this.http.get<Page<LibraryFineDetail>>(`${environment.apiUrl}/library/fines/page`, { params });
+  }
 
   getFines(status?: FineStatus): Observable<LibraryFineDetail[]> {
     const params = status ? new HttpParams().set('status', status) : undefined;
@@ -112,6 +131,15 @@ export class LibraryService {
 
   // ── Circulation ───────────────────────────────────────────────
 
+  getIssuesPage(p: { search?: string; status?: IssueStatus | null; memberType?: LibraryMemberType | null; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibraryIssue>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search)     params = params.set('search', p.search);
+    if (p.status)     params = params.set('status', p.status);
+    if (p.memberType) params = params.set('memberType', p.memberType);
+    if (p.sort)       params = params.set('sort', `${p.sort},${p.direction ?? 'desc'}`);
+    return this.http.get<Page<LibraryIssue>>(`${environment.apiUrl}/library/issues/page`, { params });
+  }
+
   getIssues(memberType?: LibraryMemberType, status?: IssueStatus): Observable<LibraryIssue[]> {
     let params = new HttpParams();
     if (memberType) params = params.set('memberType', memberType);
@@ -136,6 +164,15 @@ export class LibraryService {
   }
 
   // ── Periodicals ───────────────────────────────────────────────
+
+  getPeriodicalsPage(p: { search?: string; subscriptionStatus?: SubscriptionStatus | null; journalType?: JournalType | null; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibraryPeriodical>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search)             params = params.set('search', p.search);
+    if (p.subscriptionStatus) params = params.set('subscriptionStatus', p.subscriptionStatus);
+    if (p.journalType)        params = params.set('journalType', p.journalType);
+    if (p.sort)               params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
+    return this.http.get<Page<LibraryPeriodical>>(`${environment.apiUrl}/library/periodicals/page`, { params });
+  }
 
   getPeriodicals(status?: SubscriptionStatus, journalType?: JournalType): Observable<LibraryPeriodical[]> {
     let params = new HttpParams();

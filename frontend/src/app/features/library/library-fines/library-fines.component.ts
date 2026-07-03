@@ -1,20 +1,17 @@
-import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
-import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { LibraryService } from '../library.service';
-import {
-  LibraryFineDetail,
-  FineStatus,
-  LibraryMemberType,
-  FINE_STATUS_OPTIONS,
-} from '../library.model';
+import { LibraryFineDetail, FineStatus, LibraryMemberType, FINE_STATUS_OPTIONS } from '../library.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
@@ -25,87 +22,84 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
   selector: 'app-library-fines',
   standalone: true,
   imports: [
-    FormsModule,
-    DatePipe,
-    DecimalPipe,
-    MatTableModule,
-    MatPaginatorModule,
-    MatSortModule,
-    MatDialogModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule,
-    CmsRowActionButtonComponent,
-    CmsTypeBadgeComponent,
-    CmsEmptyStateComponent,
+    FormsModule, DatePipe, DecimalPipe,
+    MatTableModule, MatPaginatorModule, MatSortModule,
+    MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule,
+    CmsRowActionButtonComponent, CmsTypeBadgeComponent, CmsEmptyStateComponent,
   ],
   templateUrl: './library-fines.component.html',
   styleUrl: './library-fines.component.scss',
 })
-export class LibraryFinesComponent implements OnInit {
+export class LibraryFinesComponent implements OnInit, OnDestroy {
   private readonly libraryService = inject(LibraryService);
   private readonly toast          = inject(ToastService);
   private readonly dialog         = inject(MatDialog);
 
-  @ViewChild(MatPaginator) set paginator(v: MatPaginator) { if (v) this.dataSource.paginator = v; }
-  @ViewChild(MatSort)      set sort(v: MatSort)           { if (v) this.dataSource.sort = v; }
+  private readonly destroy$      = new Subject<void>();
+  private readonly searchSubject  = new Subject<string>();
+  private _paginator?: MatPaginator;
+  private _paginatorSub?: Subscription;
+
+  @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
+    if (!p || p === this._paginator) return;
+    this._paginatorSub?.unsubscribe();
+    this._paginator = p;
+    p.pageIndex = this.currentPage;
+    p.pageSize  = this.currentPageSize;
+    this._paginatorSub = p.page.pipe(takeUntil(this.destroy$)).subscribe((e: PageEvent) => {
+      this.currentPage = e.pageIndex;
+      this.currentPageSize = e.pageSize;
+      this.loadPage();
+    });
+  }
 
   protected readonly displayedColumns = [
     'accessionNumber', 'bookTitle', 'memberName', 'overdueDays',
     'totalFine', 'status', 'resolvedBy', 'actions',
   ];
-
   protected readonly dataSource    = new MatTableDataSource<LibraryFineDetail>([]);
   protected readonly loading       = signal(false);
   protected readonly searchValue   = signal('');
   protected readonly statusFilter  = signal<FineStatus | null>(null);
   protected readonly memberFilter  = signal<LibraryMemberType | null>(null);
-
-  private readonly allFines        = signal<LibraryFineDetail[]>([]);
   protected readonly statusOptions = FINE_STATUS_OPTIONS;
-
-  protected readonly filteredFines = computed(() => {
-    const q      = this.searchValue().toLowerCase().trim();
-    const status = this.statusFilter();
-    const member = this.memberFilter();
-    return this.allFines().filter(f => {
-      if (status && f.status     !== status)  return false;
-      if (member && f.memberType !== member)  return false;
-      if (q && !(
-        f.accessionNumber.toLowerCase().includes(q) ||
-        f.bookTitle.toLowerCase().includes(q)       ||
-        f.memberName.toLowerCase().includes(q)      ||
-        (f.memberCode ?? '').toLowerCase().includes(q)
-      )) return false;
-      return true;
-    });
-  });
-
-  protected readonly totalPending   = computed(() => this.allFines().filter(f => f.status === 'PENDING').length);
-  protected readonly totalAmount    = computed(() =>
-    this.allFines().filter(f => f.status === 'PENDING').reduce((s, f) => s + f.totalFine, 0));
-  protected readonly totalCollected = computed(() =>
-    this.allFines().filter(f => f.status === 'COLLECTED').reduce((s, f) => s + f.totalFine, 0));
-
   protected readonly hasActiveFilters = computed(() =>
     this.statusFilter() !== null || this.memberFilter() !== null || this.searchValue().length > 0);
 
+  protected totalElements  = 0;
+  protected currentPage    = 0;
+  protected currentPageSize = 25;
+  protected sortActive     = 'createdAt';
+  protected sortDirection: 'asc' | 'desc' = 'desc';
+
   ngOnInit(): void {
-    this.dataSource.sortingDataAccessor = (item, prop) =>
-      String((item as unknown as Record<string, unknown>)[prop] ?? '').toLowerCase();
-    this.loadFines();
+    this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe(() => { this.currentPage = 0; this.loadPage(); });
+    this.loadPage();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next(); this.destroy$.complete();
+    this._paginatorSub?.unsubscribe();
   }
 
   protected applyFilter(event: Event): void {
-    this.searchValue.set((event.target as HTMLInputElement).value);
-    this.syncTable();
+    const value = (event.target as HTMLInputElement).value;
+    this.searchValue.set(value);
+    this.searchSubject.next(value);
   }
 
+  protected onFilterChange(): void { this.currentPage = 0; this.loadPage(); }
+
   protected clearFilters(): void {
-    this.searchValue.set('');
-    this.statusFilter.set(null);
-    this.memberFilter.set(null);
-    this.syncTable();
+    this.searchValue.set(''); this.statusFilter.set(null); this.memberFilter.set(null);
+    this.currentPage = 0; this.loadPage();
+  }
+
+  protected onSortChange(sort: Sort): void {
+    this.sortActive = sort.active;
+    this.sortDirection = sort.direction as 'asc' | 'desc';
+    this.currentPage = 0; this.loadPage();
   }
 
   protected statusLabel(status: FineStatus): string {
@@ -124,67 +118,46 @@ export class LibraryFinesComponent implements OnInit {
 
   protected confirmWaive(fine: LibraryFineDetail): void {
     this.dialog.open(ConfirmDialogComponent, {
-      data: {
-        title: 'Waive Fine',
-        message: `Waive ₹${fine.totalFine} fine for "${fine.bookTitle}"?\nMember: ${fine.memberName}${fine.memberCode ? ' (' + fine.memberCode + ')' : ''}`,
-        confirmText: 'Waive Fine',
-        cancelText: 'Cancel',
-      },
-    }).afterClosed().subscribe(confirmed => {
-      if (confirmed) this.performWaive(fine);
-    });
+      data: { title: 'Waive Fine', message: `Waive ₹${fine.totalFine} fine for "${fine.bookTitle}"?\nMember: ${fine.memberName}${fine.memberCode ? ' (' + fine.memberCode + ')' : ''}`, confirmText: 'Waive Fine', cancelText: 'Cancel' },
+    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performWaive(fine); });
   }
 
   protected confirmCollect(fine: LibraryFineDetail): void {
     this.dialog.open(ConfirmDialogComponent, {
-      data: {
-        title: 'Collect Fine',
-        message: `Mark ₹${fine.totalFine} fine as collected from ${fine.memberName}?\nBook: "${fine.bookTitle}" (${fine.accessionNumber})`,
-        confirmText: 'Mark Collected',
-        cancelText: 'Cancel',
-      },
-    }).afterClosed().subscribe(confirmed => {
-      if (confirmed) this.performCollect(fine);
-    });
-  }
-
-  protected syncTable(): void {
-    this.dataSource.data = this.filteredFines();
-    this.dataSource.paginator?.firstPage();
+      data: { title: 'Collect Fine', message: `Mark ₹${fine.totalFine} fine as collected from ${fine.memberName}?\nBook: "${fine.bookTitle}" (${fine.accessionNumber})`, confirmText: 'Mark Collected', cancelText: 'Cancel' },
+    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performCollect(fine); });
   }
 
   private performWaive(fine: LibraryFineDetail): void {
     this.libraryService.waiveFine(fine.id).subscribe({
-      next: updated => {
-        this.toast.success(`Fine of ₹${updated.totalFine} waived for ${updated.memberName}.`);
-        this.loadFines();
-      },
+      next: updated => { this.toast.success(`Fine of ₹${updated.totalFine} waived for ${updated.memberName}.`); this.loadPage(); },
       error: err => this.toast.error(err?.error?.message ?? 'Failed to waive fine'),
     });
   }
 
   private performCollect(fine: LibraryFineDetail): void {
     this.libraryService.collectFine(fine.id).subscribe({
-      next: updated => {
-        this.toast.success(`₹${updated.totalFine} collected from ${updated.memberName}.`);
-        this.loadFines();
-      },
+      next: updated => { this.toast.success(`₹${updated.totalFine} collected from ${updated.memberName}.`); this.loadPage(); },
       error: err => this.toast.error(err?.error?.message ?? 'Failed to collect fine'),
     });
   }
 
-  private loadFines(): void {
+  private loadPage(): void {
     this.loading.set(true);
-    this.libraryService.getFines().subscribe({
-      next: fines => {
-        this.allFines.set(fines);
-        this.syncTable();
+    this.libraryService.getFinesPage({
+      search: this.searchValue() || undefined,
+      status: this.statusFilter(),
+      memberType: this.memberFilter(),
+      page: this.currentPage, size: this.currentPageSize,
+      sort: this.sortActive, direction: this.sortDirection,
+    }).subscribe({
+      next: page => {
+        this.dataSource.data = page.content;
+        this.totalElements = page.totalElements;
+        if (this._paginator) { this._paginator.length = page.totalElements; this._paginator.pageIndex = page.number; }
         this.loading.set(false);
       },
-      error: () => {
-        this.toast.error('Failed to load fines');
-        this.loading.set(false);
-      },
+      error: () => { this.toast.error('Failed to load fines'); this.loading.set(false); },
     });
   }
 }

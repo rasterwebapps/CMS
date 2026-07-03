@@ -3,11 +3,19 @@ package com.cms.service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 
 import com.cms.dto.LibraryFineResponse;
 import com.cms.dto.LibraryIssueRequest;
@@ -219,6 +227,24 @@ public class LibraryIssueService {
             issues = issueRepository.findAll();
         }
         return issues.stream().map(this::toResponse).toList();
+    }
+
+    public Page<LibraryIssueResponse> findPage(String search, IssueStatus status, LibraryMemberType memberType, Pageable pageable) {
+        Specification<LibraryIssue> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (search != null && !search.isBlank()) {
+                String p = "%" + search.trim().toLowerCase() + "%";
+                Join<Object, Object> book = root.join("book", JoinType.LEFT);
+                predicates.add(cb.or(
+                    cb.like(cb.lower(book.get("title")), p),
+                    cb.like(cb.lower(book.get("accessionNumber")), p)
+                ));
+            }
+            if (status != null) predicates.add(cb.equal(root.get("status"), status));
+            if (memberType != null) predicates.add(cb.equal(root.get("memberType"), memberType));
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return issueRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     public List<LibraryIssueResponse> findByStudentId(Long studentId) {

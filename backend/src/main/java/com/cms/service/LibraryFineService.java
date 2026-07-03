@@ -1,8 +1,12 @@
 package com.cms.service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +19,10 @@ import com.cms.model.Student;
 import com.cms.model.enums.FineStatus;
 import com.cms.model.enums.LibraryMemberType;
 import com.cms.repository.LibraryFineRepository;
+
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 
 @Service
 public class LibraryFineService {
@@ -33,6 +41,26 @@ public class LibraryFineService {
             .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
             .map(this::toDetail)
             .toList();
+    }
+
+    public Page<LibraryFineDetailResponse> findPage(String search, FineStatus status, LibraryMemberType memberType, Pageable pageable) {
+        Specification<LibraryFine> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            boolean needsIssueJoin = (search != null && !search.isBlank()) || memberType != null;
+            Join<Object, Object> issue = needsIssueJoin ? root.join("issue", JoinType.LEFT) : null;
+            if (search != null && !search.isBlank()) {
+                String p = "%" + search.trim().toLowerCase() + "%";
+                Join<Object, Object> book = issue.join("book", JoinType.LEFT);
+                predicates.add(cb.or(
+                    cb.like(cb.lower(book.get("title")), p),
+                    cb.like(cb.lower(book.get("accessionNumber")), p)
+                ));
+            }
+            if (status != null) predicates.add(cb.equal(root.get("status"), status));
+            if (memberType != null) predicates.add(cb.equal(issue.get("memberType"), memberType));
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return fineRepository.findAll(spec, pageable).map(this::toDetail);
     }
 
     @Transactional

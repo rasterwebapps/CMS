@@ -1,8 +1,12 @@
 package com.cms.service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +16,8 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.LibraryBook;
 import com.cms.model.enums.BookStatus;
 import com.cms.repository.LibraryBookRepository;
+
+import jakarta.persistence.criteria.Predicate;
 
 @Service
 @Transactional(readOnly = true)
@@ -41,6 +47,25 @@ public class LibraryBookService {
 
     public List<LibraryBookResponse> findAll() {
         return bookRepository.findAll().stream().map(this::toResponse).toList();
+    }
+
+    public Page<LibraryBookResponse> findPage(String search, BookStatus status, String category, Pageable pageable) {
+        Specification<LibraryBook> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (search != null && !search.isBlank()) {
+                String p = "%" + search.trim().toLowerCase() + "%";
+                predicates.add(cb.or(
+                    cb.like(cb.lower(root.get("title")), p),
+                    cb.like(cb.lower(root.get("authors")), p),
+                    cb.like(cb.lower(root.get("accessionNumber")), p),
+                    cb.like(cb.lower(root.get("subjectCategory")), p)
+                ));
+            }
+            if (status != null) predicates.add(cb.equal(root.get("status"), status));
+            if (category != null && !category.isBlank()) predicates.add(cb.equal(root.get("subjectCategory"), category));
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return bookRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     public List<LibraryBookResponse> findByStatus(BookStatus status) {
