@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DecimalPipe } from '@angular/common';
+import { DecimalPipe, LowerCasePipe, SlicePipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
@@ -62,6 +62,8 @@ import { printFeeReceipt } from '../../../shared/utils/print-receipt.utils';
     InrPipe,
     RouterLink,
     DecimalPipe,
+    LowerCasePipe,
+    SlicePipe,
     MatTabsModule,
     MatButtonModule,
     MatIconModule,

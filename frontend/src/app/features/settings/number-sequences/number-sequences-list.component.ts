@@ -1,4 +1,5 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { DecimalPipe, TitleCasePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -6,7 +7,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
-import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { ToastService } from '../../../core/toast/toast.service';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
@@ -22,7 +22,8 @@ import { NumberSeriesDefinitionService } from './number-series-definition.servic
   standalone: true,
   imports: [
     RouterLink,
-    AppDatePipe,
+    TitleCasePipe,
+    DecimalPipe,
     CmsEmptyStateComponent,
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
