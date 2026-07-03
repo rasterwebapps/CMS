@@ -1,0 +1,96 @@
+<div class="mlp-page">
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">{{ isEdit() ? 'Edit' : 'Add' }} Number <em>Series</em></h1>
+      <p class="mlp-sub">{{ isEdit() ? 'Update the series configuration.' : 'Define a new number generation series.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="mlp-loading-grid" style="padding: 2rem">
+      @for (i of [1,2,3]; track i) { <div class="mlp-card-skeleton" style="height: 56px"></div> }
+    </div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="content-card form-card anim-rise">
+
+        <div class="form-section-title">Series Identity</div>
+        <div class="form-row form-row--2">
+          <mat-form-field appearance="outline">
+            <mat-label>Series Code</mat-label>
+            <input matInput formControlName="seriesCode"
+                   placeholder="e.g. ASSET_NUMBER"
+                   [attr.readonly]="isEdit() ? '' : null" />
+            <mat-hint>Uppercase letters, digits and underscores. Cannot be changed after creation.</mat-hint>
+            @if (form.get('seriesCode')?.hasError('pattern')) {
+              <mat-error>Uppercase letters, digits, underscores only</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Series Name</mat-label>
+            <input matInput formControlName="seriesName" placeholder="e.g. Asset Register Number" />
+          </mat-form-field>
+        </div>
+
+        <div class="form-section-title" style="margin-top: 1.5rem">Scope &amp; Reset</div>
+        <div class="form-row form-row--1">
+          <mat-form-field appearance="outline">
+            <mat-label>Scope Type</mat-label>
+            <mat-select formControlName="scopeType">
+              @for (opt of scopeTypeOptions; track opt.value) {
+                <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+              }
+            </mat-select>
+            @if (scopeLocked()) {
+              <mat-hint>Locked — numbers have already been generated for this series.</mat-hint>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="form-section-title" style="margin-top: 1.5rem">Number Format</div>
+        <div class="form-row form-row--3">
+          <mat-form-field appearance="outline">
+            <mat-label>Prefix</mat-label>
+            <input matInput formControlName="prefix" placeholder="e.g. RCP (leave blank for none)" />
+            <mat-hint>Static prefix at the start of each number.</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Separator</mat-label>
+            <input matInput formControlName="separator" placeholder="e.g. - or / or (blank)" maxlength="5" />
+            <mat-hint>Between prefix, scope, and sequence. Leave blank for no separator.</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Sequence Padding</mat-label>
+            <input matInput type="number" formControlName="sequencePadding" min="1" max="10" />
+            <mat-hint>Zero-pad width, e.g. 5 → 00001.</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <!-- Live format preview -->
+        <div class="format-preview">
+          <span class="format-preview__label">Format preview:</span>
+          <span class="code-chip">{{ previewFormatHint }}</span>
+        </div>
+
+        <div class="form-row form-row--1" style="margin-top: 1.5rem">
+          <mat-form-field appearance="outline">
+            <mat-label>Description</mat-label>
+            <textarea matInput formControlName="description" rows="3"
+                      placeholder="Optional description of when and how this series is used."></textarea>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Sticky footer -->
+      <div class="form-footer-sticky">
+        <button type="button" class="btn-secondary" routerLink="/number-sequences">Cancel</button>
+        <button type="submit" class="btn-primary" [disabled]="saving()">
+          {{ saving() ? 'Saving…' : (isEdit() ? 'Save Changes' : 'Create Series') }}
+        </button>
+      </div>
+    </form>
+  }
+</div>

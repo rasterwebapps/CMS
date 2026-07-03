@@ -165,10 +165,26 @@ export const routes: Routes = [
   },
   {
     path: 'number-sequences',
-    canActivate: withPermission('NUMBER_SEQUENCE_VIEW'),
+    canActivate: withPermission('NUMBER_SERIES_VIEW', 'NUMBER_SEQUENCE_VIEW'),
     loadComponent: () =>
       import('./features/settings/number-sequences/number-sequences-list.component').then(
         (m) => m.NumberSequencesListComponent
+      ),
+  },
+  {
+    path: 'number-sequences/new',
+    canActivate: withPermission('NUMBER_SERIES_MANAGE'),
+    loadComponent: () =>
+      import('./features/settings/number-sequences/number-series-form.component').then(
+        (m) => m.NumberSeriesFormComponent
+      ),
+  },
+  {
+    path: 'number-sequences/:id/edit',
+    canActivate: withPermission('NUMBER_SERIES_MANAGE'),
+    loadComponent: () =>
+      import('./features/settings/number-sequences/number-series-form.component').then(
+        (m) => m.NumberSeriesFormComponent
       ),
   },
   {

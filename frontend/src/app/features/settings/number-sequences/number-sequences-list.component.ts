@@ -1,98 +1,66 @@
-import { Component, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSortModule, Sort } from '@angular/material/sort';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { Subject, Subscription } from 'rxjs';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { ToastService } from '../../../core/toast/toast.service';
+import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { NUMBER_SEQUENCES_TOUR } from '../../../shared/tour/tours/number-sequences.tours';
-import { NumberSequence } from './number-sequence.model';
-import { NumberSequenceService } from './number-sequence.service';
+import { NumberSeriesDefinition } from './number-series-definition.model';
+import { NumberSeriesDefinitionService } from './number-series-definition.service';
 
 @Component({
   selector: 'app-number-sequences-list',
   standalone: true,
   imports: [
-    FormsModule,
+    RouterLink,
     AppDatePipe,
     CmsEmptyStateComponent,
     CmsTourButtonComponent,
+    CmsRowActionButtonComponent,
+    CmsIconEditComponent,
+    CmsIconDeleteComponent,
     MatTableModule,
-    MatPaginatorModule,
-    MatSortModule,
+    MatTooltipModule,
   ],
   templateUrl: './number-sequences-list.component.html',
   styleUrl: './number-sequences-list.component.scss',
 })
 export class NumberSequencesListComponent implements OnInit, OnDestroy {
-  private readonly numberSequenceService = inject(NumberSequenceService);
+  private readonly seriesService = inject(NumberSeriesDefinitionService);
+  private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly dialog = inject(MatDialog);
   private readonly tourService = inject(TourService);
-
   private readonly destroy$ = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
-  private _paginator?: MatPaginator;
-  private _paginatorSub?: Subscription;
-
-  @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
-    if (!p || p === this._paginator) return;
-    this._paginatorSub?.unsubscribe();
-    this._paginator = p;
-    p.pageIndex = this.currentPage;
-    p.pageSize = this.currentPageSize;
-    this._paginatorSub = p.page.pipe(takeUntil(this.destroy$)).subscribe((e: PageEvent) => {
-      this.currentPage = e.pageIndex;
-      this.currentPageSize = e.pageSize;
-      this.loadPage();
-    });
-  }
 
   protected readonly displayedColumns = [
-    'seriesName',
-    'scopeKey',
-    'lastGeneratedNumber',
-    'nextPreviewNumber',
-    'lastSequence',
-    'updatedAt',
+    'seriesName', 'scopeType', 'currentPeriod', 'currentLastGenerated', 'currentNextPreview', 'actions',
   ];
-  protected readonly dataSource = new MatTableDataSource<NumberSequence>([]);
+  protected readonly dataSource = new MatTableDataSource<NumberSeriesDefinition>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
-
-  protected totalElements = 0;
-  protected currentPage = 0;
-  protected currentPageSize = 25;
-  protected sortActive = 'seriesName';
-  protected sortDirection: 'asc' | 'desc' = 'asc';
-
-  private readonly sortMap: Record<string, string> = {
-    seriesName: 'seriesName',
-    scopeKey: 'scopeKey',
-    lastSequence: 'lastSequence',
-    updatedAt: 'updatedAt',
-  };
+  private allItems: NumberSeriesDefinition[] = [];
 
   ngOnInit(): void {
     this.tourService.register('number-sequences-list', NUMBER_SEQUENCES_TOUR);
-    this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
-      .subscribe(() => { this.currentPage = 0; this.loadPage(); });
-    this.loadPage();
+    this.searchSubject.pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe(q => this.applyLocalFilter(q));
+    this.load();
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    this._paginatorSub?.unsubscribe();
-  }
-
-  protected clearSearch(): void {
-    this.searchValue.set('');
-    this.searchSubject.next('');
   }
 
   protected onSearch(event: Event): void {
@@ -101,37 +69,56 @@ export class NumberSequencesListComponent implements OnInit, OnDestroy {
     this.searchSubject.next(value);
   }
 
-  protected onSortChange(sort: Sort): void {
-    if (!this.sortMap[sort.active]) return;
-    this.sortActive = sort.active;
-    this.sortDirection = sort.direction as 'asc' | 'desc';
-    this.currentPage = 0;
-    this.loadPage();
+  protected clearSearch(): void {
+    this.searchValue.set('');
+    this.searchSubject.next('');
   }
 
-  private loadPage(): void {
-    this.loading.set(true);
-    const search = this.searchValue().trim() || undefined;
-    this.numberSequenceService.getPage({
-      search,
-      page: this.currentPage,
-      size: this.currentPageSize,
-      sort: this.sortMap[this.sortActive] ?? this.sortActive,
-      direction: this.sortDirection,
-    }).subscribe({
-      next: (page) => {
-        this.dataSource.data = page.content;
-        this.totalElements = page.totalElements;
-        if (this._paginator) {
-          this._paginator.length = page.totalElements;
-          this._paginator.pageIndex = page.number;
-        }
-        this.loading.set(false);
+  protected edit(item: NumberSeriesDefinition): void {
+    void this.router.navigate(['/number-sequences', item.id, 'edit']);
+  }
+
+  protected canDelete(item: NumberSeriesDefinition): boolean {
+    return item.canEditScopeType; // canEditScopeType = true means no counters exist yet
+  }
+
+  protected delete(item: NumberSeriesDefinition): void {
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Delete Series',
+        message: `Delete "${item.seriesName}"? This cannot be undone.`,
+        confirmText: 'Delete', cancelText: 'Cancel',
       },
-      error: () => {
-        this.toast.error('Failed to load number sequences');
-        this.loading.set(false);
-      },
+    }).afterClosed().subscribe(ok => { if (ok) this.doDelete(item); });
+  }
+
+  private doDelete(item: NumberSeriesDefinition): void {
+    this.seriesService.delete(item.id).subscribe({
+      next: () => { this.toast.success('Series deleted'); this.load(); },
+      error: (err) => this.toast.error(err?.error?.message ?? 'Cannot delete — numbers already generated.'),
     });
+  }
+
+  private load(): void {
+    this.loading.set(true);
+    this.seriesService.getAll().subscribe({
+      next: items => {
+        this.allItems = items;
+        this.applyLocalFilter(this.searchValue());
+        this.loading.set(false);
+      },
+      error: () => { this.toast.error('Failed to load number series'); this.loading.set(false); },
+    });
+  }
+
+  private applyLocalFilter(q: string): void {
+    const lower = q.trim().toLowerCase();
+    this.dataSource.data = lower
+      ? this.allItems.filter(i =>
+          i.seriesCode.toLowerCase().includes(lower) ||
+          i.seriesName.toLowerCase().includes(lower) ||
+          i.scopeType.toLowerCase().includes(lower) ||
+          (i.description ?? '').toLowerCase().includes(lower))
+      : this.allItems;
   }
 }

@@ -2,15 +2,25 @@
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
       <div class="page-title-row">
-        <h1 class="mlp-title">Number <em>Sequences</em></h1>
+        <h1 class="mlp-title">Number <em>Series</em></h1>
         <cms-tour-button tourKey="number-sequences-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="mlp-sub">View reusable application-wide generated number series.</p>
+      <p class="mlp-sub">Configure and monitor application-wide number generation series.</p>
+    </div>
+    <div class="mlp-hdr-actions">
+      <a routerLink="/number-sequences/new" class="btn-primary btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Add Series
+      </a>
     </div>
   </div>
 
   <div class="mlp-toolbar anim-rise anim-rise--d1">
-    <div id="tour-numseq-search" class="search-bar" role="search">
+    <div class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -20,9 +30,9 @@
         class="search-bar__input"
         [value]="searchValue()"
         (input)="onSearch($event)"
-        placeholder="Search by sequence, scope or description…"
+        placeholder="Search by name, code or scope…"
         type="text"
-        aria-label="Search number sequences"
+        aria-label="Search number series"
       />
       @if (searchValue()) {
         <button class="search-bar__clear" (click)="clearSearch()" aria-label="Clear search">
@@ -36,86 +46,95 @@
     </div>
   </div>
 
-  <div id="tour-numseq-table" class="content-card mlp-table-card">
-    <div class="table-wrapper">
-      <table
-        mat-table
-        [dataSource]="dataSource"
-        matSort
-        [matSortActive]="sortActive"
-        [matSortDirection]="sortDirection"
-        matSortDisableClear
-        (matSortChange)="onSortChange($event)"
-        class="modern-table"
-      >
-        <ng-container matColumnDef="seriesName">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Series</th>
-          <td mat-cell *matCellDef="let row">
-            @if (loading()) {
-              <span class="skeleton-line"></span>
-            } @else {
+  <div class="content-card mlp-table-card anim-rise anim-rise--d2">
+    @if (loading()) {
+      <div class="mlp-loading-grid" style="padding: 2rem">
+        @for (i of [1,2,3,4,5]; track i) { <div class="mlp-card-skeleton"></div> }
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" class="modern-table">
+
+          <ng-container matColumnDef="seriesName">
+            <th mat-header-cell *matHeaderCellDef>Series</th>
+            <td mat-cell *matCellDef="let row">
               <span class="cell-name">{{ row.seriesName }}</span>
               <span class="cell-sub cell-code-sub">{{ row.seriesCode }}</span>
-            }
-          </td>
-        </ng-container>
+            </td>
+          </ng-container>
 
-        <ng-container matColumnDef="scopeKey">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Scope</th>
-          <td mat-cell *matCellDef="let row">
-            <span class="cell-text">{{ row.scopeType }}</span>
-            <span class="cell-sub cell-code-sub">{{ row.scopeKey }}</span>
-          </td>
-        </ng-container>
+          <ng-container matColumnDef="scopeType">
+            <th mat-header-cell *matHeaderCellDef>Scope / Format</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-text">{{ row.scopeType | titlecase }}</span>
+              <span class="cell-sub">
+                {{ row.prefix ?? '(no prefix)' }}{{ row.separator }}…{{ row.separator }}{{ '0'.repeat(row.sequencePadding) }}
+              </span>
+            </td>
+          </ng-container>
 
-        <ng-container matColumnDef="lastGeneratedNumber">
-          <th mat-header-cell *matHeaderCellDef>Last Generated</th>
-          <td mat-cell *matCellDef="let row">
-            <span class="code-chip">{{ row.lastGeneratedNumber }}</span>
-          </td>
-        </ng-container>
+          <ng-container matColumnDef="currentPeriod">
+            <th mat-header-cell *matHeaderCellDef>Current Period</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-text">{{ row.currentPeriodLabel }}</span>
+              <span class="cell-sub">{{ row.currentLastSequence | number }} generated</span>
+            </td>
+          </ng-container>
 
-        <ng-container matColumnDef="nextPreviewNumber">
-          <th mat-header-cell *matHeaderCellDef>Next Preview</th>
-          <td mat-cell *matCellDef="let row">
-            <span class="code-chip code-chip--sm">{{ row.nextPreviewNumber }}</span>
-          </td>
-        </ng-container>
+          <ng-container matColumnDef="currentLastGenerated">
+            <th mat-header-cell *matHeaderCellDef>Last Generated</th>
+            <td mat-cell *matCellDef="let row">
+              @if (row.currentLastGenerated) {
+                <span class="code-chip">{{ row.currentLastGenerated }}</span>
+              } @else {
+                <span class="cell-muted">—</span>
+              }
+            </td>
+          </ng-container>
 
-        <ng-container matColumnDef="lastSequence">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Last Seq.</th>
-          <td mat-cell *matCellDef="let row" class="cell-align-right">
-            <span class="cell-number">{{ row.lastSequence }}</span>
-          </td>
-        </ng-container>
+          <ng-container matColumnDef="currentNextPreview">
+            <th mat-header-cell *matHeaderCellDef>Next Preview</th>
+            <td mat-cell *matCellDef="let row">
+              @if (row.currentNextPreview) {
+                <span class="code-chip code-chip--sm">{{ row.currentNextPreview }}</span>
+              } @else {
+                <span class="cell-muted">Per course</span>
+              }
+            </td>
+          </ng-container>
 
-        <ng-container matColumnDef="updatedAt">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Updated</th>
-          <td mat-cell *matCellDef="let row">
-            <span class="cell-date">{{ row.updatedAt | appDate:'dateTime' }}</span>
-          </td>
-        </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <td mat-cell *matCellDef="let row">
+              <div class="row-actions">
+                @if (canDelete(row)) {
+                  <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete series" (clicked)="delete(row)">
+                    <cms-icon-delete />
+                  </cms-row-action-btn>
+                }
+                <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit series" (clicked)="edit(row)">
+                  <cms-icon-edit />
+                </cms-row-action-btn>
+              </div>
+            </td>
+          </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
-        <tr class="mat-row" *matNoDataRow>
-          <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
-            <cms-empty-state
-              icon="tag"
-              [title]="searchValue() ? 'No sequences match your search' : 'No number sequences yet'"
-              [subtitle]="searchValue() ? 'Try clearing the search.' : 'Sequences will appear once numbers are generated.'"
-              [actionLabel]="searchValue() ? 'Clear Search' : ''"
-              (actionClick)="clearSearch()"
-            />
-          </td>
-        </tr>
-      </table>
-    </div>
-    <mat-paginator
-      [length]="totalElements"
-      [pageSizeOptions]="[10, 25, 50]"
-      [pageSize]="25"
-      showFirstLastButtons
-    />
+          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
+              <cms-empty-state
+                icon="tag"
+                [title]="searchValue() ? 'No series match your search' : 'No number series defined'"
+                [subtitle]="searchValue() ? 'Try clearing the search.' : 'Add the first number series to get started.'"
+                [actionLabel]="searchValue() ? 'Clear Search' : 'Add Series'"
+                (actionClick)="searchValue() ? clearSearch() : null"
+              />
+            </td>
+          </tr>
+        </table>
+      </div>
+    }
   </div>
 </div>
