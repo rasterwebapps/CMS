@@ -40,6 +40,7 @@ import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeDemandRepository;
 import com.cms.repository.FeeInstallmentRepository;
+import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
@@ -65,6 +66,8 @@ class FeeReportServiceTest {
     private EnquiryPaymentRepository enquiryPaymentRepository;
     @Mock
     private FeeFinalizationService feeFinalizationService;
+    @Mock
+    private PaymentReceiptRepository paymentReceiptRepository;
 
     private FeeReportService service;
 
@@ -80,7 +83,8 @@ class FeeReportServiceTest {
     void setUp() {
         service = new FeeReportService(feeDemandRepository,
             studentRepository, feeDemandService, allocationRepository, semesterFeeRepository,
-            installmentRepository, enquiryRepository, enquiryPaymentRepository, feeFinalizationService);
+            installmentRepository, enquiryRepository, enquiryPaymentRepository, feeFinalizationService,
+            paymentReceiptRepository);
 
         academicYear = new AcademicYear("2026-2027",
             LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31), true);
