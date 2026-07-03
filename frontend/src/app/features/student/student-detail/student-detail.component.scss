@@ -1297,6 +1297,47 @@
   tr:hover td { background: var(--cms-bg-hover); }
 }
 
+// ── OneBook payment track ──────────────────────────────────────
+.ob-invoice {
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: var(--cms-text-secondary);
+}
+
+.ob-status-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  &--pending      { background: color-mix(in srgb, var(--cms-warning) 15%, transparent); color: var(--cms-warning-dark, var(--cms-warning)); }
+  &--transmitted  { background: color-mix(in srgb, var(--cms-primary) 12%, transparent); color: var(--cms-primary); }
+  &--paid         { background: color-mix(in srgb, var(--cms-success) 15%, transparent); color: var(--cms-success-dark, var(--cms-success)); }
+  &--failed       { background: color-mix(in srgb, var(--cms-danger)  15%, transparent); color: var(--cms-danger); }
+}
+
+.ob-detail-cell { max-width: 280px; }
+
+.ob-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-danger);
+
+  mat-icon { font-size: 14px; width: 14px; height: 14px; flex-shrink: 0; }
+}
+
+.ob-remark {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+
+  &--muted { color: var(--cms-text-muted); font-style: italic; }
+}
+
 // ── Program History tab ────────────────────────────────────────
 .transfer-history {
   display: flex;

@@ -29,6 +29,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { STUDENT_DETAIL_TOUR } from '../../../shared/tour/tours/student.tours';
 import { ScholarshipService } from '../../scholarship/scholarship.service';
 import {
+  OneBookPaymentTrack,
   ScholarshipApplication,
   ScholarshipDisbursement,
   ScholarshipEligibility,
@@ -105,6 +106,7 @@ export class StudentDetailComponent implements OnInit {
   protected readonly eligibleScholarships = signal<ScholarshipType[]>([]);
   protected readonly scholarshipApplications = signal<ScholarshipApplication[]>([]);
   protected readonly scholarshipDisbursements = signal<ScholarshipDisbursement[]>([]);
+  protected readonly scholarshipOneBookPayments = signal<OneBookPaymentTrack[]>([]);
   protected readonly loadingScholarships = signal(false);
 
   protected readonly admissionId = signal<number | null>(null);
@@ -460,6 +462,17 @@ export class StudentDetailComponent implements OnInit {
         this.scholarshipApplications.set(applications);
         this.scholarshipDisbursements.set(disbursements);
         this.loadingScholarships.set(false);
+
+        if (applications.length > 0) {
+          forkJoin(applications.map(app =>
+            this.scholarshipService.getApplicationOneBookPayments(app.id),
+          )).subscribe({
+            next: results => this.scholarshipOneBookPayments.set(
+              results.flat().sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+            ),
+            error: () => {},
+          });
+        }
       },
       error: () => {
         this.loadingScholarships.set(false);

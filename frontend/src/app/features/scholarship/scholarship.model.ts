@@ -178,3 +178,17 @@ export interface ScholarshipDisbursement {
   createdAt: string;
 }
 
+export type OneBookPaymentStatus = 'PENDING' | 'TRANSMITTED' | 'PAID' | 'FAILED';
+
+export interface OneBookPaymentTrack {
+  referenceId: string;
+  invoiceNumber: string;
+  status: OneBookPaymentStatus;
+  onebookStatus?: string | null;
+  amount: number;
+  transmittedAt?: string | null;
+  errorMessage?: string | null;
+  onebookRemarks?: string | null;
+  createdAt: string;
+}
+

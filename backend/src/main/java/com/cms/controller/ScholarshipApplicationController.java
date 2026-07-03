@@ -23,11 +23,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.DisbursementRequest;
 import com.cms.dto.DisbursementResponse;
+import com.cms.dto.OneBookPaymentSummaryResponse;
 import com.cms.dto.ScholarshipApplicationResponse;
 import com.cms.dto.ScholarshipApprovalRequest;
 import com.cms.dto.ScholarshipRejectionRequest;
 import com.cms.dto.ScholarshipSanctionRequest;
 import com.cms.model.OneBookPaymentRequest;
+import com.cms.repository.OneBookPaymentRequestRepository;
 import com.cms.service.OneBookIntegrationService;
 import com.cms.service.ScholarshipDisbursementService;
 import com.cms.service.StudentScholarshipService;
@@ -41,13 +43,16 @@ public class ScholarshipApplicationController {
     private final StudentScholarshipService studentScholarshipService;
     private final ScholarshipDisbursementService disbursementService;
     private final OneBookIntegrationService oneBookService;
+    private final OneBookPaymentRequestRepository obRepo;
 
     public ScholarshipApplicationController(StudentScholarshipService studentScholarshipService,
                                             ScholarshipDisbursementService disbursementService,
-                                            OneBookIntegrationService oneBookService) {
+                                            OneBookIntegrationService oneBookService,
+                                            OneBookPaymentRequestRepository obRepo) {
         this.studentScholarshipService = studentScholarshipService;
         this.disbursementService = disbursementService;
         this.oneBookService = oneBookService;
+        this.obRepo = obRepo;
     }
 
     @GetMapping
@@ -130,6 +135,20 @@ public class ScholarshipApplicationController {
     @PreAuthorize("@perm.has('SCHOLARSHIP_VIEW')")
     public ResponseEntity<List<DisbursementResponse>> disbursements(@PathVariable Long id) {
         return ResponseEntity.ok(disbursementService.getApplicationDisbursements(id));
+    }
+
+    @GetMapping("/{id}/onebook-payments")
+    @PreAuthorize("@perm.has('SCHOLARSHIP_VIEW')")
+    public ResponseEntity<List<OneBookPaymentSummaryResponse>> oneBookPayments(@PathVariable Long id) {
+        List<OneBookPaymentSummaryResponse> result = obRepo
+                .findByEntityIdAndPaymentTypeOrderByCreatedAtDesc(id, "SCHOLARSHIP")
+                .stream()
+                .map(r -> new OneBookPaymentSummaryResponse(
+                        r.getReferenceId(), r.getInvoiceNumber(), r.getStatus(),
+                        r.getOnebookStatus(), r.getAmount(), r.getTransmittedAt(),
+                        r.getErrorMessage(), r.getOnebookRemarks(), r.getCreatedAt()))
+                .toList();
+        return ResponseEntity.ok(result);
     }
 
     private static String username(Jwt jwt) {

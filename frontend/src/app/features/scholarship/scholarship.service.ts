@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
   DisbursementRequest,
+  OneBookPaymentTrack,
   Page,
   ScholarshipApplication,
   ScholarshipApplicationRequest,
@@ -118,6 +119,16 @@ export class ScholarshipService {
 
   disburse(id: number, request: DisbursementRequest): Observable<ScholarshipDisbursement> {
     return this.http.post<ScholarshipDisbursement>(`${this.baseUrl}/scholarship-applications/${id}/disburse`, request);
+  }
+
+  disburseViaOneBook(id: number, request: DisbursementRequest): Observable<{ referenceId: string; status: string }> {
+    return this.http.post<{ referenceId: string; status: string }>(
+      `${this.baseUrl}/scholarship-applications/${id}/disburse-onebook`, request);
+  }
+
+  getApplicationOneBookPayments(id: number): Observable<OneBookPaymentTrack[]> {
+    return this.http.get<OneBookPaymentTrack[]>(
+      `${this.baseUrl}/scholarship-applications/${id}/onebook-payments`);
   }
 }
 

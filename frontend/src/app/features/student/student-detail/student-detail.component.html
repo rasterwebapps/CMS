@@ -572,6 +572,45 @@
                   }
                 </div>
 
+                <!-- OneBook payment track (TRANSMITTED / FAILED — only when present) -->
+                @if (scholarshipOneBookPayments().length > 0) {
+                  <div class="content-card scholar-card">
+                    <div class="scholar-card__hdr">
+                      <p class="scholar-card__title"><mat-icon>sync</mat-icon> OneBook Payments</p>
+                    </div>
+                    <table class="payments-table">
+                      <thead>
+                        <tr><th>Invoice No.</th><th>Amount (₹)</th><th>Transmitted</th><th>Status</th><th>Details</th></tr>
+                      </thead>
+                      <tbody>
+                        @for (ob of scholarshipOneBookPayments(); track ob.referenceId) {
+                          <tr>
+                            <td><span class="ob-invoice">{{ ob.invoiceNumber }}</span></td>
+                            <td>{{ ob.amount | inr:true:false }}</td>
+                            <td>{{ ob.transmittedAt ? (ob.transmittedAt | appDate) : '—' }}</td>
+                            <td>
+                              <span class="ob-status-chip ob-status-chip--{{ ob.status | lowercase }}">
+                                {{ ob.status }}
+                              </span>
+                            </td>
+                            <td class="ob-detail-cell">
+                              @if (ob.status === 'FAILED' && ob.errorMessage) {
+                                <span class="ob-error" [title]="ob.errorMessage">
+                                  <mat-icon>error_outline</mat-icon> {{ ob.errorMessage | slice:0:60 }}{{ ob.errorMessage.length > 60 ? '…' : '' }}
+                                </span>
+                              } @else if (ob.onebookStatus) {
+                                <span class="ob-remark">{{ ob.onebookStatus }}{{ ob.onebookRemarks ? ' — ' + ob.onebookRemarks : '' }}</span>
+                              } @else {
+                                <span class="ob-remark ob-remark--muted">Awaiting callback from OneBook</span>
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+
                 <!-- Disbursements -->
                 <div class="content-card scholar-card">
                   <div class="scholar-card__hdr">
