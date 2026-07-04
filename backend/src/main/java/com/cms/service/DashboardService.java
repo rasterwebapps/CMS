@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,8 @@ import com.cms.dto.DashboardTrendsResponse;
 import com.cms.dto.FrontOfficeDashboardResponse;
 import com.cms.dto.FrontOfficeEnquiryItem;
 import com.cms.model.EnquiryPayment;
+import com.cms.model.Enquiry;
+import com.cms.model.Student;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AttendanceRepository;
@@ -61,6 +64,7 @@ public class DashboardService {
     private final StudentFeeAllocationRepository allocationRepository;
     private final EnquiryPaymentService enquiryPaymentService;
     private final FeeFinalizationService feeFinalizationService;
+    private final PaymentCollectionService paymentCollectionService;
 
     public DashboardService(StudentRepository studentRepository,
                             FacultyRepository facultyRepository,
@@ -78,7 +82,8 @@ public class DashboardService {
                             AdmissionRepository admissionRepository,
                             StudentFeeAllocationRepository allocationRepository,
                             EnquiryPaymentService enquiryPaymentService,
-                            FeeFinalizationService feeFinalizationService) {
+                            FeeFinalizationService feeFinalizationService,
+                            PaymentCollectionService paymentCollectionService) {
         this.studentRepository = studentRepository;
         this.facultyRepository = facultyRepository;
         this.specialityRepository = specialityRepository;
@@ -96,6 +101,7 @@ public class DashboardService {
         this.allocationRepository = allocationRepository;
         this.enquiryPaymentService = enquiryPaymentService;
         this.feeFinalizationService = feeFinalizationService;
+        this.paymentCollectionService = paymentCollectionService;
     }
 
     /**
@@ -132,17 +138,52 @@ public class DashboardService {
         );
     }
 
+    /** Exposed for the lightweight fee-collection count endpoint — same logic as the badge. */
+    public long getFeeCollectionEligibleCount() {
+        return computeCollectPaymentEligibleCount();
+    }
+
     /**
-     * Fast badge count for the Fee Collection nav badge.
-     * Enquiry side: native SQL — counts payment-eligible enquiries with finalized fees
-     * that still have an outstanding balance and haven't been handed off to a student allocation.
-     * Student side: counts FINALIZED allocations (fast single-row aggregate; avoids loading
-     * all students + N+1 per student that the previous feeExplorerService.search(null) caused).
+     * Badge count for the Fee Collection nav — uses the SAME term-gated collectibleOutstanding
+     * rule as the Collect Payment list screen, for both enquiries and students.
+     *
+     * Enquiry side: fetches candidates (full-outstanding > 0, not yet handed off to student
+     * allocation), then keeps only those where the term-gated collectibleOutstanding is still > 0.
+     * Student side: keeps only finalized-allocation students where collectibleOutstanding > 0.
+     *
+     * This ensures the badge matches the record count visible on the screen.
      */
     private long computeCollectPaymentEligibleCount() {
-        long enquiryCount = enquiryRepository.countPaymentEligibleWithOutstanding();
-        long studentCount = allocationRepository.countFinalizedAllocations();
-        return enquiryCount + studentCount;
+        // ── Enquiry side ──────────────────────────────────────────────────────────────────────
+        long enquiryCount = 0;
+        List<Long> eligibleEnquiryIds = enquiryRepository.findPaymentEligibleEnquiryIds();
+        if (!eligibleEnquiryIds.isEmpty()) {
+            List<Enquiry> eligibleEnquiries = enquiryRepository.findAllById(eligibleEnquiryIds);
+            for (Enquiry enquiry : eligibleEnquiries) {
+                BigDecimal totalPaid = Optional.ofNullable(
+                    enquiryPaymentRepository.sumAmountPaidByEnquiryId(enquiry.getId()))
+                    .orElse(BigDecimal.ZERO);
+                if (enquiryPaymentService.getCollectibleOutstanding(enquiry, totalPaid)
+                        .compareTo(BigDecimal.ZERO) > 0) {
+                    enquiryCount++;
+                }
+            }
+        }
+
+        // ── Student side ──────────────────────────────────────────────────────────────────────
+        long collectibleStudentCount = 0;
+        List<Long> finalizedStudentIds = allocationRepository.findFinalizedStudentIds();
+        final int batchSize = 200;
+        for (int i = 0; i < finalizedStudentIds.size(); i += batchSize) {
+            int end = Math.min(i + batchSize, finalizedStudentIds.size());
+            List<Long> batchIds = finalizedStudentIds.subList(i, end);
+            List<Student> students = studentRepository.findByIdInWithRelations(batchIds);
+            collectibleStudentCount += students.stream()
+                .filter(s -> paymentCollectionService.getCollectibleOutstanding(s).compareTo(BigDecimal.ZERO) > 0)
+                .count();
+        }
+
+        return enquiryCount + collectibleStudentCount;
     }
 
     /**
@@ -324,4 +365,3 @@ public class DashboardService {
         return count == 1 ? singular : plural;
     }
 }
-

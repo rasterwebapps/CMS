@@ -67,5 +67,12 @@ public class DashboardController {
     public ResponseEntity<FrontOfficeDashboardResponse> getFrontOfficeDashboard() {
         return ResponseEntity.ok(dashboardService.getFrontOfficeDashboard());
     }
+
+    /** Lightweight count of records currently eligible for collection — used by the paginator. */
+    @GetMapping("/fee-collection-count")
+    @PreAuthorize("@perm.has('FEE_COLLECT')")
+    public ResponseEntity<Long> getFeeCollectionCount() {
+        return ResponseEntity.ok(dashboardService.getFeeCollectionEligibleCount());
+    }
 }
 

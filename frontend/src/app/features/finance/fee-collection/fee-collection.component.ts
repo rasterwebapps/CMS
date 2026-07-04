@@ -4,12 +4,12 @@ import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validatio
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DecimalPipe } from '@angular/common';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
-import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
+import { debounceTime, distinctUntilChanged, Subject, Subscription, takeUntil } from 'rxjs';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { FinanceService } from '../finance.service';
 import { Enquiry, EnquiryPaymentRequest, EnquiryYearWiseFeeStatusResponse } from '../../enquiry/enquiry.model';
@@ -80,7 +80,24 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
   private readonly tourService    = inject(TourService);
 
   // Server-side paginator — NOT wired to dataSource
-  @ViewChild(MatPaginator) paginator?: MatPaginator;
+  @ViewChild(MatPaginator)
+  set paginator(value: MatPaginator | undefined) {
+    if (this._paginator === value) return;
+    this.paginatorPageSub?.unsubscribe();
+    this._paginator = value;
+    if (!value) return;
+
+    this.paginatorPageSub = value.page.subscribe((ev) => {
+      this.currentStudentPage = ev.pageIndex;
+      this.currentStudentPageSize = ev.pageSize;
+      this.loadStudentPage();
+    });
+    this.syncPaginatorState();
+  }
+
+  get paginator(): MatPaginator | undefined {
+    return this._paginator;
+  }
   @ViewChild(MatSort) set sort(value: MatSort) {
     if (value) this.dataSource.sort = value;
   }
@@ -89,10 +106,13 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
   private readonly allEnquiries           = signal<Enquiry[]>([]);
   private readonly currentStudentEntries  = signal<FeeEntry[]>([]);
   protected studentTotal                  = 0;
+  private feeCollectionTotal              = 0; // authoritative total from backend — matches badge
   private currentStudentPage              = 0;
   private currentStudentPageSize          = DEFAULT_PAGE_SIZE;
   private readonly destroy$               = new Subject<void>();
   private readonly searchSubject$         = new Subject<string>();
+  private paginatorPageSub?: Subscription;
+  private _paginator?: MatPaginator;
 
   protected readonly loading          = signal(true);
   protected readonly feeEntries       = computed<FeeEntry[]>(() => [
@@ -238,15 +258,6 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     this.restoreFiltersFromQueryParams();
     this.loadAll(() => this.applyDeepLink());
 
-    // Paginator page events → server-side student page reload
-    setTimeout(() => {
-      this.paginator?.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
-        this.currentStudentPage     = ev.pageIndex;
-        this.currentStudentPageSize = ev.pageSize;
-        this.loadStudentPage();
-      });
-    }, 0);
-
     // Debounced search → reset to page 0 + reload students
     this.searchSubject$.pipe(
       debounceTime(400),
@@ -288,10 +299,20 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.paginatorPageSub?.unsubscribe();
   }
 
   private loadAll(onComplete?: () => void): void {
     this.loading.set(true);
+
+    // Fetch the authoritative total in parallel — used solely for the paginator length label.
+    this.financeService.getFeeCollectionCount().subscribe({
+      next: (total) => {
+        this.feeCollectionTotal = total;
+        this.syncPaginatorState();
+      },
+    });
+
     this.enquiryService.getEnquiries().subscribe({
       next: (enquiries) => {
         this.allEnquiries.set(enquiries);
@@ -311,8 +332,8 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     const search = this.searchTerm();
     this.financeService.searchStudentFeesPage({
       search: search.length >= 2 ? search : undefined,
-      page:   this.currentStudentPage,
-      size:   this.currentStudentPageSize,
+      page: this.currentStudentPage,
+      size: this.currentStudentPageSize,
     }).subscribe({
       next: (page) => {
         const entries = page.content
@@ -320,11 +341,9 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
           .map(s => this.studentToEntry(s));
         this.currentStudentEntries.set(entries);
         this.studentTotal = page.totalElements;
-        if (this.paginator) {
-          this.paginator.length    = page.totalElements;
-          this.paginator.pageIndex = page.number;
-          this.paginator.pageSize  = page.size;
-        }
+        this.currentStudentPage = page.number;
+        this.currentStudentPageSize = page.size;
+        this.syncPaginatorState();
         callback?.();
       },
       error: () => {
@@ -332,6 +351,15 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
         callback?.();
       },
     });
+  }
+
+  private syncPaginatorState(): void {
+    if (!this.paginator) return;
+    // Use the backend's authoritative count (matches the badge exactly);
+    // fall back to studentTotal while the count request is in flight.
+    this.paginator.length = this.feeCollectionTotal > 0 ? this.feeCollectionTotal : this.studentTotal;
+    this.paginator.pageIndex = this.currentStudentPage;
+    this.paginator.pageSize = this.currentStudentPageSize;
   }
 
   private applyDeepLink(): void {

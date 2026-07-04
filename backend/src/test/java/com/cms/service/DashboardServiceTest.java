@@ -57,6 +57,7 @@ class DashboardServiceTest {
     @Mock private StudentFeeAllocationRepository allocationRepository;
     @Mock private EnquiryPaymentService enquiryPaymentService;
     @Mock private FeeFinalizationService feeFinalizationService;
+    @Mock private PaymentCollectionService paymentCollectionService;
 
     private DashboardService dashboardService;
 
@@ -68,7 +69,7 @@ class DashboardServiceTest {
             equipmentRepository, examinationRepository, paymentReceiptRepository,
             maintenanceRequestRepository, attendanceRepository,
             enquiryRepository, enquiryPaymentRepository, admissionRepository,
-            allocationRepository, enquiryPaymentService, feeFinalizationService
+            allocationRepository, enquiryPaymentService, feeFinalizationService, paymentCollectionService
         );
     }
 
@@ -92,8 +93,8 @@ class DashboardServiceTest {
         when(enquiryRepository.countByStatusGrouped()).thenReturn(List.of());
         when(enquiryRepository.sumFinalizedNetFee()).thenReturn(BigDecimal.ZERO);
         when(enquiryPaymentRepository.sumAllAmountPaid()).thenReturn(BigDecimal.ZERO);
-        when(enquiryRepository.countPaymentEligibleWithOutstanding()).thenReturn(0L);
-        when(allocationRepository.countFinalizedAllocations()).thenReturn(0L);
+        when(enquiryRepository.findPaymentEligibleEnquiryIds()).thenReturn(List.of());
+        when(allocationRepository.findFinalizedStudentIds()).thenReturn(List.of());
         when(paymentReceiptRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(List.of());
 
@@ -140,8 +141,8 @@ class DashboardServiceTest {
         when(enquiryRepository.countByStatusGrouped()).thenReturn(List.of());
         when(enquiryRepository.sumFinalizedNetFee()).thenReturn(BigDecimal.ZERO);
         when(enquiryPaymentRepository.sumAllAmountPaid()).thenReturn(BigDecimal.ZERO);
-        when(enquiryRepository.countPaymentEligibleWithOutstanding()).thenReturn(0L);
-        when(allocationRepository.countFinalizedAllocations()).thenReturn(0L);
+        when(enquiryRepository.findPaymentEligibleEnquiryIds()).thenReturn(List.of());
+        when(allocationRepository.findFinalizedStudentIds()).thenReturn(List.of());
         when(paymentReceiptRepository.findByPaymentDateBetween(any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(List.of());
 

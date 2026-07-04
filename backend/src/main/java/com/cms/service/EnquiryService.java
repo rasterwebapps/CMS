@@ -1044,11 +1044,11 @@ public class EnquiryService {
 
     private EnquiryResponse toResponse(Enquiry e, BigDecimal totalPaid, String admissionNumber) {
         // ADMITTED is the terminal enquiry-side status — there is no separate CONVERTED state.
-        // Once the converted student has a finalized fee allocation, collection has moved to
-        // the student side — report nothing collectible here so this enquiry stops appearing
-        // in Collect Payment alongside its own student row.
-        boolean handedOffToStudentSide = e.getConvertedStudentId() != null
-            && feeFinalizationService.allocationExists(e.getConvertedStudentId());
+        // Once the enquiry has a convertedStudentId, fee collection moves to the student side
+        // unconditionally — do not check for an existing allocation, since autoFinalizeFromEnquiry
+        // has silent fallback paths (empty yearWiseFees, swallowed exception) that leave some
+        // converted students without an allocation row temporarily.
+        boolean handedOffToStudentSide = e.getConvertedStudentId() != null;
         BigDecimal collectibleOutstanding = e.getFinalizedNetFee() != null && !handedOffToStudentSide
             ? enquiryPaymentService.getCollectibleOutstanding(e, totalPaid)
             : null;

@@ -139,13 +139,24 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long>, JpaSpec
             SELECT e.id
             FROM enquiries e
             LEFT JOIN enquiry_payments ep ON ep.enquiry_id = e.id AND ep.refunded_at IS NULL
-            LEFT JOIN student_fee_allocations sfa ON sfa.student_id = e.converted_student_id
             WHERE e.status IN ('FEES_FINALIZED','PARTIALLY_PAID','FEES_PAID','DOCUMENTS_SUBMITTED','DOCUMENTS_VERIFIED','ADMITTED')
               AND e.finalized_net_fee IS NOT NULL
-              AND (e.converted_student_id IS NULL OR sfa.id IS NULL)
+              AND e.converted_student_id IS NULL
             GROUP BY e.id, e.finalized_net_fee
             HAVING e.finalized_net_fee > COALESCE(SUM(ep.amount_paid), 0)
         ) x
         """, nativeQuery = true)
     long countPaymentEligibleWithOutstanding();
+
+    @Query(value = """
+        SELECT e.id
+        FROM enquiries e
+        LEFT JOIN enquiry_payments ep ON ep.enquiry_id = e.id AND ep.refunded_at IS NULL
+        WHERE e.status IN ('FEES_FINALIZED','PARTIALLY_PAID','FEES_PAID','DOCUMENTS_SUBMITTED','DOCUMENTS_VERIFIED','ADMITTED')
+          AND e.finalized_net_fee IS NOT NULL
+          AND e.converted_student_id IS NULL
+        GROUP BY e.id, e.finalized_net_fee
+        HAVING e.finalized_net_fee > COALESCE(SUM(ep.amount_paid), 0)
+        """, nativeQuery = true)
+    List<Long> findPaymentEligibleEnquiryIds();
 }

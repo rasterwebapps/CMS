@@ -19,8 +19,13 @@ import {
 export class FinanceService {
   private readonly http = inject(HttpClient);
   private readonly feeStructureUrl = `${environment.apiUrl}/fee-structures`;
+  private readonly studentFeeUrl   = `${environment.apiUrl}/student-fees`;
+  private readonly dashboardUrl    = `${environment.apiUrl}/dashboard`;
 
-  private readonly studentFeeUrl = `${environment.apiUrl}/student-fees`;
+  /** Total record count eligible for fee collection — matches the sidebar badge exactly. */
+  getFeeCollectionCount(): Observable<number> {
+    return this.http.get<number>(`${this.dashboardUrl}/fee-collection-count`);
+  }
 
   getFeeStates(): Observable<FeeState[]> {
     return this.http.get<FeeState[]>(`${environment.apiUrl}/fee-states`);

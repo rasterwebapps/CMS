@@ -442,3 +442,29 @@
 
 **Status:** NOT TESTED
 
+---
+
+## TC-FEE5-023: Frontend — Collect Payment menu count matches collectible-outstanding list
+
+**Preconditions:**
+- User is logged in with ROLE_ADMIN, ROLE_COLLEGE_ADMIN, or ROLE_CASHIER
+- Dashboard summary API is reachable
+- Data includes a mix of:
+  - enquiries with collectible outstanding,
+  - students with finalized allocation and collectible outstanding,
+  - students with finalized allocation but no currently collectible outstanding
+
+**Steps:**
+1. Open the left nav and note the badge count beside `Collect Payment`.
+2. Navigate to `/fee-collection`.
+3. Keep filters at default (`All Types`, `Any Status`) and clear search text.
+4. Verify only collectible records appear in the list (non-collectible finalized students must not be counted).
+5. Compare the nav badge count with the effective list total shown on the screen.
+6. Refresh the page and repeat steps 1–5.
+
+**Expected Result:**
+- `Collect Payment` nav badge count and Fee Collection list total are aligned.
+- Both counts include only records with collectible outstanding dues.
+- Records with finalized allocation but zero collectible outstanding are excluded from both counts.
+
+**Status:** NOT TESTED
