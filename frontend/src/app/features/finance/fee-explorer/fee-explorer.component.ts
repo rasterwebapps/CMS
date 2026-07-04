@@ -1,6 +1,6 @@
 import { Component, computed, DestroyRef, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
+import { debounceTime, distinctUntilChanged, Subject, Subscription, takeUntil } from 'rxjs';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -42,8 +42,20 @@ export class FeeExplorerComponent implements OnInit {
   private readonly tourService       = inject(TourService);
   private readonly permissionService = inject(PermissionService);
 
-  // Server-side paginator: NOT wired to dataSource
-  @ViewChild(MatPaginator) paginator?: MatPaginator;
+  @ViewChild(MatPaginator)
+  set paginator(value: MatPaginator | undefined) {
+    if (this._paginator === value) return;
+    this._paginatorSub?.unsubscribe();
+    this._paginator = value;
+    if (!value) return;
+    this._paginatorSub = value.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
+      this.navigate({ page: ev.pageIndex, size: ev.pageSize });
+    });
+    this.syncPaginatorState();
+  }
+  get paginator(): MatPaginator | undefined { return this._paginator; }
+  private _paginator?: MatPaginator;
+  private _paginatorSub?: Subscription;
   @ViewChild(MatSort) matSort?: MatSort;
 
   protected readonly displayedColumns = [
@@ -135,13 +147,6 @@ export class FeeExplorerComponent implements OnInit {
       this.loadPage();
     });
 
-    // Paginator page events → URL navigate (triggers param subscription above)
-    setTimeout(() => {
-      this.paginator?.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
-        this.navigate({ page: ev.pageIndex, size: ev.pageSize });
-      });
-    }, 0);
-
     // Debounced search
     this.searchSubject.pipe(
       debounceTime(400),
@@ -210,13 +215,11 @@ export class FeeExplorerComponent implements OnInit {
     }).subscribe({
       next: (page) => {
         this._pageData.set(page.content);
-        this.dataSource.data = page.content;
-        this.totalElements   = page.totalElements;
-        if (this.paginator) {
-          this.paginator.length    = page.totalElements;
-          this.paginator.pageIndex = page.number;
-          this.paginator.pageSize  = page.size;
-        }
+        this.dataSource.data  = page.content;
+        this.totalElements    = page.totalElements;
+        this.currentPage      = page.number;
+        this.currentPageSize  = page.size;
+        this.syncPaginatorState();
         this._applyClientFilters();
         this.loading.set(false);
       },
@@ -225,6 +228,13 @@ export class FeeExplorerComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  private syncPaginatorState(): void {
+    if (!this._paginator) return;
+    this._paginator.length    = this.totalElements;
+    this._paginator.pageIndex = this.currentPage;
+    this._paginator.pageSize  = this.currentPageSize;
   }
 
   private _applyClientFilters(): void {

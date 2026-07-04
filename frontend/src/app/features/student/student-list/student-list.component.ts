@@ -12,7 +12,7 @@ import {
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TitleCasePipe } from '@angular/common';
-import { Subject } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, takeUntil } from 'rxjs/operators';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -91,7 +91,20 @@ export class StudentListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly _destroyRef         = inject(DestroyRef);
   private readonly permissionService   = inject(PermissionService);
 
-  @ViewChild(MatPaginator) paginator?: MatPaginator;
+  @ViewChild(MatPaginator)
+  set paginator(value: MatPaginator | undefined) {
+    if (this._paginator === value) return;
+    this._paginatorSub?.unsubscribe();
+    this._paginator = value;
+    if (!value) return;
+    this._paginatorSub = value.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
+      this.navigate({ page: ev.pageIndex, size: ev.pageSize });
+    });
+    this.syncPaginatorState();
+  }
+  get paginator(): MatPaginator | undefined { return this._paginator; }
+  private _paginator?: MatPaginator;
+  private _paginatorSub?: Subscription;
   @ViewChild(MatSort) matSort?: MatSort;
 
   protected readonly computeInitials = computeInitials;
@@ -239,9 +252,6 @@ export class StudentListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
-    this.paginator?.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
-      this.navigate({ page: ev.pageIndex, size: ev.pageSize });
-    });
     this.matSort?.sortChange.pipe(takeUntil(this.destroy$)).subscribe(ev => {
       const field = SORT_FIELD_MAP[ev.active] ?? ev.active;
       const dir   = (ev.direction || 'asc') as SortDirection;
@@ -374,13 +384,11 @@ export class StudentListComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.studentService.getExplorer(params).subscribe({
       next: (page) => {
-        this.dataSource.data = page.content;
-        this.totalElements   = page.totalElements;
-        if (this.paginator) {
-          this.paginator.length    = page.totalElements;
-          this.paginator.pageIndex = page.number;
-          this.paginator.pageSize  = page.size;
-        }
+        this.dataSource.data  = page.content;
+        this.totalElements    = page.totalElements;
+        this.currentPage      = page.number;
+        this.currentPageSize  = page.size;
+        this.syncPaginatorState();
         this.loading.set(false);
       },
       error: () => {
@@ -388,6 +396,13 @@ export class StudentListComponent implements OnInit, AfterViewInit, OnDestroy {
         this.loading.set(false);
       },
     });
+  }
+
+  private syncPaginatorState(): void {
+    if (!this._paginator) return;
+    this._paginator.length    = this.totalElements;
+    this._paginator.pageIndex = this.currentPage;
+    this._paginator.pageSize  = this.currentPageSize;
   }
 
   // ── Row actions ───────────────────────────────────────────────
