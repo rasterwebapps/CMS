@@ -32,7 +32,7 @@ export class CommissionExplorerService {
 
   getAllPage(filters: {
     status?: string; source?: string; referralTypeId?: number; agentId?: number;
-    fromDate?: string; toDate?: string; search?: string; page?: number; size?: number;
+    fromDate?: string; toDate?: string; search?: string; page?: number; size?: number; sort?: string;
   } = {}): Observable<Page<CommissionRecord>> {
     let params = new HttpParams()
       .set('page', filters.page ?? 0)
@@ -44,6 +44,7 @@ export class CommissionExplorerService {
     if (filters.fromDate)       params = params.set('fromDate', filters.fromDate);
     if (filters.toDate)         params = params.set('toDate', filters.toDate);
     if (filters.search)         params = params.set('search', filters.search);
+    if (filters.sort)           params = params.set('sort', filters.sort);
     return this.http.get<Page<CommissionRecord>>(this.base, { params });
   }
 

@@ -6,7 +6,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
+import { MatSortModule, MatSort, SortDirection } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -31,6 +31,17 @@ import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { printFeeReceipt, downloadFeeReceipt } from '../../../shared/utils/print-receipt.utils';
 
 const DEFAULT_PAGE_SIZE = 25;
+const DEFAULT_SORT_FIELD = 'paymentDate';
+const DEFAULT_SORT_DIR: SortDirection = 'desc';
+const SORT_FIELD_MAP: Record<string, string> = {
+  receiptNumber:        'receiptNumber',
+  payerName:            'payerName',
+  payerType:            'payerType',
+  amountPaid:           'amountPaid',
+  paymentMode:          'paymentMode',
+  paymentDate:          'paymentDate',
+  transactionReference: 'transactionReference',
+};
 
 @Component({
   selector: 'app-receipts-list',
@@ -70,6 +81,25 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
 
+  @ViewChild(MatSort)
+  set matSort(value: MatSort | undefined) {
+    if (this._matSort === value) return;
+    this._matSortSub?.unsubscribe();
+    this._matSort = value;
+    if (!value) return;
+    this._matSortSub = value.sortChange.pipe(takeUntil(this.destroy$)).subscribe(ev => {
+      const backendField = SORT_FIELD_MAP[ev.active];
+      if (!backendField) return;
+      const dir = (ev.direction || DEFAULT_SORT_DIR) as SortDirection;
+      this.navigate({ sortField: backendField, sortDir: dir, page: 0 });
+    });
+    value.active    = this.currentSortField;
+    value.direction = this.currentSortDir;
+  }
+  get matSort(): MatSort | undefined { return this._matSort; }
+  private _matSort?: MatSort;
+  private _matSortSub?: Subscription;
+
   protected readonly displayedColumns = [
     'paymentDate', 'receiptNumber', 'payer', 'payerId',
     'payerType', 'installmentsCovered', 'paymentMode', 'transactionReference',
@@ -89,10 +119,12 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
   protected readonly dateFrom       = signal('');
   protected readonly dateTo         = signal('');
 
-  // ── Server-side pagination state ───────────────────────────────────────────
+  // ── Server-side pagination / sort state ───────────────────────────────────
   protected totalElements   = 0;
   private currentPage       = 0;
   private currentPageSize   = DEFAULT_PAGE_SIZE;
+  private currentSortField  = DEFAULT_SORT_FIELD;
+  private currentSortDir: SortDirection = DEFAULT_SORT_DIR;
 
   protected readonly hasActiveFilters = computed(() =>
     !!this.searchValue() || !!this.selectedMode() || !!this.selectedType() ||
@@ -118,8 +150,10 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
       this.selectedType.set(params['payerType'] ?? '');
       this.dateFrom.set(params['fromDate'] ?? '');
       this.dateTo.set(params['toDate'] ?? '');
-      this.currentPage     = params['page'] ? +params['page'] : 0;
-      this.currentPageSize = params['size'] ? +params['size'] : DEFAULT_PAGE_SIZE;
+      this.currentPage      = params['page']      ? +params['page']     : 0;
+      this.currentPageSize  = params['size']      ? +params['size']     : DEFAULT_PAGE_SIZE;
+      this.currentSortField = params['sortField'] ?? DEFAULT_SORT_FIELD;
+      this.currentSortDir   = (params['sortDir']  ?? DEFAULT_SORT_DIR) as SortDirection;
       this.loadPage();
     });
 
@@ -152,6 +186,7 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
       toDate:      this.dateTo() || undefined,
       page:        this.currentPage,
       size:        this.currentPageSize,
+      sort:        `${this.currentSortField},${this.currentSortDir}`,
     }).subscribe({
       next: page => {
         this.dataSource.data = page.content;
@@ -299,6 +334,7 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
   protected navigate(patch: Partial<{
     search: string | null; paymentMode: string | null; payerType: string | null;
     fromDate: string | null; toDate: string | null; page: number; size: number;
+    sortField: string | null; sortDir: string | null;
   }>): void {
     const cur = this.route.snapshot.queryParams;
     const merged = {
@@ -309,6 +345,8 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
       toDate:      'toDate'      in patch ? patch.toDate      : (cur['toDate'] ?? null),
       page:        'page'        in patch ? patch.page        : this.currentPage,
       size:        'size'        in patch ? patch.size        : this.currentPageSize,
+      sortField:   'sortField'   in patch ? patch.sortField   : (cur['sortField'] ?? null),
+      sortDir:     'sortDir'     in patch ? patch.sortDir     : (cur['sortDir'] ?? null),
     };
     const queryParams = Object.fromEntries(
       Object.entries(merged).filter(([, v]) => v !== null && v !== undefined && v !== ''),

@@ -177,7 +177,7 @@ export class FinanceService {
 
   getUnifiedReceiptsPage(p: {
     search?: string; paymentMode?: string; payerType?: string;
-    fromDate?: string; toDate?: string; page?: number; size?: number;
+    fromDate?: string; toDate?: string; page?: number; size?: number; sort?: string;
   }): Observable<Page<UnifiedReceiptSummary>> {
     let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
     if (p.search)      params = params.set('search', p.search);
@@ -185,6 +185,7 @@ export class FinanceService {
     if (p.payerType)   params = params.set('payerType', p.payerType);
     if (p.fromDate)    params = params.set('fromDate', p.fromDate);
     if (p.toDate)      params = params.set('toDate', p.toDate);
+    if (p.sort)        params = params.set('sort', p.sort);
     return this.http.get<Page<UnifiedReceiptSummary>>(`${environment.apiUrl}/receipts`, { params });
   }
 
@@ -205,7 +206,7 @@ export class FinanceService {
 
   getFeeRefundsPage(p: {
     search?: string; status?: string; entityType?: string;
-    fromDate?: string; toDate?: string; page?: number; size?: number;
+    fromDate?: string; toDate?: string; page?: number; size?: number; sort?: string;
   }): Observable<Page<FeeRefundSummary>> {
     let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
     if (p.search)      params = params.set('search', p.search);
@@ -213,6 +214,7 @@ export class FinanceService {
     if (p.entityType)  params = params.set('entityType', p.entityType);
     if (p.fromDate)    params = params.set('fromDate', p.fromDate);
     if (p.toDate)      params = params.set('toDate', p.toDate);
+    if (p.sort)        params = params.set('sort', p.sort);
     return this.http.get<Page<FeeRefundSummary>>(`${this.studentFeeUrl}/refunds`, { params });
   }
 

@@ -7,7 +7,7 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
+import { MatSortModule, MatSort, SortDirection } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -33,6 +33,11 @@ import {
 import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 
 const DEFAULT_PAGE_SIZE = 25;
+const DEFAULT_SORT_FIELD = 'updatedAt';
+const DEFAULT_SORT_DIR: SortDirection = 'desc';
+const SORT_FIELD_MAP: Record<string, string> = {
+  commissionAmount: 'commissionAmount',
+};
 
 @Component({
   selector: 'app-commission-explorer-list',
@@ -72,6 +77,25 @@ export class CommissionExplorerListComponent implements OnInit, OnDestroy {
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
 
+  @ViewChild(MatSort)
+  set matSort(value: MatSort | undefined) {
+    if (this._matSort === value) return;
+    this._matSortSub?.unsubscribe();
+    this._matSort = value;
+    if (!value) return;
+    this._matSortSub = value.sortChange.pipe(takeUntil(this.destroy$)).subscribe(ev => {
+      const backendField = SORT_FIELD_MAP[ev.active];
+      if (!backendField) return;
+      const dir = (ev.direction || DEFAULT_SORT_DIR) as SortDirection;
+      this.navigate({ sortField: backendField, sortDir: dir, page: 0 });
+    });
+    value.active    = this.currentSortField;
+    value.direction = this.currentSortDir;
+  }
+  get matSort(): MatSort | undefined { return this._matSort; }
+  private _matSort?: MatSort;
+  private _matSortSub?: Subscription;
+
   protected readonly canManage = computed(() => this.permService.has('COMMISSION_MANAGE'));
   protected readonly canSettle = computed(() => this.permService.has('COMMISSION_SETTLE'));
   protected readonly canExport = computed(() => this.permService.has('COMMISSION_EXPORT'));
@@ -101,10 +125,12 @@ export class CommissionExplorerListComponent implements OnInit, OnDestroy {
   protected readonly filterFrom   = signal('');
   protected readonly filterTo     = signal('');
 
-  // ── Server-side pagination state ──────────────────────────────────────────────
+  // ── Server-side pagination / sort state ───────────────────────────────────────
   protected totalElements   = 0;
   private currentPage       = 0;
   private currentPageSize   = DEFAULT_PAGE_SIZE;
+  private currentSortField  = DEFAULT_SORT_FIELD;
+  private currentSortDir: SortDirection = DEFAULT_SORT_DIR;
 
   protected readonly hasFilters = computed(() =>
     !!this.filterSearch() || !!this.filterStatus() || !!this.filterSource() ||
@@ -148,8 +174,10 @@ export class CommissionExplorerListComponent implements OnInit, OnDestroy {
       this.filterSource.set(params['source'] ?? '');
       this.filterFrom.set(params['fromDate'] ?? '');
       this.filterTo.set(params['toDate'] ?? '');
-      this.currentPage     = params['page'] ? +params['page'] : 0;
-      this.currentPageSize = params['size'] ? +params['size'] : DEFAULT_PAGE_SIZE;
+      this.currentPage      = params['page']      ? +params['page']     : 0;
+      this.currentPageSize  = params['size']      ? +params['size']     : DEFAULT_PAGE_SIZE;
+      this.currentSortField = params['sortField'] ?? DEFAULT_SORT_FIELD;
+      this.currentSortDir   = (params['sortDir']  ?? DEFAULT_SORT_DIR) as SortDirection;
       this.loadPage();
     });
 
@@ -191,6 +219,7 @@ export class CommissionExplorerListComponent implements OnInit, OnDestroy {
       toDate:      this.filterTo() || undefined,
       page:        this.currentPage,
       size:        this.currentPageSize,
+      sort:        `${this.currentSortField},${this.currentSortDir}`,
     }).subscribe({
       next: page => {
         this.dataSource.data  = page.content;
@@ -230,16 +259,19 @@ export class CommissionExplorerListComponent implements OnInit, OnDestroy {
   protected navigate(patch: Partial<{
     search: string | null; status: string | null; source: string | null;
     fromDate: string | null; toDate: string | null; page: number; size: number;
+    sortField: string | null; sortDir: string | null;
   }>): void {
     const cur = this.route.snapshot.queryParams;
     const merged = {
-      search:  'search'  in patch ? patch.search  : (cur['search'] ?? null),
-      status:  'status'  in patch ? patch.status  : (cur['status'] ?? null),
-      source:  'source'  in patch ? patch.source  : (cur['source'] ?? null),
-      fromDate:'fromDate'in patch ? patch.fromDate : (cur['fromDate'] ?? null),
-      toDate:  'toDate'  in patch ? patch.toDate  : (cur['toDate'] ?? null),
-      page:    'page'    in patch ? patch.page    : this.currentPage,
-      size:    'size'    in patch ? patch.size    : this.currentPageSize,
+      search:   'search'   in patch ? patch.search   : (cur['search'] ?? null),
+      status:   'status'   in patch ? patch.status   : (cur['status'] ?? null),
+      source:   'source'   in patch ? patch.source   : (cur['source'] ?? null),
+      fromDate: 'fromDate' in patch ? patch.fromDate : (cur['fromDate'] ?? null),
+      toDate:   'toDate'   in patch ? patch.toDate   : (cur['toDate'] ?? null),
+      page:     'page'     in patch ? patch.page     : this.currentPage,
+      size:     'size'     in patch ? patch.size     : this.currentPageSize,
+      sortField:'sortField'in patch ? patch.sortField: (cur['sortField'] ?? null),
+      sortDir:  'sortDir'  in patch ? patch.sortDir  : (cur['sortDir'] ?? null),
     };
     const queryParams = Object.fromEntries(
       Object.entries(merged).filter(([, v]) => v !== null && v !== undefined && v !== ''),

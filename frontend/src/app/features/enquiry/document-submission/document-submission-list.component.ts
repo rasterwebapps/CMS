@@ -7,7 +7,7 @@ import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
+import { MatSortModule, MatSort, SortDirection } from '@angular/material/sort';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
@@ -31,6 +31,16 @@ import { Program } from '../../program/program.model';
 import { Course } from '../../course/course.model';
 
 const DEFAULT_PAGE_SIZE = 25;
+const DEFAULT_SORT_FIELD = 'enquiryDate';
+const DEFAULT_SORT_DIR: SortDirection = 'desc';
+const SORT_FIELD_MAP: Record<string, string> = {
+  name:        'name',
+  enquiryDate: 'enquiryDate',
+  status:      'status',
+  studentType: 'studentType',
+  programName: 'program.name',
+  courseName:  'course.name',
+};
 
 @Component({
   selector: 'app-document-submission-list',
@@ -73,16 +83,37 @@ export class DocumentSubmissionListComponent implements OnInit, OnDestroy {
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
 
+  @ViewChild(MatSort)
+  set matSort(value: MatSort | undefined) {
+    if (this._matSort === value) return;
+    this._matSortSub?.unsubscribe();
+    this._matSort = value;
+    if (!value) return;
+    this._matSortSub = value.sortChange.pipe(takeUntil(this.destroy$)).subscribe(ev => {
+      const backendField = SORT_FIELD_MAP[ev.active];
+      if (!backendField) return;
+      const dir = (ev.direction || DEFAULT_SORT_DIR) as SortDirection;
+      this.navigate({ sortField: backendField, sortDir: dir, page: 0 });
+    });
+    value.active    = this.currentSortField;
+    value.direction = this.currentSortDir;
+  }
+  get matSort(): MatSort | undefined { return this._matSort; }
+  private _matSort?: MatSort;
+  private _matSortSub?: Subscription;
+
   protected readonly loading    = signal(false);
   protected readonly searchQuery = signal('');
   protected colMenuOpen         = false;
 
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
 
-  // ── Server-side pagination state ──────────────────────────────────────────
+  // ── Server-side pagination / sort state ───────────────────────────────────
   protected totalElements     = 0;
   private currentPage         = 0;
   private currentPageSize     = DEFAULT_PAGE_SIZE;
+  private currentSortField    = DEFAULT_SORT_FIELD;
+  private currentSortDir: SortDirection = DEFAULT_SORT_DIR;
 
   // ── Filters ───────────────────────────────────────────────────────────────
   protected readonly filterProgramId   = signal<number | null>(null);
@@ -124,8 +155,10 @@ export class DocumentSubmissionListComponent implements OnInit, OnDestroy {
       this.filterProgramId.set(params['programId'] ? +params['programId'] : null);
       this.filterCourseId.set(params['courseId'] ? +params['courseId'] : null);
       this.filterStudentType.set(params['studentType'] ?? '');
-      this.currentPage     = params['page'] ? +params['page'] : 0;
-      this.currentPageSize = params['size'] ? +params['size'] : DEFAULT_PAGE_SIZE;
+      this.currentPage      = params['page']      ? +params['page']     : 0;
+      this.currentPageSize  = params['size']      ? +params['size']     : DEFAULT_PAGE_SIZE;
+      this.currentSortField = params['sortField'] ?? DEFAULT_SORT_FIELD;
+      this.currentSortDir   = (params['sortDir']  ?? DEFAULT_SORT_DIR) as SortDirection;
       this.loadPage();
     });
 
@@ -164,6 +197,7 @@ export class DocumentSubmissionListComponent implements OnInit, OnDestroy {
       studentType: this.filterStudentType() || undefined,
       page:        this.currentPage,
       size:        this.currentPageSize,
+      sort:        `${this.currentSortField},${this.currentSortDir}`,
     }).subscribe({
       next: page => {
         this.dataSource.data = page.content;
@@ -217,7 +251,7 @@ export class DocumentSubmissionListComponent implements OnInit, OnDestroy {
 
   private navigate(patch: Partial<{
     search: string | null; programId: number | null; courseId: number | null;
-    studentType: string | null; page: number; size: number;
+    studentType: string | null; page: number; size: number; sortField: string | null; sortDir: string | null;
   }>): void {
     const cur = this.route.snapshot.queryParams;
     const merged = {
@@ -227,6 +261,8 @@ export class DocumentSubmissionListComponent implements OnInit, OnDestroy {
       studentType: 'studentType' in patch ? patch.studentType : (cur['studentType'] ?? null),
       page:        'page'        in patch ? patch.page        : this.currentPage,
       size:        'size'        in patch ? patch.size        : this.currentPageSize,
+      sortField:   'sortField'   in patch ? patch.sortField   : (cur['sortField'] ?? null),
+      sortDir:     'sortDir'     in patch ? patch.sortDir     : (cur['sortDir'] ?? null),
     };
     const queryParams = Object.fromEntries(
       Object.entries(merged).filter(([, v]) => v !== null && v !== undefined && v !== ''),

@@ -1,9 +1,9 @@
-import { Component, computed, DestroyRef, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, OnDestroy, signal, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged, Subject, Subscription, takeUntil } from 'rxjs';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatSortModule, MatSort, SortDirection } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FinanceService } from '../finance.service';
 import { StudentFeeSummary } from '../finance.model';
@@ -22,6 +22,12 @@ import { PermissionService } from '../../../core/permissions/permission.service'
 
 const DEFAULT_PAGE_SIZE = 25;
 const SEARCH_MIN_LENGTH = 2;
+const DEFAULT_SORT_FIELD = 'rollNumber';
+const DEFAULT_SORT_DIR: SortDirection = 'asc';
+const SORT_FIELD_MAP: Record<string, string> = {
+  rollNumber:       'rollNumber',
+  allocationStatus: 'allocationStatus',
+};
 
 @Component({
   selector: 'app-fee-explorer',
@@ -34,7 +40,8 @@ const SEARCH_MIN_LENGTH = 2;
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',
 })
-export class FeeExplorerComponent implements OnInit {
+
+export class FeeExplorerComponent implements OnInit, OnDestroy {
   private readonly financeService    = inject(FinanceService);
   private readonly router            = inject(Router);
   private readonly route             = inject(ActivatedRoute);
@@ -56,7 +63,24 @@ export class FeeExplorerComponent implements OnInit {
   get paginator(): MatPaginator | undefined { return this._paginator; }
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
-  @ViewChild(MatSort) matSort?: MatSort;
+  @ViewChild(MatSort)
+  set matSort(value: MatSort | undefined) {
+    if (this._matSort === value) return;
+    this._matSortSub?.unsubscribe();
+    this._matSort = value;
+    if (!value) return;
+    this._matSortSub = value.sortChange.pipe(takeUntil(this.destroy$)).subscribe(ev => {
+      const backendField = SORT_FIELD_MAP[ev.active];
+      if (!backendField) return;
+      const dir = (ev.direction || DEFAULT_SORT_DIR) as SortDirection;
+      this.navigate({ sortField: backendField, sortDir: dir, page: 0 });
+    });
+    value.active    = this.currentSortField;
+    value.direction = this.currentSortDir;
+  }
+  get matSort(): MatSort | undefined { return this._matSort; }
+  private _matSort?: MatSort;
+  private _matSortSub?: Subscription;
 
   protected readonly displayedColumns = [
     'rollNumber', 'studentName', 'programName', 'totalFee',
@@ -102,9 +126,11 @@ export class FeeExplorerComponent implements OnInit {
     this.filterAllocStatus()  !== 'ALL'
   );
 
-  // ── Pagination / state ────────────────────────────────────────────────────
-  private currentPage     = 0;
-  private currentPageSize = DEFAULT_PAGE_SIZE;
+  // ── Pagination / sort state ───────────────────────────────────────────────
+  private currentPage      = 0;
+  private currentPageSize  = DEFAULT_PAGE_SIZE;
+  private currentSortField = DEFAULT_SORT_FIELD;
+  private currentSortDir: SortDirection = DEFAULT_SORT_DIR;
 
   private readonly destroy$      = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
@@ -142,8 +168,10 @@ export class FeeExplorerComponent implements OnInit {
     // URL params drive state — initial load + back-nav restore
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
       this.searchValue.set(params['search'] ?? '');
-      this.currentPage     = params['page'] ? +params['page'] : 0;
-      this.currentPageSize = params['size'] ? +params['size'] : DEFAULT_PAGE_SIZE;
+      this.currentPage      = params['page']      ? +params['page']     : 0;
+      this.currentPageSize  = params['size']      ? +params['size']     : DEFAULT_PAGE_SIZE;
+      this.currentSortField = params['sortField'] ?? DEFAULT_SORT_FIELD;
+      this.currentSortDir   = (params['sortDir']  ?? DEFAULT_SORT_DIR) as SortDirection;
       this.loadPage();
     });
 
@@ -160,6 +188,7 @@ export class FeeExplorerComponent implements OnInit {
   }
 
   ngOnDestroy(): void {
+    this._matSortSub?.unsubscribe();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -192,17 +221,21 @@ export class FeeExplorerComponent implements OnInit {
     });
   }
 
-  private navigate(patch: Partial<{ search: string | null; page: number; size: number }>): void {
+  private navigate(patch: Partial<{ search: string | null; page: number; size: number; sortField: string; sortDir: string }>): void {
+    const cur = this.route.snapshot.queryParams;
     const p: Record<string, string | number | null> = {
-      search: 'search' in patch ? patch.search ?? null : this.searchValue() || null,
-      page:   'page'   in patch ? patch.page!          : this.currentPage,
-      size:   'size'   in patch ? patch.size!          : this.currentPageSize,
+      search:    'search'    in patch ? patch.search ?? null : this.searchValue() || null,
+      page:      'page'      in patch ? patch.page!          : this.currentPage,
+      size:      'size'      in patch ? patch.size!          : this.currentPageSize,
+      sortField: 'sortField' in patch ? (patch.sortField ?? null) : (cur['sortField'] ?? null),
+      sortDir:   'sortDir'   in patch ? (patch.sortDir ?? null)   : (cur['sortDir'] ?? null),
     };
-    // Drop null/default values to keep URL clean
     const qp: Record<string, string | number> = {};
-    if (p['search']) qp['search'] = p['search'] as string;
-    if ((p['page'] as number) > 0) qp['page'] = p['page'] as number;
+    if (p['search'])   qp['search']   = p['search'] as string;
+    if ((p['page'] as number) > 0)    qp['page']   = p['page'] as number;
     if ((p['size'] as number) !== DEFAULT_PAGE_SIZE) qp['size'] = p['size'] as number;
+    if (p['sortField']) qp['sortField'] = p['sortField'] as string;
+    if (p['sortDir'])   qp['sortDir']   = p['sortDir'] as string;
     void this.router.navigate([], { relativeTo: this.route, queryParams: qp });
   }
 
@@ -212,6 +245,7 @@ export class FeeExplorerComponent implements OnInit {
       search:  this.searchValue() || undefined,
       page:    this.currentPage,
       size:    this.currentPageSize,
+      sort:    `${this.currentSortField},${this.currentSortDir}`,
     }).subscribe({
       next: (page) => {
         this._pageData.set(page.content);

@@ -1,5 +1,4 @@
 import {
-  AfterViewInit,
   Component,
   computed,
   DestroyRef,
@@ -78,7 +77,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
   templateUrl: './student-list.component.html',
   styleUrl: './student-list.component.scss',
 })
-export class StudentListComponent implements OnInit, AfterViewInit, OnDestroy {
+export class StudentListComponent implements OnInit, OnDestroy {
   private readonly studentService      = inject(StudentService);
   private readonly programService      = inject(ProgramService);
   private readonly courseService       = inject(CourseService);
@@ -105,7 +104,23 @@ export class StudentListComponent implements OnInit, AfterViewInit, OnDestroy {
   get paginator(): MatPaginator | undefined { return this._paginator; }
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
-  @ViewChild(MatSort) matSort?: MatSort;
+  @ViewChild(MatSort)
+  set matSort(value: MatSort | undefined) {
+    if (this._matSort === value) return;
+    this._matSortSub?.unsubscribe();
+    this._matSort = value;
+    if (!value) return;
+    this._matSortSub = value.sortChange.pipe(takeUntil(this.destroy$)).subscribe(ev => {
+      const field = SORT_FIELD_MAP[ev.active] ?? ev.active;
+      const dir   = (ev.direction || 'asc') as SortDirection;
+      this.navigate({ sortField: field, sortDir: dir, page: 0 });
+    });
+    value.active    = this.currentSortField;
+    value.direction = this.currentSortDir;
+  }
+  get matSort(): MatSort | undefined { return this._matSort; }
+  private _matSort?: MatSort;
+  private _matSortSub?: Subscription;
 
   protected readonly computeInitials = computeInitials;
 
@@ -248,14 +263,6 @@ export class StudentListComponent implements OnInit, AfterViewInit, OnDestroy {
       takeUntil(this.destroy$),
     ).subscribe(val => {
       this.navigate({ search: val || null, page: 0 });
-    });
-  }
-
-  ngAfterViewInit(): void {
-    this.matSort?.sortChange.pipe(takeUntil(this.destroy$)).subscribe(ev => {
-      const field = SORT_FIELD_MAP[ev.active] ?? ev.active;
-      const dir   = (ev.direction || 'asc') as SortDirection;
-      this.navigate({ sortField: field, sortDir: dir, page: 0 });
     });
   }
 

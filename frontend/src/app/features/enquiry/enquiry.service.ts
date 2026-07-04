@@ -57,7 +57,7 @@ export class EnquiryService {
 
   getDocumentPendingPage(p: {
     search?: string; programId?: number | null; courseId?: number | null;
-    studentType?: string | null; page?: number; size?: number;
+    studentType?: string | null; page?: number; size?: number; sort?: string;
   }): Observable<Page<Enquiry>> {
     let params = new HttpParams()
       .set('page', p.page ?? 0)
@@ -66,6 +66,7 @@ export class EnquiryService {
     if (p.programId)   params = params.set('programId', p.programId);
     if (p.courseId)    params = params.set('courseId', p.courseId);
     if (p.studentType) params = params.set('studentType', p.studentType);
+    if (p.sort)        params = params.set('sort', p.sort);
     return this.http.get<Page<Enquiry>>(`${this.baseUrl}/document-pending`, { params });
   }
 
@@ -75,7 +76,7 @@ export class EnquiryService {
 
   getAdmissionPendingPage(p: {
     search?: string; programId?: number | null; courseId?: number | null;
-    studentType?: string | null; page?: number; size?: number;
+    studentType?: string | null; page?: number; size?: number; sort?: string;
   }): Observable<Page<Enquiry>> {
     let params = new HttpParams()
       .set('page', p.page ?? 0)
@@ -84,6 +85,7 @@ export class EnquiryService {
     if (p.programId)   params = params.set('programId', p.programId);
     if (p.courseId)    params = params.set('courseId', p.courseId);
     if (p.studentType) params = params.set('studentType', p.studentType);
+    if (p.sort)        params = params.set('sort', p.sort);
     return this.http.get<Page<Enquiry>>(`${this.baseUrl}/admission-pending`, { params });
   }
 
@@ -232,7 +234,7 @@ export class EnquiryService {
 
   getDocumentVerificationPendingPage(p: {
     search?: string; programId?: number | null; courseId?: number | null;
-    studentType?: string | null; page?: number; size?: number;
+    studentType?: string | null; page?: number; size?: number; sort?: string;
   }): Observable<Page<Enquiry>> {
     let params = new HttpParams()
       .set('page', p.page ?? 0)
@@ -241,6 +243,7 @@ export class EnquiryService {
     if (p.programId)   params = params.set('programId', p.programId);
     if (p.courseId)    params = params.set('courseId', p.courseId);
     if (p.studentType) params = params.set('studentType', p.studentType);
+    if (p.sort)        params = params.set('sort', p.sort);
     return this.http.get<Page<Enquiry>>(`${this.baseUrl}/document-verification-pending`, { params });
   }
 
