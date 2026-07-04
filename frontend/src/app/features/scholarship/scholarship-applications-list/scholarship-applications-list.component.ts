@@ -1,5 +1,5 @@
 import {
-  AfterViewInit, Component, inject, OnDestroy, OnInit, signal, ViewChild, computed,
+  Component, inject, OnDestroy, OnInit, signal, ViewChild, computed,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -7,7 +7,7 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule } from '@angular/material/sort';
 import { MatIconModule } from '@angular/material/icon';
-import { Subject } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
@@ -36,7 +36,7 @@ const DEFAULT_PAGE_SIZE = 25;
   templateUrl: './scholarship-applications-list.component.html',
   styleUrl: './scholarship-applications-list.component.scss',
 })
-export class ScholarshipApplicationsListComponent implements OnInit, AfterViewInit, OnDestroy {
+export class ScholarshipApplicationsListComponent implements OnInit, OnDestroy {
   private readonly scholarshipService = inject(ScholarshipService);
   private readonly toast              = inject(ToastService);
   private readonly dialog             = inject(MatDialog);
@@ -44,7 +44,20 @@ export class ScholarshipApplicationsListComponent implements OnInit, AfterViewIn
   private readonly router             = inject(Router);
   private readonly route              = inject(ActivatedRoute);
 
-  @ViewChild(MatPaginator) paginator?: MatPaginator;
+  @ViewChild(MatPaginator)
+  set paginator(value: MatPaginator | undefined) {
+    if (this._paginator === value) return;
+    this._paginatorSub?.unsubscribe();
+    this._paginator = value;
+    if (!value) return;
+    this._paginatorSub = value.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
+      this.navigate({ page: ev.pageIndex, size: ev.pageSize });
+    });
+    this.syncPaginatorState();
+  }
+  get paginator(): MatPaginator | undefined { return this._paginator; }
+  private _paginator?: MatPaginator;
+  private _paginatorSub?: Subscription;
 
   protected readonly loading     = signal(false);
   protected readonly searchQuery = signal('');
@@ -77,10 +90,11 @@ export class ScholarshipApplicationsListComponent implements OnInit, AfterViewIn
     ).subscribe(val => this.navigate({ search: val || null, page: 0 }));
   }
 
-  ngAfterViewInit(): void {
-    this.paginator?.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
-      this.navigate({ page: ev.pageIndex, size: ev.pageSize });
-    });
+  private syncPaginatorState(): void {
+    if (!this._paginator) return;
+    this._paginator.length    = this.totalElements;
+    this._paginator.pageIndex = this.currentPage;
+    this._paginator.pageSize  = this.currentPageSize;
   }
 
   ngOnDestroy(): void {
@@ -98,11 +112,9 @@ export class ScholarshipApplicationsListComponent implements OnInit, AfterViewIn
       next: page => {
         this.dataSource.data = page.content;
         this.totalElements   = page.totalElements;
-        if (this.paginator) {
-          this.paginator.length    = page.totalElements;
-          this.paginator.pageIndex = page.number;
-          this.paginator.pageSize  = page.size;
-        }
+        this.currentPage     = page.number;
+        this.currentPageSize = page.size;
+        this.syncPaginatorState();
         this.loading.set(false);
       },
       error: () => { this.toast.error('Failed to load applications'); this.loading.set(false); },

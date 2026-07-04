@@ -1,5 +1,5 @@
 import {
-  AfterViewInit, Component, computed, inject, OnDestroy, OnInit, signal, ViewChild,
+  Component, computed, inject, OnDestroy, OnInit, signal, ViewChild,
 } from '@angular/core';
 import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -10,7 +10,7 @@ import { MatSortModule } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Subject } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 
 import { FinanceService } from '../finance.service';
@@ -46,7 +46,7 @@ const DEFAULT_PAGE_SIZE = 25;
   templateUrl: './receipts-list.component.html',
   styleUrl: './receipts-list.component.scss',
 })
-export class ReceiptsListComponent implements OnInit, AfterViewInit, OnDestroy {
+export class ReceiptsListComponent implements OnInit, OnDestroy {
   private readonly financeService     = inject(FinanceService);
   private readonly toast              = inject(ToastService);
   private readonly permissionService  = inject(PermissionService);
@@ -55,7 +55,20 @@ export class ReceiptsListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly router         = inject(Router);
   private readonly route          = inject(ActivatedRoute);
 
-  @ViewChild(MatPaginator) paginator?: MatPaginator;
+  @ViewChild(MatPaginator)
+  set paginator(value: MatPaginator | undefined) {
+    if (this._paginator === value) return;
+    this._paginatorSub?.unsubscribe();
+    this._paginator = value;
+    if (!value) return;
+    this._paginatorSub = value.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
+      this.navigate({ page: ev.pageIndex, size: ev.pageSize });
+    });
+    this.syncPaginatorState();
+  }
+  get paginator(): MatPaginator | undefined { return this._paginator; }
+  private _paginator?: MatPaginator;
+  private _paginatorSub?: Subscription;
 
   protected readonly displayedColumns = [
     'paymentDate', 'receiptNumber', 'payer', 'payerId',
@@ -117,10 +130,11 @@ export class ReceiptsListComponent implements OnInit, AfterViewInit, OnDestroy {
     ).subscribe(val => this.navigate({ search: val || null, page: 0 }));
   }
 
-  ngAfterViewInit(): void {
-    this.paginator?.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
-      this.navigate({ page: ev.pageIndex, size: ev.pageSize });
-    });
+  private syncPaginatorState(): void {
+    if (!this._paginator) return;
+    this._paginator.length    = this.totalElements;
+    this._paginator.pageIndex = this.currentPage;
+    this._paginator.pageSize  = this.currentPageSize;
   }
 
   ngOnDestroy(): void {
@@ -142,11 +156,9 @@ export class ReceiptsListComponent implements OnInit, AfterViewInit, OnDestroy {
       next: page => {
         this.dataSource.data = page.content;
         this.totalElements   = page.totalElements;
-        if (this.paginator) {
-          this.paginator.length    = page.totalElements;
-          this.paginator.pageIndex = page.number;
-          this.paginator.pageSize  = page.size;
-        }
+        this.currentPage     = page.number;
+        this.currentPageSize = page.size;
+        this.syncPaginatorState();
         this.loading.set(false);
       },
       error: () => { this.toast.error('Failed to load receipts'); this.loading.set(false); },

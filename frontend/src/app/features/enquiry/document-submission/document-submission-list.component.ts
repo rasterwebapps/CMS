@@ -1,9 +1,9 @@
 import {
-  AfterViewInit, Component, computed, inject, OnDestroy, OnInit, signal, ViewChild,
+  Component, computed, inject, OnDestroy, OnInit, signal, ViewChild,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -48,7 +48,7 @@ const DEFAULT_PAGE_SIZE = 25;
   templateUrl: './document-submission-list.component.html',
   styleUrl: './document-submission-list.component.scss',
 })
-export class DocumentSubmissionListComponent implements OnInit, AfterViewInit, OnDestroy {
+export class DocumentSubmissionListComponent implements OnInit, OnDestroy {
   private readonly enquiryService    = inject(EnquiryService);
   private readonly permissionService = inject(PermissionService);
   private readonly programService    = inject(ProgramService);
@@ -58,7 +58,20 @@ export class DocumentSubmissionListComponent implements OnInit, AfterViewInit, O
   private readonly toast             = inject(ToastService);
   private readonly tourService       = inject(TourService);
 
-  @ViewChild(MatPaginator) paginator?: MatPaginator;
+  @ViewChild(MatPaginator)
+  set paginator(value: MatPaginator | undefined) {
+    if (this._paginator === value) return;
+    this._paginatorSub?.unsubscribe();
+    this._paginator = value;
+    if (!value) return;
+    this._paginatorSub = value.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
+      this.navigate({ page: ev.pageIndex, size: ev.pageSize });
+    });
+    this.syncPaginatorState();
+  }
+  get paginator(): MatPaginator | undefined { return this._paginator; }
+  private _paginator?: MatPaginator;
+  private _paginatorSub?: Subscription;
 
   protected readonly loading    = signal(false);
   protected readonly searchQuery = signal('');
@@ -123,10 +136,11 @@ export class DocumentSubmissionListComponent implements OnInit, AfterViewInit, O
     ).subscribe(val => this.navigate({ search: val || null, page: 0 }));
   }
 
-  ngAfterViewInit(): void {
-    this.paginator?.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
-      this.navigate({ page: ev.pageIndex, size: ev.pageSize });
-    });
+  private syncPaginatorState(): void {
+    if (!this._paginator) return;
+    this._paginator.length    = this.totalElements;
+    this._paginator.pageIndex = this.currentPage;
+    this._paginator.pageSize  = this.currentPageSize;
   }
 
   ngOnDestroy(): void {
@@ -154,11 +168,9 @@ export class DocumentSubmissionListComponent implements OnInit, AfterViewInit, O
       next: page => {
         this.dataSource.data = page.content;
         this.totalElements   = page.totalElements;
-        if (this.paginator) {
-          this.paginator.length    = page.totalElements;
-          this.paginator.pageIndex = page.number;
-          this.paginator.pageSize  = page.size;
-        }
+        this.currentPage     = page.number;
+        this.currentPageSize = page.size;
+        this.syncPaginatorState();
         this.loading.set(false);
       },
       error: () => { this.toast.error('Failed to load'); this.loading.set(false); },

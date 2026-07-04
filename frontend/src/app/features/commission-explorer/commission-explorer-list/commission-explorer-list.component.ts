@@ -1,5 +1,5 @@
 import {
-  AfterViewInit, Component, computed, inject, OnDestroy, OnInit, signal, ViewChild,
+  Component, computed, inject, OnDestroy, OnInit, signal, ViewChild,
 } from '@angular/core';
 import {
   FormBuilder, FormGroup, ReactiveFormsModule, Validators,
@@ -11,7 +11,7 @@ import { MatSortModule } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Subject } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 
 import { PermissionService } from '../../../core/permissions/permission.service';
@@ -48,7 +48,7 @@ const DEFAULT_PAGE_SIZE = 25;
   templateUrl: './commission-explorer-list.component.html',
   styleUrl:    './commission-explorer-list.component.scss',
 })
-export class CommissionExplorerListComponent implements OnInit, AfterViewInit, OnDestroy {
+export class CommissionExplorerListComponent implements OnInit, OnDestroy {
   private readonly explorerService  = inject(CommissionExplorerService);
   private readonly permService      = inject(PermissionService);
   private readonly toast            = inject(ToastService);
@@ -57,7 +57,20 @@ export class CommissionExplorerListComponent implements OnInit, AfterViewInit, O
   private readonly router           = inject(Router);
   private readonly route            = inject(ActivatedRoute);
 
-  @ViewChild(MatPaginator) paginator?: MatPaginator;
+  @ViewChild(MatPaginator)
+  set paginator(value: MatPaginator | undefined) {
+    if (this._paginator === value) return;
+    this._paginatorSub?.unsubscribe();
+    this._paginator = value;
+    if (!value) return;
+    this._paginatorSub = value.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
+      this.navigate({ page: ev.pageIndex, size: ev.pageSize });
+    });
+    this.syncPaginatorState();
+  }
+  get paginator(): MatPaginator | undefined { return this._paginator; }
+  private _paginator?: MatPaginator;
+  private _paginatorSub?: Subscription;
 
   protected readonly canManage = computed(() => this.permService.has('COMMISSION_MANAGE'));
   protected readonly canSettle = computed(() => this.permService.has('COMMISSION_SETTLE'));
@@ -147,10 +160,11 @@ export class CommissionExplorerListComponent implements OnInit, AfterViewInit, O
     ).subscribe(val => this.navigate({ search: val || null, page: 0 }));
   }
 
-  ngAfterViewInit(): void {
-    this.paginator?.page.pipe(takeUntil(this.destroy$)).subscribe((ev: PageEvent) => {
-      this.navigate({ page: ev.pageIndex, size: ev.pageSize });
-    });
+  private syncPaginatorState(): void {
+    if (!this._paginator) return;
+    this._paginator.length    = this.totalElements;
+    this._paginator.pageIndex = this.currentPage;
+    this._paginator.pageSize  = this.currentPageSize;
   }
 
   ngOnDestroy(): void {
@@ -181,11 +195,9 @@ export class CommissionExplorerListComponent implements OnInit, AfterViewInit, O
       next: page => {
         this.dataSource.data  = page.content;
         this.totalElements    = page.totalElements;
-        if (this.paginator) {
-          this.paginator.length    = page.totalElements;
-          this.paginator.pageIndex = page.number;
-          this.paginator.pageSize  = page.size;
-        }
+        this.currentPage      = page.number;
+        this.currentPageSize  = page.size;
+        this.syncPaginatorState();
         // Recompute page-level stats
         this.totalDue              = page.content.reduce((s, r) => s + (r.commissionAmount ?? 0), 0);
         this.totalPaid             = page.content.reduce((s, r) => s + (r.commissionPaidAmount ?? 0), 0);
