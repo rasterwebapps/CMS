@@ -59,6 +59,22 @@ services:
       postgres:
         condition: service_healthy
 
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    network_mode: host
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio_data_209:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:9000/minio/health/live || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   backend:
     image: cms-backend:latest
     restart: unless-stopped
@@ -81,8 +97,14 @@ services:
       KEYCLOAK_JWK_SET_URI: http://localhost:8180/realms/cms/protocol/openid-connect/certs
       KEYCLOAK_ALLOWED_ISSUERS: https://${DEPLOY_HOST}/realms/cms,https://${PUBLIC_IP}/realms/cms,https://${LOCAL_HOST}/realms/cms
       CORS_ALLOWED_ORIGINS: https://${DEPLOY_HOST},https://${PUBLIC_IP},https://${LOCAL_HOST}
+      MINIO_ENDPOINT: http://localhost:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: cms-documents
     depends_on:
       postgres:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', 'wget -q -O - http://localhost:8080/api/v1/health >/dev/null || exit 1']
@@ -110,4 +132,5 @@ services:
 
 volumes:
   postgres_data_209:
+  minio_data_209:
 

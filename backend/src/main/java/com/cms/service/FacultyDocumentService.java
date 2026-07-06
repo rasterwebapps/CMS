@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
@@ -36,17 +37,20 @@ public class FacultyDocumentService {
     private final FacultyRepository facultyRepository;
     private final CurrentUserResolver currentUserResolver;
     private final PermSecurityBean permSecurityBean;
+    private final StorageService storageService;
 
     public FacultyDocumentService(FacultyDocumentRepository documentRepository,
                                    FacultyDocumentHistoryRepository historyRepository,
                                    FacultyRepository facultyRepository,
                                    CurrentUserResolver currentUserResolver,
-                                   PermSecurityBean permSecurityBean) {
+                                   PermSecurityBean permSecurityBean,
+                                   StorageService storageService) {
         this.documentRepository = documentRepository;
         this.historyRepository = historyRepository;
         this.facultyRepository = facultyRepository;
         this.currentUserResolver = currentUserResolver;
         this.permSecurityBean = permSecurityBean;
+        this.storageService = storageService;
     }
 
     public List<FacultyDocumentResponse> findByFacultyId(Long facultyId) {
@@ -165,13 +169,19 @@ public class FacultyDocumentService {
 
         DocumentVerificationStatus previousStatus = document.getId() != null ? document.getStatus() : null;
 
+        byte[] bytes;
         try {
-            document.setFileData(file.getBytes());
+            bytes = file.getBytes();
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to read uploaded file", ex);
         }
-        document.setFileName(sanitizeFileName(file.getOriginalFilename()));
-        document.setContentType(file.getContentType());
+
+        String sanitizedName = sanitizeFileName(file.getOriginalFilename());
+        String contentType   = file.getContentType();
+        String folder        = MinioStorageService.folderFor(documentType);
+
+        document.setFileName(sanitizedName);
+        document.setContentType(contentType);
         document.setFileSize(file.getSize());
         document.setUploadedAt(Instant.now());
         document.setStatus(DocumentVerificationStatus.UPLOADED);
@@ -182,24 +192,34 @@ public class FacultyDocumentService {
         }
 
         FacultyDocument saved = documentRepository.save(document);
-        recordHistory(saved, previousStatus, DocumentVerificationStatus.UPLOADED);
 
+        String objectKey = MinioStorageService.buildKey(folder, saved.getId(), sanitizedName);
+        storageService.upload(objectKey, new ByteArrayInputStream(bytes), bytes.length, contentType);
+        saved.setStorageKey(objectKey);
+        saved = documentRepository.save(saved);
+
+        recordHistory(saved, previousStatus, DocumentVerificationStatus.UPLOADED);
         return toResponse(saved);
     }
 
     public DocumentFileDownload getFileForDownload(Long documentId) {
         FacultyDocument document = documentRepository.findById(documentId)
             .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+
+        String fileName = document.getFileName() != null
+            ? document.getFileName() : document.getDocumentType().name();
+        String contentType = document.getContentType() != null
+            ? document.getContentType() : "application/octet-stream";
+
+        if (document.getStorageKey() != null && !document.getStorageKey().isBlank()) {
+            return new DocumentFileDownload(fileName, contentType,
+                storageService.downloadBytes(document.getStorageKey()));
+        }
+
         byte[] data = document.getFileData();
         if (data == null || data.length == 0) {
             throw new ResourceNotFoundException("No file uploaded for document id: " + documentId);
         }
-        String fileName = document.getFileName() != null
-            ? document.getFileName()
-            : document.getDocumentType().name();
-        String contentType = document.getContentType() != null
-            ? document.getContentType()
-            : "application/octet-stream";
         return new DocumentFileDownload(fileName, contentType, data);
     }
 

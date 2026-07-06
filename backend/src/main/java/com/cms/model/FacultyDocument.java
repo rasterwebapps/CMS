@@ -77,6 +77,9 @@ public class FacultyDocument {
     @Column(name = "uploaded_at")
     private Instant uploadedAt;
 
+    @Column(name = "storage_key", length = 500)
+    private String storageKey;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -129,6 +132,9 @@ public class FacultyDocument {
 
     public Instant getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(Instant uploadedAt) { this.uploadedAt = uploadedAt; }
+
+    public String getStorageKey() { return storageKey; }
+    public void setStorageKey(String storageKey) { this.storageKey = storageKey; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 import org.springframework.http.MediaType;
@@ -33,15 +34,18 @@ public class ProfileService {
     private final StudentRepository studentRepository;
     private final AdmissionRepository admissionRepository;
     private final AppUserRepository appUserRepository;
+    private final StorageService storageService;
 
     public ProfileService(FacultyRepository facultyRepository,
                           StudentRepository studentRepository,
                           AdmissionRepository admissionRepository,
-                          AppUserRepository appUserRepository) {
+                          AppUserRepository appUserRepository,
+                          StorageService storageService) {
         this.facultyRepository = facultyRepository;
         this.studentRepository = studentRepository;
         this.admissionRepository = admissionRepository;
         this.appUserRepository = appUserRepository;
+        this.storageService = storageService;
     }
 
     public ProfileIdentity resolveCurrentUser() {
@@ -93,36 +97,37 @@ public class ProfileService {
 
     public ResponseEntity<byte[]> getPhoto() {
         AppUser user = resolveAppUser();
-        if (user.getProfilePhoto() == null || user.getProfilePhoto().length == 0) {
-            return ResponseEntity.noContent().build();
-        }
         String contentType = user.getProfilePhotoType() == null || user.getProfilePhotoType().isBlank()
-            ? MediaType.IMAGE_JPEG_VALUE
-            : user.getProfilePhotoType();
-        return ResponseEntity.ok()
-            .contentType(MediaType.parseMediaType(contentType))
-            .body(user.getProfilePhoto());
+            ? MediaType.IMAGE_JPEG_VALUE : user.getProfilePhotoType();
+
+        if (user.getProfilePhotoKey() != null && !user.getProfilePhotoKey().isBlank()) {
+            byte[] data = storageService.downloadBytes(user.getProfilePhotoKey());
+            return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType)).body(data);
+        }
+        if (user.getProfilePhoto() != null && user.getProfilePhoto().length > 0) {
+            return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType)).body(user.getProfilePhoto());
+        }
+        return ResponseEntity.noContent().build();
     }
 
     @Transactional
     public void uploadPhoto(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File is required");
-        }
+        if (file == null || file.isEmpty()) throw new IllegalArgumentException("File is required");
         String contentType = file.getContentType();
         if (!MediaType.IMAGE_JPEG_VALUE.equals(contentType) && !MediaType.IMAGE_PNG_VALUE.equals(contentType)) {
             throw new IllegalArgumentException("Only JPEG or PNG images are allowed");
         }
-        if (file.getSize() > MAX_PHOTO_BYTES) {
-            throw new IllegalArgumentException("Photo exceeds the 2 MB limit");
-        }
+        if (file.getSize() > MAX_PHOTO_BYTES) throw new IllegalArgumentException("Photo exceeds the 2 MB limit");
 
         AppUser user = resolveAppUser();
-        try {
-            user.setProfilePhoto(file.getBytes());
-        } catch (IOException ex) {
-            throw new IllegalArgumentException("Unable to read uploaded photo", ex);
-        }
+        byte[] bytes;
+        try { bytes = file.getBytes(); } catch (IOException ex) { throw new IllegalArgumentException("Unable to read uploaded photo", ex); }
+
+        String ext = MediaType.IMAGE_PNG_VALUE.equals(contentType) ? ".png" : ".jpg";
+        String key = "profile-photo/" + user.getId() + "-" + java.util.UUID.randomUUID().toString().replace("-","").substring(0,8) + ext;
+        storageService.upload(key, new ByteArrayInputStream(bytes), bytes.length, contentType);
+
+        user.setProfilePhotoKey(key);
         user.setProfilePhotoType(contentType);
         appUserRepository.save(user);
     }
@@ -130,6 +135,10 @@ public class ProfileService {
     @Transactional
     public void deletePhoto() {
         AppUser user = resolveAppUser();
+        if (user.getProfilePhotoKey() != null) {
+            storageService.delete(user.getProfilePhotoKey());
+            user.setProfilePhotoKey(null);
+        }
         user.setProfilePhoto(null);
         user.setProfilePhotoType(null);
         appUserRepository.save(user);
@@ -139,14 +148,17 @@ public class ProfileService {
 
     public ResponseEntity<byte[]> getCoverPhoto() {
         AppUser user = resolveAppUser();
-        if (user.getCoverPhoto() == null || user.getCoverPhoto().length == 0) {
-            return ResponseEntity.noContent().build();
-        }
         String contentType = user.getCoverPhotoType() == null || user.getCoverPhotoType().isBlank()
             ? MediaType.IMAGE_JPEG_VALUE : user.getCoverPhotoType();
-        return ResponseEntity.ok()
-            .contentType(MediaType.parseMediaType(contentType))
-            .body(user.getCoverPhoto());
+
+        if (user.getCoverPhotoKey() != null && !user.getCoverPhotoKey().isBlank()) {
+            byte[] data = storageService.downloadBytes(user.getCoverPhotoKey());
+            return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType)).body(data);
+        }
+        if (user.getCoverPhoto() != null && user.getCoverPhoto().length > 0) {
+            return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType)).body(user.getCoverPhoto());
+        }
+        return ResponseEntity.noContent().build();
     }
 
     @Transactional
@@ -157,8 +169,16 @@ public class ProfileService {
             throw new IllegalArgumentException("Only JPEG or PNG images are allowed");
         }
         if (file.getSize() > MAX_PHOTO_BYTES) throw new IllegalArgumentException("Cover photo exceeds the 2 MB limit");
+
         AppUser user = resolveAppUser();
-        try { user.setCoverPhoto(file.getBytes()); } catch (IOException ex) { throw new IllegalArgumentException("Unable to read uploaded photo", ex); }
+        byte[] bytes;
+        try { bytes = file.getBytes(); } catch (IOException ex) { throw new IllegalArgumentException("Unable to read uploaded photo", ex); }
+
+        String ext = MediaType.IMAGE_PNG_VALUE.equals(contentType) ? ".png" : ".jpg";
+        String key = "cover-photo/" + user.getId() + "-" + java.util.UUID.randomUUID().toString().replace("-","").substring(0,8) + ext;
+        storageService.upload(key, new ByteArrayInputStream(bytes), bytes.length, contentType);
+
+        user.setCoverPhotoKey(key);
         user.setCoverPhotoType(contentType);
         appUserRepository.save(user);
     }
@@ -166,6 +186,10 @@ public class ProfileService {
     @Transactional
     public void deleteCoverPhoto() {
         AppUser user = resolveAppUser();
+        if (user.getCoverPhotoKey() != null) {
+            storageService.delete(user.getCoverPhotoKey());
+            user.setCoverPhotoKey(null);
+        }
         user.setCoverPhoto(null);
         user.setCoverPhotoType(null);
         appUserRepository.save(user);

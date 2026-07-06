@@ -37,6 +37,9 @@ dependencies {
     // PDF export
     implementation("com.github.librepdf:openpdf:1.3.35")
 
+    // MinIO object storage client
+    implementation("io.minio:minio:8.5.10")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

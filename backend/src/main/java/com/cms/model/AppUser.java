@@ -89,6 +89,12 @@ public class AppUser {
     @Column(name = "cover_photo_type", length = 50)
     private String coverPhotoType;
 
+    @Column(name = "profile_photo_key", length = 500)
+    private String profilePhotoKey;
+
+    @Column(name = "cover_photo_key", length = 500)
+    private String coverPhotoKey;
+
     @Column(name = "bio", length = 500)
     private String bio;
 
@@ -219,6 +225,12 @@ public class AppUser {
 
     public String getCoverPhotoType() { return coverPhotoType; }
     public void setCoverPhotoType(String coverPhotoType) { this.coverPhotoType = coverPhotoType; }
+
+    public String getProfilePhotoKey() { return profilePhotoKey; }
+    public void setProfilePhotoKey(String profilePhotoKey) { this.profilePhotoKey = profilePhotoKey; }
+
+    public String getCoverPhotoKey() { return coverPhotoKey; }
+    public void setCoverPhotoKey(String coverPhotoKey) { this.coverPhotoKey = coverPhotoKey; }
 
     public String getBio() { return bio; }
     public void setBio(String bio) { this.bio = bio; }

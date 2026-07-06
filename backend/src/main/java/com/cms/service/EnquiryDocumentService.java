@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -44,19 +45,22 @@ public class EnquiryDocumentService {
     private final EnquiryStatusHistoryRepository statusHistoryRepository;
     private final CurrentUserResolver currentUserResolver;
     private final PermSecurityBean permSecurityBean;
+    private final StorageService storageService;
 
     public EnquiryDocumentService(EnquiryDocumentRepository documentRepository,
                                    EnquiryDocumentHistoryRepository historyRepository,
                                    EnquiryRepository enquiryRepository,
                                    EnquiryStatusHistoryRepository statusHistoryRepository,
                                    CurrentUserResolver currentUserResolver,
-                                   PermSecurityBean permSecurityBean) {
+                                   PermSecurityBean permSecurityBean,
+                                   StorageService storageService) {
         this.documentRepository = documentRepository;
         this.historyRepository = historyRepository;
         this.enquiryRepository = enquiryRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.currentUserResolver = currentUserResolver;
         this.permSecurityBean = permSecurityBean;
+        this.storageService = storageService;
     }
 
     public List<EnquiryDocumentHistoryResponse> getHistory(Long documentId) {
@@ -248,13 +252,20 @@ public class EnquiryDocumentService {
 
         DocumentVerificationStatus previousStatus = document.getId() != null ? document.getStatus() : null;
 
+        byte[] bytes;
         try {
-            document.setFileData(file.getBytes());
+            bytes = file.getBytes();
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to read uploaded file", ex);
         }
-        document.setFileName(sanitizeFileName(file.getOriginalFilename()));
-        document.setContentType(file.getContentType());
+
+        String sanitizedName = sanitizeFileName(file.getOriginalFilename());
+        String contentType   = file.getContentType();
+        String folder        = MinioStorageService.folderFor(documentType);
+        // Use a temporary id-like value before save; overwritten after persist if needed.
+        // We save first to get the real DB id, then upload to MinIO with that id.
+        document.setFileName(sanitizedName);
+        document.setContentType(contentType);
         document.setFileSize(file.getSize());
         document.setUploadedAt(Instant.now());
         document.setStatus(DocumentVerificationStatus.UPLOADED);
@@ -262,33 +273,42 @@ public class EnquiryDocumentService {
             document.setVerifiedBy(null);
             document.setVerifiedAt(null);
         }
-        // Always overwrite remarks so a previous rejection reason is cleared
-        // from the active record. The old value is preserved in history via
-        // the recordHistory call below.
         document.setRemarks(remarks);
 
         EnquiryDocument saved = documentRepository.save(document);
+
+        // Upload to MinIO after we have the real row id.
+        String objectKey = MinioStorageService.buildKey(folder, saved.getId(), sanitizedName);
+        storageService.upload(objectKey, new ByteArrayInputStream(bytes), bytes.length, contentType);
+        saved.setStorageKey(objectKey);
+        saved = documentRepository.save(saved);
+
         recordHistory(saved, previousStatus, DocumentVerificationStatus.UPLOADED);
         return toResponse(saved);
     }
 
     /**
-     * Loads the binary content of a stored document so that it can be
-     * streamed to the client for viewing or downloading.
+     * Streams the stored document. Tries MinIO first (storageKey); falls back
+     * to DB bytes for records that predate the MinIO migration.
      */
     public DocumentFileDownload getFileForDownload(Long documentId) {
         EnquiryDocument document = documentRepository.findById(documentId)
             .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+
+        String fileName = document.getFileName() != null
+            ? document.getFileName() : document.getDocumentType().name();
+        String contentType = document.getContentType() != null
+            ? document.getContentType() : "application/octet-stream";
+
+        if (document.getStorageKey() != null && !document.getStorageKey().isBlank()) {
+            byte[] data = storageService.downloadBytes(document.getStorageKey());
+            return new DocumentFileDownload(fileName, contentType, data);
+        }
+
         byte[] data = document.getFileData();
         if (data == null || data.length == 0) {
             throw new ResourceNotFoundException("No file uploaded for document id: " + documentId);
         }
-        String fileName = document.getFileName() != null
-            ? document.getFileName()
-            : document.getDocumentType().name();
-        String contentType = document.getContentType() != null
-            ? document.getContentType()
-            : "application/octet-stream";
         return new DocumentFileDownload(fileName, contentType, data);
     }
 
