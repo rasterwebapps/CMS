@@ -5,6 +5,7 @@ import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -49,7 +50,7 @@ export const STATUS_LABELS: Record<string, string> = {
   standalone: true,
   imports: [
     RouterLink, FormsModule, AppDatePipe,
-    MatTableModule, MatPaginatorModule,
+    MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule, MatMenuModule,
     CmsEmptyStateComponent,
     CmsTourButtonComponent,
@@ -103,6 +104,11 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
   protected readonly loading = signal(false);
   private currentPage        = 0;
   private currentPageSize    = 25;
+  protected sortActive       = 'enquiryDate';
+  protected sortDirection: 'asc' | 'desc' = 'desc';
+  private readonly sortMap: Record<string, string> = {
+    name: 'name', enquiryDate: 'enquiryDate', status: 'status', programName: 'program.name',
+  };
 
   // ── Filter state ─────────────────────────────────────────────────────────
   protected readonly searchValue             = signal('');
@@ -256,6 +262,8 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
     }
     this.currentPage     = p.get('page') ? +p.get('page')! : 0;
     this.currentPageSize = p.get('size') ? +p.get('size')! : 25;
+    this.sortActive      = p.get('sortField') ?? 'enquiryDate';
+    this.sortDirection   = (p.get('sortDir') ?? 'desc') as 'asc' | 'desc';
     if (this.moreFiltersCount > 0) this.moreFiltersOpen = true;
 
     // Load filter dropdown options (non-critical — best effort)
@@ -323,12 +331,22 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
         admissionSource: this.selectedAdmissionSource()  ?? null,
         academicYearIds: [...this.selectedAcademicYearIds()].length
           ? [...this.selectedAcademicYearIds()].join(',') : null,
-        page: this.currentPage > 0 ? this.currentPage : null,
-        size: this.currentPageSize !== 25 ? this.currentPageSize : null,
+        page:      this.currentPage > 0 ? this.currentPage : null,
+        size:      this.currentPageSize !== 25 ? this.currentPageSize : null,
+        sortField: this.sortActive !== 'enquiryDate' ? this.sortActive : null,
+        sortDir:   this.sortDirection !== 'desc' ? this.sortDirection : null,
       },
       queryParamsHandling: 'replace',
       replaceUrl: true,
     });
+  }
+
+  protected onSortChange(sort: Sort): void {
+    this.sortActive    = sort.active;
+    this.sortDirection = (sort.direction || 'desc') as 'asc' | 'desc';
+    this.resetPage();
+    this.syncUrlFilters();
+    this.loadPage();
   }
 
   private resetPage(): void {
@@ -614,6 +632,7 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
       academicYearIds:  yearIds.length ? yearIds : undefined,
       page:             this.currentPage,
       size:             this.currentPageSize,
+      sort:             `${this.sortMap[this.sortActive] ?? this.sortActive},${this.sortDirection}`,
     }).subscribe({
       next: data => {
         this.rows.set(data.content);

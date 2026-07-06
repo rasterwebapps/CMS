@@ -293,6 +293,7 @@ export class EnquiryService {
     academicYearIds?: number[];
     page?: number;
     size?: number;
+    sort?: string;
   }): Observable<Page<Enquiry>> {
     let params = new HttpParams()
       .set('page', p.page ?? 0)
@@ -309,6 +310,7 @@ export class EnquiryService {
     if (p.agentName)       params = params.set('agentName', p.agentName);
     if (p.admissionSource) params = params.set('admissionSource', p.admissionSource);
     for (const id of (p.academicYearIds ?? [])) params = params.append('academicYearIds', id);
+    if (p.sort)            params = params.set('sort', p.sort);
     return this.http.get<Page<Enquiry>>(`${this.baseUrl}/page`, { params });
   }
 

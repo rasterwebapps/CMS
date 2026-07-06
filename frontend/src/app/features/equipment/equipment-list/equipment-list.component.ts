@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
 import { ExportFormat } from '../../../shared/export-button/export-button.component';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -46,6 +46,7 @@ import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/ic
 export class EquipmentListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly equipmentService  = inject(EquipmentService);
   private readonly router            = inject(Router);
+  private readonly route             = inject(ActivatedRoute);
   private readonly toast             = inject(ToastService);
   private readonly dialog            = inject(MatDialog);
   private readonly tourService       = inject(TourService);
@@ -90,6 +91,9 @@ export class EquipmentListComponent implements OnInit, AfterViewInit, OnDestroy 
 
   ngOnInit(): void {
     this.tourService.register('equipment-list', EQUIPMENT_LIST_TOUR);
+    const snap = this.route.snapshot.queryParams;
+    if (snap['sortField']) this.sortActive    = snap['sortField'];
+    if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';
     this.searchSubject.pipe(
       debounceTime(400),
       distinctUntilChanged(),
@@ -121,9 +125,15 @@ export class EquipmentListComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   protected onSortChange(sort: Sort): void {
-    this.sortActive = sort.active;
-    this.sortDirection = sort.direction as 'asc' | 'desc';
-    this.currentPage = 0;
+    this.sortActive    = sort.active;
+    this.sortDirection = (sort.direction || 'asc') as 'asc' | 'desc';
+    this.currentPage   = 0;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { sortField: sort.active, sortDir: this.sortDirection },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
     this.loadPage();
   }
 

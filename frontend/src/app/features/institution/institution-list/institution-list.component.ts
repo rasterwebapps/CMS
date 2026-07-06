@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -45,6 +45,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
 export class InstitutionListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly institutionService = inject(InstitutionService);
   private readonly router = inject(Router);
+  private readonly route  = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly permissionService = inject(PermissionService);
@@ -88,6 +89,9 @@ export class InstitutionListComponent implements OnInit, AfterViewInit, OnDestro
 
   ngOnInit(): void {
     this.tourService.register('institution-list', INSTITUTION_LIST_TOUR);
+    const snap = this.route.snapshot.queryParams;
+    if (snap['sortField']) this.sortActive    = snap['sortField'];
+    if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';
     this.searchSubject.pipe(
       debounceTime(400),
       distinctUntilChanged(),
@@ -123,9 +127,15 @@ export class InstitutionListComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   protected onSortChange(sort: Sort): void {
-    this.sortActive = sort.active;
-    this.sortDirection = sort.direction as 'asc' | 'desc';
-    this.currentPage = 0;
+    this.sortActive    = sort.active;
+    this.sortDirection = (sort.direction || 'asc') as 'asc' | 'desc';
+    this.currentPage   = 0;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { sortField: sort.active, sortDir: this.sortDirection },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
     this.loadPage();
   }
 

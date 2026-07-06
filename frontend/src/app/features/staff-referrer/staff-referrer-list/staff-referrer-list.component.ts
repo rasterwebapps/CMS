@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
 import { ExportFormat } from '../../../shared/export-button/export-button.component';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -46,6 +46,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
 export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly service           = inject(StaffReferrerService);
   private readonly router            = inject(Router);
+  private readonly route             = inject(ActivatedRoute);
   private readonly toast             = inject(ToastService);
   private readonly dialog            = inject(MatDialog);
   private readonly permissionService = inject(PermissionService);
@@ -88,6 +89,9 @@ export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDest
   };
 
   ngOnInit(): void {
+    const snap = this.route.snapshot.queryParams;
+    if (snap['sortField']) this.sortActive    = snap['sortField'];
+    if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';
     this.searchSubject.pipe(
       debounceTime(400),
       distinctUntilChanged(),
@@ -124,9 +128,15 @@ export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDest
   }
 
   protected onSortChange(sort: Sort): void {
-    this.sortActive = sort.active;
-    this.sortDirection = sort.direction as 'asc' | 'desc';
-    this.currentPage = 0;
+    this.sortActive    = sort.active;
+    this.sortDirection = (sort.direction || 'asc') as 'asc' | 'desc';
+    this.currentPage   = 0;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { sortField: sort.active, sortDir: this.sortDirection },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
     this.loadPage();
   }
 

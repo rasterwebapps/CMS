@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, OnDestroy, AfterViewInit, signal, computed, ViewChild } from '@angular/core';
 import { ExportFormat } from '../../../shared/export-button/export-button.component';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TitleCasePipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -65,6 +65,7 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly facultyService    = inject(FacultyService);
   private readonly specialityService = inject(SpecialityService);
   private readonly router            = inject(Router);
+  private readonly route             = inject(ActivatedRoute);
   private readonly toast             = inject(ToastService);
   private readonly dialog            = inject(MatDialog);
   private readonly tourService       = inject(TourService);
@@ -128,6 +129,9 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     this.tourService.register('faculty-list', FACULTY_LIST_TOUR);
+    const snap = this.route.snapshot.queryParams;
+    if (snap['sortField']) this.sortActive    = snap['sortField'];
+    if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';
     this.searchSubject.pipe(
       debounceTime(400),
       distinctUntilChanged(),
@@ -160,9 +164,15 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected onSortChange(sort: Sort): void {
-    this.sortActive = sort.active;
-    this.sortDirection = sort.direction as 'asc' | 'desc';
-    this.currentPage = 0;
+    this.sortActive    = sort.active;
+    this.sortDirection = (sort.direction || 'asc') as 'asc' | 'desc';
+    this.currentPage   = 0;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { sortField: sort.active, sortDir: this.sortDirection },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
     this.loadPage();
   }
 
