@@ -33,4 +33,8 @@ public interface LibraryIssueRepository extends JpaRepository<LibraryIssue, Long
 
     // For overdue detection: issued books whose due date has passed and are not returned
     List<LibraryIssue> findByStatusAndDueDateBefore(IssueStatus status, LocalDate date);
+
+    // Read-only "effectively overdue" check for reports — covers issues not yet flipped
+    // to OVERDUE by the nightly job as well as ones already flipped.
+    List<LibraryIssue> findByStatusInAndDueDateBefore(List<IssueStatus> statuses, LocalDate date);
 }

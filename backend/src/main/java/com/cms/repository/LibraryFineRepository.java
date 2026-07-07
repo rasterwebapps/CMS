@@ -13,6 +13,8 @@ public interface LibraryFineRepository extends JpaRepository<LibraryFine, Long>,
 
     Optional<LibraryFine> findByIssueId(Long issueId);
 
+    List<LibraryFine> findByIssueIdIn(List<Long> issueIds);
+
     boolean existsByIssueId(Long issueId);
 
     List<LibraryFine> findByStatus(FineStatus status);

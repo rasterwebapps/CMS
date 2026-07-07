@@ -36,7 +36,7 @@ public class LibraryReportController {
     /** All currently overdue issues — used for Overdue Report and fines summary. */
     @GetMapping("/overdue")
     public ResponseEntity<List<LibraryIssueResponse>> overdueReport() {
-        return ResponseEntity.ok(issueService.findAll(null, IssueStatus.OVERDUE));
+        return ResponseEntity.ok(issueService.findEffectivelyOverdue());
     }
 
     /** All issues that have an associated fine (pending, waived, or collected). */

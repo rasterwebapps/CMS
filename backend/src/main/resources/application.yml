@@ -12,6 +12,17 @@ spring:
     virtual:
       enabled: true
 
+  # Explicit pool sizing so one slow/misbehaving module can't starve every other
+  # module of DB connections. Virtual threads let Tomcat admit far more concurrent
+  # requests than this pool has connections, so a bounded pool + fail-fast timeout
+  # is what protects the rest of the app when one query runs long.
+  datasource:
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 20000
+      leak-detection-threshold: 30000
+
   # Serialize Instant/Date as ISO-8601 UTC strings (e.g. "2026-04-28T08:30:00Z")
   # so the frontend receives UTC timestamps and converts them to local time.
   jackson:

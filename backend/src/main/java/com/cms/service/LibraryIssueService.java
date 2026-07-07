@@ -5,8 +5,11 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -215,9 +218,7 @@ public class LibraryIssueService {
 
     // ── Queries ───────────────────────────────────────────────────
 
-    @Transactional
     public List<LibraryIssueResponse> findAll(LibraryMemberType memberType, IssueStatus status) {
-        markOverdueIssues();
         List<LibraryIssue> issues;
         if (memberType != null) {
             issues = issueRepository.findByMemberType(memberType);
@@ -226,7 +227,7 @@ public class LibraryIssueService {
         } else {
             issues = issueRepository.findAll();
         }
-        return issues.stream().map(this::toResponse).toList();
+        return toResponses(issues);
     }
 
     public Page<LibraryIssueResponse> findPage(String search, IssueStatus status, LibraryMemberType memberType, Pageable pageable) {
@@ -244,21 +245,22 @@ public class LibraryIssueService {
             if (memberType != null) predicates.add(cb.equal(root.get("memberType"), memberType));
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-        return issueRepository.findAll(spec, pageable).map(this::toResponse);
+        Page<LibraryIssue> page = issueRepository.findAll(spec, pageable);
+        return new PageImpl<>(toResponses(page.getContent()), pageable, page.getTotalElements());
     }
 
     public List<LibraryIssueResponse> findByStudentId(Long studentId) {
         if (!studentRepository.existsById(studentId)) {
             throw new ResourceNotFoundException("Student not found with id: " + studentId);
         }
-        return issueRepository.findByStudentId(studentId).stream().map(this::toResponse).toList();
+        return toResponses(issueRepository.findByStudentId(studentId));
     }
 
     public List<LibraryIssueResponse> findByFacultyId(Long facultyId) {
         if (!facultyRepository.existsById(facultyId)) {
             throw new ResourceNotFoundException("Faculty not found with id: " + facultyId);
         }
-        return issueRepository.findByFacultyId(facultyId).stream().map(this::toResponse).toList();
+        return toResponses(issueRepository.findByFacultyId(facultyId));
     }
 
     /** Returns the active issues for the currently authenticated user (student or faculty). */
@@ -266,11 +268,9 @@ public class LibraryIssueService {
         return appUserRepository.findByKeycloakUsername(keycloakUsername)
             .map(user -> {
                 if (user.getLinkedStudent() != null) {
-                    return issueRepository.findByStudentId(user.getLinkedStudent().getId())
-                        .stream().map(this::toResponse).toList();
+                    return toResponses(issueRepository.findByStudentId(user.getLinkedStudent().getId()));
                 } else if (user.getLinkedFaculty() != null) {
-                    return issueRepository.findByFacultyId(user.getLinkedFaculty().getId())
-                        .stream().map(this::toResponse).toList();
+                    return toResponses(issueRepository.findByFacultyId(user.getLinkedFaculty().getId()));
                 }
                 return List.<LibraryIssueResponse>of();
             })
@@ -279,6 +279,15 @@ public class LibraryIssueService {
 
     public LibraryIssueResponse findById(Long id) {
         return toResponse(requireIssue(id));
+    }
+
+    /**
+     * Effectively-overdue issues as of right now — a read-only check for the Overdue
+     * Report so it stays accurate between runs of the nightly {@link #markOverdueIssues()}
+     * job, without that job's write cost on every report load.
+     */
+    public List<LibraryIssueResponse> findEffectivelyOverdue() {
+        return toResponses(issueRepository.findByStatusInAndDueDateBefore(ACTIVE_STATUSES, LocalDate.now()));
     }
 
     /**
@@ -325,16 +334,28 @@ public class LibraryIssueService {
             .orElseThrow(() -> new ResourceNotFoundException("Library issue not found with id: " + id));
     }
 
+    /** Batch-maps issues to responses, fetching all fines in a single query instead of one-per-issue. */
+    private List<LibraryIssueResponse> toResponses(List<LibraryIssue> issues) {
+        if (issues.isEmpty()) return List.of();
+        List<Long> issueIds = issues.stream().map(LibraryIssue::getId).toList();
+        Map<Long, LibraryFine> finesByIssueId = fineRepository.findByIssueIdIn(issueIds).stream()
+            .collect(Collectors.toMap(f -> f.getIssue().getId(), f -> f));
+        return issues.stream().map(issue -> toResponse(issue, finesByIssueId.get(issue.getId()))).toList();
+    }
+
     LibraryIssueResponse toResponse(LibraryIssue issue) {
+        LibraryFine fine = fineRepository.findByIssueId(issue.getId()).orElse(null);
+        return toResponse(issue, fine);
+    }
+
+    private LibraryIssueResponse toResponse(LibraryIssue issue, LibraryFine fine) {
         LibraryBook book = issue.getBook();
         Student student  = issue.getStudent();
         Faculty faculty  = issue.getFaculty();
 
-        LibraryFineResponse fineResponse = fineRepository.findByIssueId(issue.getId())
-            .map(f -> new LibraryFineResponse(
-                f.getId(), f.getOverdueDays(), f.getFinePerDay(), f.getTotalFine(),
-                f.getStatus(), f.getWaivedBy(), f.getCollectedAt(), f.getRemarks()))
-            .orElse(null);
+        LibraryFineResponse fineResponse = fine == null ? null : new LibraryFineResponse(
+            fine.getId(), fine.getOverdueDays(), fine.getFinePerDay(), fine.getTotalFine(),
+            fine.getStatus(), fine.getWaivedBy(), fine.getCollectedAt(), fine.getRemarks());
 
         return new LibraryIssueResponse(
             issue.getId(),
