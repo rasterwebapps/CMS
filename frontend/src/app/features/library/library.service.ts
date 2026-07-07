@@ -24,6 +24,8 @@ import {
   LibraryFineDetail,
   LibraryFineActionRequest,
   FineStatus,
+  LibraryItemType,
+  LibraryCirculationLookup,
 } from './library.model';
 
 @Injectable({ providedIn: 'root' })
@@ -131,13 +133,19 @@ export class LibraryService {
 
   // ── Circulation ───────────────────────────────────────────────
 
-  getIssuesPage(p: { search?: string; status?: IssueStatus | null; memberType?: LibraryMemberType | null; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibraryIssue>> {
+  getIssuesPage(p: { search?: string; status?: IssueStatus | null; memberType?: LibraryMemberType | null; itemType?: LibraryItemType | null; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibraryIssue>> {
     let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
     if (p.search)     params = params.set('search', p.search);
     if (p.status)     params = params.set('status', p.status);
     if (p.memberType) params = params.set('memberType', p.memberType);
+    if (p.itemType)   params = params.set('itemType', p.itemType);
     if (p.sort)       params = params.set('sort', `${p.sort},${p.direction ?? 'desc'}`);
     return this.http.get<Page<LibraryIssue>>(`${environment.apiUrl}/library/issues/page`, { params });
+  }
+
+  lookupByAccessionNumber(accessionNumber: string): Observable<LibraryCirculationLookup> {
+    const params = new HttpParams().set('accessionNumber', accessionNumber);
+    return this.http.get<LibraryCirculationLookup>(`${environment.apiUrl}/library/issues/lookup`, { params });
   }
 
   getIssues(memberType?: LibraryMemberType, status?: IssueStatus): Observable<LibraryIssue[]> {
@@ -195,6 +203,12 @@ export class LibraryService {
 
   deletePeriodical(id: number): Observable<void> {
     return this.http.delete<void>(`${environment.apiUrl}/library/periodicals/${id}`);
+  }
+
+  checkPeriodicalAccessionNumberExists(accessionNumber: string, excludeId?: number): Observable<{ exists: boolean }> {
+    let params = new HttpParams().set('accessionNumber', accessionNumber);
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<{ exists: boolean }>(`${environment.apiUrl}/library/periodicals/accession-number-exists`, { params });
   }
 
   // ── Import ────────────────────────────────────────────────────

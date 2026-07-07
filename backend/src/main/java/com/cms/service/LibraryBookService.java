@@ -1,6 +1,5 @@
 package com.cms.service;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,18 +23,20 @@ import jakarta.persistence.criteria.Predicate;
 public class LibraryBookService {
 
     private final LibraryBookRepository bookRepository;
+    private final LibraryAccessionRegistryService accessionRegistry;
 
-    public LibraryBookService(LibraryBookRepository bookRepository) {
+    public LibraryBookService(LibraryBookRepository bookRepository, LibraryAccessionRegistryService accessionRegistry) {
         this.bookRepository = bookRepository;
+        this.accessionRegistry = accessionRegistry;
     }
 
     @Transactional
     public LibraryBookResponse create(LibraryBookRequest request) {
-        String accessionNumber = resolveAccessionNumber(request.accessionNumber());
+        String accessionNumber = accessionRegistry.resolveAccessionNumber(request.accessionNumber());
 
-        if (bookRepository.existsByAccessionNumber(accessionNumber)) {
+        if (accessionRegistry.exists(accessionNumber, null, null)) {
             throw new IllegalArgumentException(
-                "A book with accession number '" + accessionNumber + "' already exists");
+                "An item with accession number '" + accessionNumber + "' already exists");
         }
 
         LibraryBook book = new LibraryBook();
@@ -77,10 +78,7 @@ public class LibraryBookService {
     }
 
     public boolean accessionNumberExists(String accessionNumber, Long excludeId) {
-        if (excludeId != null) {
-            return bookRepository.existsByAccessionNumberAndIdNot(accessionNumber, excludeId);
-        }
-        return bookRepository.existsByAccessionNumber(accessionNumber);
+        return accessionRegistry.exists(accessionNumber, excludeId, null);
     }
 
     @Transactional
@@ -92,9 +90,9 @@ public class LibraryBookService {
             : book.getAccessionNumber();
 
         if (!accessionNumber.equals(book.getAccessionNumber())
-                && bookRepository.existsByAccessionNumberAndIdNot(accessionNumber, id)) {
+                && accessionRegistry.exists(accessionNumber, id, null)) {
             throw new IllegalArgumentException(
-                "A book with accession number '" + accessionNumber + "' already exists");
+                "An item with accession number '" + accessionNumber + "' already exists");
         }
 
         book.setAccessionNumber(accessionNumber);
@@ -109,41 +107,6 @@ public class LibraryBookService {
             throw new IllegalStateException("Cannot delete a book that is currently issued");
         }
         bookRepository.deleteById(id);
-    }
-
-    // ── Accession number generation ───────────────────────────────
-
-    /**
-     * If the caller supplied an accession number, use it (after trim).
-     * Otherwise generate the next year-prefixed number: {YEAR}-{N+1}
-     * where N is the highest numeric suffix across all existing records.
-     */
-    String resolveAccessionNumber(String requested) {
-        if (requested != null && !requested.isBlank()) {
-            return requested.trim();
-        }
-        int year = LocalDate.now().getYear();
-        long nextSeq = nextSequence();
-        return year + "-" + nextSeq;
-    }
-
-    private long nextSequence() {
-        return bookRepository.findAll().stream()
-            .mapToLong(b -> parseNumericSuffix(b.getAccessionNumber()))
-            .max()
-            .orElse(0L) + 1L;
-    }
-
-    private static long parseNumericSuffix(String accessionNumber) {
-        if (accessionNumber == null) return 0L;
-        // Handles both "3001" and "2026-3001"
-        int dash = accessionNumber.lastIndexOf('-');
-        String numeric = dash >= 0 ? accessionNumber.substring(dash + 1) : accessionNumber;
-        try {
-            return Long.parseLong(numeric.trim());
-        } catch (NumberFormatException e) {
-            return 0L;
-        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────

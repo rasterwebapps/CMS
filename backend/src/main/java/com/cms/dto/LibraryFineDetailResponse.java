@@ -5,13 +5,15 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 import com.cms.model.enums.FineStatus;
+import com.cms.model.enums.LibraryItemType;
 import com.cms.model.enums.LibraryMemberType;
 
 public record LibraryFineDetailResponse(
     Long id,
     Long issueId,
+    LibraryItemType itemType,
     String accessionNumber,
-    String bookTitle,
+    String itemTitle,
     LibraryMemberType memberType,
     String memberName,
     String memberCode,

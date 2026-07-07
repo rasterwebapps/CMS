@@ -7,6 +7,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.cms.model.enums.BookStatus;
 import com.cms.model.enums.JournalType;
 import com.cms.model.enums.SubscriptionStatus;
 
@@ -28,6 +29,9 @@ public class LibraryPeriodical {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "accession_number", unique = true, length = 30)
+    private String accessionNumber;
 
     @Column(name = "journal_name", nullable = false, length = 300)
     private String journalName;
@@ -57,6 +61,10 @@ public class LibraryPeriodical {
     @Column(name = "subscription_status", nullable = false, length = 20)
     private SubscriptionStatus subscriptionStatus = SubscriptionStatus.ACTIVE;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private BookStatus status = BookStatus.AVAILABLE;
+
     @Column(name = "received_date")
     private LocalDate receivedDate;
 
@@ -76,6 +84,9 @@ public class LibraryPeriodical {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getAccessionNumber() { return accessionNumber; }
+    public void setAccessionNumber(String accessionNumber) { this.accessionNumber = accessionNumber; }
 
     public String getJournalName() { return journalName; }
     public void setJournalName(String journalName) { this.journalName = journalName; }
@@ -103,6 +114,9 @@ public class LibraryPeriodical {
 
     public SubscriptionStatus getSubscriptionStatus() { return subscriptionStatus; }
     public void setSubscriptionStatus(SubscriptionStatus subscriptionStatus) { this.subscriptionStatus = subscriptionStatus; }
+
+    public BookStatus getStatus() { return status; }
+    public void setStatus(BookStatus status) { this.status = status; }
 
     public LocalDate getReceivedDate() { return receivedDate; }
     public void setReceivedDate(LocalDate receivedDate) { this.receivedDate = receivedDate; }

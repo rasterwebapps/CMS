@@ -8,7 +8,7 @@
     <div class="header-actions">
       <a class="btn-primary" routerLink="/library/issues/new">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Issue Book
+        Issue Book / Journal
       </a>
     </div>
   </div>
@@ -25,6 +25,17 @@
         aria-label="Search issues"
       />
     </div>
+
+    <select
+      class="mlp-filter-select"
+      [value]="itemTypeFilter() ?? ''"
+      (change)="itemTypeFilter.set($any($event.target).value || null); onFilterChange()"
+      aria-label="Filter by item type"
+    >
+      <option value="">Books &amp; Journals</option>
+      <option value="BOOK">Books only</option>
+      <option value="JOURNAL">Journals only</option>
+    </select>
 
     <select
       class="mlp-filter-select"
@@ -67,11 +78,12 @@
           <td mat-cell *matCellDef="let i"><span class="acc-no">{{ i.accessionNumber }}</span></td>
         </ng-container>
 
-        <ng-container matColumnDef="bookTitle">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Book</th>
+        <ng-container matColumnDef="itemTitle">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Item</th>
           <td mat-cell *matCellDef="let i">
-            <span class="book-title">{{ i.bookTitle }}</span>
-            <span class="book-author">{{ i.bookAuthors }}</span>
+            <span class="book-title">{{ i.itemTitle }}</span>
+            <span class="book-author">{{ i.itemDetail }}</span>
+            <cms-type-badge [value]="i.itemType" [label]="i.itemType === 'BOOK' ? 'Book' : 'Journal'" />
           </td>
         </ng-container>
 
@@ -151,8 +163,8 @@
           <td [attr.colspan]="displayedColumns.length">
             <cms-empty-state
               icon="book_online"
-              [title]="hasActiveFilters() ? 'No issues match the current filters.' : 'No books have been issued yet.'"
-              [actionLabel]="hasActiveFilters() ? 'Clear Filters' : 'Issue First Book'"
+              [title]="hasActiveFilters() ? 'No issues match the current filters.' : 'No books or journals have been issued yet.'"
+              [actionLabel]="hasActiveFilters() ? 'Clear Filters' : 'Issue First Item'"
               (actionClick)="hasActiveFilters() ? clearFilters() : null"
             />
           </td>

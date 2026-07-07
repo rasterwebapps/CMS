@@ -25,20 +25,21 @@ import com.cms.repository.LibraryBookRepository;
 class LibraryBookServiceTest {
 
     @Mock private LibraryBookRepository bookRepository;
+    @Mock private LibraryAccessionRegistryService accessionRegistry;
 
     private LibraryBookService service;
 
     @BeforeEach
     void setUp() {
-        service = new LibraryBookService(bookRepository);
+        service = new LibraryBookService(bookRepository, accessionRegistry);
     }
 
     // ── create ───────────────────────────────────────────────────
 
     @Test
     void create_happyPath_savesBook() {
-        when(bookRepository.existsByAccessionNumber("2024-001")).thenReturn(false);
-        when(bookRepository.findAll()).thenReturn(List.of());
+        when(accessionRegistry.resolveAccessionNumber("2024-001")).thenReturn("2024-001");
+        when(accessionRegistry.exists("2024-001", null, null)).thenReturn(false);
 
         LibraryBook saved = book(1L, "2024-001", "Anatomy", BookStatus.AVAILABLE);
         when(bookRepository.save(any())).thenReturn(saved);
@@ -57,7 +58,8 @@ class LibraryBookServiceTest {
 
     @Test
     void create_duplicateAccessionNumber_throws() {
-        when(bookRepository.existsByAccessionNumber("2024-001")).thenReturn(true);
+        when(accessionRegistry.resolveAccessionNumber("2024-001")).thenReturn("2024-001");
+        when(accessionRegistry.exists("2024-001", null, null)).thenReturn(true);
 
         var request = new com.cms.dto.LibraryBookRequest(
             "2024-001", null, "Anatomy", "Gray", null, null, null, null,
@@ -72,9 +74,8 @@ class LibraryBookServiceTest {
 
     @Test
     void create_autoGeneratesAccessionNumber_whenNotProvided() {
-        LibraryBook existing = book(1L, "2026-5", "Old Book", BookStatus.AVAILABLE);
-        when(bookRepository.findAll()).thenReturn(List.of(existing));
-        when(bookRepository.existsByAccessionNumber(any())).thenReturn(false);
+        when(accessionRegistry.resolveAccessionNumber(null)).thenReturn("2026-6");
+        when(accessionRegistry.exists("2026-6", null, null)).thenReturn(false);
 
         LibraryBook saved = book(2L, "2026-6", "New Book", BookStatus.AVAILABLE);
         when(bookRepository.save(any())).thenReturn(saved);

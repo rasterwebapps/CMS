@@ -13,6 +13,7 @@ import com.cms.dto.LibraryPeriodicalRequest;
 import com.cms.dto.LibraryPeriodicalResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.LibraryPeriodical;
+import com.cms.model.enums.BookStatus;
 import com.cms.model.enums.JournalType;
 import com.cms.model.enums.SubscriptionStatus;
 import com.cms.repository.LibraryPeriodicalRepository;
@@ -24,16 +25,30 @@ import jakarta.persistence.criteria.Predicate;
 public class LibraryPeriodicalService {
 
     private final LibraryPeriodicalRepository repository;
+    private final LibraryAccessionRegistryService accessionRegistry;
 
-    public LibraryPeriodicalService(LibraryPeriodicalRepository repository) {
+    public LibraryPeriodicalService(LibraryPeriodicalRepository repository, LibraryAccessionRegistryService accessionRegistry) {
         this.repository = repository;
+        this.accessionRegistry = accessionRegistry;
     }
 
     @Transactional
     public LibraryPeriodicalResponse create(LibraryPeriodicalRequest request) {
+        String accessionNumber = accessionRegistry.resolveAccessionNumber(request.accessionNumber());
+        if (accessionRegistry.exists(accessionNumber, null, null)) {
+            throw new IllegalArgumentException(
+                "An item with accession number '" + accessionNumber + "' already exists");
+        }
+
         LibraryPeriodical p = new LibraryPeriodical();
         applyFields(p, request);
+        p.setAccessionNumber(accessionNumber);
+        p.setCopiesCount(1);
         return toResponse(repository.save(p));
+    }
+
+    public boolean accessionNumberExists(String accessionNumber, Long excludeId) {
+        return accessionRegistry.exists(accessionNumber, null, excludeId);
     }
 
     public List<LibraryPeriodicalResponse> findAll() {
@@ -47,7 +62,8 @@ public class LibraryPeriodicalService {
                 String p = "%" + search.trim().toLowerCase() + "%";
                 predicates.add(cb.or(
                     cb.like(cb.lower(root.get("journalName")), p),
-                    cb.like(cb.lower(root.get("organization")), p)
+                    cb.like(cb.lower(root.get("organization")), p),
+                    cb.like(cb.lower(root.get("accessionNumber")), p)
                 ));
             }
             if (subscriptionStatus != null) predicates.add(cb.equal(root.get("subscriptionStatus"), subscriptionStatus));
@@ -72,14 +88,31 @@ public class LibraryPeriodicalService {
     @Transactional
     public LibraryPeriodicalResponse update(Long id, LibraryPeriodicalRequest request) {
         LibraryPeriodical p = require(id);
+
+        String accessionNumber = request.accessionNumber() != null && !request.accessionNumber().isBlank()
+            ? request.accessionNumber().trim()
+            : p.getAccessionNumber();
+
+        if (accessionNumber != null
+                && !accessionNumber.equals(p.getAccessionNumber())
+                && accessionRegistry.exists(accessionNumber, null, id)) {
+            throw new IllegalArgumentException(
+                "An item with accession number '" + accessionNumber + "' already exists");
+        }
+
         applyFields(p, request);
+        p.setAccessionNumber(accessionNumber);
+        if (accessionNumber != null) {
+            p.setCopiesCount(1);
+        }
         return toResponse(repository.save(p));
     }
 
     @Transactional
     public void delete(Long id) {
-        if (!repository.existsById(id)) {
-            throw new ResourceNotFoundException("Periodical not found with id: " + id);
+        LibraryPeriodical p = require(id);
+        if (p.getStatus() == BookStatus.ISSUED) {
+            throw new IllegalStateException("Cannot delete a journal copy that is currently issued");
         }
         repository.deleteById(id);
     }
@@ -101,6 +134,7 @@ public class LibraryPeriodicalService {
         p.setYear(r.year());
         p.setCopiesCount(r.copiesCount() != null ? r.copiesCount() : 1);
         p.setSubscriptionStatus(r.subscriptionStatus() != null ? r.subscriptionStatus() : SubscriptionStatus.ACTIVE);
+        if (r.status() != null) p.setStatus(r.status());
         p.setReceivedDate(r.receivedDate());
         p.setReceivedBy(trim(r.receivedBy()));
         p.setRemarks(trim(r.remarks()));
@@ -115,6 +149,7 @@ public class LibraryPeriodicalService {
     private LibraryPeriodicalResponse toResponse(LibraryPeriodical p) {
         return new LibraryPeriodicalResponse(
             p.getId(),
+            p.getAccessionNumber(),
             p.getJournalName(),
             p.getJournalType(),
             p.getOrganization(),
@@ -124,6 +159,7 @@ public class LibraryPeriodicalService {
             p.getYear(),
             p.getCopiesCount(),
             p.getSubscriptionStatus(),
+            p.getStatus(),
             p.getReceivedDate(),
             p.getReceivedBy(),
             p.getRemarks(),

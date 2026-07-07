@@ -1,6 +1,7 @@
 package com.cms.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -16,4 +17,10 @@ public interface LibraryPeriodicalRepository extends JpaRepository<LibraryPeriod
     List<LibraryPeriodical> findByJournalType(JournalType journalType);
 
     List<LibraryPeriodical> findByYear(Integer year);
+
+    Optional<LibraryPeriodical> findByAccessionNumber(String accessionNumber);
+
+    boolean existsByAccessionNumber(String accessionNumber);
+
+    boolean existsByAccessionNumberAndIdNot(String accessionNumber, Long id);
 }

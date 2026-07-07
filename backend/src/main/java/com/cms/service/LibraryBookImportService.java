@@ -49,12 +49,12 @@ public class LibraryBookImportService {
     };
 
     private final LibraryBookRepository bookRepository;
-    private final LibraryBookService    bookService;
+    private final LibraryAccessionRegistryService accessionRegistry;
 
     public LibraryBookImportService(LibraryBookRepository bookRepository,
-                                     LibraryBookService bookService) {
+                                     LibraryAccessionRegistryService accessionRegistry) {
         this.bookRepository = bookRepository;
-        this.bookService    = bookService;
+        this.accessionRegistry = accessionRegistry;
     }
 
     // ── Template download ─────────────────────────────────────────
@@ -200,7 +200,7 @@ public class LibraryBookImportService {
 
         // Accession number uniqueness check
         String accNo = str(row, 0);
-        if (!accNo.isBlank() && bookRepository.existsByAccessionNumber(accNo)) {
+        if (!accNo.isBlank() && accessionRegistry.exists(accNo, null, null)) {
             errors.add(new ImportRowError("Books", displayRow, "Acc No", "Accession number '" + accNo + "' already exists", "ERROR"));
         }
 
@@ -234,7 +234,7 @@ public class LibraryBookImportService {
         LibraryBook book = new LibraryBook();
 
         String accNo = str(row, 0);
-        book.setAccessionNumber(bookService.resolveAccessionNumber(accNo.isBlank() ? null : accNo));
+        book.setAccessionNumber(accessionRegistry.resolveAccessionNumber(accNo.isBlank() ? null : accNo));
 
         parseDate(str(row, 1)).ifPresent(book::setEntryDate);
         book.setTitle(blankToNull(str(row, 2)));

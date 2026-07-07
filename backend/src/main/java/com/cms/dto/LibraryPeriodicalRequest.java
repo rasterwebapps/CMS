@@ -2,6 +2,7 @@ package com.cms.dto;
 
 import java.time.LocalDate;
 
+import com.cms.model.enums.BookStatus;
 import com.cms.model.enums.JournalType;
 import com.cms.model.enums.SubscriptionStatus;
 
@@ -10,6 +11,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record LibraryPeriodicalRequest(
+
+    @Size(max = 30, message = "Accession number must not exceed 30 characters")
+    String accessionNumber,
 
     @NotBlank(message = "Journal name is required")
     @Size(max = 300, message = "Journal name must not exceed 300 characters")
@@ -35,6 +39,8 @@ public record LibraryPeriodicalRequest(
     Integer copiesCount,
 
     SubscriptionStatus subscriptionStatus,
+
+    BookStatus status,
 
     LocalDate receivedDate,
 

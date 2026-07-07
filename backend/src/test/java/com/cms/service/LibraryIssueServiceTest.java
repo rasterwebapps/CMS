@@ -29,40 +29,45 @@ import com.cms.model.Faculty;
 import com.cms.model.LibraryBook;
 import com.cms.model.LibraryFine;
 import com.cms.model.LibraryIssue;
+import com.cms.model.LibraryPeriodical;
 import com.cms.model.LibrarySetting;
 import com.cms.model.Student;
 import com.cms.model.enums.BookStatus;
 import com.cms.model.enums.FineStatus;
 import com.cms.model.enums.IssueStatus;
+import com.cms.model.enums.LibraryItemType;
 import com.cms.model.enums.LibraryMemberType;
 import com.cms.repository.AppUserRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LibraryBookRepository;
 import com.cms.repository.LibraryFineRepository;
 import com.cms.repository.LibraryIssueRepository;
+import com.cms.repository.LibraryPeriodicalRepository;
 import com.cms.repository.LibrarySettingRepository;
 import com.cms.repository.StudentRepository;
 
 @ExtendWith(MockitoExtension.class)
 class LibraryIssueServiceTest {
 
-    @Mock private LibraryIssueRepository  issueRepository;
-    @Mock private LibraryBookRepository   bookRepository;
-    @Mock private LibraryFineRepository   fineRepository;
-    @Mock private LibrarySettingRepository settingRepository;
-    @Mock private StudentRepository       studentRepository;
-    @Mock private FacultyRepository       facultyRepository;
-    @Mock private AppUserRepository       appUserRepository;
+    @Mock private LibraryIssueRepository      issueRepository;
+    @Mock private LibraryBookRepository       bookRepository;
+    @Mock private LibraryPeriodicalRepository periodicalRepository;
+    @Mock private LibraryFineRepository       fineRepository;
+    @Mock private LibrarySettingRepository    settingRepository;
+    @Mock private StudentRepository           studentRepository;
+    @Mock private FacultyRepository           facultyRepository;
+    @Mock private AppUserRepository           appUserRepository;
 
     private LibraryIssueService service;
 
-    private LibraryBook availableBook;
-    private Student     student;
-    private Faculty     faculty;
+    private LibraryBook       availableBook;
+    private LibraryPeriodical availableJournal;
+    private Student           student;
+    private Faculty           faculty;
 
     @BeforeEach
     void setUp() {
-        service = new LibraryIssueService(issueRepository, bookRepository, fineRepository,
+        service = new LibraryIssueService(issueRepository, bookRepository, periodicalRepository, fineRepository,
             settingRepository, studentRepository, facultyRepository, appUserRepository);
 
         availableBook = new LibraryBook();
@@ -71,6 +76,14 @@ class LibraryIssueServiceTest {
         availableBook.setTitle("Anatomy Textbook");
         availableBook.setAuthors("Gray");
         availableBook.setStatus(BookStatus.AVAILABLE);
+
+        availableJournal = new LibraryPeriodical();
+        availableJournal.setId(5L);
+        availableJournal.setAccessionNumber("2024-500");
+        availableJournal.setJournalName("Indian Journal of Nursing");
+        availableJournal.setVolumeNumber("12");
+        availableJournal.setIssueNumber("3");
+        availableJournal.setStatus(BookStatus.AVAILABLE);
 
         student = new Student();
         student.setId(10L);
@@ -85,25 +98,26 @@ class LibraryIssueServiceTest {
         faculty.setEmployeeCode("FAC001");
     }
 
-    // ── issue ─────────────────────────────────────────────────────
+    // ── issue (book) ──────────────────────────────────────────────
 
     @Test
     void issue_studentHappyPath_setsBookIssuedAndSaves() {
         LibraryIssueRequest request = new LibraryIssueRequest(
-            1L, LibraryMemberType.STUDENT, 10L, null, null, null);
+            LibraryItemType.BOOK, 1L, null, LibraryMemberType.STUDENT, 10L, null, null, null);
 
         when(bookRepository.findById(1L)).thenReturn(Optional.of(availableBook));
         when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
         when(issueRepository.countByStudentIdAndStatusIn(eq(10L), anyList())).thenReturn(0L);
         when(settingRepository.findBySettingKey(any())).thenReturn(Optional.empty());
 
-        LibraryIssue saved = issuedIssue(100L, availableBook, student, null, LocalDate.now().plusDays(14));
+        LibraryIssue saved = issuedBookIssue(100L, availableBook, student, null, LocalDate.now().plusDays(14));
         when(issueRepository.save(any())).thenReturn(saved);
         when(fineRepository.findByIssueId(100L)).thenReturn(Optional.empty());
 
         var response = service.issue(request, "librarian");
 
         assertThat(response.bookId()).isEqualTo(1L);
+        assertThat(response.itemType()).isEqualTo(LibraryItemType.BOOK);
         assertThat(response.memberType()).isEqualTo(LibraryMemberType.STUDENT);
         assertThat(response.studentId()).isEqualTo(10L);
 
@@ -116,7 +130,7 @@ class LibraryIssueServiceTest {
     void issue_bookNotFound_throwsResourceNotFound() {
         when(bookRepository.findById(99L)).thenReturn(Optional.empty());
 
-        var request = new LibraryIssueRequest(99L, LibraryMemberType.STUDENT, 10L, null, null, null);
+        var request = new LibraryIssueRequest(LibraryItemType.BOOK, 99L, null, LibraryMemberType.STUDENT, 10L, null, null, null);
 
         assertThatThrownBy(() -> service.issue(request, "librarian"))
             .isInstanceOf(ResourceNotFoundException.class)
@@ -128,7 +142,7 @@ class LibraryIssueServiceTest {
         availableBook.setStatus(BookStatus.ISSUED);
         when(bookRepository.findById(1L)).thenReturn(Optional.of(availableBook));
 
-        var request = new LibraryIssueRequest(1L, LibraryMemberType.STUDENT, 10L, null, null, null);
+        var request = new LibraryIssueRequest(LibraryItemType.BOOK, 1L, null, LibraryMemberType.STUDENT, 10L, null, null, null);
 
         assertThatThrownBy(() -> service.issue(request, "librarian"))
             .isInstanceOf(IllegalStateException.class)
@@ -141,7 +155,7 @@ class LibraryIssueServiceTest {
         when(studentRepository.findById(99L)).thenReturn(Optional.empty());
         when(settingRepository.findBySettingKey(any())).thenReturn(Optional.empty());
 
-        var request = new LibraryIssueRequest(1L, LibraryMemberType.STUDENT, 99L, null, null, null);
+        var request = new LibraryIssueRequest(LibraryItemType.BOOK, 1L, null, LibraryMemberType.STUDENT, 99L, null, null, null);
 
         assertThatThrownBy(() -> service.issue(request, "librarian"))
             .isInstanceOf(ResourceNotFoundException.class)
@@ -155,7 +169,7 @@ class LibraryIssueServiceTest {
         when(settingRepository.findBySettingKey(any())).thenReturn(Optional.empty());
         when(issueRepository.countByStudentIdAndStatusIn(eq(10L), anyList())).thenReturn(2L);
 
-        var request = new LibraryIssueRequest(1L, LibraryMemberType.STUDENT, 10L, null, null, null);
+        var request = new LibraryIssueRequest(LibraryItemType.BOOK, 1L, null, LibraryMemberType.STUDENT, 10L, null, null, null);
 
         assertThatThrownBy(() -> service.issue(request, "librarian"))
             .isInstanceOf(IllegalStateException.class)
@@ -168,18 +182,87 @@ class LibraryIssueServiceTest {
         when(bookRepository.findById(1L)).thenReturn(Optional.of(availableBook));
         when(settingRepository.findBySettingKey(any())).thenReturn(Optional.empty());
 
-        var request = new LibraryIssueRequest(1L, LibraryMemberType.STUDENT, null, null, null, null);
+        var request = new LibraryIssueRequest(LibraryItemType.BOOK, 1L, null, LibraryMemberType.STUDENT, null, null, null, null);
 
         assertThatThrownBy(() -> service.issue(request, "librarian"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Student ID is required");
     }
 
+    // ── issue (journal) ───────────────────────────────────────────
+
+    @Test
+    void issue_journalHappyPath_setsJournalIssuedAndSaves() {
+        LibraryIssueRequest request = new LibraryIssueRequest(
+            LibraryItemType.JOURNAL, null, 5L, LibraryMemberType.STUDENT, 10L, null, null, null);
+
+        when(periodicalRepository.findById(5L)).thenReturn(Optional.of(availableJournal));
+        when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
+        when(issueRepository.countByStudentIdAndStatusIn(eq(10L), anyList())).thenReturn(0L);
+        when(settingRepository.findBySettingKey(any())).thenReturn(Optional.empty());
+
+        LibraryIssue saved = issuedJournalIssue(101L, availableJournal, student, null, LocalDate.now().plusDays(14));
+        when(issueRepository.save(any())).thenReturn(saved);
+        when(fineRepository.findByIssueId(101L)).thenReturn(Optional.empty());
+
+        var response = service.issue(request, "librarian");
+
+        assertThat(response.periodicalId()).isEqualTo(5L);
+        assertThat(response.itemType()).isEqualTo(LibraryItemType.JOURNAL);
+        assertThat(response.accessionNumber()).isEqualTo("2024-500");
+        assertThat(response.itemTitle()).isEqualTo("Indian Journal of Nursing");
+
+        ArgumentCaptor<LibraryPeriodical> journalCaptor = ArgumentCaptor.forClass(LibraryPeriodical.class);
+        verify(periodicalRepository).save(journalCaptor.capture());
+        assertThat(journalCaptor.getValue().getStatus()).isEqualTo(BookStatus.ISSUED);
+        verify(bookRepository, never()).save(any());
+    }
+
+    @Test
+    void issue_journalNotAvailable_throws() {
+        availableJournal.setStatus(BookStatus.ISSUED);
+        when(periodicalRepository.findById(5L)).thenReturn(Optional.of(availableJournal));
+
+        var request = new LibraryIssueRequest(LibraryItemType.JOURNAL, null, 5L, LibraryMemberType.STUDENT, 10L, null, null, null);
+
+        assertThatThrownBy(() -> service.issue(request, "librarian"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("not available");
+    }
+
+    @Test
+    void issue_journalNotFound_throwsResourceNotFound() {
+        when(periodicalRepository.findById(99L)).thenReturn(Optional.empty());
+
+        var request = new LibraryIssueRequest(LibraryItemType.JOURNAL, null, 99L, LibraryMemberType.STUDENT, 10L, null, null, null);
+
+        assertThatThrownBy(() -> service.issue(request, "librarian"))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("99");
+    }
+
+    @Test
+    void issue_studentMaxCap_countsBooksAndJournalsTogether() {
+        // A student who already has 2 active issues (mixed book+journal) should be blocked
+        // regardless of which type they're now trying to borrow — countByStudentIdAndStatusIn
+        // counts all library_issues rows for that student, book or journal alike.
+        when(periodicalRepository.findById(5L)).thenReturn(Optional.of(availableJournal));
+        when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
+        when(settingRepository.findBySettingKey(any())).thenReturn(Optional.empty());
+        when(issueRepository.countByStudentIdAndStatusIn(eq(10L), anyList())).thenReturn(2L);
+
+        var request = new LibraryIssueRequest(LibraryItemType.JOURNAL, null, 5L, LibraryMemberType.STUDENT, 10L, null, null, null);
+
+        assertThatThrownBy(() -> service.issue(request, "librarian"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Maximum allowed");
+    }
+
     // ── returnBook ────────────────────────────────────────────────
 
     @Test
     void returnBook_onTime_noFineCreated() {
-        LibraryIssue issue = issuedIssue(1L, availableBook, student, null,
+        LibraryIssue issue = issuedBookIssue(1L, availableBook, student, null,
             LocalDate.now().plusDays(5));
         when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
         when(issueRepository.save(any())).thenReturn(issue);
@@ -196,7 +279,7 @@ class LibraryIssueServiceTest {
 
     @Test
     void returnBook_overdue_createsFineWithCorrectAmount() {
-        LibraryIssue issue = issuedIssue(1L, availableBook, student, null,
+        LibraryIssue issue = issuedBookIssue(1L, availableBook, student, null,
             LocalDate.now().minusDays(3));
         when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
         when(issueRepository.save(any())).thenReturn(issue);
@@ -217,7 +300,7 @@ class LibraryIssueServiceTest {
 
     @Test
     void returnBook_alreadyReturned_throws() {
-        LibraryIssue issue = issuedIssue(1L, availableBook, student, null, LocalDate.now());
+        LibraryIssue issue = issuedBookIssue(1L, availableBook, student, null, LocalDate.now());
         issue.setStatus(IssueStatus.RETURNED);
         when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
 
@@ -228,7 +311,7 @@ class LibraryIssueServiceTest {
 
     @Test
     void returnBook_lostBook_throws() {
-        LibraryIssue issue = issuedIssue(1L, availableBook, student, null, LocalDate.now());
+        LibraryIssue issue = issuedBookIssue(1L, availableBook, student, null, LocalDate.now());
         issue.setStatus(IssueStatus.LOST);
         when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
 
@@ -237,11 +320,26 @@ class LibraryIssueServiceTest {
             .hasMessageContaining("lost");
     }
 
+    @Test
+    void returnJournal_flipsJournalStatusBackToAvailable() {
+        LibraryIssue issue = issuedJournalIssue(1L, availableJournal, student, null, LocalDate.now().plusDays(5));
+        when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
+        when(issueRepository.save(any())).thenReturn(issue);
+        when(fineRepository.findByIssueId(1L)).thenReturn(Optional.empty());
+
+        service.returnBook(1L, new LibraryReturnRequest(null), "librarian");
+
+        ArgumentCaptor<LibraryPeriodical> journalCaptor = ArgumentCaptor.forClass(LibraryPeriodical.class);
+        verify(periodicalRepository).save(journalCaptor.capture());
+        assertThat(journalCaptor.getValue().getStatus()).isEqualTo(BookStatus.AVAILABLE);
+        verify(bookRepository, never()).save(any());
+    }
+
     // ── renew ─────────────────────────────────────────────────────
 
     @Test
     void renew_happyPath_incrementsCountAndExtendsDueDate() {
-        LibraryIssue issue = issuedIssue(1L, availableBook, student, null,
+        LibraryIssue issue = issuedBookIssue(1L, availableBook, student, null,
             LocalDate.now().plusDays(3));
         issue.setRenewalCount(0);
         when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
@@ -260,8 +358,23 @@ class LibraryIssueServiceTest {
     }
 
     @Test
+    void renew_journal_happyPath() {
+        LibraryIssue issue = issuedJournalIssue(1L, availableJournal, student, null, LocalDate.now().plusDays(3));
+        issue.setRenewalCount(0);
+        when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
+        when(settingRepository.findBySettingKey(any())).thenReturn(Optional.empty());
+        when(issueRepository.save(any())).thenReturn(issue);
+        when(fineRepository.findByIssueId(1L)).thenReturn(Optional.empty());
+
+        var response = service.renew(1L, new LibraryRenewRequest(null));
+
+        assertThat(response.itemType()).isEqualTo(LibraryItemType.JOURNAL);
+        assertThat(response.periodicalId()).isEqualTo(5L);
+    }
+
+    @Test
     void renew_maxRenewalsReached_throws() {
-        LibraryIssue issue = issuedIssue(1L, availableBook, student, null, LocalDate.now());
+        LibraryIssue issue = issuedBookIssue(1L, availableBook, student, null, LocalDate.now());
         issue.setRenewalCount(2);
         when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
         when(settingRepository.findBySettingKey("max_renewals")).thenReturn(Optional.empty());
@@ -274,7 +387,7 @@ class LibraryIssueServiceTest {
 
     @Test
     void renew_alreadyReturned_throws() {
-        LibraryIssue issue = issuedIssue(1L, availableBook, student, null, LocalDate.now());
+        LibraryIssue issue = issuedBookIssue(1L, availableBook, student, null, LocalDate.now());
         issue.setStatus(IssueStatus.RETURNED);
         when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
 
@@ -287,9 +400,9 @@ class LibraryIssueServiceTest {
 
     @Test
     void markOverdueIssues_pastDueIssued_flipsToOverdue() {
-        LibraryIssue overdue = issuedIssue(1L, availableBook, student, null,
+        LibraryIssue overdue = issuedBookIssue(1L, availableBook, student, null,
             LocalDate.now().minusDays(1));
-        LibraryIssue current = issuedIssue(2L, availableBook, student, null,
+        LibraryIssue current = issuedBookIssue(2L, availableBook, student, null,
             LocalDate.now().plusDays(5));
 
         when(issueRepository.findByStatusAndDueDateBefore(eq(IssueStatus.ISSUED), any()))
@@ -312,11 +425,27 @@ class LibraryIssueServiceTest {
 
     // ── helpers ───────────────────────────────────────────────────
 
-    private LibraryIssue issuedIssue(Long id, LibraryBook book, Student student,
-                                      Faculty faculty, LocalDate dueDate) {
+    private LibraryIssue issuedBookIssue(Long id, LibraryBook book, Student student,
+                                          Faculty faculty, LocalDate dueDate) {
         LibraryIssue issue = new LibraryIssue();
         issue.setId(id);
         issue.setBook(book);
+        issue.setStudent(student);
+        issue.setFaculty(faculty);
+        issue.setMemberType(student != null ? LibraryMemberType.STUDENT : LibraryMemberType.FACULTY);
+        issue.setIssuedDate(LocalDate.now().minusDays(7));
+        issue.setDueDate(dueDate);
+        issue.setStatus(IssueStatus.ISSUED);
+        issue.setIssuedBy("librarian");
+        issue.setRenewalCount(0);
+        return issue;
+    }
+
+    private LibraryIssue issuedJournalIssue(Long id, LibraryPeriodical periodical, Student student,
+                                             Faculty faculty, LocalDate dueDate) {
+        LibraryIssue issue = new LibraryIssue();
+        issue.setId(id);
+        issue.setPeriodical(periodical);
         issue.setStudent(student);
         issue.setFaculty(faculty);
         issue.setMemberType(student != null ? LibraryMemberType.STUDENT : LibraryMemberType.FACULTY);

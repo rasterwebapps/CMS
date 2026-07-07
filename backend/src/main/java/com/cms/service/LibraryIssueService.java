@@ -20,6 +20,7 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 
+import com.cms.dto.LibraryCirculationLookupResponse;
 import com.cms.dto.LibraryFineResponse;
 import com.cms.dto.LibraryIssueRequest;
 import com.cms.dto.LibraryIssueResponse;
@@ -30,17 +31,19 @@ import com.cms.model.Faculty;
 import com.cms.model.LibraryBook;
 import com.cms.model.LibraryFine;
 import com.cms.model.LibraryIssue;
+import com.cms.model.LibraryPeriodical;
 import com.cms.model.Student;
 import com.cms.model.enums.BookStatus;
 import com.cms.model.enums.FineStatus;
 import com.cms.model.enums.IssueStatus;
+import com.cms.model.enums.LibraryItemType;
 import com.cms.model.enums.LibraryMemberType;
-import com.cms.model.enums.StudentStatus;
 import com.cms.repository.AppUserRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LibraryBookRepository;
 import com.cms.repository.LibraryFineRepository;
 import com.cms.repository.LibraryIssueRepository;
+import com.cms.repository.LibraryPeriodicalRepository;
 import com.cms.repository.LibrarySettingRepository;
 import com.cms.repository.StudentRepository;
 
@@ -50,47 +53,94 @@ public class LibraryIssueService {
 
     private static final List<IssueStatus> ACTIVE_STATUSES = List.of(IssueStatus.ISSUED, IssueStatus.OVERDUE);
 
-    private final LibraryIssueRepository   issueRepository;
-    private final LibraryBookRepository    bookRepository;
-    private final LibraryFineRepository    fineRepository;
-    private final LibrarySettingRepository settingRepository;
-    private final StudentRepository        studentRepository;
-    private final FacultyRepository        facultyRepository;
-    private final AppUserRepository        appUserRepository;
+    private final LibraryIssueRepository      issueRepository;
+    private final LibraryBookRepository       bookRepository;
+    private final LibraryPeriodicalRepository periodicalRepository;
+    private final LibraryFineRepository       fineRepository;
+    private final LibrarySettingRepository    settingRepository;
+    private final StudentRepository           studentRepository;
+    private final FacultyRepository           facultyRepository;
+    private final AppUserRepository           appUserRepository;
 
     public LibraryIssueService(LibraryIssueRepository issueRepository,
                                 LibraryBookRepository bookRepository,
+                                LibraryPeriodicalRepository periodicalRepository,
                                 LibraryFineRepository fineRepository,
                                 LibrarySettingRepository settingRepository,
                                 StudentRepository studentRepository,
                                 FacultyRepository facultyRepository,
                                 AppUserRepository appUserRepository) {
-        this.issueRepository    = issueRepository;
-        this.bookRepository     = bookRepository;
-        this.fineRepository     = fineRepository;
-        this.settingRepository  = settingRepository;
-        this.studentRepository  = studentRepository;
-        this.facultyRepository  = facultyRepository;
-        this.appUserRepository  = appUserRepository;
+        this.issueRepository      = issueRepository;
+        this.bookRepository       = bookRepository;
+        this.periodicalRepository = periodicalRepository;
+        this.fineRepository       = fineRepository;
+        this.settingRepository    = settingRepository;
+        this.studentRepository    = studentRepository;
+        this.facultyRepository    = facultyRepository;
+        this.appUserRepository    = appUserRepository;
     }
 
-    // ── Issue a book ──────────────────────────────────────────────
+    // ── Accession lookup (Issue Book screen) ───────────────────────
+
+    public LibraryCirculationLookupResponse lookupByAccessionNumber(String accessionNumber) {
+        String trimmed = accessionNumber.trim();
+
+        return bookRepository.findByAccessionNumber(trimmed)
+            .<LibraryCirculationLookupResponse>map(b -> new LibraryCirculationLookupResponse(
+                LibraryItemType.BOOK, b.getId(), b.getAccessionNumber(), b.getTitle(), b.getAuthors(),
+                b.getCallNumber(), b.getShelfLocation(), b.getStatus()))
+            .or(() -> periodicalRepository.findByAccessionNumber(trimmed)
+                .map(p -> new LibraryCirculationLookupResponse(
+                    LibraryItemType.JOURNAL, p.getId(), p.getAccessionNumber(), p.getJournalName(),
+                    formatPeriodicalDetail(p), null, null, p.getStatus())))
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "No book or journal found with accession number '" + trimmed + "'"));
+    }
+
+    private static String formatPeriodicalDetail(LibraryPeriodical p) {
+        List<String> parts = new ArrayList<>();
+        if (p.getVolumeNumber() != null) parts.add("Vol " + p.getVolumeNumber());
+        if (p.getIssueNumber() != null) parts.add("Issue " + p.getIssueNumber());
+        String monthYear = ((p.getMonthRange() != null ? p.getMonthRange() : "")
+            + (p.getYear() != null ? " " + p.getYear() : "")).trim();
+        if (!monthYear.isEmpty()) parts.add(monthYear);
+        return String.join(" • ", parts);
+    }
+
+    // ── Issue a book or journal ────────────────────────────────────
 
     @Transactional
     public LibraryIssueResponse issue(LibraryIssueRequest request, String issuedBy) {
-        LibraryBook book = bookRepository.findById(request.bookId())
-            .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + request.bookId()));
+        LibraryBook book = null;
+        LibraryPeriodical periodical = null;
 
-        if (book.getStatus() != BookStatus.AVAILABLE) {
-            throw new IllegalStateException(
-                "Book '" + book.getTitle() + "' is not available for issue (current status: " + book.getStatus() + ")");
+        if (request.itemType() == LibraryItemType.BOOK) {
+            if (request.bookId() == null) {
+                throw new IllegalArgumentException("Book ID is required");
+            }
+            book = bookRepository.findById(request.bookId())
+                .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + request.bookId()));
+            if (book.getStatus() != BookStatus.AVAILABLE) {
+                throw new IllegalStateException(
+                    "Book '" + book.getTitle() + "' is not available for issue (current status: " + book.getStatus() + ")");
+            }
+        } else {
+            if (request.periodicalId() == null) {
+                throw new IllegalArgumentException("Journal ID is required");
+            }
+            periodical = periodicalRepository.findById(request.periodicalId())
+                .orElseThrow(() -> new ResourceNotFoundException("Journal not found with id: " + request.periodicalId()));
+            if (periodical.getStatus() != BookStatus.AVAILABLE) {
+                throw new IllegalStateException(
+                    "Journal '" + periodical.getJournalName() + "' is not available for issue (current status: " + periodical.getStatus() + ")");
+            }
         }
 
         LibraryMemberType memberType = request.memberType();
         int loanDays = memberType == LibraryMemberType.STUDENT
             ? getSettingInt("student_loan_days", 14)
             : getSettingInt("faculty_loan_days", 30);
-        int maxBooks = memberType == LibraryMemberType.STUDENT
+        int maxItems = memberType == LibraryMemberType.STUDENT
             ? getSettingInt("student_max_books", 2)
             : getSettingInt("faculty_max_books", 3);
 
@@ -99,6 +149,7 @@ public class LibraryIssueService {
 
         LibraryIssue issue = new LibraryIssue();
         issue.setBook(book);
+        issue.setPeriodical(periodical);
         issue.setMemberType(memberType);
         issue.setIssuedDate(issuedDate);
         issue.setDueDate(dueDate);
@@ -114,9 +165,9 @@ public class LibraryIssueService {
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + request.studentId()));
 
             long activeCount = issueRepository.countByStudentIdAndStatusIn(student.getId(), ACTIVE_STATUSES);
-            if (activeCount >= maxBooks) {
+            if (activeCount >= maxItems) {
                 throw new IllegalStateException(
-                    student.getFirstName() + " already has " + activeCount + " book(s) issued. Maximum allowed is " + maxBooks);
+                    student.getFirstName() + " already has " + activeCount + " item(s) issued. Maximum allowed is " + maxItems);
             }
             issue.setStudent(student);
 
@@ -128,31 +179,36 @@ public class LibraryIssueService {
                 .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + request.facultyId()));
 
             long activeCount = issueRepository.countByFacultyIdAndStatusIn(faculty.getId(), ACTIVE_STATUSES);
-            if (activeCount >= maxBooks) {
+            if (activeCount >= maxItems) {
                 throw new IllegalStateException(
-                    faculty.getFirstName() + " already has " + activeCount + " book(s) issued. Maximum allowed is " + maxBooks);
+                    faculty.getFirstName() + " already has " + activeCount + " item(s) issued. Maximum allowed is " + maxItems);
             }
             issue.setFaculty(faculty);
         }
 
-        book.setStatus(BookStatus.ISSUED);
-        bookRepository.save(book);
+        if (book != null) {
+            book.setStatus(BookStatus.ISSUED);
+            bookRepository.save(book);
+        } else {
+            periodical.setStatus(BookStatus.ISSUED);
+            periodicalRepository.save(periodical);
+        }
 
         LibraryIssue saved = issueRepository.save(issue);
         return toResponse(saved);
     }
 
-    // ── Return a book ─────────────────────────────────────────────
+    // ── Return a book or journal ───────────────────────────────────
 
     @Transactional
     public LibraryIssueResponse returnBook(Long issueId, LibraryReturnRequest request, String returnedTo) {
         LibraryIssue issue = requireIssue(issueId);
 
         if (issue.getStatus() == IssueStatus.RETURNED) {
-            throw new IllegalStateException("This book has already been returned");
+            throw new IllegalStateException("This item has already been returned");
         }
         if (issue.getStatus() == IssueStatus.LOST) {
-            throw new IllegalStateException("This book is marked as lost and cannot be returned normally");
+            throw new IllegalStateException("This item is marked as lost and cannot be returned normally");
         }
 
         LocalDate today = LocalDate.now();
@@ -163,8 +219,13 @@ public class LibraryIssueService {
             issue.setRemarks(request.remarks());
         }
 
-        issue.getBook().setStatus(BookStatus.AVAILABLE);
-        bookRepository.save(issue.getBook());
+        if (issue.getBook() != null) {
+            issue.getBook().setStatus(BookStatus.AVAILABLE);
+            bookRepository.save(issue.getBook());
+        } else {
+            issue.getPeriodical().setStatus(BookStatus.AVAILABLE);
+            periodicalRepository.save(issue.getPeriodical());
+        }
 
         // Calculate and record fine if overdue
         if (today.isAfter(issue.getDueDate())) {
@@ -184,20 +245,20 @@ public class LibraryIssueService {
         return toResponse(issueRepository.save(issue));
     }
 
-    // ── Renew a book ──────────────────────────────────────────────
+    // ── Renew a book or journal ─────────────────────────────────────
 
     @Transactional
     public LibraryIssueResponse renew(Long issueId, LibraryRenewRequest request) {
         LibraryIssue issue = requireIssue(issueId);
 
         if (issue.getStatus() == IssueStatus.RETURNED) {
-            throw new IllegalStateException("Cannot renew a book that has already been returned");
+            throw new IllegalStateException("Cannot renew an item that has already been returned");
         }
 
         int maxRenewals = getSettingInt("max_renewals", 2);
         if (issue.getRenewalCount() >= maxRenewals) {
             throw new IllegalStateException(
-                "Renewal limit reached. This book can be renewed at most " + maxRenewals + " time(s)");
+                "Renewal limit reached. This item can be renewed at most " + maxRenewals + " time(s)");
         }
 
         LibraryMemberType memberType = issue.getMemberType();
@@ -230,19 +291,25 @@ public class LibraryIssueService {
         return toResponses(issues);
     }
 
-    public Page<LibraryIssueResponse> findPage(String search, IssueStatus status, LibraryMemberType memberType, Pageable pageable) {
+    public Page<LibraryIssueResponse> findPage(String search, IssueStatus status, LibraryMemberType memberType,
+                                                LibraryItemType itemType, Pageable pageable) {
         Specification<LibraryIssue> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (search != null && !search.isBlank()) {
                 String p = "%" + search.trim().toLowerCase() + "%";
                 Join<Object, Object> book = root.join("book", JoinType.LEFT);
+                Join<Object, Object> periodical = root.join("periodical", JoinType.LEFT);
                 predicates.add(cb.or(
                     cb.like(cb.lower(book.get("title")), p),
-                    cb.like(cb.lower(book.get("accessionNumber")), p)
+                    cb.like(cb.lower(book.get("accessionNumber")), p),
+                    cb.like(cb.lower(periodical.get("journalName")), p),
+                    cb.like(cb.lower(periodical.get("accessionNumber")), p)
                 ));
             }
             if (status != null) predicates.add(cb.equal(root.get("status"), status));
             if (memberType != null) predicates.add(cb.equal(root.get("memberType"), memberType));
+            if (itemType == LibraryItemType.BOOK) predicates.add(cb.isNotNull(root.get("book")));
+            if (itemType == LibraryItemType.JOURNAL) predicates.add(cb.isNotNull(root.get("periodical")));
             return cb.and(predicates.toArray(new Predicate[0]));
         };
         Page<LibraryIssue> page = issueRepository.findAll(spec, pageable);
@@ -349,7 +416,6 @@ public class LibraryIssueService {
     }
 
     private LibraryIssueResponse toResponse(LibraryIssue issue, LibraryFine fine) {
-        LibraryBook book = issue.getBook();
         Student student  = issue.getStudent();
         Faculty faculty  = issue.getFaculty();
 
@@ -359,12 +425,14 @@ public class LibraryIssueService {
 
         return new LibraryIssueResponse(
             issue.getId(),
-            book.getId(),
-            book.getAccessionNumber(),
-            book.getTitle(),
-            book.getAuthors(),
-            book.getCallNumber(),
-            book.getShelfLocation(),
+            issue.getItemType(),
+            issue.getBook() != null ? issue.getBook().getId() : null,
+            issue.getPeriodical() != null ? issue.getPeriodical().getId() : null,
+            issue.getItemAccessionNumber(),
+            issue.getItemTitle(),
+            issue.getItemDetail(),
+            issue.getCallNumber(),
+            issue.getShelfLocation(),
             issue.getMemberType(),
             student != null ? student.getId() : null,
             student != null ? student.getFirstName() + " " + student.getLastName() : null,

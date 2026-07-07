@@ -42,12 +42,14 @@ export class LibraryBookFormComponent implements OnInit {
   protected form!: FormGroup;
 
   ngOnInit(): void {
-    this.buildForm();
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.isEditMode.set(true);
       this.bookId.set(+id);
       this.pageTitle.set('Edit Book');
+    }
+    this.buildForm();
+    if (id) {
       this.loadBook(+id);
     }
   }

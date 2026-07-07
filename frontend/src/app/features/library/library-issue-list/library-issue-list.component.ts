@@ -12,7 +12,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { LibraryService } from '../library.service';
-import { LibraryIssue, IssueStatus, LibraryMemberType, ISSUE_STATUS_OPTIONS } from '../library.model';
+import { LibraryIssue, IssueStatus, LibraryMemberType, LibraryItemType, ISSUE_STATUS_OPTIONS } from '../library.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
@@ -56,7 +56,7 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
   }
 
   protected readonly displayedColumns = [
-    'accessionNumber', 'bookTitle', 'memberName', 'issuedDate',
+    'accessionNumber', 'itemTitle', 'memberName', 'issuedDate',
     'dueDate', 'returnedDate', 'status', 'fine', 'actions',
   ];
   protected readonly dataSource    = new MatTableDataSource<LibraryIssue>([]);
@@ -64,9 +64,11 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
   protected readonly searchValue   = signal('');
   protected readonly statusFilter  = signal<IssueStatus | null>(null);
   protected readonly memberFilter  = signal<LibraryMemberType | null>(null);
+  protected readonly itemTypeFilter = signal<LibraryItemType | null>(null);
   protected readonly statusOptions = ISSUE_STATUS_OPTIONS;
   protected readonly hasActiveFilters = computed(() =>
-    this.statusFilter() !== null || this.memberFilter() !== null || this.searchValue().length > 0);
+    this.statusFilter() !== null || this.memberFilter() !== null
+    || this.itemTypeFilter() !== null || this.searchValue().length > 0);
 
   protected totalElements  = 0;
   protected currentPage    = 0;
@@ -95,6 +97,7 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
 
   protected clearFilters(): void {
     this.searchValue.set(''); this.statusFilter.set(null); this.memberFilter.set(null);
+    this.itemTypeFilter.set(null);
     this.currentPage = 0; this.loadPage();
   }
 
@@ -128,32 +131,36 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
     const isOverdue = today > due;
     const overdueDays = isOverdue ? Math.floor((today.getTime() - due.getTime()) / 86400000) : 0;
     const fineMsg = isOverdue ? `\n\n⚠️ Overdue by ${overdueDays} day(s). A fine will be calculated on return.` : '';
+    const label = issue.itemType === 'BOOK' ? 'Book' : 'Journal';
     this.dialog.open(ConfirmDialogComponent, {
-      data: { title: 'Return Book', message: `Return "${issue.bookTitle}" (${issue.accessionNumber})\nBorrowed by: ${this.memberName(issue)}\nDue: ${issue.dueDate}${fineMsg}`, confirmText: 'Confirm Return', cancelText: 'Cancel' },
+      data: { title: `Return ${label}`, message: `Return "${issue.itemTitle}" (${issue.accessionNumber})\nBorrowed by: ${this.memberName(issue)}\nDue: ${issue.dueDate}${fineMsg}`, confirmText: 'Confirm Return', cancelText: 'Cancel' },
     }).afterClosed().subscribe(confirmed => { if (confirmed) this.performReturn(issue); });
   }
 
   protected confirmRenew(issue: LibraryIssue): void {
+    const label = issue.itemType === 'BOOK' ? 'Book' : 'Journal';
     this.dialog.open(ConfirmDialogComponent, {
-      data: { title: 'Renew Book', message: `Renew "${issue.bookTitle}" for ${this.memberName(issue)}?\nRenewal ${issue.renewalCount + 1} will be applied.`, confirmText: 'Renew', cancelText: 'Cancel' },
+      data: { title: `Renew ${label}`, message: `Renew "${issue.itemTitle}" for ${this.memberName(issue)}?\nRenewal ${issue.renewalCount + 1} will be applied.`, confirmText: 'Renew', cancelText: 'Cancel' },
     }).afterClosed().subscribe(confirmed => { if (confirmed) this.performRenew(issue); });
   }
 
   private performReturn(issue: LibraryIssue): void {
+    const label = issue.itemType === 'BOOK' ? 'Book' : 'Journal';
     this.libraryService.returnBook(issue.id, {}).subscribe({
       next: returned => {
         const fineMsg = returned.fine ? ` Fine recorded: ₹${returned.fine.totalFine} (${returned.fine.overdueDays} overdue day(s)).` : '';
-        this.toast.success(`Book returned successfully.${fineMsg}`);
+        this.toast.success(`${label} returned successfully.${fineMsg}`);
         this.loadPage();
       },
-      error: err => this.toast.error(err?.error?.message ?? 'Failed to return book'),
+      error: err => this.toast.error(err?.error?.message ?? `Failed to return ${label.toLowerCase()}`),
     });
   }
 
   private performRenew(issue: LibraryIssue): void {
+    const label = issue.itemType === 'BOOK' ? 'Book' : 'Journal';
     this.libraryService.renewBook(issue.id, {}).subscribe({
-      next: renewed => { this.toast.success(`Book renewed. New due date: ${renewed.dueDate}`); this.loadPage(); },
-      error: err => this.toast.error(err?.error?.message ?? 'Failed to renew book'),
+      next: renewed => { this.toast.success(`${label} renewed. New due date: ${renewed.dueDate}`); this.loadPage(); },
+      error: err => this.toast.error(err?.error?.message ?? `Failed to renew ${label.toLowerCase()}`),
     });
   }
 
@@ -163,6 +170,7 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
       search: this.searchValue() || undefined,
       status: this.statusFilter(),
       memberType: this.memberFilter(),
+      itemType: this.itemTypeFilter(),
       page: this.currentPage, size: this.currentPageSize,
       sort: this.sortActive, direction: this.sortDirection,
     }).subscribe({

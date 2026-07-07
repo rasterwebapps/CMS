@@ -48,8 +48,8 @@
               <span class="status-dot" [class.status-dot--overdue]="issue.status === 'OVERDUE'"></span>
               {{ statusLabel(issue.status) }}
             </div>
-            <h3 class="issue-card__title">{{ issue.bookTitle }}</h3>
-            <p class="issue-card__authors">{{ issue.bookAuthors }}</p>
+            <h3 class="issue-card__title">{{ issue.itemTitle }}</h3>
+            <p class="issue-card__authors">{{ issue.itemDetail }}</p>
             <div class="issue-card__meta">
               <span>Acc. No: <strong>{{ issue.accessionNumber }}</strong></span>
               @if (issue.callNumber) { <span>{{ issue.callNumber }}</span> }
@@ -93,14 +93,14 @@
     } @else {
       <table class="portal-table">
         <thead>
-          <tr><th>Book</th><th>Acc. No.</th><th>Issued</th><th>Returned</th><th>Fine</th></tr>
+          <tr><th>Item</th><th>Acc. No.</th><th>Issued</th><th>Returned</th><th>Fine</th></tr>
         </thead>
         <tbody>
           @for (issue of historyIssues(); track issue.id) {
             <tr>
               <td>
-                <span class="hist-title">{{ issue.bookTitle }}</span>
-                <span class="hist-author">{{ issue.bookAuthors }}</span>
+                <span class="hist-title">{{ issue.itemTitle }}</span>
+                <span class="hist-author">{{ issue.itemDetail }}</span>
               </td>
               <td class="mono">{{ issue.accessionNumber }}</td>
               <td>{{ issue.issuedDate   | date:'dd MMM yyyy' }}</td>

@@ -1,7 +1,9 @@
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AsyncValidatorFn, AbstractControl } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { map, switchMap, first } from 'rxjs/operators';
+import { timer } from 'rxjs';
 import { LibraryService } from '../library.service';
 import {
   LibraryPeriodicalRequest,
@@ -41,7 +43,24 @@ export class LibraryPeriodicalFormComponent implements OnInit {
   protected form!: FormGroup;
 
   ngOnInit(): void {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) {
+      this.isEditMode.set(true);
+      this.itemId.set(+id);
+      this.pageTitle.set('Edit Journal Entry');
+    }
+
+    this.buildForm();
+
+    if (id) {
+      this.loadItem(+id);
+    }
+  }
+
+  private buildForm(): void {
+    const excludeId = this.itemId();
     this.form = this.fb.group({
+      accessionNumber:    ['', { asyncValidators: [this.accessionNumberValidator(excludeId)], updateOn: 'blur' }],
       journalName:        ['', [Validators.required, Validators.maxLength(300)]],
       journalType:        ['NATIONAL'],
       organization:       ['', Validators.maxLength(200)],
@@ -56,13 +75,32 @@ export class LibraryPeriodicalFormComponent implements OnInit {
       remarks:            ['', Validators.maxLength(500)],
     });
 
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.isEditMode.set(true);
-      this.itemId.set(+id);
-      this.pageTitle.set('Edit Journal Entry');
-      this.loadItem(+id);
-    }
+    // Each accessioned copy is its own entry — copies count is always 1 once
+    // an accession number is assigned (only legacy pre-accession rows keep
+    // an editable aggregate count).
+    this.form.get('accessionNumber')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(value => {
+        const copiesControl = this.form.get('copiesCount')!;
+        if (value?.trim()) {
+          copiesControl.setValue(1, { emitEvent: false });
+          copiesControl.disable({ emitEvent: false });
+        } else {
+          copiesControl.enable({ emitEvent: false });
+        }
+      });
+  }
+
+  private accessionNumberValidator(excludeId: number | null): AsyncValidatorFn {
+    return (control: AbstractControl) => {
+      const value = control.value?.trim();
+      if (!value) return Promise.resolve(null);
+      return timer(350).pipe(
+        switchMap(() => this.libraryService.checkPeriodicalAccessionNumberExists(value, excludeId ?? undefined)),
+        map(res => res.exists ? { accessionNumberExists: true } : null),
+        first(),
+      );
+    };
   }
 
   private loadItem(id: number): void {
@@ -70,6 +108,7 @@ export class LibraryPeriodicalFormComponent implements OnInit {
     this.libraryService.getPeriodicalById(id).subscribe({
       next: p => {
         this.form.patchValue({
+          accessionNumber:    p.accessionNumber ?? '',
           journalName:        p.journalName,
           journalType:        p.journalType,
           organization:       p.organization ?? '',
@@ -96,8 +135,9 @@ export class LibraryPeriodicalFormComponent implements OnInit {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.saving.set(true);
 
-    const v = this.form.value;
+    const v = this.form.getRawValue();
     const request: LibraryPeriodicalRequest = {
+      accessionNumber:    v.accessionNumber?.trim() || undefined,
       journalName:        v.journalName.trim(),
       journalType:        v.journalType || undefined,
       organization:       v.organization?.trim() || undefined,

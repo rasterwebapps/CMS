@@ -54,7 +54,7 @@ export class LibraryFinesComponent implements OnInit, OnDestroy {
   }
 
   protected readonly displayedColumns = [
-    'accessionNumber', 'bookTitle', 'memberName', 'overdueDays',
+    'accessionNumber', 'itemTitle', 'memberName', 'overdueDays',
     'totalFine', 'status', 'resolvedBy', 'actions',
   ];
   protected readonly dataSource    = new MatTableDataSource<LibraryFineDetail>([]);
@@ -118,13 +118,14 @@ export class LibraryFinesComponent implements OnInit, OnDestroy {
 
   protected confirmWaive(fine: LibraryFineDetail): void {
     this.dialog.open(ConfirmDialogComponent, {
-      data: { title: 'Waive Fine', message: `Waive ₹${fine.totalFine} fine for "${fine.bookTitle}"?\nMember: ${fine.memberName}${fine.memberCode ? ' (' + fine.memberCode + ')' : ''}`, confirmText: 'Waive Fine', cancelText: 'Cancel' },
+      data: { title: 'Waive Fine', message: `Waive ₹${fine.totalFine} fine for "${fine.itemTitle}"?\nMember: ${fine.memberName}${fine.memberCode ? ' (' + fine.memberCode + ')' : ''}`, confirmText: 'Waive Fine', cancelText: 'Cancel' },
     }).afterClosed().subscribe(confirmed => { if (confirmed) this.performWaive(fine); });
   }
 
   protected confirmCollect(fine: LibraryFineDetail): void {
+    const label = fine.itemType === 'BOOK' ? 'Book' : 'Journal';
     this.dialog.open(ConfirmDialogComponent, {
-      data: { title: 'Collect Fine', message: `Mark ₹${fine.totalFine} fine as collected from ${fine.memberName}?\nBook: "${fine.bookTitle}" (${fine.accessionNumber})`, confirmText: 'Mark Collected', cancelText: 'Cancel' },
+      data: { title: 'Collect Fine', message: `Mark ₹${fine.totalFine} fine as collected from ${fine.memberName}?\n${label}: "${fine.itemTitle}" (${fine.accessionNumber})`, confirmText: 'Mark Collected', cancelText: 'Cancel' },
     }).afterClosed().subscribe(confirmed => { if (confirmed) this.performCollect(fine); });
   }
 

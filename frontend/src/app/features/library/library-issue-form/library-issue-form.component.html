@@ -4,42 +4,57 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
     </a>
     <div class="entry-form-hdr-text">
-      <h1 class="page-title">Issue <em>Book</em></h1>
-      <p class="page-subtitle">Issue available books to students or faculty.</p>
+      <h1 class="page-title">Issue <em>{{ itemType() === 'BOOK' ? 'Book' : 'Journal' }}</em></h1>
+      <p class="page-subtitle">Issue available books or journals to students or faculty.</p>
     </div>
   </div>
 
   <form [formGroup]="form" (ngSubmit)="save()" novalidate class="issue-form">
 
-    <!-- Section: Book Lookup -->
+    <!-- Section: Item Lookup -->
     <section class="form-section">
-      <h2 class="form-section__title">Book</h2>
+      <h2 class="form-section__title">Item</h2>
+      <div class="form-grid form-grid--2">
+        <div class="form-field">
+          <label class="form-label">Item Type</label>
+          <div class="toggle-group">
+            <label class="toggle-option" [class.active]="itemType() === 'BOOK'">
+              <input type="radio" formControlName="itemType" value="BOOK" />
+              Book
+            </label>
+            <label class="toggle-option" [class.active]="itemType() === 'JOURNAL'">
+              <input type="radio" formControlName="itemType" value="JOURNAL" />
+              Journal
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div class="form-grid form-grid--2">
         <div class="form-field">
           <label class="form-label required" for="accessionNumber">Accession Number</label>
           <div class="input-action-row">
             <input id="accessionNumber" formControlName="accessionNumber" class="form-input"
               placeholder="e.g. 42 or 2026-3002" />
-            <button type="button" class="btn-secondary" (click)="lookupBook()" [disabled]="loadingBook()">
-              @if (loadingBook()) { Looking up... } @else { Look Up }
+            <button type="button" class="btn-secondary" (click)="lookupItem()" [disabled]="loadingItem()">
+              @if (loadingItem()) { Looking up... } @else { Look Up }
             </button>
           </div>
-          @if (bookError()) {
-            <span class="form-error">{{ bookError() }}</span>
+          @if (itemError()) {
+            <span class="form-error">{{ itemError() }}</span>
           }
         </div>
       </div>
 
-      @if (foundBook(); as book) {
+      @if (foundItem(); as item) {
         <div class="book-preview">
           <div class="book-preview__check">✓</div>
           <div class="book-preview__info">
-            <strong>{{ book.title }}</strong>
-            <span>{{ book.authors }}</span>
-            @if (book.publisher) { <span>{{ book.publisher }}{{ book.edition ? ' · ' + book.edition : '' }}</span> }
+            <strong>{{ item.title }}</strong>
+            @if (item.detail) { <span>{{ item.detail }}</span> }
             <div class="book-preview__meta">
-              @if (book.callNumber) { <span class="meta-chip">{{ book.callNumber }}</span> }
-              @if (book.shelfLocation) { <span class="meta-chip">{{ book.shelfLocation }}</span> }
+              @if (item.callNumber) { <span class="meta-chip">{{ item.callNumber }}</span> }
+              @if (item.shelfLocation) { <span class="meta-chip">{{ item.shelfLocation }}</span> }
               <span class="meta-chip meta-chip--available">Available</span>
             </div>
           </div>
@@ -107,8 +122,8 @@
     <div class="entry-form-sticky-footer">
       <button type="button" class="btn-secondary" (click)="cancel()">Cancel</button>
       <button type="submit" class="btn-primary"
-        [disabled]="saving() || form.invalid || !foundBook()">
-        @if (saving()) { Issuing... } @else { Issue Book }
+        [disabled]="saving() || form.invalid || !foundItem()">
+        @if (saving()) { Issuing... } @else { Issue {{ itemType() === 'BOOK' ? 'Book' : 'Journal' }} }
       </button>
     </div>
 

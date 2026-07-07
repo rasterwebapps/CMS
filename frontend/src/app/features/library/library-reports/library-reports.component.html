@@ -52,7 +52,7 @@
             @for (i of overdueIssues(); track i.id) {
               <tr>
                 <td class="mono">{{ i.accessionNumber }}</td>
-                <td class="book-title">{{ i.bookTitle }}</td>
+                <td class="book-title">{{ i.itemTitle }}</td>
                 <td>{{ memberName(i) }}</td>
                 <td class="overdue-date">{{ i.dueDate | date:'dd MMM yyyy' }}</td>
                 <td class="overdue-days">{{ i.fine?.overdueDays ?? '—' }}</td>
@@ -108,7 +108,7 @@
             @for (i of fineIssues(); track i.id) {
               <tr>
                 <td class="mono">{{ i.accessionNumber }}</td>
-                <td class="book-title">{{ i.bookTitle }}</td>
+                <td class="book-title">{{ i.itemTitle }}</td>
                 <td>{{ memberName(i) }}</td>
                 <td>{{ i.returnedDate | date:'dd MMM yyyy' }}</td>
                 <td>{{ i.fine?.overdueDays }}</td>
@@ -167,10 +167,9 @@
             @for (i of filteredHistory(); track i.id) {
               <tr>
                 <td class="mono">{{ i.accessionNumber }}</td>
-                <td class="book-title">{{ i.bookTitle }}</td>
+                <td class="book-title">{{ i.itemTitle }}</td>
                 <td>{{ memberName(i) }}</td>
-                <td><span class="cms-badge" [class.cms-badge--soft-blue]="i.memberType==='STUDENT'"
-                  [class.cms-badge--soft-purple]="i.memberType==='FACULTY'">{{ i.memberType }}</span></td>
+                <td><cms-type-badge [value]="i.memberType === 'STUDENT' ? 'STUDENT' : 'FACULTY'" [label]="i.memberType === 'STUDENT' ? 'Student' : 'Faculty'" /></td>
                 <td>{{ i.issuedDate | date:'dd MMM yy' }}</td>
                 <td>{{ i.dueDate   | date:'dd MMM yy' }}</td>
                 <td>{{ i.returnedDate ? (i.returnedDate | date:'dd MMM yy') : '—' }}</td>

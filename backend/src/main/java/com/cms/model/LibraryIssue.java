@@ -2,12 +2,15 @@ package com.cms.model;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cms.model.enums.IssueStatus;
+import com.cms.model.enums.LibraryItemType;
 import com.cms.model.enums.LibraryMemberType;
 
 import jakarta.persistence.Column;
@@ -33,8 +36,12 @@ public class LibraryIssue {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "book_id", nullable = false)
+    @JoinColumn(name = "book_id")
     private LibraryBook book;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "periodical_id")
+    private LibraryPeriodical periodical;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "member_type", nullable = false, length = 10)
@@ -89,6 +96,48 @@ public class LibraryIssue {
 
     public LibraryBook getBook() { return book; }
     public void setBook(LibraryBook book) { this.book = book; }
+
+    public LibraryPeriodical getPeriodical() { return periodical; }
+    public void setPeriodical(LibraryPeriodical periodical) { this.periodical = periodical; }
+
+    // ── Derived item-agnostic accessors (book XOR periodical) ──────
+
+    public LibraryItemType getItemType() {
+        return book != null ? LibraryItemType.BOOK : LibraryItemType.JOURNAL;
+    }
+
+    public Long getItemId() {
+        return book != null ? book.getId() : periodical.getId();
+    }
+
+    public String getItemAccessionNumber() {
+        return book != null ? book.getAccessionNumber() : periodical.getAccessionNumber();
+    }
+
+    public String getItemTitle() {
+        return book != null ? book.getTitle() : periodical.getJournalName();
+    }
+
+    /** Book authors, or a "Vol X • Issue Y • Month Year" summary for a journal. */
+    public String getItemDetail() {
+        if (book != null) return book.getAuthors();
+        List<String> parts = new ArrayList<>();
+        if (periodical.getVolumeNumber() != null) parts.add("Vol " + periodical.getVolumeNumber());
+        if (periodical.getIssueNumber() != null) parts.add("Issue " + periodical.getIssueNumber());
+        String monthYear = ((periodical.getMonthRange() != null ? periodical.getMonthRange() : "")
+            + (periodical.getYear() != null ? " " + periodical.getYear() : "")).trim();
+        if (!monthYear.isEmpty()) parts.add(monthYear);
+        return String.join(" • ", parts);
+    }
+
+    /** Books only — journals have no shelf/call-number scheme. */
+    public String getCallNumber() {
+        return book != null ? book.getCallNumber() : null;
+    }
+
+    public String getShelfLocation() {
+        return book != null ? book.getShelfLocation() : null;
+    }
 
     public LibraryMemberType getMemberType() { return memberType; }
     public void setMemberType(LibraryMemberType memberType) { this.memberType = memberType; }

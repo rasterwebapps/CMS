@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LibraryService } from '../library.service';
-import { LibraryBook, LibraryIssueRequest } from '../library.model';
+import { LibraryCirculationLookup, LibraryIssueRequest, LibraryItemType } from '../library.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { StudentService } from '../../student/student.service';
 import { Student } from '../../student/student.model';
@@ -27,9 +27,9 @@ export class LibraryIssueFormComponent implements OnInit {
   private readonly destroyRef     = inject(DestroyRef);
 
   protected readonly saving        = signal(false);
-  protected readonly loadingBook   = signal(false);
-  protected readonly foundBook     = signal<LibraryBook | null>(null);
-  protected readonly bookError     = signal<string | null>(null);
+  protected readonly loadingItem   = signal(false);
+  protected readonly foundItem     = signal<LibraryCirculationLookup | null>(null);
+  protected readonly itemError     = signal<string | null>(null);
   protected readonly students      = signal<Student[]>([]);
   protected readonly faculty       = signal<Faculty[]>([]);
   protected readonly today         = new Date().toISOString().split('T')[0];
@@ -37,9 +37,11 @@ export class LibraryIssueFormComponent implements OnInit {
   protected form!: FormGroup;
 
   protected readonly memberType = signal('STUDENT');
+  protected readonly itemType   = signal<LibraryItemType>('BOOK');
 
   ngOnInit(): void {
     this.form = this.fb.group({
+      itemType:        ['BOOK', Validators.required],
       accessionNumber: ['', Validators.required],
       memberType:      ['STUDENT', Validators.required],
       studentId:       [null],
@@ -52,46 +54,46 @@ export class LibraryIssueFormComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(value => this.memberType.set(value));
 
+    this.form.get('itemType')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(value => {
+        this.itemType.set(value);
+        this.foundItem.set(null);
+        this.itemError.set(null);
+        this.form.get('accessionNumber')!.setValue('');
+      });
+
     this.loadStudents();
     this.loadFaculty();
   }
 
-  protected lookupBook(): void {
+  protected lookupItem(): void {
     const acc = this.form.get('accessionNumber')?.value?.trim();
     if (!acc) return;
-    this.loadingBook.set(true);
-    this.foundBook.set(null);
-    this.bookError.set(null);
-    this.libraryService.checkAccessionNumberExists(acc).subscribe({
-      next: res => {
-        if (!res.exists) {
-          this.bookError.set(`No book found with accession number "${acc}"`);
-          this.loadingBook.set(false);
-          return;
+    this.loadingItem.set(true);
+    this.foundItem.set(null);
+    this.itemError.set(null);
+    this.libraryService.lookupByAccessionNumber(acc).subscribe({
+      next: item => {
+        if (item.itemType !== this.itemType()) {
+          this.itemError.set(
+            `"${acc}" is a ${item.itemType === 'BOOK' ? 'book' : 'journal'}, not a ${this.itemType() === 'BOOK' ? 'book' : 'journal'}`);
+        } else if (item.status !== 'AVAILABLE') {
+          this.itemError.set(`"${acc}" is not available (status: ${item.status})`);
+        } else {
+          this.foundItem.set(item);
         }
-        this.libraryService.getAll().subscribe({
-          next: books => {
-            const book = books.find(b => b.accessionNumber === acc);
-            if (!book) {
-              this.bookError.set(`Book "${acc}" not found`);
-            } else if (book.status !== 'AVAILABLE') {
-              this.bookError.set(`Book "${acc}" is not available (status: ${book.status})`);
-            } else {
-              this.foundBook.set(book);
-            }
-            this.loadingBook.set(false);
-          },
-          error: () => {
-            this.bookError.set('Failed to look up book');
-            this.loadingBook.set(false);
-          },
-        });
+        this.loadingItem.set(false);
+      },
+      error: () => {
+        this.itemError.set(`No book or journal found with accession number "${acc}"`);
+        this.loadingItem.set(false);
       },
     });
   }
 
   protected save(): void {
-    if (this.form.invalid || !this.foundBook()) return;
+    if (this.form.invalid || !this.foundItem()) return;
 
     const v = this.form.value;
     const memberType = v.memberType;
@@ -105,13 +107,16 @@ export class LibraryIssueFormComponent implements OnInit {
       return;
     }
 
+    const item = this.foundItem()!;
     const request: LibraryIssueRequest = {
-      bookId:     this.foundBook()!.id,
-      memberType: memberType,
-      studentId:  memberType === 'STUDENT' ? +v.studentId : undefined,
-      facultyId:  memberType === 'FACULTY' ? +v.facultyId : undefined,
-      issuedDate: v.issuedDate,
-      remarks:    v.remarks?.trim() || undefined,
+      itemType:     item.itemType,
+      bookId:       item.itemType === 'BOOK' ? item.itemId : undefined,
+      periodicalId: item.itemType === 'JOURNAL' ? item.itemId : undefined,
+      memberType:   memberType,
+      studentId:    memberType === 'STUDENT' ? +v.studentId : undefined,
+      facultyId:    memberType === 'FACULTY' ? +v.facultyId : undefined,
+      issuedDate:   v.issuedDate,
+      remarks:      v.remarks?.trim() || undefined,
     };
 
     this.saving.set(true);
@@ -119,11 +124,11 @@ export class LibraryIssueFormComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.toast.success('Book issued successfully');
+          this.toast.success(`${item.itemType === 'BOOK' ? 'Book' : 'Journal'} issued successfully`);
           void this.router.navigate(['/library/issues']);
         },
         error: err => {
-          this.toast.error(err?.error?.message ?? 'Failed to issue book');
+          this.toast.error(err?.error?.message ?? 'Failed to issue');
           this.saving.set(false);
         },
       });

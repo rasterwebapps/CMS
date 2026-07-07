@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { LibraryService } from '../library.service';
 import {
   LibraryIssue,
@@ -18,7 +19,7 @@ type ReportTab = 'overdue' | 'fines' | 'history' | 'accession';
 @Component({
   selector: 'app-library-reports',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, FormsModule, MatIconModule],
+  imports: [DatePipe, DecimalPipe, FormsModule, MatIconModule, CmsTypeBadgeComponent],
   templateUrl: './library-reports.component.html',
   styleUrl:    './library-reports.component.scss',
 })
@@ -58,7 +59,7 @@ export class LibraryReportsComponent implements OnInit {
       if (member && i.memberType !== member) return false;
       if (q && !(
         i.accessionNumber.toLowerCase().includes(q) ||
-        i.bookTitle.toLowerCase().includes(q) ||
+        i.itemTitle.toLowerCase().includes(q) ||
         (i.studentName ?? '').toLowerCase().includes(q) ||
         (i.facultyName ?? '').toLowerCase().includes(q)
       )) return false;

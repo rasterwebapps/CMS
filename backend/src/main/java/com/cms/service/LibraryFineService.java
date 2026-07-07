@@ -51,9 +51,12 @@ public class LibraryFineService {
             if (search != null && !search.isBlank()) {
                 String p = "%" + search.trim().toLowerCase() + "%";
                 Join<Object, Object> book = issue.join("book", JoinType.LEFT);
+                Join<Object, Object> periodical = issue.join("periodical", JoinType.LEFT);
                 predicates.add(cb.or(
                     cb.like(cb.lower(book.get("title")), p),
-                    cb.like(cb.lower(book.get("accessionNumber")), p)
+                    cb.like(cb.lower(book.get("accessionNumber")), p),
+                    cb.like(cb.lower(periodical.get("journalName")), p),
+                    cb.like(cb.lower(periodical.get("accessionNumber")), p)
                 ));
             }
             if (status != null) predicates.add(cb.equal(root.get("status"), status));
@@ -108,8 +111,9 @@ public class LibraryFineService {
         return new LibraryFineDetailResponse(
             fine.getId(),
             issue.getId(),
-            issue.getBook().getAccessionNumber(),
-            issue.getBook().getTitle(),
+            issue.getItemType(),
+            issue.getItemAccessionNumber(),
+            issue.getItemTitle(),
             issue.getMemberType(),
             memberName,
             memberCode,

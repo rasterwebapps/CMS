@@ -119,6 +119,7 @@ export type SubscriptionStatus = 'ACTIVE' | 'EXPIRED';
 
 export interface LibraryPeriodical {
   id: number;
+  accessionNumber?: string;
   journalName: string;
   journalType: JournalType;
   organization?: string;
@@ -128,6 +129,7 @@ export interface LibraryPeriodical {
   year?: number;
   copiesCount: number;
   subscriptionStatus: SubscriptionStatus;
+  status: BookStatus;
   receivedDate?: string;
   receivedBy?: string;
   remarks?: string;
@@ -136,6 +138,7 @@ export interface LibraryPeriodical {
 }
 
 export interface LibraryPeriodicalRequest {
+  accessionNumber?: string;
   journalName: string;
   journalType?: JournalType;
   organization?: string;
@@ -145,6 +148,7 @@ export interface LibraryPeriodicalRequest {
   year?: number;
   copiesCount?: number;
   subscriptionStatus?: SubscriptionStatus;
+  status?: BookStatus;
   receivedDate?: string;
   receivedBy?: string;
   remarks?: string;
@@ -174,6 +178,12 @@ export const MONTH_RANGE_OPTIONS: string[] = [
 export type IssueStatus = 'ISSUED' | 'RETURNED' | 'OVERDUE' | 'LOST';
 export type LibraryMemberType = 'STUDENT' | 'FACULTY';
 export type FineStatus = 'PENDING' | 'WAIVED' | 'COLLECTED';
+export type LibraryItemType = 'BOOK' | 'JOURNAL';
+
+export const LIBRARY_ITEM_TYPE_OPTIONS: { value: LibraryItemType; label: string }[] = [
+  { value: 'BOOK',    label: 'Book' },
+  { value: 'JOURNAL', label: 'Journal' },
+];
 
 export interface LibraryFine {
   id: number;
@@ -188,10 +198,12 @@ export interface LibraryFine {
 
 export interface LibraryIssue {
   id: number;
-  bookId: number;
+  itemType: LibraryItemType;
+  bookId?: number;
+  periodicalId?: number;
   accessionNumber: string;
-  bookTitle: string;
-  bookAuthors: string;
+  itemTitle: string;
+  itemDetail: string;
   callNumber?: string;
   shelfLocation?: string;
   memberType: LibraryMemberType;
@@ -216,12 +228,25 @@ export interface LibraryIssue {
 }
 
 export interface LibraryIssueRequest {
-  bookId: number;
+  itemType: LibraryItemType;
+  bookId?: number;
+  periodicalId?: number;
   memberType: LibraryMemberType;
   studentId?: number;
   facultyId?: number;
   issuedDate?: string;
   remarks?: string;
+}
+
+export interface LibraryCirculationLookup {
+  itemType: LibraryItemType;
+  itemId: number;
+  accessionNumber: string;
+  title: string;
+  detail: string;
+  callNumber?: string;
+  shelfLocation?: string;
+  status: BookStatus;
 }
 
 export interface LibraryReturnRequest {
@@ -248,8 +273,9 @@ export const FINE_STATUS_OPTIONS: { value: FineStatus; label: string; colorClass
 export interface LibraryFineDetail {
   id: number;
   issueId: number;
+  itemType: LibraryItemType;
   accessionNumber: string;
-  bookTitle: string;
+  itemTitle: string;
   memberType: LibraryMemberType;
   memberName: string;
   memberCode?: string;

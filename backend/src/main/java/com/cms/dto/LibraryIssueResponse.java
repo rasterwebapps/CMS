@@ -4,14 +4,17 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 import com.cms.model.enums.IssueStatus;
+import com.cms.model.enums.LibraryItemType;
 import com.cms.model.enums.LibraryMemberType;
 
 public record LibraryIssueResponse(
     Long id,
+    LibraryItemType itemType,
     Long bookId,
+    Long periodicalId,
     String accessionNumber,
-    String bookTitle,
-    String bookAuthors,
+    String itemTitle,
+    String itemDetail,
     String callNumber,
     String shelfLocation,
     LibraryMemberType memberType,

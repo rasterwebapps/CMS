@@ -17,6 +17,17 @@
       <!-- Section: Journal Identity -->
       <section class="form-section">
         <h2 class="form-section__title">Journal Identity</h2>
+        <div class="form-grid form-grid--3">
+          <div class="form-field">
+            <label class="form-label" for="accessionNumber">Accession Number</label>
+            <input id="accessionNumber" formControlName="accessionNumber" class="form-input"
+              placeholder="Leave blank to auto-generate" />
+            @if (f['accessionNumber'].touched && f['accessionNumber'].errors?.['accessionNumberExists']) {
+              <span class="form-error">This accession number is already in use</span>
+            }
+          </div>
+        </div>
+
         <div class="form-grid form-grid--1">
           <div class="form-field">
             <label class="form-label required" for="journalName">Journal Name</label>
@@ -99,6 +110,9 @@
             <input id="copiesCount" type="number" min="1" formControlName="copiesCount" class="form-input" />
             @if (f['copiesCount'].touched && f['copiesCount'].errors?.['min']) {
               <span class="form-error">Copies must be at least 1</span>
+            }
+            @if (f['accessionNumber'].value?.trim()) {
+              <span class="form-hint">Each accessioned copy is its own entry, so this is always 1.</span>
             }
           </div>
 

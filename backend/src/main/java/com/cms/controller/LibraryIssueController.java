@@ -19,11 +19,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.LibraryCirculationLookupResponse;
 import com.cms.dto.LibraryIssueRequest;
 import com.cms.dto.LibraryIssueResponse;
 import com.cms.dto.LibraryReturnRequest;
 import com.cms.dto.LibraryRenewRequest;
 import com.cms.model.enums.IssueStatus;
+import com.cms.model.enums.LibraryItemType;
 import com.cms.model.enums.LibraryMemberType;
 import com.cms.service.LibraryIssueService;
 
@@ -48,6 +50,12 @@ public class LibraryIssueController {
             @AuthenticationPrincipal Jwt jwt) {
         String issuedBy = jwt != null ? jwt.getClaimAsString("preferred_username") : "librarian";
         return ResponseEntity.status(HttpStatus.CREATED).body(issueService.issue(request, issuedBy));
+    }
+
+    @GetMapping("/lookup")
+    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_MANAGE', 'LIBRARY_QUICK_ISSUE')")
+    public ResponseEntity<LibraryCirculationLookupResponse> lookup(@RequestParam String accessionNumber) {
+        return ResponseEntity.ok(issueService.lookupByAccessionNumber(accessionNumber));
     }
 
     @GetMapping
@@ -108,7 +116,8 @@ public class LibraryIssueController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) IssueStatus status,
             @RequestParam(required = false) LibraryMemberType memberType,
+            @RequestParam(required = false) LibraryItemType itemType,
             @PageableDefault(size = 25, sort = "issuedDate", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(issueService.findPage(search, status, memberType, pageable));
+        return ResponseEntity.ok(issueService.findPage(search, status, memberType, itemType, pageable));
     }
 }

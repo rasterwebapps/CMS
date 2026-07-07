@@ -1,6 +1,7 @@
 package com.cms.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -62,6 +63,15 @@ public class LibraryPeriodicalController {
     @PreAuthorize("@perm.hasAny('LIBRARY_PERIODICAL_VIEW', 'LIBRARY_PERIODICAL_MANAGE')")
     public ResponseEntity<LibraryPeriodicalResponse> findById(@PathVariable Long id) {
         return ResponseEntity.ok(periodicalService.findById(id));
+    }
+
+    @GetMapping("/accession-number-exists")
+    @PreAuthorize("@perm.hasAny('LIBRARY_PERIODICAL_VIEW', 'LIBRARY_PERIODICAL_MANAGE')")
+    public ResponseEntity<Map<String, Boolean>> accessionNumberExists(
+            @RequestParam String accessionNumber,
+            @RequestParam(required = false) Long excludeId) {
+        boolean exists = periodicalService.accessionNumberExists(accessionNumber, excludeId);
+        return ResponseEntity.ok(Map.of("exists", exists));
     }
 
     @PutMapping("/{id}")

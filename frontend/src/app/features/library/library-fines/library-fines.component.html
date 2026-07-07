@@ -62,14 +62,15 @@
           <td mat-cell *matCellDef="let f"><span class="acc-no">{{ f.accessionNumber }}</span></td>
         </ng-container>
 
-        <ng-container matColumnDef="bookTitle">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Book</th>
+        <ng-container matColumnDef="itemTitle">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Item</th>
           <td mat-cell *matCellDef="let f">
-            <span class="book-title">{{ f.bookTitle }}</span>
+            <span class="book-title">{{ f.itemTitle }}</span>
             <span class="issue-dates">
               Issued {{ f.issuedDate | date:'dd MMM yyyy' }}
               @if (f.returnedDate) { · Returned {{ f.returnedDate | date:'dd MMM yyyy' }} }
             </span>
+            <cms-type-badge [value]="f.itemType" [label]="f.itemType === 'BOOK' ? 'Book' : 'Journal'" />
           </td>
         </ng-container>
 
