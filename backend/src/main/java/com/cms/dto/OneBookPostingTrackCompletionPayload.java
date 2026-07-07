@@ -1,7 +1,5 @@
 package com.cms.dto;
 
-import java.time.LocalDate;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
@@ -20,7 +18,7 @@ public record OneBookPostingTrackCompletionPayload(
     String bankName,
     String paymentMode,
     String transactionNumber,
-    LocalDate paymentDate,
+    String paymentDate,
     String paymentBy,
     String batchNumber
 ) {

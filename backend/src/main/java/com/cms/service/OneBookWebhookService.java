@@ -2,6 +2,7 @@ package com.cms.service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.LocalDate;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -119,7 +120,7 @@ public class OneBookWebhookService {
         obRequest.setOnebookStatus(payload.status());
         obRequest.setStatus(internalStatus);
         if (payload.transactionNumber() != null) obRequest.setOnebookTxnId(payload.transactionNumber());
-        if (payload.paymentDate() != null) obRequest.setOnebookPaidDate(payload.paymentDate());
+        if (payload.paymentDate() != null) obRequest.setOnebookPaidDate(parseDate(payload.paymentDate()));
         if (payload.paymentMode() != null) obRequest.setOnebookPaymentMode(payload.paymentMode());
         if (payload.paymentNumber() != null) obRequest.setOnebookPaymentNumber(payload.paymentNumber());
         if (payload.bankName() != null) obRequest.setOnebookBankName(payload.bankName());
@@ -185,6 +186,17 @@ public class OneBookWebhookService {
             return objectMapper.writeValueAsString(payload);
         } catch (JsonProcessingException e) {
             return "{}";
+        }
+    }
+
+    /** Parses ISO date ("yyyy-MM-dd") or datetime ("yyyy-MM-dd'T'HH:mm:ss") safely; returns null on any parse failure. */
+    private LocalDate parseDate(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return LocalDate.parse(raw.length() > 10 ? raw.substring(0, 10) : raw);
+        } catch (Exception e) {
+            log.warn("OneBook paymentDate could not be parsed as a date: '{}'", raw);
+            return null;
         }
     }
 }

@@ -8,6 +8,9 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -76,6 +79,7 @@ public class OneBookPaymentRequest {
     @Column(name = "onebook_remarks", columnDefinition = "TEXT")
     private String onebookRemarks;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "onebook_raw_response", columnDefinition = "jsonb")
     private String onebookRawResponse;
 
@@ -95,6 +99,7 @@ public class OneBookPaymentRequest {
     @Column(name = "onebook_batch_number", length = 100)
     private String onebookBatchNumber;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "request_metadata", columnDefinition = "jsonb")
     private String requestMetadata;
 
