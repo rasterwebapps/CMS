@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -36,7 +36,7 @@ export class LibraryIssueFormComponent implements OnInit {
 
   protected form!: FormGroup;
 
-  protected readonly memberType = computed(() => this.form?.get('memberType')?.value as string);
+  protected readonly memberType = signal('STUDENT');
 
   ngOnInit(): void {
     this.form = this.fb.group({
@@ -47,6 +47,10 @@ export class LibraryIssueFormComponent implements OnInit {
       issuedDate:      [this.today, Validators.required],
       remarks:         [''],
     });
+
+    this.form.get('memberType')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(value => this.memberType.set(value));
 
     this.loadStudents();
     this.loadFaculty();
