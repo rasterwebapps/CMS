@@ -97,6 +97,7 @@ services:
       KEYCLOAK_JWK_SET_URI: http://localhost:8180/realms/cms/protocol/openid-connect/certs
       KEYCLOAK_ALLOWED_ISSUERS: https://${DEPLOY_HOST}/realms/cms,https://${PUBLIC_IP}/realms/cms,https://${LOCAL_HOST}/realms/cms
       CORS_ALLOWED_ORIGINS: https://${DEPLOY_HOST},https://${PUBLIC_IP},https://${LOCAL_HOST}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       MINIO_ENDPOINT: http://localhost:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}

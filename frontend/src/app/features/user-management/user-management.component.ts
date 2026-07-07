@@ -102,6 +102,14 @@ export class UserManagementComponent implements OnInit {
       this.toast.error('Password must be at least 8 characters');
       return;
     }
+    if (!/[A-Z]/.test(f.password)) {
+      this.toast.error('Password must contain at least one uppercase letter');
+      return;
+    }
+    if (!/[0-9]/.test(f.password)) {
+      this.toast.error('Password must contain at least one digit (0–9)');
+      return;
+    }
     this.saving.set(true);
     this.svc.createUser(this.createForm).subscribe({
       next: (u) => {

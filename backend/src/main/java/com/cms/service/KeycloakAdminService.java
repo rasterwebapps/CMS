@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -88,9 +89,10 @@ public class KeycloakAdminService {
             .body(body)
             .retrieve()
             .onStatus(HttpStatusCode::isError, (req, res) -> {
-                String msg = "Keycloak user creation failed: HTTP " + res.getStatusCode();
-                log.error(msg);
-                throw new IllegalStateException(msg);
+                String rawBody = "(no body)";
+                try { rawBody = new String(res.getBody().readAllBytes(), StandardCharsets.UTF_8); } catch (Exception ignored) {}
+                log.error("Keycloak user creation failed: HTTP {} — {}", res.getStatusCode(), rawBody);
+                throw new IllegalStateException(friendlyKeycloakError(rawBody));
             })
             .toBodilessEntity();
 
@@ -205,5 +207,27 @@ public class KeycloakAdminService {
 
     private String adminUsersUri() {
         return baseUrl + "/admin/realms/" + realm + "/users";
+    }
+
+    private static String friendlyKeycloakError(String body) {
+        if (body == null) return "Failed to create user account. Please try again.";
+        String lower = body.toLowerCase();
+        if (lower.contains("password policy")) {
+            return "Password does not meet requirements: minimum 8 characters, at least one uppercase letter and one digit.";
+        }
+        if (lower.contains("same username") || lower.contains("exists with same user")) {
+            return "A user with this username already exists.";
+        }
+        if (lower.contains("same email")) {
+            return "A user with this email address already exists.";
+        }
+        // Extract raw errorMessage field for any other Keycloak error
+        int start = body.indexOf("\"errorMessage\":\"");
+        if (start >= 0) {
+            start += 16;
+            int end = body.indexOf("\"", start);
+            if (end > start) return body.substring(start, end);
+        }
+        return "Failed to create user account. Please try again.";
     }
 }
