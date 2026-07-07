@@ -17,6 +17,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
 import com.cms.dto.FeeRefundSummaryResponse;
+import com.cms.model.FeeRefund;
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
@@ -184,6 +185,61 @@ public class FeeRefundExportService {
             doc.close();
             return out.toByteArray();
         }
+    }
+
+    public byte[] toReceiptPdf(FeeRefund refund, String invoiceNumber) throws IOException {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document doc = new Document(PageSize.A4, 40, 40, 50, 40);
+            PdfWriter.getInstance(doc, out);
+            doc.open();
+
+            Font titleFont   = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16);
+            Font labelFont   = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
+            Font valueFont   = FontFactory.getFont(FontFactory.HELVETICA, 10);
+            Font headerFont  = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9,
+                new java.awt.Color(255, 255, 255));
+
+            Paragraph title = new Paragraph("Refund Receipt", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(16);
+            doc.add(title);
+
+            PdfPTable info = new PdfPTable(2);
+            info.setWidthPercentage(100);
+            info.setWidths(new float[]{3, 5});
+            info.setSpacingAfter(16);
+            java.awt.Color headerBg = new java.awt.Color(13, 27, 62);
+            java.awt.Color rowBg    = new java.awt.Color(235, 241, 255);
+
+            addInfoRow(info, "Invoice / Refund No.", invoiceNumber, labelFont, valueFont, headerBg, rowBg, 0);
+            addInfoRow(info, "Original Receipt No.", nvl(refund.getOriginalReceiptNumber()), labelFont, valueFont, headerBg, rowBg, 1);
+            addInfoRow(info, "Student Name",         nvl(refund.getStudentName()),            labelFont, valueFont, headerBg, rowBg, 0);
+            addInfoRow(info, "Roll Number",          nvl(refund.getRollNumber()),              labelFont, valueFont, headerBg, rowBg, 1);
+            addInfoRow(info, "Admission Number",     nvl(refund.getAdmissionNumber()),         labelFont, valueFont, headerBg, rowBg, 0);
+            addInfoRow(info, "Program",              nvl(refund.getProgramName()),             labelFont, valueFont, headerBg, rowBg, 1);
+            addInfoRow(info, "Refund Amount (₹)",    refund.getRefundAmount() != null
+                    ? refund.getRefundAmount().toPlainString() : "—",                          labelFont, valueFont, headerBg, rowBg, 0);
+            addInfoRow(info, "Reason",               nvl(refund.getReason()),                  labelFont, valueFont, headerBg, rowBg, 1);
+            addInfoRow(info, "Requested By",         nvl(refund.getRequestedBy()),             labelFont, valueFont, headerBg, rowBg, 0);
+            addInfoRow(info, "Approved By",          nvl(refund.getApprovedBy()),              labelFont, valueFont, headerBg, rowBg, 1);
+            doc.add(info);
+            doc.close();
+            return out.toByteArray();
+        }
+    }
+
+    private static void addInfoRow(PdfPTable table, String label, String value,
+                                   Font labelFont, Font valueFont,
+                                   java.awt.Color headerBg, java.awt.Color rowBg, int rowIndex) {
+        java.awt.Color bg = rowIndex % 2 == 0 ? null : rowBg;
+        PdfPCell lc = new PdfPCell(new Phrase(label, labelFont));
+        lc.setBackgroundColor(bg);
+        lc.setPadding(5);
+        table.addCell(lc);
+        PdfPCell vc = new PdfPCell(new Phrase(value, valueFont));
+        vc.setBackgroundColor(bg);
+        vc.setPadding(5);
+        table.addCell(vc);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

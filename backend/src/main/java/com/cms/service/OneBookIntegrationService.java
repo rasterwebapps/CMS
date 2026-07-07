@@ -32,8 +32,14 @@ import com.cms.repository.StaffReferrerRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.StudentScholarshipRepository;
 
+import java.io.ByteArrayInputStream;
+
+import com.cms.model.FeeRefund;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.springframework.beans.factory.annotation.Value;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -42,7 +48,7 @@ public class OneBookIntegrationService {
 
     private static final Logger log = LoggerFactory.getLogger(OneBookIntegrationService.class);
 
-    private static final DateTimeFormatter ONEBOOK_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+    private static final DateTimeFormatter ONEBOOK_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     private final OneBookConfigService config;
     private final OneBookPaymentRequestRepository obRepo;
@@ -54,6 +60,10 @@ public class OneBookIntegrationService {
     private final StudentScholarshipRepository scholarshipRepo;
     private final ApplicationNumberSequenceService numberSequenceService;
     private final ObjectMapper objectMapper;
+    private final FeeRefundExportService refundExportService;
+    private final StorageService storageService;
+    private final String minioEndpoint;
+    private final String minioBucket;
     private final RestClient restClient = RestClient.create();
 
     public OneBookIntegrationService(
@@ -66,7 +76,11 @@ public class OneBookIntegrationService {
             StudentRepository studentRepo,
             StudentScholarshipRepository scholarshipRepo,
             ApplicationNumberSequenceService numberSequenceService,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            FeeRefundExportService refundExportService,
+            StorageService storageService,
+            @Value("${cms.minio.endpoint}") String minioEndpoint,
+            @Value("${cms.minio.bucket}") String minioBucket) {
         this.config = config;
         this.obRepo = obRepo;
         this.enquiryRepo = enquiryRepo;
@@ -77,6 +91,10 @@ public class OneBookIntegrationService {
         this.scholarshipRepo = scholarshipRepo;
         this.numberSequenceService = numberSequenceService;
         this.objectMapper = objectMapper;
+        this.refundExportService = refundExportService;
+        this.storageService = storageService;
+        this.minioEndpoint = minioEndpoint;
+        this.minioBucket = minioBucket;
     }
 
     /**
@@ -122,15 +140,16 @@ public class OneBookIntegrationService {
         obRequest = obRepo.save(obRequest);
 
         Map<String, Object> payload = buildPaymentRegisterPayload(
-                obRequest, recipient.id(), recipient.name(), "PAYMENT");
+                obRequest, recipient.id(), recipient.name(), "PAYMENT", null);
 
         try {
-            createPaymentRegister(payload);
+            String registerId = createPaymentRegister(payload);
             obRequest.setStatus("TRANSMITTED");
             obRequest.setTransmittedAt(Instant.now());
+            obRequest.setOnebookTxnId(registerId);
             enquiry.setCommissionPaymentStatus(CommissionPaymentStatus.TRANSMITTED);
-            log.info("Commission payment register sent to OneBook. invoiceNumber={} enquiry={}",
-                    obRequest.getInvoiceNumber(), enquiryId);
+            log.info("Commission payment register sent to OneBook. invoiceNumber={} enquiry={} registerId={}",
+                    obRequest.getInvoiceNumber(), enquiryId, registerId);
         } catch (RestClientException e) {
             log.error("Failed to push commission payment to OneBook. invoiceNumber={} error={}",
                     obRequest.getInvoiceNumber(), e.getMessage());
@@ -190,15 +209,19 @@ public class OneBookIntegrationService {
         obRequest.setApprovedAt(Instant.now());
         obRequest = obRepo.save(obRequest);
 
+        String invoiceFilePath = uploadRefundReceiptPdf(refund, obRequest.getInvoiceNumber());
+
         Map<String, Object> payload = buildPaymentRegisterPayload(
-                obRequest, student != null ? student.getId() : null, refund.getStudentName(), "REFUND");
+                obRequest, student != null ? student.getId() : null, refund.getStudentName(), "REFUND",
+                invoiceFilePath);
 
         try {
-            createPaymentRegister(payload);
+            String registerId = createPaymentRegister(payload);
             obRequest.setStatus("TRANSMITTED");
             obRequest.setTransmittedAt(Instant.now());
-            log.info("Refund payment register sent to OneBook. invoiceNumber={} refund={}",
-                    obRequest.getInvoiceNumber(), refundId);
+            obRequest.setOnebookTxnId(registerId);
+            log.info("Refund payment register sent to OneBook. invoiceNumber={} refund={} registerId={}",
+                    obRequest.getInvoiceNumber(), refundId, registerId);
         } catch (RestClientException e) {
             log.error("Failed to push refund to OneBook. invoiceNumber={} error={}",
                     obRequest.getInvoiceNumber(), e.getMessage());
@@ -256,14 +279,15 @@ public class OneBookIntegrationService {
         obRequest = obRepo.save(obRequest);
 
         Map<String, Object> payload = buildPaymentRegisterPayload(
-                obRequest, student.getId(), studentName, "PAYMENT");
+                obRequest, student.getId(), studentName, "PAYMENT", null);
 
         try {
-            createPaymentRegister(payload);
+            String registerId = createPaymentRegister(payload);
             obRequest.setStatus("TRANSMITTED");
             obRequest.setTransmittedAt(Instant.now());
-            log.info("Scholarship disbursement register sent to OneBook. invoiceNumber={} scholarshipId={}",
-                    obRequest.getInvoiceNumber(), scholarshipId);
+            obRequest.setOnebookTxnId(registerId);
+            log.info("Scholarship disbursement register sent to OneBook. invoiceNumber={} scholarshipId={} registerId={}",
+                    obRequest.getInvoiceNumber(), scholarshipId, registerId);
         } catch (RestClientException e) {
             log.error("Failed to push scholarship to OneBook. invoiceNumber={} error={}",
                     obRequest.getInvoiceNumber(), e.getMessage());
@@ -295,7 +319,7 @@ public class OneBookIntegrationService {
         String endpoint = normalizeBase(config.getApiUrl()) + "authserver/api/auth";
 
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("Username", config.getUsername());
+        body.put("username", config.getUsername());
         body.put("password", config.getPassword());
         body.put("branchId", config.getBranchId());
         body.put("organizationId", config.getOrgId());
@@ -322,18 +346,25 @@ public class OneBookIntegrationService {
      * /webhooks/onebook/posting-track-completion once the payment itself is
      * completed. A 2xx response here only confirms OneBook accepted the
      * register, not that it has been paid.
+     * Returns the paymentRegisterId from the response body.
      */
-    private void createPaymentRegister(Map<String, Object> registerPayload) {
+    @SuppressWarnings("unchecked")
+    private String createPaymentRegister(Map<String, Object> registerPayload) {
         String token = authenticate();
         String endpoint = normalizeBase(config.getApiUrl()) + "one-book/api/payment-registers-add-from-other-applications";
 
-        restClient.post()
+        Map<String, Object> response = restClient.post()
                 .uri(endpoint)
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("Authorization", "Bearer " + token)
-                .body(List.of(registerPayload))
+                .header("TOKEN", token)
+                .body(registerPayload)
                 .retrieve()
-                .toBodilessEntity();
+                .body(Map.class);
+
+        if (response != null && response.get("id") != null) {
+            return response.get("id").toString();
+        }
+        return null;
     }
 
     private String normalizeBase(String apiUrl) {
@@ -354,7 +385,8 @@ public class OneBookIntegrationService {
      * entity's own primary key (enquiry/refund/scholarship application id).
      */
     private Map<String, Object> buildPaymentRegisterPayload(
-            OneBookPaymentRequest req, Long payeeId, String payeeName, String documentType) {
+            OneBookPaymentRequest req, Long payeeId, String payeeName, String documentType,
+            String invoiceFilePath) {
         String nowIso = LocalDate.now().atStartOfDay().format(ONEBOOK_DATETIME);
 
         Map<String, Object> payload = new LinkedHashMap<>();
@@ -375,12 +407,28 @@ public class OneBookIntegrationService {
         payload.put("paidAmount", BigDecimal.ZERO);
         payload.put("cancelled", false);
         payload.put("transactionType", "CREDIT");
-        payload.put("invoiceFilePath", "");
+        if (invoiceFilePath != null) {
+            payload.put("invoiceFilePath", invoiceFilePath);
+        }
         payload.put("branchId", config.getBranchId());
         payload.put("organizationId", config.getOrgId());
         payload.put("createdBy", req.getApprovedBy());
         payload.put("modifiedBy", req.getApprovedBy());
         return payload;
+    }
+
+    private String uploadRefundReceiptPdf(FeeRefund refund, String invoiceNumber) {
+        try {
+            byte[] pdf = refundExportService.toReceiptPdf(refund, invoiceNumber);
+            String objectKey = MinioStorageService.buildKey("refund_receipts", refund.getId(), "refund-receipt.pdf");
+            storageService.upload(objectKey, new ByteArrayInputStream(pdf), pdf.length, "application/pdf");
+            String base = minioEndpoint.endsWith("/") ? minioEndpoint : minioEndpoint + "/";
+            return base + minioBucket + "/" + objectKey;
+        } catch (Exception e) {
+            log.warn("Failed to upload refund receipt PDF for refund {}; proceeding without invoiceFilePath: {}",
+                    refund.getId(), e.getMessage());
+            return null;
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
