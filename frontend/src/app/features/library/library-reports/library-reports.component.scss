@@ -1,16 +1,9 @@
-.reports-page {
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
 // ── Tab bar ──────────────────────────────────────────────────
 
 .report-tabs {
   display: flex;
   gap: 4px;
   border-bottom: 2px solid var(--color-border);
-  margin-bottom: 24px;
   flex-wrap: wrap;
 }
 

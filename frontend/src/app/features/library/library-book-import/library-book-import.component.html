@@ -1,163 +1,268 @@
-<div class="import-page">
-  <div class="import-page__header">
-    <a routerLink="/library/books" class="back-link">
-      <mat-icon>arrow_back</mat-icon> Book Catalogue
-    </a>
-    <h1 class="import-page__title">Import Books</h1>
-    <p class="import-page__sub">Bulk-import book records from an Excel file into the Accession Register</p>
+<div class="imp-page">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="imp-hdr">
+    <div class="imp-hdr-left">
+      <h1 class="imp-title">Import <em>Books</em></h1>
+      <p class="imp-sub">Bulk-import book records from an Excel file into the Accession Register.</p>
+    </div>
+    <a class="btn-back" routerLink="/library/books">← Book Catalogue</a>
   </div>
 
-  <!-- Step indicator -->
-  <div class="step-bar">
-    <div class="step-bar__item" [class.active]="activeStep() === 'template'" [class.done]="activeStep() !== 'template'">
-      <span class="step-bar__num">1</span> Download Template
-    </div>
-    <div class="step-bar__sep"></div>
-    <div class="step-bar__item" [class.active]="activeStep() === 'upload'">
-      <span class="step-bar__num">2</span> Upload &amp; Validate
-    </div>
-    <div class="step-bar__sep"></div>
-    <div class="step-bar__item" [class.active]="activeStep() === 'result'">
-      <span class="step-bar__num">3</span> Review &amp; Import
-    </div>
+  <!-- ── Step nav ───────────────────────────────────────────────────────── -->
+  <div class="step-nav">
+    <button class="step-btn" [class.step-btn--active]="activeStep() === 'template'" (click)="activeStep.set('template')">
+      <span class="step-num">1</span> Download Template
+    </button>
+    <span class="step-arrow">→</span>
+    <button class="step-btn" [class.step-btn--active]="activeStep() === 'upload'" (click)="activeStep.set('upload')">
+      <span class="step-num">2</span> Upload &amp; Validate
+    </button>
+    <span class="step-arrow">→</span>
+    <button class="step-btn" [class.step-btn--active]="activeStep() === 'result'"
+      (click)="activeStep.set('result')" [disabled]="!validationResult() && !executeResult()">
+      <span class="step-num">3</span> Results
+    </button>
   </div>
 
-  <!-- Step 1: Template -->
+  <!-- ══════════════════ STEP 1: Template ══════════════════ -->
   @if (activeStep() === 'template') {
-    <div class="import-card">
-      <h2 class="import-card__title">Step 1 — Download the Template</h2>
-      <p>Download the Excel template, fill in your book records, then return here to upload.</p>
-      <ul class="sheet-list">
-        <li><strong>Books</strong> — One row per book copy. Accession No. is auto-generated if left blank.</li>
-        <li><strong>Reference</strong> — Valid values for the Source of Supply field (read-only).</li>
-      </ul>
-      <div class="import-card__actions">
-        <button class="btn-primary" (click)="downloadTemplate()">
-          <mat-icon>download</mat-icon> Download Template
-        </button>
+    <div class="step-card">
+      <div class="step-card__hdr">
+        <div class="step-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </div>
+        <h2 class="step-card__title">Download the Import Template</h2>
       </div>
-      <p class="import-hint">
-        Already have a filled template?
-        <button class="link-btn" (click)="activeStep.set('upload')">Skip to Upload</button>
+      <p class="step-card__desc">
+        Download the Excel template, fill in your book records, then return here to upload.
+        Accession numbers are auto-generated for rows where that column is left blank.
       </p>
-    </div>
-  }
-
-  <!-- Step 2: Upload & Validate -->
-  @if (activeStep() === 'upload') {
-    <div class="import-card">
-      <h2 class="import-card__title">Step 2 — Upload &amp; Validate</h2>
-
-      <div class="file-drop-zone">
-        <input type="file" id="fileInput" accept=".xlsx" (change)="onFileSelected($event)" hidden />
-        <label for="fileInput" class="file-drop-zone__label">
-          <mat-icon>upload_file</mat-icon>
-          @if (selectedFile()) {
-            <span>{{ selectedFile()!.name }}</span>
-          } @else {
-            <span>Click to select XLSX file</span>
-          }
-        </label>
+      <div class="sheet-list">
+        <div class="sheet-chip">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <span class="sheet-chip__name">Books</span>
+          <span class="sheet-chip__desc">One row per book copy — title, author, accession no., call no., shelf and acquisition details</span>
+        </div>
+        <div class="sheet-chip">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <span class="sheet-chip__name">Reference</span>
+          <span class="sheet-chip__desc">Valid values for Subject, Status and Source of Supply (read-only)</span>
+        </div>
       </div>
-
-      <div class="import-options">
-        <label class="checkbox-label">
-          <input type="checkbox" [checked]="skipErroredRows()" (change)="skipErroredRows.set($any($event.target).checked)" />
-          Skip rows with errors and import valid rows only
-        </label>
-      </div>
-
-      <div class="import-card__actions">
-        <button class="btn-secondary" (click)="activeStep.set('template')">Back</button>
-        <button class="btn-primary" [disabled]="!selectedFile() || phase() === 'validating'" (click)="validate()">
-          @if (phase() === 'validating') { Validating... } @else { Validate File }
+      <div class="step-actions">
+        <button class="btn-download" (click)="downloadTemplate()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download Template
+        </button>
+        <button class="btn-next" (click)="activeStep.set('upload')">
+          Upload File
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
         </button>
       </div>
     </div>
   }
 
-  <!-- Step 3: Review & Import -->
-  @if (activeStep() === 'result') {
-    <div class="import-card">
-      <h2 class="import-card__title">Step 3 — Review &amp; Import</h2>
+  <!-- ══════════════════ STEP 2: Upload ══════════════════ -->
+  @if (activeStep() === 'upload') {
+    <div class="step-card">
+      <div class="step-card__hdr">
+        <div class="step-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <h2 class="step-card__title">Upload &amp; Validate</h2>
+      </div>
 
-      @if (validationResult(); as vr) {
-        <div class="validation-summary">
-          <div class="vs-stat vs-stat--total">
-            <span class="vs-num">{{ vr.totalRows }}</span>
-            <span class="vs-label">Total Rows</span>
+      <label class="file-drop" [class.file-drop--selected]="selectedFile()">
+        @if (!selectedFile()) {
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+          <span class="file-drop__label">Click to choose your filled Excel file</span>
+          <span class="file-drop__hint">.xlsx only</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+               class="file-drop__ok" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/><polyline points="9 13 12 16 17 11"/>
+          </svg>
+          <span class="file-drop__filename">{{ selectedFile()!.name }}</span>
+          <span class="file-drop__hint">{{ (selectedFile()!.size / 1024).toFixed(0) }} KB · click to change</span>
+        }
+        <input type="file" accept=".xlsx" class="file-input-hidden" (change)="onFileSelected($event)" />
+      </label>
+
+      <div class="skip-row">
+        <label class="toggle-label">
+          <input type="checkbox" class="toggle-checkbox"
+            [checked]="skipErroredRows()" (change)="skipErroredRows.set($any($event.target).checked)" />
+          <span class="toggle-text">
+            <strong>Skip errored rows</strong> — import valid rows even if some rows have errors.
+            If unchecked, any error aborts the entire import.
+          </span>
+        </label>
+      </div>
+
+      <div class="step-actions">
+        <button class="btn-ghost" (click)="activeStep.set('template')">← Back</button>
+        @if (selectedFile()) {
+          <button class="btn-validate" [disabled]="phase() === 'validating'" (click)="validate()">
+            @if (phase() === 'validating') { Validating… } @else { Validate Only }
+          </button>
+          <button class="btn-import"
+            [disabled]="phase() === 'validating' || phase() === 'importing'" (click)="execute()">
+            @if (phase() === 'importing') { Importing… } @else { Import }
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ══════════════════ STEP 3: Results ══════════════════ -->
+  @if (activeStep() === 'result') {
+    <div class="step-card">
+
+      @if (executeResult(); as er) {
+        <div class="result-header result-header--success">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 12 3 12 0v-5"/>
+          </svg>
+          <h2 class="result-header__title">Import Complete</h2>
+        </div>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <span class="summary-card__num">{{ er.booksImported }}</span>
+            <span class="summary-card__label">Books imported</span>
           </div>
-          <div class="vs-stat vs-stat--valid">
-            <span class="vs-num">{{ vr.validRows }}</span>
-            <span class="vs-label">Valid</span>
+          <div class="summary-card summary-card--warn">
+            <span class="summary-card__num">{{ er.booksSkipped }}</span>
+            <span class="summary-card__label">Rows skipped</span>
           </div>
-          <div class="vs-stat vs-stat--invalid">
-            <span class="vs-num">{{ vr.invalidRows }}</span>
-            <span class="vs-label">Invalid</span>
+          <div class="summary-card summary-card--error">
+            <span class="summary-card__num">{{ errorRows(er.errors).length }}</span>
+            <span class="summary-card__label">Errors</span>
           </div>
-          <div class="vs-stat vs-stat--warning">
-            <span class="vs-num">{{ vr.warnings.length }}</span>
-            <span class="vs-label">Warnings</span>
+        </div>
+        @if (errorRows(er.errors).length > 0) {
+          <ng-container *ngTemplateOutlet="errorTable; context: { $implicit: errorRows(er.errors), title: 'Errors' }" />
+        }
+
+      } @else if (validationResult(); as vr) {
+        <div class="result-header"
+          [class.result-header--success]="errorRows(vr.errors).length === 0"
+          [class.result-header--warn]="errorRows(vr.errors).length > 0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <h2 class="result-header__title">Validation Complete</h2>
+        </div>
+        <div class="summary-grid">
+          <div class="sheet-result" [class.sheet-result--ok]="vr.invalidRows === 0" [class.sheet-result--err]="vr.invalidRows > 0">
+            <span class="sheet-result__name">Total</span>
+            <span class="sheet-result__count">{{ vr.totalRows }}</span>
+          </div>
+          <div class="sheet-result sheet-result--ok">
+            <span class="sheet-result__name">Valid</span>
+            <span class="sheet-result__count">{{ vr.validRows }}</span>
+          </div>
+          <div class="sheet-result" [class.sheet-result--err]="vr.invalidRows > 0" [class.sheet-result--ok]="vr.invalidRows === 0">
+            <span class="sheet-result__name">Invalid</span>
+            <span class="sheet-result__count">{{ vr.invalidRows }}</span>
+          </div>
+          <div class="sheet-result" [class.sheet-result--warn]="vr.warnings.length > 0" [class.sheet-result--ok]="vr.warnings.length === 0">
+            <span class="sheet-result__name">Warnings</span>
+            <span class="sheet-result__count">{{ vr.warnings.length }}</span>
+          </div>
+          <div class="sheet-result" [class.sheet-result--err]="errorRows(vr.errors).length > 0" [class.sheet-result--ok]="errorRows(vr.errors).length === 0">
+            <span class="sheet-result__name">Errors</span>
+            <span class="sheet-result__count">{{ errorRows(vr.errors).length }}</span>
           </div>
         </div>
 
         @if (errorRows(vr.errors).length > 0) {
-          <div class="error-table-wrap">
-            <h3 class="error-table__title error-table__title--error">
-              <mat-icon>error</mat-icon> Errors ({{ errorRows(vr.errors).length }})
-            </h3>
-            <table class="error-table">
-              <thead>
-                <tr><th>Row</th><th>Column</th><th>Issue</th></tr>
-              </thead>
-              <tbody>
-                @for (e of errorRows(vr.errors); track $index) {
-                  <tr><td>{{ e.rowNumber }}</td><td>{{ e.column }}</td><td>{{ e.message }}</td></tr>
-                }
-              </tbody>
-            </table>
-          </div>
+          <ng-container *ngTemplateOutlet="errorTable; context: { $implicit: errorRows(vr.errors), title: 'Errors' }" />
         }
-
         @if (warningRows(vr.errors).length > 0 || vr.warnings.length > 0) {
-          <div class="error-table-wrap">
-            <h3 class="error-table__title error-table__title--warning">
-              <mat-icon>warning</mat-icon> Warnings ({{ vr.warnings.length }})
-            </h3>
-            <table class="error-table">
-              <thead>
-                <tr><th>Row</th><th>Column</th><th>Issue</th></tr>
-              </thead>
-              <tbody>
-                @for (w of vr.warnings; track $index) {
-                  <tr><td>{{ w.rowNumber }}</td><td>{{ w.column }}</td><td>{{ w.message }}</td></tr>
-                }
-              </tbody>
-            </table>
+          <ng-container *ngTemplateOutlet="errorTable; context: { $implicit: vr.warnings.length > 0 ? vr.warnings : warningRows(vr.errors), title: 'Warnings' }" />
+        }
+
+        @if (vr.invalidRows === 0 || skipErroredRows()) {
+          @if (vr.invalidRows === 0) {
+            <div class="ready-banner">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              All rows are valid. Click <strong>Import</strong> to write to the database.
+            </div>
+          }
+          <div class="step-actions">
+            <button class="btn-ghost" (click)="activeStep.set('upload')">← Back</button>
+            <button class="btn-import" [disabled]="phase() === 'importing'" (click)="execute()">
+              @if (phase() === 'importing') { Importing… } @else { Import {{ vr.validRows }} Books }
+            </button>
+          </div>
+        } @else {
+          <div class="step-actions">
+            <button class="btn-ghost" (click)="activeStep.set('upload')">← Fix &amp; Re-upload</button>
           </div>
         }
       }
 
-      @if (executeResult(); as er) {
-        <div class="execute-summary">
-          <mat-icon class="execute-summary__icon">check_circle</mat-icon>
-          <p><strong>{{ er.booksImported }}</strong> books imported · <strong>{{ er.booksSkipped }}</strong> skipped</p>
-        </div>
-      }
-
-      <div class="import-card__actions">
-        @if (phase() !== 'done') {
-          <button class="btn-secondary" (click)="activeStep.set('upload')">Back</button>
-          <button class="btn-primary"
-            [disabled]="phase() === 'importing' || (validationResult() !== null && validationResult()!.validRows === 0 && !skipErroredRows())"
-            (click)="execute()">
-            @if (phase() === 'importing') { Importing... } @else { Import Books }
-          </button>
-        } @else {
-          <button class="btn-secondary" (click)="reset()">Import Another File</button>
-          <button class="btn-primary" (click)="goToCatalogue()">View Catalogue</button>
-        }
-      </div>
+      <button class="btn-reset" (click)="reset()">Start New Import</button>
     </div>
   }
+
 </div>
+
+<!-- ── Error/Warning table template ──────────────────────────────────────── -->
+<ng-template #errorTable let-rows let-title="title">
+  <details class="error-details" [open]="rows.length <= 15">
+    <summary class="error-details__summary">{{ title }} ({{ rows.length }})</summary>
+    <div class="error-table-wrap">
+      <table class="error-table">
+        <thead>
+          <tr><th>Row</th><th>Column</th><th>Message</th></tr>
+        </thead>
+        <tbody>
+          @for (e of rows; track $index) {
+            <tr [class.error-row--warn]="e.severity === 'WARNING'">
+              <td class="cell-num">{{ e.rowNumber }}</td>
+              <td class="cell-col-mono">{{ e.column }}</td>
+              <td>{{ e.message }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </details>
+</ng-template>

@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
 import { LibraryService } from '../library.service';
 import {
   LibraryBookImportValidationResult,
@@ -16,7 +16,7 @@ type Phase = 'idle' | 'validating' | 'importing' | 'done';
 @Component({
   selector: 'app-library-book-import',
   standalone: true,
-  imports: [RouterLink, FormsModule, MatIconModule],
+  imports: [RouterLink, NgTemplateOutlet, FormsModule],
   templateUrl: './library-book-import.component.html',
   styleUrl:    './library-book-import.component.scss',
 })
