@@ -10,17 +10,6 @@
   color: var(--color-text-secondary);
 }
 
-.type-tag {
-  display: inline-block;
-  padding: 2px 9px;
-  border-radius: 10px;
-  font-size: 0.75rem;
-  font-weight: 600;
-
-  &--national      { background: #dbeafe; color: #1d4ed8; }
-  &--international { background: #ede9fe; color: #7c3aed; }
-}
-
 .vol-info {
   font-size: 0.85rem;
   color: var(--color-text-secondary);
