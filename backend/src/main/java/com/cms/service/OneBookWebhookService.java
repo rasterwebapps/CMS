@@ -1,5 +1,7 @@
 package com.cms.service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -56,7 +58,12 @@ public class OneBookWebhookService {
             log.warn("OneBook webhook secret is not configured — rejecting all webhook calls");
             return false;
         }
-        return configured.equals(headerSecret);
+        if (headerSecret == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                configured.getBytes(StandardCharsets.UTF_8),
+                headerSecret.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
