@@ -96,7 +96,7 @@ public class UserManagementController {
 
     private int resolveHierarchyLevel(Jwt jwt) {
         String username = jwt.getClaimAsString("preferred_username");
-        AppUser user = appUserRepository.findByKeycloakUsername(username)
+        AppUser user = appUserRepository.findByKeycloakUsernameWithRole(username)
             .orElseThrow(() -> new ResourceNotFoundException(
                 "No app user record found for username: " + username));
         return user.getAppRole() != null ? user.getAppRole().getHierarchyLevel() : Integer.MAX_VALUE;

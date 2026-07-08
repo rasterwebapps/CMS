@@ -390,7 +390,7 @@ public class WidgetDataController {
     @GetMapping("/hero")
     public ResponseEntity<HeroWidgetData> getHero(@AuthenticationPrincipal Jwt jwt) {
         String username = jwt.getClaimAsString("preferred_username");
-        AppUser user = appUserRepository.findByKeycloakUsername(username)
+        AppUser user = appUserRepository.findByKeycloakUsernameWithRole(username)
             .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
         AppRole role       = user.getAppRole();
@@ -576,7 +576,7 @@ public class WidgetDataController {
     public ResponseEntity<List<QuickActionItem>> getQuickActions(
             @AuthenticationPrincipal Jwt jwt) {
         String   username = jwt.getClaimAsString("preferred_username");
-        AppUser  user     = appUserRepository.findByKeycloakUsername(username)
+        AppUser  user     = appUserRepository.findByKeycloakUsernameWithRole(username)
             .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         AppRole  role     = user.getAppRole();
         String   roleName = role != null ? role.getName().toLowerCase() : "";

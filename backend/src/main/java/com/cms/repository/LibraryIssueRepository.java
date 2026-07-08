@@ -37,4 +37,6 @@ public interface LibraryIssueRepository extends JpaRepository<LibraryIssue, Long
     // Read-only "effectively overdue" check for reports — covers issues not yet flipped
     // to OVERDUE by the nightly job as well as ones already flipped.
     List<LibraryIssue> findByStatusInAndDueDateBefore(List<IssueStatus> statuses, LocalDate date);
+
+    boolean existsByBookId(Long bookId);
 }

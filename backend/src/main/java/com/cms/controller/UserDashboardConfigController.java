@@ -117,7 +117,7 @@ public class UserDashboardConfigController {
 
     private AppUser resolveUser(Jwt jwt) {
         String username = jwt.getClaimAsString("preferred_username");
-        return appUserRepository.findByKeycloakUsername(username)
+        return appUserRepository.findByKeycloakUsernameWithRole(username)
             .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
     }
 

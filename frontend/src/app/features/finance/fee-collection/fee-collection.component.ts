@@ -109,7 +109,7 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
   protected readonly receipt          = signal<ReceiptDisplayData | null>(null);
 
   protected readonly searchTerm   = signal('');
-  protected readonly filterType   = signal<FilterType>('ALL');
+  protected readonly filterType   = signal<FilterType>('ENQUIRY');
   protected readonly filterStatus = signal<FilterStatus>('ALL');
 
   protected readonly displayedColumns = [
@@ -212,7 +212,7 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
   });
 
   protected get hasActiveFilters(): boolean {
-    return !!this.searchTerm() || this.filterType() !== 'ALL' || this.filterStatus() !== 'ALL';
+    return !!this.searchTerm() || this.filterType() !== 'ENQUIRY' || this.filterStatus() !== 'ALL';
   }
 
   constructor() {
@@ -238,15 +238,20 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     this.restoreFiltersFromQueryParams();
     this.loadAll(() => this.applyDeepLink());
 
-    // Debounced search → reload all students + reset paginator to page 1
+    // Debounced search: students are server-side (load only when filter includes them);
+    // enquiries are client-side so just reset the paginator.
     this.searchSubject$.pipe(
       debounceTime(400),
       distinctUntilChanged(),
       takeUntil(this.destroy$),
     ).subscribe(() => {
-      this.loadAllStudents(() => {
+      if (this.filterType() !== 'ENQUIRY') {
+        this.loadAllStudents(() => {
+          if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+        });
+      } else {
         if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
-      });
+      }
     });
 
     // Subscribe (not snapshot) so browser back/forward updates the view after data is loaded.
@@ -286,10 +291,15 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     this.enquiryService.getEnquiries().subscribe({
       next: (enquiries) => {
         this.allEnquiries.set(enquiries);
-        this.loadAllStudents(() => {
+        if (this.filterType() !== 'ENQUIRY') {
+          this.loadAllStudents(() => {
+            this.loading.set(false);
+            onComplete?.();
+          });
+        } else {
           this.loading.set(false);
           onComplete?.();
-        });
+        }
       },
       error: () => {
         this.toast.error('Failed to load fee data');
@@ -344,7 +354,7 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
   private buildReturnQueryParams(): Record<string, string> {
     const params: Record<string, string> = { returnTo: 'fee-collection' };
     if (this.searchTerm()) params['search'] = this.searchTerm();
-    if (this.filterType() !== 'ALL') params['type'] = this.filterType();
+    if (this.filterType() !== 'ENQUIRY') params['type'] = this.filterType();
     if (this.filterStatus() !== 'ALL') params['status'] = this.filterStatus();
     return params;
   }
@@ -573,7 +583,11 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
   }
 
   protected setFilterType(value: FilterType): void {
+    const wasEnquiryOnly = this.filterType() === 'ENQUIRY';
     this.filterType.set(value);
+    if (value !== 'ENQUIRY' && wasEnquiryOnly) {
+      this.loadAllStudents();
+    }
   }
 
   protected setFilterStatus(value: FilterStatus): void {
@@ -582,7 +596,7 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
 
   protected clearFilters(): void {
     this.searchTerm.set('');
-    this.filterType.set('ALL');
+    this.filterType.set('ENQUIRY');
     this.filterStatus.set('ALL');
   }
 

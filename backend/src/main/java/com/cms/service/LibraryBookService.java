@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ import com.cms.model.LibraryShelf;
 import com.cms.model.enums.BookStatus;
 import com.cms.repository.LibraryBookRepository;
 import com.cms.repository.LibraryBookShelfTransferRepository;
+import com.cms.repository.LibraryIssueRepository;
 import com.cms.repository.LibraryRepository;
 import com.cms.repository.LibraryShelfRepository;
 import com.cms.util.CurrentUserResolver;
@@ -39,6 +41,7 @@ public class LibraryBookService {
     private final LibraryRepository libraryRepository;
     private final LibraryShelfRepository shelfRepository;
     private final LibraryBookShelfTransferRepository transferRepository;
+    private final LibraryIssueRepository issueRepository;
     private final CurrentUserResolver currentUserResolver;
 
     public LibraryBookService(LibraryBookRepository bookRepository,
@@ -46,12 +49,14 @@ public class LibraryBookService {
                                LibraryRepository libraryRepository,
                                LibraryShelfRepository shelfRepository,
                                LibraryBookShelfTransferRepository transferRepository,
+                               LibraryIssueRepository issueRepository,
                                CurrentUserResolver currentUserResolver) {
         this.bookRepository = bookRepository;
         this.accessionRegistry = accessionRegistry;
         this.libraryRepository = libraryRepository;
         this.shelfRepository = shelfRepository;
         this.transferRepository = transferRepository;
+        this.issueRepository = issueRepository;
         this.currentUserResolver = currentUserResolver;
     }
 
@@ -76,7 +81,17 @@ public class LibraryBookService {
     }
 
     public Page<LibraryBookResponse> findPage(String search, BookStatus status, String category, Long rackId, Long shelfId, Pageable pageable) {
-        Specification<LibraryBook> spec = (root, query, cb) -> {
+        return bookRepository.findAll(buildSpec(search, status, category, rackId, shelfId), pageable).map(this::toResponse);
+    }
+
+    /** Unpaged, filtered, sorted — used by the Export endpoint (respects the same filters as findPage). */
+    public List<LibraryBookResponse> findAllMatching(String search, BookStatus status, String category, Long rackId, Long shelfId, Sort sort) {
+        return bookRepository.findAll(buildSpec(search, status, category, rackId, shelfId), sort).stream()
+            .map(this::toResponse).toList();
+    }
+
+    private Specification<LibraryBook> buildSpec(String search, BookStatus status, String category, Long rackId, Long shelfId) {
+        return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (search != null && !search.isBlank()) {
                 String p = "%" + search.trim().toLowerCase() + "%";
@@ -93,7 +108,6 @@ public class LibraryBookService {
             else if (rackId != null) predicates.add(cb.equal(root.get("shelf").get("rack").get("id"), rackId));
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-        return bookRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     public List<LibraryBookResponse> findByStatus(BookStatus status) {
@@ -132,6 +146,9 @@ public class LibraryBookService {
         LibraryBook book = require(id);
         if (book.getStatus() == BookStatus.ISSUED) {
             throw new IllegalStateException("Cannot delete a book that is currently issued");
+        }
+        if (issueRepository.existsByBookId(id)) {
+            throw new IllegalStateException("Cannot delete a book that has issue history");
         }
         bookRepository.deleteById(id);
     }

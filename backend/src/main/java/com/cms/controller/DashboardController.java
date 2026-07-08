@@ -42,7 +42,7 @@ public class DashboardController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<String>> getUserDashboardWidgets(@AuthenticationPrincipal Jwt jwt) {
         String username = jwt.getClaimAsString("preferred_username");
-        AppUser user = appUserRepository.findByKeycloakUsername(username)
+        AppUser user = appUserRepository.findByKeycloakUsernameWithRole(username)
             .orElseThrow(() -> new ResourceNotFoundException("No user record for: " + username));
         List<String> widgets = (user.getAppRole() != null)
             ? user.getAppRole().getDashboardWidgets()

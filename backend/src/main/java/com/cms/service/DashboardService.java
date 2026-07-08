@@ -127,14 +127,16 @@ public class DashboardService {
         Map<String, Long> enquiryFunnel = buildEnquiryFunnelMap();
         BigDecimal feeCollectedThisMonth = computeFeeCollectedThisMonth();
         BigDecimal feeOutstanding = computeFeeOutstanding();
-        long collectPaymentEligibleCount = computeCollectPaymentEligibleCount();
+        long enquiryCollectPaymentEligibleCount = computeEnquiryCollectPaymentCount();
+        long collectPaymentEligibleCount = enquiryCollectPaymentEligibleCount + computeStudentCollectPaymentCount();
 
         return new DashboardSummaryResponse(
             totalStudents, totalFaculty, totalSpecialities, totalSubjects,
             totalPrograms, totalLabs, totalEquipment, totalExaminations,
             totalFeePayments, totalMaintenanceRequests, totalAttendanceRecords,
             equipmentByStatus, maintenanceByStatus, studentsByStatus, attendanceByStatus,
-            enquiryFunnel, feeCollectedThisMonth, feeOutstanding, collectPaymentEligibleCount
+            enquiryFunnel, feeCollectedThisMonth, feeOutstanding,
+            collectPaymentEligibleCount, enquiryCollectPaymentEligibleCount
         );
     }
 
@@ -143,19 +145,8 @@ public class DashboardService {
         return computeCollectPaymentEligibleCount();
     }
 
-    /**
-     * Badge count for the Fee Collection nav — uses the SAME term-gated collectibleOutstanding
-     * rule as the Collect Payment list screen, for both enquiries and students.
-     *
-     * Enquiry side: fetches candidates (full-outstanding > 0, not yet handed off to student
-     * allocation), then keeps only those where the term-gated collectibleOutstanding is still > 0.
-     * Student side: keeps only finalized-allocation students where collectibleOutstanding > 0.
-     *
-     * This ensures the badge matches the record count visible on the screen.
-     */
-    private long computeCollectPaymentEligibleCount() {
-        // ── Enquiry side ──────────────────────────────────────────────────────────────────────
-        long enquiryCount = 0;
+    private long computeEnquiryCollectPaymentCount() {
+        long count = 0;
         List<Long> eligibleEnquiryIds = enquiryRepository.findPaymentEligibleEnquiryIds();
         if (!eligibleEnquiryIds.isEmpty()) {
             List<Enquiry> eligibleEnquiries = enquiryRepository.findAllById(eligibleEnquiryIds);
@@ -165,25 +156,30 @@ public class DashboardService {
                     .orElse(BigDecimal.ZERO);
                 if (enquiryPaymentService.getCollectibleOutstanding(enquiry, totalPaid)
                         .compareTo(BigDecimal.ZERO) > 0) {
-                    enquiryCount++;
+                    count++;
                 }
             }
         }
+        return count;
+    }
 
-        // ── Student side ──────────────────────────────────────────────────────────────────────
-        long collectibleStudentCount = 0;
+    private long computeStudentCollectPaymentCount() {
+        long count = 0;
         List<Long> finalizedStudentIds = allocationRepository.findFinalizedStudentIds();
         final int batchSize = 200;
         for (int i = 0; i < finalizedStudentIds.size(); i += batchSize) {
             int end = Math.min(i + batchSize, finalizedStudentIds.size());
             List<Long> batchIds = finalizedStudentIds.subList(i, end);
             List<Student> students = studentRepository.findByIdInWithRelations(batchIds);
-            collectibleStudentCount += students.stream()
+            count += students.stream()
                 .filter(s -> paymentCollectionService.getCollectibleOutstanding(s).compareTo(BigDecimal.ZERO) > 0)
                 .count();
         }
+        return count;
+    }
 
-        return enquiryCount + collectibleStudentCount;
+    private long computeCollectPaymentEligibleCount() {
+        return computeEnquiryCollectPaymentCount() + computeStudentCollectPaymentCount();
     }
 
     /**

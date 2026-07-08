@@ -438,13 +438,13 @@ export class App implements OnInit, AfterViewInit {
     // Fetch admission funnel badge counts for users who can view enquiry workflows.
     if (isPlatformBrowser(this.platformId) && this.permissionService.has('ENQUIRY_VIEW')) {
       this.http
-        .get<{ enquiryFunnel?: Record<string, number>; collectPaymentEligibleCount?: number }>(`${environment.apiUrl}/dashboard/summary`)
+        .get<{ enquiryFunnel?: Record<string, number>; collectPaymentEligibleCount?: number; enquiryCollectPaymentEligibleCount?: number }>(`${environment.apiUrl}/dashboard/summary`)
         .subscribe({
           next: (data) => {
             const f = data.enquiryFunnel ?? {};
             const enquired      = (f['ENQUIRED']           ?? 0) + (f['INTERESTED']         ?? 0);
             const finalizeFee   = f['INTERESTED']          ?? 0;
-            const collectPayment= data.collectPaymentEligibleCount ?? 0;
+            const collectPayment= data.enquiryCollectPaymentEligibleCount ?? 0;
             const docSubmit     = (f['FEES_PAID']          ?? 0) + (f['PARTIALLY_PAID']     ?? 0);
             const docVerify     = f['DOCUMENTS_SUBMITTED'] ?? 0;
             const admComplete   = f['DOCUMENTS_VERIFIED']  ?? 0;

@@ -25,6 +25,7 @@ public record DashboardSummaryResponse(
     Map<String, Long> enquiryFunnel,
     BigDecimal feeCollectedThisMonth,
     BigDecimal feeOutstanding,
-    long collectPaymentEligibleCount
+    long collectPaymentEligibleCount,
+    long enquiryCollectPaymentEligibleCount
 ) {}
 

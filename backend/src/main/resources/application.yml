@@ -31,7 +31,11 @@ spring:
     time-zone: UTC
 
   # Force Hibernate/JDBC to store and read all timestamp columns in UTC.
+  # OSIV disabled: keeping the EntityManager open for the full HTTP request
+  # causes connections obtained during @PreAuthorize permission checks to be
+  # held until the request ends — triggering false leak warnings on long imports.
   jpa:
+    open-in-view: false
     properties:
       hibernate:
         jdbc:
