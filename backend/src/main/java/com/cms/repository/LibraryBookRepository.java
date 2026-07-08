@@ -20,6 +20,4 @@ public interface LibraryBookRepository extends JpaRepository<LibraryBook, Long>,
     List<LibraryBook> findByStatus(BookStatus status);
 
     List<LibraryBook> findBySubjectCategory(String subjectCategory);
-
-    List<LibraryBook> findByShelfLocation(String shelfLocation);
 }

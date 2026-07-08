@@ -111,16 +111,29 @@
       <!-- Section: Classification & Location -->
       <section class="form-section">
         <h2 class="form-section__title">Classification &amp; Location</h2>
-        <div class="form-grid form-grid--3">
+        <div class="form-grid form-grid--4">
           <div class="form-field">
             <label class="form-label" for="callNumber">Call No.</label>
             <input id="callNumber" formControlName="callNumber" class="form-input"
               placeholder="e.g. 612 VAN/H" />
           </div>
           <div class="form-field">
-            <label class="form-label" for="shelfLocation">Shelf Location</label>
-            <input id="shelfLocation" formControlName="shelfLocation" class="form-input"
-              placeholder="e.g. C1-R2" />
+            <label class="form-label" for="rackId">Rack</label>
+            <select id="rackId" formControlName="rackId" class="form-select" (change)="onRackChange()">
+              <option value="">— Select —</option>
+              @for (rack of racks(); track rack.id) {
+                <option [value]="rack.id">{{ rack.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="shelfId">Shelf</label>
+            <select id="shelfId" formControlName="shelfId" class="form-select" [disabled]="!f['rackId'].value">
+              <option value="">— Select —</option>
+              @for (shelf of shelves(); track shelf.id) {
+                <option [value]="shelf.id">{{ shelf.name }}</option>
+              }
+            </select>
           </div>
           <div class="form-field">
             <label class="form-label" for="subjectCategory">Subject Category</label>

@@ -136,7 +136,7 @@ public class LibraryIssue {
     }
 
     public String getShelfLocation() {
-        return book != null ? book.getShelfLocation() : null;
+        return book != null && book.getShelf() != null ? book.getShelf().getName() : null;
     }
 
     public LibraryMemberType getMemberType() { return memberType; }

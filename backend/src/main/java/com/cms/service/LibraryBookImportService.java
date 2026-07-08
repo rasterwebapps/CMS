@@ -28,6 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.cms.dto.ImportRowError;
 import com.cms.dto.LibraryBookImportExecuteResult;
 import com.cms.dto.LibraryBookImportValidationResult;
+import com.cms.model.Library;
 import com.cms.model.LibraryBook;
 import com.cms.model.enums.BookSourceOfSupply;
 import com.cms.model.enums.BookStatus;
@@ -50,11 +51,17 @@ public class LibraryBookImportService {
 
     private final LibraryBookRepository bookRepository;
     private final LibraryAccessionRegistryService accessionRegistry;
+    private final LibraryService libraryService;
+    private final LibraryShelfService shelfService;
 
     public LibraryBookImportService(LibraryBookRepository bookRepository,
-                                     LibraryAccessionRegistryService accessionRegistry) {
+                                     LibraryAccessionRegistryService accessionRegistry,
+                                     LibraryService libraryService,
+                                     LibraryShelfService shelfService) {
         this.bookRepository = bookRepository;
         this.accessionRegistry = accessionRegistry;
+        this.libraryService = libraryService;
+        this.shelfService = shelfService;
     }
 
     // ── Template download ─────────────────────────────────────────
@@ -145,6 +152,7 @@ public class LibraryBookImportService {
         List<ImportRowError> errors   = new ArrayList<>();
         int imported = 0;
         int skipped  = 0;
+        Library library = libraryService.getDefault();
 
         try (XSSFWorkbook wb = new XSSFWorkbook(file.getInputStream())) {
             XSSFSheet sheet = wb.getSheet("Books");
@@ -171,7 +179,7 @@ public class LibraryBookImportService {
                     }
                 }
 
-                LibraryBook book = parseRow(row, i + 1, errors);
+                LibraryBook book = parseRow(row, i + 1, errors, library);
                 if (book != null) {
                     bookRepository.save(book);
                     imported++;
@@ -230,8 +238,9 @@ public class LibraryBookImportService {
         return errors;
     }
 
-    private LibraryBook parseRow(Row row, int displayRow, List<ImportRowError> errors) {
+    private LibraryBook parseRow(Row row, int displayRow, List<ImportRowError> errors, Library library) {
         LibraryBook book = new LibraryBook();
+        book.setLibrary(library);
 
         String accNo = str(row, 0);
         book.setAccessionNumber(accessionRegistry.resolveAccessionNumber(accNo.isBlank() ? null : accNo));
@@ -246,7 +255,7 @@ public class LibraryBookImportService {
         book.setCollation(blankToNull(str(row, 8)));
         book.setSeries(blankToNull(str(row, 9)));
         book.setCallNumber(blankToNull(str(row, 10)));
-        book.setShelfLocation(blankToNull(str(row, 11)));
+        book.setShelf(shelfService.resolveOrCreateFromLegacyText(library, str(row, 11)));
         book.setSubjectCategory(blankToNull(str(row, 12)));
 
         String source = str(row, 13).toUpperCase();

@@ -26,6 +26,15 @@ import {
   FineStatus,
   LibraryItemType,
   LibraryCirculationLookup,
+  Library,
+  LibraryRack,
+  LibraryRackRequest,
+  LibraryShelf,
+  LibraryShelfRequest,
+  LibraryBookTransferRequest,
+  LibraryBookBulkTransferRequest,
+  LibraryBookTransferResult,
+  LibraryBookShelfTransfer,
 } from './library.model';
 
 @Injectable({ providedIn: 'root' })
@@ -57,11 +66,12 @@ export class LibraryService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
-  getBooksPage(p: { search?: string; status?: BookStatus | null; category?: string | null; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibraryBook>> {
+  getBooksPage(p: { search?: string; status?: BookStatus | null; category?: string | null; shelfId?: number | null; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibraryBook>> {
     let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
     if (p.search)   params = params.set('search', p.search);
     if (p.status)   params = params.set('status', p.status);
     if (p.category) params = params.set('category', p.category);
+    if (p.shelfId)  params = params.set('shelfId', p.shelfId.toString());
     if (p.sort)     params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
     return this.http.get<Page<LibraryBook>>(`${this.baseUrl}/page`, { params });
   }
@@ -70,6 +80,123 @@ export class LibraryService {
     let params = new HttpParams().set('accessionNumber', accessionNumber);
     if (excludeId != null) params = params.set('excludeId', excludeId.toString());
     return this.http.get<{ exists: boolean }>(`${this.baseUrl}/accession-number-exists`, { params });
+  }
+
+  // ── Book transfer ─────────────────────────────────────────────
+
+  transferBook(id: number, request: LibraryBookTransferRequest): Observable<LibraryBookShelfTransfer> {
+    return this.http.post<LibraryBookShelfTransfer>(`${this.baseUrl}/${id}/transfer`, request);
+  }
+
+  bulkTransferBooks(request: LibraryBookBulkTransferRequest): Observable<LibraryBookTransferResult> {
+    return this.http.post<LibraryBookTransferResult>(`${this.baseUrl}/transfer/bulk`, request);
+  }
+
+  getBookTransferHistory(id: number): Observable<LibraryBookShelfTransfer[]> {
+    return this.http.get<LibraryBookShelfTransfer[]>(`${this.baseUrl}/${id}/transfers`);
+  }
+
+  // ── Libraries ────────────────────────────────────────────────
+
+  getLibraries(): Observable<Library[]> {
+    return this.http.get<Library[]>(`${environment.apiUrl}/libraries`);
+  }
+
+  // ── Racks ────────────────────────────────────────────────────
+
+  getRacks(libraryId?: number, activeOnly = false): Observable<LibraryRack[]> {
+    let params = new HttpParams().set('activeOnly', String(activeOnly));
+    if (libraryId != null) params = params.set('libraryId', libraryId.toString());
+    return this.http.get<LibraryRack[]>(`${environment.apiUrl}/library/racks`, { params });
+  }
+
+  getRacksPage(p: { search?: string; libraryId?: number | null; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibraryRack>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search)    params = params.set('search', p.search);
+    if (p.libraryId) params = params.set('libraryId', p.libraryId.toString());
+    if (p.sort)      params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
+    return this.http.get<Page<LibraryRack>>(`${environment.apiUrl}/library/racks/page`, { params });
+  }
+
+  getRackById(id: number): Observable<LibraryRack> {
+    return this.http.get<LibraryRack>(`${environment.apiUrl}/library/racks/${id}`);
+  }
+
+  createRack(request: LibraryRackRequest): Observable<LibraryRack> {
+    return this.http.post<LibraryRack>(`${environment.apiUrl}/library/racks`, request);
+  }
+
+  updateRack(id: number, request: LibraryRackRequest): Observable<LibraryRack> {
+    return this.http.put<LibraryRack>(`${environment.apiUrl}/library/racks/${id}`, request);
+  }
+
+  deleteRack(id: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/library/racks/${id}`);
+  }
+
+  updateRackStatus(id: number, isActive: boolean): Observable<{ id: number; isActive: boolean; updatedAt: string }> {
+    return this.http.patch<{ id: number; isActive: boolean; updatedAt: string }>(`${environment.apiUrl}/library/racks/${id}/status`, { isActive });
+  }
+
+  checkRackNameExists(value: string, libraryId: number, excludeId?: number): Observable<boolean> {
+    let params = new HttpParams().set('value', value).set('libraryId', libraryId.toString());
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<boolean>(`${environment.apiUrl}/library/racks/name-exists`, { params });
+  }
+
+  checkRackCodeExists(value: string, libraryId: number, excludeId?: number): Observable<boolean> {
+    let params = new HttpParams().set('value', value).set('libraryId', libraryId.toString());
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<boolean>(`${environment.apiUrl}/library/racks/code-exists`, { params });
+  }
+
+  // ── Shelves (tiers within a rack) ────────────────────────────
+
+  getShelves(rackId?: number, libraryId?: number, activeOnly = false): Observable<LibraryShelf[]> {
+    let params = new HttpParams().set('activeOnly', String(activeOnly));
+    if (rackId != null)    params = params.set('rackId', rackId.toString());
+    if (libraryId != null) params = params.set('libraryId', libraryId.toString());
+    return this.http.get<LibraryShelf[]>(`${environment.apiUrl}/library/shelves`, { params });
+  }
+
+  getShelvesPage(p: { search?: string; rackId?: number | null; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibraryShelf>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search) params = params.set('search', p.search);
+    if (p.rackId) params = params.set('rackId', p.rackId.toString());
+    if (p.sort)   params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
+    return this.http.get<Page<LibraryShelf>>(`${environment.apiUrl}/library/shelves/page`, { params });
+  }
+
+  getShelfById(id: number): Observable<LibraryShelf> {
+    return this.http.get<LibraryShelf>(`${environment.apiUrl}/library/shelves/${id}`);
+  }
+
+  createShelf(request: LibraryShelfRequest): Observable<LibraryShelf> {
+    return this.http.post<LibraryShelf>(`${environment.apiUrl}/library/shelves`, request);
+  }
+
+  updateShelf(id: number, request: LibraryShelfRequest): Observable<LibraryShelf> {
+    return this.http.put<LibraryShelf>(`${environment.apiUrl}/library/shelves/${id}`, request);
+  }
+
+  deleteShelf(id: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/library/shelves/${id}`);
+  }
+
+  updateShelfStatus(id: number, isActive: boolean): Observable<{ id: number; isActive: boolean; updatedAt: string }> {
+    return this.http.patch<{ id: number; isActive: boolean; updatedAt: string }>(`${environment.apiUrl}/library/shelves/${id}/status`, { isActive });
+  }
+
+  checkShelfNameExists(value: string, rackId: number, excludeId?: number): Observable<boolean> {
+    let params = new HttpParams().set('value', value).set('rackId', rackId.toString());
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<boolean>(`${environment.apiUrl}/library/shelves/name-exists`, { params });
+  }
+
+  checkShelfCodeExists(value: string, rackId: number, excludeId?: number): Observable<boolean> {
+    let params = new HttpParams().set('value', value).set('rackId', rackId.toString());
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<boolean>(`${environment.apiUrl}/library/shelves/code-exists`, { params });
   }
 
   // ── Fines ─────────────────────────────────────────────────────

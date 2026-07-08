@@ -24,7 +24,12 @@ export interface LibraryBook {
   collation?: string;
   series?: string;
   callNumber?: string;
-  shelfLocation?: string;
+  libraryId: number;
+  libraryName?: string;
+  rackId?: number;
+  rackName?: string;
+  shelfId?: number;
+  shelfName?: string;
   subjectCategory?: string;
   sourceOfSupply?: BookSourceOfSupply;
   vendorDonorName?: string;
@@ -49,7 +54,8 @@ export interface LibraryBookRequest {
   collation?: string;
   series?: string;
   callNumber?: string;
-  shelfLocation?: string;
+  libraryId: number;
+  shelfId?: number;
   subjectCategory?: string;
   sourceOfSupply?: BookSourceOfSupply;
   vendorDonorName?: string;
@@ -58,6 +64,97 @@ export interface LibraryBookRequest {
   priceRs?: number;
   status?: BookStatus;
   remarks?: string;
+}
+
+// ── Library / Rack / Shelf masters ──────────────────────────────
+
+export interface Library {
+  id: number;
+  name: string;
+  code: string;
+  address?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LibraryRack {
+  id: number;
+  libraryId: number;
+  libraryName?: string;
+  name: string;
+  code: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LibraryRackRequest {
+  libraryId: number;
+  name: string;
+  code: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface LibraryShelf {
+  id: number;
+  rackId: number;
+  rackName?: string;
+  libraryId: number;
+  libraryName?: string;
+  name: string;
+  code: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LibraryShelfRequest {
+  rackId: number;
+  name: string;
+  code: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+// ── Book transfer ────────────────────────────────────────────
+
+export interface LibraryBookTransferRequest {
+  newShelfId: number;
+  notes?: string;
+}
+
+export interface LibraryBookBulkTransferRequest {
+  bookIds: number[];
+  newShelfId: number;
+  notes?: string;
+}
+
+export interface LibraryBookTransferFailure {
+  bookId: number;
+  reason: string;
+}
+
+export interface LibraryBookTransferResult {
+  succeededBookIds: number[];
+  failed: LibraryBookTransferFailure[];
+}
+
+export interface LibraryBookShelfTransfer {
+  id: number;
+  bookId: number;
+  oldLibraryName?: string;
+  oldRackName?: string;
+  oldShelfName?: string;
+  newLibraryName: string;
+  newRackName?: string;
+  newShelfName?: string;
+  transferredAt: string;
+  transferredBy?: string;
+  notes?: string;
 }
 
 export interface LibraryBookImportRowError {

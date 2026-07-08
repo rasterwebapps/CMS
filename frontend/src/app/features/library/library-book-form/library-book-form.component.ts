@@ -11,6 +11,8 @@ import {
   BOOK_STATUS_OPTIONS,
   BOOK_SOURCE_OPTIONS,
   SUBJECT_CATEGORY_OPTIONS,
+  LibraryRack,
+  LibraryShelf,
 } from '../library.model';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -38,6 +40,10 @@ export class LibraryBookFormComponent implements OnInit {
   protected readonly statusOptions   = BOOK_STATUS_OPTIONS;
   protected readonly sourceOptions   = BOOK_SOURCE_OPTIONS;
   protected readonly categoryOptions = SUBJECT_CATEGORY_OPTIONS;
+  protected readonly racks           = signal<LibraryRack[]>([]);
+  protected readonly shelves         = signal<LibraryShelf[]>([]);
+
+  private libraryId: number | null = null;
 
   protected form!: FormGroup;
 
@@ -49,9 +55,24 @@ export class LibraryBookFormComponent implements OnInit {
       this.pageTitle.set('Edit Book');
     }
     this.buildForm();
+    this.libraryService.getLibraries().subscribe({
+      next: (libraries) => {
+        this.libraryId = libraries[0]?.id ?? null;
+        if (this.libraryId) {
+          this.libraryService.getRacks(this.libraryId, true).subscribe({ next: (racks) => this.racks.set(racks) });
+        }
+      },
+    });
     if (id) {
       this.loadBook(+id);
     }
+  }
+
+  protected onRackChange(): void {
+    this.form.patchValue({ shelfId: '' });
+    const rackId = this.form.value.rackId;
+    if (!rackId) { this.shelves.set([]); return; }
+    this.libraryService.getShelves(+rackId, undefined, true).subscribe({ next: (shelves) => this.shelves.set(shelves) });
   }
 
   private buildForm(): void {
@@ -68,7 +89,8 @@ export class LibraryBookFormComponent implements OnInit {
       collation:          ['', Validators.maxLength(200)],
       series:             ['', Validators.maxLength(200)],
       callNumber:         ['', Validators.maxLength(50)],
-      shelfLocation:      ['', Validators.maxLength(20)],
+      rackId:             [''],
+      shelfId:            [''],
       subjectCategory:    [''],
       sourceOfSupply:     [''],
       vendorDonorName:    ['', Validators.maxLength(200)],
@@ -108,7 +130,8 @@ export class LibraryBookFormComponent implements OnInit {
           collation:         book.collation ?? '',
           series:            book.series ?? '',
           callNumber:        book.callNumber ?? '',
-          shelfLocation:     book.shelfLocation ?? '',
+          rackId:            book.rackId ?? '',
+          shelfId:           book.shelfId ?? '',
           subjectCategory:   book.subjectCategory ?? '',
           sourceOfSupply:    book.sourceOfSupply ?? '',
           vendorDonorName:   book.vendorDonorName ?? '',
@@ -118,6 +141,9 @@ export class LibraryBookFormComponent implements OnInit {
           status:            book.status,
           remarks:           book.remarks ?? '',
         });
+        if (book.rackId) {
+          this.libraryService.getShelves(book.rackId, undefined, true).subscribe({ next: (shelves) => this.shelves.set(shelves) });
+        }
         this.loading.set(false);
       },
       error: () => {
@@ -170,7 +196,8 @@ export class LibraryBookFormComponent implements OnInit {
       collation:         v.collation?.trim() || undefined,
       series:            v.series?.trim() || undefined,
       callNumber:        v.callNumber?.trim() || undefined,
-      shelfLocation:     v.shelfLocation?.trim() || undefined,
+      libraryId:         this.libraryId!,
+      shelfId:           v.shelfId || undefined,
       subjectCategory:   v.subjectCategory || undefined,
       sourceOfSupply:    v.sourceOfSupply || undefined,
       vendorDonorName:   v.vendorDonorName?.trim() || undefined,

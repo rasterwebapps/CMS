@@ -1,0 +1,99 @@
+<h2 mat-dialog-title>{{ isBulk ? 'Transfer ' + data.books.length + ' Books' : 'Transfer Book' }}</h2>
+<mat-dialog-content>
+
+  @if (step() === 'SELECT') {
+    <div class="step">
+      @if (isBulk) {
+        <p class="step-intro">
+          Moving <strong>{{ data.books.length }}</strong> books to a new shelf. Books currently issued will be skipped.
+        </p>
+      } @else {
+        <p class="step-intro">
+          Moving <strong>{{ data.books[0].title }}</strong> ({{ data.books[0].accessionNumber }}) to a new shelf.
+        </p>
+      }
+
+      @if (loading()) {
+        <div class="loading-row"><mat-spinner diameter="20" /></div>
+      } @else {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Library</mat-label>
+          <mat-select [(ngModel)]="selectedLibraryId" (selectionChange)="onLibraryChange()" [disabled]="libraries().length <= 1">
+            @for (l of libraries(); track l.id) {
+              <mat-option [value]="l.id">{{ l.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Rack</mat-label>
+          <mat-select [(ngModel)]="selectedRackId" (selectionChange)="onRackChange()" [disabled]="!selectedLibraryId">
+            @for (r of racks(); track r.id) {
+              <mat-option [value]="r.id">{{ r.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Shelf</mat-label>
+          <mat-select [(ngModel)]="selectedShelfId" [disabled]="!selectedRackId">
+            @for (s of shelves(); track s.id) {
+              <mat-option [value]="s.id">{{ s.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <div class="notes-field">
+          <label class="notes-label">Notes (optional)</label>
+          <textarea
+            class="notes-input"
+            [(ngModel)]="notes"
+            rows="2"
+            placeholder="Reason for transfer…"
+          ></textarea>
+        </div>
+      }
+    </div>
+  }
+
+  @if (step() === 'RESULT') {
+    @let r = result()!;
+    <div class="step">
+      @if (r.succeededBookIds.length > 0) {
+        <div class="result-row result-row--success">
+          <mat-icon>check_circle</mat-icon>
+          <span>{{ r.succeededBookIds.length }} book{{ r.succeededBookIds.length !== 1 ? 's' : '' }} transferred successfully.</span>
+        </div>
+      }
+      @if (r.failed.length > 0) {
+        <div class="result-row result-row--failed">
+          <mat-icon>error</mat-icon>
+          <span>{{ r.failed.length }} book{{ r.failed.length !== 1 ? 's' : '' }} could not be transferred:</span>
+        </div>
+        <ul class="failure-list">
+          @for (f of r.failed; track f.bookId) {
+            <li>{{ bookTitle(f.bookId) }} — {{ f.reason }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (step() === 'SELECT') {
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button
+      mat-flat-button color="primary"
+      [disabled]="!selectedShelfId || submitting()"
+      (click)="submitTransfer()"
+    >
+      @if (submitting()) { <mat-spinner diameter="16" /> } @else { Transfer }
+    </button>
+  }
+
+  @if (step() === 'RESULT') {
+    <button mat-flat-button color="primary" (click)="close()">Done</button>
+  }
+</mat-dialog-actions>

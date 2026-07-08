@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,12 +10,23 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.LibraryBookBulkTransferRequest;
 import com.cms.dto.LibraryBookRequest;
 import com.cms.dto.LibraryBookResponse;
+import com.cms.dto.LibraryBookShelfTransferResponse;
+import com.cms.dto.LibraryBookTransferRequest;
+import com.cms.dto.LibraryBookTransferResult;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.Library;
 import com.cms.model.LibraryBook;
+import com.cms.model.LibraryBookShelfTransfer;
+import com.cms.model.LibraryShelf;
 import com.cms.model.enums.BookStatus;
 import com.cms.repository.LibraryBookRepository;
+import com.cms.repository.LibraryBookShelfTransferRepository;
+import com.cms.repository.LibraryRepository;
+import com.cms.repository.LibraryShelfRepository;
+import com.cms.util.CurrentUserResolver;
 
 import jakarta.persistence.criteria.Predicate;
 
@@ -24,10 +36,23 @@ public class LibraryBookService {
 
     private final LibraryBookRepository bookRepository;
     private final LibraryAccessionRegistryService accessionRegistry;
+    private final LibraryRepository libraryRepository;
+    private final LibraryShelfRepository shelfRepository;
+    private final LibraryBookShelfTransferRepository transferRepository;
+    private final CurrentUserResolver currentUserResolver;
 
-    public LibraryBookService(LibraryBookRepository bookRepository, LibraryAccessionRegistryService accessionRegistry) {
+    public LibraryBookService(LibraryBookRepository bookRepository,
+                               LibraryAccessionRegistryService accessionRegistry,
+                               LibraryRepository libraryRepository,
+                               LibraryShelfRepository shelfRepository,
+                               LibraryBookShelfTransferRepository transferRepository,
+                               CurrentUserResolver currentUserResolver) {
         this.bookRepository = bookRepository;
         this.accessionRegistry = accessionRegistry;
+        this.libraryRepository = libraryRepository;
+        this.shelfRepository = shelfRepository;
+        this.transferRepository = transferRepository;
+        this.currentUserResolver = currentUserResolver;
     }
 
     @Transactional
@@ -50,7 +75,7 @@ public class LibraryBookService {
         return bookRepository.findAll().stream().map(this::toResponse).toList();
     }
 
-    public Page<LibraryBookResponse> findPage(String search, BookStatus status, String category, Pageable pageable) {
+    public Page<LibraryBookResponse> findPage(String search, BookStatus status, String category, Long shelfId, Pageable pageable) {
         Specification<LibraryBook> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (search != null && !search.isBlank()) {
@@ -64,6 +89,7 @@ public class LibraryBookService {
             }
             if (status != null) predicates.add(cb.equal(root.get("status"), status));
             if (category != null && !category.isBlank()) predicates.add(cb.equal(root.get("subjectCategory"), category));
+            if (shelfId != null) predicates.add(cb.equal(root.get("shelf").get("id"), shelfId));
             return cb.and(predicates.toArray(new Predicate[0]));
         };
         return bookRepository.findAll(spec, pageable).map(this::toResponse);
@@ -109,6 +135,86 @@ public class LibraryBookService {
         bookRepository.deleteById(id);
     }
 
+    // ── Shelf transfer ───────────────────────────────────────────
+
+    @Transactional
+    public LibraryBookShelfTransferResponse transferBook(Long bookId, LibraryBookTransferRequest request) {
+        LibraryBook book = require(bookId);
+        LibraryBookShelfTransfer record = doTransfer(book, request.newShelfId(), request.notes());
+        return toTransferResponse(record);
+    }
+
+    @Transactional
+    public LibraryBookTransferResult bulkTransfer(LibraryBookBulkTransferRequest request) {
+        List<Long> succeeded = new ArrayList<>();
+        List<LibraryBookTransferResult.Failure> failed = new ArrayList<>();
+
+        for (Long bookId : request.bookIds()) {
+            try {
+                LibraryBook book = require(bookId);
+                doTransfer(book, request.newShelfId(), request.notes());
+                succeeded.add(bookId);
+            } catch (IllegalStateException | ResourceNotFoundException e) {
+                failed.add(new LibraryBookTransferResult.Failure(bookId, e.getMessage()));
+            }
+        }
+        return new LibraryBookTransferResult(succeeded, failed);
+    }
+
+    public List<LibraryBookShelfTransferResponse> getTransferHistory(Long bookId) {
+        if (!bookRepository.existsById(bookId)) {
+            throw new ResourceNotFoundException("Book not found with id: " + bookId);
+        }
+        return transferRepository.findByBookIdOrderByTransferredAtDesc(bookId).stream()
+            .map(this::toTransferResponse)
+            .toList();
+    }
+
+    private LibraryBookShelfTransfer doTransfer(LibraryBook book, Long newShelfId, String notes) {
+        if (book.getStatus() == BookStatus.ISSUED) {
+            throw new IllegalStateException(
+                "Cannot transfer '" + book.getTitle() + "' — it is currently issued");
+        }
+
+        LibraryShelf newShelf = shelfRepository.findById(newShelfId)
+            .orElseThrow(() -> new ResourceNotFoundException("Shelf not found with id: " + newShelfId));
+        Library newLibrary = newShelf.getRack().getLibrary();
+
+        LibraryBookShelfTransfer record = new LibraryBookShelfTransfer();
+        record.setBook(book);
+        record.setOldLibrary(book.getLibrary());
+        record.setOldRack(book.getShelf() != null ? book.getShelf().getRack() : null);
+        record.setOldShelf(book.getShelf());
+        record.setNewLibrary(newLibrary);
+        record.setNewRack(newShelf.getRack());
+        record.setNewShelf(newShelf);
+        record.setTransferredAt(Instant.now());
+        record.setTransferredBy(currentUserResolver.resolve());
+        record.setNotes(notes);
+
+        book.setLibrary(newLibrary);
+        book.setShelf(newShelf);
+        bookRepository.save(book);
+
+        return transferRepository.save(record);
+    }
+
+    private LibraryBookShelfTransferResponse toTransferResponse(LibraryBookShelfTransfer t) {
+        return new LibraryBookShelfTransferResponse(
+            t.getId(),
+            t.getBook().getId(),
+            t.getOldLibrary() != null ? t.getOldLibrary().getName() : null,
+            t.getOldRack() != null ? t.getOldRack().getName() : null,
+            t.getOldShelf() != null ? t.getOldShelf().getName() : null,
+            t.getNewLibrary().getName(),
+            t.getNewRack() != null ? t.getNewRack().getName() : null,
+            t.getNewShelf() != null ? t.getNewShelf().getName() : null,
+            t.getTransferredAt(),
+            t.getTransferredBy(),
+            t.getNotes()
+        );
+    }
+
     // ── Helpers ───────────────────────────────────────────────────
 
     private LibraryBook require(Long id) {
@@ -127,7 +233,19 @@ public class LibraryBookService {
         book.setCollation(trim(r.collation()));
         book.setSeries(trim(r.series()));
         book.setCallNumber(trim(r.callNumber()));
-        book.setShelfLocation(trim(r.shelfLocation()));
+
+        Library library = libraryRepository.findById(r.libraryId())
+            .orElseThrow(() -> new ResourceNotFoundException("Library not found with id: " + r.libraryId()));
+        book.setLibrary(library);
+
+        if (r.shelfId() != null) {
+            LibraryShelf shelf = shelfRepository.findById(r.shelfId())
+                .orElseThrow(() -> new ResourceNotFoundException("Shelf not found with id: " + r.shelfId()));
+            book.setShelf(shelf);
+        } else {
+            book.setShelf(null);
+        }
+
         book.setSubjectCategory(trim(r.subjectCategory()));
         book.setSourceOfSupply(r.sourceOfSupply());
         book.setVendorDonorName(trim(r.vendorDonorName()));
@@ -145,6 +263,7 @@ public class LibraryBookService {
     }
 
     LibraryBookResponse toResponse(LibraryBook b) {
+        LibraryShelf shelf = b.getShelf();
         return new LibraryBookResponse(
             b.getId(),
             b.getAccessionNumber(),
@@ -158,7 +277,12 @@ public class LibraryBookService {
             b.getCollation(),
             b.getSeries(),
             b.getCallNumber(),
-            b.getShelfLocation(),
+            b.getLibrary() != null ? b.getLibrary().getId() : null,
+            b.getLibrary() != null ? b.getLibrary().getName() : null,
+            shelf != null ? shelf.getRack().getId() : null,
+            shelf != null ? shelf.getRack().getName() : null,
+            shelf != null ? shelf.getId() : null,
+            shelf != null ? shelf.getName() : null,
             b.getSubjectCategory(),
             b.getSourceOfSupply(),
             b.getVendorDonorName(),

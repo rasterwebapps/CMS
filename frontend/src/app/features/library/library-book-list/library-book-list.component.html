@@ -62,9 +62,40 @@
       }
     </select>
 
+    <select
+      class="mlp-filter-select"
+      [value]="rackFilter() ?? ''"
+      (change)="rackFilter.set($any($event.target).value ? +$any($event.target).value : null); onRackFilterChange()"
+      aria-label="Filter by rack"
+    >
+      <option value="">All Racks</option>
+      @for (rack of racks(); track rack.id) {
+        <option [value]="rack.id">{{ rack.name }}</option>
+      }
+    </select>
+
+    <select
+      class="mlp-filter-select"
+      [value]="shelfFilter() ?? ''"
+      (change)="shelfFilter.set($any($event.target).value ? +$any($event.target).value : null); onFilterChange()"
+      aria-label="Filter by shelf"
+      [disabled]="!rackFilter()"
+    >
+      <option value="">All Shelves</option>
+      @for (shelf of shelves(); track shelf.id) {
+        <option [value]="shelf.id">{{ shelf.name }}</option>
+      }
+    </select>
+
     @if (hasActiveFilters()) {
       <button class="btn-ghost btn-sm" (click)="clearFilters()">
         Clear filters
+      </button>
+    }
+
+    @if (canTransfer() && selection.selected.length > 0) {
+      <button class="btn-primary btn-sm" (click)="transferSelected()">
+        Transfer Selected ({{ selection.selected.length }})
       </button>
     }
   </div>
@@ -80,6 +111,15 @@
   @if (!loading()) {
     <div class="mlp-table-wrap mlp-table-card">
       <table mat-table [dataSource]="dataSource" matSort class="mlp-table" aria-label="Book catalogue">
+
+        <ng-container matColumnDef="select">
+          <th mat-header-cell *matHeaderCellDef>
+            <mat-checkbox [checked]="isAllSelected()" (change)="toggleAll()" aria-label="Select all books" />
+          </th>
+          <td mat-cell *matCellDef="let book">
+            <mat-checkbox [checked]="selection.isSelected(book)" (change)="selection.toggle(book)" (click)="$event.stopPropagation()" [aria-label]="'Select ' + book.title" />
+          </td>
+        </ng-container>
 
         <ng-container matColumnDef="accessionNumber">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Acc. No.</th>
@@ -105,11 +145,11 @@
           <td mat-cell *matCellDef="let book">{{ book.publisher ?? '—' }}</td>
         </ng-container>
 
-        <ng-container matColumnDef="shelfLocation">
+        <ng-container matColumnDef="shelf">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Shelf</th>
           <td mat-cell *matCellDef="let book">
-            @if (book.shelfLocation) {
-              <span class="shelf-badge">{{ book.shelfLocation }}</span>
+            @if (book.shelfName) {
+              <span class="shelf-badge">{{ book.rackName }} / {{ book.shelfName }}</span>
             } @else { — }
           </td>
         </ng-container>
@@ -133,6 +173,12 @@
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let book" class="actions-cell">
+            @if (canTransfer()) {
+              <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Transfer" ariaLabel="Transfer book"
+                [disabled]="book.status === 'ISSUED'" (clicked)="transferBook(book)">
+                <mat-icon>swap_horiz</mat-icon>
+              </cms-row-action-btn>
+            }
             @if (canManage()) {
               <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit book" (clicked)="editBook(book)">
                 <mat-icon>edit</mat-icon>

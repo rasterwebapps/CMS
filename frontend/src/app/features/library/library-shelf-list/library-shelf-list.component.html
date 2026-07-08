@@ -1,0 +1,130 @@
+<div class="mlp-page">
+
+  <!-- Header -->
+  <div class="mlp-hdr">
+    <div class="mlp-hdr-left">
+      <a class="mlp-breadcrumb-link" routerLink="/library/racks">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Back to Racks
+      </a>
+      <h1 class="mlp-title">
+        @if (rackLoading()) {
+          Shelves
+        } @else {
+          Shelves in <em>{{ rack()?.name }}</em>
+        }
+      </h1>
+      <p class="mlp-sub">
+        @if (rack()?.code) {
+          Rack code {{ rack()?.code }} — manage the shelf tiers (e.g. Top / Middle / Bottom) within this rack
+        } @else {
+          Manage the shelf tiers within this rack
+        }
+      </p>
+    </div>
+    <div class="header-actions">
+      @if (canManage()) {
+        <a class="btn-primary" [routerLink]="['/library/racks', rackId, 'shelves', 'new']" aria-label="Add new shelf">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Shelf
+        </a>
+      }
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="mlp-toolbar">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search by name or code…"
+        type="text"
+        aria-label="Search shelves"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (loading() || rackLoading()) {
+    <div class="mlp-loading-row">
+      <span class="mlp-spinner" aria-label="Loading..."></span> Loading shelves...
+    </div>
+  }
+
+  <!-- Table -->
+  @if (!loading() && !rackLoading()) {
+    <div class="mlp-table-wrap mlp-table-card">
+      <table mat-table [dataSource]="dataSource" matSort
+             [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+             matSortDisableClear (matSortChange)="onSortChange($event)"
+             class="mlp-table" aria-label="Library shelves">
+
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+          <td mat-cell *matCellDef="let row">{{ row.name }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="code">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
+          <td mat-cell *matCellDef="let row"><span class="shelf-code">{{ row.code }}</span></td>
+        </ng-container>
+
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef>Description</th>
+          <td mat-cell *matCellDef="let row">{{ row.description || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="isActive">
+          <th mat-header-cell *matHeaderCellDef class="cell-align-center">Status</th>
+          <td mat-cell *matCellDef="let row" class="cell-align-center">
+            <cms-status-badge [status]="row.isActive ? 'ACTIVE' : 'INACTIVE'" />
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+          <td mat-cell *matCellDef="let row">
+            <div class="row-actions">
+              @if (canManage()) {
+                <cms-row-action-btn variant="warning" [iconOnly]="true"
+                  (clicked)="toggleShelfStatus(row)"
+                  [tooltip]="row.isActive ? ('Deactivate ' + row.name) : ('Activate ' + row.name)"
+                  ariaLabel="Toggle shelf status">
+                  <mat-icon>{{ row.isActive ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+                </cms-row-action-btn>
+                <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" [ariaLabel]="'Edit ' + row.name" (clicked)="editShelf(row)">
+                  <mat-icon>edit</mat-icon>
+                </cms-row-action-btn>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+            <cms-empty-state
+              icon="shelves"
+              [title]="searchValue() ? 'No shelves found' : 'No shelves yet'"
+              [subtitle]="searchValue() ? 'No shelves match your search.' : 'Add the first shelf tier for this rack to get started.'"
+              [actionLabel]="searchValue() ? 'Clear Search' : (canManage() ? 'Add Shelf' : '')"
+              (actionClick)="handleEmptyAction()"
+            ></cms-empty-state>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <mat-paginator [pageSizeOptions]="[10, 25, 50]" [length]="totalElements" showFirstLastButtons aria-label="Library shelf pages" />
+  }
+
+</div>

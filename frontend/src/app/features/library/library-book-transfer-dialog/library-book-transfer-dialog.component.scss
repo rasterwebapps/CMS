@@ -1,0 +1,67 @@
+.step {
+  min-width: 420px;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.step-intro {
+  font-size: var(--cms-text-base);
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.full-width { width: 100%; }
+
+.loading-row {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.notes-label {
+  font-size: var(--cms-text-sm);
+  color: var(--mat-sys-on-surface-variant);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.notes-input {
+  width: 100%;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: var(--cms-text-base);
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
+  outline: none;
+
+  &:focus { border-color: var(--mat-sys-primary); }
+}
+
+.result-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--cms-text-base);
+  font-weight: 500;
+
+  &--success { color: var(--mat-sys-tertiary); }
+  &--failed { color: var(--mat-sys-error); }
+}
+
+.failure-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: var(--cms-text-sm);
+  color: var(--mat-sys-on-surface-variant);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

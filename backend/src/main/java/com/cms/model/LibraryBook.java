@@ -16,9 +16,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -63,8 +66,13 @@ public class LibraryBook {
     @Column(name = "call_number", length = 50)
     private String callNumber;
 
-    @Column(name = "shelf_location", length = 20)
-    private String shelfLocation;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "library_id", nullable = false)
+    private Library library;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shelf_id")
+    private LibraryShelf shelf;
 
     @Column(name = "subject_category", length = 100)
     private String subjectCategory;
@@ -136,8 +144,11 @@ public class LibraryBook {
     public String getCallNumber() { return callNumber; }
     public void setCallNumber(String callNumber) { this.callNumber = callNumber; }
 
-    public String getShelfLocation() { return shelfLocation; }
-    public void setShelfLocation(String shelfLocation) { this.shelfLocation = shelfLocation; }
+    public Library getLibrary() { return library; }
+    public void setLibrary(Library library) { this.library = library; }
+
+    public LibraryShelf getShelf() { return shelf; }
+    public void setShelf(LibraryShelf shelf) { this.shelf = shelf; }
 
     public String getSubjectCategory() { return subjectCategory; }
     public void setSubjectCategory(String subjectCategory) { this.subjectCategory = subjectCategory; }

@@ -125,40 +125,56 @@
   @if (activeTab() === 'search') {
     <div class="catalogue-search-bar">
       <mat-icon>search</mat-icon>
-      <input class="catalogue-input" [(ngModel)]="catalogueSearch" [ngModelOptions]="{standalone: true}"
+      <input class="catalogue-input" [value]="catalogueSearch()" (input)="onCatalogueSearchInput($event)"
         placeholder="Search by title, author, call number..." />
-      <select class="cat-filter" [(ngModel)]="categoryFilter" [ngModelOptions]="{standalone: true}">
+      <select class="cat-filter" [value]="categoryFilter()"
+        (change)="categoryFilter.set($any($event.target).value); onCatalogueFilterChange()">
         <option value="">All Subjects</option>
         @for (cat of categoryOptions; track cat) {
           <option [value]="cat">{{ cat }}</option>
+        }
+      </select>
+      <select class="cat-filter" [value]="rackFilter() ?? ''"
+        (change)="rackFilter.set($any($event.target).value ? +$any($event.target).value : null); onRackFilterChange()">
+        <option value="">All Racks</option>
+        @for (rack of racks(); track rack.id) {
+          <option [value]="rack.id">{{ rack.name }}</option>
+        }
+      </select>
+      <select class="cat-filter" [value]="shelfFilter() ?? ''" [disabled]="!rackFilter()"
+        (change)="shelfFilter.set($any($event.target).value ? +$any($event.target).value : null); onCatalogueFilterChange()">
+        <option value="">All Shelves</option>
+        @for (shelf of shelves(); track shelf.id) {
+          <option [value]="shelf.id">{{ shelf.name }}</option>
         }
       </select>
     </div>
 
     @if (catalogueLoading()) { <div class="portal-loading">Loading catalogue...</div> }
     @else {
-      <p class="catalogue-count">{{ filteredBooks().length }} books available</p>
+      <p class="catalogue-count">{{ totalElements }} books available</p>
       <div class="catalogue-grid">
-        @for (book of filteredBooks(); track book.id) {
+        @for (book of books(); track book.id) {
           <div class="catalogue-card">
             <div class="catalogue-card__acc">{{ book.accessionNumber }}</div>
             <h3 class="catalogue-card__title">{{ book.title }}</h3>
             <p class="catalogue-card__author">{{ book.authors }}</p>
             @if (book.publisher) { <p class="catalogue-card__pub">{{ book.publisher }}{{ book.edition ? ' · ' + book.edition : '' }}</p> }
             <div class="catalogue-card__footer">
-              @if (book.callNumber)    { <span class="tag">{{ book.callNumber }}</span> }
-              @if (book.shelfLocation) { <span class="tag">{{ book.shelfLocation }}</span> }
+              @if (book.callNumber) { <span class="tag">{{ book.callNumber }}</span> }
+              @if (book.shelfName)  { <span class="tag">{{ book.rackName }} / {{ book.shelfName }}</span> }
               <span class="tag tag--available">Available</span>
             </div>
           </div>
         }
-        @if (filteredBooks().length === 0) {
+        @if (books().length === 0) {
           <div class="portal-empty" style="grid-column: 1/-1">
             <mat-icon>search_off</mat-icon>
             <p>No available books match your search.</p>
           </div>
         }
       </div>
+      <mat-paginator [pageSizeOptions]="[25, 50, 100]" [length]="totalElements" showFirstLastButtons aria-label="Catalogue pages" />
     }
   }
 

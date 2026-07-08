@@ -204,6 +204,7 @@ export class App implements OnInit, AfterViewInit {
       icon: 'local_library',
       items: [
         { label: 'Book Catalogue',   icon: 'menu_book',          route: '/library/books',          permissions: ['LIBRARY_CATALOGUE_VIEW', 'LIBRARY_CATALOGUE_CREATE', 'LIBRARY_CATALOGUE_EDIT', 'LIBRARY_CATALOGUE_DELETE', 'LIBRARY_CATALOGUE_EXPORT', 'LIBRARY_CATALOGUE_MANAGE'] },
+        { label: 'Racks & Shelves',  icon: 'shelves',            route: '/library/racks',          permissions: ['LIBRARY_SHELF_VIEW', 'LIBRARY_SHELF_MANAGE'] },
         { label: 'Issue Desk',       icon: 'book_online',        route: '/library/issues',         permissions: ['LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_DELETE', 'LIBRARY_ISSUE_EXPORT', 'LIBRARY_ISSUE_MANAGE'] },
         { label: 'Issue Book',       icon: 'add_circle_outline', route: '/library/issues/new',     permissions: ['LIBRARY_QUICK_ISSUE'] },
         { label: 'My Library',       icon: 'person',             route: '/library/my-issues',      permissions: ['MY_LIBRARY_VIEW'] },

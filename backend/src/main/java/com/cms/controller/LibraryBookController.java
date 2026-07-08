@@ -20,8 +20,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.LibraryBookBulkTransferRequest;
 import com.cms.dto.LibraryBookRequest;
 import com.cms.dto.LibraryBookResponse;
+import com.cms.dto.LibraryBookShelfTransferResponse;
+import com.cms.dto.LibraryBookTransferRequest;
+import com.cms.dto.LibraryBookTransferResult;
 import com.cms.model.enums.BookStatus;
 import com.cms.service.LibraryBookService;
 
@@ -89,7 +93,29 @@ public class LibraryBookController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) BookStatus status,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) Long shelfId,
             @PageableDefault(size = 25, sort = "title", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(bookService.findPage(search, status, category, pageable));
+        return ResponseEntity.ok(bookService.findPage(search, status, category, shelfId, pageable));
+    }
+
+    @PostMapping("/{id}/transfer")
+    @PreAuthorize("@perm.has('LIBRARY_TRANSFER')")
+    public ResponseEntity<LibraryBookShelfTransferResponse> transfer(
+            @PathVariable Long id,
+            @Valid @RequestBody LibraryBookTransferRequest request) {
+        return ResponseEntity.ok(bookService.transferBook(id, request));
+    }
+
+    @PostMapping("/transfer/bulk")
+    @PreAuthorize("@perm.has('LIBRARY_TRANSFER')")
+    public ResponseEntity<LibraryBookTransferResult> bulkTransfer(
+            @Valid @RequestBody LibraryBookBulkTransferRequest request) {
+        return ResponseEntity.ok(bookService.bulkTransfer(request));
+    }
+
+    @GetMapping("/{id}/transfers")
+    @PreAuthorize("@perm.hasAny('LIBRARY_CATALOGUE_VIEW', 'LIBRARY_CATALOGUE_MANAGE')")
+    public ResponseEntity<List<LibraryBookShelfTransferResponse>> transferHistory(@PathVariable Long id) {
+        return ResponseEntity.ok(bookService.getTransferHistory(id));
     }
 }

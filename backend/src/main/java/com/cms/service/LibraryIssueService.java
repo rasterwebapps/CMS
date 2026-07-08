@@ -88,7 +88,7 @@ public class LibraryIssueService {
         return bookRepository.findByAccessionNumber(trimmed)
             .<LibraryCirculationLookupResponse>map(b -> new LibraryCirculationLookupResponse(
                 LibraryItemType.BOOK, b.getId(), b.getAccessionNumber(), b.getTitle(), b.getAuthors(),
-                b.getCallNumber(), b.getShelfLocation(), b.getStatus()))
+                b.getCallNumber(), b.getShelf() != null ? b.getShelf().getName() : null, b.getStatus()))
             .or(() -> periodicalRepository.findByAccessionNumber(trimmed)
                 .map(p -> new LibraryCirculationLookupResponse(
                     LibraryItemType.JOURNAL, p.getId(), p.getAccessionNumber(), p.getJournalName(),

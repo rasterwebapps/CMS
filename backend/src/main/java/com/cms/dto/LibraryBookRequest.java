@@ -7,6 +7,7 @@ import com.cms.model.enums.BookSourceOfSupply;
 import com.cms.model.enums.BookStatus;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record LibraryBookRequest(
@@ -45,8 +46,10 @@ public record LibraryBookRequest(
     @Size(max = 50, message = "Call number must not exceed 50 characters")
     String callNumber,
 
-    @Size(max = 20, message = "Shelf location must not exceed 20 characters")
-    String shelfLocation,
+    @NotNull(message = "Library is required")
+    Long libraryId,
+
+    Long shelfId,
 
     @Size(max = 100, message = "Subject category must not exceed 100 characters")
     String subjectCategory,

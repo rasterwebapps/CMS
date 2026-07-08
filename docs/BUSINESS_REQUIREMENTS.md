@@ -1396,6 +1396,7 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-07-08 | BR-35 | Replaced `library_books.shelf_location` (free text) with a real Library → Rack → Shelf hierarchy; added Rack/Shelf master screens, book transfer (single + bulk, blocked while `ISSUED`) with audit history, and converted the Search Catalogue tab from unpaginated client-side filtering to server-side pagination with a shelf filter. Migrations V251–V256. | — |
 | 2026-06-23 | BR-34 | **Rewrote OneBook integration against OneBook's real published API spec** (previously placeholder field names/auth, now confirmed wrong): JWT auth flow replaces HTTP Basic; outbound create payload rewritten to OneBook's invoice/document-register shape (`payeeType: OTHERS`, `invoiceNumber`/`documentNumber` = a newly generated refund/commission/disbursement number, `documentId` = source entity PK, `paymentRegisterDocumentType: PAYMENT`/`REFUND`, `transactionType: CREDIT` always); removed response-body id/success parsing since the real synchronous response carries neither — success is now HTTP-status-only. Replaced the single placeholder `/webhooks/onebook/payment-status` webhook with the two real OneBook callbacks (`posting-track-update`, `posting-track-completion`), both correlated by the generated `invoiceNumber` rather than an echoed `referenceId`. Added `ApplicationNumberSequenceService.nextCommissionNumber`/`nextDisbursementNumber`; `FeeRefund.refundNumber`/`Enquiry.commissionNumber`/`ScholarshipDisbursement.disbursementNumber` now reuse the number generated at push time instead of regenerating on completion. Supplier Master Sync (pharmacy-only piece of the same spec) explicitly out of scope. Migration V236. | — |
 | 2026-06-23 | BR-34 | OneBook outbound push now parses the synchronous response body for OneBook's own id and a success/failure indicator (previously only an HTTP-exception check, which would have silently treated a logical "rejected" response as transmitted). The id is stored as `onebookTxnId` and is now also a valid correlation key for the inbound webhook — `OneBookWebhookService.process` and `OneBookPaymentRequestRepository.findByOnebookTxnId` look up by `transactionId` when `referenceId` is absent or unmatched, since OneBook's callback may use only its own id rather than echoing ours back. Response field names (`id`/`transactionId`/`status`/`success`) are best-guess placeholders pending OneBook's actual API docs — flagged in BR-34 for confirmation. | — |
 | 2026-06-23 | BR-34 | Documented OneBook payment gateway integration (previously undocumented though already built): outbound push for commission/refund/scholarship payment registers, inbound `/webhooks/onebook/payment-status` callback, config keys, permissions. Webhook updated to accept either a single payment register or a JSON array of registers in one call (OneBook's stated contract — "payment registers only, single or list"), processing each independently and returning a per-register result array. Flagged scholarship rejection as a known lifecycle gap (no visible status/retry, unlike commission and refund) pending a design decision. | — |
@@ -2138,6 +2139,38 @@ Configured from Settings → Integrations (`IntegrationsSettingsComponent`); req
 - V227 added the 6 bank-detail fields to `Student` required by the bank-detail guard.
 - V231 added commission rejection reason/by/at to `Enquiry` plus the `REJECTED` `CommissionPaymentStatus` value.
 - No migration was needed for the new commission/disbursement number sequences — `ApplicationNumberSequenceService` auto-creates a sequence row on first use of a new series code.
+
+---
+
+## BR-35: Library Rack/Shelf Master, Book Transfer & Multi-Library Schema
+
+### Business Rule
+
+A book's physical location is tracked as a real 3-level hierarchy — **Library → Rack → Shelf** (a tier within a rack, e.g. Top/Middle/Bottom) — instead of the free-text `shelf_location` field used at initial Library module launch (V196). Staff can create/manage Racks and Shelves, filter the Book Catalogue and Search Catalogue by shelf, and transfer one or many books to a different shelf with a full audit trail. A book currently `ISSUED` cannot be transferred (mirrors the existing rule blocking deletion of an issued book) — it must be returned first.
+
+Only one physical `Library` exists today (seeded "Main Library"), but the schema is deliberately multi-library-ready (`library_id` FKs throughout) so a second library can be added later without another structural migration. There is no Library management screen yet — with exactly one row, a CRUD UI would have no purpose; `GET /libraries` exists only to populate the Library dropdown in the Rack form and the Transfer dialog.
+
+### Scope
+
+- New `Library` master (`libraries` table; `name`, `code`, `address`, `isActive`) — schema + seed row only, no CRUD screen (see above).
+- New `LibraryRack` master (`library_racks` table; `library_id` FK, `name`, `code`, `description`, `isActive`) — full CRUD screen at `/library/racks`, same pattern as other masters (async name/code uniqueness, scoped per-library).
+- New `LibraryShelf` master (`library_shelves` table; `rack_id` FK, `name`, `code`, `description`, `isActive`) — full CRUD screen at `/library/racks/:rackId/shelves`, nested under its parent Rack, uniqueness scoped per-rack.
+- `library_books.shelf_location` (free text) replaced by `library_id` (`NOT NULL`) and `shelf_id` (nullable — a book can belong to a library without yet being assigned a specific shelf) FKs.
+- New `library_book_shelf_transfers` audit table logging every transfer (old/new library, rack, shelf, who, when, notes) — modeled on `student_program_transfers` (BR pattern from student program transfers).
+- Book Catalogue (`/library/books`) and Search Catalogue (the "Search Catalogue" tab in My Library, `/library/my-issues`) both gained a Rack → Shelf cascading filter. Search Catalogue was also converted from an unpaginated full-catalogue client-side fetch/filter to real server-side pagination (`GET /library/books/page`) — the previous implementation loaded every `AVAILABLE` book into the browser on every visit, which does not scale as the catalogue grows.
+- Book Catalogue gained bulk selection (checkboxes) and a "Transfer Selected" toolbar action, plus a per-row "Transfer" action (disabled while `ISSUED`), both opening a shared transfer dialog (Library → Rack → Shelf cascading pick + notes). Bulk transfer reports partial success — books that are `ISSUED` are skipped with a reason, the rest still transfer.
+
+### Permissions
+
+- `LIBRARY_SHELF_VIEW` / `LIBRARY_SHELF_MANAGE` — gate the Rack and Shelf master screens (both masters share one permission pair since they're one conceptual screen). Staff-only (LIBRARIAN, COLLEGE_ADMIN, ADMIN), not granted to FACULTY/STUDENT.
+- `LIBRARY_TRANSFER` — gates the transfer action (new, dedicated permission rather than reusing `LIBRARY_CATALOGUE_MANAGE`, so transfer rights can be granted independently of general catalogue editing).
+- The unpaginated `GET /library/racks` and `GET /library/shelves` (used only to populate filter/picker dropdowns) are instead gated on the existing broad `LIBRARY_CATALOGUE_VIEW`/`LIBRARY_ISSUE_VIEW` permissions students and faculty already hold, so Search Catalogue's shelf filter works for them without granting the new staff-facing permission.
+
+### Migration Notes
+
+- V251 (`libraries` table + seed "Main Library"), V252 (`library_racks` table), V253 (`library_shelves` table).
+- V254 — the data-safe backfill: since books were already imported into production with real `shelf_location` values before this feature existed, this migration auto-creates one Rack per distinct existing `shelf_location` value (under Main Library) with a single default "General" shelf tier, backfills every book's `shelf_id`/`library_id` accordingly, then drops the old `shelf_location` column. Staff can re-organize into finer rack/shelf tiers afterwards via the new master screens. **Must be run against a fresh `pg_dump` backup, per the project's production data safety rule, since it transforms existing production data.**
+- V255 (`library_book_shelf_transfers` audit table), V256 (`LIBRARY_SHELF_VIEW`/`LIBRARY_SHELF_MANAGE`/`LIBRARY_TRANSFER` permissions, auto-assigned to roles already holding `LIBRARY_CATALOGUE_MANAGE`, plus the mandatory DEV_ADMIN/SUPPORT_ADMIN catch-all sync).
 
 ---
 

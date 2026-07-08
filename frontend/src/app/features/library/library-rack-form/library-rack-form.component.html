@@ -1,0 +1,138 @@
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/library/racks" aria-label="Back to racks">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Rack</em></h1>
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update the rack details below.' : 'Register a new physical storage rack for this library.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="14" width="18" height="7" rx="1"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Rack Information</div>
+            <div class="entry-form-card__hdr-sub">Name, code, and optional description</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="field-group">
+              <label class="field-label" for="rack-library">Library</label>
+              <input id="rack-library" class="field-input" [value]="libraryName()" disabled readonly />
+              <p class="field-hint">Racks currently belong to the single library configured for this institution.</p>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label" for="rack-name">Rack Name <span class="required-star">*</span></label>
+                <input
+                  id="rack-name"
+                  class="field-input"
+                  formControlName="name"
+                  placeholder="e.g., Rack A"
+                  autocomplete="off"
+                  [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+                />
+                @if (form.get('name')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
+                  <p class="field-error">{{ getFieldError('name') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="rack-code">Code <span class="required-star">*</span></label>
+                <input
+                  id="rack-code"
+                  class="field-input font-mono"
+                  formControlName="code"
+                  placeholder="e.g., R-01"
+                  maxlength="50"
+                  autocomplete="off"
+                  [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
+                />
+                @if (form.get('code')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (form.get('code')?.invalid && form.get('code')?.touched) {
+                  <p class="field-error">{{ getFieldError('code') }}</p>
+                } @else {
+                  <p class="field-hint">Uppercase, no spaces</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="rack-desc">Description</label>
+              <textarea
+                id="rack-desc"
+                class="field-textarea"
+                formControlName="description"
+                placeholder="Optional description, e.g. location within the library hall"
+                rows="3"
+                [class.field-textarea--error]="form.get('description')?.invalid && form.get('description')?.touched"
+              ></textarea>
+              @if (form.get('description')?.invalid && form.get('description')?.touched) {
+                <p class="field-error">{{ getFieldError('description') }}</p>
+              }
+            </div>
+
+            <div class="field-group" style="margin-bottom: 0;">
+              <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+              <p class="field-hint">Inactive racks are hidden from new shelf and book assignments but retained for existing records.</p>
+            </div>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/library/racks">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving() || form.invalid">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Rack' : 'Create Rack' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-code">{{ previewCode() || '—' }}</div>
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Rack name will appear here' }}
+          </div>
+          @if (libraryName()) {
+            <div class="prev-sub">{{ libraryName() }}</div>
+          }
+          @if (previewDesc()) {
+            <p class="prev-desc">{{ previewDesc() }}</p>
+          }
+          <div class="prev-meta-row">
+            <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">
+              {{ previewActive() ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </cms-preview-card>
+
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
+
+    </div>
+  }
+</div>

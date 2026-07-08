@@ -1160,6 +1160,54 @@ export const routes: Routes = [
         (m) => m.LibraryFinesComponent
       ),
   },
+  {
+    path: 'library/racks',
+    canActivate: withPermission('LIBRARY_SHELF_VIEW', 'LIBRARY_SHELF_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-rack-list/library-rack-list.component').then(
+        (m) => m.LibraryRackListComponent
+      ),
+  },
+  {
+    path: 'library/racks/new',
+    canActivate: withPermission('LIBRARY_SHELF_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-rack-form/library-rack-form.component').then(
+        (m) => m.LibraryRackFormComponent
+      ),
+  },
+  {
+    path: 'library/racks/:id/edit',
+    canActivate: withPermission('LIBRARY_SHELF_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-rack-form/library-rack-form.component').then(
+        (m) => m.LibraryRackFormComponent
+      ),
+  },
+  {
+    path: 'library/racks/:rackId/shelves',
+    canActivate: withPermission('LIBRARY_SHELF_VIEW', 'LIBRARY_SHELF_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-shelf-list/library-shelf-list.component').then(
+        (m) => m.LibraryShelfListComponent
+      ),
+  },
+  {
+    path: 'library/racks/:rackId/shelves/new',
+    canActivate: withPermission('LIBRARY_SHELF_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-shelf-form/library-shelf-form.component').then(
+        (m) => m.LibraryShelfFormComponent
+      ),
+  },
+  {
+    path: 'library/racks/:rackId/shelves/:id/edit',
+    canActivate: withPermission('LIBRARY_SHELF_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-shelf-form/library-shelf-form.component').then(
+        (m) => m.LibraryShelfFormComponent
+      ),
+  },
   // ── Administration: User & Role Management ───────────────────────────────
   {
     path: 'user-management',
