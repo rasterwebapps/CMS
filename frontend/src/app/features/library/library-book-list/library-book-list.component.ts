@@ -23,6 +23,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { LibraryBookTransferDialogComponent, LibraryBookTransferDialogData } from '../library-book-transfer-dialog/library-book-transfer-dialog.component';
+import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 
 @Component({
   selector: 'app-library-book-list',
@@ -32,7 +33,7 @@ import { LibraryBookTransferDialogComponent, LibraryBookTransferDialogData } fro
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatTooltipModule,
     MatSelectModule, MatInputModule, MatFormFieldModule,
-    CmsRowActionButtonComponent, CmsEmptyStateComponent,
+    CmsRowActionButtonComponent, CmsEmptyStateComponent, ExportButtonComponent,
   ],
   templateUrl: './library-book-list.component.html',
   styleUrl: './library-book-list.component.scss',
@@ -68,6 +69,7 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   ];
   protected readonly dataSource    = new MatTableDataSource<LibraryBook>([]);
   protected readonly loading       = signal(false);
+  protected readonly exporting     = signal(false);
   protected readonly searchValue   = signal('');
   protected readonly statusFilter  = signal<BookStatus | null>(null);
   protected readonly categoryFilter = signal<string | null>(null);
@@ -79,6 +81,7 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   protected readonly categoryOptions = SUBJECT_CATEGORY_OPTIONS;
   protected readonly canManage      = computed(() => this.permissions.hasAny('LIBRARY_CATALOGUE_MANAGE'));
   protected readonly canImport      = computed(() => this.permissions.hasAny('LIBRARY_IMPORT'));
+  protected readonly canExport      = computed(() => this.permissions.hasAny('LIBRARY_CATALOGUE_EXPORT'));
   protected readonly canTransfer    = computed(() => this.permissions.hasAny('LIBRARY_TRANSFER'));
   protected readonly hasActiveFilters = computed(() =>
     this.statusFilter() !== null || this.categoryFilter() !== null
@@ -133,6 +136,34 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
     this.sortDirection = sort.direction as 'asc' | 'desc';
     this.currentPage = 0;
     this.loadPage();
+  }
+
+  protected onExport(format: ExportFormat): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.libraryService.exportBooks(format, {
+      search: this.searchValue() || undefined,
+      status: this.statusFilter(),
+      category: this.categoryFilter(),
+      rackId: this.rackFilter(),
+      shelfId: this.shelfFilter(),
+    }).subscribe({
+      next: blob => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const filename = `book-catalogue-${new Date().toISOString().slice(0, 10)}.${ext}`;
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
   }
 
   protected statusClass(status: BookStatus): string {

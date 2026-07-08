@@ -18,6 +18,8 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
+import { PermissionService } from '../../../core/permissions/permission.service';
+import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 
 @Component({
   selector: 'app-library-issue-list',
@@ -26,7 +28,7 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
     RouterLink, DatePipe, FormsModule,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule,
-    CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent,
+    CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent, ExportButtonComponent,
   ],
   templateUrl: './library-issue-list.component.html',
   styleUrl: './library-issue-list.component.scss',
@@ -36,6 +38,7 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
   private readonly router         = inject(Router);
   private readonly toast          = inject(ToastService);
   private readonly dialog         = inject(MatDialog);
+  protected readonly permissions  = inject(PermissionService);
 
   private readonly destroy$      = new Subject<void>();
   private readonly searchSubject  = new Subject<string>();
@@ -61,11 +64,13 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
   ];
   protected readonly dataSource    = new MatTableDataSource<LibraryIssue>([]);
   protected readonly loading       = signal(false);
+  protected readonly exporting     = signal(false);
   protected readonly searchValue   = signal('');
   protected readonly statusFilter  = signal<IssueStatus | null>(null);
   protected readonly memberFilter  = signal<LibraryMemberType | null>(null);
   protected readonly itemTypeFilter = signal<LibraryItemType | null>(null);
   protected readonly statusOptions = ISSUE_STATUS_OPTIONS;
+  protected readonly canExport     = computed(() => this.permissions.hasAny('LIBRARY_ISSUE_EXPORT'));
   protected readonly hasActiveFilters = computed(() =>
     this.statusFilter() !== null || this.memberFilter() !== null
     || this.itemTypeFilter() !== null || this.searchValue().length > 0);
@@ -105,6 +110,33 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
     this.sortActive = sort.active;
     this.sortDirection = sort.direction as 'asc' | 'desc';
     this.currentPage = 0; this.loadPage();
+  }
+
+  protected onExport(format: ExportFormat): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.libraryService.exportIssues(format, {
+      search: this.searchValue() || undefined,
+      status: this.statusFilter(),
+      memberType: this.memberFilter(),
+      itemType: this.itemTypeFilter(),
+    }).subscribe({
+      next: blob => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const filename = `issue-register-${new Date().toISOString().slice(0, 10)}.${ext}`;
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
   }
 
   protected statusLabel(status: IssueStatus): string {

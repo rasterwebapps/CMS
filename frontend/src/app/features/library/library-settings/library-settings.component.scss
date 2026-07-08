@@ -1,68 +1,115 @@
-.settings-page {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 24px;
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
-.settings-sub {
-  color: var(--color-text-secondary);
-  margin: 4px 0 32px;
-  font-size: 0.95rem;
-}
-
-.settings-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+.int-body {
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  margin-bottom: 32px;
 }
 
-.settings-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+// ── Card ─────────────────────────────────────────────────────────────────────
+.int-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
   border-radius: 12px;
-  padding: 24px;
+  overflow: hidden;
 
-  &__icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: var(--color-primary-light, #eff6ff);
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--cms-border-default);
+  }
+
+  &__icon-wrap {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--cms-primary);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 12px;
 
-    mat-icon { color: var(--color-primary); }
+    mat-icon { font-size: 20px; width: 20px; height: 20px; }
+
+    &--cash       { background: rgba(16, 185, 129, 0.12); color: var(--cms-success); }
+    &--connection { background: rgba(59, 130, 246, 0.12); color: var(--cms-info); }
   }
 
   &__title {
-    font-size: 1rem;
+    font-size: 15px;
     font-weight: 700;
-    margin: 0 0 4px;
+    margin: 0 0 3px;
+    color: var(--cms-text-primary);
   }
 
-  &__desc {
-    font-size: 0.82rem;
-    color: var(--color-text-secondary);
-    margin: 0 0 16px;
+  &__sub {
+    font-size: 12.5px;
+    color: var(--cms-text-secondary);
+    margin: 0;
     line-height: 1.5;
+  }
+
+  &__body {
+    padding: 20px 24px;
   }
 }
 
-.settings-fields {
+// ── Fields grid ───────────────────────────────────────────────────────────────
+.fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  @media (max-width: 640px) { grid-template-columns: 1fr; }
+}
+
+.field-wrap {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
 }
 
 .settings-input {
-  max-width: 120px;
+  max-width: 160px;
 }
 
-.settings-footer {
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+.int-skeleton {
   display: flex;
-  justify-content: flex-end;
-  padding-top: 8px;
-  border-top: 1px solid var(--color-border);
+  flex-direction: column;
+  gap: 16px;
 }
+
+.skeleton-block {
+  height: 140px;
+  background: var(--cms-bg-muted);
+  border-radius: 12px;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+// ── Spinner ───────────────────────────────────────────────────────────────────
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  margin-right: 6px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

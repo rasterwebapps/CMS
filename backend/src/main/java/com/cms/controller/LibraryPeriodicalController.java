@@ -1,5 +1,6 @@
 package com.cms.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -7,7 +8,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,6 +28,7 @@ import com.cms.dto.LibraryPeriodicalRequest;
 import com.cms.dto.LibraryPeriodicalResponse;
 import com.cms.model.enums.JournalType;
 import com.cms.model.enums.SubscriptionStatus;
+import com.cms.service.LibraryPeriodicalExportService;
 import com.cms.service.LibraryPeriodicalService;
 
 import jakarta.validation.Valid;
@@ -33,9 +38,12 @@ import jakarta.validation.Valid;
 public class LibraryPeriodicalController {
 
     private final LibraryPeriodicalService periodicalService;
+    private final LibraryPeriodicalExportService periodicalExportService;
 
-    public LibraryPeriodicalController(LibraryPeriodicalService periodicalService) {
+    public LibraryPeriodicalController(LibraryPeriodicalService periodicalService,
+                                        LibraryPeriodicalExportService periodicalExportService) {
         this.periodicalService = periodicalService;
+        this.periodicalExportService = periodicalExportService;
     }
 
     @PostMapping
@@ -97,5 +105,38 @@ public class LibraryPeriodicalController {
             @RequestParam(required = false) JournalType journalType,
             @PageableDefault(size = 25, sort = "journalName", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(periodicalService.findPage(search, subscriptionStatus, journalType, pageable));
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("@perm.has('LIBRARY_PERIODICAL_EXPORT')")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) SubscriptionStatus subscriptionStatus,
+            @RequestParam(required = false) JournalType journalType) {
+
+        List<LibraryPeriodicalResponse> data = periodicalService.findAllMatching(
+            search, subscriptionStatus, journalType, Sort.by("journalName").ascending());
+
+        try {
+            if ("pdf".equalsIgnoreCase(format)) {
+                byte[] bytes = periodicalExportService.toPdf(data);
+                String filename = "journals-periodicals-" + LocalDate.now() + ".pdf";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            } else {
+                byte[] bytes = periodicalExportService.toExcel(data);
+                String filename = "journals-periodicals-" + LocalDate.now() + ".xlsx";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

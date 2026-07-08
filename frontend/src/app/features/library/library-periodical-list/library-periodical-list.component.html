@@ -7,6 +7,13 @@
       <p class="mlp-sub">Journal subscription register — national and international periodicals</p>
     </div>
     <div class="header-actions">
+      @if (canExport()) {
+        <cms-export-button
+          [disabled]="exporting()"
+          (export)="onExport($event)"
+          tooltip="Export journals as Excel or PDF"
+        />
+      }
       @if (canManage()) {
         <a class="btn-primary" routerLink="/library/periodicals/new" aria-label="Add journal entry">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -63,13 +70,15 @@
     }
   </div>
 
-  @if (loading()) {
-    <div class="mlp-loading-row"><span class="mlp-spinner"></span> Loading journal register...</div>
-  }
-
-  @if (!loading()) {
-    <div class="mlp-table-wrap mlp-table-card">
-      <table mat-table [dataSource]="dataSource" matSort class="mlp-table" aria-label="Journal register">
+  <div class="mlp-table-wrap mlp-table-card">
+    @if (loading()) {
+      <div class="mlp-loading-row"><span class="mlp-spinner"></span> Loading journal register...</div>
+    } @else {
+    <div class="table-wrapper">
+      <table mat-table [dataSource]="dataSource" matSort
+             [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+             matSortDisableClear (matSortChange)="onSortChange($event)"
+             class="mlp-table" aria-label="Journal register">
 
         <ng-container matColumnDef="journalName">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Journal Name</th>
@@ -148,6 +157,7 @@
     </div>
 
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" [length]="totalElements" showFirstLastButtons aria-label="Journal register pages" />
-  }
+    }
+  </div>
 
 </div>

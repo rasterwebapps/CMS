@@ -1,5 +1,6 @@
 package com.cms.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -7,7 +8,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -27,6 +31,7 @@ import com.cms.dto.LibraryBookShelfTransferResponse;
 import com.cms.dto.LibraryBookTransferRequest;
 import com.cms.dto.LibraryBookTransferResult;
 import com.cms.model.enums.BookStatus;
+import com.cms.service.LibraryBookExportService;
 import com.cms.service.LibraryBookService;
 
 import jakarta.validation.Valid;
@@ -36,9 +41,11 @@ import jakarta.validation.Valid;
 public class LibraryBookController {
 
     private final LibraryBookService bookService;
+    private final LibraryBookExportService bookExportService;
 
-    public LibraryBookController(LibraryBookService bookService) {
+    public LibraryBookController(LibraryBookService bookService, LibraryBookExportService bookExportService) {
         this.bookService = bookService;
+        this.bookExportService = bookExportService;
     }
 
     @PostMapping
@@ -97,6 +104,41 @@ public class LibraryBookController {
             @RequestParam(required = false) Long shelfId,
             @PageableDefault(size = 25, sort = "title", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(bookService.findPage(search, status, category, rackId, shelfId, pageable));
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("@perm.has('LIBRARY_CATALOGUE_EXPORT')")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) BookStatus status,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Long rackId,
+            @RequestParam(required = false) Long shelfId) {
+
+        List<LibraryBookResponse> data = bookService.findAllMatching(
+            search, status, category, rackId, shelfId, Sort.by("title").ascending());
+
+        try {
+            if ("pdf".equalsIgnoreCase(format)) {
+                byte[] bytes = bookExportService.toPdf(data);
+                String filename = "book-catalogue-" + LocalDate.now() + ".pdf";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            } else {
+                byte[] bytes = bookExportService.toExcel(data);
+                String filename = "book-catalogue-" + LocalDate.now() + ".xlsx";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @PostMapping("/{id}/transfer")

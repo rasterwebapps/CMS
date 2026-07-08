@@ -77,6 +77,16 @@ export class LibraryService {
     return this.http.get<Page<LibraryBook>>(`${this.baseUrl}/page`, { params });
   }
 
+  exportBooks(format: 'excel' | 'pdf', p: { search?: string; status?: BookStatus | null; category?: string | null; rackId?: number | null; shelfId?: number | null }): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (p.search)   params = params.set('search', p.search);
+    if (p.status)   params = params.set('status', p.status);
+    if (p.category) params = params.set('category', p.category);
+    if (p.rackId)   params = params.set('rackId', p.rackId.toString());
+    if (p.shelfId)  params = params.set('shelfId', p.shelfId.toString());
+    return this.http.get(`${this.baseUrl}/export`, { params, responseType: 'blob' });
+  }
+
   checkAccessionNumberExists(accessionNumber: string, excludeId?: number): Observable<{ exists: boolean }> {
     let params = new HttpParams().set('accessionNumber', accessionNumber);
     if (excludeId != null) params = params.set('excludeId', excludeId.toString());
@@ -211,6 +221,14 @@ export class LibraryService {
     return this.http.get<Page<LibraryFineDetail>>(`${environment.apiUrl}/library/fines/page`, { params });
   }
 
+  exportFines(format: 'excel' | 'pdf', p: { search?: string; status?: FineStatus | null; memberType?: LibraryMemberType | null }): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (p.search)     params = params.set('search', p.search);
+    if (p.status)     params = params.set('status', p.status);
+    if (p.memberType) params = params.set('memberType', p.memberType);
+    return this.http.get(`${environment.apiUrl}/library/fines/export`, { params, responseType: 'blob' });
+  }
+
   getFines(status?: FineStatus): Observable<LibraryFineDetail[]> {
     const params = status ? new HttpParams().set('status', status) : undefined;
     return this.http.get<LibraryFineDetail[]>(`${environment.apiUrl}/library/fines`, { params });
@@ -271,6 +289,15 @@ export class LibraryService {
     return this.http.get<Page<LibraryIssue>>(`${environment.apiUrl}/library/issues/page`, { params });
   }
 
+  exportIssues(format: 'excel' | 'pdf', p: { search?: string; status?: IssueStatus | null; memberType?: LibraryMemberType | null; itemType?: LibraryItemType | null }): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (p.search)     params = params.set('search', p.search);
+    if (p.status)     params = params.set('status', p.status);
+    if (p.memberType) params = params.set('memberType', p.memberType);
+    if (p.itemType)   params = params.set('itemType', p.itemType);
+    return this.http.get(`${environment.apiUrl}/library/issues/export`, { params, responseType: 'blob' });
+  }
+
   lookupByAccessionNumber(accessionNumber: string): Observable<LibraryCirculationLookup> {
     const params = new HttpParams().set('accessionNumber', accessionNumber);
     return this.http.get<LibraryCirculationLookup>(`${environment.apiUrl}/library/issues/lookup`, { params });
@@ -308,6 +335,14 @@ export class LibraryService {
     if (p.journalType)        params = params.set('journalType', p.journalType);
     if (p.sort)               params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
     return this.http.get<Page<LibraryPeriodical>>(`${environment.apiUrl}/library/periodicals/page`, { params });
+  }
+
+  exportPeriodicals(format: 'excel' | 'pdf', p: { search?: string; subscriptionStatus?: SubscriptionStatus | null; journalType?: JournalType | null }): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (p.search)             params = params.set('search', p.search);
+    if (p.subscriptionStatus) params = params.set('subscriptionStatus', p.subscriptionStatus);
+    if (p.journalType)        params = params.set('journalType', p.journalType);
+    return this.http.get(`${environment.apiUrl}/library/periodicals/export`, { params, responseType: 'blob' });
   }
 
   getPeriodicals(status?: SubscriptionStatus, journalType?: JournalType): Observable<LibraryPeriodical[]> {

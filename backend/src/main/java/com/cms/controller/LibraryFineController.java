@@ -1,11 +1,16 @@
 package com.cms.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,6 +27,7 @@ import com.cms.dto.LibraryFineDetailResponse;
 import com.cms.dto.LibraryFineRequest;
 import com.cms.model.enums.FineStatus;
 import com.cms.model.enums.LibraryMemberType;
+import com.cms.service.LibraryFineExportService;
 import com.cms.service.LibraryFineService;
 
 @RestController
@@ -29,9 +35,11 @@ import com.cms.service.LibraryFineService;
 public class LibraryFineController {
 
     private final LibraryFineService fineService;
+    private final LibraryFineExportService fineExportService;
 
-    public LibraryFineController(LibraryFineService fineService) {
+    public LibraryFineController(LibraryFineService fineService, LibraryFineExportService fineExportService) {
         this.fineService = fineService;
+        this.fineExportService = fineExportService;
     }
 
     @GetMapping
@@ -71,5 +79,38 @@ public class LibraryFineController {
             @RequestParam(required = false) LibraryMemberType memberType,
             @PageableDefault(size = 25, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(fineService.findPage(search, status, memberType, pageable));
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("@perm.has('LIBRARY_FINE_EXPORT')")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) FineStatus status,
+            @RequestParam(required = false) LibraryMemberType memberType) {
+
+        List<LibraryFineDetailResponse> data = fineService.findAllMatching(
+            search, status, memberType, Sort.by("createdAt").descending());
+
+        try {
+            if ("pdf".equalsIgnoreCase(format)) {
+                byte[] bytes = fineExportService.toPdf(data);
+                String filename = "fine-register-" + LocalDate.now() + ".pdf";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            } else {
+                byte[] bytes = fineExportService.toExcel(data);
+                String filename = "fine-register-" + LocalDate.now() + ".xlsx";
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

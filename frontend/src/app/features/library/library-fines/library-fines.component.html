@@ -6,6 +6,15 @@
       <h1 class="mlp-title">Fine <em>Management</em></h1>
       <p class="mlp-sub">View, waive, and collect overdue fines</p>
     </div>
+    <div class="header-actions">
+      @if (canExport()) {
+        <cms-export-button
+          [disabled]="exporting()"
+          (export)="onExport($event)"
+          tooltip="Export fine register as Excel or PDF"
+        />
+      }
+    </div>
   </div>
 
   <!-- Toolbar -->
@@ -49,21 +58,23 @@
     }
   </div>
 
-  @if (loading()) {
-    <div class="mlp-loading-row"><span class="mlp-spinner"></span> Loading fines...</div>
-  }
-
-  @if (!loading()) {
-    <div class="mlp-table-wrap mlp-table-card">
-      <table mat-table [dataSource]="dataSource" matSort class="mlp-table" aria-label="Fine register">
+  <div class="mlp-table-wrap mlp-table-card">
+    @if (loading()) {
+      <div class="mlp-loading-row"><span class="mlp-spinner"></span> Loading fines...</div>
+    } @else {
+    <div class="table-wrapper">
+      <table mat-table [dataSource]="dataSource" matSort
+             [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+             matSortDisableClear (matSortChange)="onSortChange($event)"
+             class="mlp-table" aria-label="Fine register">
 
         <ng-container matColumnDef="accessionNumber">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Acc. No.</th>
+          <th mat-header-cell *matHeaderCellDef>Acc. No.</th>
           <td mat-cell *matCellDef="let f"><span class="acc-no">{{ f.accessionNumber }}</span></td>
         </ng-container>
 
         <ng-container matColumnDef="itemTitle">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Item</th>
+          <th mat-header-cell *matHeaderCellDef>Item</th>
           <td mat-cell *matCellDef="let f">
             <span class="book-title">{{ f.itemTitle }}</span>
             <span class="issue-dates">
@@ -152,6 +163,7 @@
       </table>
     </div>
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" [length]="totalElements" showFirstLastButtons aria-label="Fine register pages" />
-  }
+    }
+  </div>
 
 </div>

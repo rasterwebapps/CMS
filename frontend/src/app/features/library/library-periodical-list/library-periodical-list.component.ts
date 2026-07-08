@@ -20,6 +20,7 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
+import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 
 @Component({
   selector: 'app-library-periodical-list',
@@ -29,7 +30,7 @@ import { PermissionService } from '../../../core/permissions/permission.service'
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent,
-    CmsTypeBadgeComponent, CmsStatusBadgeComponent,
+    CmsTypeBadgeComponent, CmsStatusBadgeComponent, ExportButtonComponent,
   ],
   templateUrl: './library-periodical-list.component.html',
   styleUrl:    './library-periodical-list.component.scss',
@@ -65,12 +66,14 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
   ];
   protected readonly dataSource    = new MatTableDataSource<LibraryPeriodical>([]);
   protected readonly loading       = signal(false);
+  protected readonly exporting     = signal(false);
   protected readonly searchValue   = signal('');
   protected readonly typeFilter    = signal<JournalType | null>(null);
   protected readonly statusFilter  = signal<SubscriptionStatus | null>(null);
   protected readonly typeOptions   = JOURNAL_TYPE_OPTIONS;
   protected readonly statusOptions = SUBSCRIPTION_STATUS_OPTIONS;
   protected readonly canManage     = computed(() => this.permissions.hasAny('LIBRARY_PERIODICAL_MANAGE'));
+  protected readonly canExport     = computed(() => this.permissions.hasAny('LIBRARY_PERIODICAL_EXPORT'));
   protected readonly hasActiveFilters = computed(() =>
     this.typeFilter() !== null || this.statusFilter() !== null || this.searchValue().length > 0);
 
@@ -108,6 +111,32 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
     this.sortActive = sort.active;
     this.sortDirection = sort.direction as 'asc' | 'desc';
     this.currentPage = 0; this.loadPage();
+  }
+
+  protected onExport(format: ExportFormat): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.libraryService.exportPeriodicals(format, {
+      search: this.searchValue() || undefined,
+      subscriptionStatus: this.statusFilter(),
+      journalType: this.typeFilter(),
+    }).subscribe({
+      next: blob => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const filename = `journals-periodicals-${new Date().toISOString().slice(0, 10)}.${ext}`;
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
   }
 
   protected editItem(p: LibraryPeriodical): void {

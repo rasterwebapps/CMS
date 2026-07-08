@@ -52,16 +52,14 @@
     </div>
   </div>
 
-  <!-- Loading -->
-  @if (loading() || rackLoading()) {
-    <div class="mlp-loading-row">
-      <span class="mlp-spinner" aria-label="Loading..."></span> Loading shelves...
-    </div>
-  }
-
   <!-- Table -->
-  @if (!loading() && !rackLoading()) {
-    <div class="mlp-table-wrap mlp-table-card">
+  <div class="mlp-table-wrap mlp-table-card">
+    @if (loading() || rackLoading()) {
+      <div class="mlp-loading-row">
+        <span class="mlp-spinner" aria-label="Loading..."></span> Loading shelves...
+      </div>
+    } @else {
+    <div class="table-wrapper">
       <table mat-table [dataSource]="dataSource" matSort
              [matSortActive]="sortActive" [matSortDirection]="sortDirection"
              matSortDisableClear (matSortChange)="onSortChange($event)"
@@ -125,6 +123,7 @@
     </div>
 
     <mat-paginator [pageSizeOptions]="[10, 25, 50]" [length]="totalElements" showFirstLastButtons aria-label="Library shelf pages" />
-  }
+    }
+  </div>
 
 </div>
