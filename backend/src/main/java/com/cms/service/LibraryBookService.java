@@ -75,7 +75,7 @@ public class LibraryBookService {
         return bookRepository.findAll().stream().map(this::toResponse).toList();
     }
 
-    public Page<LibraryBookResponse> findPage(String search, BookStatus status, String category, Long shelfId, Pageable pageable) {
+    public Page<LibraryBookResponse> findPage(String search, BookStatus status, String category, Long rackId, Long shelfId, Pageable pageable) {
         Specification<LibraryBook> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (search != null && !search.isBlank()) {
@@ -90,6 +90,7 @@ public class LibraryBookService {
             if (status != null) predicates.add(cb.equal(root.get("status"), status));
             if (category != null && !category.isBlank()) predicates.add(cb.equal(root.get("subjectCategory"), category));
             if (shelfId != null) predicates.add(cb.equal(root.get("shelf").get("id"), shelfId));
+            else if (rackId != null) predicates.add(cb.equal(root.get("shelf").get("rack").get("id"), rackId));
             return cb.and(predicates.toArray(new Predicate[0]));
         };
         return bookRepository.findAll(spec, pageable).map(this::toResponse);

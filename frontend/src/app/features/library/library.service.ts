@@ -66,11 +66,12 @@ export class LibraryService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
-  getBooksPage(p: { search?: string; status?: BookStatus | null; category?: string | null; shelfId?: number | null; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibraryBook>> {
+  getBooksPage(p: { search?: string; status?: BookStatus | null; category?: string | null; rackId?: number | null; shelfId?: number | null; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibraryBook>> {
     let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
     if (p.search)   params = params.set('search', p.search);
     if (p.status)   params = params.set('status', p.status);
     if (p.category) params = params.set('category', p.category);
+    if (p.rackId)   params = params.set('rackId', p.rackId.toString());
     if (p.shelfId)  params = params.set('shelfId', p.shelfId.toString());
     if (p.sort)     params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
     return this.http.get<Page<LibraryBook>>(`${this.baseUrl}/page`, { params });

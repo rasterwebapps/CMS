@@ -6,11 +6,13 @@
       <p class="mlp-sub">Accession Register — complete inventory of library books</p>
     </div>
     <div class="header-actions">
-      @if (canManage()) {
+      @if (canImport()) {
         <a class="btn-secondary" routerLink="/library/books/import">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Import Books
         </a>
+      }
+      @if (canManage()) {
         <a class="btn-primary" routerLink="/library/books/new">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Add Book

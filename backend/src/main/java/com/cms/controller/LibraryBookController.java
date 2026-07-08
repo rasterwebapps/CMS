@@ -93,9 +93,10 @@ public class LibraryBookController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) BookStatus status,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) Long rackId,
             @RequestParam(required = false) Long shelfId,
             @PageableDefault(size = 25, sort = "title", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(bookService.findPage(search, status, category, shelfId, pageable));
+        return ResponseEntity.ok(bookService.findPage(search, status, category, rackId, shelfId, pageable));
     }
 
     @PostMapping("/{id}/transfer")

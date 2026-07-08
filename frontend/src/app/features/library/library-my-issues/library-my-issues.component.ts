@@ -129,6 +129,7 @@ export class LibraryMyIssuesComponent implements OnInit, OnDestroy {
       status: 'AVAILABLE',
       search: this.catalogueSearch() || undefined,
       category: this.categoryFilter() || undefined,
+      rackId: this.rackFilter(),
       shelfId: this.shelfFilter(),
       page: this.currentPage, size: this.currentPageSize,
       sort: 'title', direction: 'asc',

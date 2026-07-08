@@ -78,6 +78,7 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   protected readonly statusOptions  = BOOK_STATUS_OPTIONS;
   protected readonly categoryOptions = SUBJECT_CATEGORY_OPTIONS;
   protected readonly canManage      = computed(() => this.permissions.hasAny('LIBRARY_CATALOGUE_MANAGE'));
+  protected readonly canImport      = computed(() => this.permissions.hasAny('LIBRARY_IMPORT'));
   protected readonly canTransfer    = computed(() => this.permissions.hasAny('LIBRARY_TRANSFER'));
   protected readonly hasActiveFilters = computed(() =>
     this.statusFilter() !== null || this.categoryFilter() !== null
@@ -196,6 +197,7 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
       search: this.searchValue() || undefined,
       status: this.statusFilter(),
       category: this.categoryFilter(),
+      rackId: this.rackFilter(),
       shelfId: this.shelfFilter(),
       page: this.currentPage, size: this.currentPageSize,
       sort: this.sortActive, direction: this.sortDirection,
