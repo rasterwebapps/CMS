@@ -43,7 +43,9 @@
     </div>
 
     <div class="toolbar-right">
-      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+      @if (viewMode() === 'table') {
+        <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+      }
       <cms-view-toggle
         [mode]="viewMode()"
         storageKey="staff-referrer-view-mode"
