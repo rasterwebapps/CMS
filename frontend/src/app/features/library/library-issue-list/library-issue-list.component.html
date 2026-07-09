@@ -75,7 +75,9 @@
     @if (hasActiveFilters()) {
       <button class="btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button>
     }
-    <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+    <div class="toolbar-right">
+      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+    </div>
   </div>
 
   <div class="mlp-table-wrap mlp-table-card">

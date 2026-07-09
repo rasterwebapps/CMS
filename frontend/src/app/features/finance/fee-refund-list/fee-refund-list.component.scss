@@ -1,3 +1,10 @@
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
 // fee-refund-list — component-specific styles only.
 // Global layout (mlp-page, mlp-toolbar, modern-table, btn-*, field-*) from styles.scss.
 

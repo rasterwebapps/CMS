@@ -449,6 +449,9 @@
         Clear
       </button>
     }
+    <div class="toolbar-right">
+      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+    </div>
   </div>
 
   <!-- ── Table card ──────────────────────────────────────────────────────── -->
@@ -462,7 +465,7 @@
          <table id="tour-refund-table" mat-table [dataSource]="dataSource" matSort class="modern-table rfl-table">
 
           <!-- Requested At -->
-          <ng-container matColumnDef="requestedAt" sticky>
+          <ng-container matColumnDef="requestedAt" [sticky]="colState.isSticky('requestedAt')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
             <td mat-cell *matCellDef="let r">
               <span class="mono">{{ r.requestedAt | appDate }}</span>
@@ -470,7 +473,7 @@
           </ng-container>
 
           <!-- Receipt Number -->
-          <ng-container matColumnDef="originalReceiptNumber">
+          <ng-container matColumnDef="originalReceiptNumber" [sticky]="colState.isSticky('originalReceiptNumber')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Receipt</th>
             <td mat-cell *matCellDef="let r">
               <span class="cell-code">{{ r.originalReceiptNumber }}</span>
@@ -478,7 +481,7 @@
           </ng-container>
 
           <!-- Payee (Student or Enquiry) -->
-          <ng-container matColumnDef="student">
+          <ng-container matColumnDef="student" [sticky]="colState.isSticky('student')">
             <th mat-header-cell *matHeaderCellDef>Payee</th>
             <td mat-cell *matCellDef="let r">
               <div class="rfl-student-cell">
@@ -493,13 +496,13 @@
           </ng-container>
 
           <!-- Programme -->
-          <ng-container matColumnDef="programName">
+          <ng-container matColumnDef="programName" [sticky]="colState.isSticky('programName')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Programme</th>
             <td mat-cell *matCellDef="let r">{{ r.programName || '—' }}</td>
           </ng-container>
 
           <!-- Amount -->
-          <ng-container matColumnDef="refundAmount">
+          <ng-container matColumnDef="refundAmount" [sticky]="colState.isSticky('refundAmount')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Amount</th>
             <td mat-cell *matCellDef="let r" class="cell-align-right">
               <span class="cell-currency">{{ r.refundAmount | inr:false:false }}</span>
@@ -507,13 +510,13 @@
           </ng-container>
 
           <!-- Requested By -->
-          <ng-container matColumnDef="requestedBy">
+          <ng-container matColumnDef="requestedBy" [sticky]="colState.isSticky('requestedBy')">
             <th mat-header-cell *matHeaderCellDef>Raised by</th>
             <td mat-cell *matCellDef="let r">{{ r.requestedBy || '—' }}</td>
           </ng-container>
 
           <!-- Status -->
-          <ng-container matColumnDef="status">
+          <ng-container matColumnDef="status" [sticky]="colState.isSticky('status')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
             <td mat-cell *matCellDef="let r">
               <span class="rfl-status-chip"
@@ -575,14 +578,14 @@
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-          <tr mat-row *matRowDef="let r; columns: displayedColumns;"
+          <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+          <tr mat-row *matRowDef="let r; columns: displayedColumns();"
               class="table-row"
               [class.rfl-row--pending]="r.status === 'PENDING'">
           </tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
+            <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding: 0">
               <cms-empty-state
                 icon="receipt_long"
                 [title]="hasActiveFilters() ? 'No refunds match your filters' : 'No refund requests yet'"

@@ -82,13 +82,15 @@
       <button class="btn-ghost" (click)="clearFilters()" aria-label="Clear all filters">Clear Filters</button>
     }
 
-    <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
-    <cms-view-toggle
-      id="tour-fac-view-toggle"
-      [mode]="viewMode()"
-      storageKey="faculty-view-mode"
-      (modeChange)="setViewMode($event)"
-    />
+    <div class="toolbar-right">
+      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+      <cms-view-toggle
+        id="tour-fac-view-toggle"
+        [mode]="viewMode()"
+        storageKey="faculty-view-mode"
+        (modeChange)="setViewMode($event)"
+      />
+    </div>
   </div>
 
   <!-- Loading skeleton -->

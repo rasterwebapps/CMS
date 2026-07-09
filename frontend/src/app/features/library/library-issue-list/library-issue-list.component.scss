@@ -1,3 +1,10 @@
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
 .acc-no {
   font-family: monospace;
   font-size: 0.84rem;

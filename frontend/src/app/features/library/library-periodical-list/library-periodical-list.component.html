@@ -68,6 +68,9 @@
     @if (hasActiveFilters()) {
       <button class="btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button>
     }
+    <div class="toolbar-right">
+      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+    </div>
   </div>
 
   <div class="mlp-table-wrap mlp-table-card">
@@ -80,7 +83,7 @@
              matSortDisableClear (matSortChange)="onSortChange($event)"
              class="mlp-table" aria-label="Journal register">
 
-        <ng-container matColumnDef="journalName">
+        <ng-container matColumnDef="journalName" [sticky]="colState.isSticky('journalName')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Journal Name</th>
           <td mat-cell *matCellDef="let p">
             <span class="journal-name">{{ p.journalName }}</span>
@@ -90,14 +93,14 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="journalType">
+        <ng-container matColumnDef="journalType" [sticky]="colState.isSticky('journalType')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
           <td mat-cell *matCellDef="let p">
             <cms-type-badge [value]="p.journalType" [label]="p.journalType === 'NATIONAL' ? 'National' : 'International'" />
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="volumeIssue">
+        <ng-container matColumnDef="volumeIssue" [sticky]="colState.isSticky('volumeIssue')">
           <th mat-header-cell *matHeaderCellDef>Volume / Issue</th>
           <td mat-cell *matCellDef="let p">
             <span class="vol-info">
@@ -108,29 +111,29 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="year">
+        <ng-container matColumnDef="year" [sticky]="colState.isSticky('year')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Year</th>
           <td mat-cell *matCellDef="let p">{{ p.year ?? '—' }}</td>
         </ng-container>
 
-        <ng-container matColumnDef="copiesCount">
+        <ng-container matColumnDef="copiesCount" [sticky]="colState.isSticky('copiesCount')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-center">Copies</th>
           <td mat-cell *matCellDef="let p" class="cell-center">{{ p.copiesCount }}</td>
         </ng-container>
 
-        <ng-container matColumnDef="subscriptionStatus">
+        <ng-container matColumnDef="subscriptionStatus" [sticky]="colState.isSticky('subscriptionStatus')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
           <td mat-cell *matCellDef="let p">
             <cms-status-badge [status]="p.subscriptionStatus" />
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="receivedDate">
+        <ng-container matColumnDef="receivedDate" [sticky]="colState.isSticky('receivedDate')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Received</th>
           <td mat-cell *matCellDef="let p">{{ p.receivedDate ? (p.receivedDate | date:'dd MMM yyyy') : '—' }}</td>
         </ng-container>
 
-        <ng-container matColumnDef="actions">
+        <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let p" class="actions-cell">
             @if (canManage()) {
@@ -140,11 +143,11 @@
           </td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="mlp-row"></tr>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns();" class="mlp-row"></tr>
 
         <tr class="mat-row" *matNoDataRow>
-          <td [attr.colspan]="displayedColumns.length">
+          <td [attr.colspan]="displayedColumns().length">
             <cms-empty-state
               icon="newspaper"
               [title]="hasActiveFilters() ? 'No journals match the current filters.' : 'No journal entries yet.'"

@@ -107,6 +107,9 @@
         Transfer Selected ({{ selection.selected.length }})
       </button>
     }
+    <div class="toolbar-right">
+      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+    </div>
   </div>
 
   <div class="mlp-table-wrap mlp-table-card">
@@ -121,7 +124,7 @@
              matSortDisableClear (matSortChange)="onSortChange($event)"
              class="mlp-table" aria-label="Book catalogue">
 
-        <ng-container matColumnDef="select">
+        <ng-container matColumnDef="select" [sticky]="colState.isSticky('select')">
           <th mat-header-cell *matHeaderCellDef>
             <mat-checkbox [checked]="isAllSelected()" (change)="toggleAll()" aria-label="Select all books" />
           </th>
@@ -130,31 +133,31 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="accessionNumber">
+        <ng-container matColumnDef="accessionNumber" [sticky]="colState.isSticky('accessionNumber')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Acc. No.</th>
           <td mat-cell *matCellDef="let book">
             <span class="acc-no">{{ book.accessionNumber }}</span>
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="title">
+        <ng-container matColumnDef="title" [sticky]="colState.isSticky('title')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Title</th>
           <td mat-cell *matCellDef="let book">
             <span class="book-title">{{ book.title }}</span>
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="authors">
+        <ng-container matColumnDef="authors" [sticky]="colState.isSticky('authors')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Author(s)</th>
           <td mat-cell *matCellDef="let book">{{ book.authors }}</td>
         </ng-container>
 
-        <ng-container matColumnDef="publisher">
+        <ng-container matColumnDef="publisher" [sticky]="colState.isSticky('publisher')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Publisher</th>
           <td mat-cell *matCellDef="let book">{{ book.publisher ?? '—' }}</td>
         </ng-container>
 
-        <ng-container matColumnDef="shelf">
+        <ng-container matColumnDef="shelf" [sticky]="colState.isSticky('shelf')">
           <th mat-header-cell *matHeaderCellDef>Shelf</th>
           <td mat-cell *matCellDef="let book">
             @if (book.shelfName) {
@@ -163,14 +166,14 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="callNumber">
+        <ng-container matColumnDef="callNumber" [sticky]="colState.isSticky('callNumber')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Call No.</th>
           <td mat-cell *matCellDef="let book">
             <span class="call-no">{{ book.callNumber ?? '—' }}</span>
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="status">
+        <ng-container matColumnDef="status" [sticky]="colState.isSticky('status')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
           <td mat-cell *matCellDef="let book">
             <span class="status-pill" [class]="statusClass(book.status)">
@@ -179,7 +182,7 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="actions">
+        <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let book" class="actions-cell">
             @if (canTransfer()) {
@@ -200,11 +203,11 @@
           </td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="mlp-row"></tr>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns();" class="mlp-row"></tr>
 
         <tr class="mat-row" *matNoDataRow>
-          <td [attr.colspan]="displayedColumns.length">
+          <td [attr.colspan]="displayedColumns().length">
             <cms-empty-state
               icon="menu_book"
               [title]="hasActiveFilters() ? 'No books match the current filters.' : 'No books in the catalogue yet.'"

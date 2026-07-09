@@ -2,7 +2,7 @@ import { Component, computed, inject, OnDestroy, OnInit, signal, ViewChild } fro
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SelectionModel } from '@angular/cdk/collections';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
@@ -24,6 +24,8 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { LibraryBookTransferDialogComponent, LibraryBookTransferDialogData } from '../library-book-transfer-dialog/library-book-transfer-dialog.component';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
+
 
 @Component({
   selector: 'app-library-book-list',
@@ -33,7 +35,7 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatTooltipModule,
     MatSelectModule, MatInputModule, MatFormFieldModule,
-    CmsRowActionButtonComponent, CmsEmptyStateComponent, ExportButtonComponent,
+    CmsRowActionButtonComponent, CmsEmptyStateComponent, ExportButtonComponent, CmsColumnPickerComponent,
   ],
   templateUrl: './library-book-list.component.html',
   styleUrl: './library-book-list.component.scss',
@@ -50,7 +52,8 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
 
-  @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
+    @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
     if (!p || p === this._paginator) return;
     this._paginatorSub?.unsubscribe();
     this._paginator = p;
@@ -63,10 +66,21 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected readonly displayedColumns = [
-    'select', 'accessionNumber', 'title', 'authors', 'publisher',
-    'shelf', 'callNumber', 'status', 'actions',
-  ];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'library-book-columns',
+    columns: [
+      { key: 'select',          label: 'Select',       mandatory: true, pinnable: false },
+      { key: 'accessionNumber', label: 'Acc. No.' },
+      { key: 'title',           label: 'Title',        mandatory: true },
+      { key: 'authors',         label: 'Authors' },
+      { key: 'publisher',       label: 'Publisher' },
+      { key: 'shelf',           label: 'Shelf' },
+      { key: 'callNumber',      label: 'Call No.' },
+      { key: 'status',          label: 'Status' },
+      { key: 'actions',         label: 'Actions',      mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource    = new MatTableDataSource<LibraryBook>([]);
   protected readonly loading       = signal(false);
   protected readonly exporting     = signal(false);
@@ -95,6 +109,8 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   protected sortActive     = 'title';
   protected sortDirection: 'asc' | 'desc' = 'asc';
 
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });

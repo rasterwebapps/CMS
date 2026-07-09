@@ -5,7 +5,7 @@ import { ExportFormat } from '../../../shared/export-button/export-button.compon
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TitleCasePipe } from '@angular/common';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, MatSort, SortDirection } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -34,6 +34,8 @@ import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
 import { printRefundVoucher, downloadRefundVoucher, RefundVoucherData } from '../../../shared/utils/print-receipt.utils';
 import { CmsIconViewComponent } from '../../../shared/icons';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
+
 
 type PanelMode = 'view' | 'approve' | 'reject';
 
@@ -54,7 +56,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     FormsModule, ReactiveFormsModule, TitleCasePipe,
     InrPipe, PaymentModeLabelPipe, AppDatePipe,
     CmsEmptyStateComponent, ExportButtonComponent, CashDenominationComponent, CmsTourButtonComponent,
-    CmsRowActionButtonComponent, CmsTypeBadgeComponent,
+    CmsRowActionButtonComponent, CmsTypeBadgeComponent, CmsColumnPickerComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
     CmsIconViewComponent,
@@ -72,7 +74,8 @@ export class FeeRefundListComponent implements OnInit, OnDestroy {
   private readonly router          = inject(Router);
   private readonly route           = inject(ActivatedRoute);
 
-  @ViewChild(MatPaginator)
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
+    @ViewChild(MatPaginator)
   set paginator(value: MatPaginator | undefined) {
     if (this._paginator === value) return;
     this._paginatorSub?.unsubscribe();
@@ -107,10 +110,21 @@ export class FeeRefundListComponent implements OnInit, OnDestroy {
   private _matSort?: MatSort;
   private _matSortSub?: Subscription;
 
-  protected readonly displayedColumns = [
-    'requestedAt', 'originalReceiptNumber', 'student', 'programName',
-    'refundAmount', 'requestedBy', 'status', 'actions',
-  ];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'fee-refund-columns',
+    columns: [
+      { key: 'requestedAt',           label: 'Date' },
+      { key: 'originalReceiptNumber', label: 'Receipt No.' },
+      { key: 'student',               label: 'Student' },
+      { key: 'programName',           label: 'Program' },
+      { key: 'refundAmount',          label: 'Refund Amount' },
+      { key: 'requestedBy',           label: 'Requested By' },
+      { key: 'status',                label: 'Status' },
+      { key: 'actions',               label: 'Actions', mandatory: true, pinnable: false },
+    ],
+    defaultSticky: ['requestedAt'],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
 
   protected readonly dataSource   = new MatTableDataSource<FeeRefundSummary>([]);
   protected readonly paymentModes = PAYMENT_MODES;
@@ -171,6 +185,8 @@ export class FeeRefundListComponent implements OnInit, OnDestroy {
     });
   }
 
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('fee-refund-list', FEE_REFUND_LIST_TOUR);
     this.loadOneBookConfig();

@@ -176,7 +176,9 @@
         Clear
       </button>
     }
-    <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+    <div class="toolbar-right">
+      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+    </div>
   </div>
 
   <!-- ── Table ──────────────────────────────────────────────────────────── -->

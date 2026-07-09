@@ -300,6 +300,9 @@
         Clear
       </button>
     }
+    <div class="toolbar-right">
+      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+    </div>
   </div>
 
   <!-- ── Table ───────────────────────────────────────────────────────────────── -->
@@ -319,7 +322,7 @@
       <table mat-table [dataSource]="dataSource" matSort multiTemplateDataRows class="mlp-table">
 
         <!-- Student Name -->
-        <ng-container matColumnDef="studentName">
+        <ng-container matColumnDef="studentName" [sticky]="colState.isSticky('studentName')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
           <td mat-cell *matCellDef="let r" class="cell-primary">
             <span class="cell-name">{{ r.studentName }}</span>
@@ -330,7 +333,7 @@
         </ng-container>
 
         <!-- Referrer -->
-        <ng-container matColumnDef="referrer">
+        <ng-container matColumnDef="referrer" [sticky]="colState.isSticky('referrer')">
           <th mat-header-cell *matHeaderCellDef>Referrer</th>
           <td mat-cell *matCellDef="let r">
             <span class="cell-name">{{ referrerLabel(r) }}</span>
@@ -341,7 +344,7 @@
         </ng-container>
 
         <!-- Program -->
-        <ng-container matColumnDef="program">
+        <ng-container matColumnDef="program" [sticky]="colState.isSticky('program')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
           <td mat-cell *matCellDef="let r">
             <span class="cell-name">{{ r.programName || '—' }}</span>
@@ -352,7 +355,7 @@
         </ng-container>
 
         <!-- Commission Amount -->
-        <ng-container matColumnDef="commissionAmount">
+        <ng-container matColumnDef="commissionAmount" [sticky]="colState.isSticky('commissionAmount')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-right">Total</th>
           <td mat-cell *matCellDef="let r" class="cell-right cell-amount">
             {{ r.commissionAmount | inr }}
@@ -360,7 +363,7 @@
         </ng-container>
 
         <!-- Paid -->
-        <ng-container matColumnDef="paidAmount">
+        <ng-container matColumnDef="paidAmount" [sticky]="colState.isSticky('paidAmount')">
           <th mat-header-cell *matHeaderCellDef class="cell-right">Paid</th>
           <td mat-cell *matCellDef="let r" class="cell-right">
             <span [class.cell-amount--paid]="r.commissionPaidAmount > 0">
@@ -370,7 +373,7 @@
         </ng-container>
 
         <!-- Outstanding -->
-        <ng-container matColumnDef="outstanding">
+        <ng-container matColumnDef="outstanding" [sticky]="colState.isSticky('outstanding')">
           <th mat-header-cell *matHeaderCellDef class="cell-right">Outstanding</th>
           <td mat-cell *matCellDef="let r" class="cell-right">
             <span [class.cell-amount--outstanding]="r.commissionOutstanding > 0">
@@ -380,7 +383,7 @@
         </ng-container>
 
         <!-- Status -->
-        <ng-container matColumnDef="status">
+        <ng-container matColumnDef="status" [sticky]="colState.isSticky('status')">
           <th mat-header-cell *matHeaderCellDef>Status</th>
           <td mat-cell *matCellDef="let r">
             <span class="badge" [class]="statusClass(r.commissionPaymentStatus)">
@@ -390,7 +393,7 @@
         </ng-container>
 
         <!-- Actions -->
-        <ng-container matColumnDef="actions">
+        <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
           <th mat-header-cell *matHeaderCellDef class="cell-actions"></th>
           <td mat-cell *matCellDef="let r" class="cell-actions">
           <div class="cell-actions__inner">
@@ -455,7 +458,7 @@
 
         <!-- Expanded detail row -->
         <ng-container matColumnDef="expandedDetail">
-          <td mat-cell *matCellDef="let r" [attr.colspan]="displayedColumns.length" class="cell-expanded">
+          <td mat-cell *matCellDef="let r" [attr.colspan]="displayedColumns().length" class="cell-expanded">
             @if (isExpanded(r)) {
               <div class="ce-detail">
                 <div class="ce-detail__meta">
@@ -536,8 +539,8 @@
           </td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-        <tr mat-row *matRowDef="let r; columns: displayedColumns;"
+        <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+        <tr mat-row *matRowDef="let r; columns: displayedColumns();"
             class="mlp-row cms-table__row"
             [class.cms-table__row--expanded]="isExpanded(r)">
         </tr>

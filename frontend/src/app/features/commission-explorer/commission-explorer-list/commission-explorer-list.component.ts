@@ -5,7 +5,7 @@ import {
   FormBuilder, FormGroup, ReactiveFormsModule, Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, MatSort, SortDirection } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -24,6 +24,8 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
+
 import { CommissionExplorerService } from '../commission-explorer.service';
 import {
   CommissionRecord,
@@ -46,7 +48,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     ReactiveFormsModule,
     InrPipe, AppDatePipe, PaymentModeLabelPipe,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent,
-    ExportButtonComponent,
+    ExportButtonComponent, CmsColumnPickerComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
   ],
@@ -62,7 +64,8 @@ export class CommissionExplorerListComponent implements OnInit, OnDestroy {
   private readonly router           = inject(Router);
   private readonly route            = inject(ActivatedRoute);
 
-  @ViewChild(MatPaginator)
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
+    @ViewChild(MatPaginator)
   set paginator(value: MatPaginator | undefined) {
     if (this._paginator === value) return;
     this._paginatorSub?.unsubscribe();
@@ -100,10 +103,20 @@ export class CommissionExplorerListComponent implements OnInit, OnDestroy {
   protected readonly canSettle = computed(() => this.permService.has('COMMISSION_SETTLE'));
   protected readonly canExport = computed(() => this.permService.has('COMMISSION_EXPORT'));
 
-  protected readonly displayedColumns = [
-    'studentName', 'referrer', 'program', 'commissionAmount',
-    'paidAmount', 'outstanding', 'status', 'actions',
-  ];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'commission-explorer-columns',
+    columns: [
+      { key: 'studentName',      label: 'Student' },
+      { key: 'referrer',         label: 'Referrer' },
+      { key: 'program',          label: 'Program' },
+      { key: 'commissionAmount', label: 'Commission' },
+      { key: 'paidAmount',       label: 'Paid' },
+      { key: 'outstanding',      label: 'Outstanding' },
+      { key: 'status',           label: 'Status' },
+      { key: 'actions',          label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
 
   protected readonly dataSource    = new MatTableDataSource<CommissionRecord>([]);
   protected readonly statusOptions = COMMISSION_STATUS_OPTIONS;
@@ -165,6 +178,8 @@ export class CommissionExplorerListComponent implements OnInit, OnDestroy {
   private readonly destroy$      = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
 
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.loadOneBookConfig();
 

@@ -2,7 +2,7 @@ import { Component, computed, inject, OnDestroy, OnInit, signal, ViewChild } fro
 import { Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
@@ -21,6 +21,8 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
+
 
 @Component({
   selector: 'app-library-periodical-list',
@@ -30,7 +32,7 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent,
-    CmsTypeBadgeComponent, CmsStatusBadgeComponent, ExportButtonComponent,
+    CmsTypeBadgeComponent, CmsStatusBadgeComponent, ExportButtonComponent, CmsColumnPickerComponent,
   ],
   templateUrl: './library-periodical-list.component.html',
   styleUrl:    './library-periodical-list.component.scss',
@@ -47,7 +49,8 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
 
-  @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
+    @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
     if (!p || p === this._paginator) return;
     this._paginatorSub?.unsubscribe();
     this._paginator = p;
@@ -60,10 +63,20 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected readonly displayedColumns = [
-    'journalName', 'journalType', 'volumeIssue', 'year',
-    'copiesCount', 'subscriptionStatus', 'receivedDate', 'actions',
-  ];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'library-periodical-columns',
+    columns: [
+      { key: 'journalName',        label: 'Journal' },
+      { key: 'journalType',        label: 'Type' },
+      { key: 'volumeIssue',        label: 'Vol./Issue' },
+      { key: 'year',               label: 'Year' },
+      { key: 'copiesCount',        label: 'Copies' },
+      { key: 'subscriptionStatus', label: 'Status' },
+      { key: 'receivedDate',       label: 'Received' },
+      { key: 'actions',            label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource    = new MatTableDataSource<LibraryPeriodical>([]);
   protected readonly loading       = signal(false);
   protected readonly exporting     = signal(false);
@@ -83,6 +96,8 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
   protected sortActive     = 'journalName';
   protected sortDirection: 'asc' | 'desc' = 'asc';
 
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });
