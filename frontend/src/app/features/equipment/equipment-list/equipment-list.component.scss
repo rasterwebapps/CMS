@@ -1,3 +1,10 @@
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
 // eq-card__* card content styles for Equipment list
 .eq-card__name {
   font-size: var(--cms-text-md);

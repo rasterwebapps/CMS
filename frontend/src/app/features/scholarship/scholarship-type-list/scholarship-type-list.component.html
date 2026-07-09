@@ -32,6 +32,10 @@
         </button>
       }
     </div>
+
+    <div class="toolbar-right">
+      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+    </div>
   </div>
 
   @if (loading()) {
@@ -47,22 +51,22 @@
              [matSortActive]="sortActive" [matSortDirection]="sortDirection"
              matSortDisableClear (matSortChange)="onSort($event)"
              class="modern-table">
-        <ng-container matColumnDef="code">
+        <ng-container matColumnDef="code" [sticky]="colState.isSticky('code')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
           <td mat-cell *matCellDef="let row"><span class="code-value">{{ row.code }}</span></td>
         </ng-container>
 
-        <ng-container matColumnDef="name">
+        <ng-container matColumnDef="name" [sticky]="colState.isSticky('name')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
           <td mat-cell *matCellDef="let row"><span class="cell-name">{{ row.name }}</span><br /><small>{{ row.description || '—' }}</small></td>
         </ng-container>
 
-        <ng-container matColumnDef="discountType">
+        <ng-container matColumnDef="discountType" [sticky]="colState.isSticky('discountType')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
           <td mat-cell *matCellDef="let row">{{ row.discountType }}</td>
         </ng-container>
 
-        <ng-container matColumnDef="discountValue">
+        <ng-container matColumnDef="discountValue" [sticky]="colState.isSticky('discountValue')">
           <th mat-header-cell *matHeaderCellDef arrowPosition="before" class="cell-align-right">Value</th>
           <td mat-cell *matCellDef="let row" class="cell-align-right cell-number">
             @if (row.discountType === 'PERCENTAGE') { {{ row.discountValue || 0 }}% }
@@ -70,17 +74,17 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="renewalRequired">
+        <ng-container matColumnDef="renewalRequired" [sticky]="colState.isSticky('renewalRequired')">
           <th mat-header-cell *matHeaderCellDef>Renewal</th>
           <td mat-cell *matCellDef="let row">{{ row.renewalRequired ? 'Yes' : 'No' }}</td>
         </ng-container>
 
-        <ng-container matColumnDef="active">
+        <ng-container matColumnDef="active" [sticky]="colState.isSticky('active')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Status</th>
           <td mat-cell *matCellDef="let row" class="cell-align-center"><cms-status-badge [status]="row.active ? 'ACTIVE' : 'INACTIVE'" /></td>
         </ng-container>
 
-        <ng-container matColumnDef="actions">
+        <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
           <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
           <td mat-cell *matCellDef="let row">
             <div class="row-actions">
@@ -97,10 +101,10 @@
           </td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
         <tr class="mat-row" *matNoDataRow>
-          <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0; border:none;">
+          <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding:0; border:none;">
             <cms-empty-state
               icon="school"
               [title]="searchValue() ? 'No scholarships found' : 'No scholarships yet'"

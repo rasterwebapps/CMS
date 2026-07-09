@@ -43,12 +43,15 @@
       }
     </div>
 
-    <cms-view-toggle
-      id="tour-agent-view-toggle"
-      [mode]="viewMode()"
-      storageKey="agent-view-mode"
-      (modeChange)="setViewMode($event)"
-    />
+    <div class="toolbar-right">
+      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+      <cms-view-toggle
+        id="tour-agent-view-toggle"
+        [mode]="viewMode()"
+        storageKey="agent-view-mode"
+        (modeChange)="setViewMode($event)"
+      />
+    </div>
   </div>
 
   <!-- ── Loading skeleton ─────────────────────────────────────── -->
@@ -131,41 +134,41 @@
              [matSortActive]="sortActive" [matSortDirection]="sortDirection"
              (matSortChange)="onSortChange($event)" class="modern-table">
 
-        <ng-container matColumnDef="name">
+        <ng-container matColumnDef="name" [sticky]="colState.isSticky('name')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
           <td mat-cell *matCellDef="let row">
             <span class="cell-name">{{ row.name }}</span>
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="phone">
+        <ng-container matColumnDef="phone" [sticky]="colState.isSticky('phone')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Phone</th>
           <td mat-cell *matCellDef="let row">{{ row.phone || '—' }}</td>
         </ng-container>
 
-        <ng-container matColumnDef="email">
+        <ng-container matColumnDef="email" [sticky]="colState.isSticky('email')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
           <td mat-cell *matCellDef="let row">{{ row.email || '—' }}</td>
         </ng-container>
 
-        <ng-container matColumnDef="area">
+        <ng-container matColumnDef="area" [sticky]="colState.isSticky('area')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Area</th>
           <td mat-cell *matCellDef="let row">{{ row.area || '—' }}</td>
         </ng-container>
 
-        <ng-container matColumnDef="allottedSeats">
+        <ng-container matColumnDef="allottedSeats" [sticky]="colState.isSticky('allottedSeats')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Allotted Seats</th>
           <td mat-cell *matCellDef="let row">{{ row.allottedSeats ?? '—' }}</td>
         </ng-container>
 
-        <ng-container matColumnDef="isActive">
+        <ng-container matColumnDef="isActive" [sticky]="colState.isSticky('isActive')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
           <td mat-cell *matCellDef="let row">
             <cms-status-badge [status]="row.isActive ? 'ACTIVE' : 'INACTIVE'" />
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="actions">
+        <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
           <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
           <td mat-cell *matCellDef="let row">
             <div class="row-actions">
@@ -180,11 +183,11 @@
           </td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
 
         <tr class="mat-row" *matNoDataRow>
-          <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0; border: none;">
+          <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding: 0; border: none;">
             <cms-empty-state
               [icon]="searchValue() ? 'search_off' : 'people'"
               [title]="searchValue() ? 'No agents found' : 'No agents yet'"

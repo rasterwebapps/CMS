@@ -42,11 +42,14 @@
       }
     </div>
 
-    <cms-view-toggle
-      [mode]="viewMode()"
-      storageKey="staff-referrer-view-mode"
-      (modeChange)="setViewMode($event)"
-    />
+    <div class="toolbar-right">
+      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+      <cms-view-toggle
+        [mode]="viewMode()"
+        storageKey="staff-referrer-view-mode"
+        (modeChange)="setViewMode($event)"
+      />
+    </div>
   </div>
 
   <!-- ── Loading skeleton ─────────────────────────────────────── -->
@@ -126,39 +129,39 @@
                [matSortActive]="sortActive" [matSortDirection]="sortDirection"
                (matSortChange)="onSortChange($event)" class="modern-table">
 
-          <ng-container matColumnDef="name">
+          <ng-container matColumnDef="name" [sticky]="colState.isSticky('name')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
             <td mat-cell *matCellDef="let row"><span class="cell-name">{{ row.name }}</span></td>
           </ng-container>
 
-          <ng-container matColumnDef="employeeCode">
+          <ng-container matColumnDef="employeeCode" [sticky]="colState.isSticky('employeeCode')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Employee Code</th>
             <td mat-cell *matCellDef="let row">{{ row.employeeCode }}</td>
           </ng-container>
 
-          <ng-container matColumnDef="phone">
+          <ng-container matColumnDef="phone" [sticky]="colState.isSticky('phone')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Phone</th>
             <td mat-cell *matCellDef="let row">{{ row.phone || '—' }}</td>
           </ng-container>
 
-          <ng-container matColumnDef="institutionName">
+          <ng-container matColumnDef="institutionName" [sticky]="colState.isSticky('institutionName')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Institution</th>
             <td mat-cell *matCellDef="let row">{{ row.institutionName }}</td>
           </ng-container>
 
-          <ng-container matColumnDef="commissionAmount">
+          <ng-container matColumnDef="commissionAmount" [sticky]="colState.isSticky('commissionAmount')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Commission (₹)</th>
             <td mat-cell *matCellDef="let row">{{ row.commissionAmount != null ? (row.commissionAmount | inr:false:false) : '—' }}</td>
           </ng-container>
 
-          <ng-container matColumnDef="isActive">
+          <ng-container matColumnDef="isActive" [sticky]="colState.isSticky('isActive')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
             <td mat-cell *matCellDef="let row">
               <cms-status-badge [status]="row.isActive ? 'ACTIVE' : 'INACTIVE'" />
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="actions">
+          <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
             <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
             <td mat-cell *matCellDef="let row">
               <div class="row-actions">
@@ -174,11 +177,11 @@
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0; border: none;">
+            <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding: 0; border: none;">
               <cms-empty-state
                 [icon]="searchValue() ? 'search_off' : 'people'"
                 [title]="searchValue() ? 'No staff referrers found' : 'No staff referrers yet'"

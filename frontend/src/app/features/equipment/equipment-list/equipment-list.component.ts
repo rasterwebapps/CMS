@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
 import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -23,6 +23,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { EQUIPMENT_LIST_TOUR } from '../../../shared/tour/tours/equipment.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 @Component({
   selector: 'app-equipment-list',
@@ -39,6 +40,7 @@ import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/ic
     CmsRowActionButtonComponent,
     CmsIconDeleteComponent,
     CmsIconEditComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './equipment-list.component.html',
   styleUrl: './equipment-list.component.scss',
@@ -58,6 +60,7 @@ export class EquipmentListComponent implements OnInit, AfterViewInit, OnDestroy 
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
     if (!p || p === this._paginator) return;
     this._paginatorSub?.unsubscribe();
@@ -71,7 +74,19 @@ export class EquipmentListComponent implements OnInit, AfterViewInit, OnDestroy 
     });
   }
 
-  protected readonly displayedColumns: readonly string[] = ['name', 'model', 'labName', 'category', 'status', 'purchaseDate', 'actions'];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'equipment-columns',
+    columns: [
+      { key: 'name',         label: 'Name',      mandatory: true },
+      { key: 'model',        label: 'Model' },
+      { key: 'labName',      label: 'Lab' },
+      { key: 'category',     label: 'Category' },
+      { key: 'status',       label: 'Status' },
+      { key: 'purchaseDate', label: 'Purchased' },
+      { key: 'actions',      label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource  = new MatTableDataSource<Equipment>([]);
   protected readonly loading     = signal(false);
   protected readonly exporting   = signal(false);
@@ -89,6 +104,7 @@ export class EquipmentListComponent implements OnInit, AfterViewInit, OnDestroy 
     category: 'category', status: 'status', purchaseDate: 'purchaseDate',
   };
 
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('equipment-list', EQUIPMENT_LIST_TOUR);
     const snap = this.route.snapshot.queryParams;

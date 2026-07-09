@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
@@ -19,6 +19,7 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 @Component({
   selector: 'app-library-fines',
@@ -28,6 +29,7 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule,
     CmsRowActionButtonComponent, CmsTypeBadgeComponent, CmsEmptyStateComponent, ExportButtonComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './library-fines.component.html',
   styleUrl: './library-fines.component.scss',
@@ -43,6 +45,7 @@ export class LibraryFinesComponent implements OnInit, OnDestroy {
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
     if (!p || p === this._paginator) return;
     this._paginatorSub?.unsubscribe();
@@ -56,10 +59,20 @@ export class LibraryFinesComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected readonly displayedColumns = [
-    'accessionNumber', 'itemTitle', 'memberName', 'overdueDays',
-    'totalFine', 'status', 'resolvedBy', 'actions',
-  ];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'library-fines-columns',
+    columns: [
+      { key: 'accessionNumber', label: 'Acc. No.' },
+      { key: 'itemTitle',       label: 'Title' },
+      { key: 'memberName',      label: 'Member' },
+      { key: 'overdueDays',     label: 'Overdue Days' },
+      { key: 'totalFine',       label: 'Fine' },
+      { key: 'status',          label: 'Status' },
+      { key: 'resolvedBy',      label: 'Resolved By' },
+      { key: 'actions',         label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource    = new MatTableDataSource<LibraryFineDetail>([]);
   protected readonly loading       = signal(false);
   protected readonly exporting     = signal(false);
@@ -77,6 +90,7 @@ export class LibraryFinesComponent implements OnInit, OnDestroy {
   protected sortActive     = 'createdAt';
   protected sortDirection: 'asc' | 'desc' = 'desc';
 
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });

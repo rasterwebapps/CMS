@@ -1,3 +1,10 @@
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
 // Agent list — uses global mlp-* classes from styles.scss
 
 .agt-card__name {

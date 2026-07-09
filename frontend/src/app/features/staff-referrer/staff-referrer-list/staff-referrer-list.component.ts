@@ -2,7 +2,7 @@ import { Component, computed, inject, OnInit, OnDestroy, AfterViewInit, signal, 
 import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -20,6 +20,7 @@ import { PermissionService } from '../../../core/permissions/permission.service'
 import { ExportButtonComponent } from '../../../shared/export-button/export-button.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 @Component({
   selector: 'app-staff-referrer-list',
@@ -39,6 +40,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './staff-referrer-list.component.html',
   styleUrl: './staff-referrer-list.component.scss',
@@ -57,6 +59,7 @@ export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDest
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
     if (!p || p === this._paginator) return;
     this._paginatorSub?.unsubscribe();
@@ -70,7 +73,19 @@ export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDest
     });
   }
 
-  protected readonly displayedColumns = ['name', 'employeeCode', 'phone', 'institutionName', 'commissionAmount', 'isActive', 'actions'];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'staff-referrer-columns',
+    columns: [
+      { key: 'name',             label: 'Name',        mandatory: true },
+      { key: 'employeeCode',     label: 'Employee Code' },
+      { key: 'phone',            label: 'Phone' },
+      { key: 'institutionName',  label: 'Institution' },
+      { key: 'commissionAmount', label: 'Commission' },
+      { key: 'isActive',         label: 'Status' },
+      { key: 'actions',          label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource  = new MatTableDataSource<StaffReferrer>([]);
   protected readonly loading     = signal(false);
   protected readonly exporting   = signal(false);
@@ -88,6 +103,7 @@ export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDest
     institutionName: 'institution.name', commissionAmount: 'commissionAmount', isActive: 'isActive',
   };
 
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     const snap = this.route.snapshot.queryParams;
     if (snap['sortField']) this.sortActive    = snap['sortField'];

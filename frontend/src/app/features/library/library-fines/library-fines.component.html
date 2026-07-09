@@ -56,6 +56,10 @@
     @if (hasActiveFilters()) {
       <button class="btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button>
     }
+
+    <div class="toolbar-right">
+      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+    </div>
   </div>
 
   <div class="mlp-table-wrap mlp-table-card">
@@ -68,12 +72,12 @@
              matSortDisableClear (matSortChange)="onSortChange($event)"
              class="mlp-table" aria-label="Fine register">
 
-        <ng-container matColumnDef="accessionNumber">
+        <ng-container matColumnDef="accessionNumber" [sticky]="colState.isSticky('accessionNumber')">
           <th mat-header-cell *matHeaderCellDef>Acc. No.</th>
           <td mat-cell *matCellDef="let f"><span class="acc-no">{{ f.accessionNumber }}</span></td>
         </ng-container>
 
-        <ng-container matColumnDef="itemTitle">
+        <ng-container matColumnDef="itemTitle" [sticky]="colState.isSticky('itemTitle')">
           <th mat-header-cell *matHeaderCellDef>Item</th>
           <td mat-cell *matCellDef="let f">
             <span class="book-title">{{ f.itemTitle }}</span>
@@ -85,7 +89,7 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="memberName">
+        <ng-container matColumnDef="memberName" [sticky]="colState.isSticky('memberName')">
           <th mat-header-cell *matHeaderCellDef>Member</th>
           <td mat-cell *matCellDef="let f">
             <span class="member-name">{{ f.memberName }}</span>
@@ -94,7 +98,7 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="overdueDays">
+        <ng-container matColumnDef="overdueDays" [sticky]="colState.isSticky('overdueDays')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Overdue</th>
           <td mat-cell *matCellDef="let f">
             <span class="overdue-days">{{ f.overdueDays }} day{{ f.overdueDays !== 1 ? 's' : '' }}</span>
@@ -102,7 +106,7 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="totalFine">
+        <ng-container matColumnDef="totalFine" [sticky]="colState.isSticky('totalFine')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Amount</th>
           <td mat-cell *matCellDef="let f">
             <span class="fine-amount" [class.fine-amount--pending]="f.status === 'PENDING'">
@@ -111,14 +115,14 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="status">
+        <ng-container matColumnDef="status" [sticky]="colState.isSticky('status')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
           <td mat-cell *matCellDef="let f">
             <span [class]="'fine-status-pill ' + statusClass(f.status)">{{ statusLabel(f.status) }}</span>
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="resolvedBy">
+        <ng-container matColumnDef="resolvedBy" [sticky]="colState.isSticky('resolvedBy')">
           <th mat-header-cell *matHeaderCellDef>Resolved By</th>
           <td mat-cell *matCellDef="let f">
             <span class="resolved-by">{{ resolvedBy(f) }}</span>
@@ -130,7 +134,7 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="actions">
+        <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let f" class="actions-cell">
             @if (f.status === 'PENDING') {
@@ -146,12 +150,12 @@
           </td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="mlp-row"
+        <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns();" class="mlp-row"
           [class.row--pending]="row.status === 'PENDING'"></tr>
 
         <tr class="mat-row" *matNoDataRow>
-          <td [attr.colspan]="displayedColumns.length">
+          <td [attr.colspan]="displayedColumns().length">
             <cms-empty-state
               icon="currency_rupee"
               [title]="hasActiveFilters() ? 'No fines match the current filters.' : 'No fines recorded yet.'"

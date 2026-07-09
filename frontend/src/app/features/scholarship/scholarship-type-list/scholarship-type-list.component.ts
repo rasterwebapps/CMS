@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
 import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -22,6 +22,7 @@ import { ScholarshipService } from '../scholarship.service';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 @Component({
   selector: 'app-scholarship-type-list',
@@ -41,6 +42,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './scholarship-type-list.component.html',
   styleUrl: './scholarship-type-list.component.scss',
@@ -59,6 +61,7 @@ export class ScholarshipTypeListComponent implements OnInit, AfterViewInit, OnDe
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
     if (!p || p === this._paginator) return;
     this._paginatorSub?.unsubscribe();
@@ -72,7 +75,19 @@ export class ScholarshipTypeListComponent implements OnInit, AfterViewInit, OnDe
     });
   }
 
-  protected readonly displayedColumns = ['code', 'name', 'discountType', 'discountValue', 'renewalRequired', 'active', 'actions'];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'scholarship-type-columns',
+    columns: [
+      { key: 'code',            label: 'Code',     mandatory: true },
+      { key: 'name',            label: 'Name',     mandatory: true },
+      { key: 'discountType',    label: 'Type' },
+      { key: 'discountValue',   label: 'Value' },
+      { key: 'renewalRequired', label: 'Renewal' },
+      { key: 'active',          label: 'Status' },
+      { key: 'actions',         label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource  = new MatTableDataSource<ScholarshipType>([]);
   protected readonly loading     = signal(false);
   protected readonly exporting   = signal(false);
@@ -88,6 +103,7 @@ export class ScholarshipTypeListComponent implements OnInit, AfterViewInit, OnDe
     name: 'name', code: 'code', active: 'active',
   };
 
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('scholarship-type-list', SCHOLARSHIP_TYPE_LIST_TOUR);
     const snap = this.route.snapshot.queryParams;

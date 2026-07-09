@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
 import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -22,6 +22,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { AGENT_LIST_TOUR } from '../../../shared/tour/tours/agent.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 @Component({
   selector: 'app-agent-list',
@@ -41,6 +42,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './agent-list.component.html',
   styleUrl: './agent-list.component.scss',
@@ -60,6 +62,7 @@ export class AgentListComponent implements OnInit, AfterViewInit, OnDestroy {
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
     if (!p || p === this._paginator) return;
     this._paginatorSub?.unsubscribe();
@@ -73,7 +76,19 @@ export class AgentListComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  protected readonly displayedColumns = ['name', 'phone', 'email', 'area', 'allottedSeats', 'isActive', 'actions'];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'agent-columns',
+    columns: [
+      { key: 'name',          label: 'Name',           mandatory: true },
+      { key: 'phone',         label: 'Phone' },
+      { key: 'email',         label: 'Email' },
+      { key: 'area',          label: 'Area' },
+      { key: 'allottedSeats', label: 'Seats' },
+      { key: 'isActive',      label: 'Status' },
+      { key: 'actions',       label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource = new MatTableDataSource<Agent>([]);
   protected readonly loading    = signal(false);
   protected readonly exporting  = signal(false);
@@ -91,6 +106,7 @@ export class AgentListComponent implements OnInit, AfterViewInit, OnDestroy {
     area: 'area', allottedSeats: 'allottedSeats', isActive: 'isActive',
   };
 
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('agent-list', AGENT_LIST_TOUR);
     const snap = this.route.snapshot.queryParams;
