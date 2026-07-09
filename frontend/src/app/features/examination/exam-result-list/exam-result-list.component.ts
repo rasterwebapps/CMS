@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,6 +9,7 @@ import { ExamResult, Examination } from '../examination.model';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 @Component({
   selector: 'app-exam-result-list',
@@ -23,6 +24,7 @@ export class ExamResultListComponent implements OnInit {
   private readonly examinationService = inject(ExaminationService);
   private readonly toast = inject(ToastService);
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
   }
@@ -30,23 +32,24 @@ export class ExamResultListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  // ── Column visibility ────────────────────────────────────────────────────
-  protected readonly ALL_COLS = ['studentRollNumber', 'studentName', 'marksObtained', 'grade', 'status'];
-  protected readonly COLUMN_LABELS: Record<string, string> = {
-    studentRollNumber: 'Roll No.',
-    studentName: 'Student',
-    marksObtained: 'Marks',
-    grade: 'Grade',
-    status: 'Status',
-  };
-  private readonly COLS_KEY = 'exam-result-list-cols';
-  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
-  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'exam-result-list-cols',
+    columns: [
+      { key: 'studentRollNumber', label: 'Roll No.', mandatory: true },
+      { key: 'studentName', label: 'Student' },
+      { key: 'marksObtained', label: 'Marks' },
+      { key: 'grade', label: 'Grade' },
+      { key: 'status', label: 'Status' },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource = new MatTableDataSource<ExamResult>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
   protected readonly examinations = signal<Examination[]>([]);
   protected readonly selectedExamId = signal<number | null>(null);
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
   ngOnInit(): void {
     this.loadExaminations();
@@ -66,24 +69,8 @@ export class ExamResultListComponent implements OnInit {
 
   protected clearFilter(): void { this.searchValue.set(''); this.dataSource.filter = ''; }
 
-  private _loadColPrefs(): Set<string> {
-    try {
-      const s = localStorage.getItem(this.COLS_KEY);
-      if (s) return new Set<string>(JSON.parse(s) as string[]);
-    } catch { /* empty */ }
-    return new Set<string>(this.ALL_COLS);
-  }
 
-  protected toggleColumn(col: string): void {
-    this._visibleCols.update(s => {
-      const next = new Set(s);
-      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
-      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
-      return next;
-    });
-  }
 
-  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
   private loadExaminations(): void {
     this.examinationService.getAll().subscribe({

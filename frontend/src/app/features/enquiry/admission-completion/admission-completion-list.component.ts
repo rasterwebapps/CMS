@@ -5,7 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, MatSort, SortDirection } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -27,6 +27,7 @@ import { ProgramService } from '../../program/program.service';
 import { CourseService } from '../../course/course.service';
 import { Program } from '../../program/program.model';
 import { Course } from '../../course/course.model';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 const DEFAULT_PAGE_SIZE = 25;
 const DEFAULT_SORT_FIELD = 'enquiryDate';
@@ -65,6 +66,7 @@ export class AdmissionCompletionListComponent implements OnInit, OnDestroy {
   private readonly toast             = inject(ToastService);
   private readonly tourService       = inject(TourService);
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator)
   set paginator(value: MatPaginator | undefined) {
     if (this._paginator === value) return;
@@ -101,7 +103,6 @@ export class AdmissionCompletionListComponent implements OnInit, OnDestroy {
 
   protected readonly loading     = signal(false);
   protected readonly searchQuery = signal('');
-  protected colMenuOpen          = false;
 
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
 
@@ -126,22 +127,28 @@ export class AdmissionCompletionListComponent implements OnInit, OnDestroy {
     return pid ? this.allCourses.filter(c => c.program?.id === pid) : this.allCourses;
   });
 
-  // ── Column visibility ──────────────────────────────────────────────────────
-  protected readonly ALL_COLS = ['name', 'programName', 'courseName', 'status', 'totalPaidAmount', 'finalizedNetFee', 'finalizedAt', 'enquiryDate', 'actions'];
-  protected readonly COLUMN_LABELS: Record<string, string> = {
-    name: 'Student', programName: 'Program', courseName: 'Course',
-    status: 'Status', totalPaidAmount: 'Paid (₹)', finalizedNetFee: 'Net Fee (₹)',
-    finalizedAt: 'Fees Finalized', enquiryDate: 'Enquiry Date', actions: 'Actions',
-  };
-  private readonly COLS_KEY     = 'admission-completion-list-cols-v2';
-  private readonly DEFAULT_COLS = new Set(['name', 'programName', 'courseName', 'status', 'totalPaidAmount', 'finalizedNetFee', 'finalizedAt', 'actions']);
-  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
-  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'admission-completion-list-cols-v2',
+    columns: [
+      { key: 'name', label: 'Student', mandatory: true },
+      { key: 'programName', label: 'Program' },
+      { key: 'courseName', label: 'Course' },
+      { key: 'status', label: 'Status' },
+      { key: 'totalPaidAmount', label: 'Paid' },
+      { key: 'finalizedNetFee', label: 'Net Fee' },
+      { key: 'finalizedAt', label: 'Fees Finalized' },
+      { key: 'enquiryDate', label: 'Enquiry Date' },
+      { key: 'actions', label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
 
   protected readonly computeInitials = computeInitials;
 
   private readonly destroy$      = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
   ngOnInit(): void {
     this.tourService.register('admission-completion-list', ADMISSION_COMPLETION_LIST_TOUR);
@@ -268,24 +275,8 @@ export class AdmissionCompletionListComponent implements OnInit, OnDestroy {
   }
 
   // ── Column prefs ───────────────────────────────────────────────────────────
-  private _loadColPrefs(): Set<string> {
-    try {
-      const s = localStorage.getItem(this.COLS_KEY);
-      if (s) return new Set<string>(JSON.parse(s) as string[]);
-    } catch { /* empty */ }
-    return new Set<string>(this.DEFAULT_COLS);
-  }
 
-  protected toggleColumn(col: string): void {
-    this._visibleCols.update(s => {
-      const next = new Set(s);
-      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
-      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
-      return next;
-    });
-  }
 
-  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
   protected canCompleteAdmission(): boolean {
     return this.permissionService.hasAny('ADMISSION_CREATE', 'ADMISSION_EDIT');

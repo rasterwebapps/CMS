@@ -1,3 +1,10 @@
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
 // Fee-structure-list card anatomy (layout handled by global mlp-* classes)
 .fs-card {
   &__program {

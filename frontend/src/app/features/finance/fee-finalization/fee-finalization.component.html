@@ -92,6 +92,10 @@
         </button>
       }
 
+      <div class="toolbar-right">
+        <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+      </div>
+
     </div>
   }
 
@@ -108,24 +112,24 @@
       <div class="table-wrapper">
         <table mat-table [dataSource]="dataSource" matSort class="modern-table fee-finalization-table">
 
-            <ng-container matColumnDef="name">
+            <ng-container matColumnDef="name" [sticky]="colState.isSticky('name')">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
               <td mat-cell *matCellDef="let row">
                 <span class="cell-name">{{ row.name }}</span>
               </td>
             </ng-container>
 
-            <ng-container matColumnDef="programName">
+            <ng-container matColumnDef="programName" [sticky]="colState.isSticky('programName')">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
               <td mat-cell *matCellDef="let row" class="cell-muted">{{ row.programName || '—' }}</td>
             </ng-container>
 
-            <ng-container matColumnDef="courseName">
+            <ng-container matColumnDef="courseName" [sticky]="colState.isSticky('courseName')">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
               <td mat-cell *matCellDef="let row" class="cell-muted">{{ row.courseName || '—' }}</td>
             </ng-container>
 
-            <ng-container matColumnDef="quota">
+            <ng-container matColumnDef="quota" [sticky]="colState.isSticky('quota')">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Quota</th>
               <td mat-cell *matCellDef="let row">
                 @if (row.admissionQuota) {
@@ -134,12 +138,12 @@
               </td>
             </ng-container>
 
-            <ng-container matColumnDef="referralTypeName">
+            <ng-container matColumnDef="referralTypeName" [sticky]="colState.isSticky('referralTypeName')">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Referral</th>
               <td mat-cell *matCellDef="let row" class="cell-muted">{{ row.referralTypeName || '—' }}</td>
             </ng-container>
 
-            <ng-container matColumnDef="finalCalculatedFee">
+            <ng-container matColumnDef="finalCalculatedFee" [sticky]="colState.isSticky('finalCalculatedFee')">
               <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Proposed Fee (₹)</th>
               <td mat-cell *matCellDef="let row" class="cell-align-right">
                 @if (getProposedFee(row) != null) {
@@ -148,7 +152,7 @@
               </td>
             </ng-container>
 
-            <ng-container matColumnDef="actions">
+            <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
               <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
               <td mat-cell *matCellDef="let row">
                 <div class="row-actions">
@@ -160,11 +164,11 @@
               </td>
             </ng-container>
 
-            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+            <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
+            <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding: 0">
               <cms-empty-state
                 icon="hourglass_empty"
                 [title]="hasActiveFilters ? 'No records match your filters' : 'No candidates pending'"

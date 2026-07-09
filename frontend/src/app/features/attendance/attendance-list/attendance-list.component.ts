@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,6 +17,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { CmsIconDeleteComponent } from '../../../shared/icons';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 @Component({
   selector: 'app-attendance-list',
@@ -45,6 +46,7 @@ export class AttendanceListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
   }
@@ -52,19 +54,18 @@ export class AttendanceListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  // ── Column visibility ────────────────────────────────────────────────────
-  protected readonly ALL_COLS = ['date', 'studentName', 'courseName', 'type', 'status', 'actions'];
-  protected readonly COLUMN_LABELS: Record<string, string> = {
-    date: 'Date',
-    studentName: 'Student',
-    courseName: 'Course',
-    type: 'Type',
-    status: 'Status',
-    actions: 'Actions',
-  };
-  private readonly COLS_KEY = 'attendance-list-cols';
-  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
-  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'attendance-list-cols',
+    columns: [
+      { key: 'date', label: 'Date', mandatory: true },
+      { key: 'studentName', label: 'Student' },
+      { key: 'courseName', label: 'Course' },
+      { key: 'type', label: 'Type' },
+      { key: 'status', label: 'Status' },
+      { key: 'actions', label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource = new MatTableDataSource<Attendance>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
@@ -72,6 +73,8 @@ export class AttendanceListComponent implements OnInit {
   protected readonly filterDate = signal('');
 
   protected readonly statusOptions = ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'];
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
   ngOnInit(): void {
     this.loadAttendance();
@@ -116,24 +119,8 @@ export class AttendanceListComponent implements OnInit {
     });
   }
 
-  private _loadColPrefs(): Set<string> {
-    try {
-      const s = localStorage.getItem(this.COLS_KEY);
-      if (s) return new Set<string>(JSON.parse(s) as string[]);
-    } catch { /* empty */ }
-    return new Set<string>(this.ALL_COLS);
-  }
 
-  protected toggleColumn(col: string): void {
-    this._visibleCols.update(s => {
-      const next = new Set(s);
-      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
-      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
-      return next;
-    });
-  }
 
-  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
   private loadAttendance(): void {
     this.loading.set(true);

@@ -2,7 +2,7 @@ import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -20,6 +20,7 @@ import { FEE_STRUCTURE_LIST_TOUR } from '../../../shared/tour/tours/fee-structur
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 interface Program { id: number; name: string; }
 interface Course  { id: number; name: string; }
@@ -69,6 +70,7 @@ export class FeeStructureListComponent implements OnInit {
          + (this.selectedFeeStateId() !== null ? 1 : 0);
   }
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
   }
@@ -76,11 +78,21 @@ export class FeeStructureListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = [
-    'programName', 'courseName', 'academicYearName',
-    'quota', 'feeStateName', 'gender',
-    'feeCount', 'totalAmount', 'actions',
-  ];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'fee-structure-columns',
+    columns: [
+      { key: 'programName', label: 'Program', mandatory: true },
+      { key: 'courseName', label: 'Course' },
+      { key: 'academicYearName', label: 'Academic Year' },
+      { key: 'quota', label: 'Quota' },
+      { key: 'feeStateName', label: 'State' },
+      { key: 'gender', label: 'Gender' },
+      { key: 'feeCount', label: 'Fee Items' },
+      { key: 'totalAmount', label: 'Total' },
+      { key: 'actions', label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource = new MatTableDataSource<GroupedFeeStructure>([]);
   protected readonly loading    = signal(false);
   protected readonly searchValue = signal('');
@@ -178,6 +190,8 @@ export class FeeStructureListComponent implements OnInit {
       if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
     });
   }
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
   ngOnInit(): void {
     this.tourService.register('fee-structure-list', FEE_STRUCTURE_LIST_TOUR);

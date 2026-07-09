@@ -1,3 +1,10 @@
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
 // Syllabus List — layout handled by mlp-* globals in styles.scss
 
 // #tour-syl-content is a tour-anchor wrapper with no global CSS of its own. It sits

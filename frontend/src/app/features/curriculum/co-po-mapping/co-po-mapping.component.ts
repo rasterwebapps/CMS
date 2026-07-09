@@ -1,7 +1,7 @@
-import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,6 +17,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 @Component({
   selector: 'app-co-po-mapping',
@@ -47,6 +48,7 @@ export class CoPoMappingComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
   }
@@ -54,18 +56,25 @@ export class CoPoMappingComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = [
-    'experimentName',
-    'experimentNumber',
-    'courseName',
-    'outcomeType',
-    'outcomeCode',
-    'outcomeDescription',
-    'mappingLevel',
-    'actions'];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'co-po-mapping-columns',
+    columns: [
+      { key: 'experimentName', label: 'Experiment', mandatory: true },
+      { key: 'experimentNumber', label: '#' },
+      { key: 'courseName', label: 'Course' },
+      { key: 'outcomeType', label: 'Type' },
+      { key: 'outcomeCode', label: 'Code' },
+      { key: 'outcomeDescription', label: 'Outcome' },
+      { key: 'mappingLevel', label: 'Level' },
+      { key: 'actions', label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource = new MatTableDataSource<LabCurriculumMapping>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
   ngOnInit(): void {
     this.load();

@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,6 +16,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 @Component({
   selector: 'app-examination-list',
@@ -37,6 +38,7 @@ export class ExaminationListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
   }
@@ -44,23 +46,24 @@ export class ExaminationListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  // ── Column visibility ────────────────────────────────────────────────────
-  protected readonly ALL_COLS = ['name', 'courseName', 'examType', 'date', 'duration', 'maxMarks', 'actions'];
-  protected readonly COLUMN_LABELS: Record<string, string> = {
-    name: 'Name',
-    courseName: 'Course',
-    examType: 'Type',
-    date: 'Date',
-    duration: 'Duration',
-    maxMarks: 'Max Marks',
-    actions: 'Actions',
-  };
-  private readonly COLS_KEY = 'examination-list-cols';
-  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
-  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'examination-list-cols',
+    columns: [
+      { key: 'name', label: 'Name', mandatory: true },
+      { key: 'courseName', label: 'Course' },
+      { key: 'examType', label: 'Type' },
+      { key: 'date', label: 'Date' },
+      { key: 'duration', label: 'Duration' },
+      { key: 'maxMarks', label: 'Max Marks' },
+      { key: 'actions', label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource = new MatTableDataSource<Examination>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
   ngOnInit(): void { this.load(); }
 
@@ -81,24 +84,8 @@ export class ExaminationListComponent implements OnInit {
     }).afterClosed().subscribe((confirmed) => { if (confirmed) this.doDelete(item); });
   }
 
-  private _loadColPrefs(): Set<string> {
-    try {
-      const s = localStorage.getItem(this.COLS_KEY);
-      if (s) return new Set<string>(JSON.parse(s) as string[]);
-    } catch { /* empty */ }
-    return new Set<string>(this.ALL_COLS);
-  }
 
-  protected toggleColumn(col: string): void {
-    this._visibleCols.update(s => {
-      const next = new Set(s);
-      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
-      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
-      return next;
-    });
-  }
 
-  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
   private doDelete(item: Examination): void {
     this.loading.set(true);

@@ -1,2 +1,9 @@
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
 // Lab schedule list — uses global list-page classes from styles.scss
 // No component-specific overrides needed

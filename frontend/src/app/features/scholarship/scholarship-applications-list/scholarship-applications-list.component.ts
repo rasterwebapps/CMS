@@ -3,7 +3,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule } from '@angular/material/sort';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,6 +22,7 @@ import { ScholarshipApplication } from '../scholarship.model';
 import { ScholarshipService } from '../scholarship.service';
 import { ScholarshipApproveDialogComponent } from '../approve-dialog/scholarship-approve-dialog.component';
 import { ScholarshipRejectDialogComponent } from '../reject-dialog/scholarship-reject-dialog.component';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 const DEFAULT_PAGE_SIZE = 25;
 
@@ -44,6 +45,7 @@ export class ScholarshipApplicationsListComponent implements OnInit, OnDestroy {
   private readonly router             = inject(Router);
   private readonly route              = inject(ActivatedRoute);
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator)
   set paginator(value: MatPaginator | undefined) {
     if (this._paginator === value) return;
@@ -62,7 +64,19 @@ export class ScholarshipApplicationsListComponent implements OnInit, OnDestroy {
   protected readonly loading     = signal(false);
   protected readonly searchQuery = signal('');
   protected readonly dataSource  = new MatTableDataSource<ScholarshipApplication>([]);
-  protected readonly displayedColumns = ['studentName', 'scholarshipName', 'academicYearName', 'applicationDate', 'status', 'approvedAmount', 'actions'];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'scholarship-applications-columns',
+    columns: [
+      { key: 'studentName', label: 'Student', mandatory: true },
+      { key: 'scholarshipName', label: 'Scholarship' },
+      { key: 'academicYearName', label: 'Year' },
+      { key: 'applicationDate', label: 'Date' },
+      { key: 'status', label: 'Status' },
+      { key: 'approvedAmount', label: 'Amount' },
+      { key: 'actions', label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
 
   protected totalElements  = 0;
   private currentPage      = 0;
@@ -72,6 +86,8 @@ export class ScholarshipApplicationsListComponent implements OnInit, OnDestroy {
 
   private readonly destroy$      = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
   ngOnInit(): void {
     this.tourService.register('scholarship-applications', SCHOLARSHIP_APPLICATIONS_TOUR);

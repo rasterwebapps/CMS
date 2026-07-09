@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -29,6 +29,7 @@ import { FeeReceiptDialogComponent } from '../../../shared/fee-receipt-dialog/fe
 import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
 import { pastDateOnlyValidator } from '../../../shared/validators/date.validators';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 export type FilterType   = 'ALL' | 'ENQUIRY' | 'STUDENT';
 export type FilterStatus = 'ALL' | 'OVERDUE' | 'OUTSTANDING';
@@ -78,6 +79,7 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
   private readonly fb             = inject(FormBuilder);
   private readonly tourService    = inject(TourService);
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator)
   set paginator(value: MatPaginator | undefined) {
     this._paginator = value;
@@ -112,9 +114,20 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
   protected readonly filterType   = signal<FilterType>('ENQUIRY');
   protected readonly filterStatus = signal<FilterStatus>('ALL');
 
-  protected readonly displayedColumns = [
-    'name', 'type', 'programName', 'totalFee', 'totalPaid', 'totalOutstanding', 'nextDueDate', 'actions',
-  ];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'fee-collection-columns',
+    columns: [
+      { key: 'name', label: 'Name', mandatory: true },
+      { key: 'type', label: 'Type' },
+      { key: 'programName', label: 'Program' },
+      { key: 'totalFee', label: 'Total Fee' },
+      { key: 'totalPaid', label: 'Paid' },
+      { key: 'totalOutstanding', label: 'Outstanding' },
+      { key: 'nextDueDate', label: 'Next Due' },
+      { key: 'actions', label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource = new MatTableDataSource<FeeEntry>([]);
 
   protected readonly filteredEntries = computed(() => {
@@ -231,6 +244,8 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
       this.form.get('transactionReference')?.updateValueAndValidity();
     });
   }
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
   ngOnInit(): void {
     this.tourService.register('fee-collection', FEE_COLLECTION_TOUR);

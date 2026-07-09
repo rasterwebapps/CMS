@@ -4,7 +4,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -21,6 +21,7 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments';
 import { CmsIconEditComponent } from '../../../shared/icons';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 interface YearFeeRow {
   yearNumber: number;
@@ -54,6 +55,7 @@ export class FeeFinalizationComponent implements OnInit {
   private readonly toast    = inject(ToastService);
   private readonly tourService = inject(TourService);
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
   }
@@ -112,9 +114,19 @@ export class FeeFinalizationComponent implements OnInit {
   protected readonly discountReasonCtrl = new FormControl('');
   protected readonly discountReason = signal('');
 
-  protected readonly displayedColumns = [
-    'name', 'programName', 'courseName', 'quota', 'referralTypeName', 'finalCalculatedFee', 'actions',
-  ];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'fee-finalization-columns',
+    columns: [
+      { key: 'name', label: 'Student', mandatory: true },
+      { key: 'programName', label: 'Program' },
+      { key: 'courseName', label: 'Course' },
+      { key: 'quota', label: 'Quota' },
+      { key: 'referralTypeName', label: 'Referral' },
+      { key: 'finalCalculatedFee', label: 'Net Fee' },
+      { key: 'actions', label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource = new MatTableDataSource<Enquiry>([]);
 
   // ── Derived totals ──────────────────────────────────────────────────────────
@@ -167,6 +179,8 @@ export class FeeFinalizationComponent implements OnInit {
     // Keep discountReason signal in sync with the FormControl (covers programmatic resets)
     this.discountReasonCtrl.valueChanges.subscribe(v => this.discountReason.set(v ?? ''));
   }
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
   ngOnInit(): void {
     this.tourService.register('fee-finalization', FEE_FINALIZATION_TOUR);
