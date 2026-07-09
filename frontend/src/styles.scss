@@ -4674,6 +4674,12 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  // Needed so the column-picker dropdown (position:absolute inside) floats
+  // above the table card below — both can carry .anim-rise which leaves
+  // transform:scale(1) (fill-mode:both), creating sibling stacking contexts
+  // whose paint order is DOM order. Without this the table card wins.
+  position: relative;
+  z-index: 2;
 }
 
 .mlp-filter-select {

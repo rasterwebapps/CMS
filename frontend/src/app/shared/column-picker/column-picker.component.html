@@ -1,9 +1,10 @@
 <div class="cp-wrap" (click)="$event.stopPropagation()">
   <button
+    #triggerBtn
     class="btn-toolbar"
     type="button"
     [class.btn-toolbar--active]="open"
-    (click)="open = !open"
+    (click)="toggleOpen()"
     aria-label="Configure columns"
   >
     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
@@ -17,7 +18,7 @@
   </button>
 
   @if (open) {
-    <div class="cp-dropdown">
+    <div class="cp-dropdown" [style.top]="dropdownTop" [style.right]="dropdownRight">
       <div class="cp-dropdown-header">
         <span>Columns</span>
         <span class="cp-hint">Drag to reorder · Pin to stick left</span>

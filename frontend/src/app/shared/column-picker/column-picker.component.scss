@@ -3,10 +3,8 @@
 }
 
 .cp-dropdown {
-  position: absolute;
-  top: calc(100% + 5px);
-  right: 0;
-  z-index: 1000;
+  position: fixed;
+  z-index: 2000;
   background: var(--cms-bg-card);
   border: 1px solid var(--cms-border-default);
   border-radius: 10px;
