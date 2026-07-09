@@ -4,7 +4,7 @@ import {
 import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, MatSort, SortDirection } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -29,6 +29,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { printFeeReceipt, downloadFeeReceipt } from '../../../shared/utils/print-receipt.utils';
+import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
 const DEFAULT_PAGE_SIZE = 25;
 const DEFAULT_SORT_FIELD = 'paymentDate';
@@ -53,6 +54,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsRowActionButtonComponent, CmsTypeBadgeComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './receipts-list.component.html',
   styleUrl: './receipts-list.component.scss',
@@ -66,6 +68,7 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
   private readonly router         = inject(Router);
   private readonly route          = inject(ActivatedRoute);
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator)
   set paginator(value: MatPaginator | undefined) {
     if (this._paginator === value) return;
@@ -100,11 +103,23 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
   private _matSort?: MatSort;
   private _matSortSub?: Subscription;
 
-  protected readonly displayedColumns = [
-    'paymentDate', 'receiptNumber', 'payer', 'payerId',
-    'payerType', 'installmentsCovered', 'paymentMode', 'transactionReference',
-    'amountPaid', 'actions',
-  ];
+  protected readonly colState = new ColumnPickerState({
+    columns: [
+      { key: 'paymentDate',          label: 'Date',           mandatory: true },
+      { key: 'receiptNumber',        label: 'Receipt No.' },
+      { key: 'payer',                label: 'Name',           mandatory: true },
+      { key: 'payerId',              label: 'Roll / Adm' },
+      { key: 'payerType',            label: 'Type' },
+      { key: 'installmentsCovered',  label: 'Towards' },
+      { key: 'paymentMode',          label: 'Mode' },
+      { key: 'transactionReference', label: 'Ref. No.' },
+      { key: 'amountPaid',           label: 'Amount',         mandatory: true },
+      { key: 'actions',              label: 'Actions',        mandatory: true, pinnable: false },
+    ],
+    storageKey: 'receipts-list-cols-v1',
+    defaultSticky: ['paymentDate', 'receiptNumber', 'payer', 'payerId'],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
 
   protected readonly dataSource    = new MatTableDataSource<UnifiedReceiptSummary>([]);
   protected readonly paymentModes  = PAYMENT_MODES;
@@ -141,6 +156,8 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
   private readonly destroy$      = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
 
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('receipts-list', RECEIPTS_LIST_TOUR);
 

@@ -71,53 +71,6 @@
   white-space: nowrap;
 }
 
-// ── Column menu ───────────────────────────────────────────────
-
-.col-menu-wrap { position: relative; }
-
-.col-menu {
-  position: absolute;
-  top: calc(100% + 5px);
-  right: 0;
-  z-index: 1000;
-  background: var(--cms-bg-card);
-  border: 1px solid var(--cms-border-default);
-  border-radius: 10px;
-  box-shadow: var(--cms-shadow-xl);
-  padding: 4px;
-  min-width: 165px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.col-menu__item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 9px;
-  border-radius: 6px;
-  font-size: var(--cms-text-base);
-  color: var(--cms-text-secondary);
-  cursor: pointer;
-  transition: background 0.1s;
-
-  &:hover { background: var(--cms-bg-muted); }
-}
-
-.col-menu__check {
-  width: 15px;
-  height: 15px;
-  border-radius: 4px;
-  border: 1.5px solid var(--cms-border-default);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.12s;
-
-  &--on { background: var(--cms-primary); border-color: var(--cms-primary); color: #fff; }
-}
 
 .btn-toolbar {
   display: inline-flex;

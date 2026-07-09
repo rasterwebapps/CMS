@@ -1,4 +1,4 @@
-<div class="stu-page mlp-page" (click)="colMenuOpen = false">
+<div class="stu-page mlp-page">
 
   <!-- ── Header ────────────────────────────────────────────────── -->
   <div id="tour-stu-header" class="stu-hdr mlp-hdr anim-rise">
@@ -102,38 +102,7 @@
         <span class="row-count">{{ totalElements }} students</span>
       }
 
-      <div class="col-menu-wrap" (click)="$event.stopPropagation()">
-        <button class="btn-toolbar" (click)="colMenuOpen = !colMenuOpen"
-                [class.btn-toolbar--active]="colMenuOpen" aria-label="Toggle columns">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
-            <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
-            <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-          </svg>
-          Columns
-        </button>
-        @if (colMenuOpen) {
-          <div class="col-menu">
-            @for (col of ALL_COLS; track col) {
-              @if (col !== 'actions') {
-                <label class="col-menu__item">
-                  <span class="col-menu__check" [class.col-menu__check--on]="isColumnVisible(col)">
-                    @if (isColumnVisible(col)) {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none"
-                           stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
-                      </svg>
-                    }
-                  </span>
-                  <input type="checkbox" class="sr-only" [checked]="isColumnVisible(col)" (change)="toggleColumn(col)" />
-                  {{ COLUMN_LABELS[col] }}
-                </label>
-              }
-            }
-          </div>
-        }
-      </div>
+      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
     </div>
   </div>
 
@@ -159,7 +128,7 @@
         <table mat-table [dataSource]="dataSource" matSort class="modern-table">
 
           <!-- Admission Number -->
-          <ng-container matColumnDef="admissionNumber">
+          <ng-container matColumnDef="admissionNumber" [sticky]="colState.isSticky('admissionNumber')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Admission No.</th>
             <td mat-cell *matCellDef="let student">
               @if (student.admissionNumber) {
@@ -171,7 +140,7 @@
           </ng-container>
 
           <!-- Roll Number -->
-          <ng-container matColumnDef="rollNumber">
+          <ng-container matColumnDef="rollNumber" [sticky]="colState.isSticky('rollNumber')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Roll No.</th>
             <td mat-cell *matCellDef="let student">
               @if (student.rollNumber) {
@@ -183,7 +152,7 @@
           </ng-container>
 
           <!-- Name -->
-          <ng-container matColumnDef="fullName">
+          <ng-container matColumnDef="fullName" [sticky]="colState.isSticky('fullName')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
             <td mat-cell *matCellDef="let student">
               <div class="student-cell">
@@ -197,7 +166,7 @@
           </ng-container>
 
           <!-- Program -->
-          <ng-container matColumnDef="programName">
+          <ng-container matColumnDef="programName" [sticky]="colState.isSticky('programName')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
             <td mat-cell *matCellDef="let student">
               <span class="cell-text">{{ student.programName || '—' }}</span>
@@ -205,7 +174,7 @@
           </ng-container>
 
           <!-- Semester -->
-          <ng-container matColumnDef="yearOfStudy">
+          <ng-container matColumnDef="yearOfStudy" [sticky]="colState.isSticky('yearOfStudy')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Sem</th>
             <td mat-cell *matCellDef="let student" class="cell-align-right">
               <span class="cell-number">{{ student.yearOfStudy ?? '—' }}</span>
@@ -213,7 +182,7 @@
           </ng-container>
 
           <!-- Admission Date -->
-          <ng-container matColumnDef="admissionDate">
+          <ng-container matColumnDef="admissionDate" [sticky]="colState.isSticky('admissionDate')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Admission Date</th>
             <td mat-cell *matCellDef="let student">
               <span class="cell-date">{{ student.admissionDate | appDate }}</span>
@@ -221,7 +190,7 @@
           </ng-container>
 
           <!-- Phone -->
-          <ng-container matColumnDef="phone">
+          <ng-container matColumnDef="phone" [sticky]="colState.isSticky('phone')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Phone</th>
             <td mat-cell *matCellDef="let student">
               <span class="cell-text">{{ student.phone || '—' }}</span>
@@ -229,7 +198,7 @@
           </ng-container>
 
           <!-- Email -->
-          <ng-container matColumnDef="email">
+          <ng-container matColumnDef="email" [sticky]="colState.isSticky('email')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
             <td mat-cell *matCellDef="let student">
               <span class="cell-email">{{ student.email || '—' }}</span>
@@ -237,7 +206,7 @@
           </ng-container>
 
           <!-- University Reg. No. -->
-          <ng-container matColumnDef="universityRegistrationNumber">
+          <ng-container matColumnDef="universityRegistrationNumber" [sticky]="colState.isSticky('universityRegistrationNumber')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Univ. Reg. No.</th>
             <td mat-cell *matCellDef="let student">
               @if (student.universityRegistrationNumber) {
@@ -249,7 +218,7 @@
           </ng-container>
 
           <!-- Lab Batch -->
-          <ng-container matColumnDef="labBatch">
+          <ng-container matColumnDef="labBatch" [sticky]="colState.isSticky('labBatch')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Lab Batch</th>
             <td mat-cell *matCellDef="let student">
               <span class="cell-text">{{ student.labBatch || '—' }}</span>
@@ -257,7 +226,7 @@
           </ng-container>
 
           <!-- Status -->
-          <ng-container matColumnDef="status">
+          <ng-container matColumnDef="status" [sticky]="colState.isSticky('status')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-center">Status</th>
             <td mat-cell *matCellDef="let student" class="col-center">
               @if (student.status) {
@@ -269,7 +238,7 @@
           </ng-container>
 
           <!-- Actions -->
-          <ng-container matColumnDef="actions">
+          <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
             <th mat-header-cell *matHeaderCellDef class="actions-col"></th>
             <td mat-cell *matCellDef="let student" (click)="$event.stopPropagation()">
               <div class="row-actions">

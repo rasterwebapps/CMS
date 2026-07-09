@@ -176,6 +176,7 @@
         Clear
       </button>
     }
+    <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
   </div>
 
   <!-- ── Table ──────────────────────────────────────────────────────────── -->
@@ -188,7 +189,7 @@
        <div class="table-wrapper">
        <table id="tour-receipts-table" mat-table [dataSource]="dataSource" matSort class="modern-table">
 
-        <ng-container matColumnDef="receiptNumber" sticky>
+        <ng-container matColumnDef="receiptNumber" [sticky]="colState.isSticky('receiptNumber')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Receipt No.</th>
           <td mat-cell *matCellDef="let row">
             <div class="receipt-code-cell">
@@ -202,7 +203,7 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="payer" sticky>
+        <ng-container matColumnDef="payer" [sticky]="colState.isSticky('payer')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header="payerName">Name</th>
           <td mat-cell *matCellDef="let row">
             <span class="cell-name" [title]="row.programName || ''">{{ row.payerName }}</span>
@@ -212,7 +213,7 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="payerId" sticky>
+        <ng-container matColumnDef="payerId" [sticky]="colState.isSticky('payerId')">
           <th mat-header-cell *matHeaderCellDef>Roll / Adm</th>
           <td mat-cell *matCellDef="let row" class="cell-id-col">
             @if (row.payerIdentifier) {
@@ -227,14 +228,14 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="payerType">
+        <ng-container matColumnDef="payerType" [sticky]="colState.isSticky('payerType')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Type</th>
           <td mat-cell *matCellDef="let row" class="cell-align-center">
             <cms-type-badge [value]="row.payerType" [label]="row.payerType === 'STUDENT' ? 'Student' : 'Pre-enroll'" />
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="installmentsCovered">
+        <ng-container matColumnDef="installmentsCovered" [sticky]="colState.isSticky('installmentsCovered')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Towards</th>
           <td mat-cell *matCellDef="let row">
             <span class="cell-towards"
@@ -252,7 +253,7 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="paymentMode">
+        <ng-container matColumnDef="paymentMode" [sticky]="colState.isSticky('paymentMode')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Mode</th>
           <td mat-cell *matCellDef="let row">
             @if (row.paymentMode) {
@@ -263,14 +264,14 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="paymentDate" sticky>
+        <ng-container matColumnDef="paymentDate" [sticky]="colState.isSticky('paymentDate')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
           <td mat-cell *matCellDef="let row">
             <span class="cell-date">{{ row.paymentDate | appDate }}</span>
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="transactionReference">
+        <ng-container matColumnDef="transactionReference" [sticky]="colState.isSticky('transactionReference')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Ref. No.</th>
           <td mat-cell *matCellDef="let row" class="cell-muted cell-code-sm">
             {{ row.transactionReference || '—' }}
@@ -327,11 +328,11 @@
           </td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
 
         <tr class="mat-row" *matNoDataRow>
-          <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
+          <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding: 0">
             <cms-empty-state
               icon="receipt_long"
               [title]="hasActiveFilters() ? 'No receipts match your filters' : 'No receipts yet'"

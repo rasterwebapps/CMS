@@ -13,7 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { TitleCasePipe } from '@angular/common';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, takeUntil } from 'rxjs/operators';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, MatSort, SortDirection } from '@angular/material/sort';
 import { MatIconModule } from '@angular/material/icon';
@@ -41,6 +41,7 @@ import { computeInitials } from '../../../shared/utils/initials';
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { PermissionService } from '../../../core/permissions/permission.service';
+import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
 const DEFAULT_PAGE_SIZE = 25;
 const SEARCH_MIN_LENGTH = 3;
@@ -78,6 +79,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsIconEditComponent,
     CmsIconViewComponent,
     ExportButtonComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './admission-list.component.html',
   styleUrl: './admission-list.component.scss',
@@ -96,6 +98,7 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
   // DestroyRef kept for future signal-based teardown
   private readonly _destroyRef         = inject(DestroyRef);
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator)
   set paginator(value: MatPaginator | undefined) {
     if (this._paginator === value) return;
@@ -130,34 +133,29 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
 
   protected readonly computeInitials = computeInitials;
 
-  // ── Column visibility ────────────────────────────────────────
-  protected readonly ALL_COLS = [
-    'studentName', 'admissionNumber', 'rollNumber', 'program', 'course',
-    'yearOfStudy', 'applicationDate', 'academicYear', 'consent', 'declarationDate', 'studentStatus', 'actions',
-  ];
-  protected readonly COLUMN_LABELS: Record<string, string> = {
-    studentName:     'Student',
-    admissionNumber: 'Admission No.',
-    rollNumber:      'Roll No.',
-    program:         'Program',
-    course:          'Course',
-    yearOfStudy:     'Year',
-    applicationDate: 'Application Date',
-    academicYear:    'Joining Year',
-    consent:         'Consent',
-    declarationDate: 'Declaration Date',
-    studentStatus:   'Status',
-    actions:         'Actions',
-  };
-  private readonly DEFAULT_COLS = new Set([
-    'studentName', 'admissionNumber', 'program', 'course', 'yearOfStudy',
-    'applicationDate', 'academicYear', 'consent', 'studentStatus', 'actions',
-  ]);
-  private readonly COLS_KEY = 'admission-list-cols-v3';
-  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
-  protected readonly displayedColumns = computed(() =>
-    this.ALL_COLS.filter(c => this._visibleCols().has(c)),
-  );
+  // ── Column picker ─────────────────────────────────────────────
+  protected readonly colState = new ColumnPickerState({
+    columns: [
+      { key: 'studentName',     label: 'Student',         mandatory: true },
+      { key: 'admissionNumber', label: 'Admission No.' },
+      { key: 'rollNumber',      label: 'Roll No.' },
+      { key: 'program',         label: 'Program' },
+      { key: 'course',          label: 'Course' },
+      { key: 'yearOfStudy',     label: 'Year' },
+      { key: 'applicationDate', label: 'Application Date' },
+      { key: 'academicYear',    label: 'Joining Year' },
+      { key: 'consent',         label: 'Consent' },
+      { key: 'declarationDate', label: 'Declaration Date' },
+      { key: 'studentStatus',   label: 'Status' },
+      { key: 'actions',         label: 'Actions',          mandatory: true, pinnable: false },
+    ],
+    storageKey: 'admission-list-cols-v3',
+    defaults: [
+      'studentName', 'admissionNumber', 'program', 'course', 'yearOfStudy',
+      'applicationDate', 'academicYear', 'consent', 'studentStatus', 'actions',
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
 
   // ── Table (server-side — paginator/sort NOT wired to dataSource) ──
   protected readonly dataSource = new MatTableDataSource<AdmissionResponse>([]);
@@ -207,12 +205,13 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
 
-  protected colMenuOpen        = false;
   protected readonly exporting = signal(false);
 
   protected readonly canExport = computed(() => this.permissionService.has('ADMISSION_EXPORT'));
   protected readonly canDelete = computed(() => this.permissionService.has('ADMISSION_DELETE'));
 
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('admission-list', ADMISSION_LIST_TOUR);
     this.loadMasterData();
@@ -296,27 +295,6 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ── Column visibility ─────────────────────────────────────────
-  private _loadColPrefs(): Set<string> {
-    try {
-      const s = localStorage.getItem(this.COLS_KEY);
-      if (s) return new Set<string>(JSON.parse(s) as string[]);
-    } catch { /* empty */ }
-    return new Set<string>(this.DEFAULT_COLS);
-  }
-
-  protected toggleColumn(col: string): void {
-    this._visibleCols.update(s => {
-      const next = new Set(s);
-      if (next.size > 1 && next.has(col)) next.delete(col); else next.add(col);
-      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
-      return next;
-    });
-  }
-
-  protected isColumnVisible(col: string): boolean {
-    return this._visibleCols().has(col);
-  }
 
   // ── URL state management (single source of truth) ─────────────
   private navigate(patch: Partial<{

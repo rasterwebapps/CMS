@@ -3,7 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableModule, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -32,6 +32,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
+import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
 export const STATUS_LABELS: Record<string, string> = {
   ENQUIRED:             'Enquired',
@@ -60,6 +61,7 @@ export const STATUS_LABELS: Record<string, string> = {
     CmsIconEditComponent,
     CmsIconViewComponent,
     ExportButtonComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './enquiry-list.component.html',
   styleUrl: './enquiry-list.component.scss',
@@ -83,6 +85,7 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
   private _paginatorSub?: Subscription;
   private _paginatorRef?: MatPaginator;
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(v: MatPaginator) {
     if (v) {
       this._paginatorRef = v;
@@ -128,7 +131,6 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
   protected readonly STATUS_LABELS    = STATUS_LABELS;
   protected statusMenuOpen       = false;
   protected academicYearMenuOpen = false;
-  protected colMenuOpen          = false;
   protected moreFiltersOpen      = false;
   protected readonly exporting   = signal(false);
 
@@ -206,19 +208,22 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
          + (this.selectedAdmissionSource()  !== null ? 1 : 0);
   }
 
-  // ── Column visibility ─────────────────────────────────────────────────────
-  protected readonly ALL_COLS = [
-    'name', 'phone', 'programName', 'studentType',
-    'enquiryDate', 'referralTypeName', 'status', 'agentName', 'actions',
-  ];
-  protected readonly COLUMN_LABELS: Record<string, string> = {
-    name: 'Name', phone: 'Phone', programName: 'Course', studentType: 'Type',
-    enquiryDate: 'Date', referralTypeName: 'Referral', status: 'Status',
-    agentName: 'Agent', actions: 'Actions',
-  };
-  private readonly COLS_KEY = 'enquiry-list-cols';
-  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
-  protected readonly displayedColumns = computed(() => this.ALL_COLS.filter(c => this._visibleCols().has(c)));
+  // ── Column picker ─────────────────────────────────────────────────────────
+  protected readonly colState = new ColumnPickerState({
+    columns: [
+      { key: 'name',            label: 'Name',     mandatory: true },
+      { key: 'phone',           label: 'Phone' },
+      { key: 'programName',     label: 'Course' },
+      { key: 'studentType',     label: 'Type' },
+      { key: 'enquiryDate',     label: 'Date' },
+      { key: 'referralTypeName',label: 'Referral' },
+      { key: 'status',          label: 'Status' },
+      { key: 'agentName',       label: 'Agent' },
+      { key: 'actions',         label: 'Actions',  mandatory: true, pinnable: false },
+    ],
+    storageKey: 'enquiry-list-cols',
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
 
   protected readonly ALL_STATUSES = [
     'ENQUIRED', 'INTERESTED', 'NOT_INTERESTED', 'FEES_FINALIZED',
@@ -238,6 +243,8 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
     this.dateTo   = this.toDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
   }
 
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('enquiry-list', ENQUIRY_LIST_TOUR);
 
@@ -354,25 +361,6 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
     if (this._paginatorRef) this._paginatorRef.pageIndex = 0;
   }
 
-  // ── Column prefs ──────────────────────────────────────────────────────────
-  private _loadColPrefs(): Set<string> {
-    try {
-      const s = localStorage.getItem(this.COLS_KEY);
-      if (s) return new Set<string>(JSON.parse(s) as string[]);
-    } catch { /* empty */ }
-    return new Set<string>(this.ALL_COLS);
-  }
-
-  protected toggleColumn(col: string): void {
-    this._visibleCols.update(s => {
-      const next = new Set(s);
-      if (next.size > 1 && next.has(col)) { next.delete(col); } else { next.add(col); }
-      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
-      return next;
-    });
-  }
-
-  protected isColumnVisible(col: string): boolean { return this._visibleCols().has(col); }
 
   // ── Search ────────────────────────────────────────────────────────────────
   protected applyFilter(event: Event): void {

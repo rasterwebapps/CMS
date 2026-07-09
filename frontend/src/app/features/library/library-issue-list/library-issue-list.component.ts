@@ -2,7 +2,7 @@ import { Component, computed, inject, OnDestroy, OnInit, signal, ViewChild } fro
 import { Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,6 +20,7 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
+import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
 @Component({
   selector: 'app-library-issue-list',
@@ -29,6 +30,7 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent, ExportButtonComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './library-issue-list.component.html',
   styleUrl: './library-issue-list.component.scss',
@@ -45,6 +47,7 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
     if (!p || p === this._paginator) return;
     this._paginatorSub?.unsubscribe();
@@ -58,10 +61,23 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected readonly displayedColumns = [
-    'accessionNumber', 'itemTitle', 'memberName', 'issuedDate',
-    'dueDate', 'returnedDate', 'status', 'fine', 'actions',
-  ];
+  protected readonly colState = new ColumnPickerState({
+    columns: [
+      { key: 'accessionNumber', label: 'Acc. No.' },
+      { key: 'itemTitle',       label: 'Item',     mandatory: true },
+      { key: 'itemType',        label: 'Type' },
+      { key: 'memberName',      label: 'Member',   mandatory: true },
+      { key: 'memberType',      label: 'Role' },
+      { key: 'issuedDate',      label: 'Issued' },
+      { key: 'dueDate',         label: 'Due' },
+      { key: 'returnedDate',    label: 'Returned' },
+      { key: 'status',          label: 'Status' },
+      { key: 'fine',            label: 'Fine' },
+      { key: 'actions',         label: 'Actions',  mandatory: true, pinnable: false },
+    ],
+    storageKey: 'library-issue-cols-v1',
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource    = new MatTableDataSource<LibraryIssue>([]);
   protected readonly loading       = signal(false);
   protected readonly exporting     = signal(false);
@@ -81,6 +97,8 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
   protected sortActive     = 'issuedDate';
   protected sortDirection: 'asc' | 'desc' = 'desc';
 
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });

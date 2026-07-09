@@ -1,7 +1,7 @@
 import { Component, computed, DestroyRef, inject, OnInit, OnDestroy, signal, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged, Subject, Subscription, takeUntil } from 'rxjs';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, MatSort, SortDirection } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -17,6 +17,7 @@ import { FEE_EXPLORER_TOUR } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsIconViewComponent } from '../../../shared/icons';
+import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { PermissionService } from '../../../core/permissions/permission.service';
 
@@ -36,6 +37,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     InrPipe, MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent,
     CmsRowActionButtonComponent, CmsIconViewComponent, ExportButtonComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',
@@ -49,6 +51,7 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
   private readonly tourService       = inject(TourService);
   private readonly permissionService = inject(PermissionService);
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator)
   set paginator(value: MatPaginator | undefined) {
     if (this._paginator === value) return;
@@ -82,10 +85,21 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
   private _matSort?: MatSort;
   private _matSortSub?: Subscription;
 
-  protected readonly displayedColumns = [
-    'rollNumber', 'studentName', 'programName', 'totalFee',
-    'totalPaid', 'totalPending', 'totalPenalty', 'allocationStatus', 'actions',
-  ];
+  protected readonly colState = new ColumnPickerState({
+    columns: [
+      { key: 'rollNumber',       label: 'Roll No.' },
+      { key: 'studentName',      label: 'Student',   mandatory: true },
+      { key: 'programName',      label: 'Program' },
+      { key: 'totalFee',         label: 'Total Fee' },
+      { key: 'totalPaid',        label: 'Paid' },
+      { key: 'totalPending',     label: 'Pending' },
+      { key: 'totalPenalty',     label: 'Penalty' },
+      { key: 'allocationStatus', label: 'Status' },
+      { key: 'actions',          label: 'Actions',   mandatory: true, pinnable: false },
+    ],
+    storageKey: 'fee-explorer-cols-v1',
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource    = new MatTableDataSource<StudentFeeSummary>([]);
   protected readonly loading       = signal(false);
   protected readonly exporting     = signal(false);
@@ -162,6 +176,8 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
     });
   }
 
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('fee-explorer', FEE_EXPLORER_TOUR);
 

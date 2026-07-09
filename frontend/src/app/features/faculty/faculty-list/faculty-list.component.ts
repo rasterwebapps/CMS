@@ -2,7 +2,7 @@ import { Component, inject, OnInit, OnDestroy, AfterViewInit, signal, computed, 
 import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TitleCasePipe } from '@angular/common';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
@@ -34,6 +34,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { FACULTY_LIST_TOUR } from '../../../shared/tour/tours/faculty.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
+import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
 @Component({
   selector: 'app-faculty-list',
@@ -57,6 +58,7 @@ import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } fr
     CmsIconDeleteComponent,
     CmsIconEditComponent,
     CmsIconViewComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './faculty-list.component.html',
   styleUrl: './faculty-list.component.scss',
@@ -77,6 +79,7 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginatorRef(p: MatPaginator | undefined) {
     if (!p || p === this._paginator) return;
     this._paginatorSub?.unsubscribe();
@@ -90,7 +93,21 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  protected readonly displayedColumns: readonly string[] = ['employeeCode', 'fullName', 'phone', 'email', 'specialityName', 'designation', 'status', 'documentReview', 'actions'];
+  protected readonly colState = new ColumnPickerState({
+    columns: [
+      { key: 'employeeCode',  label: 'Employee Code' },
+      { key: 'fullName',      label: 'Name',         mandatory: true },
+      { key: 'phone',         label: 'Phone' },
+      { key: 'email',         label: 'Email' },
+      { key: 'specialityName',label: 'Speciality' },
+      { key: 'designation',   label: 'Designation' },
+      { key: 'status',        label: 'Status' },
+      { key: 'documentReview',label: 'Documents' },
+      { key: 'actions',       label: 'Actions',      mandatory: true, pinnable: false },
+    ],
+    storageKey: 'faculty-list-cols-v1',
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource = new MatTableDataSource<Faculty>([]);
   protected readonly loading    = signal(false);
   protected readonly exporting  = signal(false);
@@ -127,6 +144,8 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.searchValue().length > 0,
   );
 
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('faculty-list', FACULTY_LIST_TOUR);
     const snap = this.route.snapshot.queryParams;

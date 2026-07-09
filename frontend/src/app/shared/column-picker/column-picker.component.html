@@ -1,0 +1,92 @@
+<div class="cp-wrap" (click)="$event.stopPropagation()">
+  <button
+    class="btn-toolbar"
+    type="button"
+    [class.btn-toolbar--active]="open"
+    (click)="open = !open"
+    aria-label="Configure columns"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+      <line x1="8" y1="18" x2="21" y2="18"/>
+      <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
+      <line x1="3" y1="18" x2="3.01" y2="18"/>
+    </svg>
+    Columns
+  </button>
+
+  @if (open) {
+    <div class="cp-dropdown">
+      <div class="cp-dropdown-header">
+        <span>Columns</span>
+        <span class="cp-hint">Drag to reorder · Pin to stick left</span>
+      </div>
+
+      <div cdkDropList class="cp-list" (cdkDropListDropped)="drop($event)">
+        @for (col of state.orderedColumns(); track col.key) {
+          <div class="cp-item" cdkDrag [class.cp-item--hidden]="!state.isVisible(col.key)">
+            <!-- drag handle -->
+            <button class="cp-drag" cdkDragHandle type="button" aria-label="Drag to reorder">
+              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
+                   fill="currentColor" aria-hidden="true">
+                <circle cx="9"  cy="5"  r="1.5"/><circle cx="15" cy="5"  r="1.5"/>
+                <circle cx="9"  cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
+                <circle cx="9"  cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/>
+              </svg>
+            </button>
+
+            <!-- visibility checkbox -->
+            <span
+              class="cp-check"
+              [class.cp-check--on]="state.isVisible(col.key)"
+              [class.cp-check--disabled]="state.isMandatory(col.key)"
+              (click)="toggleCol($event, col.key)"
+              role="checkbox"
+              [attr.aria-checked]="state.isVisible(col.key)"
+              [attr.aria-disabled]="state.isMandatory(col.key)"
+              tabindex="0"
+              (keydown.enter)="toggleCol($event, col.key)"
+              (keydown.space)="toggleCol($event, col.key)"
+            >
+              @if (state.isVisible(col.key)) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="3.5"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              }
+            </span>
+
+            <!-- label -->
+            <span class="cp-label">{{ col.label }}</span>
+
+            <!-- pin button -->
+            @if (state.isPinnable(col.key)) {
+              <button
+                class="cp-pin"
+                type="button"
+                [class.cp-pin--active]="state.isSticky(col.key)"
+                (click)="pinCol($event, col.key)"
+                [title]="state.isSticky(col.key) ? 'Unpin column' : 'Stick to left'"
+                aria-label="Toggle pin"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 2v8l3 3-7 7-3-3 7-7-3-3V2h6z"/>
+                  <line x1="12" y1="10" x2="12" y2="22"/>
+                </svg>
+              </button>
+            } @else {
+              <span class="cp-pin-spacer"></span>
+            }
+
+            <!-- drag placeholder -->
+            <div class="cp-drag-placeholder" *cdkDragPlaceholder></div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

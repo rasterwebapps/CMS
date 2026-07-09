@@ -314,64 +314,6 @@ $ctrl-h: var(--cms-list-filter-height);
 .btn-toolbar--active { border-color: var(--cms-primary); color: var(--cms-primary); }
 
 
-// ── Column menu ────────────────────────────────────────────────
-
-.col-menu-wrap { position: relative; }
-
-.col-menu {
-  position: absolute;
-  top: calc(100% + 5px);
-  right: 0;
-  z-index: 9999;
-  background: var(--cms-bg-card, #ffffff);
-  background-color: var(--cms-bg-card, #ffffff);
-  border: 1px solid var(--cms-border-default);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
-  padding: 4px;
-  min-width: 150px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.col-menu__item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 9px;
-  border-radius: 6px;
-  font-size: var(--cms-text-base);
-  color: var(--cms-text-secondary);
-  cursor: pointer;
-  transition: background 0.1s;
-
-  &:hover { background: var(--cms-bg-muted); }
-}
-
-.col-menu__check {
-  width: 15px;
-  height: 15px;
-  border-radius: 4px;
-  border: 1.5px solid var(--cms-border-default);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.12s;
-
-  &--on { background: var(--cms-primary); border-color: var(--cms-primary); color: #fff; }
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden;
-  clip: rect(0,0,0,0);
-  white-space: nowrap;
-  border-width: 0;
-}
 
 // ── Table card ──────────────────────────────────────────────────
 

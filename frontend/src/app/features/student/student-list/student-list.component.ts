@@ -13,7 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { TitleCasePipe } from '@angular/common';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, takeUntil } from 'rxjs/operators';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, MatSort, SortDirection } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -39,6 +39,7 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { PermissionService } from '../../../core/permissions/permission.service';
+import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
 const DEFAULT_PAGE_SIZE = 25;
 const SEARCH_MIN_LENGTH = 3;
@@ -73,6 +74,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsIconDeleteComponent,
     CmsIconEditComponent,
     CmsIconViewComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './student-list.component.html',
   styleUrl: './student-list.component.scss',
@@ -90,6 +92,7 @@ export class StudentListComponent implements OnInit, OnDestroy {
   private readonly _destroyRef         = inject(DestroyRef);
   private readonly permissionService   = inject(PermissionService);
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator)
   set paginator(value: MatPaginator | undefined) {
     if (this._paginator === value) return;
@@ -124,34 +127,26 @@ export class StudentListComponent implements OnInit, OnDestroy {
 
   protected readonly computeInitials = computeInitials;
 
-  // ── Column visibility ────────────────────────────────────────
-  protected readonly ALL_COLS = [
-    'admissionNumber', 'rollNumber', 'fullName', 'programName', 'yearOfStudy',
-    'admissionDate', 'phone', 'email', 'universityRegistrationNumber', 'labBatch',
-    'status', 'actions',
-  ];
-  protected readonly COLUMN_LABELS: Record<string, string> = {
-    admissionNumber:              'Admission No.',
-    rollNumber:                   'Roll No.',
-    fullName:                     'Name',
-    programName:                  'Program',
-    yearOfStudy:                  'Sem',
-    admissionDate:                'Admission Date',
-    phone:                        'Phone',
-    email:                        'Email',
-    universityRegistrationNumber: 'Univ. Reg. No.',
-    labBatch:                     'Lab Batch',
-    status:                       'Status',
-    actions:                      'Actions',
-  };
-  private readonly DEFAULT_COLS = new Set([
-    'admissionNumber', 'fullName', 'programName', 'yearOfStudy', 'phone', 'status', 'actions',
-  ]);
-  private readonly COLS_KEY = 'student-list-cols-v2';
-  private readonly _visibleCols = signal<Set<string>>(this._loadColPrefs());
-  protected readonly displayedColumns = computed(() =>
-    this.ALL_COLS.filter(c => this._visibleCols().has(c)),
-  );
+  // ── Column picker ────────────────────────────────────────────
+  protected readonly colState = new ColumnPickerState({
+    columns: [
+      { key: 'admissionNumber',              label: 'Admission No.' },
+      { key: 'rollNumber',                   label: 'Roll No.' },
+      { key: 'fullName',                     label: 'Name',           mandatory: true },
+      { key: 'programName',                  label: 'Program' },
+      { key: 'yearOfStudy',                  label: 'Sem' },
+      { key: 'admissionDate',                label: 'Admission Date' },
+      { key: 'phone',                        label: 'Phone' },
+      { key: 'email',                        label: 'Email' },
+      { key: 'universityRegistrationNumber', label: 'Univ. Reg. No.' },
+      { key: 'labBatch',                     label: 'Lab Batch' },
+      { key: 'status',                       label: 'Status' },
+      { key: 'actions',                      label: 'Actions',        mandatory: true, pinnable: false },
+    ],
+    storageKey: 'student-list-cols-v2',
+    defaults: ['admissionNumber', 'fullName', 'programName', 'yearOfStudy', 'phone', 'status', 'actions'],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
 
   // ── Table (server-side — paginator/sort NOT wired to dataSource) ──
   protected readonly dataSource = new MatTableDataSource<Student>([]);
@@ -206,8 +201,6 @@ export class StudentListComponent implements OnInit, OnDestroy {
   private readonly destroy$     = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
 
-  protected colMenuOpen = false;
-
   protected onExport(format: ExportFormat): void {
     if (this.exporting()) return;
     this.exporting.set(true);
@@ -236,6 +229,8 @@ export class StudentListComponent implements OnInit, OnDestroy {
     });
   }
 
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('student-list', STUDENT_LIST_TOUR);
     this.loadMasterData();
@@ -319,27 +314,6 @@ export class StudentListComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ── Column visibility ─────────────────────────────────────────
-  private _loadColPrefs(): Set<string> {
-    try {
-      const s = localStorage.getItem(this.COLS_KEY);
-      if (s) return new Set<string>(JSON.parse(s) as string[]);
-    } catch { /* empty */ }
-    return new Set<string>(this.DEFAULT_COLS);
-  }
-
-  protected toggleColumn(col: string): void {
-    this._visibleCols.update(s => {
-      const next = new Set(s);
-      if (next.size > 1 && next.has(col)) next.delete(col); else next.add(col);
-      localStorage.setItem(this.COLS_KEY, JSON.stringify([...next]));
-      return next;
-    });
-  }
-
-  protected isColumnVisible(col: string): boolean {
-    return this._visibleCols().has(col);
-  }
 
   // ── URL state management (single source of truth) ─────────────
   private navigate(patch: Partial<{

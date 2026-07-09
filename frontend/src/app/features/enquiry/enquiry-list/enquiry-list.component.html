@@ -193,27 +193,7 @@
     }
 
     <div class="filterbar-right">
-      <div class="col-menu-wrap">
-        <button class="btn-toolbar" (click)="colMenuOpen = !colMenuOpen" [class.btn-toolbar--active]="colMenuOpen" aria-label="Toggle columns">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          Columns
-        </button>
-        @if (colMenuOpen) {
-          <div class="col-menu" (click)="$event.stopPropagation()">
-            @for (col of ALL_COLS; track col) {
-              <label class="col-menu__item">
-                <span class="col-menu__check" [class.col-menu__check--on]="isColumnVisible(col)">
-                  @if (isColumnVisible(col)) {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  }
-                </span>
-                <input type="checkbox" class="sr-only" [checked]="isColumnVisible(col)" (change)="toggleColumn(col)" />
-                {{ COLUMN_LABELS[col] }}
-              </label>
-            }
-          </div>
-        }
-      </div>
+      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
     </div>
   </div>
 
@@ -294,7 +274,7 @@
                (matSortChange)="onSortChange($event)" class="modern-table enq-table">
 
           <!-- Name -->
-          <ng-container matColumnDef="name">
+          <ng-container matColumnDef="name" [sticky]="colState.isSticky('name')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
             <td mat-cell *matCellDef="let row">
               <div class="name-cell">
@@ -312,7 +292,7 @@
           </ng-container>
 
           <!-- Phone -->
-          <ng-container matColumnDef="phone">
+          <ng-container matColumnDef="phone" [sticky]="colState.isSticky('phone')">
             <th mat-header-cell *matHeaderCellDef >Phone</th>
             <td mat-cell *matCellDef="let row">
               <span class="cell-mono">{{ row.phone || '—' }}</span>
@@ -320,7 +300,7 @@
           </ng-container>
 
           <!-- Course -->
-          <ng-container matColumnDef="programName">
+          <ng-container matColumnDef="programName" [sticky]="colState.isSticky('programName')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
             <td mat-cell *matCellDef="let row">
               <span class="cell-muted">{{ row.courseName || '—' }}</span>
@@ -328,7 +308,7 @@
           </ng-container>
 
           <!-- Type -->
-          <ng-container matColumnDef="studentType">
+          <ng-container matColumnDef="studentType" [sticky]="colState.isSticky('studentType')">
             <th mat-header-cell *matHeaderCellDef >Type</th>
             <td mat-cell *matCellDef="let row">
               @if (row.studentType === 'DAY_SCHOLAR') {
@@ -342,7 +322,7 @@
           </ng-container>
 
           <!-- Date -->
-          <ng-container matColumnDef="enquiryDate">
+          <ng-container matColumnDef="enquiryDate" [sticky]="colState.isSticky('enquiryDate')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
             <td mat-cell *matCellDef="let row">
               <span class="cell-date">{{ row.enquiryDate | appDate }}</span>
@@ -350,7 +330,7 @@
           </ng-container>
 
           <!-- Referral -->
-          <ng-container matColumnDef="referralTypeName">
+          <ng-container matColumnDef="referralTypeName" [sticky]="colState.isSticky('referralTypeName')">
             <th mat-header-cell *matHeaderCellDef >Referral</th>
             <td mat-cell *matCellDef="let row">
               <span class="cell-muted">{{ row.referralTypeName || '—' }}</span>
@@ -358,7 +338,7 @@
           </ng-container>
 
           <!-- Status -->
-          <ng-container matColumnDef="status">
+          <ng-container matColumnDef="status" [sticky]="colState.isSticky('status')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Status</th>
             <td mat-cell *matCellDef="let row" class="cell-align-center status-cell" (click)="$event.stopPropagation()">
               <div class="status-cell-content">
@@ -390,7 +370,7 @@
           </ng-container>
 
           <!-- Agent -->
-          <ng-container matColumnDef="agentName">
+          <ng-container matColumnDef="agentName" [sticky]="colState.isSticky('agentName')">
             <th mat-header-cell *matHeaderCellDef >Agent</th>
             <td mat-cell *matCellDef="let row">
               <span class="cell-muted">{{ row.agentName || '—' }}</span>
@@ -398,7 +378,7 @@
           </ng-container>
 
           <!-- Actions -->
-          <ng-container matColumnDef="actions">
+          <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
             <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
             <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
               <div class="row-actions">
