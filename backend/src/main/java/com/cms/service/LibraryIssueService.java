@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -293,7 +294,21 @@ public class LibraryIssueService {
 
     public Page<LibraryIssueResponse> findPage(String search, IssueStatus status, LibraryMemberType memberType,
                                                 LibraryItemType itemType, Pageable pageable) {
-        Specification<LibraryIssue> spec = (root, query, cb) -> {
+        Specification<LibraryIssue> spec = buildSpec(search, status, memberType, itemType);
+        Page<LibraryIssue> page = issueRepository.findAll(spec, pageable);
+        return new PageImpl<>(toResponses(page.getContent()), pageable, page.getTotalElements());
+    }
+
+    /** Unpaged, filtered, sorted — used by the Export endpoint (respects the same filters as findPage). */
+    public List<LibraryIssueResponse> findAllMatching(String search, IssueStatus status, LibraryMemberType memberType,
+                                                       LibraryItemType itemType, Sort sort) {
+        List<LibraryIssue> issues = issueRepository.findAll(buildSpec(search, status, memberType, itemType), sort);
+        return toResponses(issues);
+    }
+
+    private Specification<LibraryIssue> buildSpec(String search, IssueStatus status, LibraryMemberType memberType,
+                                                   LibraryItemType itemType) {
+        return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (search != null && !search.isBlank()) {
                 String p = "%" + search.trim().toLowerCase() + "%";
@@ -312,8 +327,6 @@ public class LibraryIssueService {
             if (itemType == LibraryItemType.JOURNAL) predicates.add(cb.isNotNull(root.get("periodical")));
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-        Page<LibraryIssue> page = issueRepository.findAll(spec, pageable);
-        return new PageImpl<>(toResponses(page.getContent()), pageable, page.getTotalElements());
     }
 
     public List<LibraryIssueResponse> findByStudentId(Long studentId) {

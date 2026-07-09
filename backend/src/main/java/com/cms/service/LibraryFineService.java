@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,7 +45,17 @@ public class LibraryFineService {
     }
 
     public Page<LibraryFineDetailResponse> findPage(String search, FineStatus status, LibraryMemberType memberType, Pageable pageable) {
-        Specification<LibraryFine> spec = (root, query, cb) -> {
+        return fineRepository.findAll(buildSpec(search, status, memberType), pageable).map(this::toDetail);
+    }
+
+    /** Unpaged, filtered, sorted — used by the Export endpoint (respects the same filters as findPage). */
+    public List<LibraryFineDetailResponse> findAllMatching(String search, FineStatus status, LibraryMemberType memberType, Sort sort) {
+        return fineRepository.findAll(buildSpec(search, status, memberType), sort).stream()
+            .map(this::toDetail).toList();
+    }
+
+    private Specification<LibraryFine> buildSpec(String search, FineStatus status, LibraryMemberType memberType) {
+        return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             boolean needsIssueJoin = (search != null && !search.isBlank()) || memberType != null;
             Join<Object, Object> issue = needsIssueJoin ? root.join("issue", JoinType.LEFT) : null;
@@ -63,7 +74,6 @@ public class LibraryFineService {
             if (memberType != null) predicates.add(cb.equal(issue.get("memberType"), memberType));
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-        return fineRepository.findAll(spec, pageable).map(this::toDetail);
     }
 
     @Transactional

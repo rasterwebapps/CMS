@@ -15,6 +15,7 @@ import java.util.Optional;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -881,6 +882,7 @@ public class WidgetDataController {
      */
     @GetMapping("/program-revenue-mix")
     @PreAuthorize("@perm.hasAny('STUDENT_FEE_VIEW','REPORT_VIEW')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<ProgramRevenueSlice>> getProgramRevenueMix() {
         var allocations = studentFeeAllocationRepository.findAll();
 

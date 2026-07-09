@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,7 +57,17 @@ public class LibraryPeriodicalService {
     }
 
     public Page<LibraryPeriodicalResponse> findPage(String search, SubscriptionStatus subscriptionStatus, JournalType journalType, Pageable pageable) {
-        Specification<LibraryPeriodical> spec = (root, query, cb) -> {
+        return repository.findAll(buildSpec(search, subscriptionStatus, journalType), pageable).map(this::toResponse);
+    }
+
+    /** Unpaged, filtered, sorted — used by the Export endpoint (respects the same filters as findPage). */
+    public List<LibraryPeriodicalResponse> findAllMatching(String search, SubscriptionStatus subscriptionStatus, JournalType journalType, Sort sort) {
+        return repository.findAll(buildSpec(search, subscriptionStatus, journalType), sort).stream()
+            .map(this::toResponse).toList();
+    }
+
+    private Specification<LibraryPeriodical> buildSpec(String search, SubscriptionStatus subscriptionStatus, JournalType journalType) {
+        return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (search != null && !search.isBlank()) {
                 String p = "%" + search.trim().toLowerCase() + "%";
@@ -70,7 +81,6 @@ public class LibraryPeriodicalService {
             if (journalType != null) predicates.add(cb.equal(root.get("journalType"), journalType));
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-        return repository.findAll(spec, pageable).map(this::toResponse);
     }
 
     public List<LibraryPeriodicalResponse> findByStatus(SubscriptionStatus status) {
