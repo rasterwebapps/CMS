@@ -28,6 +28,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
     CmsIconDeleteComponent,
     CmsIconEditComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './inventory-list.component.html',
   styleUrl: './inventory-list.component.scss',

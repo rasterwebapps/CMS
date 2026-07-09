@@ -37,6 +37,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
     CmsIconDeleteComponent,
+    CmsColumnPickerComponent,
 ],
   templateUrl: './attendance-list.component.html',
   styleUrl: './attendance-list.component.scss',

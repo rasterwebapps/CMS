@@ -28,6 +28,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
     CmsIconDeleteComponent,
     CmsIconEditComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './examination-list.component.html',
   styleUrl: './examination-list.component.scss',

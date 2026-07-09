@@ -50,6 +50,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
     CmsIconViewComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './document-verification-list.component.html',
   styleUrl: './document-verification-list.component.scss',

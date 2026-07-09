@@ -26,7 +26,7 @@ export class CmsColumnPickerComponent {
   protected onDocClick(): void { this.open = false; }
 
   // Close on scroll/resize so the panel doesn't drift from its anchor
-  @HostListener('window:scroll', ['$event.target'])
+  @HostListener('window:scroll')
   @HostListener('window:resize')
   protected onViewportChange(): void { this.open = false; }
 

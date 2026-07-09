@@ -52,6 +52,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
     CmsIconViewComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './admission-completion-list.component.html',
   styleUrl: './admission-completion-list.component.scss',

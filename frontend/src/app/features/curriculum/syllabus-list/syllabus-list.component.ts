@@ -38,6 +38,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     CmsRowActionButtonComponent,
     CmsIconDeleteComponent,
     CmsIconEditComponent,
+    CmsColumnPickerComponent,
 ],
   templateUrl: './syllabus-list.component.html',
   styleUrl: './syllabus-list.component.scss',

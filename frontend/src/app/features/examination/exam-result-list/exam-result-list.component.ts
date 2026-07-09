@@ -16,7 +16,9 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
   standalone: true,
   imports: [
     MatTableModule, MatPaginatorModule, MatSortModule,
-    MatIconModule, MatProgressSpinnerModule, CmsStatusBadgeComponent, CmsEmptyStateComponent],
+    MatIconModule, MatProgressSpinnerModule, CmsStatusBadgeComponent, CmsEmptyStateComponent,
+    CmsColumnPickerComponent
+  ],
   templateUrl: './exam-result-list.component.html',
   styleUrl: './exam-result-list.component.scss',
 })

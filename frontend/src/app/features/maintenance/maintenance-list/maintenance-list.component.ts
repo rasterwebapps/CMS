@@ -33,6 +33,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
     CmsIconDeleteComponent,
     CmsIconEditComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './maintenance-list.component.html',
   styleUrl: './maintenance-list.component.scss',

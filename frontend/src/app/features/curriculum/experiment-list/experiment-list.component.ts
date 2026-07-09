@@ -38,6 +38,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     CmsRowActionButtonComponent,
     CmsIconDeleteComponent,
     CmsIconEditComponent,
+    CmsColumnPickerComponent,
 ],
   templateUrl: './experiment-list.component.html',
   styleUrl: './experiment-list.component.scss',

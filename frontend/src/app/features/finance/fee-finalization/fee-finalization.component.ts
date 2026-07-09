@@ -43,6 +43,7 @@ interface Program { id: number; name: string; durationYears: number; }
     MatPaginatorModule, MatSortModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent,
       CmsIconEditComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './fee-finalization.component.html',
   styleUrl: './fee-finalization.component.scss',

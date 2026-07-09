@@ -55,6 +55,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
     CmsIconViewComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './document-submission-list.component.html',
   styleUrl: './document-submission-list.component.scss',

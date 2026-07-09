@@ -47,6 +47,7 @@ type Gender = 'MALE' | 'FEMALE' | 'OTHER' | null;
     CmsTypeBadgeComponent,
       CmsIconDeleteComponent,
       CmsIconEditComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './fee-structure-list.component.html',
   styleUrl: './fee-structure-list.component.scss',

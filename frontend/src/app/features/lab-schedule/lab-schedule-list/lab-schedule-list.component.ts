@@ -32,6 +32,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
     CmsIconDeleteComponent,
     CmsIconEditComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './lab-schedule-list.component.html',
   styleUrl: './lab-schedule-list.component.scss',

@@ -38,6 +38,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     CmsRowActionButtonComponent,
     CmsIconDeleteComponent,
     CmsIconEditComponent,
+    CmsColumnPickerComponent,
 ],
   templateUrl: './co-po-mapping.component.html',
   styleUrl: './co-po-mapping.component.scss',

@@ -33,6 +33,7 @@ const DEFAULT_PAGE_SIZE = 25;
     MatIconModule, MatDialogModule, MatTableModule, MatPaginatorModule, MatSortModule,
     AppDatePipe, InrPipe,
     CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsRowActionButtonComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './scholarship-applications-list.component.html',
   styleUrl: './scholarship-applications-list.component.scss',

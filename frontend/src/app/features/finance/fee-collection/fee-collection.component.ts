@@ -66,6 +66,7 @@ export interface FeeEntry {
     CmsTypeBadgeComponent,
     CashDenominationComponent,
     FeeReceiptDialogComponent,
+    CmsColumnPickerComponent,
   ],
   templateUrl: './fee-collection.component.html',
   styleUrl: './fee-collection.component.scss',
