@@ -3700,7 +3700,7 @@ html.dark-theme body::after {
 // ── Animations ────────────────────────────────────────
 @keyframes cms-rise-up {
   from { opacity: 0; transform: translateY(18px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 
 @keyframes cms-fade-in {
@@ -3715,8 +3715,19 @@ html.dark-theme body::after {
 
 
 // Animation utility classes
+//
+// fill-mode is `backwards`, NOT `both`/`forwards`, on purpose: `backwards` still
+// pre-applies the "from" keyframe during animation-delay (no flash-of-unstyled
+// content), but does not retain the animation's effect once it finishes. With
+// `forwards`/`both`, browsers keep the resolved transform as a literal matrix
+// (never reverting to the "none" keyword) for the rest of the element's life,
+// which silently makes the element a new CSS containing block for any
+// `position: fixed` descendant (e.g. the column-picker dropdown), causing it to
+// be positioned relative to this toolbar instead of the viewport. See the
+// z-index note on .mlp-toolbar.anim-rise below for the sibling bug this same
+// lingering-transform quirk previously caused.
 .anim-rise {
-  animation: cms-rise-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: cms-rise-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) backwards;
 }
 .anim-fade {
   animation: cms-fade-in 0.3s ease both;
@@ -4674,12 +4685,19 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  // Needed so the column-picker dropdown (position:absolute inside) floats
-  // above the table card below — both can carry .anim-rise which leaves
-  // transform:scale(1) (fill-mode:both), creating sibling stacking contexts
-  // whose paint order is DOM order. Without this the table card wins.
+  // No z-index here: toolbar does not form a stacking context, so the fixed
+  // cp-dropdown (z-index:2000) escapes to mat-sidenav-content and beats the
+  // sticky table header (z-index:2) by 2000 vs 2.
   position: relative;
-  z-index: 2;
+
+  // When anim-rise is applied, the cms-rise-up animation temporarily sets
+  // transform:translateY(Xpx), which creates a stacking context with z-index:auto
+  // (layer 6). That puts the toolbar group BELOW the sticky table header (z-index:2,
+  // layer 7), hiding the dropdown. The explicit z-index here promotes the toolbar
+  // group to layer 7 at z-index:100, which beats the table header.
+  &.anim-rise {
+    z-index: 100;
+  }
 }
 
 .mlp-filter-select {

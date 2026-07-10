@@ -2,15 +2,19 @@
   position: relative;
 }
 
+// Rendered inside a CDK overlay pane (portaled to the app's overlay
+// container at the document root), which already supplies fixed positioning
+// and a top-level stacking context — no position/z-index needed here.
 .cp-dropdown {
-  position: fixed;
-  z-index: 2000;
   background: var(--cms-bg-card);
   border: 1px solid var(--cms-border-default);
   border-radius: 10px;
   box-shadow: var(--cms-shadow-xl);
   min-width: 220px;
+  max-height: calc(100vh - 16px);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .cp-dropdown-header {
@@ -93,10 +97,13 @@
   &--on { background: var(--cms-primary); border-color: var(--cms-primary); color: #fff; }
 
   &--disabled {
-    background: var(--cms-bg-muted);
-    border-color: var(--cms-border-default);
     cursor: not-allowed;
     opacity: 0.6;
+
+    &:not(.cp-check--on) {
+      background: var(--cms-bg-muted);
+      border-color: var(--cms-border-default);
+    }
   }
 }
 
