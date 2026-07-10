@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
-import { MatSortModule } from '@angular/material/sort';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { StudentService } from '../student.service';
 import { Student } from '../student.model';
@@ -62,6 +62,11 @@ export class RollNumberAssignmentComponent implements OnInit {
 
   protected readonly displayedColumns = ['name', 'programName', 'yearOfStudy', 'admissionDate', 'rollNumber', 'actions'];
 
+  // All rows load in one shot (no backend pagination here), so sort is applied
+  // client-side against the in-memory list rather than re-fetched from the server.
+  protected sortActive = 'name';
+  protected sortDirection: 'asc' | 'desc' = 'asc';
+
   ngOnInit(): void {
     this.tourService.register('roll-number-assignment', ROLL_NUMBER_ASSIGNMENT_TOUR);
     this.programService.getAll().subscribe({ next: (p) => this.programs.set(p) });
@@ -104,6 +109,7 @@ export class RollNumberAssignmentComponent implements OnInit {
     ).subscribe({
       next: (students) => {
         this.assignments.set(students.map((s) => ({ student: s, rollNumber: '' })));
+        this.applySort();
         this.loading.set(false);
       },
       error: () => {
@@ -111,6 +117,31 @@ export class RollNumberAssignmentComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  protected onSortChange(sort: Sort): void {
+    this.sortActive    = sort.active;
+    this.sortDirection = (sort.direction || 'asc') as 'asc' | 'desc';
+    this.applySort();
+  }
+
+  private applySort(): void {
+    const dir = this.sortDirection === 'desc' ? -1 : 1;
+    const value = (item: RollAssignment): string | number => {
+      switch (this.sortActive) {
+        case 'programName':   return item.student.programName ?? '';
+        case 'yearOfStudy':   return item.student.yearOfStudy ?? 0;
+        case 'admissionDate': return item.student.admissionDate ?? '';
+        case 'rollNumber':    return item.rollNumber;
+        default:              return item.student.fullName ?? '';
+      }
+    };
+    const sorted = [...this.assignments()].sort((a, b) => {
+      const av = value(a), bv = value(b);
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+    this.assignments.set(sorted);
   }
 
   protected assignOne(item: RollAssignment): void {

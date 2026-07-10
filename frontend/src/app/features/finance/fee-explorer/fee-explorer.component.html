@@ -115,7 +115,9 @@
 
      } @else {
        <div class="table-wrapper">
-         <table id="tour-explorer-table" mat-table [dataSource]="dataSource" matSort class="modern-table">
+         <table id="tour-explorer-table" mat-table [dataSource]="dataSource" matSort matSortDisableClear
+                [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+                (matSortChange)="onSortChange($event)" class="modern-table">
 
           <!-- Roll Number -->
           <ng-container matColumnDef="rollNumber" [sticky]="colState.isSticky('rollNumber')">
@@ -148,25 +150,27 @@
             </td>
           </ng-container>
 
-          <!-- Total Fee -->
+          <!-- Total Fee — not sortable: computed in FeeExplorerService.buildSummary() by
+               aggregating StudentFeeAllocation rows per student after the page query runs,
+               not a real column on the Student entity the sort targets. -->
           <ng-container matColumnDef="totalFee" [sticky]="colState.isSticky('totalFee')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Total Fee (₹)</th>
+            <th mat-header-cell *matHeaderCellDef arrowPosition="before" class="cell-align-right">Total Fee (₹)</th>
             <td mat-cell *matCellDef="let row" class="cell-align-right">
               <span class="cell-mono">{{ row.totalFee | inr:false:false }}</span>
             </td>
           </ng-container>
 
-          <!-- Paid -->
+          <!-- Paid — not sortable, see Total Fee note above. -->
           <ng-container matColumnDef="totalPaid" [sticky]="colState.isSticky('totalPaid')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Paid (₹)</th>
+            <th mat-header-cell *matHeaderCellDef arrowPosition="before" class="cell-align-right">Paid (₹)</th>
             <td mat-cell *matCellDef="let row" class="cell-align-right">
               <span class="cell-mono cell-mono--green">{{ row.totalPaid | inr:false:false }}</span>
             </td>
           </ng-container>
 
-          <!-- Pending -->
+          <!-- Pending — not sortable, see Total Fee note above. -->
           <ng-container matColumnDef="totalPending" [sticky]="colState.isSticky('totalPending')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Pending (₹)</th>
+            <th mat-header-cell *matHeaderCellDef arrowPosition="before" class="cell-align-right">Pending (₹)</th>
             <td mat-cell *matCellDef="let row" class="cell-align-right">
               @if (row.totalPending > 0) {
                 <span class="cell-mono cell-mono--red">{{ row.totalPending | inr:false:false }}</span>
@@ -176,9 +180,9 @@
             </td>
           </ng-container>
 
-          <!-- Penalty -->
+          <!-- Penalty — not sortable, see Total Fee note above. -->
           <ng-container matColumnDef="totalPenalty" [sticky]="colState.isSticky('totalPenalty')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Penalty (₹)</th>
+            <th mat-header-cell *matHeaderCellDef arrowPosition="before" class="cell-align-right">Penalty (₹)</th>
             <td mat-cell *matCellDef="let row" class="cell-align-right">
               @if (row.totalPenalty > 0) {
                 <span class="cell-mono cell-mono--amber">{{ row.totalPenalty | inr:false:false }}</span>
@@ -188,9 +192,9 @@
             </td>
           </ng-container>
 
-          <!-- Status -->
+          <!-- Status — not sortable, see Total Fee note above (also computed per-student). -->
           <ng-container matColumnDef="allocationStatus" [sticky]="colState.isSticky('allocationStatus')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-center">Status</th>
+            <th mat-header-cell *matHeaderCellDef class="col-center">Status</th>
             <td mat-cell *matCellDef="let row" class="col-center">
               <cms-status-badge [status]="row.allocationStatus" />
             </td>

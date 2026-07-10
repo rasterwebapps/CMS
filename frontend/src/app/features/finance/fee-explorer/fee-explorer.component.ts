@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged, Subject, Subscription, takeUntil } from 'rxjs';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSortModule, MatSort, SortDirection } from '@angular/material/sort';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FinanceService } from '../finance.service';
 import { StudentFeeSummary } from '../finance.model';
@@ -24,12 +24,17 @@ import { PermissionService } from '../../../core/permissions/permission.service'
 const DEFAULT_PAGE_SIZE = 25;
 const SEARCH_MIN_LENGTH = 2;
 const DEFAULT_SORT_FIELD = 'rollNumber';
-const DEFAULT_SORT_DIR: SortDirection = 'asc';
+const DEFAULT_SORT_DIR: 'asc' | 'desc' = 'asc';
+// Only columns backed by a real, directly-queryable Student entity property (or join
+// path) belong here — searchPageable() sorts against Student via Specification before
+// the per-row fee totals are computed in Java, so totalFee/totalPaid/totalPending/
+// totalPenalty/allocationStatus can never be sorted this way (mat-sort-header removed
+// from those columns in the template instead of guessing a mapping that would 500).
 const SORT_FIELD_MAP: Record<string, string> = {
-  rollNumber:       'rollNumber',
-  allocationStatus: 'allocationStatus',
+  rollNumber:  'rollNumber',
+  studentName: 'firstName',
+  programName: 'program.name',
 };
-
 @Component({
   selector: 'app-fee-explorer',
   standalone: true,
@@ -66,25 +71,6 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
   get paginator(): MatPaginator | undefined { return this._paginator; }
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
-  @ViewChild(MatSort)
-  set matSort(value: MatSort | undefined) {
-    if (this._matSort === value) return;
-    this._matSortSub?.unsubscribe();
-    this._matSort = value;
-    if (!value) return;
-    this._matSortSub = value.sortChange.pipe(takeUntil(this.destroy$)).subscribe(ev => {
-      const backendField = SORT_FIELD_MAP[ev.active];
-      if (!backendField) return;
-      const dir = (ev.direction || DEFAULT_SORT_DIR) as SortDirection;
-      this.navigate({ sortField: backendField, sortDir: dir, page: 0 });
-    });
-    value.active    = this.currentSortField;
-    value.direction = this.currentSortDir;
-  }
-  get matSort(): MatSort | undefined { return this._matSort; }
-  private _matSort?: MatSort;
-  private _matSortSub?: Subscription;
-
   protected readonly colState = new ColumnPickerState({
     columns: [
       { key: 'rollNumber',       label: 'Roll No.' },
@@ -143,8 +129,8 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
   // ── Pagination / sort state ───────────────────────────────────────────────
   private currentPage      = 0;
   private currentPageSize  = DEFAULT_PAGE_SIZE;
-  private currentSortField = DEFAULT_SORT_FIELD;
-  private currentSortDir: SortDirection = DEFAULT_SORT_DIR;
+  protected sortActive     = DEFAULT_SORT_FIELD;
+  protected sortDirection: 'asc' | 'desc' = DEFAULT_SORT_DIR;
 
   private readonly destroy$      = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
@@ -186,8 +172,8 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
       this.searchValue.set(params['search'] ?? '');
       this.currentPage      = params['page']      ? +params['page']     : 0;
       this.currentPageSize  = params['size']      ? +params['size']     : DEFAULT_PAGE_SIZE;
-      this.currentSortField = params['sortField'] ?? DEFAULT_SORT_FIELD;
-      this.currentSortDir   = (params['sortDir']  ?? DEFAULT_SORT_DIR) as SortDirection;
+      this.sortActive    = params['sortField'] ?? DEFAULT_SORT_FIELD;
+      this.sortDirection = (params['sortDir']  ?? DEFAULT_SORT_DIR) as 'asc' | 'desc';
       this.loadPage();
     });
 
@@ -204,9 +190,14 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this._matSortSub?.unsubscribe();
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  protected onSortChange(sort: Sort): void {
+    this.sortActive    = sort.active;
+    this.sortDirection = (sort.direction || DEFAULT_SORT_DIR) as 'asc' | 'desc';
+    this.navigate({ sortField: this.sortActive, sortDir: this.sortDirection, page: 0 });
   }
 
   protected onSearchInput(event: Event): void {
@@ -261,7 +252,7 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
       search:  this.searchValue() || undefined,
       page:    this.currentPage,
       size:    this.currentPageSize,
-      sort:    `${this.currentSortField},${this.currentSortDir}`,
+      sort:    `${SORT_FIELD_MAP[this.sortActive] ?? this.sortActive},${this.sortDirection}`,
     }).subscribe({
       next: (page) => {
         this._pageData.set(page.content);

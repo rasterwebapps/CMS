@@ -189,7 +189,9 @@
       </div>
      } @else {
        <div class="table-wrapper">
-       <table id="tour-receipts-table" mat-table [dataSource]="dataSource" matSort class="modern-table">
+       <table id="tour-receipts-table" mat-table [dataSource]="dataSource" matSort matSortDisableClear
+              [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+              (matSortChange)="onSortChange($event)" class="modern-table">
 
         <ng-container matColumnDef="receiptNumber" [sticky]="colState.isSticky('receiptNumber')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Receipt No.</th>

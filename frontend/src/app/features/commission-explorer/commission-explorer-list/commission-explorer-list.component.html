@@ -319,7 +319,9 @@
       />
     } @else {
       <div class="table-wrapper">
-      <table mat-table [dataSource]="dataSource" matSort multiTemplateDataRows class="mlp-table">
+      <table mat-table [dataSource]="dataSource" matSort matSortDisableClear
+             [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+             (matSortChange)="onSortChange($event)" multiTemplateDataRows class="mlp-table">
 
         <!-- Student Name -->
         <ng-container matColumnDef="studentName" [sticky]="colState.isSticky('studentName')">

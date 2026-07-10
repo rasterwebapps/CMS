@@ -82,7 +82,9 @@
 
     } @else {
       <div id="tour-rollno-table" class="table-wrapper">
-        <table mat-table [dataSource]="assignments()" matSort class="modern-table">
+        <table mat-table [dataSource]="assignments()" matSort matSortDisableClear
+               [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+               (matSortChange)="onSortChange($event)" class="modern-table">
 
           <!-- Student -->
           <ng-container matColumnDef="name">

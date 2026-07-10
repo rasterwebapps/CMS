@@ -125,7 +125,9 @@
 
     } @else {
       <div id="tour-stu-table" class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+        <table mat-table [dataSource]="dataSource" matSort matSortDisableClear
+               [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+               (matSortChange)="onSortChange($event)" class="modern-table">
 
           <!-- Admission Number -->
           <ng-container matColumnDef="admissionNumber" [sticky]="colState.isSticky('admissionNumber')">

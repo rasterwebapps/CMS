@@ -5,7 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatIconModule } from '@angular/material/icon';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
@@ -25,6 +25,14 @@ import { ScholarshipRejectDialogComponent } from '../reject-dialog/scholarship-r
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 const DEFAULT_PAGE_SIZE = 25;
+const SORT_FIELD_MAP: Record<string, string> = {
+  studentName:      'student.firstName',
+  scholarshipName:  'scholarshipType.name',
+  academicYearName: 'academicYear.name',
+  applicationDate:  'applicationDate',
+  status:           'status',
+  approvedAmount:   'approvedAmount',
+};
 
 @Component({
   selector: 'app-scholarship-applications-list',
@@ -82,6 +90,8 @@ export class ScholarshipApplicationsListComponent implements OnInit, OnDestroy {
   protected totalElements  = 0;
   private currentPage      = 0;
   private currentPageSize  = DEFAULT_PAGE_SIZE;
+  protected sortActive     = 'applicationDate';
+  protected sortDirection: 'asc' | 'desc' = 'asc';
 
   protected readonly hasActiveFilters = computed(() => this.searchQuery().length >= 2);
 
@@ -97,6 +107,8 @@ export class ScholarshipApplicationsListComponent implements OnInit, OnDestroy {
       this.searchQuery.set(params['search'] ?? '');
       this.currentPage     = params['page'] ? +params['page'] : 0;
       this.currentPageSize = params['size'] ? +params['size'] : DEFAULT_PAGE_SIZE;
+      this.sortActive      = params['sortField'] ?? 'applicationDate';
+      this.sortDirection   = (params['sortDir']  ?? 'asc') as 'asc' | 'desc';
       this.loadPage();
     });
 
@@ -125,6 +137,7 @@ export class ScholarshipApplicationsListComponent implements OnInit, OnDestroy {
       search: this.searchQuery().length >= 2 ? this.searchQuery() : undefined,
       page:   this.currentPage,
       size:   this.currentPageSize,
+      sort:   `${SORT_FIELD_MAP[this.sortActive] ?? this.sortActive},${this.sortDirection}`,
     }).subscribe({
       next: page => {
         this.dataSource.data = page.content;
@@ -153,6 +166,12 @@ export class ScholarshipApplicationsListComponent implements OnInit, OnDestroy {
     this.tourService.start('scholarship-applications');
   }
 
+  protected onSortChange(sort: Sort): void {
+    this.sortActive    = sort.active;
+    this.sortDirection = (sort.direction || 'asc') as 'asc' | 'desc';
+    this.navigate({ sortField: this.sortActive, sortDir: this.sortDirection, page: 0 });
+  }
+
   protected approve(row: ScholarshipApplication): void {
     const ref = this.dialog.open(ScholarshipApproveDialogComponent, {
       width: '520px', maxWidth: '95vw', data: { application: row },
@@ -171,12 +190,16 @@ export class ScholarshipApplicationsListComponent implements OnInit, OnDestroy {
     });
   }
 
-  private navigate(patch: Partial<{ search: string | null; page: number; size: number }>): void {
+  private navigate(patch: Partial<{
+    search: string | null; page: number; size: number; sortField: string | null; sortDir: string | null;
+  }>): void {
     const cur = this.route.snapshot.queryParams;
     const merged = {
-      search: 'search' in patch ? patch.search : (cur['search'] ?? null),
-      page:   'page'   in patch ? patch.page   : this.currentPage,
-      size:   'size'   in patch ? patch.size   : this.currentPageSize,
+      search:    'search'    in patch ? patch.search    : (cur['search'] ?? null),
+      page:      'page'      in patch ? patch.page      : this.currentPage,
+      size:      'size'      in patch ? patch.size      : this.currentPageSize,
+      sortField: 'sortField' in patch ? patch.sortField : (cur['sortField'] ?? null),
+      sortDir:   'sortDir'   in patch ? patch.sortDir   : (cur['sortDir'] ?? null),
     };
     const queryParams = Object.fromEntries(
       Object.entries(merged).filter(([, v]) => v !== null && v !== undefined && v !== ''),

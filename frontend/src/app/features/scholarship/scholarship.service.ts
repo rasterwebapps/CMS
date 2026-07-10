@@ -98,10 +98,11 @@ export class ScholarshipService {
   }
 
   getPendingApplicationsPage(p: {
-    search?: string; page?: number; size?: number;
+    search?: string; page?: number; size?: number; sort?: string;
   }): Observable<Page<ScholarshipApplication>> {
     let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
     if (p.search) params = params.set('search', p.search);
+    if (p.sort)   params = params.set('sort', p.sort);
     return this.http.get<Page<ScholarshipApplication>>(`${this.baseUrl}/scholarship-applications`, { params });
   }
 

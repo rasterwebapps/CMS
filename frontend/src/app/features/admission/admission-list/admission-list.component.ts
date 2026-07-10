@@ -15,7 +15,7 @@ import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, takeUntil } from 'rxjs/operators';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSortModule, MatSort, SortDirection } from '@angular/material/sort';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -55,8 +55,8 @@ const SORT_FIELD_MAP: Record<string, string> = {
   applicationDate: 'applicationDate',
   academicYear:    'joiningAcademicYear.name',
   studentStatus:   'student.status',
+  declarationDate: 'declarationDate',
 };
-
 @Component({
   selector: 'app-admission-list',
   standalone: true,
@@ -113,24 +113,6 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
   get paginator(): MatPaginator | undefined { return this._paginator; }
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
-  @ViewChild(MatSort)
-  set matSort(value: MatSort | undefined) {
-    if (this._matSort === value) return;
-    this._matSortSub?.unsubscribe();
-    this._matSort = value;
-    if (!value) return;
-    this._matSortSub = value.sortChange.pipe(takeUntil(this.destroy$)).subscribe(ev => {
-      const field = SORT_FIELD_MAP[ev.active] ?? ev.active;
-      const dir   = (ev.direction || 'asc') as SortDirection;
-      this.navigate({ sortField: field, sortDir: dir, page: 0 });
-    });
-    value.active    = this.currentSortField;
-    value.direction = this.currentSortDir;
-  }
-  get matSort(): MatSort | undefined { return this._matSort; }
-  private _matSort?: MatSort;
-  private _matSortSub?: Subscription;
-
   protected readonly computeInitials = computeInitials;
 
   // ── Column picker ─────────────────────────────────────────────
@@ -199,8 +181,8 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
   // ── Pagination / sort state ──────────────────────────────────
   private currentPage      = 0;
   private currentPageSize  = DEFAULT_PAGE_SIZE;
-  private currentSortField = 'student.admissionNumber';
-  private currentSortDir: SortDirection = 'asc';
+  protected sortActive     = 'admissionNumber';
+  protected sortDirection: 'asc' | 'desc' = 'asc';
 
   private readonly destroy$ = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
@@ -226,8 +208,8 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
       this.searchTerm.set(params['search'] ?? '');
       this.currentPage      = params['page']      ? +params['page']      : 0;
       this.currentPageSize  = params['size']      ? +params['size']      : DEFAULT_PAGE_SIZE;
-      this.currentSortField = params['sortField'] ?? 'student.admissionNumber';
-      this.currentSortDir   = (params['sortDir']  ?? 'asc') as SortDirection;
+      this.sortActive    = params['sortField'] ?? 'admissionNumber';
+      this.sortDirection = (params['sortDir']  ?? 'asc') as 'asc' | 'desc';
       this.loadPage();
     });
 
@@ -295,6 +277,12 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
     });
   }
 
+  protected onSortChange(sort: Sort): void {
+    this.sortActive    = sort.active;
+    this.sortDirection = (sort.direction || 'asc') as 'asc' | 'desc';
+    this.navigate({ sortField: this.sortActive, sortDir: this.sortDirection, page: 0 });
+  }
+
 
   // ── URL state management (single source of truth) ─────────────
   private navigate(patch: Partial<{
@@ -312,8 +300,8 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
       search:         'search'         in patch ? patch.search         : (cur['search'] ?? null),
       page:           'page'           in patch ? patch.page           : this.currentPage,
       size:           'size'           in patch ? patch.size           : this.currentPageSize,
-      sortField:      'sortField'      in patch ? patch.sortField      : this.currentSortField,
-      sortDir:        'sortDir'        in patch ? patch.sortDir        : this.currentSortDir,
+      sortField:      'sortField'      in patch ? patch.sortField      : this.sortActive,
+      sortDir:        'sortDir'        in patch ? patch.sortDir        : this.sortDirection,
     };
     // Strip nulls/empty so URL stays clean
     const queryParams = Object.fromEntries(
@@ -342,7 +330,7 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
       search:         this.searchTerm().length >= SEARCH_MIN_LENGTH ? this.searchTerm() : undefined,
       page:           this.currentPage,
       size:           this.currentPageSize,
-      sort:           `${this.currentSortField},${this.currentSortDir || 'asc'}`,
+      sort:           `${SORT_FIELD_MAP[this.sortActive] ?? this.sortActive},${this.sortDirection}`,
     };
 
     this.admissionService.getExplorer(params).subscribe({

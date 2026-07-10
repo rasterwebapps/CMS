@@ -462,7 +462,9 @@
       </div>
      } @else {
        <div class="table-wrapper">
-         <table id="tour-refund-table" mat-table [dataSource]="dataSource" matSort class="modern-table rfl-table">
+         <table id="tour-refund-table" mat-table [dataSource]="dataSource" matSort matSortDisableClear
+                [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+                (matSortChange)="onSortChange($event)" class="modern-table rfl-table">
 
           <!-- Requested At -->
           <ng-container matColumnDef="requestedAt" [sticky]="colState.isSticky('requestedAt')">

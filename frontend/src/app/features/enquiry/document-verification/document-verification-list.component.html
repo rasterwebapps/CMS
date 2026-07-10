@@ -102,7 +102,9 @@
 
     } @else {
       <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table docv-table">
+        <table mat-table [dataSource]="dataSource" matSort matSortDisableClear
+               [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+               (matSortChange)="onSortChange($event)" class="modern-table docv-table">
 
           <!-- Student -->
           <ng-container matColumnDef="name" [sticky]="colState.isSticky('name')">
