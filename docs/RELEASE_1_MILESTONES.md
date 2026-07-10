@@ -422,6 +422,25 @@
 - [x] **R1-4.1.11** Create high-density fee table with Material density `-2`
 - [x] **R1-4.1.12** Create finance routes (lazy-loaded)
 
+### R1-M4.1c — Excess Bank Payment with Auto-Generated Refund (BR-36)
+
+> **Business Requirement:** [BR-36](BUSINESS_REQUIREMENTS.md#br-36-excess-bank-payment-with-auto-generated-non-rejectable-refund)
+
+**Backend:**
+- [x] **R1-4.1c.1** Add `CollectPaymentRequest.allowExcess` (opt-in flag); honored only by `PaymentCollectionService.collectAdvancePayment` (per-student Advance Payment flow, not the term-gated bulk Collect Payment list or enquiry payments)
+- [x] **R1-4.1c.2** Bypass the total-outstanding cap only when `allowExcess=true`, payment mode is `DEMAND_DRAFT`/`BANK_TRANSFER`, and the caller holds `FEE_COLLECT_EXCESS` (checked server-side via `PermSecurityBean`, not just frontend)
+- [x] **R1-4.1c.3** Receipt records the full amount physically received (not just the portion applied to fees); excess is auto-carved into a new `FeeRefund` (`source = AUTO_EXCESS`) via `FeeRefundService.createAutoExcessRefund`
+- [x] **R1-4.1c.4** `FeeRefund.source` column (`MANUAL` | `AUTO_EXCESS`); `rejectRefund()` hard-blocks rejecting `AUTO_EXCESS` refunds; `approveRefund()`/`completeOneBookRefund()` skip installment/enquiry-payment soft-flagging for `AUTO_EXCESS` (the excess was never allocated to a fee)
+- [x] **R1-4.1c.5** Flyway migration V259 — `fee_refunds.source` column + `FEE_COLLECT_EXCESS` permission seed with DEV_ADMIN/SUPPORT_ADMIN catch-all sync
+- [x] **R1-4.1c.6** Update existing tests for the new constructor dependencies (`PaymentCollectionServiceTest`, `StudentFeeControllerTest`, `StudentImportService`)
+- [x] **R1-4.1c.7** Create manual test cases: `docs/manual-test-cases/excess-payment-auto-refund.md` — 16 TCs covering happy path, permission/payment-mode gating, no upper cap, form reactivity, immutability, installment-integrity on approval, and the one-active-refund-per-receipt interaction
+
+**Frontend:**
+- [x] **R1-4.1c.8** Student Fee Detail → Advance Payment form: "Allow payment above total outstanding (bank excess)" checkbox, gated by `FEE_COLLECT_EXCESS` + DD/Bank Transfer mode; relaxes `maxOutstandingValidator`; live excess preview + confirmation modal breakdown
+- [x] **R1-4.1c.9** Fee Refund List: "Auto" source chip (list + detail panel) for `AUTO_EXCESS` refunds; Reject action hidden for them (backend also blocks it — defense in depth)
+
+**Explicitly out of scope (see BR-36):** general partial refunds (refunding less than the full receipt amount), and a dedicated payment/receipt cancellation ("void") flow — neither exists in the system and this feature does not introduce them.
+
 ### R1-M4.1a — Referral Type Master (Module 8)
 
 > **Business Requirements:** See [BR-4](BUSINESS_REQUIREMENTS.md#br-4-referral-type-master).

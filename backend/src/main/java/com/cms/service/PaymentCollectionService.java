@@ -10,9 +10,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.config.PermSecurityBean;
 import com.cms.dto.CollectPaymentRequest;
 import com.cms.dto.CollectPaymentResponse;
 import com.cms.dto.EnquiryCreditApplicationDto;
@@ -29,6 +31,7 @@ import com.cms.model.SemesterFee;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
 import com.cms.model.enums.FeeAllocationStatus;
+import com.cms.model.enums.PaymentMode;
 import com.cms.repository.EnquiryCreditApplicationRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
@@ -52,6 +55,8 @@ public class PaymentCollectionService {
     private final UnifiedReceiptService unifiedReceiptService;
     private final EnquiryCreditApplicationRepository creditApplicationRepository;
     private final TermInstanceService termInstanceService;
+    private final FeeRefundService feeRefundService;
+    private final PermSecurityBean permSecurityBean;
 
     public PaymentCollectionService(StudentFeeAllocationRepository allocationRepository,
                                      SemesterFeeRepository semesterFeeRepository,
@@ -62,7 +67,9 @@ public class PaymentCollectionService {
                                      FeeRefundRepository refundRepository,
                                      UnifiedReceiptService unifiedReceiptService,
                                      EnquiryCreditApplicationRepository creditApplicationRepository,
-                                     TermInstanceService termInstanceService) {
+                                     TermInstanceService termInstanceService,
+                                     FeeRefundService feeRefundService,
+                                     PermSecurityBean permSecurityBean) {
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
         this.installmentRepository = installmentRepository;
@@ -73,6 +80,8 @@ public class PaymentCollectionService {
         this.unifiedReceiptService = unifiedReceiptService;
         this.creditApplicationRepository = creditApplicationRepository;
         this.termInstanceService = termInstanceService;
+        this.feeRefundService = feeRefundService;
+        this.permSecurityBean = permSecurityBean;
     }
 
     @Transactional
@@ -255,9 +264,20 @@ public class PaymentCollectionService {
         if (totalOutstanding.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalStateException("No outstanding fees for student: " + student.getRollNumber());
         }
-        if (request.amount().compareTo(totalOutstanding) > 0) {
-            throw new IllegalStateException(
-                "Payment amount (" + request.amount() + ") exceeds total outstanding: " + totalOutstanding);
+
+        boolean excessRequested = request.amount().compareTo(totalOutstanding) > 0;
+        if (excessRequested) {
+            if (!request.isAllowExcess()) {
+                throw new IllegalStateException(
+                    "Payment amount (" + request.amount() + ") exceeds total outstanding: " + totalOutstanding);
+            }
+            if (request.paymentMode() != PaymentMode.DEMAND_DRAFT && request.paymentMode() != PaymentMode.BANK_TRANSFER) {
+                throw new IllegalStateException(
+                    "Excess payment is only allowed for Demand Draft or Bank Transfer payments");
+            }
+            if (!permSecurityBean.has("FEE_COLLECT_EXCESS")) {
+                throw new AccessDeniedException("Collecting an excess payment requires the FEE_COLLECT_EXCESS permission");
+            }
         }
 
         BigDecimal remaining = request.amount();
@@ -316,6 +336,10 @@ public class PaymentCollectionService {
         }
 
         BigDecimal amountActuallyPaid = request.amount().subtract(remaining);
+        // With excess allowed, the receipt records the FULL amount physically received (matches
+        // the bank/DD reference) — the unallocated portion is carved out as an auto refund below,
+        // not silently dropped from the receipt.
+        BigDecimal receiptAmount = excessRequested ? request.amount() : amountActuallyPaid;
         String installmentsCovered = installmentBreakdown.stream()
             .map(SemesterPaymentDetail::installmentLabel)
             .collect(Collectors.joining(", "));
@@ -327,14 +351,18 @@ public class PaymentCollectionService {
             student.getId(), student.getFullName(), student.getRollNumber(), student.getAdmissionNumber(),
             student.getCourse() != null ? student.getCourse().getName()
                 : student.getProgram() != null ? student.getProgram().getName() : null,
-            amountActuallyPaid,
+            receiptAmount,
             request.paymentDate(), request.paymentMode().name(),
             request.transactionReference(), request.remarks(),
             installmentsCovered, null, feeCategory);
 
+        if (excessRequested && remaining.compareTo(BigDecimal.ZERO) > 0) {
+            feeRefundService.createAutoExcessRefund(student, receiptNumber, remaining);
+        }
+
         return new CollectPaymentResponse(
             receiptNumber, student.getId(), student.getFullName(), student.getRollNumber(),
-            amountActuallyPaid, request.paymentDate(), request.paymentMode(),
+            receiptAmount, request.paymentDate(), request.paymentMode(),
             request.transactionReference(), request.remarks(),
             String.join("; ", allocationDetails),
             installmentBreakdown,

@@ -154,6 +154,35 @@ public class FeeRefundService {
             enquiry.getName(), null, "PENDING");
     }
 
+    /**
+     * System-generated refund for the portion of a bank-transfer/DD advance payment that
+     * exceeded total outstanding (FEE_COLLECT_EXCESS). Unlike a manual refund, this amount was
+     * never allocated to any FeeInstallment row, so there is nothing to soft-flag on approval —
+     * and it can never be rejected/deleted by staff (see rejectRefund()); only paid out.
+     */
+    @Transactional
+    public void createAutoExcessRefund(Student student, String receiptNumber, BigDecimal excessAmount) {
+        String programName = student.getCourse() != null ? student.getCourse().getName()
+            : student.getProgram() != null ? student.getProgram().getName() : null;
+
+        FeeRefund refund = new FeeRefund();
+        refund.setEntityType("STUDENT");
+        refund.setOriginalReceiptNumber(receiptNumber);
+        refund.setStudentId(student.getId());
+        refund.setStudentName(student.getFullName());
+        refund.setRollNumber(student.getRollNumber());
+        refund.setAdmissionNumber(student.getAdmissionNumber());
+        refund.setProgramName(programName);
+        refund.setRefundAmount(excessAmount);
+        refund.setReason("Auto-generated: payment exceeded total outstanding by ₹" + excessAmount.toPlainString());
+        refund.setStatus("PENDING");
+        refund.setSource("AUTO_EXCESS");
+        refund.setRequestedBy("SYSTEM");
+        refund.setRequestedAt(Instant.now());
+
+        refundRepository.save(refund);
+    }
+
     /** Step 2a — approver confirms the refund and records how the money was returned. */
     @Transactional
     public FeeRefundSummaryResponse approveRefund(Long refundId,
@@ -169,7 +198,9 @@ public class FeeRefundService {
         String refundNumber = unifiedReceiptService.generateRefundNumber(paymentDate.getYear());
         Instant now = Instant.now();
 
-        if ("ENQUIRY".equals(refund.getEntityType())) {
+        if ("AUTO_EXCESS".equals(refund.getSource())) {
+            // The excess was never allocated to a FeeInstallment/EnquiryPayment row — nothing to soft-flag.
+        } else if ("ENQUIRY".equals(refund.getEntityType())) {
             // Soft-flag the enquiry payment row so outstanding queries exclude it
             EnquiryPayment payment = enquiryPaymentRepository
                 .findByReceiptNumber(refund.getOriginalReceiptNumber())
@@ -220,7 +251,9 @@ public class FeeRefundService {
             String refundNumber = obRequest.getInvoiceNumber();
             Instant now = Instant.now();
 
-            if ("ENQUIRY".equals(refund.getEntityType())) {
+            if ("AUTO_EXCESS".equals(refund.getSource())) {
+                // The excess was never allocated to a FeeInstallment/EnquiryPayment row — nothing to soft-flag.
+            } else if ("ENQUIRY".equals(refund.getEntityType())) {
                 EnquiryPayment payment = enquiryPaymentRepository
                         .findByReceiptNumber(refund.getOriginalReceiptNumber())
                         .orElseThrow(() -> new ResourceNotFoundException(
@@ -261,6 +294,9 @@ public class FeeRefundService {
                                                   String rejectedBy) {
         FeeRefund refund = refundRepository.findById(refundId)
             .orElseThrow(() -> new ResourceNotFoundException("Refund request not found: " + refundId));
+        if ("AUTO_EXCESS".equals(refund.getSource())) {
+            throw new IllegalStateException("Auto-generated excess refunds cannot be rejected");
+        }
         if (!"PENDING".equals(refund.getStatus())) {
             throw new IllegalStateException("Only PENDING refund requests can be rejected");
         }
@@ -334,6 +370,7 @@ public class FeeRefundService {
             r.getRefundAmount(), r.getReason(), r.getRequestedBy(),
             r.getRequestedAt() != null ? r.getRequestedAt().toString() : null,
             r.getStatus(),
+            r.getSource(),
             r.getRefundNumber(),
             effectivePaymentMode,
             r.getPaymentDate() != null ? r.getPaymentDate().toString() : null,

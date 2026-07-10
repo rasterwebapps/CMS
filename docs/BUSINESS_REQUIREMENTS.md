@@ -2174,4 +2174,36 @@ Only one physical `Library` exists today (seeded "Main Library"), but the schema
 
 ---
 
+## BR-36: Excess Bank Payment with Auto-Generated, Non-Rejectable Refund
+
+### Business Rule
+
+Payment collection has always hard-capped the amount at total outstanding (`PaymentCollectionService`, `EnquiryPaymentService`) — a cashier cannot record more than what is actually due. This is unchanged for cash, card, UPI and cheque. For **bank-disbursed payments only** (Demand Draft, Bank Transfer — the rails typically used for education-loan disbursements from a bank), a permission-gated cashier may now opt in to collect an amount **above** total outstanding when the bank has released more than the student currently owes.
+
+The excess portion is never silently dropped and never manually requested as a refund — it is carved out automatically, in the same transaction as the payment, as a `fee_refunds` row tagged `source = AUTO_EXCESS`. This auto-generated refund **cannot be rejected or deleted by staff** (enforced in `FeeRefundService.rejectRefund()`), only approved/paid out — because unlike a manual refund, the money was genuinely received and is unconditionally owed back once the excess is confirmed. Approving an `AUTO_EXCESS` refund does not soft-flag any `FeeInstallment`/`EnquiryPayment` rows (unlike a manual refund) since the excess was never allocated to a fee in the first place.
+
+Because the existing refund model allows only one active (non-`REJECTED`) refund per receipt (`uq_fee_refunds_active_receipt`), a receipt carrying an active `AUTO_EXCESS` refund cannot also have a manual full-receipt refund initiated against it until the excess refund is resolved (paid out) — there is no separate "cancel the whole payment" flow in this system; reversing a payment is always done via the existing refund request flow, which this constraint naturally sequences.
+
+### Scope
+
+- `CollectPaymentRequest.allowExcess` (opt-in, defaults to unset/false) — only honored by `PaymentCollectionService.collectAdvancePayment` (the per-student, non-term-gated "Advance Payment" flow — the term-gated bulk "Collect Payment" list and enquiry pre-admission payments are unaffected/out of scope).
+- Requires the payment mode to be `DEMAND_DRAFT` or `BANK_TRANSFER`, and the caller to hold `FEE_COLLECT_EXCESS`, checked server-side even though the frontend also gates the checkbox on both conditions.
+- The receipt (`PaymentReceipt.amountPaid`) records the **full amount physically received** (matching the bank/DD reference), not just the portion applied to fees — the unapplied excess is represented separately by the `AUTO_EXCESS` `FeeRefund` row, and shows up in the student's receipt history as a negative "Refund" line once approved (existing `getReceipts()` behavior, unchanged).
+- Frontend: Student Fee Detail → Advance Payment form gains an "Allow payment above total outstanding (bank excess)" checkbox, visible only in Advance mode, for DD/Bank Transfer, to users holding `FEE_COLLECT_EXCESS`. The confirmation modal and Fee Refund List both surface the excess amount / an "Auto" source chip; the Reject action is hidden (and blocked server-side) for `AUTO_EXCESS` refunds.
+
+### Permissions
+
+- `FEE_COLLECT_EXCESS` (new, category FINANCE, screen "Collect Payment", tier 4 — same default tier as `FEE_COLLECT`) — dedicated permission per the operation-wise permission mapping rule; not a reuse of `FEE_COLLECT`. Role assignment beyond the DEV_ADMIN/SUPPORT_ADMIN catch-all is handled via the DB-only Role Management module, not hardcoded.
+
+### Migration Notes
+
+- V259 — adds `fee_refunds.source VARCHAR(20) NOT NULL DEFAULT 'MANUAL'` and seeds `FEE_COLLECT_EXCESS` with the mandatory DEV_ADMIN/SUPPORT_ADMIN catch-all sync.
+
+### Explicitly Out of Scope
+
+- **General partial refunds** (refunding less than the full receipt amount) were evaluated and declined — the existing refund model derives `refund_amount` as 100% of the receipt and caps refunds at one per receipt; building true partial refunds would require reworking outstanding-balance math and the uniqueness constraint for a capability this feature doesn't need. The `AUTO_EXCESS` refund is a separate, additive carve-out, not a step toward general partial refunds.
+- **A dedicated payment/receipt cancellation ("void") flow.** None exists anywhere in the system today; this feature does not introduce one. Reversing a payment — excess or otherwise — is always done through the existing refund request flow.
+
+---
+
 > **⚠️ Documentation Policy:** Any changes to business rules, workflows, status transitions, fee logic, or operational processes described in this document must be reflected here **before** the corresponding code change is merged. This document, along with the milestone trackers and manual test cases, must always remain in sync with the implementation.

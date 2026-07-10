@@ -17,6 +17,7 @@ public record FeeRefundSummaryResponse(
     String requestedBy,
     String requestedAt,           // ISO-8601 instant string
     String status,                // PENDING | APPROVED | REJECTED
+    String source,                 // MANUAL | AUTO_EXCESS — AUTO_EXCESS cannot be rejected
     // Set on APPROVED
     String refundNumber,
     String paymentMode,

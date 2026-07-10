@@ -97,6 +97,9 @@
                   [class.rfl-status-chip--failed]="selectedRefund()!.status === 'PAYMENT_FAILED'">
               {{ selectedRefund()!.status === 'PAYMENT_FAILED' ? 'Payment Failed' : (selectedRefund()!.status | titlecase) }}
             </span>
+            @if (selectedRefund()!.source === 'AUTO_EXCESS') {
+              <span class="rfl-source-chip" title="System-generated for an excess bank payment — cannot be rejected">Auto</span>
+            }
           </div>
           <div class="rfl-detail-row">
             <span class="rfl-detail-label">Reason</span>
@@ -330,7 +333,7 @@
               </button>
             }
 
-            @if (selectedRefund()!.status === 'PENDING') {
+            @if (selectedRefund()!.status === 'PENDING' && selectedRefund()!.source !== 'AUTO_EXCESS') {
               <button class="btn-danger" (click)="startReject()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
                      fill="none" stroke="currentColor" stroke-width="2.5"
@@ -529,6 +532,9 @@
                     [class.rfl-status-chip--failed]="r.status === 'PAYMENT_FAILED'">
                 {{ r.status === 'PAYMENT_FAILED' ? 'Payment Failed' : (r.status | titlecase) }}
               </span>
+              @if (r.source === 'AUTO_EXCESS') {
+                <span class="rfl-source-chip" title="System-generated for an excess bank payment — cannot be rejected">Auto</span>
+              }
             </td>
           </ng-container>
 

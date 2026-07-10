@@ -36,6 +36,12 @@
             <span class="sfd-confirm-row__label">Amount</span>
             <strong class="sfd-confirm-row__val">₹{{ form.get('amount')?.value | number:'1.0-0' }}</strong>
           </div>
+          @if (excessPreviewAmount() > 0) {
+            <div class="sfd-confirm-row">
+              <span class="sfd-confirm-row__label">Excess (auto-refund)</span>
+              <strong class="sfd-confirm-row__val" style="color: var(--cms-warning);">₹{{ excessPreviewAmount() | number:'1.0-0' }}</strong>
+            </div>
+          }
           <div class="sfd-confirm-row">
             <span class="sfd-confirm-row__label">Date</span>
             <strong class="sfd-confirm-row__val">{{ form.get('paymentDate')?.value }}</strong>
@@ -317,6 +323,19 @@
                 }
               </div>
             </div>
+
+            @if (showExcessOption()) {
+              <div class="field-group">
+                <label class="excess-check">
+                  <input type="checkbox" formControlName="allowExcess" />
+                  <span>Allow payment above total outstanding (bank excess)</span>
+                </label>
+                <p class="field-hint">For bank-disbursed payments (DD / Bank Transfer) that exceed dues. The excess auto-generates a refund voucher that cannot be cancelled or rejected — only paid out.</p>
+                @if (excessPreviewAmount() > 0) {
+                  <p class="field-warning">₹{{ excessPreviewAmount() | number:'1.0-0' }} exceeds total outstanding and will be auto-refunded.</p>
+                }
+              </div>
+            }
 
             @if (isCashMode()) {
               <div class="field-group">

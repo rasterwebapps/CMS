@@ -18,6 +18,7 @@ import { printFeeReceipt, downloadFeeReceipt } from '../../../shared/utils/print
 import { TourService } from '../../../shared/tour/tour.service';
 import { STUDENT_FEE_DETAIL_TOUR } from '../../../shared/tour/tours/finance.tours';
 import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
+import { PermissionService } from '../../../core/permissions/permission.service';
 import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -46,11 +47,12 @@ export interface ReceiptGroup {
   styleUrl: './student-fee-detail.component.scss',
 })
 export class StudentFeeDetailComponent implements OnInit {
-  private readonly route       = inject(ActivatedRoute);
-  private readonly finance     = inject(FinanceService);
-  private readonly toast       = inject(ToastService);
-  private readonly fb          = inject(FormBuilder);
-  private readonly tourService = inject(TourService);
+  private readonly route             = inject(ActivatedRoute);
+  private readonly finance           = inject(FinanceService);
+  private readonly toast             = inject(ToastService);
+  private readonly fb                = inject(FormBuilder);
+  private readonly tourService       = inject(TourService);
+  private readonly permissionService = inject(PermissionService);
 
   // ── Data signals ──────────────────────────────────────────────────────────────
   protected readonly loading            = signal(true);
@@ -77,7 +79,10 @@ export class StudentFeeDetailComponent implements OnInit {
     paymentMode:          ['',   Validators.required],
     transactionReference: ['',   [transactionReferenceRequiredValidator('paymentMode')]],
     remarks:              [''],
+    allowExcess:          [false],
   });
+
+  protected readonly canAllowExcess = computed(() => this.permissionService.has('FEE_COLLECT_EXCESS'));
 
   // ── Computed: installment rows (flat, for the grid table) ─────────────────────
   protected readonly semesterRows = computed(() => {
@@ -177,6 +182,14 @@ export class StudentFeeDetailComponent implements OnInit {
 
     this.form.get('paymentMode')?.valueChanges.subscribe(() => {
       this.form.get('transactionReference')?.updateValueAndValidity();
+      if (!this.isExcessEligibleMode() && this.form.get('allowExcess')?.value) {
+        this.form.get('allowExcess')?.setValue(false, { emitEvent: false });
+      }
+      this.updateAmountValidators();
+    });
+
+    this.form.get('allowExcess')?.valueChanges.subscribe(() => {
+      this.updateAmountValidators();
     });
   }
 
@@ -208,9 +221,30 @@ export class StudentFeeDetailComponent implements OnInit {
   protected toggleAdvanceMode(): void {
     const next = !this.advanceMode();
     this.advanceMode.set(next);
+    if (!next) this.form.get('allowExcess')?.setValue(false, { emitEvent: false });
     this.updateAmountValidators();
     const prefillAmt = next ? this.totalOutstanding() : this.collectibleNowOutstanding();
     if (prefillAmt > 0) this.form.patchValue({ amount: prefillAmt });
+  }
+
+  /** FEE_COLLECT_EXCESS is restricted to bank-rail modes (bank loan disbursements, DD/NEFT/RTGS/IMPS). */
+  protected isExcessEligibleMode(): boolean {
+    const mode = this.form.get('paymentMode')?.value;
+    return mode === 'DEMAND_DRAFT' || mode === 'BANK_TRANSFER';
+  }
+
+  protected showExcessOption(): boolean {
+    return this.advanceMode() && this.canAllowExcess() && this.isExcessEligibleMode();
+  }
+
+  /** Rupees above total outstanding that will become a non-cancellable auto-refund. */
+  protected excessPreviewAmount(): number {
+    if (!this.form.get('allowExcess')?.value) return 0;
+    const max = this.amountMax();
+    const raw = this.form.get('amount')?.value;
+    if (max === null || raw === null || raw === '') return 0;
+    const n = Number(raw);
+    return !Number.isNaN(n) && n > max ? n - max : 0;
   }
 
   protected cancelForm(): void {
@@ -249,6 +283,7 @@ export class StudentFeeDetailComponent implements OnInit {
       paymentMode:          v.paymentMode,
       transactionReference: v.transactionReference?.trim() || undefined,
       remarks:              v.remarks?.trim() || undefined,
+      allowExcess:          this.showExcessOption() && !!v.allowExcess || undefined,
     };
 
     this.saving.set(true);
@@ -434,7 +469,8 @@ export class StudentFeeDetailComponent implements OnInit {
 
     const validators = [Validators.required, Validators.min(1)];
     const max = this.amountMax();
-    if (max !== null) validators.push(this.maxOutstandingValidator(max));
+    const excessAllowed = this.showExcessOption() && !!this.form.get('allowExcess')?.value;
+    if (max !== null && !excessAllowed) validators.push(this.maxOutstandingValidator(max));
 
     amountControl.setValidators(validators);
     amountControl.updateValueAndValidity({ emitEvent: false });

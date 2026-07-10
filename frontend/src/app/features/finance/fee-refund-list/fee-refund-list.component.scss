@@ -101,6 +101,27 @@ tr.rfl-row--pending:hover td {
   }
 }
 
+// ── Source chip (AUTO_EXCESS marker) ────────────────────────────────────────────
+.rfl-source-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 5px;
+  padding: 1px 7px;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: rgba(99, 102, 241, 0.12);
+  color: #4338ca;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+:root[data-theme="dark"] {
+  .rfl-source-chip { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border-color: rgba(99, 102, 241, 0.3); }
+}
+
 // ── Student cell ─────────────────────────────────────────────────────────────
 .rfl-student-cell {
   display: flex;

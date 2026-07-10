@@ -155,6 +155,8 @@ export interface CollectPaymentRequest {
   paymentMode: string;
   transactionReference?: string;
   remarks?: string;
+  /** Bank transfer/DD only + FEE_COLLECT_EXCESS — allow amount above total outstanding. */
+  allowExcess?: boolean;
 }
 
 export interface CollectPaymentResponse {
@@ -375,6 +377,8 @@ export interface FeeRefundSummary {
   requestedBy: string | null;
   requestedAt: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'TRANSMITTED' | 'PAYMENT_FAILED';
+  /** MANUAL (staff-initiated) | AUTO_EXCESS (system-generated, cannot be rejected). */
+  source: 'MANUAL' | 'AUTO_EXCESS';
   // Populated after APPROVED
   refundNumber: string | null;
   paymentMode: string | null;

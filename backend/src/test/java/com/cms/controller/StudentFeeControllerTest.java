@@ -157,7 +157,7 @@ class StudentFeeControllerTest {
             PaymentMode.UPI,
             "TXN-UPI-12345",
             "First installment",
-            null
+            null, null
         );
 
         CollectPaymentResponse response = createCollectPaymentResponse();
@@ -188,7 +188,7 @@ class StudentFeeControllerTest {
             PaymentMode.CASH,
             null,
             null,
-            null
+            null, null
         );
 
         when(paymentCollectionService.collectPayment(eq(999L), any(CollectPaymentRequest.class)))

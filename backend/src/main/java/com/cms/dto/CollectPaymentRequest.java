@@ -26,5 +26,16 @@ public record CollectPaymentRequest(
     String remarks,
 
     /** Explicit receipt number to use. Null = auto-generate from the payment date's year sequence. */
-    String receiptNumber
-) {}
+    String receiptNumber,
+
+    /**
+     * Opt-in to collect more than total outstanding (bank-transfer/DD only, requires
+     * FEE_COLLECT_EXCESS). The portion above outstanding becomes an auto-generated,
+     * non-rejectable refund. Null/false = existing hard-capped behavior.
+     */
+    Boolean allowExcess
+) {
+    public boolean isAllowExcess() {
+        return Boolean.TRUE.equals(allowExcess);
+    }
+}

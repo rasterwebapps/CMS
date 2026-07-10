@@ -219,7 +219,8 @@ public class StudentImportService {
                                 mode,
                                 null,               // transactionReference
                                 row.remarks,
-                                row.receiptNumber   // explicit receipt number; null = auto-generate by payment year
+                                row.receiptNumber,  // explicit receipt number; null = auto-generate by payment year
+                                null                // allowExcess
                             ));
                         paymentsImported++;
                     }

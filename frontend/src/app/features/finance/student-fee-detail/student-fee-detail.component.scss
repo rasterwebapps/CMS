@@ -402,8 +402,26 @@ $sem-cols: 28px 1fr 100px 92px 92px 108px 76px;
   &--error { border-color: $red; &:focus { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12); } }
 }
 
-.field-hint  { font-size: var(--cms-text-xs); color: var(--cms-text-muted); margin: 0; }
-.field-error { font-size: var(--cms-text-xs); color: $red; margin: 0; }
+.field-hint    { font-size: var(--cms-text-xs); color: var(--cms-text-muted); margin: 0; }
+.field-error   { font-size: var(--cms-text-xs); color: $red; margin: 0; }
+.field-warning { font-size: var(--cms-text-xs); color: var(--cms-warning); margin: 4px 0 0; font-weight: 600; }
+
+.excess-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: var(--cms-text-base);
+  color: var(--cms-text-primary);
+  margin-bottom: 4px;
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--cms-primary);
+    cursor: pointer;
+  }
+}
 
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 

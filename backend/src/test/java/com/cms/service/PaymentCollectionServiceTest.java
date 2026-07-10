@@ -44,6 +44,7 @@ import com.cms.repository.FeeRefundRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
+import com.cms.config.PermSecurityBean;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentCollectionServiceTest {
@@ -58,6 +59,8 @@ class PaymentCollectionServiceTest {
     @Mock private UnifiedReceiptService unifiedReceiptService;
     @Mock private EnquiryCreditApplicationRepository creditApplicationRepository;
     @Mock private TermInstanceService termInstanceService;
+    @Mock private FeeRefundService feeRefundService;
+    @Mock private PermSecurityBean permSecurityBean;
 
     private PaymentCollectionService service;
 
@@ -71,7 +74,8 @@ class PaymentCollectionServiceTest {
     void setUp() {
         service = new PaymentCollectionService(allocationRepository, semesterFeeRepository,
             installmentRepository, studentRepository, enquiryRepository, enquiryPaymentRepository,
-            refundRepository, unifiedReceiptService, creditApplicationRepository, termInstanceService);
+            refundRepository, unifiedReceiptService, creditApplicationRepository, termInstanceService,
+            feeRefundService, permSecurityBean);
         lenient().when(enquiryRepository.findByConvertedStudentId(anyLong())).thenReturn(Optional.empty());
         lenient().when(refundRepository.findByStudentIdAndStatusOrderByPaymentDateDescIdDesc(anyLong(), any()))
             .thenReturn(List.of());
@@ -108,7 +112,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldCollectPaymentForSingleSemester() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("100000"), LocalDate.now(), PaymentMode.UPI, "TXN001", null, null
+            new BigDecimal("100000"), LocalDate.now(), PaymentMode.UPI, "TXN001", null, null, null
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
@@ -132,7 +136,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldCarryForwardExcessPaymentWithSameReceiptNumber() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("300000"), LocalDate.now(), PaymentMode.CASH, null, null, null
+            new BigDecimal("300000"), LocalDate.now(), PaymentMode.CASH, null, null, null, null
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
@@ -161,7 +165,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldRejectPaymentWhenItExceedsTotalOutstanding() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("50001"), LocalDate.now(), PaymentMode.CASH, null, null, null
+            new BigDecimal("50001"), LocalDate.now(), PaymentMode.CASH, null, null, null, null
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
@@ -179,7 +183,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldAllowPaymentUpToExactFinalOutstanding() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("50000"), LocalDate.now(), PaymentMode.CASH, null, null, null
+            new BigDecimal("50000"), LocalDate.now(), PaymentMode.CASH, null, null, null, null
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
@@ -202,7 +206,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldReturnSemesterBreakdownInResponse() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("350000"), LocalDate.now(), PaymentMode.UPI, "TXN001", null, null
+            new BigDecimal("350000"), LocalDate.now(), PaymentMode.UPI, "TXN001", null, null, null
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
@@ -226,7 +230,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldSkipFullyPaidSemesters() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null
+            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null, null
         );
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
@@ -249,7 +253,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldThrowWhenStudentNotFound() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null
+            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null, null
         );
         when(studentRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -260,7 +264,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldThrowWhenAllocationNotFound() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null
+            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null, null
         );
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.empty());
@@ -273,7 +277,7 @@ class PaymentCollectionServiceTest {
     void shouldThrowWhenAllocationNotFinalized() {
         testAllocation.setStatus(FeeAllocationStatus.DRAFT);
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null
+            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null, null
         );
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
@@ -286,7 +290,7 @@ class PaymentCollectionServiceTest {
     @Test
     void shouldThrowWhenNoPendingFees() {
         CollectPaymentRequest request = new CollectPaymentRequest(
-            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null
+            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, null, null, null, null
         );
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));

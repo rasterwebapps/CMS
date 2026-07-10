@@ -9,6 +9,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- **Excess Bank Payment with Auto-Generated Refund (BR-36)**
+  - Student Fee Detail → Advance Payment: opt-in "Allow payment above total outstanding (bank excess)" for Demand Draft / Bank Transfer payments, gated by new `FEE_COLLECT_EXCESS` permission
+  - Excess over total outstanding auto-generates a `FeeRefund` (`source = AUTO_EXCESS`) in the same transaction as the payment; the receipt records the full amount actually received
+  - Auto-generated excess refunds can be approved/paid out but can never be rejected or deleted by staff (enforced server-side in `FeeRefundService`, not just hidden in the UI); approving one does not affect the student's legitimately paid installments
+  - Fee Refund List shows an "Auto" source chip for these refunds and hides the Reject action
+  - Added Flyway migration V259 (`fee_refunds.source` column + `FEE_COLLECT_EXCESS` permission)
+  - Added manual test cases in `docs/manual-test-cases/excess-payment-auto-refund.md` (16 TCs)
+  - Documented in `docs/BUSINESS_REQUIREMENTS.md` as BR-36, including explicit out-of-scope notes on general partial refunds and payment cancellation
 - **Student Management tour coverage**
   - Added `Take a Tour` support to `Scholarship Applications` and `Data Import`, covering every submenu item under the Student Management navigation group
   - Added guided tour definitions and stable tour anchors for the scholarship approval queue and the four-step student import workflow

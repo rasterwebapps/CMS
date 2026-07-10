@@ -66,6 +66,10 @@ public class FeeRefund {
     @Column(nullable = false, length = 20)
     private String status;
 
+    /** MANUAL (staff-initiated) | AUTO_EXCESS (system-generated for excess-over-outstanding bank payments). */
+    @Column(nullable = false, length = 20)
+    private String source = "MANUAL";
+
     @Column(name = "requested_by", length = 100)
     private String requestedBy;
 
@@ -138,6 +142,9 @@ public class FeeRefund {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getSource() { return source; }
+    public void setSource(String source) { this.source = source; }
 
     public String getRequestedBy() { return requestedBy; }
     public void setRequestedBy(String requestedBy) { this.requestedBy = requestedBy; }
