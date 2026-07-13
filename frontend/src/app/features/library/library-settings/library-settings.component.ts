@@ -5,11 +5,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { LibraryService } from '../library.service';
 import { LibrarySetting } from '../library.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { LIBRARY_SETTINGS_TOUR } from '../../../shared/tour/tours/library.tours';
 
 @Component({
   selector: 'app-library-settings',
   standalone: true,
-  imports: [ReactiveFormsModule, MatIconModule],
+  imports: [ReactiveFormsModule, MatIconModule, CmsTourButtonComponent],
   templateUrl: './library-settings.component.html',
   styleUrl:    './library-settings.component.scss',
 })
@@ -18,12 +21,14 @@ export class LibrarySettingsComponent implements OnInit {
   private readonly fb             = inject(FormBuilder);
   private readonly toast          = inject(ToastService);
   private readonly destroyRef     = inject(DestroyRef);
+  private readonly tourService    = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving  = signal(false);
   protected form!: FormGroup;
 
   ngOnInit(): void {
+    this.tourService.register('library-settings', LIBRARY_SETTINGS_TOUR);
     this.form = this.fb.group({
       student_loan_days:  [14, [Validators.required, Validators.min(1), Validators.max(365)]],
       faculty_loan_days:  [30, [Validators.required, Validators.min(1), Validators.max(365)]],

@@ -28,6 +28,9 @@ import { LibraryBarcodePreviewDialogComponent, LibraryBarcodePreviewDialogData }
 import { LibraryItemHistoryDialogComponent, LibraryItemHistoryDialogData } from '../library-item-history-dialog/library-item-history-dialog.component';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { LIBRARY_BOOK_LIST_TOUR } from '../../../shared/tour/tours/library.tours';
 
 
 @Component({
@@ -40,6 +43,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     MatSelectModule, MatInputModule, MatFormFieldModule,
     CmsRowActionButtonComponent, CmsEmptyStateComponent, ExportButtonComponent, CmsColumnPickerComponent,
     LibraryBarcodePreviewDialogComponent, LibraryItemHistoryDialogComponent, LibraryBookTransferDialogComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './library-book-list.component.html',
   styleUrl: './library-book-list.component.scss',
@@ -50,6 +54,7 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   private readonly router         = inject(Router);
   private readonly toast          = inject(ToastService);
   private readonly dialog         = inject(MatDialog);
+  private readonly tourService    = inject(TourService);
   protected readonly permissions  = inject(PermissionService);
 
   private readonly destroy$     = new Subject<void>();
@@ -124,6 +129,7 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
+    this.tourService.register('library-book-list', LIBRARY_BOOK_LIST_TOUR);
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });
     this.loadPage();
