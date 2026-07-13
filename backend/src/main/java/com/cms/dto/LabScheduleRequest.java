@@ -27,5 +27,9 @@ public record LabScheduleRequest(
     @NotNull(message = "Term instance ID is required")
     Long termInstanceId,
 
-    Boolean isActive
+    Boolean isActive,
+
+    /** Optional real Batch to back this schedule row (see additive-then-deprecate note on
+     *  LabSchedule.batch) — when supplied, batchName should mirror the picked Batch's name. */
+    Long batchId
 ) {}

@@ -1,0 +1,182 @@
+<div class="list-page mlp-page">
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn"
+       [routerLink]="selectedAcademicYearId ? ['/academic-years', selectedAcademicYearId, 'detail'] : ['/academic-years']"
+       aria-label="Back to academic year">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <h1 class="page-title">Course Offerings</h1>
+      <p class="page-subtitle">
+        @if (selectedTerm(); as term) {
+          {{ term.academicYearName }} · {{ term.termType }} Term
+        } @else {
+          Select an academic year and term to view offerings
+        }
+      </p>
+    </div>
+  </div>
+
+  <div class="command-bar mlp-toolbar">
+    <div class="command-bar__left">
+      <select
+        class="mlp-filter-select"
+        [(ngModel)]="selectedAcademicYearId"
+        (ngModelChange)="onAcademicYearChange()"
+        aria-label="Filter by academic year">
+        @for (ay of academicYears(); track ay.id) {
+          <option [ngValue]="ay.id">{{ ay.name }}</option>
+        }
+      </select>
+
+      <select
+        class="mlp-filter-select"
+        [(ngModel)]="selectedTermInstanceId"
+        (ngModelChange)="onTermChange()"
+        [disabled]="termsLoading() || termInstances().length === 0"
+        aria-label="Filter by term">
+        @if (termInstances().length === 0) {
+          <option [ngValue]="null">No terms yet</option>
+        }
+        @for (term of termInstances(); track term.id) {
+          <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
+        }
+      </select>
+
+      <div class="search-bar" role="search">
+        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input
+          class="search-bar__input"
+          [value]="searchValue()"
+          (input)="applyFilter($event)"
+          placeholder="Search offerings..."
+          type="text"
+          aria-label="Search offerings"
+        />
+        @if (searchValue()) {
+          <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        }
+      </div>
+
+      @if (!loading()) {
+        <span class="count-badge" aria-live="polite">
+          @if (dataSource.filteredData.length < dataSource.data.length) {
+            {{ dataSource.filteredData.length }} of {{ dataSource.data.length }}
+          } @else {
+            {{ dataSource.data.length }}
+          }
+          offerings
+        </span>
+      }
+    </div>
+
+    <div class="toolbar-right">
+      @if (canAssignElectives()) {
+        <button class="btn-secondary" (click)="goToElectiveAssignment()" [disabled]="!selectedTermInstanceId">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Assign Electives
+        </button>
+      }
+      @if (canManage()) {
+        <button class="btn-secondary" (click)="generateOfferings()" [disabled]="!selectedTermInstanceId || generating()">
+          @if (generating()) {
+            <span class="btn-spinner btn-spinner--dark"></span>
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.42"/></svg>
+          }
+          Generate Offerings
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="content-card mlp-table-card">
+    @if (loading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading course offerings"></mat-spinner>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+          <ng-container matColumnDef="subjectCode">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-code">{{ row.subjectCode }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="subjectName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Subject</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cell-name">{{ row.subjectName }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="semesterNumber">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Semester</th>
+            <td mat-cell *matCellDef="let row">{{ row.semesterNumber }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="faculty">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Faculty</th>
+            <td mat-cell *matCellDef="let row">{{ facultyName(row.facultyId) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="sectionLabel">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Section</th>
+            <td mat-cell *matCellDef="let row">{{ row.sectionLabel || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <cms-status-badge [status]="row.isActive ? 'ACTIVE' : 'INACTIVE'" />
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <td mat-cell *matCellDef="let row">
+              @if (canManage()) {
+                <div class="row-actions">
+                  <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Deactivate" ariaLabel="Deactivate offering" [disabled]="!row.isActive" (clicked)="deactivate(row)">
+                    <cms-icon-delete />
+                  </cms-row-action-btn>
+                  <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="Manage Batches" ariaLabel="Manage batches" (clicked)="manageBatches(row)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  </cms-row-action-btn>
+                  <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit offering" (clicked)="edit(row)">
+                    <cms-icon-edit />
+                  </cms-row-action-btn>
+                </div>
+              }
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0; border: none;">
+              <cms-empty-state
+                icon="menu_book"
+                [title]="searchValue() ? 'No course offerings found' : 'No course offerings yet'"
+                [subtitle]="searchValue() ? 'No offerings match your search.' : (canManage() ? 'Click Generate Offerings to create them from the active curriculum.' : 'Offerings will appear here once generated for this term.')"
+              />
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="pagination-wrapper">
+        <mat-paginator
+          [pageSizeOptions]="[10, 25, 50]"
+          [pageSize]="25"
+          showFirstLastButtons
+        ></mat-paginator>
+      </div>
+    }
+  </div>
+</div>

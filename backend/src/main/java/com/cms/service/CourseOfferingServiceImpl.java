@@ -57,15 +57,10 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
         int count = 0;
 
         for (Cohort cohort : activeCohorts) {
-            List<CurriculumVersion> activeCVs =
-                curriculumVersionRepository.findByProgramIdAndIsActiveTrue(cohort.getProgram().getId());
-            if (activeCVs.isEmpty()) {
+            CurriculumVersion cv = resolveActiveCurriculumVersion(cohort);
+            if (cv == null) {
                 continue;
             }
-            // Use the most recently created active CV (max by createdAt)
-            CurriculumVersion cv = activeCVs.stream()
-                .max(java.util.Comparator.comparing(CurriculumVersion::getCreatedAt))
-                .orElseThrow();
 
             Integer totalSemesters = cohort.getProgram().getTotalTerms();
             if (totalSemesters == null) {
@@ -94,6 +89,7 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
                     offering.setCurriculumVersion(cv);
                     offering.setSubject(csc.getSubject());
                     offering.setSemesterNumber(csc.getSemesterNumber());
+                    offering.setCurriculumSemesterCourse(csc);
                     offering.setIsActive(true);
                     courseOfferingRepository.save(offering);
                     count++;
@@ -101,6 +97,35 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
             }
         }
         return count;
+    }
+
+    /**
+     * Prefers a curriculum version scoped to this cohort's exact course (e.g. MSc Nursing
+     * (Adult) vs (Child), which share one Program but need independent curricula) over a
+     * program-wide version (course_id IS NULL). Falls back to program-wide when no
+     * course-specific version is active, preserving behaviour for programs with a single
+     * course (e.g. BSc Nursing under Bachelor). Among ties, the most recently created wins.
+     */
+    private CurriculumVersion resolveActiveCurriculumVersion(Cohort cohort) {
+        Long programId = cohort.getProgram().getId();
+        Long courseId = cohort.getCourse().getId();
+
+        List<CurriculumVersion> courseScoped =
+            curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(programId, courseId);
+        if (!courseScoped.isEmpty()) {
+            return courseScoped.stream()
+                .max(java.util.Comparator.comparing(CurriculumVersion::getCreatedAt))
+                .orElseThrow();
+        }
+
+        List<CurriculumVersion> programWide =
+            curriculumVersionRepository.findByProgramIdAndCourseIdIsNullAndIsActiveTrue(programId);
+        if (programWide.isEmpty()) {
+            return null;
+        }
+        return programWide.stream()
+            .max(java.util.Comparator.comparing(CurriculumVersion::getCreatedAt))
+            .orElseThrow();
     }
 
     @Override
@@ -115,6 +140,15 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
     public List<CourseOfferingDto> getOfferingsByTermInstanceAndSemester(Long termInstanceId,
                                                                           Integer semesterNumber) {
         return courseOfferingRepository.findByTermInstanceIdAndSemesterNumber(termInstanceId, semesterNumber)
+            .stream()
+            .map(this::toDto)
+            .toList();
+    }
+
+    @Override
+    public List<CourseOfferingDto> getOfferingsByTermInstanceAndElectiveGroup(Long termInstanceId, Long electiveGroupId) {
+        return courseOfferingRepository
+            .findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(termInstanceId, electiveGroupId)
             .stream()
             .map(this::toDto)
             .toList();
@@ -173,6 +207,7 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
     private CourseOfferingDto toDto(CourseOffering o) {
         String termInstanceLabel = o.getTermInstance().getAcademicYear().getName()
             + " " + o.getTermInstance().getTermType();
+        CurriculumSemesterCourse csc = o.getCurriculumSemesterCourse();
         return new CourseOfferingDto(
             o.getId(),
             o.getTermInstance().getId(),
@@ -186,6 +221,11 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
             o.getFacultyId(),
             o.getSectionLabel(),
             o.getIsActive(),
+            csc != null ? csc.getId() : null,
+            csc != null && Boolean.TRUE.equals(csc.getIsElective()),
+            csc != null ? csc.getSubjectType() : null,
+            csc != null && csc.getElectiveGroup() != null ? csc.getElectiveGroup().getId() : null,
+            csc != null && csc.getElectiveGroup() != null ? csc.getElectiveGroup().getGroupName() : null,
             o.getCreatedAt(),
             o.getUpdatedAt()
         );

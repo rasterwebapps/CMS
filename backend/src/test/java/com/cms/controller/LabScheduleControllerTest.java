@@ -50,7 +50,7 @@ class LabScheduleControllerTest {
     @Test
     void shouldCreateLabSchedule() throws Exception {
         LabScheduleRequest request = new LabScheduleRequest(
-            1L, 1L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L, true
+            1L, 1L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L, true, null
         );
 
         LabScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
@@ -161,7 +161,7 @@ class LabScheduleControllerTest {
     @Test
     void shouldCheckConflicts() throws Exception {
         LabScheduleRequest request = new LabScheduleRequest(
-            1L, 1L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L, true
+            1L, 1L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L, true, null
         );
 
         ScheduleConflictResponse response = new ScheduleConflictResponse(
@@ -182,7 +182,7 @@ class LabScheduleControllerTest {
     @Test
     void shouldUpdateLabSchedule() throws Exception {
         LabScheduleRequest request = new LabScheduleRequest(
-            1L, 1L, 1L, 1L, "Batch-B", DayOfWeek.TUESDAY, 1L, true
+            1L, 1L, 1L, 1L, "Batch-B", DayOfWeek.TUESDAY, 1L, true, null
         );
 
         LabScheduleResponse response = createResponse(1L, "Batch-B", DayOfWeek.TUESDAY);
@@ -225,7 +225,7 @@ class LabScheduleControllerTest {
             id, 1L, "Lab 1", 1L, "Data Structures Lab", "CS201L",
             1L, "John Doe", 1L, "Slot 1",
             LocalTime.of(9, 0), LocalTime.of(10, 30),
-            batchName, dayOfWeek, 1L, "Odd Semester 2024",
+            batchName, null, dayOfWeek, 1L, "Odd Semester 2024",
             true, now, now
         );
     }

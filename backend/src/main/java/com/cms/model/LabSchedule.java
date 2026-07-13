@@ -49,6 +49,13 @@ public class LabSchedule {
     @Column(name = "batch_name", nullable = false)
     private String batchName;
 
+    /** Real Batch entity backing this schedule row, when the admin picked one from the roster
+     *  dropdown instead of typing a free-text label. Nullable during the migration window — see
+     *  V272 for the additive-then-deprecate rationale. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "batch_id")
+    private Batch batch;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "day_of_week", nullable = false)
     private DayOfWeek dayOfWeek;
@@ -129,6 +136,14 @@ public class LabSchedule {
 
     public void setBatchName(String batchName) {
         this.batchName = batchName;
+    }
+
+    public Batch getBatch() {
+        return batch;
+    }
+
+    public void setBatch(Batch batch) {
+        this.batch = batch;
     }
 
     public DayOfWeek getDayOfWeek() {

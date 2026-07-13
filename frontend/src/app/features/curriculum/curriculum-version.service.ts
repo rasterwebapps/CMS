@@ -8,6 +8,10 @@ import {
   CurriculumSemesterCourse,
   CurriculumSemesterCourseRequest,
   CurriculumFullView,
+  CurriculumElectiveGroup,
+  CurriculumElectiveGroupRequest,
+  AttendanceThreshold,
+  AttendanceThresholdRequest,
 } from './curriculum-version.model';
 
 @Injectable({ providedIn: 'root' })
@@ -50,7 +54,39 @@ export class CurriculumVersionService {
     return this.http.post<CurriculumSemesterCourse>(`${environment.apiUrl}/curriculum-semester-courses`, request);
   }
 
+  updateCourse(id: number, request: CurriculumSemesterCourseRequest): Observable<CurriculumSemesterCourse> {
+    return this.http.put<CurriculumSemesterCourse>(`${environment.apiUrl}/curriculum-semester-courses/${id}`, request);
+  }
+
   removeCourse(id: number): Observable<void> {
     return this.http.delete<void>(`${environment.apiUrl}/curriculum-semester-courses/${id}`);
+  }
+
+  getElectiveGroups(curriculumVersionId: number, termNumber: number): Observable<CurriculumElectiveGroup[]> {
+    return this.http.get<CurriculumElectiveGroup[]>(`${environment.apiUrl}/curriculum-elective-groups`, {
+      params: { curriculumVersionId: curriculumVersionId.toString(), termNumber: termNumber.toString() }
+    });
+  }
+
+  createElectiveGroup(request: CurriculumElectiveGroupRequest): Observable<CurriculumElectiveGroup> {
+    return this.http.post<CurriculumElectiveGroup>(`${environment.apiUrl}/curriculum-elective-groups`, request);
+  }
+
+  deleteElectiveGroup(id: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/curriculum-elective-groups/${id}`);
+  }
+
+  getAttendanceThresholds(curriculumTermCourseId: number): Observable<AttendanceThreshold[]> {
+    return this.http.get<AttendanceThreshold[]>(`${environment.apiUrl}/attendance-thresholds`, {
+      params: { curriculumTermCourseId: curriculumTermCourseId.toString() }
+    });
+  }
+
+  upsertAttendanceThreshold(request: AttendanceThresholdRequest): Observable<AttendanceThreshold> {
+    return this.http.put<AttendanceThreshold>(`${environment.apiUrl}/attendance-thresholds`, request);
+  }
+
+  deleteAttendanceThreshold(id: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/attendance-thresholds/${id}`);
   }
 }

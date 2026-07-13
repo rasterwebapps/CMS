@@ -6,6 +6,7 @@ import com.cms.dto.CourseRegistrationDto;
 
 public interface CourseRegistrationService {
     int generateRegistrationsForTermInstance(Long termInstanceId);
+    CourseRegistrationDto assignElectiveChoice(Long enrollmentId, Long courseOfferingId);
     List<CourseRegistrationDto> getRegistrationsByEnrollment(Long enrollmentId);
     List<CourseRegistrationDto> getRegistrationsByCourseOffering(Long courseOfferingId);
     CourseRegistrationDto getById(Long id);

@@ -43,6 +43,8 @@ class CourseOfferingControllerTest {
             1L, "CV-2024",
             1L, "Mathematics", "MATH101",
             semNum, null, null, true,
+            null, false, com.cms.model.enums.SubjectType.CORE,
+            null, null,
             Instant.now(), Instant.now()
         );
     }
@@ -52,7 +54,7 @@ class CourseOfferingControllerTest {
         CourseOfferingDto dto = createDto(1L, 1L, 1);
         when(service.getOfferingsByTermInstance(1L)).thenReturn(List.of(dto));
 
-        mockMvc.perform(get("/api/course-offerings").param("termInstanceId", "1"))
+        mockMvc.perform(get("/course-offerings").param("termInstanceId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].id").value(1))
@@ -66,7 +68,7 @@ class CourseOfferingControllerTest {
         CourseOfferingDto dto = createDto(1L, 1L, 1);
         when(service.getOfferingsByTermInstanceAndSemester(1L, 1)).thenReturn(List.of(dto));
 
-        mockMvc.perform(get("/api/course-offerings")
+        mockMvc.perform(get("/course-offerings")
                 .param("termInstanceId", "1")
                 .param("termNumber", "1"))
             .andExpect(status().isOk())
@@ -80,7 +82,7 @@ class CourseOfferingControllerTest {
         CourseOfferingDto dto = createDto(1L, 1L, 1);
         when(service.getById(1L)).thenReturn(dto);
 
-        mockMvc.perform(get("/api/course-offerings/1"))
+        mockMvc.perform(get("/course-offerings/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.subjectCode").value("MATH101"));
@@ -92,7 +94,7 @@ class CourseOfferingControllerTest {
     void generate() throws Exception {
         when(service.generateOfferingsForTermInstance(1L)).thenReturn(3);
 
-        mockMvc.perform(post("/api/course-offerings/generate").param("termInstanceId", "1"))
+        mockMvc.perform(post("/course-offerings/generate").param("termInstanceId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.offeringsCreated").value(3));
 
@@ -104,7 +106,7 @@ class CourseOfferingControllerTest {
         CourseOfferingDto dto = createDto(1L, 1L, 1);
         when(service.updateOffering(1L, 42L, "A")).thenReturn(dto);
 
-        mockMvc.perform(put("/api/course-offerings/1")
+        mockMvc.perform(put("/course-offerings/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"facultyId\":42,\"sectionLabel\":\"A\"}"))
             .andExpect(status().isOk())
@@ -115,7 +117,7 @@ class CourseOfferingControllerTest {
 
     @Test
     void deactivate() throws Exception {
-        mockMvc.perform(delete("/api/course-offerings/1"))
+        mockMvc.perform(delete("/course-offerings/1"))
             .andExpect(status().isNoContent());
 
         verify(service).deactivateOffering(1L);

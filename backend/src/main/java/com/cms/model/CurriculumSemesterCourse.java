@@ -9,6 +9,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -17,6 +19,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+
+import com.cms.model.enums.SubjectType;
 
 @Entity
 @Table(name = "curriculum_term_courses",
@@ -41,6 +45,26 @@ public class CurriculumSemesterCourse {
 
     @Column(name = "sort_order")
     private Integer sortOrder;
+
+    @Column(name = "theory_hours", nullable = false)
+    private Integer theoryHours = 0;
+
+    @Column(name = "lab_hours", nullable = false)
+    private Integer labHours = 0;
+
+    @Column(name = "clinical_hours", nullable = false)
+    private Integer clinicalHours = 0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "subject_type", nullable = false, length = 20)
+    private SubjectType subjectType = SubjectType.CORE;
+
+    @Column(name = "is_elective", nullable = false)
+    private Boolean isElective = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "elective_group_id")
+    private CurriculumElectiveGroup electiveGroup;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -99,6 +123,54 @@ public class CurriculumSemesterCourse {
 
     public void setSortOrder(Integer sortOrder) {
         this.sortOrder = sortOrder;
+    }
+
+    public Integer getTheoryHours() {
+        return theoryHours;
+    }
+
+    public void setTheoryHours(Integer theoryHours) {
+        this.theoryHours = theoryHours != null ? theoryHours : 0;
+    }
+
+    public Integer getLabHours() {
+        return labHours;
+    }
+
+    public void setLabHours(Integer labHours) {
+        this.labHours = labHours != null ? labHours : 0;
+    }
+
+    public Integer getClinicalHours() {
+        return clinicalHours;
+    }
+
+    public void setClinicalHours(Integer clinicalHours) {
+        this.clinicalHours = clinicalHours != null ? clinicalHours : 0;
+    }
+
+    public SubjectType getSubjectType() {
+        return subjectType;
+    }
+
+    public void setSubjectType(SubjectType subjectType) {
+        this.subjectType = subjectType != null ? subjectType : SubjectType.CORE;
+    }
+
+    public Boolean getIsElective() {
+        return isElective;
+    }
+
+    public void setIsElective(Boolean isElective) {
+        this.isElective = isElective != null ? isElective : false;
+    }
+
+    public CurriculumElectiveGroup getElectiveGroup() {
+        return electiveGroup;
+    }
+
+    public void setElectiveGroup(CurriculumElectiveGroup electiveGroup) {
+        this.electiveGroup = electiveGroup;
     }
 
     public Instant getCreatedAt() {

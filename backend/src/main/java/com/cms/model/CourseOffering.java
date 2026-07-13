@@ -44,6 +44,10 @@ public class CourseOffering {
     @Column(name = "term_number", nullable = false)
     private Integer semesterNumber;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "curriculum_term_course_id")
+    private CurriculumSemesterCourse curriculumSemesterCourse;
+
     @Column(name = "faculty_id")
     private Long facultyId;
 
@@ -102,6 +106,14 @@ public class CourseOffering {
 
     public void setSemesterNumber(Integer semesterNumber) {
         this.semesterNumber = semesterNumber;
+    }
+
+    public CurriculumSemesterCourse getCurriculumSemesterCourse() {
+        return curriculumSemesterCourse;
+    }
+
+    public void setCurriculumSemesterCourse(CurriculumSemesterCourse curriculumSemesterCourse) {
+        this.curriculumSemesterCourse = curriculumSemesterCourse;
     }
 
     public Long getFacultyId() {

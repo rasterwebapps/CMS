@@ -55,6 +55,7 @@
 - [BR-46: Designation Master](#br-46-designation-master)
 - [BR-47: India Location & Country Master](#br-47-india-location--country-master)
 - [BR-48: JWT Revoked-Token Tracking (Logout Denylist)](#br-48-jwt-revoked-token-tracking-logout-denylist)
+- [BR-49: INC Nursing Curriculum Compliance — Per-Semester Hours, Electives, Attendance Thresholds & Batches](#br-49-inc-nursing-curriculum-compliance--per-semester-hours-electives-attendance-thresholds--batches)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -2613,6 +2614,65 @@ JWTs issued by Keycloak (BR-24's identity model) are normally stateless and stay
 ### Explicitly Out of Scope
 
 - **Admin-forced logout of another user's session.** Revocation is always self-service, scoped to the caller's own bearer token — there is no endpoint anywhere that lets an admin revoke a token belonging to someone else.
+
+---
+
+## BR-49: INC Nursing Curriculum Compliance — Per-Semester Hours, Electives, Attendance Thresholds & Batches
+
+### Business Rule
+
+Indian Nursing Council (INC) curricula require the system to express things the pre-existing curriculum/attendance model could not: a subject's Theory/Lab/Clinical contact hours and its INC category (Core/Foundational/Elective) both vary **by the semester/curriculum a subject is mapped into**, not just by the subject itself — e.g. Nursing Foundations is Theory/Lab-heavy in Term I but Clinical-heavy in Term II under the same subject record. This is why hours and Subject Type live on the curriculum-mapping row (`curriculum_term_courses`), not on the `Subject` master.
+
+**Component-type hours.** Each curriculum mapping carries independent `theoryHours`/`labHours`/`clinicalHours` (default 0), edited via Theory/Lab/Clinical checkboxes on the Curriculum Map screen — unchecking a component zeroes and disables its hour field rather than requiring every subject to fill in all three.
+
+**Choice-based electives.** A `CurriculumElectiveGroup` (scoped to one curriculum version + term) groups the mutually-exclusive `CurriculumSemesterCourse` rows a student may choose between. Bulk course-registration generation (`CourseRegistrationServiceImpl.generateRegistrationsForTermInstance`) automatically **skips** any offering whose mapping is marked elective — those are left for an admin to assign one-by-one via the new Elective Assignment screen, which rejects a second pick within the same elective group for the same student (idempotent if the same offering is re-submitted). An offering with no resolved curriculum mapping (legacy/unresolved) is treated as non-elective, preserving prior bulk-generate behaviour exactly.
+
+**Per-component attendance thresholds.** Attendance minimums (e.g. 80% Theory / 100% Clinical) are resolved per curriculum mapping + `AttendanceType` (now `THEORY`/`LAB`/`CLINICAL`), walking student → course registration → offering → curriculum mapping → an `attendance_thresholds` override row, falling back to a 75% default at any missing step. `AttendanceService.getAttendanceReport()` now returns one entry **per component type** with attendance data, instead of one blended percentage across all types — a student can meet an 80% Theory requirement while failing a 100% Clinical one, which a single number would hide.
+
+**Batches.** Lab/clinical roster splitting (e.g. 60 students → 3 batches of 20) is a real `Batch` entity scoped to a specific term's `CourseOffering` (not the curriculum mapping, since a batch is a per-term roster split, not curriculum-design metadata), with an enforced capacity (service-layer check, not a DB constraint — consistent with this codebase's existing style, e.g. `Cohort` seat limits) and real student membership (`batch_students`). `LabSchedule` can reference a `Batch` via a new nullable `batch_id`, populated alongside the pre-existing free-text `batch_name` column so existing conflict-check queries keep working unchanged. The Batch Manage dialog (opened from a Course Offering row) nudges — but does not require — assigning a coordinator faculty member to each batch.
+
+### Scope
+
+- `curriculum_term_courses` gains `theory_hours`/`lab_hours`/`clinical_hours`, `subject_type` (`SubjectType` enum: CORE/FOUNDATIONAL/ELECTIVE), `is_elective`, `elective_group_id`.
+- `curriculum_elective_groups` — new table; `CurriculumElectiveGroupController`/`Service` (create/list/delete, delete guarded against groups still referenced by a mapping row).
+- New `PUT /curriculum-semester-courses/{id}` — the Curriculum Map screen previously only supported add/remove of a mapping row, never editing hours/type/elective in place.
+- `attendance_thresholds` — new table keyed on `(curriculum_term_course_id, attendance_type)`; `AttendanceThresholdController`/`Service` (`resolveThreshold`, CRUD), inline-edited on the Curriculum Map screen's mapping row (not a standalone screen).
+- `course_offerings.curriculum_term_course_id` — new nullable FK + backfill, resolving an offering back to its curriculum mapping (needed for threshold resolution and elective detection); `CourseOfferingDto` now surfaces `isElective`/`subjectType`/`electiveGroupId`/`electiveGroupName`.
+- `batches` + `batch_students` — new tables; `BatchController`/`Service` (create/update/deactivate, roster add/remove with capacity enforcement); Batch Manage dialog nested under the Course Offering list (not a standalone global master screen, since a batch only makes sense scoped to one term's offering).
+- `lab_schedules.batch_id` — new nullable FK; the Lab Schedule form gained an optional "Batch (from roster)" dropdown that autofills the pre-existing free-text batch name field.
+- `CourseRegistrationServiceImpl.assignElectiveChoice(enrollmentId, courseOfferingId)` + `POST /course-registrations/elective-assignment`; new **Elective Assignment** screen (academic year → term → elective group → per-student assignment), the first course-registration UI this app has ever had — the pre-existing `generateCourseRegistrations` frontend method was dead code with no calling component.
+- Faculty-role scoping deliberately reuses existing constructs rather than a new multi-role join table: theory instructor stays on `CourseOffering.facultyId`, lab instructor stays on `LabSchedule.faculty` (already one per lab-schedule row), batch/clinical coordinator is the new `Batch.coordinatorFacultyId`.
+
+### Permissions
+
+- `CURRICULUM_ELECTIVE_GROUP_VIEW`/`MANAGE` — auto-assigned to existing `CURRICULUM_VIEW`/`MANAGE` holders.
+- `ATTENDANCE_THRESHOLD_VIEW`/`MANAGE` — auto-assigned to existing `ATTENDANCE_VIEW`/`MANAGE` holders.
+- `BATCH_VIEW`/`MANAGE` — auto-assigned to existing `COURSE_VIEW`/`MANAGE` holders.
+- `COURSE_REGISTRATION_ELECTIVE_ASSIGN` — new, dedicated permission for the admin single-pick action (per the operation-wise permission mapping rule, this does **not** reuse `ADMISSION_CREATE`); auto-assigned to existing `ADMISSION_CREATE` holders.
+- Editing hours/subject-type/elective/sort-order on an existing mapping row (`PUT /curriculum-semester-courses/{id}`) reuses the pre-existing `CURRICULUM_MANAGE` — already the single permission gating every other structural change to this table, so no new code was needed there.
+- The bulk `POST /course-registrations/generate`, drop, and `GET` endpoints deliberately stay on `ADMISSION_VIEW`/`ADMISSION_CREATE` — not retrofitted onto dedicated codes in this pass, to avoid silently changing access for roles (e.g. `COLLEGE_ADMIN`) that hold `ADMISSION_CREATE` today for unrelated reasons.
+
+### Migration Notes
+
+- V265 — creates `curriculum_elective_groups`.
+- V266 — adds `theory_hours`/`lab_hours`/`clinical_hours`/`subject_type`/`is_elective`/`elective_group_id` to `curriculum_term_courses`.
+- V267 — `CURRICULUM_ELECTIVE_GROUP_VIEW`/`MANAGE` permissions.
+- V268 — creates `attendance_thresholds`.
+- V269 — adds `course_offerings.curriculum_term_course_id` + backfill via the existing `(curriculum_version_id, term_number, subject_id)` unique-constraint match.
+- V270 — `ATTENDANCE_THRESHOLD_VIEW`/`MANAGE` permissions.
+- V271 — creates `batches` + `batch_students`.
+- V272 — adds `lab_schedules.batch_id` (nullable, additive alongside `batch_name`).
+- V273 — `BATCH_VIEW`/`MANAGE` permissions.
+- V274 — `COURSE_REGISTRATION_ELECTIVE_ASSIGN` permission.
+- `CLINICAL` was added to the `AttendanceType` Java enum with **no migration** — `attendances.type` is a plain unconstrained `VARCHAR`, confirmed by reading `V18__create_attendances_table.sql` before assuming a schema change was needed.
+
+### Explicitly Out of Scope
+
+- **A general lecture timetable system.** Only `LabSchedule` (lab/practical scheduling) was extended — there was no lecture-timetable construct before this BR and none was built; "Timetable Automation" in the original ask was specifically about lab-block scheduling, which `LabSchedule` already covered.
+- **Hard cutover of `lab_schedules.batch_name`.** The free-text column is kept and kept in sync alongside the new `batch_id` FK indefinitely in this pass; dropping it or making `batch_id` required is a separate future migration once all rows are backfilled and the frontend fully relies on the dropdown.
+- **Retrofitting `CourseRegistrationController`/`StudentTermEnrollmentController` onto dedicated permission codes.** They continue to reuse `ADMISSION_VIEW`/`ADMISSION_CREATE` for their pre-existing endpoints (see Permissions above) — pre-existing granularity debt, not something this BR introduced or was asked to fix.
+- **Student self-service elective selection.** Elective assignment is always admin-entered on the new Elective Assignment screen; there is no student-facing portal flow.
+- **A generic multi-faculty-role join table** (e.g. `CourseOfferingFaculty`). Theory instructor, lab instructor, and batch coordinator each reuse an existing single-value field rather than a new queryable many-role construct — revisit only if a future need arises for one faculty holding multiple concurrent roles on one offering in a reportable way.
 
 ---
 

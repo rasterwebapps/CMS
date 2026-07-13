@@ -10,6 +10,7 @@ import com.cms.dto.CourseRegistrationDto;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.CourseOffering;
 import com.cms.model.CourseRegistration;
+import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.RegistrationStatus;
@@ -53,13 +54,25 @@ public class CourseRegistrationServiceImpl implements CourseRegistrationService 
         int count = 0;
         for (StudentTermEnrollment enrollment : enrollments) {
             // Find active course offerings for this term, matching the enrollment's semester number
-            // and belonging to the cohort's curriculum version
+            // and belonging to the cohort's own program AND course. The program check alone isn't
+            // enough — e.g. MSc Nursing (Adult) and (Child) share one Program, so without the course
+            // check students would get cross-registered into the other specialty's subjects.
             List<CourseOffering> offerings = courseOfferingRepository
                 .findByTermInstanceIdAndSemesterNumber(termInstanceId, enrollment.getSemesterNumber())
                 .stream()
                 .filter(o -> Boolean.TRUE.equals(o.getIsActive()))
                 .filter(o -> o.getCurriculumVersion().getProgram().getId()
                     .equals(enrollment.getCohort().getProgram().getId()))
+                .filter(o -> o.getSubject().getCourse().getId()
+                    .equals(enrollment.getCohort().getCourse().getId()))
+                // Choice-based electives are not bulk-registered — a student is enrolled into
+                // exactly one option via assignElectiveChoice(), picked by an admin. An offering
+                // with no resolved curriculum mapping (legacy/unresolved) is treated as non-elective,
+                // matching pre-existing behaviour.
+                .filter(o -> {
+                    CurriculumSemesterCourse csc = o.getCurriculumSemesterCourse();
+                    return csc == null || !Boolean.TRUE.equals(csc.getIsElective());
+                })
                 .toList();
 
             for (CourseOffering offering : offerings) {
@@ -77,6 +90,48 @@ public class CourseRegistrationServiceImpl implements CourseRegistrationService 
             }
         }
         return count;
+    }
+
+    @Override
+    @Transactional
+    public CourseRegistrationDto assignElectiveChoice(Long enrollmentId, Long courseOfferingId) {
+        StudentTermEnrollment enrollment = enrollmentRepository.findById(enrollmentId)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Student term enrollment not found with id: " + enrollmentId));
+        CourseOffering offering = courseOfferingRepository.findById(courseOfferingId)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Course offering not found with id: " + courseOfferingId));
+
+        CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
+        if (csc == null || !Boolean.TRUE.equals(csc.getIsElective()) || csc.getElectiveGroup() == null) {
+            throw new IllegalArgumentException(
+                "Course offering " + courseOfferingId + " is not a choice-based elective");
+        }
+        Long groupId = csc.getElectiveGroup().getId();
+
+        List<CourseRegistration> existingForEnrollment =
+            courseRegistrationRepository.findByStudentTermEnrollmentId(enrollmentId);
+
+        for (CourseRegistration existing : existingForEnrollment) {
+            if (existing.getStatus() == RegistrationStatus.DROPPED) {
+                continue;
+            }
+            CurriculumSemesterCourse otherCsc = existing.getCourseOffering().getCurriculumSemesterCourse();
+            if (otherCsc != null && otherCsc.getElectiveGroup() != null
+                    && otherCsc.getElectiveGroup().getId().equals(groupId)) {
+                if (existing.getCourseOffering().getId().equals(courseOfferingId)) {
+                    return toDto(existing);
+                }
+                throw new IllegalStateException(
+                    "This student has already been assigned an elective in this group");
+            }
+        }
+
+        CourseRegistration registration = new CourseRegistration();
+        registration.setStudentTermEnrollment(enrollment);
+        registration.setCourseOffering(offering);
+        registration.setStatus(RegistrationStatus.REGISTERED);
+        return toDto(courseRegistrationRepository.save(registration));
     }
 
     @Override

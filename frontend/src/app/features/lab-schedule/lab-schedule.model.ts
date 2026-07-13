@@ -12,6 +12,7 @@ export interface LabSchedule {
   startTime: string;
   endTime: string;
   batchName: string;
+  batchId: number | null;
   dayOfWeek: string;
   termInstanceId: number;
   termInstanceLabel: string;
@@ -29,6 +30,7 @@ export interface LabScheduleRequest {
   dayOfWeek: string;
   termInstanceId: number;
   isActive?: boolean;
+  batchId?: number | null;
 }
 
 export interface LabSlot {

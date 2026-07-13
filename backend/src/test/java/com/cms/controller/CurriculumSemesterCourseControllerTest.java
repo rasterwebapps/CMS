@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -43,7 +44,7 @@ class CurriculumSemesterCourseControllerTest {
 
     @Test
     void shouldAddCourseToSemester() throws Exception {
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1, null, null, null, null, null, null);
         CurriculumSemesterCourseDto dto = createCscDto(1L, 1L, "BSCN-2026", 1, 1L, "Anatomy", "ANAT", 1);
 
         when(service.addCourseToSemester(any(CurriculumSemesterCourseRequest.class))).thenReturn(dto);
@@ -69,6 +70,27 @@ class CurriculumSemesterCourseControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
             .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldUpdateCourseDetails() throws Exception {
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(
+            1L, 1, 1L, 1, 40, 0, 0, com.cms.model.enums.SubjectType.CORE, false, null);
+        CurriculumSemesterCourseDto dto = new CurriculumSemesterCourseDto(1L, 1L, "BSCN-2026", 1, 1L,
+            "Anatomy", "ANAT", 1, 40, 0, 0, com.cms.model.enums.SubjectType.CORE, false, null, null,
+            Instant.now(), Instant.now());
+
+        when(service.updateCourseDetails(org.mockito.ArgumentMatchers.eq(1L),
+            any(CurriculumSemesterCourseRequest.class))).thenReturn(dto);
+
+        mockMvc.perform(put("/curriculum-semester-courses/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.theoryHours").value(40));
+
+        verify(service).updateCourseDetails(org.mockito.ArgumentMatchers.eq(1L),
+            any(CurriculumSemesterCourseRequest.class));
     }
 
     @Test
@@ -124,6 +146,7 @@ class CurriculumSemesterCourseControllerTest {
                                                       Integer semNo, Long subjId, String subjName,
                                                       String subjCode, Integer sortOrder) {
         return new CurriculumSemesterCourseDto(id, cvId, cvName, semNo, subjId, subjName, subjCode,
-            sortOrder, Instant.now(), Instant.now());
+            sortOrder, 0, 0, 0, com.cms.model.enums.SubjectType.CORE, false, null, null,
+            Instant.now(), Instant.now());
     }
 }

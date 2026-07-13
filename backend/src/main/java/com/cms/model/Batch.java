@@ -1,0 +1,161 @@
+package com.cms.model;
+
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+
+@Entity
+@Table(name = "batches",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"course_offering_id", "name"}))
+@EntityListeners(AuditingEntityListener.class)
+public class Batch {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_offering_id", nullable = false)
+    private CourseOffering courseOffering;
+
+    @Column(nullable = false, length = 100)
+    private String name;
+
+    @Column(nullable = false)
+    private Integer capacity;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "term_instance_id", nullable = false)
+    private TermInstance termInstance;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "coordinator_faculty_id")
+    private Faculty coordinatorFaculty;
+
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "batch_students",
+        joinColumns = @JoinColumn(name = "batch_id"),
+        inverseJoinColumns = @JoinColumn(name = "student_id")
+    )
+    private Set<Student> students = new HashSet<>();
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    public Batch() {
+    }
+
+    public Batch(CourseOffering courseOffering, String name, Integer capacity, TermInstance termInstance) {
+        this.courseOffering = courseOffering;
+        this.name = name;
+        this.capacity = capacity;
+        this.termInstance = termInstance;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public CourseOffering getCourseOffering() {
+        return courseOffering;
+    }
+
+    public void setCourseOffering(CourseOffering courseOffering) {
+        this.courseOffering = courseOffering;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Integer getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(Integer capacity) {
+        this.capacity = capacity;
+    }
+
+    public TermInstance getTermInstance() {
+        return termInstance;
+    }
+
+    public void setTermInstance(TermInstance termInstance) {
+        this.termInstance = termInstance;
+    }
+
+    public Faculty getCoordinatorFaculty() {
+        return coordinatorFaculty;
+    }
+
+    public void setCoordinatorFaculty(Faculty coordinatorFaculty) {
+        this.coordinatorFaculty = coordinatorFaculty;
+    }
+
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
+    }
+
+    public Set<Student> getStudents() {
+        return students;
+    }
+
+    public void setStudents(Set<Student> students) {
+        this.students = students;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+}

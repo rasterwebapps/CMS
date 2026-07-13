@@ -210,6 +210,11 @@ export interface CourseOffering {
   facultyId: number | null;
   sectionLabel: string | null;
   isActive: boolean;
+  curriculumTermCourseId: number | null;
+  isElective: boolean;
+  subjectType: 'CORE' | 'FOUNDATIONAL' | 'ELECTIVE';
+  electiveGroupId: number | null;
+  electiveGroupName: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -46,6 +46,8 @@ class AttendanceServiceTest {
     private StudentRepository studentRepository;
     @Mock
     private SubjectRepository subjectRepository;
+    @Mock
+    private AttendanceThresholdService thresholdService;
 
     private AttendanceService attendanceService;
 
@@ -55,7 +57,8 @@ class AttendanceServiceTest {
 
     @BeforeEach
     void setUp() {
-        attendanceService = new AttendanceService(attendanceRepository, studentRepository, subjectRepository);
+        attendanceService = new AttendanceService(
+            attendanceRepository, studentRepository, subjectRepository, thresholdService);
 
         Speciality speciality = new Speciality("Computer Science", "CS", "CS Dept", null, "Dr. Smith");
         speciality.setId(1L);
@@ -252,12 +255,18 @@ class AttendanceServiceTest {
     void shouldGetAttendanceReport() {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
-        when(attendanceRepository.countByStudentIdAndSubjectId(1L, 1L)).thenReturn(10L);
-        when(attendanceRepository.countByStudentIdAndSubjectIdAndStatus(1L, 1L, AttendanceStatus.PRESENT))
-            .thenReturn(8L);
+        when(attendanceRepository.countByStudentIdAndSubjectIdAndType(1L, 1L, AttendanceType.THEORY))
+            .thenReturn(10L);
+        when(attendanceRepository.countByStudentIdAndSubjectIdAndTypeAndStatus(
+            1L, 1L, AttendanceType.THEORY, AttendanceStatus.PRESENT)).thenReturn(8L);
+        when(thresholdService.resolveThreshold(1L, 1L, AttendanceType.THEORY))
+            .thenReturn(new BigDecimal("75.00"));
 
-        AttendanceReportResponse report = attendanceService.getAttendanceReport(1L, 1L);
+        List<AttendanceReportResponse> reports = attendanceService.getAttendanceReport(1L, 1L);
 
+        assertThat(reports).hasSize(1);
+        AttendanceReportResponse report = reports.get(0);
+        assertThat(report.type()).isEqualTo(AttendanceType.THEORY);
         assertThat(report.totalClasses()).isEqualTo(10);
         assertThat(report.classesAttended()).isEqualTo(8);
         assertThat(report.attendancePercentage()).isEqualTo(new BigDecimal("80.00"));
@@ -268,28 +277,48 @@ class AttendanceServiceTest {
     void shouldReportLowAttendance() {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
-        when(attendanceRepository.countByStudentIdAndSubjectId(1L, 1L)).thenReturn(10L);
-        when(attendanceRepository.countByStudentIdAndSubjectIdAndStatus(1L, 1L, AttendanceStatus.PRESENT))
-            .thenReturn(6L);
+        when(attendanceRepository.countByStudentIdAndSubjectIdAndType(1L, 1L, AttendanceType.THEORY))
+            .thenReturn(10L);
+        when(attendanceRepository.countByStudentIdAndSubjectIdAndTypeAndStatus(
+            1L, 1L, AttendanceType.THEORY, AttendanceStatus.PRESENT)).thenReturn(6L);
+        when(thresholdService.resolveThreshold(1L, 1L, AttendanceType.THEORY))
+            .thenReturn(new BigDecimal("75.00"));
 
-        AttendanceReportResponse report = attendanceService.getAttendanceReport(1L, 1L);
+        List<AttendanceReportResponse> reports = attendanceService.getAttendanceReport(1L, 1L);
 
-        assertThat(report.attendancePercentage()).isEqualTo(new BigDecimal("60.00"));
-        assertThat(report.lowAttendance()).isTrue();
+        assertThat(reports).hasSize(1);
+        assertThat(reports.get(0).attendancePercentage()).isEqualTo(new BigDecimal("60.00"));
+        assertThat(reports.get(0).lowAttendance()).isTrue();
     }
 
     @Test
-    void shouldReportZeroAttendanceWhenNoClasses() {
+    void shouldUseResolvedThresholdInsteadOfDefault() {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
-        when(attendanceRepository.countByStudentIdAndSubjectId(1L, 1L)).thenReturn(0L);
-        when(attendanceRepository.countByStudentIdAndSubjectIdAndStatus(1L, 1L, AttendanceStatus.PRESENT))
-            .thenReturn(0L);
+        when(attendanceRepository.countByStudentIdAndSubjectIdAndType(1L, 1L, AttendanceType.CLINICAL))
+            .thenReturn(10L);
+        when(attendanceRepository.countByStudentIdAndSubjectIdAndTypeAndStatus(
+            1L, 1L, AttendanceType.CLINICAL, AttendanceStatus.PRESENT)).thenReturn(9L);
+        // 90% attendance, but a 100% Clinical threshold override still flags it as low
+        when(thresholdService.resolveThreshold(1L, 1L, AttendanceType.CLINICAL))
+            .thenReturn(new BigDecimal("100.00"));
 
-        AttendanceReportResponse report = attendanceService.getAttendanceReport(1L, 1L);
+        List<AttendanceReportResponse> reports = attendanceService.getAttendanceReport(1L, 1L);
 
-        assertThat(report.attendancePercentage()).isEqualTo(BigDecimal.ZERO);
-        assertThat(report.lowAttendance()).isTrue();
+        assertThat(reports).hasSize(1);
+        assertThat(reports.get(0).type()).isEqualTo(AttendanceType.CLINICAL);
+        assertThat(reports.get(0).thresholdPercentage()).isEqualTo(new BigDecimal("100.00"));
+        assertThat(reports.get(0).lowAttendance()).isTrue();
+    }
+
+    @Test
+    void shouldReturnEmptyReportWhenNoClassesOfAnyType() {
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+
+        List<AttendanceReportResponse> reports = attendanceService.getAttendanceReport(1L, 1L);
+
+        assertThat(reports).isEmpty();
     }
 
     @Test
@@ -297,9 +326,12 @@ class AttendanceServiceTest {
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(studentRepository.findByProgramId(1L)).thenReturn(List.of(testStudent));
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
-        when(attendanceRepository.countByStudentIdAndSubjectId(1L, 1L)).thenReturn(10L);
-        when(attendanceRepository.countByStudentIdAndSubjectIdAndStatus(1L, 1L, AttendanceStatus.PRESENT))
-            .thenReturn(6L);
+        when(attendanceRepository.countByStudentIdAndSubjectIdAndType(1L, 1L, AttendanceType.THEORY))
+            .thenReturn(10L);
+        when(attendanceRepository.countByStudentIdAndSubjectIdAndTypeAndStatus(
+            1L, 1L, AttendanceType.THEORY, AttendanceStatus.PRESENT)).thenReturn(6L);
+        when(thresholdService.resolveThreshold(1L, 1L, AttendanceType.THEORY))
+            .thenReturn(new BigDecimal("75.00"));
 
         List<AttendanceReportResponse> alerts = attendanceService.getLowAttendanceAlerts(1L);
 

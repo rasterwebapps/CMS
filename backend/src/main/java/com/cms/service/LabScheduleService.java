@@ -10,6 +10,7 @@ import com.cms.dto.LabScheduleRequest;
 import com.cms.dto.LabScheduleResponse;
 import com.cms.dto.ScheduleConflictResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.Batch;
 import com.cms.model.Faculty;
 import com.cms.model.Lab;
 import com.cms.model.LabSchedule;
@@ -17,6 +18,7 @@ import com.cms.model.LabSlot;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.DayOfWeek;
+import com.cms.repository.BatchRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.LabScheduleRepository;
@@ -34,19 +36,22 @@ public class LabScheduleService {
     private final FacultyRepository facultyRepository;
     private final LabSlotRepository labSlotRepository;
     private final TermInstanceRepository termInstanceRepository;
+    private final BatchRepository batchRepository;
 
     public LabScheduleService(LabScheduleRepository labScheduleRepository,
                                LabRepository labRepository,
                                SubjectRepository subjectRepository,
                                FacultyRepository facultyRepository,
                                LabSlotRepository labSlotRepository,
-                               TermInstanceRepository termInstanceRepository) {
+                               TermInstanceRepository termInstanceRepository,
+                               BatchRepository batchRepository) {
         this.labScheduleRepository = labScheduleRepository;
         this.labRepository = labRepository;
         this.subjectRepository = subjectRepository;
         this.facultyRepository = facultyRepository;
         this.labSlotRepository = labSlotRepository;
         this.termInstanceRepository = termInstanceRepository;
+        this.batchRepository = batchRepository;
     }
 
     @Transactional
@@ -68,7 +73,16 @@ public class LabScheduleService {
             request.batchName(), request.dayOfWeek(),
             termInstance, isActive
         );
+        labSchedule.setBatch(resolveBatch(request.batchId()));
         return toResponse(labScheduleRepository.save(labSchedule));
+    }
+
+    private Batch resolveBatch(Long batchId) {
+        if (batchId == null) {
+            return null;
+        }
+        return batchRepository.findById(batchId)
+            .orElseThrow(() -> new ResourceNotFoundException("Batch not found with id: " + batchId));
     }
 
     public List<LabScheduleResponse> findAll() {
@@ -155,6 +169,7 @@ public class LabScheduleService {
         labSchedule.setFaculty(faculty);
         labSchedule.setLabSlot(labSlot);
         labSchedule.setBatchName(request.batchName());
+        labSchedule.setBatch(resolveBatch(request.batchId()));
         labSchedule.setDayOfWeek(request.dayOfWeek());
         labSchedule.setTermInstance(termInstance);
         if (request.isActive() != null) {
@@ -188,6 +203,7 @@ public class LabScheduleService {
             ls.getLabSlot().getStartTime(),
             ls.getLabSlot().getEndTime(),
             ls.getBatchName(),
+            ls.getBatch() != null ? ls.getBatch().getId() : null,
             ls.getDayOfWeek(),
             ti.getId(),
             label,

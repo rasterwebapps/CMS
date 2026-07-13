@@ -20,7 +20,7 @@ import com.cms.dto.CourseOfferingUpdateRequest;
 import com.cms.service.CourseOfferingService;
 
 @RestController
-@RequestMapping("/api/course-offerings")
+@RequestMapping("/course-offerings")
 public class CourseOfferingController {
 
     private final CourseOfferingService courseOfferingService;
@@ -45,6 +45,15 @@ public class CourseOfferingController {
     @PreAuthorize("@perm.has('COURSE_VIEW')")
     public ResponseEntity<CourseOfferingDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(courseOfferingService.getById(id));
+    }
+
+    @GetMapping("/elective-options")
+    @PreAuthorize("@perm.has('COURSE_VIEW')")
+    public ResponseEntity<List<CourseOfferingDto>> getElectiveOptions(
+            @RequestParam Long termInstanceId,
+            @RequestParam Long electiveGroupId) {
+        return ResponseEntity.ok(
+            courseOfferingService.getOfferingsByTermInstanceAndElectiveGroup(termInstanceId, electiveGroupId));
     }
 
     @PostMapping("/generate")

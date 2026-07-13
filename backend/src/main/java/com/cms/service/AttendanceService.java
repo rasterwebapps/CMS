@@ -18,6 +18,7 @@ import com.cms.model.Attendance;
 import com.cms.model.Subject;
 import com.cms.model.Student;
 import com.cms.model.enums.AttendanceStatus;
+import com.cms.model.enums.AttendanceType;
 import com.cms.repository.AttendanceRepository;
 import com.cms.repository.SubjectRepository;
 import com.cms.repository.StudentRepository;
@@ -26,18 +27,19 @@ import com.cms.repository.StudentRepository;
 @Transactional(readOnly = true)
 public class AttendanceService {
 
-    private static final BigDecimal LOW_ATTENDANCE_THRESHOLD = new BigDecimal("75.00");
-
     private final AttendanceRepository attendanceRepository;
     private final StudentRepository studentRepository;
     private final SubjectRepository subjectRepository;
+    private final AttendanceThresholdService thresholdService;
 
     public AttendanceService(AttendanceRepository attendanceRepository,
                               StudentRepository studentRepository,
-                              SubjectRepository subjectRepository) {
+                              SubjectRepository subjectRepository,
+                              AttendanceThresholdService thresholdService) {
         this.attendanceRepository = attendanceRepository;
         this.studentRepository = studentRepository;
         this.subjectRepository = subjectRepository;
+        this.thresholdService = thresholdService;
     }
 
     @Transactional
@@ -119,38 +121,53 @@ public class AttendanceService {
             .toList();
     }
 
-    public AttendanceReportResponse getAttendanceReport(Long studentId, Long subjectId) {
+    /**
+     * Returns one report entry per attendance component (Theory/Lab/Clinical) that has at least
+     * one recorded class for this student+subject, each checked against its own resolved
+     * threshold (per-offering override, falling back to the 75% default) — a student can be
+     * meeting an 80% Theory requirement while failing a 100% Clinical one, so a single blended
+     * percentage across all types would hide that.
+     */
+    public List<AttendanceReportResponse> getAttendanceReport(Long studentId, Long subjectId) {
         Student student = studentRepository.findById(studentId)
             .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
 
         Subject subject = subjectRepository.findById(subjectId)
             .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + subjectId));
 
-        long totalClasses = attendanceRepository.countByStudentIdAndSubjectId(studentId, subjectId);
-        long classesAttended = attendanceRepository.countByStudentIdAndSubjectIdAndStatus(
-            studentId, subjectId, AttendanceStatus.PRESENT);
+        List<AttendanceReportResponse> reports = new ArrayList<>();
+        for (AttendanceType type : AttendanceType.values()) {
+            long totalClasses = attendanceRepository.countByStudentIdAndSubjectIdAndType(studentId, subjectId, type);
+            if (totalClasses == 0) {
+                continue;
+            }
+            long classesAttended = attendanceRepository.countByStudentIdAndSubjectIdAndTypeAndStatus(
+                studentId, subjectId, type, AttendanceStatus.PRESENT);
 
-        BigDecimal attendancePercentage = BigDecimal.ZERO;
-        if (totalClasses > 0) {
-            attendancePercentage = BigDecimal.valueOf(classesAttended)
+            BigDecimal attendancePercentage = BigDecimal.valueOf(classesAttended)
                 .multiply(BigDecimal.valueOf(100))
                 .divide(BigDecimal.valueOf(totalClasses), 2, RoundingMode.HALF_UP);
+
+            BigDecimal threshold = thresholdService.resolveThreshold(studentId, subjectId, type);
+            boolean lowAttendance = attendancePercentage.compareTo(threshold) < 0;
+
+            reports.add(new AttendanceReportResponse(
+                student.getId(),
+                student.getFullName(),
+                student.getRollNumber(),
+                subject.getId(),
+                subject.getName(),
+                subject.getCode(),
+                type,
+                totalClasses,
+                classesAttended,
+                attendancePercentage,
+                threshold,
+                lowAttendance
+            ));
         }
 
-        boolean lowAttendance = attendancePercentage.compareTo(LOW_ATTENDANCE_THRESHOLD) < 0;
-
-        return new AttendanceReportResponse(
-            student.getId(),
-            student.getFullName(),
-            student.getRollNumber(),
-            subject.getId(),
-            subject.getName(),
-            subject.getCode(),
-            totalClasses,
-            classesAttended,
-            attendancePercentage,
-            lowAttendance
-        );
+        return reports;
     }
 
     public List<AttendanceReportResponse> getLowAttendanceAlerts(Long subjectId) {
@@ -161,9 +178,10 @@ public class AttendanceService {
 
         List<AttendanceReportResponse> alerts = new ArrayList<>();
         for (Student student : students) {
-            AttendanceReportResponse report = getAttendanceReport(student.getId(), subjectId);
-            if (report.lowAttendance()) {
-                alerts.add(report);
+            for (AttendanceReportResponse report : getAttendanceReport(student.getId(), subjectId)) {
+                if (report.lowAttendance()) {
+                    alerts.add(report);
+                }
             }
         }
 

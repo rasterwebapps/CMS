@@ -70,10 +70,10 @@ public class AttendanceController {
     }
 
     @GetMapping("/reports")
-    public ResponseEntity<AttendanceReportResponse> getAttendanceReport(
+    public ResponseEntity<List<AttendanceReportResponse>> getAttendanceReport(
             @RequestParam Long studentId,
             @RequestParam Long subjectId) {
-        AttendanceReportResponse report = attendanceService.getAttendanceReport(studentId, subjectId);
+        List<AttendanceReportResponse> report = attendanceService.getAttendanceReport(studentId, subjectId);
         return ResponseEntity.ok(report);
     }
 

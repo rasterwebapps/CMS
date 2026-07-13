@@ -78,8 +78,22 @@
   &__info {
     display: flex;
     flex-direction: column;
-    gap: 0.125rem;
+    gap: 0.25rem;
     min-width: 0;
+  }
+
+  &__title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+  }
+
+  &__meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-wrap: wrap;
   }
 
   &__code {
@@ -94,9 +108,51 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    flex-shrink: 0;
+  }
 }
 
-.remove-btn {
+.subject-type-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 999px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  color: var(--cms-text-secondary);
+
+  &--foundational {
+    border-color: #f59e0b;
+    color: #f59e0b;
+  }
+
+  &--elective {
+    border-color: #8b5cf6;
+    color: #8b5cf6;
+  }
+}
+
+.hours-chip {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+  background: var(--cms-bg-card);
+  border-radius: 999px;
+  padding: 0.0625rem 0.5rem;
+
+  &--elective {
+    color: #8b5cf6;
+  }
+}
+
+.remove-btn,
+.edit-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -105,14 +161,9 @@
   background: transparent;
   border: none;
   border-radius: 4px;
-  color: var(--cms-danger);
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.15s;
-
-  &:hover {
-    background: rgba(239, 68, 68, 0.08);
-  }
 
   &:disabled {
     opacity: 0.5;
@@ -120,10 +171,34 @@
   }
 }
 
+.remove-btn {
+  color: var(--cms-danger);
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.08);
+  }
+}
+
+.edit-btn {
+  color: var(--cms-text-secondary);
+
+  &:hover {
+    background: var(--cms-bg-card);
+    color: var(--color-primary, #6366f1);
+  }
+}
+
 .add-form {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--cms-border-default);
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .btn-add-submit {
@@ -138,7 +213,6 @@
   font-size: var(--cms-text-base);
   font-weight: 500;
   cursor: pointer;
-  margin-top: 0.5rem;
   transition: background 0.15s;
 
   &:hover {
@@ -148,5 +222,97 @@
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+}
+
+.btn-cancel {
+  padding: 0.375rem 0.875rem;
+  background: transparent;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 6px;
+  font-size: var(--cms-text-base);
+  color: var(--cms-text-secondary);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cms-bg-hover);
+  }
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.625rem;
+  background: transparent;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 6px;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-primary, #6366f1);
+    color: var(--color-primary, #6366f1);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.component-hours-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.375rem;
+
+  .field-input {
+    width: 90px;
+  }
+}
+
+.component-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: var(--cms-text-base);
+  color: var(--cms-text-primary);
+  min-width: 80px;
+  cursor: pointer;
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+}
+
+.elective-group-picker,
+.threshold-picker {
+  padding: 0.5rem;
+  background: var(--cms-bg-hover);
+  border-radius: 8px;
+}
+
+.threshold-picker {
+  margin-bottom: 0.75rem;
+
+  .component-hours-row:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.new-group-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+
+  .field-input {
+    flex: 1;
   }
 }

@@ -22,13 +22,13 @@
           <div class="term-card__header">
             <h3 class="term-card__title">{{ termLabel(sem) }}</h3>
             <button class="add-course-btn" (click)="toggleAddForm(sem)" type="button"
-              [attr.aria-label]="showAddForm() === sem ? 'Cancel add course' : 'Add course to ' + termLabel(sem)">
+              [attr.aria-label]="showAddForm() === sem ? 'Cancel add subject' : 'Add subject to ' + termLabel(sem)">
               @if (showAddForm() === sem) {
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               } @else {
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               }
-              {{ showAddForm() === sem ? 'Cancel' : 'Add Course' }}
+              {{ showAddForm() === sem ? 'Cancel' : 'Add Subject' }}
             </button>
           </div>
 
@@ -40,28 +40,54 @@
               @for (course of getCoursesForTerm(sem); track course.id) {
                 <li class="course-item">
                   <div class="course-item__info">
-                    <span class="course-item__code">{{ course.subjectCode }}</span>
-                    <span class="course-item__name">{{ course.subjectName }}</span>
+                    <div class="course-item__title-row">
+                      <span class="course-item__code">{{ course.subjectCode }}</span>
+                      <span class="course-item__name">{{ course.subjectName }}</span>
+                      <span class="subject-type-badge" [class.subject-type-badge--foundational]="course.subjectType === 'FOUNDATIONAL'"
+                        [class.subject-type-badge--elective]="course.subjectType === 'ELECTIVE'">
+                        {{ course.subjectType }}
+                      </span>
+                    </div>
+                    <div class="course-item__meta-row">
+                      @if (course.theoryHours > 0) {
+                        <span class="hours-chip">Theory {{ course.theoryHours }}h</span>
+                      }
+                      @if (course.labHours > 0) {
+                        <span class="hours-chip">Lab {{ course.labHours }}h</span>
+                      }
+                      @if (course.clinicalHours > 0) {
+                        <span class="hours-chip">Clinical {{ course.clinicalHours }}h</span>
+                      }
+                      @if (course.isElective && course.electiveGroupName) {
+                        <span class="hours-chip hours-chip--elective">Group: {{ course.electiveGroupName }}</span>
+                      }
+                    </div>
                   </div>
-                  <button class="remove-btn" matTooltip="Remove" (click)="removeCourse(course.id)"
-                    [disabled]="removing() === course.id" type="button" aria-label="Remove course">
-                    @if (removing() === course.id) {
-                      <mat-spinner diameter="12"></mat-spinner>
-                    } @else {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    }
-                  </button>
+                  <div class="course-item__actions">
+                    <button class="edit-btn" matTooltip="Edit" (click)="startEditCourse(course)"
+                      type="button" aria-label="Edit subject">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+                    </button>
+                    <button class="remove-btn" matTooltip="Remove" (click)="removeCourse(course.id)"
+                      [disabled]="removing() === course.id" type="button" aria-label="Remove subject">
+                      @if (removing() === course.id) {
+                        <mat-spinner diameter="12"></mat-spinner>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      }
+                    </button>
+                  </div>
                 </li>
               }
             </ul>
           }
 
-          <!-- Add course form -->
+          <!-- Add / edit course form -->
           @if (showAddForm() === sem) {
             <div class="add-form">
               <form [formGroup]="addCourseForm" (ngSubmit)="submitAddCourse(sem)">
                 <div class="field-group">
-                  <label class="field-label">Subject / Course</label>
+                  <label class="field-label">Subject</label>
                   <select class="field-input" formControlName="subjectId">
                     <option [value]="null">-- Select --</option>
                     @for (subject of subjects(); track subject.id) {
@@ -73,13 +99,106 @@
                   <label class="field-label">Sort Order (optional)</label>
                   <input type="number" class="field-input field-input--narrow" formControlName="sortOrder" min="0" />
                 </div>
-                <button type="submit" class="btn-add-submit" [disabled]="adding() === sem">
-                  @if (adding() === sem) {
-                    <mat-spinner diameter="14"></mat-spinner>
-                  } @else {
-                    Add
-                  }
-                </button>
+
+                <div class="field-group">
+                  <label class="field-label">Subject Type (INC category)</label>
+                  <select class="field-input" formControlName="subjectType">
+                    @for (type of subjectTypes; track type) {
+                      <option [value]="type">{{ type }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="field-group">
+                  <label class="field-label">Components &amp; Hours</label>
+                  <div class="component-hours-row">
+                    <label class="component-checkbox">
+                      <input type="checkbox" formControlName="theoryEnabled" (change)="onHourToggle('theoryEnabled', 'theoryHours')" />
+                      Theory
+                    </label>
+                    <input type="number" class="field-input field-input--narrow" formControlName="theoryHours" min="0" placeholder="Hours" />
+                  </div>
+                  <div class="component-hours-row">
+                    <label class="component-checkbox">
+                      <input type="checkbox" formControlName="labEnabled" (change)="onHourToggle('labEnabled', 'labHours')" />
+                      Lab
+                    </label>
+                    <input type="number" class="field-input field-input--narrow" formControlName="labHours" min="0" placeholder="Hours" />
+                  </div>
+                  <div class="component-hours-row">
+                    <label class="component-checkbox">
+                      <input type="checkbox" formControlName="clinicalEnabled" (change)="onHourToggle('clinicalEnabled', 'clinicalHours')" />
+                      Clinical
+                    </label>
+                    <input type="number" class="field-input field-input--narrow" formControlName="clinicalHours" min="0" placeholder="Hours" />
+                  </div>
+                </div>
+
+                <div class="field-group">
+                  <label class="component-checkbox">
+                    <input type="checkbox" formControlName="isElective" />
+                    This is a choice-based elective
+                  </label>
+                </div>
+
+                @if (editingCourseId()) {
+                  <div class="field-group threshold-picker">
+                    <label class="field-label">Attendance Thresholds (blank = 75% default)</label>
+                    @if (addCourseForm.get('theoryEnabled')?.value) {
+                      <div class="component-hours-row">
+                        <span class="component-checkbox">Theory min %</span>
+                        <input type="number" class="field-input field-input--narrow" formControlName="theoryThreshold" min="0" max="100" placeholder="75" />
+                      </div>
+                    }
+                    @if (addCourseForm.get('labEnabled')?.value) {
+                      <div class="component-hours-row">
+                        <span class="component-checkbox">Lab min %</span>
+                        <input type="number" class="field-input field-input--narrow" formControlName="labThreshold" min="0" max="100" placeholder="75" />
+                      </div>
+                    }
+                    @if (addCourseForm.get('clinicalEnabled')?.value) {
+                      <div class="component-hours-row">
+                        <span class="component-checkbox">Clinical min %</span>
+                        <input type="number" class="field-input field-input--narrow" formControlName="clinicalThreshold" min="0" max="100" placeholder="75" />
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (addCourseForm.get('isElective')?.value) {
+                  <div class="field-group elective-group-picker">
+                    <label class="field-label">Elective Group</label>
+                    <select class="field-input" formControlName="electiveGroupId">
+                      <option [value]="null">-- Select group --</option>
+                      @for (group of electiveGroups(); track group.id) {
+                        <option [value]="group.id">{{ group.groupName }}</option>
+                      }
+                    </select>
+                    <div class="new-group-row">
+                      <input type="text" class="field-input" [formControl]="newElectiveGroupNameControl"
+                        placeholder="New group name" />
+                      <button type="button" class="btn-secondary" (click)="createElectiveGroup(sem)"
+                        [disabled]="creatingElectiveGroup() || !newElectiveGroupNameControl.value?.trim()">
+                        @if (creatingElectiveGroup()) {
+                          <mat-spinner diameter="12"></mat-spinner>
+                        } @else {
+                          + New Group
+                        }
+                      </button>
+                    </div>
+                  </div>
+                }
+
+                <div class="form-actions">
+                  <button type="button" class="btn-cancel" (click)="cancelForm()">Cancel</button>
+                  <button type="submit" class="btn-add-submit" [disabled]="adding() === sem">
+                    @if (adding() === sem) {
+                      <mat-spinner diameter="14"></mat-spinner>
+                    } @else {
+                      {{ editingCourseId() ? 'Save' : 'Add' }}
+                    }
+                  </button>
+                </div>
               </form>
             </div>
           }

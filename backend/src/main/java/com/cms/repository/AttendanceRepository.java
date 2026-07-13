@@ -34,6 +34,19 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
                                                @Param("subjectId") Long subjectId,
                                                @Param("status") AttendanceStatus status);
 
+    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.student.id = :studentId AND a.subject.id = :subjectId " +
+           "AND a.type = :type")
+    long countByStudentIdAndSubjectIdAndType(@Param("studentId") Long studentId,
+                                              @Param("subjectId") Long subjectId,
+                                              @Param("type") AttendanceType type);
+
+    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.student.id = :studentId AND a.subject.id = :subjectId " +
+           "AND a.type = :type AND a.status = :status")
+    long countByStudentIdAndSubjectIdAndTypeAndStatus(@Param("studentId") Long studentId,
+                                                       @Param("subjectId") Long subjectId,
+                                                       @Param("type") AttendanceType type,
+                                                       @Param("status") AttendanceStatus status);
+
     boolean existsByStudentIdAndSubjectIdAndDateAndType(Long studentId, Long subjectId, LocalDate date, AttendanceType type);
 
     @Query("SELECT a.status, COUNT(a) FROM Attendance a GROUP BY a.status")

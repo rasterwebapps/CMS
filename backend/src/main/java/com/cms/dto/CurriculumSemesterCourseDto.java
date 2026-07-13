@@ -2,6 +2,8 @@ package com.cms.dto;
 
 import java.time.Instant;
 
+import com.cms.model.enums.SubjectType;
+
 public record CurriculumSemesterCourseDto(
     Long id,
     Long curriculumVersionId,
@@ -11,6 +13,13 @@ public record CurriculumSemesterCourseDto(
     String subjectName,
     String subjectCode,
     Integer sortOrder,
+    Integer theoryHours,
+    Integer labHours,
+    Integer clinicalHours,
+    SubjectType subjectType,
+    Boolean isElective,
+    Long electiveGroupId,
+    String electiveGroupName,
     Instant createdAt,
     Instant updatedAt
 ) {}

@@ -165,16 +165,14 @@ export class AcademicYearService {
 
   // StudentTermEnrollment methods
   getEnrollmentsByTermInstance(termInstanceId: number): Observable<StudentTermEnrollment[]> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
     return this.http.get<StudentTermEnrollment[]>(
-      `${baseUrl}/api/student-term-enrollments?termInstanceId=${termInstanceId}`,
+      `${environment.apiUrl}/student-term-enrollments?termInstanceId=${termInstanceId}`,
     );
   }
 
   generateEnrollments(termInstanceId: number): Observable<GenerateEnrollmentsResponse> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
     return this.http.post<GenerateEnrollmentsResponse>(
-      `${baseUrl}/api/student-term-enrollments/generate?termInstanceId=${termInstanceId}`,
+      `${environment.apiUrl}/student-term-enrollments/generate?termInstanceId=${termInstanceId}`,
       {},
     );
   }
@@ -184,53 +182,59 @@ export class AcademicYearService {
     termInstanceId: number,
     semesterNumber?: number,
   ): Observable<CourseOffering[]> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
     let params = new HttpParams().set('termInstanceId', termInstanceId.toString());
     if (semesterNumber != null) {
       params = params.set('semesterNumber', semesterNumber.toString());
     }
-    return this.http.get<CourseOffering[]>(`${baseUrl}/api/course-offerings`, { params });
+    return this.http.get<CourseOffering[]>(`${environment.apiUrl}/course-offerings`, { params });
   }
 
   generateCourseOfferings(termInstanceId: number): Observable<GenerateCourseOfferingsResponse> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
     return this.http.post<GenerateCourseOfferingsResponse>(
-      `${baseUrl}/api/course-offerings/generate?termInstanceId=${termInstanceId}`,
+      `${environment.apiUrl}/course-offerings/generate?termInstanceId=${termInstanceId}`,
       {},
     );
   }
 
   updateCourseOffering(id: number, request: CourseOfferingUpdateRequest): Observable<CourseOffering> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
-    return this.http.put<CourseOffering>(`${baseUrl}/api/course-offerings/${id}`, request);
+    return this.http.put<CourseOffering>(`${environment.apiUrl}/course-offerings/${id}`, request);
   }
 
   deactivateCourseOffering(id: number): Observable<void> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
-    return this.http.delete<void>(`${baseUrl}/api/course-offerings/${id}`);
+    return this.http.delete<void>(`${environment.apiUrl}/course-offerings/${id}`);
   }
 
   // CourseRegistration methods
   getCourseRegistrationsByEnrollment(enrollmentId: number): Observable<CourseRegistration[]> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
     return this.http.get<CourseRegistration[]>(
-      `${baseUrl}/api/course-registrations?enrollmentId=${enrollmentId}`,
+      `${environment.apiUrl}/course-registrations?enrollmentId=${enrollmentId}`,
     );
   }
 
   getCourseRegistrationsByCourseOffering(courseOfferingId: number): Observable<CourseRegistration[]> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
     return this.http.get<CourseRegistration[]>(
-      `${baseUrl}/api/course-registrations?courseOfferingId=${courseOfferingId}`,
+      `${environment.apiUrl}/course-registrations?courseOfferingId=${courseOfferingId}`,
     );
   }
 
   generateCourseRegistrations(termInstanceId: number): Observable<GenerateCourseRegistrationsResponse> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
     return this.http.post<GenerateCourseRegistrationsResponse>(
-      `${baseUrl}/api/course-registrations/generate?termInstanceId=${termInstanceId}`,
+      `${environment.apiUrl}/course-registrations/generate?termInstanceId=${termInstanceId}`,
       {},
     );
+  }
+
+  assignElectiveChoice(enrollmentId: number, courseOfferingId: number): Observable<CourseRegistration> {
+    return this.http.post<CourseRegistration>(
+      `${environment.apiUrl}/course-registrations/elective-assignment`,
+      { enrollmentId, courseOfferingId },
+    );
+  }
+
+  getElectiveOfferingOptions(termInstanceId: number, electiveGroupId: number): Observable<CourseOffering[]> {
+    return this.http.get<CourseOffering[]>(`${environment.apiUrl}/course-offerings/elective-options`, {
+      params: { termInstanceId: termInstanceId.toString(), electiveGroupId: electiveGroupId.toString() }
+    });
   }
 
   // FeeDemand methods
@@ -238,8 +242,7 @@ export class AcademicYearService {
     termInstanceId: number,
     status?: DemandStatus,
   ): Observable<FeeDemand[]> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
-    let url = `${baseUrl}/api/fee-demands?termInstanceId=${termInstanceId}`;
+    let url = `${environment.apiUrl}/fee-demands?termInstanceId=${termInstanceId}`;
     if (status) {
       url += `&status=${status}`;
     }
@@ -247,9 +250,8 @@ export class AcademicYearService {
   }
 
   generateFeeDemands(termInstanceId: number): Observable<GenerateDemandsResponse> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
     return this.http.post<GenerateDemandsResponse>(
-      `${baseUrl}/api/fee-demands/generate?termInstanceId=${termInstanceId}`,
+      `${environment.apiUrl}/fee-demands/generate?termInstanceId=${termInstanceId}`,
       {},
     );
   }

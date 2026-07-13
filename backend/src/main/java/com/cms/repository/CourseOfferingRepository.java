@@ -19,4 +19,11 @@ public interface CourseOfferingRepository extends JpaRepository<CourseOffering, 
 
     Optional<CourseOffering> findByTermInstanceIdAndCurriculumVersionIdAndSubjectIdAndSemesterNumber(
         Long termInstanceId, Long curriculumVersionId, Long subjectId, Integer termNumber);
+
+    List<CourseOffering> findByTermInstanceIdAndSubjectId(Long termInstanceId, Long subjectId);
+
+    List<CourseOffering> findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(
+        Long termInstanceId, Long electiveGroupId);
+
+    boolean existsBySubjectId(Long subjectId);
 }

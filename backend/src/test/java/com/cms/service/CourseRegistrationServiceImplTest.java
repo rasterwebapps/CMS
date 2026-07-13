@@ -22,8 +22,11 @@ import com.cms.dto.CourseRegistrationDto;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Cohort;
+import com.cms.model.Course;
 import com.cms.model.CourseOffering;
 import com.cms.model.CourseRegistration;
+import com.cms.model.CurriculumElectiveGroup;
+import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.CurriculumVersion;
 import com.cms.model.Program;
 import com.cms.model.Student;
@@ -35,6 +38,7 @@ import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.ProgramStatus;
 import com.cms.model.enums.RegistrationStatus;
 import com.cms.model.enums.StudentStatus;
+import com.cms.model.enums.SubjectType;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.CourseOfferingRepository;
@@ -75,12 +79,19 @@ class CourseRegistrationServiceImplTest {
         return p;
     }
 
-    private Cohort createCohort(Long id, Program program, AcademicYear ay) {
+    private Course createCourse(Long id, String name, String code, Program program) {
+        Course course = new Course(name, code, null, program);
+        course.setId(id);
+        return course;
+    }
+
+    private Cohort createCohort(Long id, Course course, AcademicYear ay) {
         Cohort c = new Cohort();
         c.setId(id);
+        c.setCourse(course);
         c.setAdmissionAcademicYear(ay);
-        c.setCohortCode(program.getCode() + "-2024-2027");
-        c.setDisplayName(program.getName() + " (2024-2027)");
+        c.setCohortCode(course.getCode() + "-2024-2027");
+        c.setDisplayName(course.getName() + " (2024-2027)");
         c.setStatus(CohortStatus.ACTIVE);
         return c;
     }
@@ -100,11 +111,12 @@ class CourseRegistrationServiceImplTest {
         return s;
     }
 
-    private Subject createSubject(Long id, String name, String code) {
+    private Subject createSubject(Long id, String name, String code, Course course) {
         Subject s = new Subject();
         s.setId(id);
         s.setName(name);
         s.setCode(code);
+        s.setCourse(course);
         return s;
     }
 
@@ -145,11 +157,12 @@ class CourseRegistrationServiceImplTest {
     void generateRegistrationsForTermInstance_createsRegistrations() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA");
-        Cohort cohort = createCohort(1L, program, ay);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
         TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
         Student student = createStudent(1L, program, cohort);
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
-        Subject subject = createSubject(1L, "Math", "MATH101");
+        Subject subject = createSubject(1L, "Math", "MATH101", course);
         CurriculumVersion cv = createCV(1L, program, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
 
@@ -172,14 +185,54 @@ class CourseRegistrationServiceImplTest {
     }
 
     @Test
+    void generateRegistrationsForTermInstance_excludesOfferingsFromDifferentCourseUnderSameProgram() {
+        // Regression test: MSc Nursing (Adult) and (Child) share one Program. An Adult student's
+        // enrollment must not pick up a Child-only course offering just because both offerings'
+        // curriculum version belongs to the same Program.
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "MSc");
+        Course adultCourse = createCourse(1L, "MSc Nursing (Adult)", "MSN-A", program);
+        Course childCourse = createCourse(2L, "MSc Nursing (Child)", "MSN-C", program);
+        Cohort adultCohort = createCohort(1L, adultCourse, ay);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Student student = createStudent(1L, program, adultCohort);
+        StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, adultCohort, 1);
+
+        Subject adultSubject = createSubject(1L, "Advanced Medical Surgical Nursing", "MSNA101", adultCourse);
+        Subject childSubject = createSubject(2L, "Advanced Child Health Nursing", "MSNC101", childCourse);
+        CurriculumVersion cv = createCV(1L, program, ay);
+        CourseOffering adultOffering = createOffering(1L, ti, cv, adultSubject, 1);
+        CourseOffering childOffering = createOffering(2L, ti, cv, childSubject, 1);
+
+        when(termInstanceRepository.existsById(1L)).thenReturn(true);
+        when(enrollmentRepository.findByTermInstanceId(1L)).thenReturn(List.of(enrollment));
+        when(courseOfferingRepository.findByTermInstanceIdAndSemesterNumber(1L, 1))
+            .thenReturn(List.of(adultOffering, childOffering));
+        when(courseRegistrationRepository.findByStudentTermEnrollmentIdAndCourseOfferingId(1L, 1L))
+            .thenReturn(Optional.empty());
+        when(courseRegistrationRepository.save(any(CourseRegistration.class))).thenAnswer(inv -> {
+            CourseRegistration r = inv.getArgument(0);
+            r.setId(1L);
+            return r;
+        });
+
+        int count = service.generateRegistrationsForTermInstance(1L);
+
+        assertThat(count).isEqualTo(1);
+        verify(courseRegistrationRepository, never())
+            .findByStudentTermEnrollmentIdAndCourseOfferingId(1L, 2L);
+    }
+
+    @Test
     void generateRegistrationsForTermInstance_isIdempotent() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA");
-        Cohort cohort = createCohort(1L, program, ay);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
         TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
         Student student = createStudent(1L, program, cohort);
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
-        Subject subject = createSubject(1L, "Math", "MATH101");
+        Subject subject = createSubject(1L, "Math", "MATH101", course);
         CurriculumVersion cv = createCV(1L, program, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
         CourseRegistration existing = new CourseRegistration();
@@ -202,11 +255,12 @@ class CourseRegistrationServiceImplTest {
     void generateRegistrationsForTermInstance_skipsInactiveOfferings() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA");
-        Cohort cohort = createCohort(1L, program, ay);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
         TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
         Student student = createStudent(1L, program, cohort);
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
-        Subject subject = createSubject(1L, "Math", "MATH101");
+        Subject subject = createSubject(1L, "Math", "MATH101", course);
         CurriculumVersion cv = createCV(1L, program, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
         offering.setIsActive(false); // Inactive
@@ -235,11 +289,12 @@ class CourseRegistrationServiceImplTest {
     void getRegistrationsByEnrollment_returnsMappedDtos() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA");
-        Cohort cohort = createCohort(1L, program, ay);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
         TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
         Student student = createStudent(1L, program, cohort);
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
-        Subject subject = createSubject(1L, "Math", "MATH101");
+        Subject subject = createSubject(1L, "Math", "MATH101", course);
         CurriculumVersion cv = createCV(1L, program, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
 
@@ -264,11 +319,12 @@ class CourseRegistrationServiceImplTest {
     void dropRegistration_setsStatusDropped() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA");
-        Cohort cohort = createCohort(1L, program, ay);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
         TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
         Student student = createStudent(1L, program, cohort);
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
-        Subject subject = createSubject(1L, "Math", "MATH101");
+        Subject subject = createSubject(1L, "Math", "MATH101", course);
         CurriculumVersion cv = createCV(1L, program, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
 
@@ -295,5 +351,173 @@ class CourseRegistrationServiceImplTest {
         assertThatThrownBy(() -> service.getById(999L))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessageContaining("999");
+    }
+
+    private CurriculumSemesterCourse createElectiveCsc(Long id, CurriculumVersion cv, int semNum,
+                                                        Subject subject, CurriculumElectiveGroup group) {
+        CurriculumSemesterCourse csc = new CurriculumSemesterCourse(cv, semNum, subject, 1);
+        csc.setId(id);
+        csc.setIsElective(true);
+        csc.setSubjectType(SubjectType.ELECTIVE);
+        csc.setElectiveGroup(group);
+        return csc;
+    }
+
+    @Test
+    void generateRegistrationsForTermInstance_excludesElectiveOfferings() {
+        // Regression: a curriculum version with zero electives must behave identically to today
+        // (covered by the existing tests above, which use offerings with no curriculum mapping at
+        // all). This test covers the new behavior: an offering whose mapping IS marked elective
+        // must be skipped by bulk-generate, left for assignElectiveChoice() instead.
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA");
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Student student = createStudent(1L, program, cohort);
+        StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
+        Subject subject = createSubject(1L, "Community Health Elective", "ELEC101", course);
+        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumElectiveGroup group = new CurriculumElectiveGroup(cv, 1, "Term 1 Electives", "T1E");
+        group.setId(1L);
+        CurriculumSemesterCourse csc = createElectiveCsc(1L, cv, 1, subject, group);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        offering.setCurriculumSemesterCourse(csc);
+
+        when(termInstanceRepository.existsById(1L)).thenReturn(true);
+        when(enrollmentRepository.findByTermInstanceId(1L)).thenReturn(List.of(enrollment));
+        when(courseOfferingRepository.findByTermInstanceIdAndSemesterNumber(1L, 1))
+            .thenReturn(List.of(offering));
+
+        int count = service.generateRegistrationsForTermInstance(1L);
+
+        assertThat(count).isEqualTo(0);
+        verify(courseRegistrationRepository, never()).save(any());
+    }
+
+    @Test
+    void assignElectiveChoice_rejectsNonElectiveOffering() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA");
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Student student = createStudent(1L, program, cohort);
+        StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
+        Subject subject = createSubject(1L, "Math", "MATH101", course);
+        CurriculumVersion cv = createCV(1L, program, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1); // no curriculumSemesterCourse
+
+        when(enrollmentRepository.findById(1L)).thenReturn(Optional.of(enrollment));
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+
+        assertThatThrownBy(() -> service.assignElectiveChoice(1L, 1L))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("not a choice-based elective");
+
+        verify(courseRegistrationRepository, never()).save(any());
+    }
+
+    @Test
+    void assignElectiveChoice_createsRegistrationForValidElective() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA");
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Student student = createStudent(1L, program, cohort);
+        StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
+        Subject subject = createSubject(1L, "Community Health Elective", "ELEC101", course);
+        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumElectiveGroup group = new CurriculumElectiveGroup(cv, 1, "Term 1 Electives", "T1E");
+        group.setId(1L);
+        CurriculumSemesterCourse csc = createElectiveCsc(1L, cv, 1, subject, group);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        offering.setCurriculumSemesterCourse(csc);
+
+        when(enrollmentRepository.findById(1L)).thenReturn(Optional.of(enrollment));
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(courseRegistrationRepository.findByStudentTermEnrollmentId(1L)).thenReturn(List.of());
+        when(courseRegistrationRepository.save(any(CourseRegistration.class))).thenAnswer(inv -> {
+            CourseRegistration r = inv.getArgument(0);
+            r.setId(1L);
+            return r;
+        });
+
+        CourseRegistrationDto dto = service.assignElectiveChoice(1L, 1L);
+
+        assertThat(dto.status()).isEqualTo(RegistrationStatus.REGISTERED);
+        assertThat(dto.courseOfferingId()).isEqualTo(1L);
+    }
+
+    @Test
+    void assignElectiveChoice_rejectsSecondPickWithinSameGroup() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA");
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Student student = createStudent(1L, program, cohort);
+        StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
+        Subject subjectA = createSubject(1L, "Community Health Elective", "ELECA", course);
+        Subject subjectB = createSubject(2L, "School Health Elective", "ELECB", course);
+        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumElectiveGroup group = new CurriculumElectiveGroup(cv, 1, "Term 1 Electives", "T1E");
+        group.setId(1L);
+        CurriculumSemesterCourse cscA = createElectiveCsc(1L, cv, 1, subjectA, group);
+        CurriculumSemesterCourse cscB = createElectiveCsc(2L, cv, 1, subjectB, group);
+        CourseOffering offeringA = createOffering(1L, ti, cv, subjectA, 1);
+        offeringA.setCurriculumSemesterCourse(cscA);
+        CourseOffering offeringB = createOffering(2L, ti, cv, subjectB, 1);
+        offeringB.setCurriculumSemesterCourse(cscB);
+
+        CourseRegistration existingChoice = new CourseRegistration();
+        existingChoice.setId(50L);
+        existingChoice.setStudentTermEnrollment(enrollment);
+        existingChoice.setCourseOffering(offeringA);
+        existingChoice.setStatus(RegistrationStatus.REGISTERED);
+
+        when(enrollmentRepository.findById(1L)).thenReturn(Optional.of(enrollment));
+        when(courseOfferingRepository.findById(2L)).thenReturn(Optional.of(offeringB));
+        when(courseRegistrationRepository.findByStudentTermEnrollmentId(1L)).thenReturn(List.of(existingChoice));
+
+        assertThatThrownBy(() -> service.assignElectiveChoice(1L, 2L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("already been assigned");
+
+        verify(courseRegistrationRepository, never()).save(any());
+    }
+
+    @Test
+    void assignElectiveChoice_isIdempotentForSameOffering() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA");
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Student student = createStudent(1L, program, cohort);
+        StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
+        Subject subject = createSubject(1L, "Community Health Elective", "ELEC101", course);
+        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumElectiveGroup group = new CurriculumElectiveGroup(cv, 1, "Term 1 Electives", "T1E");
+        group.setId(1L);
+        CurriculumSemesterCourse csc = createElectiveCsc(1L, cv, 1, subject, group);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        offering.setCurriculumSemesterCourse(csc);
+
+        CourseRegistration existingChoice = new CourseRegistration();
+        existingChoice.setId(50L);
+        existingChoice.setStudentTermEnrollment(enrollment);
+        existingChoice.setCourseOffering(offering);
+        existingChoice.setStatus(RegistrationStatus.REGISTERED);
+
+        when(enrollmentRepository.findById(1L)).thenReturn(Optional.of(enrollment));
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(courseRegistrationRepository.findByStudentTermEnrollmentId(1L)).thenReturn(List.of(existingChoice));
+
+        CourseRegistrationDto dto = service.assignElectiveChoice(1L, 1L);
+
+        assertThat(dto.id()).isEqualTo(50L);
+        verify(courseRegistrationRepository, never()).save(any());
     }
 }

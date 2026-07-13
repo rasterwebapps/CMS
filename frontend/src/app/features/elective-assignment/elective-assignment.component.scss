@@ -1,0 +1,10 @@
+.ea-action-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+
+  .field-select--narrow {
+    min-width: 220px;
+  }
+}

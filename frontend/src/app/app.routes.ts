@@ -124,6 +124,30 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'subjects',
+    canActivate: withPermission('SUBJECT_VIEW', 'SUBJECT_MANAGE'),
+    loadComponent: () =>
+      import('./features/subject/subject-list/subject-list.component').then(
+        (m) => m.SubjectListComponent
+      ),
+  },
+  {
+    path: 'subjects/new',
+    canActivate: withPermission('SUBJECT_MANAGE'),
+    loadComponent: () =>
+      import('./features/subject/subject-form/subject-form.component').then(
+        (m) => m.SubjectFormComponent
+      ),
+  },
+  {
+    path: 'subjects/:id/edit',
+    canActivate: withPermission('SUBJECT_MANAGE'),
+    loadComponent: () =>
+      import('./features/subject/subject-form/subject-form.component').then(
+        (m) => m.SubjectFormComponent
+      ),
+  },
+  {
     path: 'academic-years',
     canActivate: withPermission('ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_MANAGE'),
     loadComponent: () =>
@@ -617,6 +641,22 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/curriculum/curriculum-map/curriculum-map.component').then(
         (m) => m.CurriculumMapComponent
+      ),
+  },
+  {
+    path: 'course-offerings',
+    canActivate: withPermission('COURSE_VIEW', 'COURSE_MANAGE'),
+    loadComponent: () =>
+      import('./features/course-offering/course-offering-list/course-offering-list.component').then(
+        (m) => m.CourseOfferingListComponent
+      ),
+  },
+  {
+    path: 'elective-assignment',
+    canActivate: withPermission('COURSE_REGISTRATION_ELECTIVE_ASSIGN'),
+    loadComponent: () =>
+      import('./features/elective-assignment/elective-assignment.component').then(
+        (m) => m.ElectiveAssignmentComponent
       ),
   },
   {

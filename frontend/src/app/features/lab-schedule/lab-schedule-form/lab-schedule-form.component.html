@@ -93,6 +93,19 @@
               </div>
             </div>
 
+            @if (availableBatches().length > 0) {
+              <div class="field-group">
+                <label for="ls-batch-picker" class="field-label">Batch (from roster)</label>
+                <select id="ls-batch-picker" class="field-select" formControlName="batchId"
+                  (change)="onBatchSelect(form.get('batchId')?.value)">
+                  <option [ngValue]="null">-- Type a name manually below --</option>
+                  @for (batch of availableBatches(); track batch.id) {
+                    <option [ngValue]="batch.id">{{ batch.name }} ({{ batch.enrolledCount }}/{{ batch.capacity }})</option>
+                  }
+                </select>
+              </div>
+            }
+
             <div class="field-row">
               <div class="field-group">
                 <label for="ls-batch" class="field-label">Batch Name <span class="required-star">*</span></label>

@@ -13,10 +13,12 @@ import com.cms.dto.CurriculumFullViewDto;
 import com.cms.dto.CurriculumSemesterCourseDto;
 import com.cms.dto.CurriculumSemesterCourseRequest;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.CurriculumElectiveGroup;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.CurriculumVersion;
 import com.cms.model.Subject;
 import com.cms.model.enums.AssessmentPattern;
+import com.cms.repository.CurriculumElectiveGroupRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
 import com.cms.repository.SubjectRepository;
@@ -28,13 +30,16 @@ public class CurriculumSemesterCourseService {
     private final CurriculumSemesterCourseRepository courseRepository;
     private final CurriculumVersionRepository curriculumVersionRepository;
     private final SubjectRepository subjectRepository;
+    private final CurriculumElectiveGroupRepository electiveGroupRepository;
 
     public CurriculumSemesterCourseService(CurriculumSemesterCourseRepository courseRepository,
                                             CurriculumVersionRepository curriculumVersionRepository,
-                                            SubjectRepository subjectRepository) {
+                                            SubjectRepository subjectRepository,
+                                            CurriculumElectiveGroupRepository electiveGroupRepository) {
         this.courseRepository = courseRepository;
         this.curriculumVersionRepository = curriculumVersionRepository;
         this.subjectRepository = subjectRepository;
+        this.electiveGroupRepository = electiveGroupRepository;
     }
 
     @Transactional
@@ -58,7 +63,45 @@ public class CurriculumSemesterCourseService {
 
         CurriculumSemesterCourse entry = new CurriculumSemesterCourse(
             cv, request.termNumber(), subject, request.sortOrder());
+        applyDetails(entry, cv, request);
         return toDto(courseRepository.save(entry));
+    }
+
+    @Transactional
+    public CurriculumSemesterCourseDto updateCourseDetails(Long id, CurriculumSemesterCourseRequest request) {
+        CurriculumSemesterCourse entry = courseRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Curriculum semester course not found with id: " + id));
+
+        applyDetails(entry, entry.getCurriculumVersion(), request);
+        return toDto(courseRepository.save(entry));
+    }
+
+    private void applyDetails(CurriculumSemesterCourse entry, CurriculumVersion cv,
+                               CurriculumSemesterCourseRequest request) {
+        entry.setTheoryHours(request.theoryHours());
+        entry.setLabHours(request.labHours());
+        entry.setClinicalHours(request.clinicalHours());
+        entry.setSubjectType(request.subjectType());
+        entry.setIsElective(request.isElective());
+
+        if (Boolean.TRUE.equals(request.isElective())) {
+            if (request.electiveGroupId() == null) {
+                throw new IllegalArgumentException(
+                    "An elective group is required when a subject is marked as elective");
+            }
+            CurriculumElectiveGroup group = electiveGroupRepository.findById(request.electiveGroupId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                    "Curriculum elective group not found with id: " + request.electiveGroupId()));
+            if (!group.getCurriculumVersion().getId().equals(cv.getId())
+                    || !group.getTermNumber().equals(entry.getSemesterNumber())) {
+                throw new IllegalArgumentException(
+                    "Elective group must belong to the same curriculum version and term as the subject");
+            }
+            entry.setElectiveGroup(group);
+        } else {
+            entry.setElectiveGroup(null);
+        }
     }
 
     @Transactional
@@ -135,6 +178,13 @@ public class CurriculumSemesterCourseService {
             c.getSubject().getName(),
             c.getSubject().getCode(),
             c.getSortOrder(),
+            c.getTheoryHours(),
+            c.getLabHours(),
+            c.getClinicalHours(),
+            c.getSubjectType(),
+            c.getIsElective(),
+            c.getElectiveGroup() != null ? c.getElectiveGroup().getId() : null,
+            c.getElectiveGroup() != null ? c.getElectiveGroup().getGroupName() : null,
             c.getCreatedAt(),
             c.getUpdatedAt()
         );

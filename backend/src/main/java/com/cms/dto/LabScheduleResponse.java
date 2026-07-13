@@ -19,6 +19,7 @@ public record LabScheduleResponse(
     LocalTime startTime,
     LocalTime endTime,
     String batchName,
+    Long batchId,
     DayOfWeek dayOfWeek,
     Long termInstanceId,
     String termInstanceLabel,

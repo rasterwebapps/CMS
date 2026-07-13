@@ -134,17 +134,17 @@ class AttendanceControllerTest {
     @Test
     void shouldGetAttendanceReport() throws Exception {
         AttendanceReportResponse report = new AttendanceReportResponse(
-            1L, "John Doe", "CS2024001", 1L, "Data Structures", "CS201",
-            10, 8, new BigDecimal("80.00"), false
+            1L, "John Doe", "CS2024001", 1L, "Data Structures", "CS201", AttendanceType.THEORY,
+            10, 8, new BigDecimal("80.00"), new BigDecimal("75.00"), false
         );
 
-        when(attendanceService.getAttendanceReport(1L, 1L)).thenReturn(report);
+        when(attendanceService.getAttendanceReport(1L, 1L)).thenReturn(List.of(report));
 
         mockMvc.perform(get("/attendance/reports")
                 .param("studentId", "1")
                 .param("subjectId", "1"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.attendancePercentage").value(80.00));
+            .andExpect(jsonPath("$[0].attendancePercentage").value(80.00));
 
         verify(attendanceService).getAttendanceReport(1L, 1L);
     }
@@ -152,8 +152,8 @@ class AttendanceControllerTest {
     @Test
     void shouldGetLowAttendanceAlerts() throws Exception {
         AttendanceReportResponse alert = new AttendanceReportResponse(
-            1L, "John Doe", "CS2024001", 1L, "Data Structures", "CS201",
-            10, 6, new BigDecimal("60.00"), true
+            1L, "John Doe", "CS2024001", 1L, "Data Structures", "CS201", AttendanceType.THEORY,
+            10, 6, new BigDecimal("60.00"), new BigDecimal("75.00"), true
         );
 
         when(attendanceService.getLowAttendanceAlerts(1L)).thenReturn(List.of(alert));

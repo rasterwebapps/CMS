@@ -14,4 +14,8 @@ public interface CurriculumSemesterCourseRepository extends JpaRepository<Curric
         Long curriculumVersionId, Integer termNumber);
 
     boolean existsByCurriculumVersionId(Long curriculumVersionId);
+
+    boolean existsByElectiveGroupId(Long electiveGroupId);
+
+    boolean existsBySubjectId(Long subjectId);
 }

@@ -2,6 +2,10 @@ export interface CurriculumVersion {
   id: number;
   programId: number;
   programName: string;
+  /** Optional narrower scope than program — set when this version applies to one specific
+   *  course only (e.g. MSc Nursing (Adult) vs (Child), which share a Program). */
+  courseId: number | null;
+  courseName: string | null;
   versionName: string;
   effectiveFromAcademicYearId: number;
   effectiveFromAcademicYearName: string;
@@ -12,10 +16,14 @@ export interface CurriculumVersion {
 
 export interface CurriculumVersionRequest {
   programId: number;
+  /** Optional — leave undefined/null for a program-wide version. */
+  courseId?: number | null;
   versionName: string;
   effectiveFromAcademicYearId: number;
   isActive?: boolean;
 }
+
+export type SubjectType = 'CORE' | 'FOUNDATIONAL' | 'ELECTIVE';
 
 export interface CurriculumSemesterCourse {
   id: number;
@@ -26,6 +34,13 @@ export interface CurriculumSemesterCourse {
   subjectName: string;
   subjectCode: string;
   sortOrder?: number;
+  theoryHours: number;
+  labHours: number;
+  clinicalHours: number;
+  subjectType: SubjectType;
+  isElective: boolean;
+  electiveGroupId: number | null;
+  electiveGroupName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -35,6 +50,46 @@ export interface CurriculumSemesterCourseRequest {
   termNumber: number;
   subjectId: number;
   sortOrder?: number;
+  theoryHours?: number;
+  labHours?: number;
+  clinicalHours?: number;
+  subjectType?: SubjectType;
+  isElective?: boolean;
+  electiveGroupId?: number | null;
+}
+
+export interface CurriculumElectiveGroup {
+  id: number;
+  curriculumVersionId: number;
+  termNumber: number;
+  groupName: string;
+  groupCode: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CurriculumElectiveGroupRequest {
+  curriculumVersionId: number;
+  termNumber: number;
+  groupName: string;
+  groupCode?: string;
+}
+
+export type AttendanceComponentType = 'THEORY' | 'LAB' | 'CLINICAL';
+
+export interface AttendanceThreshold {
+  id: number;
+  curriculumTermCourseId: number;
+  attendanceType: AttendanceComponentType;
+  minPercentage: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AttendanceThresholdRequest {
+  curriculumTermCourseId: number;
+  attendanceType: AttendanceComponentType;
+  minPercentage: number;
 }
 
 export interface CurriculumSemesterGroup {

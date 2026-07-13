@@ -8,6 +8,7 @@ public interface CourseOfferingService {
     int generateOfferingsForTermInstance(Long termInstanceId);
     List<CourseOfferingDto> getOfferingsByTermInstance(Long termInstanceId);
     List<CourseOfferingDto> getOfferingsByTermInstanceAndSemester(Long termInstanceId, Integer semesterNumber);
+    List<CourseOfferingDto> getOfferingsByTermInstanceAndElectiveGroup(Long termInstanceId, Long electiveGroupId);
     CourseOfferingDto getById(Long id);
     CourseOfferingDto updateOffering(Long id, Long facultyId, String sectionLabel);
     void deactivateOffering(Long id);

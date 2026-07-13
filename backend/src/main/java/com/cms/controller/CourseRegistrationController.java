@@ -9,15 +9,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.CourseRegistrationDto;
+import com.cms.dto.ElectiveAssignmentRequest;
 import com.cms.service.CourseRegistrationService;
 
+import jakarta.validation.Valid;
+
 @RestController
-@RequestMapping("/api/course-registrations")
+@RequestMapping("/course-registrations")
 public class CourseRegistrationController {
 
     private final CourseRegistrationService courseRegistrationService;
@@ -56,5 +60,13 @@ public class CourseRegistrationController {
     @PreAuthorize("@perm.has('ADMISSION_CREATE')")
     public ResponseEntity<CourseRegistrationDto> drop(@PathVariable Long id) {
         return ResponseEntity.ok(courseRegistrationService.dropRegistration(id));
+    }
+
+    @PostMapping("/elective-assignment")
+    @PreAuthorize("@perm.has('COURSE_REGISTRATION_ELECTIVE_ASSIGN')")
+    public ResponseEntity<CourseRegistrationDto> assignElectiveChoice(
+            @Valid @RequestBody ElectiveAssignmentRequest request) {
+        return ResponseEntity.ok(
+            courseRegistrationService.assignElectiveChoice(request.enrollmentId(), request.courseOfferingId()));
     }
 }

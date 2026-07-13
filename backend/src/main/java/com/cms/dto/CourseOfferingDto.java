@@ -2,6 +2,8 @@ package com.cms.dto;
 
 import java.time.Instant;
 
+import com.cms.model.enums.SubjectType;
+
 public record CourseOfferingDto(
     Long id,
     Long termInstanceId,
@@ -15,6 +17,11 @@ public record CourseOfferingDto(
     Long facultyId,
     String sectionLabel,
     Boolean isActive,
+    Long curriculumTermCourseId,
+    Boolean isElective,
+    SubjectType subjectType,
+    Long electiveGroupId,
+    String electiveGroupName,
     Instant createdAt,
     Instant updatedAt
 ) {}

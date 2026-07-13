@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.cms.model.CourseRegistration;
 import com.cms.model.enums.RegistrationStatus;
@@ -18,4 +20,11 @@ public interface CourseRegistrationRepository extends JpaRepository<CourseRegist
         Long enrollmentId, Long offeringId);
 
     List<CourseRegistration> findByCourseOfferingIdAndStatus(Long offeringId, RegistrationStatus status);
+
+    @Query("SELECT cr FROM CourseRegistration cr " +
+           "WHERE cr.studentTermEnrollment.student.id = :studentId " +
+           "AND cr.courseOffering.subject.id = :subjectId " +
+           "ORDER BY cr.studentTermEnrollment.termInstance.id DESC")
+    List<CourseRegistration> findByStudentIdAndSubjectId(@Param("studentId") Long studentId,
+                                                          @Param("subjectId") Long subjectId);
 }

@@ -12,6 +12,8 @@ import { LabScheduleService } from '../lab-schedule.service';
 import { DAYS_OF_WEEK, LabScheduleRequest, LabSlot } from '../lab-schedule.model';
 import { environment } from '../../../../environments/environment';
 import { ToastService } from '../../../core/toast/toast.service';
+import { BatchService } from '../../batch/batch.service';
+import { Batch } from '../../batch/batch.model';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
@@ -35,6 +37,7 @@ export class LabScheduleFormComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly batchService = inject(BatchService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -46,6 +49,7 @@ export class LabScheduleFormComponent implements OnInit {
   protected readonly labSlots = signal<LabSlot[]>([]);
   protected readonly termInstances = signal<{ id: number; termType: string; startDate: string; endDate: string; academicYearName: string }[]>([]);
   protected readonly daysOfWeek = DAYS_OF_WEEK;
+  protected readonly availableBatches = signal<Batch[]>([]);
 
   // Preview signals
   protected readonly previewLabId     = signal<number | null>(null);
@@ -85,10 +89,13 @@ export class LabScheduleFormComponent implements OnInit {
     facultyId: [null, Validators.required],
     labSlotId: [null, Validators.required],
     batchName: ['', [Validators.required, Validators.maxLength(100)]],
+    batchId: [null],
     dayOfWeek: ['', Validators.required],
     termInstanceId: [null, Validators.required],
     isActive: [true],
   });
+
+  private lastBatchLookupKey = '';
 
   constructor() {
     this.form.valueChanges
@@ -102,7 +109,23 @@ export class LabScheduleFormComponent implements OnInit {
         this.previewDay.set(v.dayOfWeek ?? '');
         this.previewTermId.set(v.termInstanceId ?? null);
         this.previewActive.set(!!v.isActive);
+
+        const lookupKey = `${v.courseId ?? ''}-${v.termInstanceId ?? ''}`;
+        if (v.courseId && v.termInstanceId && lookupKey !== this.lastBatchLookupKey) {
+          this.lastBatchLookupKey = lookupKey;
+          this.batchService.getBySubjectAndTerm(v.courseId, v.termInstanceId).subscribe({
+            next: (batches) => this.availableBatches.set(batches),
+            error: () => this.availableBatches.set([]),
+          });
+        }
       });
+  }
+
+  protected onBatchSelect(batchId: number | null): void {
+    const batch = this.availableBatches().find((b) => b.id === batchId);
+    if (batch) {
+      this.form.patchValue({ batchName: batch.name });
+    }
   }
 
   ngOnInit(): void {
@@ -142,7 +165,7 @@ export class LabScheduleFormComponent implements OnInit {
       this.loading.set(true);
       this.labScheduleService.getById(this.itemId).subscribe({
         next: (item) => {
-          this.form.patchValue({ labId: item.labId, courseId: item.courseId, facultyId: item.facultyId, labSlotId: item.labSlotId, batchName: item.batchName, dayOfWeek: item.dayOfWeek, termInstanceId: item.termInstanceId, isActive: item.isActive });
+          this.form.patchValue({ labId: item.labId, courseId: item.courseId, facultyId: item.facultyId, labSlotId: item.labSlotId, batchName: item.batchName, batchId: item.batchId, dayOfWeek: item.dayOfWeek, termInstanceId: item.termInstanceId, isActive: item.isActive });
           this.loading.set(false);
         },
         error: () => { this.toast.error('Failed to load'); void this.router.navigate(['/lab-schedules']); },
@@ -153,7 +176,7 @@ export class LabScheduleFormComponent implements OnInit {
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     const v = this.form.value;
-    const request: LabScheduleRequest = { labId: v.labId, courseId: v.courseId, facultyId: v.facultyId, labSlotId: v.labSlotId, batchName: v.batchName.trim(), dayOfWeek: v.dayOfWeek, termInstanceId: v.termInstanceId, isActive: v.isActive };
+    const request: LabScheduleRequest = { labId: v.labId, courseId: v.courseId, facultyId: v.facultyId, labSlotId: v.labSlotId, batchName: v.batchName.trim(), batchId: v.batchId ?? null, dayOfWeek: v.dayOfWeek, termInstanceId: v.termInstanceId, isActive: v.isActive };
     this.saving.set(true);
     const op$ = this.isEditMode() ? this.labScheduleService.update(this.itemId!, request) : this.labScheduleService.create(request);
     op$.subscribe({
