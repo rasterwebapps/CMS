@@ -1,0 +1,129 @@
+<cms-flyout-panel width="760px" ariaLabel="Item history" (closed)="close()">
+  <div flyoutHeader class="hist-identity">
+    <div class="hist-identity__icon"><mat-icon>{{ itemIcon }}</mat-icon></div>
+    <div class="hist-identity__body">
+      <h2 class="hist-identity__title">{{ title }}</h2>
+      <div class="hist-identity__meta">
+        <span class="hist-acc">{{ accessionNumber }}</span>
+        <span class="status-pill" [class]="currentStatusClass">{{ currentStatusLabel }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div flyoutBody>
+    <div class="hist-stats">
+      @for (f of summaryFields; track f.label) {
+        <div class="hist-stat">
+          <span class="hist-stat__value">{{ f.value }}</span>
+          <span class="hist-stat__label">{{ f.label }}</span>
+        </div>
+      }
+    </div>
+
+    @if (isBook) {
+      <mat-tab-group class="hist-tabs" animationDuration="150ms">
+        <mat-tab [label]="'Borrow / Return (' + issues().length + ')'">
+          <ng-template matTabContent>
+            <ng-container [ngTemplateOutlet]="borrowReturnTable" />
+          </ng-template>
+        </mat-tab>
+        <mat-tab [label]="'Transfers (' + transfers().length + ')'">
+          <ng-template matTabContent>
+            <ng-container [ngTemplateOutlet]="transfersTable" />
+          </ng-template>
+        </mat-tab>
+      </mat-tab-group>
+    } @else {
+      <h3 class="hist-section-title">
+        <mat-icon>swap_horiz</mat-icon> Borrow / Return History
+      </h3>
+      <ng-container [ngTemplateOutlet]="borrowReturnTable" />
+    }
+  </div>
+
+  <div flyoutFooter>
+    <button mat-button (click)="close()">Close</button>
+  </div>
+</cms-flyout-panel>
+
+<ng-template #borrowReturnTable>
+  @if (issuesLoading()) {
+    <div class="hist-loading"><mat-spinner diameter="28" /></div>
+  } @else if (issues().length === 0) {
+    <div class="hist-empty">
+      <mat-icon>menu_book</mat-icon>
+      <p>No borrow records yet.</p>
+    </div>
+  } @else {
+    <div class="hist-table-card">
+      <div class="hist-table-wrap">
+        <table class="hist-table">
+          <thead>
+            <tr>
+              <th>Borrower</th>
+              <th>ID</th>
+              <th>Issued</th>
+              <th>Due</th>
+              <th>Returned</th>
+              <th>Ren.</th>
+              <th>Fine</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (i of issues(); track i.id) {
+              <tr>
+                <td class="col-wrap">{{ borrowerName(i) }}</td>
+                <td class="col-code">{{ borrowerCode(i) }}</td>
+                <td>{{ i.issuedDate | date:'dd MMM yyyy' }}</td>
+                <td>{{ i.dueDate | date:'dd MMM yyyy' }}</td>
+                <td>{{ i.returnedDate ? (i.returnedDate | date:'dd MMM yyyy') : '—' }}</td>
+                <td>{{ i.renewalCount }}</td>
+                <td>{{ i.fine ? ('₹' + i.fine.totalFine) : '—' }}</td>
+                <td><span class="issue-status-pill" [class]="issueStatusClass(i.status)">{{ issueStatusLabel(i.status) }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</ng-template>
+
+<ng-template #transfersTable>
+  @if (transfersLoading()) {
+    <div class="hist-loading"><mat-spinner diameter="28" /></div>
+  } @else if (transfers().length === 0) {
+    <div class="hist-empty">
+      <mat-icon>swap_horiz</mat-icon>
+      <p>No shelf transfers yet.</p>
+    </div>
+  } @else {
+    <div class="hist-table-card">
+      <div class="hist-table-wrap">
+        <table class="hist-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>From</th>
+              <th>To</th>
+              <th>By</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of transfers(); track t.id) {
+              <tr>
+                <td>{{ t.transferredAt | date:'dd MMM yyyy' }}</td>
+                <td class="col-wrap">{{ transferFrom(t) }}</td>
+                <td class="col-wrap">{{ transferTo(t) }}</td>
+                <td>{{ t.transferredBy || '—' }}</td>
+                <td class="col-wrap">{{ t.notes || '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</ng-template>

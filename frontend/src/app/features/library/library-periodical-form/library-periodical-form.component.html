@@ -19,11 +19,29 @@
         <h2 class="form-section__title">Journal Identity</h2>
         <div class="form-grid form-grid--3">
           <div class="form-field">
-            <label class="form-label" for="accessionNumber">Accession Number</label>
+            <label class="form-label required" for="accessionNumber">Accession Number</label>
             <input id="accessionNumber" formControlName="accessionNumber" class="form-input"
-              placeholder="Leave blank to auto-generate" />
+              placeholder="e.g. 2026-3002 or 42" />
+            @if (f['accessionNumber'].touched && f['accessionNumber'].errors?.['required']) {
+              <span class="form-error">Accession number is required</span>
+            }
             @if (f['accessionNumber'].touched && f['accessionNumber'].errors?.['accessionNumberExists']) {
               <span class="form-error">This accession number is already in use</span>
+            }
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="barcode">
+              Barcode
+              <span class="form-hint">Leave blank to default to accession no.</span>
+            </label>
+            <input id="barcode" formControlName="barcode" class="form-input"
+              placeholder="e.g. same as accession no., or a custom code" />
+            @if (f['barcode'].pending) {
+              <span class="form-hint">Checking...</span>
+            }
+            @if (f['barcode'].errors?.['barcodeExists']) {
+              <span class="form-error">This barcode is already in use</span>
             }
           </div>
         </div>

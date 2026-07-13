@@ -1,11 +1,11 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import { CmsFlyoutPanelComponent } from '../../../shared/flyout-panel/flyout-panel.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { LibraryService } from '../library.service';
 import { Library, LibraryRack, LibraryShelf, LibraryBookTransferResult } from '../library.model';
@@ -28,18 +28,19 @@ type Step = 'SELECT' | 'RESULT';
   imports: [
     FormsModule,
     MatButtonModule,
-    MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    CmsFlyoutPanelComponent,
   ],
   templateUrl: './library-book-transfer-dialog.component.html',
   styleUrl: './library-book-transfer-dialog.component.scss',
 })
 export class LibraryBookTransferDialogComponent implements OnInit {
-  private readonly dialogRef = inject(MatDialogRef<LibraryBookTransferDialogComponent>);
-  readonly data: LibraryBookTransferDialogData = inject(MAT_DIALOG_DATA);
+  readonly data = input.required<LibraryBookTransferDialogData>();
+  readonly closed = output<LibraryBookTransferResult | undefined>();
+
   private readonly libraryService = inject(LibraryService);
   private readonly toast = inject(ToastService);
 
@@ -60,7 +61,7 @@ export class LibraryBookTransferDialogComponent implements OnInit {
   protected singleBookError = signal<string | null>(null);
 
   protected get isBulk(): boolean {
-    return this.data.books.length > 1;
+    return this.data().books.length > 1;
   }
 
   ngOnInit(): void {
@@ -106,7 +107,7 @@ export class LibraryBookTransferDialogComponent implements OnInit {
 
     if (this.isBulk) {
       this.libraryService
-        .bulkTransferBooks({ bookIds: this.data.books.map((b) => b.id), newShelfId: this.selectedShelfId, notes })
+        .bulkTransferBooks({ bookIds: this.data().books.map((b) => b.id), newShelfId: this.selectedShelfId, notes })
         .subscribe({
           next: (result) => {
             this.result.set(result);
@@ -119,7 +120,7 @@ export class LibraryBookTransferDialogComponent implements OnInit {
           },
         });
     } else {
-      const bookId = this.data.books[0].id;
+      const bookId = this.data().books[0].id;
       this.libraryService.transferBook(bookId, { newShelfId: this.selectedShelfId, notes }).subscribe({
         next: () => {
           this.result.set({ succeededBookIds: [bookId], failed: [] });
@@ -137,11 +138,11 @@ export class LibraryBookTransferDialogComponent implements OnInit {
   }
 
   protected bookTitle(bookId: number): string {
-    return this.data.books.find((b) => b.id === bookId)?.title ?? `Book #${bookId}`;
+    return this.data().books.find((b) => b.id === bookId)?.title ?? `Book #${bookId}`;
   }
 
   protected close(): void {
     const r = this.result();
-    this.dialogRef.close(r && r.succeededBookIds.length > 0 ? r : undefined);
+    this.closed.emit(r && r.succeededBookIds.length > 0 ? r : undefined);
   }
 }

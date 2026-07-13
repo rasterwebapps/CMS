@@ -36,6 +36,9 @@ public class LibraryBook {
     @Column(name = "accession_number", nullable = false, unique = true, length = 30)
     private String accessionNumber;
 
+    @Column(name = "barcode", unique = true, length = 30)
+    private String barcode;
+
     @Column(name = "entry_date")
     private LocalDate entryDate;
 
@@ -113,6 +116,9 @@ public class LibraryBook {
 
     public String getAccessionNumber() { return accessionNumber; }
     public void setAccessionNumber(String accessionNumber) { this.accessionNumber = accessionNumber; }
+
+    public String getBarcode() { return barcode; }
+    public void setBarcode(String barcode) { this.barcode = barcode; }
 
     public LocalDate getEntryDate() { return entryDate; }
     public void setEntryDate(LocalDate entryDate) { this.entryDate = entryDate; }

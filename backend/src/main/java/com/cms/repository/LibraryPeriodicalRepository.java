@@ -23,4 +23,10 @@ public interface LibraryPeriodicalRepository extends JpaRepository<LibraryPeriod
     boolean existsByAccessionNumber(String accessionNumber);
 
     boolean existsByAccessionNumberAndIdNot(String accessionNumber, Long id);
+
+    Optional<LibraryPeriodical> findByBarcode(String barcode);
+
+    boolean existsByBarcode(String barcode);
+
+    boolean existsByBarcodeAndIdNot(String barcode, Long id);
 }

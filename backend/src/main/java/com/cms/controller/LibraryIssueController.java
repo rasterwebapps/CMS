@@ -63,6 +63,13 @@ public class LibraryIssueController {
         return ResponseEntity.ok(issueService.lookupByAccessionNumber(accessionNumber));
     }
 
+    /** Scan-to-return: resolve a scanned/typed accession number or barcode to its active issue. */
+    @GetMapping("/lookup-active")
+    @PreAuthorize("@perm.has('LIBRARY_ISSUE_MANAGE')")
+    public ResponseEntity<LibraryIssueResponse> lookupActive(@RequestParam String code) {
+        return ResponseEntity.ok(issueService.lookupActiveIssueByCode(code));
+    }
+
     @GetMapping
     @PreAuthorize("@perm.has('LIBRARY_ISSUE_MANAGE')")
     public ResponseEntity<List<LibraryIssueResponse>> findAll(
@@ -95,6 +102,20 @@ public class LibraryIssueController {
     @PreAuthorize("@perm.has('LIBRARY_ISSUE_MANAGE')")
     public ResponseEntity<List<LibraryIssueResponse>> findByFaculty(@PathVariable Long facultyId) {
         return ResponseEntity.ok(issueService.findByFacultyId(facultyId));
+    }
+
+    /** Full circulation history for one book — backs the "View History" action on the Book Catalogue. */
+    @GetMapping("/book/{bookId}")
+    @PreAuthorize("@perm.has('LIBRARY_CATALOGUE_VIEW_HISTORY')")
+    public ResponseEntity<List<LibraryIssueResponse>> findByBook(@PathVariable Long bookId) {
+        return ResponseEntity.ok(issueService.findByBookId(bookId));
+    }
+
+    /** Full circulation history for one periodical — backs the "View History" action on Journals. */
+    @GetMapping("/periodical/{periodicalId}")
+    @PreAuthorize("@perm.has('LIBRARY_PERIODICAL_VIEW_HISTORY')")
+    public ResponseEntity<List<LibraryIssueResponse>> findByPeriodical(@PathVariable Long periodicalId) {
+        return ResponseEntity.ok(issueService.findByPeriodicalId(periodicalId));
     }
 
     @PostMapping("/{id}/return")

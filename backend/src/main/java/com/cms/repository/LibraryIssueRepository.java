@@ -27,6 +27,12 @@ public interface LibraryIssueRepository extends JpaRepository<LibraryIssue, Long
 
     Optional<LibraryIssue> findByBookIdAndStatusIn(Long bookId, List<IssueStatus> statuses);
 
+    Optional<LibraryIssue> findByPeriodicalIdAndStatusIn(Long periodicalId, List<IssueStatus> statuses);
+
+    List<LibraryIssue> findByBookIdOrderByIssuedDateDesc(Long bookId);
+
+    List<LibraryIssue> findByPeriodicalIdOrderByIssuedDateDesc(Long periodicalId);
+
     long countByStudentIdAndStatusIn(Long studentId, List<IssueStatus> statuses);
 
     long countByFacultyIdAndStatusIn(Long facultyId, List<IssueStatus> statuses);

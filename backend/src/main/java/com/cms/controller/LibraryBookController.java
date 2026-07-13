@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -24,13 +26,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.LibraryBarcodeLabelsRequest;
 import com.cms.dto.LibraryBookBulkTransferRequest;
 import com.cms.dto.LibraryBookRequest;
 import com.cms.dto.LibraryBookResponse;
 import com.cms.dto.LibraryBookShelfTransferResponse;
 import com.cms.dto.LibraryBookTransferRequest;
 import com.cms.dto.LibraryBookTransferResult;
+import com.cms.dto.LibraryPrinterActionResponse;
 import com.cms.model.enums.BookStatus;
+import com.cms.service.LibraryBarcodeService;
 import com.cms.service.LibraryBookExportService;
 import com.cms.service.LibraryBookService;
 
@@ -40,12 +45,18 @@ import jakarta.validation.Valid;
 @RequestMapping("/library/books")
 public class LibraryBookController {
 
+    private static final Logger log = LoggerFactory.getLogger(LibraryBookController.class);
+
     private final LibraryBookService bookService;
     private final LibraryBookExportService bookExportService;
+    private final LibraryBarcodeService barcodeService;
 
-    public LibraryBookController(LibraryBookService bookService, LibraryBookExportService bookExportService) {
+    public LibraryBookController(LibraryBookService bookService,
+                                  LibraryBookExportService bookExportService,
+                                  LibraryBarcodeService barcodeService) {
         this.bookService = bookService;
         this.bookExportService = bookExportService;
+        this.barcodeService = barcodeService;
     }
 
     @PostMapping
@@ -76,6 +87,15 @@ public class LibraryBookController {
             @RequestParam String accessionNumber,
             @RequestParam(required = false) Long excludeId) {
         boolean exists = bookService.accessionNumberExists(accessionNumber, excludeId);
+        return ResponseEntity.ok(Map.of("exists", exists));
+    }
+
+    @GetMapping("/barcode-exists")
+    @PreAuthorize("@perm.hasAny('LIBRARY_CATALOGUE_VIEW', 'LIBRARY_CATALOGUE_MANAGE')")
+    public ResponseEntity<Map<String, Boolean>> barcodeExists(
+            @RequestParam String barcode,
+            @RequestParam(required = false) Long excludeId) {
+        boolean exists = bookService.barcodeExists(barcode, excludeId);
         return ResponseEntity.ok(Map.of("exists", exists));
     }
 
@@ -139,6 +159,90 @@ public class LibraryBookController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @GetMapping("/{id}/barcode.png")
+    @PreAuthorize("@perm.has('LIBRARY_CATALOGUE_PRINT_BARCODE')")
+    public ResponseEntity<byte[]> barcodePng(@PathVariable Long id) {
+        LibraryBookResponse book = bookService.findById(id);
+        String code = book.barcode() != null ? book.barcode() : book.accessionNumber();
+        try {
+            byte[] png = barcodeService.generateBarcodePng(code);
+            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(png);
+        } catch (Exception e) {
+            log.error("Failed to generate barcode PNG for book id={} code={}", id, code, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PostMapping("/barcode-labels")
+    @PreAuthorize("@perm.has('LIBRARY_CATALOGUE_PRINT_BARCODE')")
+    public ResponseEntity<byte[]> barcodeLabels(@Valid @RequestBody LibraryBarcodeLabelsRequest request) {
+        List<LibraryBarcodeService.LabelItem> items = request.ids().stream()
+            .map(bookService::findById).map(this::toLabelItem).toList();
+
+        try {
+            byte[] bytes = barcodeService.generateLabelSheetPdf(items);
+            String filename = "book-barcode-labels-" + LocalDate.now() + ".pdf";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+            return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            log.error("Failed to generate barcode label sheet for ids={}", request.ids(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/{id}/barcode.zpl")
+    @PreAuthorize("@perm.has('LIBRARY_CATALOGUE_PRINT_BARCODE')")
+    public ResponseEntity<String> barcodeZpl(@PathVariable Long id) {
+        LibraryBookResponse book = bookService.findById(id);
+        String zpl = barcodeService.generateZpl(toLabelItem(book));
+        return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(zpl);
+    }
+
+    @PostMapping("/{id}/barcode-print")
+    @PreAuthorize("@perm.has('LIBRARY_CATALOGUE_PRINT_BARCODE')")
+    public ResponseEntity<LibraryPrinterActionResponse> barcodePrint(@PathVariable Long id) {
+        LibraryBookResponse book = bookService.findById(id);
+        String zpl = barcodeService.generateZpl(toLabelItem(book));
+        try {
+            barcodeService.sendZpl(zpl);
+            return ResponseEntity.ok(new LibraryPrinterActionResponse(true, "Sent to printer"));
+        } catch (Exception e) {
+            log.error("Failed to send barcode ZPL to network printer for book id={}", id, e);
+            return ResponseEntity.ok(new LibraryPrinterActionResponse(false, e.getMessage()));
+        }
+    }
+
+    @PostMapping("/barcode-labels.zpl")
+    @PreAuthorize("@perm.has('LIBRARY_CATALOGUE_PRINT_BARCODE')")
+    public ResponseEntity<String> barcodeLabelsZpl(@Valid @RequestBody LibraryBarcodeLabelsRequest request) {
+        List<LibraryBarcodeService.LabelItem> items = request.ids().stream()
+            .map(bookService::findById).map(this::toLabelItem).toList();
+        String zpl = barcodeService.generateZplLabelSheet(items);
+        return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(zpl);
+    }
+
+    @PostMapping("/barcode-labels-print")
+    @PreAuthorize("@perm.has('LIBRARY_CATALOGUE_PRINT_BARCODE')")
+    public ResponseEntity<LibraryPrinterActionResponse> barcodeLabelsPrint(@Valid @RequestBody LibraryBarcodeLabelsRequest request) {
+        List<LibraryBarcodeService.LabelItem> items = request.ids().stream()
+            .map(bookService::findById).map(this::toLabelItem).toList();
+        String zpl = barcodeService.generateZplLabelSheet(items);
+        try {
+            barcodeService.sendZpl(zpl);
+            return ResponseEntity.ok(new LibraryPrinterActionResponse(true, "Sent to printer"));
+        } catch (Exception e) {
+            log.error("Failed to send bulk barcode ZPL to network printer for ids={}", request.ids(), e);
+            return ResponseEntity.ok(new LibraryPrinterActionResponse(false, e.getMessage()));
+        }
+    }
+
+    private LibraryBarcodeService.LabelItem toLabelItem(LibraryBookResponse book) {
+        String code = book.barcode() != null ? book.barcode() : book.accessionNumber();
+        return new LibraryBarcodeService.LabelItem(code, book.title(), book.accessionNumber());
     }
 
     @PostMapping("/{id}/transfer")

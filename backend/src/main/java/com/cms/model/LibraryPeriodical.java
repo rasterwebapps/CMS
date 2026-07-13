@@ -30,8 +30,11 @@ public class LibraryPeriodical {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "accession_number", unique = true, length = 30)
+    @Column(name = "accession_number", nullable = false, unique = true, length = 30)
     private String accessionNumber;
+
+    @Column(name = "barcode", unique = true, length = 30)
+    private String barcode;
 
     @Column(name = "journal_name", nullable = false, length = 300)
     private String journalName;
@@ -87,6 +90,9 @@ public class LibraryPeriodical {
 
     public String getAccessionNumber() { return accessionNumber; }
     public void setAccessionNumber(String accessionNumber) { this.accessionNumber = accessionNumber; }
+
+    public String getBarcode() { return barcode; }
+    public void setBarcode(String barcode) { this.barcode = barcode; }
 
     public String getJournalName() { return journalName; }
     public void setJournalName(String journalName) { this.journalName = journalName; }

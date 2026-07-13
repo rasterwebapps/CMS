@@ -60,7 +60,8 @@ export class LibraryPeriodicalFormComponent implements OnInit {
   private buildForm(): void {
     const excludeId = this.itemId();
     this.form = this.fb.group({
-      accessionNumber:    ['', { asyncValidators: [this.accessionNumberValidator(excludeId)], updateOn: 'blur' }],
+      accessionNumber:    ['', { validators: [Validators.required], asyncValidators: [this.accessionNumberValidator(excludeId)], updateOn: 'blur' }],
+      barcode:            ['', { asyncValidators: [this.barcodeValidator(excludeId)], updateOn: 'blur' }],
       journalName:        ['', [Validators.required, Validators.maxLength(300)]],
       journalType:        ['NATIONAL'],
       organization:       ['', Validators.maxLength(200)],
@@ -103,12 +104,25 @@ export class LibraryPeriodicalFormComponent implements OnInit {
     };
   }
 
+  private barcodeValidator(excludeId: number | null): AsyncValidatorFn {
+    return (control: AbstractControl) => {
+      const value = control.value?.trim();
+      if (!value) return Promise.resolve(null);
+      return timer(350).pipe(
+        switchMap(() => this.libraryService.checkPeriodicalBarcodeExists(value, excludeId ?? undefined)),
+        map(res => res.exists ? { barcodeExists: true } : null),
+        first(),
+      );
+    };
+  }
+
   private loadItem(id: number): void {
     this.loading.set(true);
     this.libraryService.getPeriodicalById(id).subscribe({
       next: p => {
         this.form.patchValue({
-          accessionNumber:    p.accessionNumber ?? '',
+          accessionNumber:    p.accessionNumber,
+          barcode:            p.barcode ?? '',
           journalName:        p.journalName,
           journalType:        p.journalType,
           organization:       p.organization ?? '',
@@ -137,7 +151,8 @@ export class LibraryPeriodicalFormComponent implements OnInit {
 
     const v = this.form.getRawValue();
     const request: LibraryPeriodicalRequest = {
-      accessionNumber:    v.accessionNumber?.trim() || undefined,
+      accessionNumber:    v.accessionNumber.trim(),
+      barcode:            v.barcode?.trim() || undefined,
       journalName:        v.journalName.trim(),
       journalType:        v.journalType || undefined,
       organization:       v.organization?.trim() || undefined,

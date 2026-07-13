@@ -16,13 +16,16 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { LibraryService } from '../library.service';
-import { LibraryBook, BookStatus, BOOK_STATUS_OPTIONS, SUBJECT_CATEGORY_OPTIONS, LibraryRack, LibraryShelf } from '../library.model';
+import { LibraryPrintTransportService } from '../library-print-transport.service';
+import { LibraryBook, BookStatus, BOOK_STATUS_OPTIONS, SUBJECT_CATEGORY_OPTIONS, LibraryRack, LibraryShelf, LibraryBookTransferResult } from '../library.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { LibraryBookTransferDialogComponent, LibraryBookTransferDialogData } from '../library-book-transfer-dialog/library-book-transfer-dialog.component';
+import { LibraryBarcodePreviewDialogComponent, LibraryBarcodePreviewDialogData } from '../library-barcode-preview-dialog/library-barcode-preview-dialog.component';
+import { LibraryItemHistoryDialogComponent, LibraryItemHistoryDialogData } from '../library-item-history-dialog/library-item-history-dialog.component';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
@@ -36,12 +39,14 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     MatDialogModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatTooltipModule,
     MatSelectModule, MatInputModule, MatFormFieldModule,
     CmsRowActionButtonComponent, CmsEmptyStateComponent, ExportButtonComponent, CmsColumnPickerComponent,
+    LibraryBarcodePreviewDialogComponent, LibraryItemHistoryDialogComponent, LibraryBookTransferDialogComponent,
   ],
   templateUrl: './library-book-list.component.html',
   styleUrl: './library-book-list.component.scss',
 })
 export class LibraryBookListComponent implements OnInit, OnDestroy {
   private readonly libraryService = inject(LibraryService);
+  private readonly printTransport = inject(LibraryPrintTransportService);
   private readonly router         = inject(Router);
   private readonly toast          = inject(ToastService);
   private readonly dialog         = inject(MatDialog);
@@ -97,6 +102,13 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   protected readonly canImport      = computed(() => this.permissions.hasAny('LIBRARY_IMPORT'));
   protected readonly canExport      = computed(() => this.permissions.hasAny('LIBRARY_CATALOGUE_EXPORT'));
   protected readonly canTransfer    = computed(() => this.permissions.hasAny('LIBRARY_TRANSFER'));
+  protected readonly canPrintBarcode = computed(() => this.permissions.hasAny('LIBRARY_CATALOGUE_PRINT_BARCODE'));
+  protected readonly printingLabels = signal(false);
+  protected readonly canViewHistory = computed(() => this.permissions.hasAny('LIBRARY_CATALOGUE_VIEW_HISTORY'));
+
+  protected readonly barcodeTarget  = signal<LibraryBarcodePreviewDialogData | null>(null);
+  protected readonly historyTarget  = signal<LibraryItemHistoryDialogData | null>(null);
+  protected readonly transferTarget = signal<LibraryBookTransferDialogData | null>(null);
   protected readonly hasActiveFilters = computed(() =>
     this.statusFilter() !== null || this.categoryFilter() !== null
     || this.rackFilter() !== null || this.shelfFilter() !== null || this.searchValue().length > 0);
@@ -219,23 +231,69 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   // ── Transfer ─────────────────────────────────────────────────
 
   protected transferBook(book: LibraryBook): void {
-    this.openTransferDialog([{ id: book.id, title: book.title, accessionNumber: book.accessionNumber }]);
+    this.transferTarget.set({ books: [{ id: book.id, title: book.title, accessionNumber: book.accessionNumber }] });
   }
 
   protected transferSelected(): void {
     const books = this.selection.selected.map(b => ({ id: b.id, title: b.title, accessionNumber: b.accessionNumber }));
-    this.openTransferDialog(books);
+    this.transferTarget.set({ books });
   }
 
-  private openTransferDialog(books: LibraryBookTransferDialogData['books']): void {
-    this.dialog.open(LibraryBookTransferDialogComponent, { data: { books } as LibraryBookTransferDialogData })
-      .afterClosed().subscribe(result => {
-        if (result) {
-          this.toast.success('Transfer complete');
-          this.selection.clear();
-          this.loadPage();
-        }
+  protected onTransferClosed(result: LibraryBookTransferResult | undefined): void {
+    this.transferTarget.set(null);
+    if (result) {
+      this.toast.success('Transfer complete');
+      this.selection.clear();
+      this.loadPage();
+    }
+  }
+
+  // ── History ──────────────────────────────────────────────────
+
+  protected viewHistory(book: LibraryBook): void {
+    this.historyTarget.set({ itemType: 'BOOK', item: book });
+  }
+
+  // ── Barcode labels ───────────────────────────────────────────
+
+  protected printBarcode(book: LibraryBook): void {
+    this.barcodeTarget.set({ itemType: 'BOOK', id: book.id, title: book.title, code: book.barcode ?? book.accessionNumber });
+  }
+
+  protected printSelectedLabels(): void {
+    if (this.printingLabels()) return;
+    this.printingLabels.set(true);
+    const ids = this.selection.selected.map(b => b.id);
+
+    this.printTransport.getPrinterMode().subscribe(mode => {
+      if (mode === 'BROWSER') {
+        this.libraryService.printBookBarcodeLabels({ ids }).subscribe({
+          next: blob => {
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+            this.printingLabels.set(false);
+          },
+          error: () => {
+            this.toast.error('Failed to generate barcode labels');
+            this.printingLabels.set(false);
+          },
+        });
+        return;
+      }
+
+      this.printTransport.sendBatch('BOOK', ids, mode).subscribe({
+        next: result => {
+          this.printingLabels.set(false);
+          if (result.success) this.toast.success('Sent to printer');
+          else this.toast.error(result.message ?? 'Failed to send to printer');
+        },
+        error: () => {
+          this.printingLabels.set(false);
+          this.toast.error('Failed to send to printer');
+        },
       });
+    });
   }
 
   private loadPage(): void {

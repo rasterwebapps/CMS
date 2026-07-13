@@ -114,6 +114,93 @@
         </div>
       </section>
 
+      <!-- Barcode Labels -->
+      <section class="int-card">
+        <div class="int-card__header">
+          <div class="int-card__icon-wrap">
+            <mat-icon aria-hidden="true">qr_code_2</mat-icon>
+          </div>
+          <div>
+            <h2 class="int-card__title">Barcode Labels</h2>
+            <p class="int-card__sub">Printable label size, matching the sticker stock in use at the circulation desk.</p>
+          </div>
+        </div>
+        <div class="int-card__body">
+          <div class="fields-grid">
+            <div class="field-wrap">
+              <label class="field-label" for="barcode_label_width_mm">Label width (mm)</label>
+              <input id="barcode_label_width_mm" type="number" min="10" max="200"
+                formControlName="barcode_label_width_mm" class="field-input settings-input" />
+              @if (f['barcode_label_width_mm'].touched && f['barcode_label_width_mm'].errors?.['min']) {
+                <span class="form-error">Must be at least 10mm</span>
+              }
+            </div>
+            <div class="field-wrap">
+              <label class="field-label" for="barcode_label_height_mm">Label height (mm)</label>
+              <input id="barcode_label_height_mm" type="number" min="10" max="200"
+                formControlName="barcode_label_height_mm" class="field-input settings-input" />
+              @if (f['barcode_label_height_mm'].touched && f['barcode_label_height_mm'].errors?.['min']) {
+                <span class="form-error">Must be at least 10mm</span>
+              }
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Label Printer -->
+      <section class="int-card">
+        <div class="int-card__header">
+          <div class="int-card__icon-wrap int-card__icon-wrap--connection">
+            <mat-icon aria-hidden="true">print</mat-icon>
+          </div>
+          <div>
+            <h2 class="int-card__title">Label Printer</h2>
+            <p class="int-card__sub">How the Print button on a barcode sends the label — the browser's own print dialog, or straight to a thermal label printer as ZPL.</p>
+          </div>
+        </div>
+        <div class="int-card__body">
+          <div class="fields-grid">
+            <div class="field-wrap">
+              <label class="field-label" for="barcode_printer_mode">Print mode</label>
+              <select id="barcode_printer_mode" class="field-input field-select settings-input"
+                formControlName="barcode_printer_mode">
+                <option value="BROWSER">Browser print dialog</option>
+                <option value="NETWORK">Networked label printer (server-side)</option>
+                <option value="LOCAL_AGENT">USB label printer (local agent)</option>
+              </select>
+              <p class="field-hint">Local agent requires Browser Print (or a compatible local ZPL agent) running on the librarian's PC.</p>
+            </div>
+            <div class="field-wrap">
+              <label class="field-label" for="barcode_labels_per_row">Labels per row</label>
+              <select id="barcode_labels_per_row" class="field-input field-select settings-input"
+                formControlName="barcode_labels_per_row">
+                <option [ngValue]="1">1 (single label per row)</option>
+                <option [ngValue]="2">2 across</option>
+                <option [ngValue]="4">4 across</option>
+              </select>
+              <p class="field-hint">How many labels are physically die-cut across the loaded roll — only affects batch label-sheet printing.</p>
+            </div>
+            @if (f['barcode_printer_mode'].value === 'NETWORK') {
+              <div class="field-wrap">
+                <label class="field-label" for="barcode_printer_ip">Printer IP address</label>
+                <input id="barcode_printer_ip" type="text" placeholder="192.168.1.50"
+                  formControlName="barcode_printer_ip" class="field-input settings-input" />
+                @if (f['barcode_printer_ip'].touched && f['barcode_printer_ip'].errors?.['required']) {
+                  <span class="form-error">Required when using a networked printer</span>
+                }
+                <p class="field-hint">Must be a private/LAN address (10.x, 172.16–31.x, or 192.168.x).</p>
+              </div>
+              <div class="field-wrap">
+                <label class="field-label" for="barcode_printer_port">Printer port</label>
+                <input id="barcode_printer_port" type="number" min="1" max="65535"
+                  formControlName="barcode_printer_port" class="field-input settings-input" />
+                <p class="field-hint">Raw ZPL listener port on the printer — 9100 is the standard default.</p>
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+
     </form>
   }
 

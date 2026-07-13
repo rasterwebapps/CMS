@@ -31,18 +31,35 @@ export class LibrarySettingsComponent implements OnInit {
       faculty_max_books:  [3,  [Validators.required, Validators.min(1), Validators.max(20)]],
       fine_per_day:       [1,  [Validators.required, Validators.min(0)]],
       max_renewals:       [2,  [Validators.required, Validators.min(0), Validators.max(10)]],
+      barcode_label_width_mm:  [50, [Validators.required, Validators.min(10), Validators.max(200)]],
+      barcode_label_height_mm: [25, [Validators.required, Validators.min(10), Validators.max(200)]],
+      barcode_printer_mode:    ['BROWSER', Validators.required],
+      barcode_printer_ip:      [''],
+      barcode_printer_port:    [9100, [Validators.required, Validators.min(1), Validators.max(65535)]],
+      barcode_labels_per_row:  [1, Validators.required],
     });
+
+    this.form.get('barcode_printer_mode')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(mode => this.updatePrinterIpValidators(mode));
+
     this.loadSettings();
+  }
+
+  private updatePrinterIpValidators(mode: string): void {
+    const ipControl = this.form.get('barcode_printer_ip')!;
+    ipControl.setValidators(mode === 'NETWORK' ? [Validators.required] : []);
+    ipControl.updateValueAndValidity({ emitEvent: false });
   }
 
   private loadSettings(): void {
     this.loading.set(true);
     this.libraryService.getSettings().subscribe({
       next: settings => {
-        const patch: Record<string, number> = {};
+        const patch: Record<string, number | string> = {};
         for (const s of settings) {
           if (this.form.contains(s.settingKey)) {
-            patch[s.settingKey] = parseFloat(s.settingValue);
+            patch[s.settingKey] = s.dataType === 'STRING' ? s.settingValue : parseFloat(s.settingValue);
           }
         }
         this.form.patchValue(patch);

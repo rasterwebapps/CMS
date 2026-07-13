@@ -68,6 +68,11 @@
     @if (hasActiveFilters()) {
       <button class="btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button>
     }
+    @if (canPrintBarcode() && selection.selected.length > 0) {
+      <button class="btn-secondary btn-sm" [disabled]="printingLabels()" (click)="printSelectedLabels()">
+        Print Labels ({{ selection.selected.length }})
+      </button>
+    }
     <div class="toolbar-right">
       <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
     </div>
@@ -82,6 +87,15 @@
              [matSortActive]="sortActive" [matSortDirection]="sortDirection"
              matSortDisableClear (matSortChange)="onSortChange($event)"
              class="mlp-table" aria-label="Journal register">
+
+        <ng-container matColumnDef="select" [sticky]="colState.isSticky('select')">
+          <th mat-header-cell *matHeaderCellDef>
+            <mat-checkbox [checked]="isAllSelected()" (change)="toggleAll()" aria-label="Select all journals" />
+          </th>
+          <td mat-cell *matCellDef="let p">
+            <mat-checkbox [checked]="selection.isSelected(p)" (change)="selection.toggle(p)" (click)="$event.stopPropagation()" [aria-label]="'Select ' + p.journalName" />
+          </td>
+        </ng-container>
 
         <ng-container matColumnDef="journalName" [sticky]="colState.isSticky('journalName')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Journal Name</th>
@@ -136,9 +150,19 @@
         <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let p" class="actions-cell">
+            @if (canViewHistory()) {
+              <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="View History" ariaLabel="View journal history" (clicked)="viewHistory(p)">
+                <mat-icon>history</mat-icon>
+              </cms-row-action-btn>
+            }
+            @if (canPrintBarcode()) {
+              <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Print Barcode" ariaLabel="Print barcode" (clicked)="printBarcode(p)">
+                <mat-icon>qr_code_2</mat-icon>
+              </cms-row-action-btn>
+            }
             @if (canManage()) {
-              <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit" (clicked)="editItem(p)"><mat-icon>edit</mat-icon></cms-row-action-btn>
               <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete" (clicked)="deleteItem(p)"><mat-icon>delete</mat-icon></cms-row-action-btn>
+              <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit" (clicked)="editItem(p)"><mat-icon>edit</mat-icon></cms-row-action-btn>
             }
           </td>
         </ng-container>
@@ -162,5 +186,12 @@
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" [length]="totalElements" showFirstLastButtons aria-label="Journal register pages" />
     }
   </div>
+
+  @if (barcodeTarget(); as t) {
+    <app-library-barcode-preview-dialog [target]="t" (closed)="barcodeTarget.set(null)" />
+  }
+  @if (historyTarget(); as t) {
+    <app-library-item-history-dialog [data]="t" (closed)="historyTarget.set(null)" />
+  }
 
 </div>

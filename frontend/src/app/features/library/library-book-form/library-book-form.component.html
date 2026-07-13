@@ -34,6 +34,21 @@
           </div>
 
           <div class="form-field">
+            <label class="form-label" for="barcode">
+              Barcode
+              <span class="form-hint">Leave blank to default to accession no.</span>
+            </label>
+            <input id="barcode" formControlName="barcode" class="form-input"
+              placeholder="e.g. same as accession no., or a custom code" />
+            @if (f['barcode'].pending) {
+              <span class="form-hint">Checking...</span>
+            }
+            @if (f['barcode'].errors?.['barcodeExists']) {
+              <span class="form-error">This barcode is already in use</span>
+            }
+          </div>
+
+          <div class="form-field">
             <label class="form-label" for="entryDate">Date of Entry</label>
             <input id="entryDate" type="date" formControlName="entryDate" class="form-input" />
           </div>

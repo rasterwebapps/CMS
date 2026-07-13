@@ -6,6 +6,22 @@
       <p class="mlp-sub">Track all book issues, returns and renewals</p>
     </div>
     <div class="header-actions">
+      @if (canManageIssues()) {
+        <div class="scan-return-inline">
+          <mat-icon class="scan-return-icon" aria-hidden="true">qr_code_scanner</mat-icon>
+          <input class="scan-return-input" [ngModel]="scanCode()" (ngModelChange)="scanCode.set($event)"
+            placeholder="Scan to return..." aria-label="Scan to return"
+            [disabled]="scanning()" (keyup.enter)="scanToReturn()" />
+          <button type="button" class="scan-return-btn" [disabled]="scanning() || !scanCode().trim()"
+            (click)="scanToReturn()" aria-label="Find and return" title="Find & Return">
+            @if (scanning()) {
+              <span class="btn-spinner"></span>
+            } @else {
+              <mat-icon>search</mat-icon>
+            }
+          </button>
+        </div>
+      }
       @if (canExport()) {
         <cms-export-button
           [disabled]="exporting()"

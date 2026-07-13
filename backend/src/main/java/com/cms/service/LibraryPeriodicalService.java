@@ -41,15 +41,26 @@ public class LibraryPeriodicalService {
                 "An item with accession number '" + accessionNumber + "' already exists");
         }
 
+        String barcode = accessionRegistry.resolveBarcode(request.barcode(), accessionNumber);
+        if (accessionRegistry.existsBarcode(barcode, null, null)) {
+            throw new IllegalArgumentException(
+                "An item with barcode '" + barcode + "' already exists");
+        }
+
         LibraryPeriodical p = new LibraryPeriodical();
         applyFields(p, request);
         p.setAccessionNumber(accessionNumber);
+        p.setBarcode(barcode);
         p.setCopiesCount(1);
         return toResponse(repository.save(p));
     }
 
     public boolean accessionNumberExists(String accessionNumber, Long excludeId) {
         return accessionRegistry.exists(accessionNumber, null, excludeId);
+    }
+
+    public boolean barcodeExists(String barcode, Long excludeId) {
+        return accessionRegistry.existsBarcode(barcode, null, excludeId);
     }
 
     public List<LibraryPeriodicalResponse> findAll() {
@@ -110,8 +121,21 @@ public class LibraryPeriodicalService {
                 "An item with accession number '" + accessionNumber + "' already exists");
         }
 
+        // Barcode auto-defaults from accession number only at creation; a blank barcode on
+        // update keeps whatever value the item already has rather than resetting it.
+        String barcode = request.barcode() != null && !request.barcode().isBlank()
+            ? request.barcode().trim()
+            : p.getBarcode();
+
+        if (barcode != null && !barcode.equals(p.getBarcode())
+                && accessionRegistry.existsBarcode(barcode, null, id)) {
+            throw new IllegalArgumentException(
+                "An item with barcode '" + barcode + "' already exists");
+        }
+
         applyFields(p, request);
         p.setAccessionNumber(accessionNumber);
+        p.setBarcode(barcode);
         if (accessionNumber != null) {
             p.setCopiesCount(1);
         }
@@ -160,6 +184,7 @@ public class LibraryPeriodicalService {
         return new LibraryPeriodicalResponse(
             p.getId(),
             p.getAccessionNumber(),
+            p.getBarcode(),
             p.getJournalName(),
             p.getJournalType(),
             p.getOrganization(),

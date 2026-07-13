@@ -12,8 +12,12 @@ import jakarta.validation.constraints.Size;
 
 public record LibraryPeriodicalRequest(
 
+    @NotBlank(message = "Accession number is required")
     @Size(max = 30, message = "Accession number must not exceed 30 characters")
     String accessionNumber,
+
+    @Size(max = 30, message = "Barcode must not exceed 30 characters")
+    String barcode,
 
     @NotBlank(message = "Journal name is required")
     @Size(max = 300, message = "Journal name must not exceed 300 characters")

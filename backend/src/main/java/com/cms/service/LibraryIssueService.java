@@ -87,15 +87,33 @@ public class LibraryIssueService {
         String trimmed = accessionNumber.trim();
 
         return bookRepository.findByAccessionNumber(trimmed)
+            .or(() -> bookRepository.findByBarcode(trimmed))
             .<LibraryCirculationLookupResponse>map(b -> new LibraryCirculationLookupResponse(
                 LibraryItemType.BOOK, b.getId(), b.getAccessionNumber(), b.getTitle(), b.getAuthors(),
                 b.getCallNumber(), b.getShelf() != null ? b.getShelf().getName() : null, b.getStatus()))
             .or(() -> periodicalRepository.findByAccessionNumber(trimmed)
+                .or(() -> periodicalRepository.findByBarcode(trimmed))
                 .map(p -> new LibraryCirculationLookupResponse(
                     LibraryItemType.JOURNAL, p.getId(), p.getAccessionNumber(), p.getJournalName(),
                     formatPeriodicalDetail(p), null, null, p.getStatus())))
             .orElseThrow(() -> new ResourceNotFoundException(
-                "No book or journal found with accession number '" + trimmed + "'"));
+                "No book or journal found with accession number or barcode '" + trimmed + "'"));
+    }
+
+    /** Scan-to-return: resolve a scanned/typed code to the item's currently active issue. */
+    public LibraryIssueResponse lookupActiveIssueByCode(String code) {
+        String trimmed = code.trim();
+
+        LibraryIssue issue = bookRepository.findByAccessionNumber(trimmed)
+            .or(() -> bookRepository.findByBarcode(trimmed))
+            .flatMap(b -> issueRepository.findByBookIdAndStatusIn(b.getId(), ACTIVE_STATUSES))
+            .or(() -> periodicalRepository.findByAccessionNumber(trimmed)
+                .or(() -> periodicalRepository.findByBarcode(trimmed))
+                .flatMap(p -> issueRepository.findByPeriodicalIdAndStatusIn(p.getId(), ACTIVE_STATUSES)))
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "No active issue found for accession number or barcode '" + trimmed + "'"));
+
+        return toResponse(issue);
     }
 
     private static String formatPeriodicalDetail(LibraryPeriodical p) {
@@ -341,6 +359,22 @@ public class LibraryIssueService {
             throw new ResourceNotFoundException("Faculty not found with id: " + facultyId);
         }
         return toResponses(issueRepository.findByFacultyId(facultyId));
+    }
+
+    /** Full circulation history for one book — used by the "View History" action on the Book Catalogue. */
+    public List<LibraryIssueResponse> findByBookId(Long bookId) {
+        if (!bookRepository.existsById(bookId)) {
+            throw new ResourceNotFoundException("Book not found with id: " + bookId);
+        }
+        return toResponses(issueRepository.findByBookIdOrderByIssuedDateDesc(bookId));
+    }
+
+    /** Full circulation history for one periodical — used by the "View History" action on Journals. */
+    public List<LibraryIssueResponse> findByPeriodicalId(Long periodicalId) {
+        if (!periodicalRepository.existsById(periodicalId)) {
+            throw new ResourceNotFoundException("Periodical not found with id: " + periodicalId);
+        }
+        return toResponses(issueRepository.findByPeriodicalIdOrderByIssuedDateDesc(periodicalId));
     }
 
     /** Returns the active issues for the currently authenticated user (student or faculty). */

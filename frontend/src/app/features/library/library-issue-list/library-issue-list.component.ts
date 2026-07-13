@@ -87,9 +87,13 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
   protected readonly itemTypeFilter = signal<LibraryItemType | null>(null);
   protected readonly statusOptions = ISSUE_STATUS_OPTIONS;
   protected readonly canExport     = computed(() => this.permissions.hasAny('LIBRARY_ISSUE_EXPORT'));
+  protected readonly canManageIssues = computed(() => this.permissions.hasAny('LIBRARY_ISSUE_MANAGE'));
   protected readonly hasActiveFilters = computed(() =>
     this.statusFilter() !== null || this.memberFilter() !== null
     || this.itemTypeFilter() !== null || this.searchValue().length > 0);
+
+  protected readonly scanCode      = signal('');
+  protected readonly scanning      = signal(false);
 
   protected totalElements  = 0;
   protected currentPage    = 0;
@@ -173,6 +177,25 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
 
   protected isActive(issue: LibraryIssue): boolean {
     return issue.status === 'ISSUED' || issue.status === 'OVERDUE';
+  }
+
+  // ── Scan to return ───────────────────────────────────────────
+
+  protected scanToReturn(): void {
+    const code = this.scanCode().trim();
+    if (!code || this.scanning()) return;
+    this.scanning.set(true);
+    this.libraryService.lookupActiveIssueByCode(code).subscribe({
+      next: issue => {
+        this.scanning.set(false);
+        this.scanCode.set('');
+        this.confirmReturn(issue);
+      },
+      error: err => {
+        this.scanning.set(false);
+        this.toast.error(err?.error?.message ?? `No active issue found for "${code}"`);
+      },
+    });
   }
 
   protected confirmReturn(issue: LibraryIssue): void {

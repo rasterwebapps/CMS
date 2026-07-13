@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -24,10 +26,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.LibraryBarcodeLabelsRequest;
 import com.cms.dto.LibraryPeriodicalRequest;
 import com.cms.dto.LibraryPeriodicalResponse;
+import com.cms.dto.LibraryPrinterActionResponse;
 import com.cms.model.enums.JournalType;
 import com.cms.model.enums.SubscriptionStatus;
+import com.cms.service.LibraryBarcodeService;
 import com.cms.service.LibraryPeriodicalExportService;
 import com.cms.service.LibraryPeriodicalService;
 
@@ -37,13 +42,18 @@ import jakarta.validation.Valid;
 @RequestMapping("/library/periodicals")
 public class LibraryPeriodicalController {
 
+    private static final Logger log = LoggerFactory.getLogger(LibraryPeriodicalController.class);
+
     private final LibraryPeriodicalService periodicalService;
     private final LibraryPeriodicalExportService periodicalExportService;
+    private final LibraryBarcodeService barcodeService;
 
     public LibraryPeriodicalController(LibraryPeriodicalService periodicalService,
-                                        LibraryPeriodicalExportService periodicalExportService) {
+                                        LibraryPeriodicalExportService periodicalExportService,
+                                        LibraryBarcodeService barcodeService) {
         this.periodicalService = periodicalService;
         this.periodicalExportService = periodicalExportService;
+        this.barcodeService = barcodeService;
     }
 
     @PostMapping
@@ -79,6 +89,15 @@ public class LibraryPeriodicalController {
             @RequestParam String accessionNumber,
             @RequestParam(required = false) Long excludeId) {
         boolean exists = periodicalService.accessionNumberExists(accessionNumber, excludeId);
+        return ResponseEntity.ok(Map.of("exists", exists));
+    }
+
+    @GetMapping("/barcode-exists")
+    @PreAuthorize("@perm.hasAny('LIBRARY_PERIODICAL_VIEW', 'LIBRARY_PERIODICAL_MANAGE')")
+    public ResponseEntity<Map<String, Boolean>> barcodeExists(
+            @RequestParam String barcode,
+            @RequestParam(required = false) Long excludeId) {
+        boolean exists = periodicalService.barcodeExists(barcode, excludeId);
         return ResponseEntity.ok(Map.of("exists", exists));
     }
 
@@ -138,5 +157,89 @@ public class LibraryPeriodicalController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @GetMapping("/{id}/barcode.png")
+    @PreAuthorize("@perm.has('LIBRARY_PERIODICAL_PRINT_BARCODE')")
+    public ResponseEntity<byte[]> barcodePng(@PathVariable Long id) {
+        LibraryPeriodicalResponse periodical = periodicalService.findById(id);
+        String code = periodical.barcode() != null ? periodical.barcode() : periodical.accessionNumber();
+        try {
+            byte[] png = barcodeService.generateBarcodePng(code);
+            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(png);
+        } catch (Exception e) {
+            log.error("Failed to generate barcode PNG for periodical id={} code={}", id, code, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PostMapping("/barcode-labels")
+    @PreAuthorize("@perm.has('LIBRARY_PERIODICAL_PRINT_BARCODE')")
+    public ResponseEntity<byte[]> barcodeLabels(@Valid @RequestBody LibraryBarcodeLabelsRequest request) {
+        List<LibraryBarcodeService.LabelItem> items = request.ids().stream()
+            .map(periodicalService::findById).map(this::toLabelItem).toList();
+
+        try {
+            byte[] bytes = barcodeService.generateLabelSheetPdf(items);
+            String filename = "journal-barcode-labels-" + LocalDate.now() + ".pdf";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+            return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            log.error("Failed to generate barcode label sheet for ids={}", request.ids(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/{id}/barcode.zpl")
+    @PreAuthorize("@perm.has('LIBRARY_PERIODICAL_PRINT_BARCODE')")
+    public ResponseEntity<String> barcodeZpl(@PathVariable Long id) {
+        LibraryPeriodicalResponse periodical = periodicalService.findById(id);
+        String zpl = barcodeService.generateZpl(toLabelItem(periodical));
+        return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(zpl);
+    }
+
+    @PostMapping("/{id}/barcode-print")
+    @PreAuthorize("@perm.has('LIBRARY_PERIODICAL_PRINT_BARCODE')")
+    public ResponseEntity<LibraryPrinterActionResponse> barcodePrint(@PathVariable Long id) {
+        LibraryPeriodicalResponse periodical = periodicalService.findById(id);
+        String zpl = barcodeService.generateZpl(toLabelItem(periodical));
+        try {
+            barcodeService.sendZpl(zpl);
+            return ResponseEntity.ok(new LibraryPrinterActionResponse(true, "Sent to printer"));
+        } catch (Exception e) {
+            log.error("Failed to send barcode ZPL to network printer for periodical id={}", id, e);
+            return ResponseEntity.ok(new LibraryPrinterActionResponse(false, e.getMessage()));
+        }
+    }
+
+    @PostMapping("/barcode-labels.zpl")
+    @PreAuthorize("@perm.has('LIBRARY_PERIODICAL_PRINT_BARCODE')")
+    public ResponseEntity<String> barcodeLabelsZpl(@Valid @RequestBody LibraryBarcodeLabelsRequest request) {
+        List<LibraryBarcodeService.LabelItem> items = request.ids().stream()
+            .map(periodicalService::findById).map(this::toLabelItem).toList();
+        String zpl = barcodeService.generateZplLabelSheet(items);
+        return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(zpl);
+    }
+
+    @PostMapping("/barcode-labels-print")
+    @PreAuthorize("@perm.has('LIBRARY_PERIODICAL_PRINT_BARCODE')")
+    public ResponseEntity<LibraryPrinterActionResponse> barcodeLabelsPrint(@Valid @RequestBody LibraryBarcodeLabelsRequest request) {
+        List<LibraryBarcodeService.LabelItem> items = request.ids().stream()
+            .map(periodicalService::findById).map(this::toLabelItem).toList();
+        String zpl = barcodeService.generateZplLabelSheet(items);
+        try {
+            barcodeService.sendZpl(zpl);
+            return ResponseEntity.ok(new LibraryPrinterActionResponse(true, "Sent to printer"));
+        } catch (Exception e) {
+            log.error("Failed to send bulk barcode ZPL to network printer for ids={}", request.ids(), e);
+            return ResponseEntity.ok(new LibraryPrinterActionResponse(false, e.getMessage()));
+        }
+    }
+
+    private LibraryBarcodeService.LabelItem toLabelItem(LibraryPeriodicalResponse periodical) {
+        String code = periodical.barcode() != null ? periodical.barcode() : periodical.accessionNumber();
+        return new LibraryBarcodeService.LabelItem(code, periodical.journalName(), periodical.accessionNumber());
     }
 }

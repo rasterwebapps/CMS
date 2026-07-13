@@ -35,6 +35,8 @@ import {
   LibraryBookBulkTransferRequest,
   LibraryBookTransferResult,
   LibraryBookShelfTransfer,
+  LibraryBarcodeLabelsRequest,
+  LibraryPrinterActionResult,
 } from './library.model';
 
 @Injectable({ providedIn: 'root' })
@@ -91,6 +93,38 @@ export class LibraryService {
     let params = new HttpParams().set('accessionNumber', accessionNumber);
     if (excludeId != null) params = params.set('excludeId', excludeId.toString());
     return this.http.get<{ exists: boolean }>(`${this.baseUrl}/accession-number-exists`, { params });
+  }
+
+  checkBarcodeExists(barcode: string, excludeId?: number): Observable<{ exists: boolean }> {
+    let params = new HttpParams().set('barcode', barcode);
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<{ exists: boolean }>(`${this.baseUrl}/barcode-exists`, { params });
+  }
+
+  // ── Barcode labels ───────────────────────────────────────────
+
+  getBookBarcodePng(id: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/${id}/barcode.png`, { responseType: 'blob' });
+  }
+
+  printBookBarcodeLabels(request: LibraryBarcodeLabelsRequest): Observable<Blob> {
+    return this.http.post(`${this.baseUrl}/barcode-labels`, request, { responseType: 'blob' });
+  }
+
+  getBookBarcodeZpl(id: number): Observable<string> {
+    return this.http.get(`${this.baseUrl}/${id}/barcode.zpl`, { responseType: 'text' });
+  }
+
+  printBookBarcodeNetwork(id: number): Observable<LibraryPrinterActionResult> {
+    return this.http.post<LibraryPrinterActionResult>(`${this.baseUrl}/${id}/barcode-print`, {});
+  }
+
+  getBookBarcodeLabelsZpl(request: LibraryBarcodeLabelsRequest): Observable<string> {
+    return this.http.post(`${this.baseUrl}/barcode-labels.zpl`, request, { responseType: 'text' });
+  }
+
+  printBookBarcodeLabelsNetwork(request: LibraryBarcodeLabelsRequest): Observable<LibraryPrinterActionResult> {
+    return this.http.post<LibraryPrinterActionResult>(`${this.baseUrl}/barcode-labels-print`, request);
   }
 
   // ── Book transfer ─────────────────────────────────────────────
@@ -303,6 +337,22 @@ export class LibraryService {
     return this.http.get<LibraryCirculationLookup>(`${environment.apiUrl}/library/issues/lookup`, { params });
   }
 
+  /** Scan-to-return: resolve a scanned/typed accession number or barcode to its active issue. */
+  lookupActiveIssueByCode(code: string): Observable<LibraryIssue> {
+    const params = new HttpParams().set('code', code);
+    return this.http.get<LibraryIssue>(`${environment.apiUrl}/library/issues/lookup-active`, { params });
+  }
+
+  /** Full circulation history for one book — backs the "View History" action on the Book Catalogue. */
+  getBookIssueHistory(bookId: number): Observable<LibraryIssue[]> {
+    return this.http.get<LibraryIssue[]>(`${environment.apiUrl}/library/issues/book/${bookId}`);
+  }
+
+  /** Full circulation history for one periodical — backs the "View History" action on Journals. */
+  getPeriodicalIssueHistory(periodicalId: number): Observable<LibraryIssue[]> {
+    return this.http.get<LibraryIssue[]>(`${environment.apiUrl}/library/issues/periodical/${periodicalId}`);
+  }
+
   getIssues(memberType?: LibraryMemberType, status?: IssueStatus): Observable<LibraryIssue[]> {
     let params = new HttpParams();
     if (memberType) params = params.set('memberType', memberType);
@@ -372,6 +422,36 @@ export class LibraryService {
     let params = new HttpParams().set('accessionNumber', accessionNumber);
     if (excludeId != null) params = params.set('excludeId', excludeId.toString());
     return this.http.get<{ exists: boolean }>(`${environment.apiUrl}/library/periodicals/accession-number-exists`, { params });
+  }
+
+  checkPeriodicalBarcodeExists(barcode: string, excludeId?: number): Observable<{ exists: boolean }> {
+    let params = new HttpParams().set('barcode', barcode);
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<{ exists: boolean }>(`${environment.apiUrl}/library/periodicals/barcode-exists`, { params });
+  }
+
+  getPeriodicalBarcodePng(id: number): Observable<Blob> {
+    return this.http.get(`${environment.apiUrl}/library/periodicals/${id}/barcode.png`, { responseType: 'blob' });
+  }
+
+  printPeriodicalBarcodeLabels(request: LibraryBarcodeLabelsRequest): Observable<Blob> {
+    return this.http.post(`${environment.apiUrl}/library/periodicals/barcode-labels`, request, { responseType: 'blob' });
+  }
+
+  getPeriodicalBarcodeZpl(id: number): Observable<string> {
+    return this.http.get(`${environment.apiUrl}/library/periodicals/${id}/barcode.zpl`, { responseType: 'text' });
+  }
+
+  printPeriodicalBarcodeNetwork(id: number): Observable<LibraryPrinterActionResult> {
+    return this.http.post<LibraryPrinterActionResult>(`${environment.apiUrl}/library/periodicals/${id}/barcode-print`, {});
+  }
+
+  getPeriodicalBarcodeLabelsZpl(request: LibraryBarcodeLabelsRequest): Observable<string> {
+    return this.http.post(`${environment.apiUrl}/library/periodicals/barcode-labels.zpl`, request, { responseType: 'text' });
+  }
+
+  printPeriodicalBarcodeLabelsNetwork(request: LibraryBarcodeLabelsRequest): Observable<LibraryPrinterActionResult> {
+    return this.http.post<LibraryPrinterActionResult>(`${environment.apiUrl}/library/periodicals/barcode-labels-print`, request);
   }
 
   // ── Import ────────────────────────────────────────────────────

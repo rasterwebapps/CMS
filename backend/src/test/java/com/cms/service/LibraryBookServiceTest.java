@@ -27,6 +27,7 @@ import com.cms.model.LibraryShelf;
 import com.cms.model.enums.BookStatus;
 import com.cms.repository.LibraryBookRepository;
 import com.cms.repository.LibraryBookShelfTransferRepository;
+import com.cms.repository.LibraryIssueRepository;
 import com.cms.repository.LibraryRepository;
 import com.cms.repository.LibraryShelfRepository;
 import com.cms.util.CurrentUserResolver;
@@ -39,6 +40,7 @@ class LibraryBookServiceTest {
     @Mock private LibraryRepository libraryRepository;
     @Mock private LibraryShelfRepository shelfRepository;
     @Mock private LibraryBookShelfTransferRepository transferRepository;
+    @Mock private LibraryIssueRepository issueRepository;
     @Mock private CurrentUserResolver currentUserResolver;
 
     private LibraryBookService service;
@@ -47,7 +49,7 @@ class LibraryBookServiceTest {
     @BeforeEach
     void setUp() {
         service = new LibraryBookService(bookRepository, accessionRegistry, libraryRepository,
-            shelfRepository, transferRepository, currentUserResolver);
+            shelfRepository, transferRepository, issueRepository, currentUserResolver);
 
         library = new Library();
         library.setId(1L);
@@ -68,7 +70,7 @@ class LibraryBookServiceTest {
         when(bookRepository.save(any())).thenReturn(saved);
 
         var request = new com.cms.dto.LibraryBookRequest(
-            "2024-001", null, "Anatomy", "Gray", null, null, null, null,
+            "2024-001", null, null, "Anatomy", "Gray", null, null, null, null,
             null, null, null, 1L, null, null, null, null, null, null, null, null, null
         );
 
@@ -85,7 +87,7 @@ class LibraryBookServiceTest {
         when(accessionRegistry.exists("2024-001", null, null)).thenReturn(true);
 
         var request = new com.cms.dto.LibraryBookRequest(
-            "2024-001", null, "Anatomy", "Gray", null, null, null, null,
+            "2024-001", null, null, "Anatomy", "Gray", null, null, null, null,
             null, null, null, 1L, null, null, null, null, null, null, null, null, null
         );
 
@@ -104,7 +106,7 @@ class LibraryBookServiceTest {
         when(bookRepository.save(any())).thenReturn(saved);
 
         var request = new com.cms.dto.LibraryBookRequest(
-            null, null, "New Book", "Author", null, null, null, null,
+            null, null, null, "New Book", "Author", null, null, null, null,
             null, null, null, 1L, null, null, null, null, null, null, null, null, null
         );
 

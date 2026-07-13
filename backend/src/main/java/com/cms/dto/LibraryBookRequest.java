@@ -15,6 +15,9 @@ public record LibraryBookRequest(
     @Size(max = 30, message = "Accession number must not exceed 30 characters")
     String accessionNumber,
 
+    @Size(max = 30, message = "Barcode must not exceed 30 characters")
+    String barcode,
+
     LocalDate entryDate,
 
     @NotBlank(message = "Title is required")

@@ -32,10 +32,14 @@
 
       <div class="form-grid form-grid--2">
         <div class="form-field">
-          <label class="form-label required" for="accessionNumber">Accession Number</label>
+          <label class="form-label required" for="accessionNumber">
+            Accession Number / Barcode
+            <span class="form-hint">Scan or type, then press Enter</span>
+          </label>
           <div class="input-action-row">
             <input id="accessionNumber" formControlName="accessionNumber" class="form-input"
-              placeholder="e.g. 42 or 2026-3002" />
+              placeholder="e.g. 42, 2026-3002, or scan barcode" autofocus
+              (keyup.enter)="lookupItem()" />
             <button type="button" class="btn-secondary" (click)="lookupItem()" [disabled]="loadingItem()">
               @if (loadingItem()) { Looking up... } @else { Look Up }
             </button>

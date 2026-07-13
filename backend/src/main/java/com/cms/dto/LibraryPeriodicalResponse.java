@@ -10,6 +10,7 @@ import com.cms.model.enums.SubscriptionStatus;
 public record LibraryPeriodicalResponse(
     Long id,
     String accessionNumber,
+    String barcode,
     String journalName,
     JournalType journalType,
     String organization,

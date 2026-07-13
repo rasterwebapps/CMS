@@ -17,6 +17,12 @@ public interface LibraryBookRepository extends JpaRepository<LibraryBook, Long>,
 
     boolean existsByAccessionNumberAndIdNot(String accessionNumber, Long id);
 
+    Optional<LibraryBook> findByBarcode(String barcode);
+
+    boolean existsByBarcode(String barcode);
+
+    boolean existsByBarcodeAndIdNot(String barcode, Long id);
+
     List<LibraryBook> findByStatus(BookStatus status);
 
     List<LibraryBook> findBySubjectCategory(String subjectCategory);

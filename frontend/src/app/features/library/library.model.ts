@@ -14,6 +14,7 @@ export type BookSourceOfSupply = 'PURCHASE' | 'DONATION' | 'EXCHANGE';
 export interface LibraryBook {
   id: number;
   accessionNumber: string;
+  barcode?: string;
   entryDate?: string;
   title: string;
   authors: string;
@@ -44,6 +45,7 @@ export interface LibraryBook {
 
 export interface LibraryBookRequest {
   accessionNumber?: string;
+  barcode?: string;
   entryDate?: string;
   title: string;
   authors: string;
@@ -216,7 +218,8 @@ export type SubscriptionStatus = 'ACTIVE' | 'EXPIRED';
 
 export interface LibraryPeriodical {
   id: number;
-  accessionNumber?: string;
+  accessionNumber: string;
+  barcode?: string;
   journalName: string;
   journalType: JournalType;
   organization?: string;
@@ -235,7 +238,8 @@ export interface LibraryPeriodical {
 }
 
 export interface LibraryPeriodicalRequest {
-  accessionNumber?: string;
+  accessionNumber: string;
+  barcode?: string;
   journalName: string;
   journalType?: JournalType;
   organization?: string;
@@ -348,6 +352,21 @@ export interface LibraryCirculationLookup {
 
 export interface LibraryReturnRequest {
   remarks?: string;
+}
+
+// ── Barcode labels ───────────────────────────────────────────
+
+export interface LibraryBarcodeLabelsRequest {
+  ids: number[];
+}
+
+// ── Barcode print transport ──────────────────────────────────
+
+export type LibraryPrinterMode = 'BROWSER' | 'NETWORK' | 'LOCAL_AGENT';
+
+export interface LibraryPrinterActionResult {
+  success: boolean;
+  message?: string;
 }
 
 export interface LibraryRenewRequest {

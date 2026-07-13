@@ -2,16 +2,19 @@ import { Component, computed, inject, OnDestroy, OnInit, signal, ViewChild } fro
 import { Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SelectionModel } from '@angular/cdk/collections';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { LibraryService } from '../library.service';
+import { LibraryPrintTransportService } from '../library-print-transport.service';
 import { LibraryPeriodical, JournalType, SubscriptionStatus, JOURNAL_TYPE_OPTIONS, SUBSCRIPTION_STATUS_OPTIONS } from '../library.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -22,6 +25,8 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
+import { LibraryBarcodePreviewDialogComponent, LibraryBarcodePreviewDialogData } from '../library-barcode-preview-dialog/library-barcode-preview-dialog.component';
+import { LibraryItemHistoryDialogComponent, LibraryItemHistoryDialogData } from '../library-item-history-dialog/library-item-history-dialog.component';
 
 
 @Component({
@@ -30,15 +35,17 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
   imports: [
     RouterLink, DatePipe, FormsModule,
     MatTableModule, MatPaginatorModule, MatSortModule,
-    MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule,
+    MatDialogModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatTooltipModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent,
     CmsTypeBadgeComponent, CmsStatusBadgeComponent, ExportButtonComponent, CmsColumnPickerComponent,
+    LibraryBarcodePreviewDialogComponent, LibraryItemHistoryDialogComponent,
   ],
   templateUrl: './library-periodical-list.component.html',
   styleUrl:    './library-periodical-list.component.scss',
 })
 export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
   private readonly libraryService = inject(LibraryService);
+  private readonly printTransport = inject(LibraryPrintTransportService);
   private readonly router         = inject(Router);
   private readonly toast          = inject(ToastService);
   private readonly dialog         = inject(MatDialog);
@@ -66,6 +73,7 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
   protected readonly colState = new ColumnPickerState({
     storageKey: 'library-periodical-columns',
     columns: [
+      { key: 'select',             label: 'Select',      mandatory: true, pinnable: false },
       { key: 'journalName',        label: 'Journal' },
       { key: 'journalType',        label: 'Type' },
       { key: 'volumeIssue',        label: 'Vol./Issue' },
@@ -87,8 +95,16 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
   protected readonly statusOptions = SUBSCRIPTION_STATUS_OPTIONS;
   protected readonly canManage     = computed(() => this.permissions.hasAny('LIBRARY_PERIODICAL_MANAGE'));
   protected readonly canExport     = computed(() => this.permissions.hasAny('LIBRARY_PERIODICAL_EXPORT'));
+  protected readonly canPrintBarcode = computed(() => this.permissions.hasAny('LIBRARY_PERIODICAL_PRINT_BARCODE'));
+  protected readonly printingLabels = signal(false);
+  protected readonly canViewHistory = computed(() => this.permissions.hasAny('LIBRARY_PERIODICAL_VIEW_HISTORY'));
   protected readonly hasActiveFilters = computed(() =>
     this.typeFilter() !== null || this.statusFilter() !== null || this.searchValue().length > 0);
+
+  protected readonly barcodeTarget = signal<LibraryBarcodePreviewDialogData | null>(null);
+  protected readonly historyTarget = signal<LibraryItemHistoryDialogData | null>(null);
+
+  protected readonly selection = new SelectionModel<LibraryPeriodical>(true, []);
 
   protected totalElements  = 0;
   protected currentPage    = 0;
@@ -169,6 +185,65 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
     else void this.router.navigate(['/library/periodicals/new']);
   }
 
+  // ── Selection ────────────────────────────────────────────────
+
+  protected isAllSelected(): boolean {
+    return this.selection.selected.length === this.dataSource.data.length && this.dataSource.data.length > 0;
+  }
+
+  protected toggleAll(): void {
+    if (this.isAllSelected()) this.selection.clear();
+    else this.dataSource.data.forEach(row => this.selection.select(row));
+  }
+
+  // ── History ──────────────────────────────────────────────────
+
+  protected viewHistory(p: LibraryPeriodical): void {
+    this.historyTarget.set({ itemType: 'JOURNAL', item: p });
+  }
+
+  // ── Barcode labels ───────────────────────────────────────────
+
+  protected printBarcode(p: LibraryPeriodical): void {
+    this.barcodeTarget.set({ itemType: 'JOURNAL', id: p.id, title: p.journalName, code: p.barcode ?? p.accessionNumber });
+  }
+
+  protected printSelectedLabels(): void {
+    if (this.printingLabels()) return;
+    this.printingLabels.set(true);
+    const ids = this.selection.selected.map(p => p.id);
+
+    this.printTransport.getPrinterMode().subscribe(mode => {
+      if (mode === 'BROWSER') {
+        this.libraryService.printPeriodicalBarcodeLabels({ ids }).subscribe({
+          next: blob => {
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+            this.printingLabels.set(false);
+          },
+          error: () => {
+            this.toast.error('Failed to generate barcode labels');
+            this.printingLabels.set(false);
+          },
+        });
+        return;
+      }
+
+      this.printTransport.sendBatch('JOURNAL', ids, mode).subscribe({
+        next: result => {
+          this.printingLabels.set(false);
+          if (result.success) this.toast.success('Sent to printer');
+          else this.toast.error(result.message ?? 'Failed to send to printer');
+        },
+        error: () => {
+          this.printingLabels.set(false);
+          this.toast.error('Failed to send to printer');
+        },
+      });
+    });
+  }
+
   private loadPage(): void {
     this.loading.set(true);
     this.libraryService.getPeriodicalsPage({
@@ -181,6 +256,7 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
       next: page => {
         this.dataSource.data = page.content;
         this.totalElements = page.totalElements;
+        this.selection.clear();
         if (this._paginator) { this._paginator.length = page.totalElements; this._paginator.pageIndex = page.number; }
         this.loading.set(false);
       },

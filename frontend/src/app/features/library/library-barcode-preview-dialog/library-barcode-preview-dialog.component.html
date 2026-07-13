@@ -1,0 +1,24 @@
+@if (target(); as data) {
+  <cms-flyout-panel width="420px" ariaLabel="Barcode preview" (closed)="close()">
+    <h2 flyoutHeader>Barcode — {{ data.title }}</h2>
+
+    <div flyoutBody class="bcp-body">
+      @if (loading()) {
+        <div class="bcp-loading"><mat-spinner diameter="28" /></div>
+      } @else if (imageUrl(); as url) {
+        <div class="bcp-preview">
+          <img #barcodeImg [src]="url" [alt]="'Barcode for ' + data.title" class="bcp-image" />
+          <div class="bcp-code">{{ data.code }}</div>
+        </div>
+      } @else {
+        <p class="bcp-error">Could not generate a barcode for this item.</p>
+      }
+    </div>
+
+    <div flyoutFooter>
+      <button mat-button (click)="close()">Close</button>
+      <button mat-button [disabled]="!imageUrl()" (click)="download()">Download</button>
+      <button mat-flat-button color="primary" [disabled]="!imageUrl() || printing()" (click)="print()">Print</button>
+    </div>
+  </cms-flyout-panel>
+}

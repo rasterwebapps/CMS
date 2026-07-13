@@ -10,6 +10,7 @@ import com.cms.model.enums.BookStatus;
 public record LibraryBookResponse(
     Long id,
     String accessionNumber,
+    String barcode,
     LocalDate entryDate,
     String title,
     String authors,

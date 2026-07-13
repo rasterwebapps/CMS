@@ -69,9 +69,16 @@ public class LibraryBookService {
                 "An item with accession number '" + accessionNumber + "' already exists");
         }
 
+        String barcode = accessionRegistry.resolveBarcode(request.barcode(), accessionNumber);
+        if (accessionRegistry.existsBarcode(barcode, null, null)) {
+            throw new IllegalArgumentException(
+                "An item with barcode '" + barcode + "' already exists");
+        }
+
         LibraryBook book = new LibraryBook();
         applyFields(book, request);
         book.setAccessionNumber(accessionNumber);
+        book.setBarcode(barcode);
 
         return toResponse(bookRepository.save(book));
     }
@@ -122,6 +129,10 @@ public class LibraryBookService {
         return accessionRegistry.exists(accessionNumber, excludeId, null);
     }
 
+    public boolean barcodeExists(String barcode, Long excludeId) {
+        return accessionRegistry.existsBarcode(barcode, excludeId, null);
+    }
+
     @Transactional
     public LibraryBookResponse update(Long id, LibraryBookRequest request) {
         LibraryBook book = require(id);
@@ -136,7 +147,20 @@ public class LibraryBookService {
                 "An item with accession number '" + accessionNumber + "' already exists");
         }
 
+        // Barcode auto-defaults from accession number only at creation; a blank barcode on
+        // update keeps whatever value the item already has rather than resetting it.
+        String barcode = request.barcode() != null && !request.barcode().isBlank()
+            ? request.barcode().trim()
+            : book.getBarcode();
+
+        if (barcode != null && !barcode.equals(book.getBarcode())
+                && accessionRegistry.existsBarcode(barcode, id, null)) {
+            throw new IllegalArgumentException(
+                "An item with barcode '" + barcode + "' already exists");
+        }
+
         book.setAccessionNumber(accessionNumber);
+        book.setBarcode(barcode);
         applyFields(book, request);
         return toResponse(bookRepository.save(book));
     }
@@ -285,6 +309,7 @@ public class LibraryBookService {
         return new LibraryBookResponse(
             b.getId(),
             b.getAccessionNumber(),
+            b.getBarcode(),
             b.getEntryDate(),
             b.getTitle(),
             b.getAuthors(),

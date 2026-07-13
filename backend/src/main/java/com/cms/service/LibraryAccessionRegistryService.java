@@ -77,4 +77,31 @@ public class LibraryAccessionRegistryService {
             return 0L;
         }
     }
+
+    /**
+     * @param excludeBookId       when checking an edit to an existing book, its own id (else null)
+     * @param excludePeriodicalId when checking an edit to an existing periodical, its own id (else null)
+     */
+    public boolean existsBarcode(String barcode, Long excludeBookId, Long excludePeriodicalId) {
+        boolean bookExists = excludeBookId != null
+            ? bookRepository.existsByBarcodeAndIdNot(barcode, excludeBookId)
+            : bookRepository.existsByBarcode(barcode);
+        if (bookExists) return true;
+
+        return excludePeriodicalId != null
+            ? periodicalRepository.existsByBarcodeAndIdNot(barcode, excludePeriodicalId)
+            : periodicalRepository.existsByBarcode(barcode);
+    }
+
+    /**
+     * If the caller supplied a barcode (e.g. a custom prefix/suffix stock item needs), use it
+     * (after trim). Otherwise default it to the item's own accession number — unlike accession
+     * numbers, barcodes have no sequence to generate, just a same-value default.
+     */
+    public String resolveBarcode(String requested, String resolvedAccessionNumber) {
+        if (requested != null && !requested.isBlank()) {
+            return requested.trim();
+        }
+        return resolvedAccessionNumber;
+    }
 }

@@ -79,6 +79,7 @@ export class LibraryBookFormComponent implements OnInit {
     const excludeId = this.bookId();
     this.form = this.fb.group({
       accessionNumber:    ['', { asyncValidators: [this.accessionNumberValidator(excludeId)], updateOn: 'blur' }],
+      barcode:            ['', { asyncValidators: [this.barcodeValidator(excludeId)], updateOn: 'blur' }],
       entryDate:          [''],
       title:              ['', [Validators.required, Validators.maxLength(500)]],
       authors:            ['', [Validators.required, Validators.maxLength(500)]],
@@ -114,12 +115,25 @@ export class LibraryBookFormComponent implements OnInit {
     };
   }
 
+  private barcodeValidator(excludeId: number | null): AsyncValidatorFn {
+    return (control: AbstractControl) => {
+      const value = control.value?.trim();
+      if (!value) return Promise.resolve(null);
+      return timer(350).pipe(
+        switchMap(() => this.libraryService.checkBarcodeExists(value, excludeId ?? undefined)),
+        map(res => res.exists ? { barcodeExists: true } : null),
+        first(),
+      );
+    };
+  }
+
   private loadBook(id: number): void {
     this.loading.set(true);
     this.libraryService.getById(id).subscribe({
       next: book => {
         this.form.patchValue({
           accessionNumber:   book.accessionNumber,
+          barcode:           book.barcode ?? '',
           entryDate:         book.entryDate ?? '',
           title:             book.title,
           authors:           book.authors,
@@ -186,6 +200,7 @@ export class LibraryBookFormComponent implements OnInit {
     const v = this.form.value;
     return {
       accessionNumber:   v.accessionNumber?.trim() || undefined,
+      barcode:           v.barcode?.trim() || undefined,
       entryDate:         v.entryDate || undefined,
       title:             v.title.trim(),
       authors:           v.authors.trim(),
