@@ -122,7 +122,7 @@ public class CohortController {
             }
         }
 
-        List<Cohort> cohorts = cohortRepository.findByAdmissionAcademicYearId(ay.getId());
+        List<Cohort> cohorts = cohortRepository.findByAdmissionAcademicYearIdWithCourse(ay.getId());
         long totalCounselling = 0, totalFilled = 0, totalLapsed = 0;
 
         List<CohortLapsedRow> rows = cohorts.stream().map(c -> {
