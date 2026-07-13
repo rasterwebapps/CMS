@@ -41,6 +41,20 @@
 - [BR-32: Master Lifecycle Status Management](#br-32-master-lifecycle-status-management)
 - [BR-33: Institution Master & Staff Referrer Institution Scoping](#br-33-institution-master--staff-referrer-institution-scoping)
 - [BR-34: OneBook Payment Gateway Integration](#br-34-onebook-payment-gateway-integration)
+- [BR-35: Library Rack/Shelf Master, Book Transfer & Multi-Library Schema](#br-35-library-rackshelf-master-book-transfer--multi-library-schema)
+- [BR-36: Excess Bank Payment with Auto-Generated, Non-Rejectable Refund](#br-36-excess-bank-payment-with-auto-generated-non-rejectable-refund)
+- [BR-37: Barcode Generation & Configurable Label-Printer Output](#br-37-barcode-generation--configurable-label-printer-output)
+- [BR-38: Library Circulation — Catalogue, Issue/Return, Fines & Periodicals](#br-38-library-circulation--catalogue-issuereturn-fines--periodicals)
+- [BR-39: Permission Model V2 — Tiers & Granular Screen-Level Permissions](#br-39-permission-model-v2--tiers--granular-screen-level-permissions)
+- [BR-40: Role/User-Customizable Dashboard & Analytics Widget System](#br-40-roleuser-customizable-dashboard--analytics-widget-system)
+- [BR-41: Number Sequence Redesign & Roll Number Generation/Assignment](#br-41-number-sequence-redesign--roll-number-generationassignment)
+- [BR-42: Faculty Extended Profile & Document-Type Requirements Engine](#br-42-faculty-extended-profile--document-type-requirements-engine)
+- [BR-43: Retro Admit (Legacy Direct Admit)](#br-43-retro-admit-legacy-direct-admit)
+- [BR-44: MinIO File Storage Migration](#br-44-minio-file-storage-migration)
+- [BR-45: Enquiry Payment Credit Application to Student Fee Demands](#br-45-enquiry-payment-credit-application-to-student-fee-demands)
+- [BR-46: Designation Master](#br-46-designation-master)
+- [BR-47: India Location & Country Master](#br-47-india-location--country-master)
+- [BR-48: JWT Revoked-Token Tracking (Logout Denylist)](#br-48-jwt-revoked-token-tracking-logout-denylist)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -1396,6 +1410,17 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-07-13 | BR-48 | **Documentation gap backfill** (retroactive — no code change): documents the JWT revoked-token denylist (`revoked_tokens`, `RevocationJwtValidator` chained into JWT decoding, `POST /auth/revoke` on logout, hourly purge; V243) — self-service only, no admin-forced logout of another user's session exists. | — |
+| 2026-07-13 | BR-47 | **Documentation gap backfill** (retroactive — no code change): documents the India Location & Country Master (Country → State → District hierarchy, V149-V151/V158-V159) — only `country` on enquiries/faculty/students is an actual FK; state/district remain free text populated from the cascading dropdowns. | — |
+| 2026-07-13 | BR-46 | **Documentation gap backfill** (retroactive — no code change): documents the Designation Master (replaced a hardcoded enum, V201/V202/V229) — conforms to BR-32's lifecycle contract but was never added to that BR's scope table. | — |
+| 2026-07-13 | BR-45 | **Documentation gap backfill** (retroactive — no code change): documents automatic enquiry pre-payment credit application against student semester fees at collection time (`enquiry_credit_applications`, V209/V211), plus the one-time V187 backfill that preceded it. | — |
+| 2026-07-13 | BR-44 | **Documentation gap backfill** (retroactive — no code change): documents the MinIO file storage migration (`StorageService`/`MinioStorageService`, `storage_key` columns, admin-only `/admin/migrate-storage` endpoint, V249) — the backend now hard-fails to boot without a reachable MinIO endpoint, and old `bytea` columns are deliberately kept as a fallback until manually verified. | — |
+| 2026-07-13 | BR-43 | **Documentation gap backfill** (retroactive — no code change): documents Retro Admit / Legacy Direct Admit (`POST /students/retro-admit`) — atomic Student+Enquiry+Admission creation bypassing the enquiry pipeline, with optional FIFO-allocated historical fee/payment backfill, distinct from BR-31's bulk Excel import. | — |
+| 2026-07-13 | BR-42 | **Documentation gap backfill** (retroactive — no code change): documents faculty's extended profile fields (identity/bank/address/experience, V93/V199), the `faculty_documents` table, and the document-type requirements engine (designation/speciality/qualification OR-matched rules, V126) that BR-26's review badges and verification locks are built on top of. | — |
+| 2026-07-13 | BR-41 | **Documentation gap backfill** (retroactive — no code change): documents roll number auto-generation/manual assignment (`RollNumberGeneratorService`, V111) and the number-sequence engine redesign (`number_series_definitions`/`number_sequence_counters` replacing `application_number_sequences`, V244–V246) that BR-27's admission numbers already rely on. | — |
+| 2026-07-13 | BR-40 | **Documentation gap backfill** (retroactive — no code change): documents the role/user-customizable Dashboard & Analytics widget system (four escalating widget tiers, per-role default + per-user override layout, `DASHBOARD_CUSTOMIZE` permission) shipped across V119–V190 but never given a BR. | — |
+| 2026-07-13 | BR-38, BR-39 | **Documentation gap backfill** (retroactive — no code change): BR-38 documents the base Library circulation module (catalogue, issue/return/renewal, fines, periodicals) shipped at V196–V198/V250 but never given a BR; BR-39 documents the Permission Model V2 redesign (tiers + granular per-operation screen permissions, V241/V242/V247) that BR-35/36/37/38 already assume exists. | — |
+| 2026-07-13 | BR-37 | Added a `barcode` column (distinct from `accession_number`) to books/periodicals with Code128 PNG/PDF generation, plus a configurable print-transport setting (`barcode_printer_mode`: BROWSER default / NETWORK / LOCAL_AGENT) so the same "Print" button can stream plain ZPL to a networked or USB-attached thermal label printer instead of the browser print dialog. Migrations V260, V263. | — |
 | 2026-07-08 | BR-35 | Replaced `library_books.shelf_location` (free text) with a real Library → Rack → Shelf hierarchy; added Rack/Shelf master screens, book transfer (single + bulk, blocked while `ISSUED`) with audit history, and converted the Search Catalogue tab from unpaginated client-side filtering to server-side pagination with a shelf filter. Migrations V251–V256. | — |
 | 2026-06-23 | BR-34 | **Rewrote OneBook integration against OneBook's real published API spec** (previously placeholder field names/auth, now confirmed wrong): JWT auth flow replaces HTTP Basic; outbound create payload rewritten to OneBook's invoice/document-register shape (`payeeType: OTHERS`, `invoiceNumber`/`documentNumber` = a newly generated refund/commission/disbursement number, `documentId` = source entity PK, `paymentRegisterDocumentType: PAYMENT`/`REFUND`, `transactionType: CREDIT` always); removed response-body id/success parsing since the real synchronous response carries neither — success is now HTTP-status-only. Replaced the single placeholder `/webhooks/onebook/payment-status` webhook with the two real OneBook callbacks (`posting-track-update`, `posting-track-completion`), both correlated by the generated `invoiceNumber` rather than an echoed `referenceId`. Added `ApplicationNumberSequenceService.nextCommissionNumber`/`nextDisbursementNumber`; `FeeRefund.refundNumber`/`Enquiry.commissionNumber`/`ScholarshipDisbursement.disbursementNumber` now reuse the number generated at push time instead of regenerating on completion. Supplier Master Sync (pharmacy-only piece of the same spec) explicitly out of scope. Migration V236. | — |
 | 2026-06-23 | BR-34 | OneBook outbound push now parses the synchronous response body for OneBook's own id and a success/failure indicator (previously only an HTTP-exception check, which would have silently treated a logical "rejected" response as transmitted). The id is stored as `onebookTxnId` and is now also a valid correlation key for the inbound webhook — `OneBookWebhookService.process` and `OneBookPaymentRequestRepository.findByOnebookTxnId` look up by `transactionId` when `referenceId` is absent or unmatched, since OneBook's callback may use only its own id rather than echoing ours back. Response field names (`id`/`transactionId`/`status`/`success`) are best-guess placeholders pending OneBook's actual API docs — flagged in BR-34 for confirmation. | — |
@@ -2203,6 +2228,391 @@ Because the existing refund model allows only one active (non-`REJECTED`) refund
 
 - **General partial refunds** (refunding less than the full receipt amount) were evaluated and declined — the existing refund model derives `refund_amount` as 100% of the receipt and caps refunds at one per receipt; building true partial refunds would require reworking outstanding-balance math and the uniqueness constraint for a capability this feature doesn't need. The `AUTO_EXCESS` refund is a separate, additive carve-out, not a step toward general partial refunds.
 - **A dedicated payment/receipt cancellation ("void") flow.** None exists anywhere in the system today; this feature does not introduce one. Reversing a payment — excess or otherwise — is always done through the existing refund request flow.
+
+---
+
+## BR-37: Barcode Generation & Configurable Label-Printer Output
+
+### Business Rule
+
+Every book and periodical carries a dedicated `barcode` value — distinct from `accession_number`, defaulting to it at creation but independently editable for stock that needs a custom prefix/suffix — rendered as a Code128 barcode. The librarian can print a single item's barcode (preview dialog) or a batch of selected items (label sheet), and the actual **print transport** for both is a global, librarian-configurable setting rather than hardcoded: `BROWSER` (default — today's browser print dialog, unchanged), `NETWORK` (the backend streams plain ZPL directly to a networked thermal label printer's raw socket), or `LOCAL_AGENT` (the browser forwards ZPL to a local Browser-Print-style agent for a USB-attached printer). The same "Print" button is used in all three modes — only the transport underneath changes.
+
+ZPL generation is deliberately vendor-neutral (no Zebra-specific extensions), since Zebra, TSC, Godex, and many TVS thermal label-printer models all implement or emulate plain ZPL — the college is not committed to a single printer brand.
+
+### Scope
+
+- `library_books` / `library_periodicals` gain a `barcode` column (unique per table), separate from `accession_number`.
+- `LibraryBarcodeService` generates: Code128 PNG (single-item preview/print, rendered at 300 DPI with a guaranteed ≥2mm quiet zone around the bars regardless of how small the configured label is) and PDF label sheets (batch, grid sized to the configured label mm dimensions) for `BROWSER` mode; plain ZPL (single item, and batch grouped into rows of `barcode_labels_per_row`) plus a raw-socket ZPL sender for `NETWORK` mode.
+- New global settings (`library_settings` table): `barcode_label_width_mm` / `barcode_label_height_mm` (sticker size, existing), `barcode_printer_mode` (`BROWSER` default / `NETWORK` / `LOCAL_AGENT`), `barcode_printer_ip` / `barcode_printer_port` (`NETWORK` only — IP is validated server-side as a private/RFC1918 or loopback address, both at settings-save time and again immediately before every socket send), `barcode_labels_per_row` (1/2/4 — describes how many labels are physically die-cut across the loaded roll; batch printing only).
+- Frontend `LibraryPrintTransportService` is the single place that resolves the configured mode and branches accordingly — the barcode preview dialog's "Print" button and both list screens' bulk "Print Selected Labels" action all share it, so `BROWSER` mode's existing behavior is untouched no matter what the other two modes do.
+- `LOCAL_AGENT` forwards ZPL via a raw `fetch()` to `http://localhost:9100/write` — Browser Print's fixed default local endpoint, a separate address from the configurable `barcode_printer_port` (which is server-side only, used for `NETWORK` mode).
+
+### Permissions
+
+- Printing over any transport reuses the existing `LIBRARY_CATALOGUE_PRINT_BARCODE` / `LIBRARY_PERIODICAL_PRINT_BARCODE` permissions — same operation, different delivery mechanism, not a new one, per the operation-wise permission mapping rule.
+- Configuring the printer transport lives on the existing Library Settings screen, gated by the existing `LIBRARY_SETTINGS_MANAGE` permission — no new permission needed.
+
+### Migration Notes
+
+- V260 — adds the `barcode` columns (with backfill + uniqueness), `barcode_label_width_mm` / `barcode_label_height_mm` settings, and the `LIBRARY_CATALOGUE_PRINT_BARCODE` / `LIBRARY_PERIODICAL_PRINT_BARCODE` permissions (with the mandatory DEV_ADMIN/SUPPORT_ADMIN catch-all sync).
+- V263 — adds `barcode_printer_mode` / `barcode_printer_ip` / `barcode_printer_port` / `barcode_labels_per_row` settings. No new permissions.
+
+### Explicitly Out of Scope
+
+- **Direct browser-to-printer device access (WebUSB/WebSerial).** Evaluated and declined in favor of the OS print dialog (`BROWSER`) and a vendor local-agent (`LOCAL_AGENT`) — both avoid writing and maintaining low-level, per-printer-model device driver code inside this app.
+
+---
+
+## BR-38: Library Circulation — Catalogue, Issue/Return, Fines & Periodicals
+
+> **Documentation gap backfill.** This is the base Library module BR-35 (Rack/Shelf), BR-37 (Barcode/Printer), and the Change Log's own migration notes (`student_program_transfers` reference) all assume already exists — it was built at V196–V198 but never documented. Written retroactively from the shipped code, not a new requirement.
+
+### Business Rule
+
+The Library module tracks a Book Catalogue (Accession Register), circulation (issue/return/renewal) for both students and faculty, an overdue fine log, and a Journals & Periodicals register — all gated behind a new `LIBRARIAN` role introduced specifically for this module.
+
+**Issuing** a book or periodical requires the item to be `AVAILABLE` and checks two librarian-configurable limits from `library_settings`, separately for students vs. faculty: the loan period (`student_loan_days` = 14 / `faculty_loan_days` = 30, default) and the maximum concurrent items a member may hold (`student_max_books` = 2 / `faculty_max_books` = 3, default). The due date is `issued_date + loan_days`. A physical copy can only be actively issued to one person at a time — enforced by a partial unique index on `(book_id)` / `(periodical_id)` where status is `ISSUED`/`OVERDUE`, not just application logic.
+
+**Returning** an item flips it back to `AVAILABLE`. If returned after its due date, a `LibraryFine` row is auto-created — `overdue_days × fine_per_day` (`fine_per_day` setting, default ₹1/day) — starting life as `PENDING`. Fines are then manually resolved to `WAIVED` or `COLLECTED`; there is no automatic tie-in to the cashier/fee-collection register (see Explicitly Out of Scope).
+
+**Renewing** is blocked once `renewal_count` reaches `max_renewals` (default 2) or if the item was already returned; a successful renewal extends the due date by another full loan period from today, increments `renewal_count`, and resets an `OVERDUE` issue back to `ISSUED`.
+
+A **daily scheduled job** (1 AM) auto-flips any `ISSUED` row whose due date has passed to `OVERDUE` — this only affects status/visibility; the fine itself is still computed once, at actual return time, not accrued day-by-day while overdue.
+
+### Scope
+
+- `library_books` — the Accession Register: accession number, bibliographic fields (title/authors/publisher/ISBN/edition/etc.), call number, shelf location (superseded by the Rack/Shelf hierarchy in BR-35), subject category, source of supply (Purchase/Donation/Exchange), and status (`AVAILABLE`/`ISSUED`/`LOST`/`DAMAGED`/`WITHDRAWN`).
+- `library_issues` — one table for both member types (`member_type` discriminator + a `CHECK` enforcing exactly one of `student_id`/`faculty_id` is set), and (since V250) exactly one of `book_id`/`periodical_id`.
+- `library_fines` — one fine per issue (`UNIQUE` on `issue_id`), `PENDING → WAIVED | COLLECTED`.
+- `library_periodicals` — Journal/Periodical Register (national/international, organization, volume/issue, subscription status). Originally tracked only in aggregate (`copies_count`, one subscription-level status); V250 gave periodicals their own per-copy `accession_number` + `status` so individual copies can be issued/returned exactly like books.
+- `library_settings` — the typed key-value config store this and every later Library BR (35, 37) has continued to add settings to.
+- Front-desk lookups: circulation lookup by accession number, and scan-to-return (`lookupActiveIssueByCode`) resolving a scanned barcode or accession number to its active issue.
+- "My Library" (self-service issue history for the logged-in student/faculty member, scoped server-side to their own records) and "Issue Book" (a quick-issue entry point) are separate nav screens layered on this same circulation data.
+
+### Permissions
+
+- New `LIBRARIAN` role (hierarchy level 5), granted every `LIBRARY_*` permission.
+- `LIBRARY_CATALOGUE_VIEW`/`MANAGE`, `LIBRARY_ISSUE_VIEW`/`MANAGE`, `LIBRARY_FINE_VIEW`/`MANAGE`, `LIBRARY_PERIODICAL_VIEW`/`MANAGE`, `LIBRARY_SETTINGS_MANAGE`, `LIBRARY_REPORT_VIEW`, `LIBRARY_IMPORT` — granted in full to `DEV_ADMIN`/`SUPPORT_ADMIN`/`ADMIN`/`COLLEGE_ADMIN` alongside `LIBRARIAN`.
+- `FACULTY`/`STUDENT` get only `LIBRARY_CATALOGUE_VIEW` + `LIBRARY_ISSUE_VIEW` — "own issue history only" is enforced in the service layer (`findMyIssues`, keyed by the caller's own Keycloak username), not by a separate permission.
+- `MY_LIBRARY_VIEW` and `LIBRARY_QUICK_ISSUE` (gating the "My Library" and "Issue Book" nav entries) were added later, under the Permission Model V2 redesign (BR-39/V247) — not part of the original V196–V198 rollout.
+
+### Migration Notes
+
+- V196 — creates all five core tables (`library_books`, `library_issues`, `library_fines`, `library_periodicals`, `library_settings`) with their seed settings.
+- V197 — adds the `LIBRARIAN` role, all `LIBRARY_*` permissions, and the role-permission assignments described above.
+- V198 — a one-off catch-all granting `DEV_ADMIN` every permission that earlier migrations had missed (not Library-specific, just shipped alongside this module).
+- V250 — gives periodicals their own accession number + per-copy status and lets `library_issues` reference a periodical instead of a book (exactly one of the two, enforced by `CHECK` + a second partial unique index mirroring the book one).
+
+### Explicitly Out of Scope
+
+- **Automatic fine-to-cashier integration.** V196's own header comment notes fines are "tracked now; cashier integration is Phase 2" — waiving/collecting a fine today is a manual status change on `library_fines`, with no linkage into `PaymentReceipt`/the fee-collection register. Still the case as of this writing.
+
+---
+
+## BR-39: Permission Model V2 — Tiers & Granular Screen-Level Permissions
+
+> **Documentation gap backfill.** BR-24 documents the original decision to move RBAC fully into the database; this is the second-generation redesign of that same system, now the permission architecture actually running in production, referenced here as "V247" by BR-38 above.
+
+### Business Rule
+
+Two changes layered on top of BR-24's DB-only RBAC. First, every permission gained a `tier` (an integer ranking) so that granting/delegating a permission can itself be tier-gated — a role can only be assigned permissions at or below the tier its own management screen allows, preventing privilege escalation through the Role Management UI. Second, permissions that used to be one broad `_MANAGE` code per screen were split into one dedicated code per operation — `_CREATE`/`_EDIT`/`_DELETE`/`_EXPORT` (and screen-specific operations like `_PRINT_BARCODE`, `_TRANSFER`, `_VIEW_HISTORY` added by later BRs) — each carrying its own `screen_label` so the Role Management screen can group every operation belonging to one conceptual screen together, regardless of how many discrete permission codes back it.
+
+This is the origin of the "operation-wise permission mapping" hard gate every later BR (35, 36, 37, 38) already follows: a new button/action always gets its own permission code, never a reuse of an existing one.
+
+### Scope
+
+- `permissions.tier` (integer) — controls delegable scope; a Permission Tiers screen (`/permission-tiers`) lets admins manage tier assignments directly.
+- `permissions.screen_label` — a display-grouping string (e.g. "Book Catalogue", "Issue Desk"/"Issue Explorer") so Role Management can present many granular codes as one logical screen's permission set.
+- Existing broad `_MANAGE` permissions across the app were split into granular per-operation codes; older code paths were migrated screen-by-screen (not all at once).
+
+### Migration Notes
+
+- V241 — introduces the `tier` column and the Permission Tiers screen's backing data.
+- V242 — the granular screen-permission split (per-operation codes) and initial `_EXPORT` backfill.
+- V247 — per-screen isolation pass + introduces `screen_label` for Role Management grouping; also where `MY_LIBRARY_VIEW`/`LIBRARY_QUICK_ISSUE` (BR-38) were added.
+- V248, V257–V258, V261–V262 — later screens/modules (including Library's own export, view-history, and screen-label-rename migrations) adopting this same pattern.
+
+---
+
+## BR-40: Role/User-Customizable Dashboard & Analytics Widget System
+
+> **Documentation gap backfill.** Fully shipped, actively growing feature (37+ widgets across four tiers as of V190) with no BR of its own.
+
+### Business Rule
+
+Every role has a default, ordered dashboard layout — a grid of widgets, each spanning 1–4 columns and 1–2 rows — configured in the database rather than hardcoded per-role in the frontend. A user holding `DASHBOARD_CUSTOMIZE` can save a personal layout that overrides their role's default entirely (not merged with it); deleting all of a user's personal widget rows reverts them to seeing the role default again.
+
+Each widget's data comes from its own `/dashboard/data/*` endpoint. None of these introduce a dedicated "can see this widget" permission — each reuses whichever existing feature-view permission is topically relevant (e.g. the admission-funnel widget requires `ENQUIRY_VIEW`/`STUDENT_VIEW`/`REPORT_VIEW`), so a dashboard never surfaces data a user couldn't already see on that feature's own screen.
+
+Widgets were built in four escalating tiers of sophistication, seeded progressively rather than all at once: **Tier 1** admin analytics (admission funnel, fee collection target, dues aging, program admissions), **Tier 2** analytics (agent performance, program revenue mix, scholarship burn, doc verification backlog), **Tier 3** strategic/monthly views (geographic admissions heatmap, YoY admissions, refund/cancellation rate, payment mode breakdown, student-faculty ratio, lab utilization heatmap, cohort retention, a top-line KPI strip), and **Tier 4** passive alerts (anomaly banner, seat-capacity warnings, compliance-document expiry, an audit mini-feed) — plus standalone admission/seat-fill KPI stat cards added afterward.
+
+### Scope
+
+- `role_dashboard_widget_configs` (role default) / `user_dashboard_widget_configs` (personal override) — identical shape: `widget_key`, `widget_order`, `col_span` (1–4), `row_span` (1–2), optional `config_json`.
+- `DASHBOARD_CUSTOMIZE` — gates saving/deleting a personal layout (`PUT`/`DELETE /dashboard/config`); viewing the effective layout (`GET /dashboard/config`) only requires being authenticated.
+- Frontend `widget-registry.ts` plus a dynamic renderer (`dashboard.ts`) that reads whichever config is in effect and lays widgets out accordingly. A hardcoded `DEFAULT_WIDGET_KEYS` fallback exists for a role with zero DB rows — this masked a real seeding bug once (see Migration Notes, V143).
+- `compliance_documents` (authority, document name, reference number, expiry date, status) and `programs.seat_capacity` — the minimal schema Tier 4's alert widgets need.
+
+### Permissions
+
+- `DASHBOARD_CUSTOMIZE` is the only dashboard-specific permission in the system. Granted to `DEV_ADMIN`/`SUPPORT_ADMIN`/`ADMIN`/`COLLEGE_ADMIN` (who can also assign it to other roles) and to `FACULTY`/`FRONT_OFFICE`/`CASHIER` (personalize their own only, since they can't edit roles at/above their level). `STUDENT` is intentionally excluded — students never get dashboard customization.
+- Every widget data endpoint is gated by an existing feature permission, not a new one (see Business Rule).
+
+### Migration Notes
+
+- V119/V120 — first cut: a simple ordered widget-key list per role. V120 immediately reworked the primary key because Hibernate's `@OrderColumn` needs to freely rewrite `widget_order`, which the original composite PK blocked.
+- V131/V132 — replaced the simple list with the metadata-rich config shape (span + JSON) that ships today, split into role-default and per-user-override tables.
+- V133/V136 — `DASHBOARD_CUSTOMIZE` permission and its role grants.
+- V135 — aligns `col_span`/`row_span` column types with the Java entity fields (`SMALLINT` → `INTEGER`) after a Hibernate schema-validation mismatch.
+- V143 — a real production bug fix: V134 seeded widgets for a role named `COLLEGE_ADMIN` (uppercase), but the actual role (from V123) was `collegeadmin` (lowercase) — leaving that role with zero configured widgets and silently falling back to the frontend's hardcoded default list. This migration re-seeds under the correct role name.
+- V145–V148 — the Tier 1–4 widget rollout; V148 also adds the `compliance_documents`/`seat_capacity` schema Tier 4 needs.
+- V162, V190 — additional admission and seat-fill KPI stat-card widgets, appended after the tiered rollout.
+
+### Explicitly Out of Scope
+
+- **A Compliance Documents management screen.** `compliance_documents` has schema, a repository, and backs the Tier 4 compliance-alert widget, but there is no CRUD screen to create or edit these rows yet — a real gap worth its own decision if a full Compliance module is wanted, not something this BR resolves.
+
+---
+
+## BR-41: Number Sequence Redesign & Roll Number Generation/Assignment
+
+> **Documentation gap backfill.** Two related identifier-generation mechanisms, built alongside BR-27's admission numbers but never documented themselves.
+
+### Business Rule
+
+**Roll numbers** are assigned to students in the format `[CollegeCode][CourseCode][Year][Sequence]` — e.g. `959` + `65` + `2026` + `004` = `959652026004` — generated from a per-course-per-year counter plus a global college code (`ROLL_NUMBER_COLLEGE_CODE` system configuration) and a per-course 2-digit code (`courses.roll_number_code`). Staff can preview a batch before committing, then generate-and-assign roll numbers in bulk for every student still missing one; generation is protected by a pessimistic lock on the counter row so two concurrent bulk-generate requests can't hand out the same number twice. A single student's roll number can also be assigned or corrected manually, bypassing generation entirely (just validated and written as given).
+
+**The generic number-sequence engine** — what BR-27's admission numbers, receipt numbers, and the commission/refund/disbursement numbers from BR-34/36 are all generated from — was redesigned from one flat table into two: `number_series_definitions` (one row per series *type*: its prefix, separator, digit padding, and whether the scope key appears in the rendered number) and `number_sequence_counters` (one row per series × scope period, auto-incremented). This moved series configuration out of migrations and into a "Number Series" management screen, so adding or adjusting a series no longer requires a code change.
+
+### Scope
+
+- `roll_number_sequences` (`course_id`, `academic_year`, `last_sequence`) — one counter per course per year.
+- `RollNumberGeneratorService` — preview vs. generate-and-assign use the same computation; only the latter persists and increments the counter.
+- `number_series_definitions` / `number_sequence_counters` replace the single `application_number_sequences` table (originally introduced for admission numbers), migrated with every existing counter carried over exactly — no gaps, no restarts. `APP_TIMEZONE` (system config) drives how the engine computes scope-period boundaries (e.g. an academic-year or month scope key) in the correct timezone.
+- `students.university_registration_number` / `students.umis_number` — two more externally-issued identifier fields added alongside this work; stored and uniqueness-checked, not generated by this engine.
+- Course Master briefly carried two separate per-course codes serving the identical purpose (`roll_number_code` and `admission_number_code`); consolidated down to `roll_number_code` alone as the single field `ApplicationNumberSequenceService` now reads for both.
+
+### Permissions
+
+- `ROLL_NUMBER_ASSIGN` gates only the "Assign Roll Numbers" nav entry — the screen's actual actions (manual assign, bulk assign, generate, preview) all run under the pre-existing `STUDENT_CREATE` permission, not a dedicated one. Worth knowing if the two are ever granted to different roles: holding `ROLL_NUMBER_ASSIGN` without `STUDENT_CREATE` would show the screen but every action on it would 403.
+- `NUMBER_SERIES_VIEW` / `NUMBER_SERIES_MANAGE` (new, category SETTINGS) — granted to `DEV_ADMIN`/`SUPPORT_ADMIN`/`ADMIN`/`COLLEGE_ADMIN`.
+
+### Migration Notes
+
+- V111 — `roll_number_sequences` + `courses.roll_number_code`.
+- V112 — unrelated column additions (`university_registration_number`, `umis_number`) shipped in the same migration.
+- V142 — the original single-table `application_number_sequences` (admission numbers).
+- V157 — adds `admission_number_code` (a second, temporarily separate per-course code) plus a configurable separator/scope-inclusion flag on the rendered format.
+- V182–V184 — data-safety hardening: placeholder-then-`NOT NULL` on both course codes, then tightening `roll_number_code` to exactly 2 characters.
+- V193 — consolidates `admission_number_code` into `roll_number_code`, dropping the duplicate column.
+- V244 (schema), V245 (permissions + management screen), V246 (drops the old `application_number_sequences` table once the new engine was validated in production) — the three-phase number-sequence redesign.
+
+---
+
+## BR-42: Faculty Extended Profile & Document-Type Requirements Engine
+
+> **Documentation gap backfill.** BR-26 documents the document *review/verification-lock* UX built on top of this — badges, lock rules, override — but never the schema or configuration engine underneath it that BR-26 explicitly assumes ("derived from faculty document rows and document-type requirements").
+
+### Business Rule
+
+Faculty profiles carry a full HR-adjacent record beyond the original core fields: identity/demographics (PAN, Aadhaar, date of birth, gender, marital status, nationality, religion, blood group), bank details (account number, IFSC, branch, bank name, account holder, account type), a postal address (mirroring the `Address` shape already used for students), a six-way experience breakdown (teaching/clinical × UG/PG/PhD, in years), highest qualification, and an NRTS number (a nursing-council registration identifier, unique when present).
+
+`faculty_documents` holds one row per `(faculty, document_type)` — scanned uploads with a status lifecycle, reviewer/timestamp metadata, and the file itself — the exact table BR-26's badges and verification locks operate on.
+
+Which document types are actually **required** for a given faculty member is not hardcoded — it's driven by `faculty_document_type_requirements`, a rules table admins configure (Faculty Doc Config screen). Each rule names a document type plus at least one of: designation, speciality, or highest qualification. A document type is required for a faculty member if **any** rule matches **any one** of their designation/speciality/qualification (an OR match, not requiring all three) — e.g. a rule scoped only to speciality "Cardiology" makes that document mandatory for every Cardiology faculty member regardless of designation.
+
+### Scope
+
+- `faculty` — the columns listed above added across two migrations (V93, V199).
+- `faculty_documents` (`faculty_id`, `document_type`, `status`, `remarks`, `verified_by`/`verified_at`, file metadata + bytes) — unique per faculty × document type.
+- `faculty_document_type_requirements` (`document_type`, `designation_id`, `speciality_id`, `qualification`) — at least one criterion required per rule (`CHECK` constraint). Originally stored `designation` as free text; migrated to a `designation_id` FK into the Designation Master when that master was introduced (V201, a separate undocumented feature of its own).
+
+### Permissions
+
+- Reading the configured requirements (`GET /faculty-document-type-requirements`) requires only being authenticated — no dedicated permission.
+- Creating/deleting a requirement rule requires `FACULTY_DOC_CONFIG_MANAGE` (added under the Permission Model V2 rollout, V247/BR-39 — this feature predates that permission by over a hundred migrations; V126 shipped without any dedicated gate on the config screen until V247 added one).
+
+### Migration Notes
+
+- V93 — extended profile fields (identity/demographics/bank/address/experience) and the `faculty_documents` table.
+- V126 — `faculty_document_type_requirements` and `faculty.highest_qualification`.
+- V199 — `faculty.nrts_number` (unique when present).
+- V201 — converts the rule table's free-text `designation` column to `designation_id`, once the Designation Master existed (not itself part of this BR).
+
+---
+
+## BR-43: Retro Admit (Legacy Direct Admit)
+
+> **Documentation gap backfill.** Distinct from BR-31's bulk Excel import — both backfill legacy fee history, but this is a single interactive form for one student at a time, not a spreadsheet-driven mass migration.
+
+### Business Rule
+
+Retro Admit is a dedicated, permission-gated path for onboarding a legacy student who never went through the enquiry pipeline — one form submission atomically creates a `Student`, a synthetic `Enquiry` (status `ADMITTED`, `admission_source = DIRECT_ADMIT`), and an `Admission`, in a single transaction, rejecting outright if the given email is already in use. The synthetic Enquiry exists purely so downstream code that joins through Enquiry (reporting, the admission-funnel dashboard widget from BR-40) has a row to reference — `admission_source` is what lets that reporting tell a real pipeline enquiry apart from one manufactured by this feature.
+
+The same submission can optionally reconstruct the student's historical fee ledger: a total-fee figure per program year generates the same `StudentFeeAllocation`/`SemesterFee` structure a normal enquiry-to-admission conversion produces, and a list of historical payments is then applied **FIFO** against those generated semester-fee slots — each producing a `FeeInstallment` row and a backdated receipt via the same `UnifiedReceiptService` used for live payment collection, so historical payments appear in the student's receipt history exactly as if collected today (transaction reference is still mandatory for electronic payment modes, per BR-19).
+
+### Scope
+
+- `POST /students/retro-admit` — the full personal/demographic/family/address/declaration field set, materially overlapping BR-31's Excel column set but entered via one interactive form with full field-level validation rather than a spreadsheet row.
+- `yearFees` (optional, one `{yearNumber, totalFee}` entry per program year) and `payments` (optional, `{paymentDate, amount, paymentMode, receiptNumber?, transactionReference, remarks}` — a null `receiptNumber` auto-generates one from the payment date's year) are both entirely optional; a Retro Admit with neither just creates the Student/Enquiry/Admission trio with no fee history.
+- Response reports how many years got a fee record and how many payment rows were created, plus the total historical amount applied — a quick confirmation of what was actually backfilled.
+
+### Permissions
+
+- `RETRO_ADMIT` — originally seeded as `LEGACY_ADMIT`, renamed by V203 (same permission row, cosmetic rename only). Granted to `COLLEGE_ADMIN` and `FRONT_OFFICE`.
+
+### Migration Notes
+
+- V194 — adds `enquiries.admission_source` (`ENQUIRY_FLOW` default / `DIRECT_ADMIT`).
+- V195 — seeds the `LEGACY_ADMIT` permission, granted to `COLLEGE_ADMIN`/`FRONT_OFFICE`.
+- V203 — renames the permission code and display name to `RETRO_ADMIT`; also runs a `DEV_ADMIN`/`SUPPORT_ADMIN` catch-all sync covering any permission gaps since V129.
+
+---
+
+## BR-44: MinIO File Storage Migration
+
+> **Documentation gap backfill.** Already flagged in project notes as a known documentation gap — this makes it official.
+
+### Business Rule
+
+File blobs — enquiry/admission documents, faculty documents, user profile/cover photos — that were originally stored as `bytea` columns directly in Postgres are migrated to MinIO object storage, with the database keeping only a `storage_key` (the object's full path, e.g. `aadhar_card/123-abc-filename.pdf`) rather than the file bytes themselves.
+
+This is not a lazy or optional dependency: `MinioStorageService` checks/creates its configured bucket in a `@PostConstruct` hook, so **the backend fails to start outright** if MinIO isn't reachable at boot — any connection failure is wrapped in a hard `IllegalStateException`, not deferred to first use. (The project's root `docker-compose.yml` has no bundled MinIO service, so local development requires a separately reachable MinIO instance — a live known friction point, not resolved by this feature.)
+
+Moving the actual blob data is a manual, admin-triggered, re-runnable operation, deliberately kept out of the Flyway migration path — potentially large binary transfers aren't something you want silently coupled to a schema tool's transaction/rollback semantics. The original `file_data` columns are **not** dropped by any migration; they're kept as a safety fallback until the object-storage migration is verified complete, to be nulled out manually afterward.
+
+### Scope
+
+- `StorageService` — a storage-backend abstraction (`upload`/`download`/`downloadBytes`/`delete`/`exists`), implemented by `MinioStorageService`.
+- Three affected tables: `enquiry_documents` (already had a `storage_key` column from V15/V124's document-table unification — reused, not newly added here), `faculty_documents` and `app_users` (`storage_key`/`profile_photo_key`/`cover_photo_key` added by V249).
+- `StorageMigrationService` — batched migration across all three tables, retrying each file up to 5 times before marking it failed; safe to re-run since rows with a `storage_key` already set are skipped.
+- `GET /admin/migrate-storage/status` (read-only pending-count check) and `POST /admin/migrate-storage/run` (executes synchronously, returns a per-table succeeded/failed/skipped report with failed row IDs) — a one-time operational tool, not a general feature screen.
+- New required external configuration: `cms.minio.endpoint` / `access-key` / `secret-key` / `bucket`.
+
+### Permissions
+
+- Both endpoints require `hasRole('DEV_ADMIN')` — a hardcoded Spring Security role check, not the DB-driven permission system BR-24 established as this project's RBAC model. Worth knowing if DEV_ADMIN's meaning ever needs to change: this endpoint won't follow it the way a `@perm.has(...)` check would.
+
+### Migration Notes
+
+- V249 — adds the `storage_key`/`profile_photo_key`/`cover_photo_key` columns actually missing at that point (`enquiry_documents` already had its own since V15/V124).
+
+### Explicitly Out of Scope
+
+- **Dropping the old `bytea` columns.** Deliberately deferred until the object-storage migration is manually verified complete on each environment — not something this feature does automatically.
+
+---
+
+## BR-45: Enquiry Payment Credit Application to Student Fee Demands
+
+### Business Rule
+
+Money an enquiry pays before ever becoming a student — pre-admission payments captured against the enquiry itself in `enquiry_payments` — is never lost or left for manual reconciliation. Once that enquiry converts to a student, every fee-collection attempt first treats the enquiry's total pre-payment as available credit and applies it against the student's semester fees (earliest open semester first), **ahead of** whatever new amount is actually being collected in that same call.
+
+Available credit is never stored as a running balance column — it's recomputed fresh on every collection: `total enquiry payments − sum of all credit already applied for that enquiry`. This means partial credit that outlives one collection call correctly carries forward to the next. Each time credit is actually consumed against a semester, a new `enquiry_credit_applications` row records exactly how much, against which semester fee, and which of the enquiry's original payment receipt(s) it's attributed to — one credit application can be sourced from multiple enquiry-stage payments, joined into a single receipt-number string.
+
+A semester only accepts a genuinely new collection once term rules say it's "open" for collection — but credit application still checks (and can fully satisfy) a non-open future semester's balance first, so a semester that's already fully covered by credit doesn't wrongly block collection of the currently-open one. A non-open semester with a real unpaid balance still blocks collecting anything for later semesters, same as if no credit were involved.
+
+### Scope
+
+- `enquiry_credit_applications` — one row per credit application: enquiry, student, semester fee, amount applied, source receipt number(s), timestamp.
+- `PaymentCollectionService` — recomputes remaining credit on every collection call and applies it semester-by-semester within each semester's remaining capacity, before any newly-tendered amount is applied to that same semester.
+- A one-time SQL backfill (V187, a plain `DO` block, not an ongoing mechanism) retroactively applied existing `enquiry_payments` totals as credit directly against `fee_demands`/`student_term_enrollments` for students who had already converted before this per-semester tracking existed — chronological by due date, any surplus left unapplied for the cashier to handle manually. This predates and is structurally separate from the `enquiry_credit_applications`-tracked mechanism V209 introduced.
+- `GET /enquiries/{id}/credit-applications` and `GET /students/{studentId}/credit-applications` — read endpoints surfacing this audit trail (used by the Enquiry detail and Student Fee Detail screens) so staff can see exactly where a student's opening-balance credit came from.
+
+### Permissions
+
+- No new permissions — credit application happens automatically inside the existing fee-collection flow. The two read endpoints reuse `ENQUIRY_VIEW` and `STUDENT_FEE_VIEW` respectively.
+
+### Migration Notes
+
+- V187 — the one-time backfill described above (data-only, no schema change).
+- V209 — creates `enquiry_credit_applications`, the ongoing tracking table.
+- V211 — widens `receipt_number` to `VARCHAR(100)` to fit the joined multi-receipt string described above.
+
+---
+
+## BR-46: Designation Master
+
+> **Documentation gap backfill.** A standard master that already conforms to BR-32's lifecycle contract but was never added to that BR's Scope table, and never given one of its own.
+
+### Business Rule
+
+Faculty designation (Professor, Associate Professor, Lecturer, etc.) was originally a hardcoded Java enum; it's now a DB-managed master like any other configurable list in the system, editable without a code deployment. It follows the exact same lifecycle-status contract (`PATCH /{id}/status`, `{ isActive, reason }`) and name/code uniqueness-validation pattern BR-32 already established for other masters — it should really be in BR-32's Scope table alongside Scholarship Type, Blood Group, Community, etc., and isn't; recorded here rather than silently added there.
+
+### Scope
+
+- `designations` (`name`, `code`, `description`, `is_active`, timestamps) — full CRUD screen, paginated list, `name-exists`/`code-exists` uniqueness checks.
+- `faculty.designation_id` and `faculty_document_type_requirements.designation_id` — both converted from a raw enum/free-text column to a proper FK once this master existed (the latter conversion already noted in BR-42).
+- `is_active` was added later (V229, alongside the same column for Speciality in the same migration) — not part of the original rollout, brought this master in line with BR-32's lifecycle pattern after the fact.
+
+### Permissions
+
+- `DESIGNATION_VIEW` / `DESIGNATION_MANAGE` (category MASTER) — full management granted to `DEV_ADMIN`/`SUPPORT_ADMIN`/`ADMIN`/`COLLEGE_ADMIN`; `FACULTY`/`FRONT_OFFICE`/`CASHIER` get view-only (needed to render the designation dropdown in faculty forms).
+
+### Migration Notes
+
+- V201 — creates `designations`, seeds the 11 original enum values (enum name becomes `code`), converts `faculty.designation` and `faculty_document_type_requirements.designation` to FKs.
+- V202 — `DESIGNATION_VIEW`/`DESIGNATION_MANAGE` permissions and role grants.
+- V229 — adds `is_active`.
+
+---
+
+## BR-47: India Location & Country Master
+
+> **Documentation gap backfill.** BR-32 already documents this master's activate/deactivate lifecycle rules (it's in that BR's Scope table); this BR covers the hierarchy, schema, and permissions BR-32 doesn't.
+
+### Business Rule
+
+Country → State → District is a real three-level DB-managed hierarchy — not free text — backing every cascading location dropdown across enquiry, student, and faculty forms. It started as States → Districts scoped to India only (all 28 states + 8 union territories, ~780 districts, LGD-aligned 2024 data seeded directly in a migration); a Country level was added afterward, with India seeded as the founding row (`id = 1`, ISO code `IN`) and every existing state retroactively linked to it, rescoping state name/code uniqueness from global to per-country.
+
+Only the **country** field on `enquiries`/`faculty`/`students` was actually converted to a `country_id` FK referencing this master. **State and district on those same records remain plain free text** — populated *from* the cascading dropdowns at data-entry time, not stored as a live reference — so renaming a state or district in the master does not retroactively update any address record that already selected the old value.
+
+### Scope
+
+- `location_countries` (`name`, `iso_code`, `is_active`) — top of the hierarchy; India seeded as row 1.
+- `india_states` (`name`, `code`, `country_id` FK, `is_active`) — uniqueness on name/code scoped per-country (not globally) since the Country level was introduced.
+- `india_districts` (`state_id` FK, `name`, `is_active`) — unique per state.
+- Full CRUD under `/india` (countries, states, districts) — nested creation endpoints (a state under a country, a district under a state) alongside flat list/lookup endpoints. Every `GET` requires only authentication, no permission check, so the cascading dropdowns work for any role regardless of whether they hold `INDIA_LOCATION_VIEW`; only create/update/delete require `INDIA_LOCATION_MANAGE`.
+
+### Permissions
+
+- `INDIA_LOCATION_VIEW` / `INDIA_LOCATION_MANAGE` (category MASTER) — full management to `DEV_ADMIN`/`SUPPORT_ADMIN`/`ADMIN`/`COLLEGE_ADMIN`; view-only to `FRONT_OFFICE`/`FACULTY`. The nav entry also references `_CREATE`/`_EDIT`/`_DELETE`/`_EXPORT` variants (consistent with the Permission Model V2 granular split, BR-39), but every backend endpoint here is still gated by the single `INDIA_LOCATION_MANAGE`, not split further.
+
+### Migration Notes
+
+- V149 — `india_states`/`india_districts` tables.
+- V150 — seeds all 28 states + 8 UTs and their districts.
+- V151 — `INDIA_LOCATION_VIEW`/`MANAGE` permissions and role grants.
+- V158 — adds `location_countries`, seeds India as row 1, links every existing state to it, rescopes state uniqueness to per-country.
+- V159 — converts `enquiries`/`faculty`/`students.country` from free text to a `country_id` FK (defaulting unmatched/new rows to India); state/district are left as free text.
+
+---
+
+## BR-48: JWT Revoked-Token Tracking (Logout Denylist)
+
+### Business Rule
+
+JWTs issued by Keycloak (BR-24's identity model) are normally stateless and stay valid until their natural expiry, even after a user logs out client-side — there is no built-in server-side "logout" for a bearer token. This feature closes that gap with a denylist: `POST /auth/revoke` (called by the frontend on logout) inserts the **current request's own token** — identified by its `jti` claim, read from the authenticated principal itself, not a request body — into `revoked_tokens` along with its natural expiry. From then on, a custom `OAuth2TokenValidator` chained into JWT validation rejects that token on every subsequent request with `invalid_token`, even though it hasn't naturally expired. An hourly job purges rows whose expiry has already passed, since a token past its own expiry is already rejected by Spring's standard expiry check — keeping it in the revoked list forever would just be dead weight.
+
+### Scope
+
+- `revoked_tokens` (`jti` unique, `expires_at`, `revoked_at`).
+- `TokenRevocationService` — `revoke(jti, expiresAt)` (idempotent — a no-op if already revoked), `isRevoked(jti)`, and an hourly `@Scheduled` purge of expired rows.
+- `RevocationJwtValidator` — an `OAuth2TokenValidator` chained alongside Spring's standard issuer/expiry checks in the resource-server's JWT decoder, so every authenticated request (not just login) is checked against the denylist.
+- `POST /auth/revoke` — called from the frontend's logout flow via a raw `fetch()` rather than the app's normal `HttpClient`, specifically to avoid a circular dependency on the auth interceptor that would otherwise attach to that same call.
+
+### Permissions
+
+- None — any authenticated user may revoke their own current token. This is inherently self-scoped; there is no admin-triggered "force logout" of a *different* user's session anywhere in this feature (see Explicitly Out of Scope).
+
+### Migration Notes
+
+- V243 — creates `revoked_tokens` with supporting indexes on `jti` and `expires_at`.
+
+### Explicitly Out of Scope
+
+- **Admin-forced logout of another user's session.** Revocation is always self-service, scoped to the caller's own bearer token — there is no endpoint anywhere that lets an admin revoke a token belonging to someone else.
 
 ---
 
