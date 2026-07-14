@@ -9,7 +9,7 @@
     <div class="header-actions">
       @if (canExport()) {
         <cms-export-button
-          [disabled]="exporting()"
+          [disabled]="exporting() || totalElements === 0"
           (export)="onExport($event)"
           tooltip="Export fine register as Excel or PDF"
         />

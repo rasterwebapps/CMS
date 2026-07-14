@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -96,10 +97,10 @@ public class AdmissionService {
 
     public List<AdmissionResponse> findExplorerAll(
             Long programId, Long courseId, Long academicYearId,
-            String status, String studentType, String search) {
+            String status, String studentType, String search, Sort sort) {
 
         Specification<Admission> spec = buildSpec(programId, courseId, academicYearId, status, studentType, search);
-        List<Admission> admissions = admissionRepository.findAll(spec);
+        List<Admission> admissions = admissionRepository.findAll(spec, sort);
 
         Collection<Long> studentIds = admissions.stream().map(a -> a.getStudent().getId()).toList();
         Map<Long, String> studentTypeMap = new java.util.HashMap<>();

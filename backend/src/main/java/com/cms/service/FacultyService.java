@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -105,7 +106,7 @@ public class FacultyService {
     }
 
     public List<FacultyResponse> findAll(String search, Long specialityId,
-                                         FacultyStatus status, String documentReview) {
+                                         FacultyStatus status, String documentReview, Sort sort) {
         Specification<Faculty> spec = FacultySpecification.distinct();
         if (search != null && !search.trim().isEmpty()) {
             spec = spec.and(FacultySpecification.bySearch(search.trim()));
@@ -122,7 +123,7 @@ public class FacultyService {
                 spec = spec.and(docFilter);
             }
         }
-        return facultyRepository.findAll(spec).stream().map(this::toResponse).toList();
+        return facultyRepository.findAll(spec, sort).stream().map(this::toResponse).toList();
     }
 
     public Page<FacultyResponse> findPage(String search, Long specialityId,

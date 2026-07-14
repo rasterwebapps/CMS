@@ -2676,4 +2676,31 @@ Indian Nursing Council (INC) curricula require the system to express things the 
 
 ---
 
+## BR-51: Export Filter/Sort Transparency & Reliability
+
+### Business Rule
+
+Every Excel/PDF export in the app now renders as: **report heading → applied filters (omitted entirely when none are active) → sort order → column headers → data rows**, so a downloaded file is self-explanatory about what it contains without needing to cross-reference the screen state at the time of export. The export button on every list screen is disabled whenever the current filtered result set is empty, preventing a header-only file with zero data rows.
+
+Filter and sort forwarding to export was audited and brought to parity with each screen's on-screen list across all 16 export endpoints in the app. The worst gap found was Enquiry: its export endpoint called an entirely different, narrower query (`findByDateRange`/`findAll`) than the on-screen `/page` endpoint, so exported rows could silently include statuses (e.g. `ADMITTED`, `NOT_INTERESTED`) that weren't even visible on screen under the default filter — fixed by adding `EnquiryService.findAllMatching(...)`, an unpaged sibling of `findPage` sharing the identical `Specification` filter-building block, so export and the on-screen list can never diverge again.
+
+### Scope
+
+- `com.cms.util.export` (new package) — `ExportMetadata` (heading/filter-lines/sort-line builder), `ExcelExportUtil` and `PdfExportUtil` (shared POI/OpenPDF style creation, metadata-block rendering, header-row rendering — the same dark-blue-header/zebra-row palette previously copy-pasted independently across all 16 export services), and `ExportResponseFactory` (collapses the format-branch/filename/`Content-Type`/`Content-Disposition`/exception-handling block that was duplicated across all 17 export controller endpoints).
+- All 16 `*ExportService` classes refactored to take an `ExportMetadata` parameter and call into the shared util instead of re-declaring POI/OpenPDF styling.
+- Sort forwarding added to every export endpoint that was missing it: Fee Refunds, Receipts, Fee Explorer, Faculty, Commission Explorer, Admission, Student, Equipment, Scholarship Type, Staff Referrer, Agent (each previously silently dropped the on-screen sort order at export time).
+- Enquiry export rebuilt on `findAllMatching(...)` to share the exact filter `Specification` as the on-screen `/page` endpoint (see Business Rule above).
+- Empty-data export guard added to all 16 screens' `cms-export-button` (`[disabled]="exporting() || totalElements === 0"`), plus a matching early-return + toast in each `onExport()`.
+- FK-id filters (program, course, academic year, rack, shelf, speciality) are resolved to their display name server-side for the metadata block via a single `findById` lookup per active filter, not per row.
+
+### Permissions
+
+None — no new endpoints, buttons, or role-gated behavior; every screen's existing `*_EXPORT` permission continues to gate its export action unchanged.
+
+### Migration Notes
+
+None — presentation-layer only, no schema changes.
+
+---
+
 > **⚠️ Documentation Policy:** Any changes to business rules, workflows, status transitions, fee logic, or operational processes described in this document must be reflected here **before** the corresponding code change is merged. This document, along with the milestone trackers and manual test cases, must always remain in sync with the implementation.

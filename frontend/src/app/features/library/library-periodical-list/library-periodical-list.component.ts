@@ -147,6 +147,10 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
 
   protected onExport(format: ExportFormat): void {
     if (this.exporting()) return;
+    if (this.totalElements === 0) {
+      this.toast.error('No data available to export.');
+      return;
+    }
     this.exporting.set(true);
     this.libraryService.exportPeriodicals(format, {
       search: this.searchValue() || undefined,

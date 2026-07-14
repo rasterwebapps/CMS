@@ -1,9 +1,9 @@
 package com.cms.controller;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,11 +35,17 @@ import com.cms.dto.LibraryBookShelfTransferResponse;
 import com.cms.dto.LibraryBookTransferRequest;
 import com.cms.dto.LibraryBookTransferResult;
 import com.cms.dto.LibraryPrinterActionResponse;
+import com.cms.model.LibraryRack;
+import com.cms.model.LibraryShelf;
 import com.cms.model.enums.BookStatus;
+import com.cms.repository.LibraryRackRepository;
+import com.cms.repository.LibraryShelfRepository;
 import com.cms.service.LibraryBarcodeService;
 import com.cms.service.LibraryBookExportService;
 import com.cms.service.LibraryBookService;
 import com.cms.util.ExportSortUtils;
+import com.cms.util.export.ExportMetadata;
+import com.cms.util.export.ExportResponseFactory;
 
 import jakarta.validation.Valid;
 
@@ -49,21 +55,43 @@ public class LibraryBookController {
 
     private static final Logger log = LoggerFactory.getLogger(LibraryBookController.class);
 
-    private static final Set<String> EXPORT_SORT_FIELDS = Set.of(
-        "accessionNumber", "title", "authors", "publisher", "callNumber", "status",
-        "entryDate", "isbn", "edition", "yearOfPublication", "collation", "series",
-        "subjectCategory", "vendorDonorName", "billNumber", "priceRs", "remarks");
+    private static final Map<String, String> EXPORT_SORT_FIELDS = new LinkedHashMap<>();
+    static {
+        EXPORT_SORT_FIELDS.put("accessionNumber", "Acc. No.");
+        EXPORT_SORT_FIELDS.put("title", "Title");
+        EXPORT_SORT_FIELDS.put("authors", "Author(s)");
+        EXPORT_SORT_FIELDS.put("publisher", "Publisher");
+        EXPORT_SORT_FIELDS.put("callNumber", "Call No.");
+        EXPORT_SORT_FIELDS.put("status", "Status");
+        EXPORT_SORT_FIELDS.put("entryDate", "Entry Date");
+        EXPORT_SORT_FIELDS.put("isbn", "ISBN");
+        EXPORT_SORT_FIELDS.put("edition", "Edition");
+        EXPORT_SORT_FIELDS.put("yearOfPublication", "Year");
+        EXPORT_SORT_FIELDS.put("collation", "Collation");
+        EXPORT_SORT_FIELDS.put("series", "Series");
+        EXPORT_SORT_FIELDS.put("subjectCategory", "Subject");
+        EXPORT_SORT_FIELDS.put("vendorDonorName", "Source / Vendor");
+        EXPORT_SORT_FIELDS.put("billNumber", "Bill No. & Date");
+        EXPORT_SORT_FIELDS.put("priceRs", "Price (Rs.)");
+        EXPORT_SORT_FIELDS.put("remarks", "Remarks");
+    }
 
     private final LibraryBookService bookService;
     private final LibraryBookExportService bookExportService;
     private final LibraryBarcodeService barcodeService;
+    private final LibraryRackRepository rackRepository;
+    private final LibraryShelfRepository shelfRepository;
 
     public LibraryBookController(LibraryBookService bookService,
                                   LibraryBookExportService bookExportService,
-                                  LibraryBarcodeService barcodeService) {
+                                  LibraryBarcodeService barcodeService,
+                                  LibraryRackRepository rackRepository,
+                                  LibraryShelfRepository shelfRepository) {
         this.bookService = bookService;
         this.bookExportService = bookExportService;
         this.barcodeService = barcodeService;
+        this.rackRepository = rackRepository;
+        this.shelfRepository = shelfRepository;
     }
 
     @PostMapping
@@ -146,30 +174,26 @@ public class LibraryBookController {
             @RequestParam(required = false) String direction,
             @RequestParam(required = false) List<String> columns) {
 
-        Sort exportSort = ExportSortUtils.resolve(sort, direction, EXPORT_SORT_FIELDS, "title", Sort.Direction.ASC);
+        Sort exportSort = ExportSortUtils.resolve(
+            sort, direction, EXPORT_SORT_FIELDS.keySet(), "title", Sort.Direction.ASC);
         List<LibraryBookResponse> data = bookService.findAllMatching(
             search, status, category, rackId, shelfId, exportSort);
 
-        try {
-            if ("pdf".equalsIgnoreCase(format)) {
-                byte[] bytes = bookExportService.toPdf(data, columns);
-                String filename = "book-catalogue-" + LocalDate.now() + ".pdf";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            } else {
-                byte[] bytes = bookExportService.toExcel(data, columns);
-                String filename = "book-catalogue-" + LocalDate.now() + ".xlsx";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.parseMediaType(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        String rackLabel = rackId != null ? rackRepository.findById(rackId).map(LibraryRack::getName).orElse(null) : null;
+        String shelfLabel = shelfId != null ? shelfRepository.findById(shelfId).map(LibraryShelf::getName).orElse(null) : null;
+        Sort.Order order = ExportSortUtils.firstOrder(exportSort, "title", Sort.Direction.ASC);
+
+        ExportMetadata meta = ExportMetadata.of("Book Catalogue Export")
+            .filter("Search", search)
+            .filter("Status", status != null ? status.name() : null)
+            .filter("Category", category)
+            .filter("Rack", rackLabel)
+            .filter("Shelf", shelfLabel)
+            .sort(EXPORT_SORT_FIELDS.get(order.getProperty()), order.getDirection());
+
+        return ExportResponseFactory.respond(format, "book-catalogue",
+            () -> bookExportService.toExcel(data, columns, meta),
+            () -> bookExportService.toPdf(data, columns, meta));
     }
 
     @GetMapping("/{id}/barcode.png")

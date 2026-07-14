@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -496,6 +497,34 @@ public class EnquiryService {
         Page<Enquiry> page = enquiryRepository.findAll(spec, pageable);
         List<EnquiryResponse> content = page.getContent().stream().map(this::toResponse).toList();
         return new PageImpl<>(content, pageable, page.getTotalElements());
+    }
+
+    /** Unpaged sibling of {@link #findPage} — same filter set, for export so downloaded rows always match the on-screen list. */
+    public List<EnquiryResponse> findAllMatching(
+            String search, LocalDate fromDate, LocalDate toDate,
+            List<EnquiryStatus> statuses, Long programId, Long courseId,
+            String studentType, String referralTypeName, String admissionQuota,
+            String agentName, String admissionSource, List<Long> academicYearIds,
+            Sort sort) {
+        Specification<Enquiry> spec = Specification.where(null);
+        if (fromDate != null && toDate != null) {
+            spec = spec.and(EnquirySpecification.byDateRangeOrActivePipeline(fromDate, toDate, TERMINAL_STATUSES));
+        }
+        if (statuses != null && !statuses.isEmpty()) {
+            spec = spec.and(EnquirySpecification.byStatuses(statuses));
+        }
+        if (search != null && !search.isBlank()) {
+            spec = spec.and(EnquirySpecification.bySearch(search));
+        }
+        if (programId != null)                                spec = spec.and(EnquirySpecification.byProgramId(programId));
+        if (courseId != null)                                 spec = spec.and(EnquirySpecification.byCourseId(courseId));
+        if (studentType != null && !studentType.isBlank())    spec = spec.and(EnquirySpecification.byStudentType(studentType));
+        if (referralTypeName != null && !referralTypeName.isBlank()) spec = spec.and(EnquirySpecification.byReferralTypeName(referralTypeName));
+        if (admissionQuota != null && !admissionQuota.isBlank())     spec = spec.and(EnquirySpecification.byAdmissionQuota(admissionQuota));
+        if (agentName != null && !agentName.isBlank())        spec = spec.and(EnquirySpecification.byAgentName(agentName));
+        if (admissionSource != null && !admissionSource.isBlank())   spec = spec.and(EnquirySpecification.byAdmissionSource(admissionSource));
+        if (academicYearIds != null && !academicYearIds.isEmpty())   spec = spec.and(EnquirySpecification.byAcademicYearIds(academicYearIds));
+        return enquiryRepository.findAll(spec, sort).stream().map(this::toResponse).toList();
     }
 
     @Transactional

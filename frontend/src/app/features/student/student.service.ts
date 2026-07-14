@@ -126,6 +126,8 @@ export class StudentService {
       status?: string | null;
       studentType?: string | null;
       search?: string | null;
+      sort?: string | null;
+      direction?: string | null;
     } = {},
   ): Observable<Blob> {
     let params = new HttpParams().set('format', format);
@@ -135,6 +137,8 @@ export class StudentService {
     if (filters.status)         params = params.set('status', filters.status);
     if (filters.studentType)    params = params.set('studentType', filters.studentType);
     if (filters.search && filters.search.length >= 3) params = params.set('search', filters.search);
+    if (filters.sort)           params = params.set('sort', filters.sort);
+    if (filters.direction)      params = params.set('direction', filters.direction);
     return this.http.get(`${this.baseUrl}/export`, { params, responseType: 'blob' });
   }
 }

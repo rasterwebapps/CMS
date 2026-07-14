@@ -285,13 +285,19 @@ export class CommissionExplorerListComponent implements OnInit, OnDestroy {
 
   protected onExport(format: ExportFormat): void {
     if (this.exporting()) return;
+    if (this.totalElements === 0) {
+      this.toast.error('No data available to export.');
+      return;
+    }
     this.exporting.set(true);
     this.explorerService.exportCommissions(format, {
-      search:   this.filterSearch().trim() || null,
-      status:   this.filterStatus() || null,
-      source:   this.filterSource() || null,
-      fromDate: this.filterFrom() || null,
-      toDate:   this.filterTo() || null,
+      search:    this.filterSearch().trim() || null,
+      status:    this.filterStatus() || null,
+      source:    this.filterSource() || null,
+      fromDate:  this.filterFrom() || null,
+      toDate:    this.filterTo() || null,
+      sort:      SORT_FIELD_MAP[this.sortActive] ?? this.sortActive,
+      direction: this.sortDirection,
     }).subscribe({
       next: (blob) => {
         const ext = format === 'pdf' ? 'pdf' : 'xlsx';

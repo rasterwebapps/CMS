@@ -24,4 +24,9 @@ public final class ExportSortUtils {
         }
         return Sort.by(defaultDirection, defaultField);
     }
+
+    /** The first (or only) order clause of a resolved export Sort, for building a metadata sort label. */
+    public static Sort.Order firstOrder(Sort sort, String defaultField, Sort.Direction defaultDirection) {
+        return sort.stream().findFirst().orElse(new Sort.Order(defaultDirection, defaultField));
+    }
 }

@@ -12,7 +12,7 @@
     <div class="enq-pg-actions">
       @if (canExport()) {
         <cms-export-button
-          [disabled]="exporting()"
+          [disabled]="exporting() || totalElements === 0"
           (export)="onExport($event)"
           tooltip="Export enquiries as Excel or PDF"
         />

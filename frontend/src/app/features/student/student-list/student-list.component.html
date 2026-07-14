@@ -12,7 +12,7 @@
     <div class="mlp-hdr-actions">
       @if (canExport()) {
         <cms-export-button
-          [disabled]="exporting()"
+          [disabled]="exporting() || totalElements === 0"
           (export)="onExport($event)"
           tooltip="Export students as Excel or PDF"
         />

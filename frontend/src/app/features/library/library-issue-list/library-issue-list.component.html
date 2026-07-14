@@ -24,7 +24,7 @@
       }
       @if (canExport()) {
         <cms-export-button
-          [disabled]="exporting()"
+          [disabled]="exporting() || totalElements === 0"
           (export)="onExport($event)"
           tooltip="Export issue register as Excel or PDF"
         />

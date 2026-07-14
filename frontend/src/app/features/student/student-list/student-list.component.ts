@@ -188,6 +188,10 @@ export class StudentListComponent implements OnInit, OnDestroy {
 
   protected onExport(format: ExportFormat): void {
     if (this.exporting()) return;
+    if (this.totalElements === 0) {
+      this.toast.error('No data available to export.');
+      return;
+    }
     this.exporting.set(true);
     this.studentService.exportStudents(format, {
       programId:      this.filterProgramId(),
@@ -196,6 +200,8 @@ export class StudentListComponent implements OnInit, OnDestroy {
       status:         this.filterStatus() || null,
       studentType:    this.filterStudentType() || null,
       search:         this.searchTerm().length >= SEARCH_MIN_LENGTH ? this.searchTerm() : null,
+      sort:           SORT_FIELD_MAP[this.sortActive] ?? this.sortActive,
+      direction:      this.sortDirection,
     }).subscribe({
       next: (blob) => {
         const ext = format === 'pdf' ? 'pdf' : 'xlsx';

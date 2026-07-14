@@ -20,7 +20,7 @@
      @if (canExport()) {
        <div class="mlp-hdr-actions">
          <cms-export-button
-           [disabled]="exporting()"
+           [disabled]="exporting() || totalElements === 0"
            (export)="onExport($event)"
            tooltip="Export fee explorer data as Excel or PDF"
          />

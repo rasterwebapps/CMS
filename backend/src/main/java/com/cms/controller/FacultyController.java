@@ -1,16 +1,15 @@
 package com.cms.controller;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -25,9 +24,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.FacultyRequest;
 import com.cms.dto.FacultyResponse;
+import com.cms.model.Speciality;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.repository.SpecialityRepository;
 import com.cms.service.FacultyExportService;
 import com.cms.service.FacultyService;
+import com.cms.util.ExportSortUtils;
+import com.cms.util.export.ExportMetadata;
+import com.cms.util.export.ExportResponseFactory;
 
 import jakarta.validation.Valid;
 
@@ -35,12 +39,26 @@ import jakarta.validation.Valid;
 @RequestMapping("/faculty")
 public class FacultyController {
 
+    private static final Map<String, String> EXPORT_SORT_FIELDS = new LinkedHashMap<>();
+    static {
+        EXPORT_SORT_FIELDS.put("firstName", "Full Name");
+        EXPORT_SORT_FIELDS.put("employeeCode", "Employee Code");
+        EXPORT_SORT_FIELDS.put("phone", "Phone");
+        EXPORT_SORT_FIELDS.put("email", "Email");
+        EXPORT_SORT_FIELDS.put("speciality.name", "Speciality");
+        EXPORT_SORT_FIELDS.put("designation.name", "Designation");
+        EXPORT_SORT_FIELDS.put("status", "Status");
+    }
+
     private final FacultyService       facultyService;
     private final FacultyExportService facultyExportService;
+    private final SpecialityRepository specialityRepository;
 
-    public FacultyController(FacultyService facultyService, FacultyExportService facultyExportService) {
+    public FacultyController(FacultyService facultyService, FacultyExportService facultyExportService,
+                              SpecialityRepository specialityRepository) {
         this.facultyService       = facultyService;
         this.facultyExportService = facultyExportService;
+        this.specialityRepository = specialityRepository;
     }
 
     @PostMapping
@@ -104,28 +122,27 @@ public class FacultyController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Long specialityId,
             @RequestParam(required = false) FacultyStatus status,
-            @RequestParam(required = false) String documentReview) {
-        List<FacultyResponse> data = facultyService.findAll(search, specialityId, status, documentReview);
-        try {
-            if ("pdf".equalsIgnoreCase(format)) {
-                byte[] bytes = facultyExportService.toPdf(data);
-                String filename = "faculty-" + LocalDate.now() + ".pdf";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            } else {
-                byte[] bytes = facultyExportService.toExcel(data);
-                String filename = "faculty-" + LocalDate.now() + ".xlsx";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.parseMediaType(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+            @RequestParam(required = false) String documentReview,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction) {
+
+        Sort exportSort = ExportSortUtils.resolve(
+            sort, direction, EXPORT_SORT_FIELDS.keySet(), "firstName", Sort.Direction.ASC);
+        List<FacultyResponse> data = facultyService.findAll(search, specialityId, status, documentReview, exportSort);
+
+        String specialityLabel = specialityId != null
+            ? specialityRepository.findById(specialityId).map(Speciality::getName).orElse(null) : null;
+        Sort.Order order = ExportSortUtils.firstOrder(exportSort, "firstName", Sort.Direction.ASC);
+        ExportMetadata meta = ExportMetadata.of("Faculty Members Export")
+            .filter("Search", search)
+            .filter("Speciality", specialityLabel)
+            .filter("Status", status != null ? status.name() : null)
+            .filter("Document Review", (documentReview != null && !documentReview.equalsIgnoreCase("ALL")) ? documentReview : null)
+            .sort(EXPORT_SORT_FIELDS.get(order.getProperty()), order.getDirection());
+
+        return ExportResponseFactory.respond(format, "faculty",
+            () -> facultyExportService.toExcel(data, meta),
+            () -> facultyExportService.toPdf(data, meta));
     }
 
     @GetMapping("/nrts-exists")

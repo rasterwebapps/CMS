@@ -72,14 +72,18 @@ export class CommissionExplorerService {
       source?: string | null;
       fromDate?: string | null;
       toDate?: string | null;
+      sort?: string | null;
+      direction?: string | null;
     } = {},
   ): Observable<Blob> {
     let params = new HttpParams().set('format', format);
-    if (filters.search)   params = params.set('search', filters.search);
-    if (filters.status)   params = params.set('status', filters.status);
-    if (filters.source)   params = params.set('source', filters.source);
-    if (filters.fromDate) params = params.set('fromDate', filters.fromDate);
-    if (filters.toDate)   params = params.set('toDate', filters.toDate);
+    if (filters.search)    params = params.set('search', filters.search);
+    if (filters.status)    params = params.set('status', filters.status);
+    if (filters.source)    params = params.set('source', filters.source);
+    if (filters.fromDate)  params = params.set('fromDate', filters.fromDate);
+    if (filters.toDate)    params = params.set('toDate', filters.toDate);
+    if (filters.sort)      params = params.set('sort', filters.sort);
+    if (filters.direction) params = params.set('direction', filters.direction);
     return this.http.get(`${this.base}/export`, { params, responseType: 'blob' });
   }
 }

@@ -8,6 +8,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,14 +73,15 @@ public class CommissionExplorerService {
             Long agentId,
             LocalDate fromDate,
             LocalDate toDate,
-            String search) {
+            String search,
+            Sort sort) {
 
         CommissionPaymentStatus statusEnum = status != null ? CommissionPaymentStatus.valueOf(status) : null;
         CommissionSource sourceEnum = source != null ? CommissionSource.valueOf(source) : null;
         String searchTrim = (search != null && !search.isBlank()) ? search.trim() : null;
 
         List<Enquiry> enquiries = enquiryRepository.findCommissions(
-                statusEnum, sourceEnum, referralTypeId, agentId, fromDate, toDate, searchTrim);
+                statusEnum, sourceEnum, referralTypeId, agentId, fromDate, toDate, searchTrim, sort);
 
         if (!permSecurityBean.hasAny("COMMISSION_VIEW", "COMMISSION_MANAGE")) {
             enquiries = enquiries.stream()

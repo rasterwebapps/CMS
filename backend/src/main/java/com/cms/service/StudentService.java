@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -197,7 +198,7 @@ public class StudentService {
 
     /** Unbounded export: same spec as paginated explorer, returns all matching rows. */
     public List<StudentResponse> findExplorerAll(Long programId, Long courseId, Long academicYearId,
-            String status, String studentType, String search) {
+            String status, String studentType, String search, Sort sort) {
         Specification<Student> spec = Specification.where(null);
         if (programId != null)                              spec = spec.and(StudentSpecification.byProgramId(programId));
         if (courseId != null)                               spec = spec.and(StudentSpecification.byCourseId(courseId));
@@ -205,7 +206,7 @@ public class StudentService {
         if (status != null && !status.isBlank())            spec = spec.and(StudentSpecification.byStatus(status));
         if (studentType != null && !studentType.isBlank())  spec = spec.and(StudentSpecification.byStudentType(studentType));
         if (search != null && search.length() >= 3)         spec = spec.and(StudentSpecification.bySearch(search));
-        return enrichAndMap(studentRepository.findAll(spec));
+        return enrichAndMap(studentRepository.findAll(spec, sort));
     }
 
     /** Paginated explorer: server-side filtering + 3-query fetch pattern. */

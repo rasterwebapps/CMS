@@ -576,8 +576,29 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
   // ── Export ────────────────────────────────────────────────────────────────
   protected onExport(format: ExportFormat): void {
     if (this.exporting()) return;
+    if (this.totalElements === 0) {
+      this.toast.error('No data available to export.');
+      return;
+    }
     this.exporting.set(true);
-    this.enquiryService.exportEnquiries(format, this.dateFrom, this.dateTo).subscribe({
+    const statuses = [...this.selectedStatuses()];
+    const yearIds  = [...this.selectedAcademicYearIds()];
+    this.enquiryService.exportEnquiries(format, {
+      search:           this.searchValue() || null,
+      fromDate:         this.dateFrom || null,
+      toDate:           this.dateTo   || null,
+      statuses:         statuses.length ? statuses : undefined,
+      programId:        this.selectedProgramId(),
+      courseId:         this.selectedCourseId(),
+      studentType:      this.selectedStudentType(),
+      referralTypeName: this.selectedReferralType(),
+      admissionQuota:   this.selectedAdmissionQuota(),
+      agentName:        this.selectedAgent(),
+      admissionSource:  this.selectedAdmissionSource(),
+      academicYearIds:  yearIds.length ? yearIds : undefined,
+      sort:             this.sortMap[this.sortActive] ?? this.sortActive,
+      direction:        this.sortDirection,
+    }).subscribe({
       next: blob => {
         const ext = format === 'pdf' ? 'pdf' : 'xlsx';
         const filename = `enquiries-${new Date().toISOString().slice(0, 10)}.${ext}`;

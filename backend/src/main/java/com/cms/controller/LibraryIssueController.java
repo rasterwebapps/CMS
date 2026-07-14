@@ -1,15 +1,14 @@
 package com.cms.controller;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +34,8 @@ import com.cms.model.enums.LibraryMemberType;
 import com.cms.service.LibraryIssueExportService;
 import com.cms.service.LibraryIssueService;
 import com.cms.util.ExportSortUtils;
+import com.cms.util.export.ExportMetadata;
+import com.cms.util.export.ExportResponseFactory;
 
 import jakarta.validation.Valid;
 
@@ -42,7 +43,12 @@ import jakarta.validation.Valid;
 @RequestMapping("/library/issues")
 public class LibraryIssueController {
 
-    private static final Set<String> EXPORT_SORT_FIELDS = Set.of("issuedDate", "dueDate", "status");
+    private static final Map<String, String> EXPORT_SORT_FIELDS = new LinkedHashMap<>();
+    static {
+        EXPORT_SORT_FIELDS.put("issuedDate", "Issued Date");
+        EXPORT_SORT_FIELDS.put("dueDate", "Due Date");
+        EXPORT_SORT_FIELDS.put("status", "Status");
+    }
 
     private final LibraryIssueService issueService;
     private final LibraryIssueExportService issueExportService;
@@ -162,29 +168,21 @@ public class LibraryIssueController {
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String direction) {
 
-        Sort exportSort = ExportSortUtils.resolve(sort, direction, EXPORT_SORT_FIELDS, "issuedDate", Sort.Direction.DESC);
+        Sort exportSort = ExportSortUtils.resolve(
+            sort, direction, EXPORT_SORT_FIELDS.keySet(), "issuedDate", Sort.Direction.DESC);
         List<LibraryIssueResponse> data = issueService.findAllMatching(
             search, status, memberType, itemType, exportSort);
 
-        try {
-            if ("pdf".equalsIgnoreCase(format)) {
-                byte[] bytes = issueExportService.toPdf(data);
-                String filename = "issue-register-" + LocalDate.now() + ".pdf";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            } else {
-                byte[] bytes = issueExportService.toExcel(data);
-                String filename = "issue-register-" + LocalDate.now() + ".xlsx";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.parseMediaType(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        Sort.Order order = ExportSortUtils.firstOrder(exportSort, "issuedDate", Sort.Direction.DESC);
+        ExportMetadata meta = ExportMetadata.of("Issue Register Export")
+            .filter("Search", search)
+            .filter("Status", status != null ? status.name() : null)
+            .filter("Member Type", memberType != null ? memberType.name() : null)
+            .filter("Item Type", itemType != null ? itemType.name() : null)
+            .sort(EXPORT_SORT_FIELDS.get(order.getProperty()), order.getDirection());
+
+        return ExportResponseFactory.respond(format, "issue-register",
+            () -> issueExportService.toExcel(data, meta),
+            () -> issueExportService.toPdf(data, meta));
     }
 }

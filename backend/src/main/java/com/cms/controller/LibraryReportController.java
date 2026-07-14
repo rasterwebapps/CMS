@@ -1,15 +1,14 @@
 package com.cms.controller;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,12 +23,20 @@ import com.cms.model.enums.LibraryMemberType;
 import com.cms.service.LibraryIssueExportService;
 import com.cms.service.LibraryIssueService;
 import com.cms.util.ExportSortUtils;
+import com.cms.util.export.ExportMetadata;
+import com.cms.util.export.ExportResponseFactory;
 
 @RestController
 @RequestMapping("/library/reports")
 public class LibraryReportController {
 
-    private static final Set<String> OVERDUE_SORT_FIELDS = Set.of("dueDate", "issuedDate", "status", "memberType");
+    private static final Map<String, String> OVERDUE_SORT_FIELDS = new LinkedHashMap<>();
+    static {
+        OVERDUE_SORT_FIELDS.put("dueDate", "Due Date");
+        OVERDUE_SORT_FIELDS.put("issuedDate", "Issued Date");
+        OVERDUE_SORT_FIELDS.put("status", "Status");
+        OVERDUE_SORT_FIELDS.put("memberType", "Member Type");
+    }
 
     private final LibraryIssueService issueService;
     private final LibraryIssueExportService issueExportService;
@@ -59,28 +66,18 @@ public class LibraryReportController {
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String direction) {
 
-        Sort exportSort = ExportSortUtils.resolve(sort, direction, OVERDUE_SORT_FIELDS, "dueDate", Sort.Direction.ASC);
+        Sort exportSort = ExportSortUtils.resolve(
+            sort, direction, OVERDUE_SORT_FIELDS.keySet(), "dueDate", Sort.Direction.ASC);
         List<LibraryIssueResponse> data = issueService.findAllOverdueMatching(search, memberType, exportSort);
 
-        try {
-            if ("pdf".equalsIgnoreCase(format)) {
-                byte[] bytes = issueExportService.toPdf(data);
-                String filename = "overdue-books-" + LocalDate.now() + ".pdf";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            } else {
-                byte[] bytes = issueExportService.toExcel(data);
-                String filename = "overdue-books-" + LocalDate.now() + ".xlsx";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.parseMediaType(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        Sort.Order order = ExportSortUtils.firstOrder(exportSort, "dueDate", Sort.Direction.ASC);
+        ExportMetadata meta = ExportMetadata.of("Overdue Books Export")
+            .filter("Search", search)
+            .filter("Member Type", memberType != null ? memberType.name() : null)
+            .sort(OVERDUE_SORT_FIELDS.get(order.getProperty()), order.getDirection());
+
+        return ExportResponseFactory.respond(format, "overdue-books",
+            () -> issueExportService.toExcel(data, meta),
+            () -> issueExportService.toPdf(data, meta));
     }
 }

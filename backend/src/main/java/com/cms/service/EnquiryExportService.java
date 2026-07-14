@@ -5,122 +5,68 @@ import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-import org.apache.poi.ss.usermodel.BorderStyle;
-import org.apache.poi.ss.usermodel.FillPatternType;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.IndexedColors;
-import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
-import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
 import com.cms.dto.EnquiryResponse;
+import com.cms.util.export.ExcelExportUtil;
+import com.cms.util.export.ExportMetadata;
+import com.cms.util.export.PdfExportUtil;
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
 import com.lowagie.text.FontFactory;
-import com.lowagie.text.PageSize;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.Phrase;
-import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfWriter;
 
 @Service
 public class EnquiryExportService {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
-    private static final String[] HEADERS = {
+    private static final List<String> HEADERS = List.of(
         "#", "Name", "Phone", "Email", "Program", "Course",
         "Student Type", "Enquiry Date", "Academic Year",
-        "Referral Type", "Agent", "Status", "Admission Quota",
-    };
+        "Referral Type", "Agent", "Status", "Admission Quota");
 
     // ── Excel ─────────────────────────────────────────────────────────────────
 
-    public byte[] toExcel(List<EnquiryResponse> rows) throws IOException {
+    public byte[] toExcel(List<EnquiryResponse> rows, ExportMetadata meta) throws IOException {
         try (XSSFWorkbook wb = new XSSFWorkbook();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
             XSSFSheet sheet = wb.createSheet("Enquiries");
+            ExcelExportUtil.Styles styles = ExcelExportUtil.createStyles(wb);
 
-            // ── Styles ─────────────────────────────────────────────────────
-            XSSFCellStyle titleStyle = wb.createCellStyle();
-            XSSFFont titleFont = wb.createFont();
-            titleFont.setBold(true);
-            titleFont.setFontHeightInPoints((short) 14);
-            titleStyle.setFont(titleFont);
+            int headerRowIdx = ExcelExportUtil.writeMetadataBlock(sheet, styles, meta, HEADERS.size());
+            ExcelExportUtil.writeHeaderRow(sheet, styles, headerRowIdx, HEADERS);
 
-            XSSFCellStyle headerStyle = wb.createCellStyle();
-            headerStyle.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            XSSFFont headerFont = wb.createFont();
-            headerFont.setBold(true);
-            headerFont.setColor(IndexedColors.WHITE.getIndex());
-            headerStyle.setFont(headerFont);
-            headerStyle.setAlignment(HorizontalAlignment.CENTER);
-            headerStyle.setBorderBottom(BorderStyle.THIN);
+            int dataStart = headerRowIdx + 1;
+            for (int i = 0; i < rows.size(); i++) {
+                EnquiryResponse e = rows.get(i);
+                XSSFRow row = sheet.createRow(dataStart + i);
+                XSSFCellStyle style = (i % 2 == 0) ? styles.data() : styles.alt();
 
-            XSSFCellStyle dataStyle = wb.createCellStyle();
-            dataStyle.setBorderBottom(BorderStyle.THIN);
-            dataStyle.setBorderRight(BorderStyle.HAIR);
-
-            XSSFCellStyle altStyle = wb.createCellStyle();
-            altStyle.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
-            altStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            altStyle.setBorderBottom(BorderStyle.THIN);
-            altStyle.setBorderRight(BorderStyle.HAIR);
-
-            // ── Title row ──────────────────────────────────────────────────
-            XSSFRow titleRow = sheet.createRow(0);
-            titleRow.setHeightInPoints(22);
-            var titleCell = titleRow.createCell(0);
-            titleCell.setCellValue("Student Enquiries Export");
-            titleCell.setCellStyle(titleStyle);
-            sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, HEADERS.length - 1));
-
-            // ── Header row ─────────────────────────────────────────────────
-            XSSFRow headerRow = sheet.createRow(1);
-            headerRow.setHeightInPoints(18);
-            for (int i = 0; i < HEADERS.length; i++) {
-                var cell = headerRow.createCell(i);
-                cell.setCellValue(HEADERS[i]);
-                cell.setCellStyle(headerStyle);
+                ExcelExportUtil.setCell(row, 0, String.valueOf(i + 1), style);
+                ExcelExportUtil.setCell(row, 1, e.name(), style);
+                ExcelExportUtil.setCell(row, 2, nvl(e.phone()), style);
+                ExcelExportUtil.setCell(row, 3, nvl(e.email()), style);
+                ExcelExportUtil.setCell(row, 4, nvl(e.programName()), style);
+                ExcelExportUtil.setCell(row, 5, nvl(e.courseName()), style);
+                ExcelExportUtil.setCell(row, 6, e.studentType() != null ? e.studentType().name() : "—", style);
+                ExcelExportUtil.setCell(row, 7, e.enquiryDate() != null ? e.enquiryDate().format(DATE_FMT) : "—", style);
+                ExcelExportUtil.setCell(row, 8, nvl(e.academicYearName()), style);
+                ExcelExportUtil.setCell(row, 9, nvl(e.referralTypeName()), style);
+                ExcelExportUtil.setCell(row, 10, nvl(e.agentName()), style);
+                ExcelExportUtil.setCell(row, 11, e.status() != null ? e.status().name() : "—", style);
+                ExcelExportUtil.setCell(row, 12, e.admissionQuota() != null ? e.admissionQuota().name() : "—", style);
             }
 
-            // ── Data rows ──────────────────────────────────────────────────
-            int rowIdx = 2;
-            for (EnquiryResponse e : rows) {
-                XSSFRow row = sheet.createRow(rowIdx);
-                XSSFCellStyle style = (rowIdx % 2 == 0) ? dataStyle : altStyle;
-
-                setCell(row, 0, String.valueOf(rowIdx - 1), style);
-                setCell(row, 1, e.name(), style);
-                setCell(row, 2, nvl(e.phone()), style);
-                setCell(row, 3, nvl(e.email()), style);
-                setCell(row, 4, nvl(e.programName()), style);
-                setCell(row, 5, nvl(e.courseName()), style);
-                setCell(row, 6, e.studentType() != null ? e.studentType().name() : "—", style);
-                setCell(row, 7, e.enquiryDate() != null ? e.enquiryDate().format(DATE_FMT) : "—", style);
-                setCell(row, 8, nvl(e.academicYearName()), style);
-                setCell(row, 9, nvl(e.referralTypeName()), style);
-                setCell(row, 10, nvl(e.agentName()), style);
-                setCell(row, 11, e.status() != null ? e.status().name() : "—", style);
-                setCell(row, 12, e.admissionQuota() != null ? e.admissionQuota().name() : "—", style);
-
-                rowIdx++;
-            }
-
-            // ── Column widths ──────────────────────────────────────────────
             int[] widths = { 8, 28, 16, 30, 20, 22, 14, 14, 16, 18, 18, 18, 16 };
-            for (int i = 0; i < widths.length; i++) {
-                sheet.setColumnWidth(i, widths[i] * 256);
-            }
-            sheet.createFreezePane(0, 2);
+            ExcelExportUtil.applyColumnWidths(sheet, widths);
+            sheet.createFreezePane(0, dataStart);
 
             wb.write(out);
             return out.toByteArray();
@@ -129,54 +75,33 @@ public class EnquiryExportService {
 
     // ── PDF ───────────────────────────────────────────────────────────────────
 
-    public byte[] toPdf(List<EnquiryResponse> rows) throws IOException {
+    public byte[] toPdf(List<EnquiryResponse> rows, ExportMetadata meta) throws IOException {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Document doc = new Document(PageSize.A4.rotate(), 30, 30, 40, 30);
-            PdfWriter.getInstance(doc, out);
-            doc.open();
+            Document doc = PdfExportUtil.openLandscapeDocument(out, 30, 30, 40, 30);
+            PdfExportUtil.writeTitleAndMetadata(doc, meta);
 
-            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14);
-            Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8,
-                new java.awt.Color(255, 255, 255));
+            Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, new java.awt.Color(255, 255, 255));
             Font dataFont = FontFactory.getFont(FontFactory.HELVETICA, 7);
 
-            Paragraph title = new Paragraph("Student Enquiries Export", titleFont);
-            title.setSpacingAfter(10);
-            doc.add(title);
-
-            PdfPTable table = new PdfPTable(HEADERS.length);
-            table.setWidthPercentage(100);
             float[] colWidths = { 4, 14, 9, 14, 11, 11, 8, 8, 9, 10, 10, 10, 8 };
-            table.setWidths(colWidths);
+            PdfPTable table = PdfExportUtil.createHeaderTable(HEADERS, colWidths, headerFont);
 
-            java.awt.Color headerBg = new java.awt.Color(13, 27, 62);
-            java.awt.Color altBg = new java.awt.Color(235, 241, 255);
-
-            for (String h : HEADERS) {
-                PdfPCell cell = new PdfPCell(new Phrase(h, headerFont));
-                cell.setBackgroundColor(headerBg);
-                cell.setPadding(4);
-                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                table.addCell(cell);
-            }
-
-            int idx = 1;
-            for (EnquiryResponse e : rows) {
-                java.awt.Color rowBg = (idx % 2 == 0) ? altBg : null;
-                addCell(table, String.valueOf(idx), dataFont, rowBg, Element.ALIGN_CENTER);
-                addCell(table, e.name(), dataFont, rowBg, Element.ALIGN_LEFT);
-                addCell(table, nvl(e.phone()), dataFont, rowBg, Element.ALIGN_LEFT);
-                addCell(table, nvl(e.email()), dataFont, rowBg, Element.ALIGN_LEFT);
-                addCell(table, nvl(e.programName()), dataFont, rowBg, Element.ALIGN_LEFT);
-                addCell(table, nvl(e.courseName()), dataFont, rowBg, Element.ALIGN_LEFT);
-                addCell(table, e.studentType() != null ? e.studentType().name() : "—", dataFont, rowBg, Element.ALIGN_LEFT);
-                addCell(table, e.enquiryDate() != null ? e.enquiryDate().format(DATE_FMT) : "—", dataFont, rowBg, Element.ALIGN_CENTER);
-                addCell(table, nvl(e.academicYearName()), dataFont, rowBg, Element.ALIGN_LEFT);
-                addCell(table, nvl(e.referralTypeName()), dataFont, rowBg, Element.ALIGN_LEFT);
-                addCell(table, nvl(e.agentName()), dataFont, rowBg, Element.ALIGN_LEFT);
-                addCell(table, e.status() != null ? e.status().name() : "—", dataFont, rowBg, Element.ALIGN_LEFT);
-                addCell(table, e.admissionQuota() != null ? e.admissionQuota().name() : "—", dataFont, rowBg, Element.ALIGN_LEFT);
-                idx++;
+            for (int i = 0; i < rows.size(); i++) {
+                EnquiryResponse e = rows.get(i);
+                java.awt.Color rowBg = (i % 2 == 0) ? PdfExportUtil.ALT_BG : null;
+                PdfExportUtil.addCell(table, String.valueOf(i + 1), dataFont, rowBg, Element.ALIGN_CENTER);
+                PdfExportUtil.addCell(table, e.name(), dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, nvl(e.phone()), dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, nvl(e.email()), dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, nvl(e.programName()), dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, nvl(e.courseName()), dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, e.studentType() != null ? e.studentType().name() : "—", dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, e.enquiryDate() != null ? e.enquiryDate().format(DATE_FMT) : "—", dataFont, rowBg, Element.ALIGN_CENTER);
+                PdfExportUtil.addCell(table, nvl(e.academicYearName()), dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, nvl(e.referralTypeName()), dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, nvl(e.agentName()), dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, e.status() != null ? e.status().name() : "—", dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, e.admissionQuota() != null ? e.admissionQuota().name() : "—", dataFont, rowBg, Element.ALIGN_LEFT);
             }
 
             doc.add(table);
@@ -186,21 +111,6 @@ public class EnquiryExportService {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
-
-    private static void setCell(XSSFRow row, int col, String value, XSSFCellStyle style) {
-        var cell = row.createCell(col);
-        cell.setCellValue(value);
-        cell.setCellStyle(style);
-    }
-
-    private static void addCell(PdfPTable table, String text, Font font,
-                                 java.awt.Color bg, int align) {
-        PdfPCell cell = new PdfPCell(new Phrase(text, font));
-        if (bg != null) cell.setBackgroundColor(bg);
-        cell.setPadding(3);
-        cell.setHorizontalAlignment(align);
-        table.addCell(cell);
-    }
 
     private static String nvl(String s) {
         return (s == null || s.isBlank()) ? "—" : s;

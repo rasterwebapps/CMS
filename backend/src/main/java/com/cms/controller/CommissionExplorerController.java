@@ -2,17 +2,16 @@ package com.cms.controller;
 
 import java.security.Principal;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,12 +27,23 @@ import com.cms.dto.CommissionPayoutRequest;
 import com.cms.dto.CommissionRejectionRequest;
 import com.cms.service.CommissionExplorerService;
 import com.cms.service.CommissionExportService;
+import com.cms.util.ExportSortUtils;
+import com.cms.util.export.ExportMetadata;
+import com.cms.util.export.ExportResponseFactory;
 
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/commission-explorer")
 public class CommissionExplorerController {
+
+    private static final Map<String, String> EXPORT_SORT_FIELDS = new LinkedHashMap<>();
+    static {
+        EXPORT_SORT_FIELDS.put("name", "Student Name");
+        EXPORT_SORT_FIELDS.put("program.name", "Program");
+        EXPORT_SORT_FIELDS.put("commissionAmount", "Commission Amount");
+        EXPORT_SORT_FIELDS.put("updatedAt", "Updated At");
+    }
 
     private final CommissionExplorerService service;
     private final CommissionExportService   exportService;
@@ -67,31 +77,26 @@ public class CommissionExplorerController {
             @RequestParam(required = false) String source,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction) {
 
+        Sort exportSort = ExportSortUtils.resolve(
+            sort, direction, EXPORT_SORT_FIELDS.keySet(), "updatedAt", Sort.Direction.DESC);
         List<CommissionExplorerResponse> data =
-            service.findAll(status, source, null, null, fromDate, toDate, search);
+            service.findAll(status, source, null, null, fromDate, toDate, search, exportSort);
 
-        try {
-            if ("pdf".equalsIgnoreCase(format)) {
-                byte[] bytes = exportService.toPdf(data);
-                String filename = "commissions-" + LocalDate.now() + ".pdf";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            } else {
-                byte[] bytes = exportService.toExcel(data);
-                String filename = "commissions-" + LocalDate.now() + ".xlsx";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.parseMediaType(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        Sort.Order order = ExportSortUtils.firstOrder(exportSort, "updatedAt", Sort.Direction.DESC);
+        ExportMetadata meta = ExportMetadata.of("Commission Explorer Export")
+            .filter("Search", search)
+            .filter("Status", status)
+            .filter("Source", source)
+            .filter("Date Range", (fromDate != null && toDate != null) ? fromDate + " to " + toDate : null)
+            .sort(EXPORT_SORT_FIELDS.get(order.getProperty()), order.getDirection());
+
+        return ExportResponseFactory.respond(format, "commissions",
+            () -> exportService.toExcel(data, meta),
+            () -> exportService.toPdf(data, meta));
     }
 
     @PostMapping("/{enquiryId}/approve")

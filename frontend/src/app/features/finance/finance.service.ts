@@ -147,6 +147,8 @@ export class FinanceService {
       academicYear?: string | null;
       yearOfStudy?: number | null;
       allocationStatus?: string | null;
+      sort?: string | null;
+      direction?: string | null;
     } = {},
   ): Observable<Blob> {
     let params = new HttpParams().set('format', format);
@@ -155,6 +157,8 @@ export class FinanceService {
     if (filters.academicYear && filters.academicYear !== 'ALL') params = params.set('academicYear', filters.academicYear);
     if (filters.yearOfStudy != null)                           params = params.set('yearOfStudy', filters.yearOfStudy);
     if (filters.allocationStatus && filters.allocationStatus !== 'ALL') params = params.set('allocationStatus', filters.allocationStatus);
+    if (filters.sort)      params = params.set('sort', filters.sort);
+    if (filters.direction) params = params.set('direction', filters.direction);
     return this.http.get(`${this.studentFeeUrl}/explorer/export`, { params, responseType: 'blob' });
   }
 
@@ -225,7 +229,11 @@ export class FinanceService {
 
   exportReceipts(
     format: 'excel' | 'pdf',
-    filters: { search?: string | null; paymentMode?: string | null; payerType?: string | null; fromDate?: string | null; toDate?: string | null } = {},
+    filters: {
+      search?: string | null; paymentMode?: string | null; payerType?: string | null;
+      fromDate?: string | null; toDate?: string | null;
+      sort?: string | null; direction?: string | null;
+    } = {},
   ): Observable<Blob> {
     let params = new HttpParams().set('format', format);
     if (filters.search)      params = params.set('search', filters.search);
@@ -233,12 +241,18 @@ export class FinanceService {
     if (filters.payerType)   params = params.set('payerType', filters.payerType);
     if (filters.fromDate)    params = params.set('fromDate', filters.fromDate);
     if (filters.toDate)      params = params.set('toDate', filters.toDate);
+    if (filters.sort)        params = params.set('sort', filters.sort);
+    if (filters.direction)   params = params.set('direction', filters.direction);
     return this.http.get(`${environment.apiUrl}/receipts/export`, { params, responseType: 'blob' });
   }
 
   exportRefunds(
     format: 'excel' | 'pdf',
-    filters: { search?: string | null; status?: string | null; entityType?: string | null; fromDate?: string | null; toDate?: string | null } = {},
+    filters: {
+      search?: string | null; status?: string | null; entityType?: string | null;
+      fromDate?: string | null; toDate?: string | null;
+      sort?: string | null; direction?: string | null;
+    } = {},
   ): Observable<Blob> {
     let params = new HttpParams().set('format', format);
     if (filters.search)      params = params.set('search', filters.search);
@@ -246,6 +260,8 @@ export class FinanceService {
     if (filters.entityType)  params = params.set('entityType', filters.entityType);
     if (filters.fromDate)    params = params.set('fromDate', filters.fromDate);
     if (filters.toDate)      params = params.set('toDate', filters.toDate);
+    if (filters.sort)        params = params.set('sort', filters.sort);
+    if (filters.direction)   params = params.set('direction', filters.direction);
     return this.http.get(`${this.studentFeeUrl}/refunds/export`, { params, responseType: 'blob' });
   }
 

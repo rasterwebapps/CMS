@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Service;
@@ -153,7 +154,7 @@ public class UnifiedReceiptService {
     /** Unbounded export: same spec as paginated list, returns all matching payment receipts. */
     public List<UnifiedReceiptResponse> getPaymentsAll(
             String search, String paymentMode, String payerType,
-            LocalDate fromDate, LocalDate toDate) {
+            LocalDate fromDate, LocalDate toDate, Sort sort) {
         Specification<PaymentReceipt> spec = Specification.where(null);
         if (search != null && search.length() >= 2)        spec = spec.and(PaymentReceiptSpecification.bySearch(search));
         if (paymentMode != null && !paymentMode.isBlank()) spec = spec.and(PaymentReceiptSpecification.byPaymentMode(paymentMode));
@@ -161,7 +162,7 @@ public class UnifiedReceiptService {
         if (fromDate != null)                              spec = spec.and(PaymentReceiptSpecification.byDateFrom(fromDate));
         if (toDate != null)                                spec = spec.and(PaymentReceiptSpecification.byDateTo(toDate));
 
-        List<PaymentReceipt> receipts = receiptRepository.findAll(spec);
+        List<PaymentReceipt> receipts = receiptRepository.findAll(spec, sort);
         Map<String, String> refundStatusByReceipt = getActiveRefundStatusByReceipt();
         List<Long> studentIds = receipts.stream()
             .filter(r -> "STUDENT".equals(r.getPayerType())).map(PaymentReceipt::getPayerId).distinct().toList();

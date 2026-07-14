@@ -1,16 +1,14 @@
 package com.cms.controller;
 
-import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -30,12 +28,23 @@ import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.service.AgentExportService;
 import com.cms.service.AgentService;
+import com.cms.util.ExportSortUtils;
+import com.cms.util.export.ExportMetadata;
+import com.cms.util.export.ExportResponseFactory;
 
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/agents")
 public class AgentController {
+
+    private static final Map<String, String> EXPORT_SORT_FIELDS = new LinkedHashMap<>();
+    static {
+        EXPORT_SORT_FIELDS.put("name", "Name");
+        EXPORT_SORT_FIELDS.put("area", "Area");
+        EXPORT_SORT_FIELDS.put("commissionAmount", "Commission Amount");
+        EXPORT_SORT_FIELDS.put("isActive", "Active");
+    }
 
     private final AgentService       agentService;
     private final AgentExportService agentExportService;
@@ -117,28 +126,22 @@ public class AgentController {
     @PreAuthorize("@perm.has('AGENT_EXPORT')")
     public ResponseEntity<byte[]> export(
             @RequestParam(defaultValue = "excel") String format,
-            @RequestParam(required = false) String search) {
-        List<AgentResponse> data = agentService.findAll(search);
-        try {
-            if ("pdf".equalsIgnoreCase(format)) {
-                byte[] bytes = agentExportService.toPdf(data);
-                String filename = "agents-" + LocalDate.now() + ".pdf";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            } else {
-                byte[] bytes = agentExportService.toExcel(data);
-                String filename = "agents-" + LocalDate.now() + ".xlsx";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.parseMediaType(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction) {
+
+        Sort exportSort = ExportSortUtils.resolve(
+            sort, direction, EXPORT_SORT_FIELDS.keySet(), "name", Sort.Direction.ASC);
+        List<AgentResponse> data = agentService.findAll(search, exportSort);
+
+        Sort.Order order = ExportSortUtils.firstOrder(exportSort, "name", Sort.Direction.ASC);
+        ExportMetadata meta = ExportMetadata.of("Agents Export")
+            .filter("Search", search)
+            .sort(EXPORT_SORT_FIELDS.get(order.getProperty()), order.getDirection());
+
+        return ExportResponseFactory.respond(format, "agents",
+            () -> agentExportService.toExcel(data, meta),
+            () -> agentExportService.toPdf(data, meta));
     }
 
     @GetMapping("/name-exists")

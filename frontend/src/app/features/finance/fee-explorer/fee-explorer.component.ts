@@ -137,6 +137,10 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
 
   protected onExport(format: ExportFormat): void {
     if (this.exporting()) return;
+    if (this.totalElements === 0) {
+      this.toast.error('No data available to export.');
+      return;
+    }
     this.exporting.set(true);
     this.financeService.exportFeeExplorer(format, {
       search:           this.searchValue() || null,
@@ -144,6 +148,8 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
       academicYear:     this.filterAcademicYear() !== 'ALL' ? this.filterAcademicYear() : null,
       yearOfStudy:      this.filterYearOfStudy() !== 'ALL' ? Number(this.filterYearOfStudy()) : null,
       allocationStatus: this.filterAllocStatus() !== 'ALL' ? this.filterAllocStatus() : null,
+      sort:             SORT_FIELD_MAP[this.sortActive] ?? this.sortActive,
+      direction:        this.sortDirection,
     }).subscribe({
       next: (blob) => {
         const ext = format === 'pdf' ? 'pdf' : 'xlsx';

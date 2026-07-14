@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,7 +62,7 @@ public class StaffReferrerService {
         return repository.findAll().stream().map(this::toResponse).toList();
     }
 
-    public List<StaffReferrerResponse> findAll(String search) {
+    public List<StaffReferrerResponse> findAll(String search, Sort sort) {
         Specification<StaffReferrer> spec = Specification.where(null);
         if (search != null && !search.trim().isEmpty()) {
             String pattern = "%" + search.trim().toLowerCase() + "%";
@@ -75,7 +76,7 @@ public class StaffReferrerService {
                 );
             });
         }
-        return repository.findAll(spec).stream().map(this::toResponse).toList();
+        return repository.findAll(spec, sort).stream().map(this::toResponse).toList();
     }
 
     public Page<StaffReferrerResponse> findPage(String search, Pageable pageable) {

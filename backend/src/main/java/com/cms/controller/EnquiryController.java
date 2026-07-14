@@ -3,7 +3,9 @@ package com.cms.controller;
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.springframework.data.domain.Page;
@@ -11,10 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -42,12 +41,20 @@ import com.cms.dto.FeeFinalizationRequest;
 import com.cms.dto.FeeFinalizationResponse;
 import com.cms.dto.MissingDocumentsResponse;
 import com.cms.dto.EnquiryStatusHistoryResponse;
+import com.cms.model.Course;
+import com.cms.model.Program;
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.CourseRepository;
+import com.cms.repository.ProgramRepository;
 import com.cms.service.EnquiryDocumentService;
 import com.cms.service.EnquiryExportService;
 import com.cms.service.EnquiryPaymentService;
 import com.cms.service.EnquiryService;
 import com.cms.service.PaymentCollectionService;
+import com.cms.util.ExportSortUtils;
+import com.cms.util.export.ExportMetadata;
+import com.cms.util.export.ExportResponseFactory;
 
 import jakarta.validation.Valid;
 
@@ -55,22 +62,39 @@ import jakarta.validation.Valid;
 @RequestMapping("/enquiries")
 public class EnquiryController {
 
+    private static final Map<String, String> EXPORT_SORT_FIELDS = new LinkedHashMap<>();
+    static {
+        EXPORT_SORT_FIELDS.put("name", "Name");
+        EXPORT_SORT_FIELDS.put("enquiryDate", "Enquiry Date");
+        EXPORT_SORT_FIELDS.put("status", "Status");
+        EXPORT_SORT_FIELDS.put("program.name", "Program");
+    }
+
     private final EnquiryService enquiryService;
     private final EnquiryDocumentService enquiryDocumentService;
     private final EnquiryPaymentService enquiryPaymentService;
     private final PaymentCollectionService paymentCollectionService;
     private final EnquiryExportService enquiryExportService;
+    private final ProgramRepository programRepository;
+    private final CourseRepository courseRepository;
+    private final AcademicYearRepository academicYearRepository;
 
     public EnquiryController(EnquiryService enquiryService,
                               EnquiryDocumentService enquiryDocumentService,
                               EnquiryPaymentService enquiryPaymentService,
                               PaymentCollectionService paymentCollectionService,
-                              EnquiryExportService enquiryExportService) {
+                              EnquiryExportService enquiryExportService,
+                              ProgramRepository programRepository,
+                              CourseRepository courseRepository,
+                              AcademicYearRepository academicYearRepository) {
         this.enquiryService = enquiryService;
         this.enquiryDocumentService = enquiryDocumentService;
         this.enquiryPaymentService = enquiryPaymentService;
         this.paymentCollectionService = paymentCollectionService;
         this.enquiryExportService = enquiryExportService;
+        this.programRepository = programRepository;
+        this.courseRepository = courseRepository;
+        this.academicYearRepository = academicYearRepository;
     }
 
     @GetMapping("/document-pending")
@@ -294,32 +318,59 @@ public class EnquiryController {
     @PreAuthorize("@perm.has('ENQUIRY_EXPORT')")
     public ResponseEntity<byte[]> export(
             @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(required = false) String search,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(required = false) List<String> statuses,
+            @RequestParam(required = false) Long programId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) String studentType,
+            @RequestParam(required = false) String referralTypeName,
+            @RequestParam(required = false) String admissionQuota,
+            @RequestParam(required = false) String agentName,
+            @RequestParam(required = false) String admissionSource,
+            @RequestParam(required = false) List<Long> academicYearIds,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction) {
 
-        List<EnquiryResponse> data = (fromDate != null && toDate != null)
-            ? enquiryService.findByDateRange(fromDate, toDate)
-            : enquiryService.findAll();
+        List<EnquiryStatus> statusEnums = statuses == null ? null :
+            statuses.stream()
+                .map(s -> { try { return EnquiryStatus.valueOf(s); } catch (IllegalArgumentException e) { return null; } })
+                .filter(Objects::nonNull)
+                .toList();
 
-        try {
-            if ("pdf".equalsIgnoreCase(format)) {
-                byte[] bytes = enquiryExportService.toPdf(data);
-                String filename = "enquiries-" + LocalDate.now() + ".pdf";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            } else {
-                byte[] bytes = enquiryExportService.toExcel(data);
-                String filename = "enquiries-" + LocalDate.now() + ".xlsx";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.parseMediaType(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        Sort exportSort = ExportSortUtils.resolve(
+            sort, direction, EXPORT_SORT_FIELDS.keySet(), "enquiryDate", Sort.Direction.DESC);
+        List<EnquiryResponse> data = enquiryService.findAllMatching(
+            search, fromDate, toDate, statusEnums, programId, courseId, studentType,
+            referralTypeName, admissionQuota, agentName, admissionSource, academicYearIds, exportSort);
+
+        String programLabel = programId != null ? programRepository.findById(programId).map(Program::getName).orElse(null) : null;
+        String courseLabel = courseId != null ? courseRepository.findById(courseId).map(Course::getName).orElse(null) : null;
+        String academicYearLabel = (academicYearIds != null && !academicYearIds.isEmpty())
+            ? academicYearRepository.findAllById(academicYearIds).stream().map(y -> y.getName()).reduce((a, b) -> a + ", " + b).orElse(null)
+            : null;
+        String statusLabel = (statusEnums != null && !statusEnums.isEmpty())
+            ? statusEnums.stream().map(Enum::name).reduce((a, b) -> a + ", " + b).orElse(null)
+            : null;
+
+        Sort.Order order = ExportSortUtils.firstOrder(exportSort, "enquiryDate", Sort.Direction.DESC);
+        ExportMetadata meta = ExportMetadata.of("Student Enquiries Export")
+            .filter("Search", search)
+            .filter("Date Range", (fromDate != null && toDate != null) ? fromDate + " to " + toDate : null)
+            .filter("Status", statusLabel)
+            .filter("Program", programLabel)
+            .filter("Course", courseLabel)
+            .filter("Student Type", studentType)
+            .filter("Referral Type", referralTypeName)
+            .filter("Admission Quota", admissionQuota)
+            .filter("Agent", agentName)
+            .filter("Admission Source", admissionSource)
+            .filter("Academic Year", academicYearLabel)
+            .sort(EXPORT_SORT_FIELDS.get(order.getProperty()), order.getDirection());
+
+        return ExportResponseFactory.respond(format, "enquiries",
+            () -> enquiryExportService.toExcel(data, meta),
+            () -> enquiryExportService.toPdf(data, meta));
     }
 }

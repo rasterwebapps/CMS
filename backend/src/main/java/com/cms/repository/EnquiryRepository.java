@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
@@ -77,7 +78,6 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long>, JpaSpec
           AND (:fromDate IS NULL OR e.enquiryDate >= :fromDate)
           AND (:toDate IS NULL OR e.enquiryDate <= :toDate)
           AND (:search IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))
-        ORDER BY e.updatedAt DESC
         """)
     List<Enquiry> findCommissions(
             @Param("status") CommissionPaymentStatus status,
@@ -86,7 +86,8 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long>, JpaSpec
             @Param("agentId") Long agentId,
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate,
-            @Param("search") String search);
+            @Param("search") String search,
+            Sort sort);
 
     @Query(value = """
         SELECT e FROM Enquiry e

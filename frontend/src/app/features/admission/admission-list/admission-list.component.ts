@@ -368,6 +368,10 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
 
   protected onExport(format: ExportFormat): void {
     if (this.exporting()) return;
+    if (this.totalElements === 0) {
+      this.toast.error('No data available to export.');
+      return;
+    }
     this.exporting.set(true);
     this.admissionService.exportAdmissions(format, {
       programId:      this.filterProgramId(),
@@ -376,6 +380,8 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
       status:         this.filterStatus() || null,
       studentType:    this.filterStudentType() || null,
       search:         this.searchTerm().length >= 3 ? this.searchTerm() : null,
+      sort:           SORT_FIELD_MAP[this.sortActive] ?? this.sortActive,
+      direction:      this.sortDirection,
     }).subscribe({
       next: (blob) => {
         const ext = format === 'pdf' ? 'pdf' : 'xlsx';

@@ -3,7 +3,9 @@ package com.cms.controller;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -39,12 +41,21 @@ import com.cms.dto.AdmissionConfirmationDto;
 import com.cms.dto.AdmissionDocumentResponse;
 import com.cms.dto.AdmissionRequest;
 import com.cms.dto.AdmissionResponse;
+import com.cms.model.AcademicYear;
+import com.cms.model.Course;
+import com.cms.model.Program;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
+import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.CourseRepository;
+import com.cms.repository.ProgramRepository;
 import com.cms.service.AcademicQualificationService;
 import com.cms.service.AdmissionDocumentService;
 import com.cms.service.AdmissionExportService;
 import com.cms.service.AdmissionService;
+import com.cms.util.ExportSortUtils;
+import com.cms.util.export.ExportMetadata;
+import com.cms.util.export.ExportResponseFactory;
 
 import jakarta.validation.Valid;
 
@@ -52,19 +63,42 @@ import jakarta.validation.Valid;
 @RequestMapping("/admissions")
 public class AdmissionController {
 
+    private static final Map<String, String> EXPORT_SORT_FIELDS = new LinkedHashMap<>();
+    static {
+        EXPORT_SORT_FIELDS.put("student.firstName", "Student Name");
+        EXPORT_SORT_FIELDS.put("student.admissionNumber", "Admission No.");
+        EXPORT_SORT_FIELDS.put("student.rollNumber", "Roll No.");
+        EXPORT_SORT_FIELDS.put("student.program.name", "Program");
+        EXPORT_SORT_FIELDS.put("student.course.name", "Course");
+        EXPORT_SORT_FIELDS.put("student.semester", "Semester");
+        EXPORT_SORT_FIELDS.put("applicationDate", "Application Date");
+        EXPORT_SORT_FIELDS.put("joiningAcademicYear.name", "Joining Year");
+        EXPORT_SORT_FIELDS.put("student.status", "Student Status");
+        EXPORT_SORT_FIELDS.put("declarationDate", "Declaration Date");
+    }
+
     private final AdmissionService admissionService;
     private final AcademicQualificationService academicQualificationService;
     private final AdmissionDocumentService admissionDocumentService;
     private final AdmissionExportService admissionExportService;
+    private final ProgramRepository programRepository;
+    private final CourseRepository courseRepository;
+    private final AcademicYearRepository academicYearRepository;
 
     public AdmissionController(AdmissionService admissionService,
                                AcademicQualificationService academicQualificationService,
                                AdmissionDocumentService admissionDocumentService,
-                               AdmissionExportService admissionExportService) {
+                               AdmissionExportService admissionExportService,
+                               ProgramRepository programRepository,
+                               CourseRepository courseRepository,
+                               AcademicYearRepository academicYearRepository) {
         this.admissionService = admissionService;
         this.academicQualificationService = academicQualificationService;
         this.admissionDocumentService = admissionDocumentService;
         this.admissionExportService = admissionExportService;
+        this.programRepository = programRepository;
+        this.courseRepository = courseRepository;
+        this.academicYearRepository = academicYearRepository;
     }
 
     @PostMapping
@@ -202,30 +236,32 @@ public class AdmissionController {
             @RequestParam(required = false) Long academicYearId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String studentType,
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction) {
 
+        Sort exportSort = ExportSortUtils.resolve(
+            sort, direction, EXPORT_SORT_FIELDS.keySet(), "student.admissionNumber", Sort.Direction.ASC);
         List<AdmissionResponse> data = admissionService.findExplorerAll(
-            programId, courseId, academicYearId, status, studentType, search);
+            programId, courseId, academicYearId, status, studentType, search, exportSort);
 
-        try {
-            if ("pdf".equalsIgnoreCase(format)) {
-                byte[] bytes = admissionExportService.toPdf(data);
-                String filename = "admissions-" + LocalDate.now() + ".pdf";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            } else {
-                byte[] bytes = admissionExportService.toExcel(data);
-                String filename = "admissions-" + LocalDate.now() + ".xlsx";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.parseMediaType(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        String programLabel = programId != null ? programRepository.findById(programId).map(Program::getName).orElse(null) : null;
+        String courseLabel = courseId != null ? courseRepository.findById(courseId).map(Course::getName).orElse(null) : null;
+        String academicYearLabel = academicYearId != null
+            ? academicYearRepository.findById(academicYearId).map(AcademicYear::getName).orElse(null) : null;
+
+        Sort.Order order = ExportSortUtils.firstOrder(exportSort, "student.admissionNumber", Sort.Direction.ASC);
+        ExportMetadata meta = ExportMetadata.of("Student Admissions Export")
+            .filter("Search", search)
+            .filter("Program", programLabel)
+            .filter("Course", courseLabel)
+            .filter("Academic Year", academicYearLabel)
+            .filter("Status", status)
+            .filter("Student Type", studentType)
+            .sort(EXPORT_SORT_FIELDS.get(order.getProperty()), order.getDirection());
+
+        return ExportResponseFactory.respond(format, "admissions",
+            () -> admissionExportService.toExcel(data, meta),
+            () -> admissionExportService.toPdf(data, meta));
     }
 }

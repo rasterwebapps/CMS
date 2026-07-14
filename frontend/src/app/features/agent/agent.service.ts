@@ -97,9 +97,14 @@ export class AgentService {
     return this.http.delete<void>(`${this.guidelineUrl}/${id}`);
   }
 
-  exportAgents(format: 'excel' | 'pdf', filters: { search?: string | null } = {}): Observable<Blob> {
+  exportAgents(
+    format: 'excel' | 'pdf',
+    filters: { search?: string | null; sort?: string | null; direction?: string | null } = {},
+  ): Observable<Blob> {
     let params = new HttpParams().set('format', format);
-    if (filters.search) params = params.set('search', filters.search);
+    if (filters.search)    params = params.set('search', filters.search);
+    if (filters.sort)      params = params.set('sort', filters.sort);
+    if (filters.direction) params = params.set('direction', filters.direction);
     return this.http.get(`${this.agentUrl}/export`, { params, responseType: 'blob' });
   }
 }

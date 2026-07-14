@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -101,12 +102,12 @@ public class FeeExplorerService {
      * dimensions (program name, academic year name, yearOfStudy, allocationStatus).
      */
     public List<FeeExplorerResponse.StudentFeeSummary> searchAll(
-            String search, String program, String academicYear, Integer yearOfStudy, String allocationStatus) {
+            String search, String program, String academicYear, Integer yearOfStudy, String allocationStatus, Sort sort) {
 
         Specification<Student> spec = Specification.where(null);
         if (search != null && search.length() >= 2) spec = spec.and(StudentSpecification.bySearch(search));
 
-        List<Student> students = studentRepository.findAll(spec);
+        List<Student> students = studentRepository.findAll(spec, sort);
         List<Long> ids = students.stream().map(Student::getId).toList();
 
         Map<Long, Admission> admByStudent = admissionRepository

@@ -189,8 +189,16 @@ export class AgentListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected onExport(format: ExportFormat): void {
     if (this.exporting()) return;
+    if (this.totalElements === 0) {
+      this.toast.error('No data available to export.');
+      return;
+    }
     this.exporting.set(true);
-    this.agentService.exportAgents(format, { search: this.searchValue().trim() || null }).subscribe({
+    this.agentService.exportAgents(format, {
+      search: this.searchValue().trim() || null,
+      sort: this.sortMap[this.sortActive] ?? this.sortActive,
+      direction: this.sortDirection,
+    }).subscribe({
       next: (blob) => {
         const ext = format === 'pdf' ? 'pdf' : 'xlsx';
         const url = URL.createObjectURL(blob);

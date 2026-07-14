@@ -306,6 +306,10 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
 
   protected onExport(format: ExportFormat): void {
     if (this.exporting()) return;
+    if (this.totalElements === 0) {
+      this.toast.error('No data available to export.');
+      return;
+    }
     this.exporting.set(true);
     this.financeService.exportReceipts(format, {
       search:      this.searchValue().length >= 2 ? this.searchValue() : null,
@@ -313,6 +317,8 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
       payerType:   this.selectedType() || null,
       fromDate:    this.dateFrom() || null,
       toDate:      this.dateTo() || null,
+      sort:        SORT_FIELD_MAP[this.sortActive] ?? this.sortActive,
+      direction:   this.sortDirection,
     }).subscribe({
       next: (blob) => {
         const ext = format === 'pdf' ? 'pdf' : 'xlsx';

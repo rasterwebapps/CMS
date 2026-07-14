@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,9 +33,9 @@ public class ScholarshipTypeService {
             .toList();
     }
 
-    public List<ScholarshipTypeResponse> findAll(String search) {
+    public List<ScholarshipTypeResponse> findAll(String search, Sort sort) {
         if (search == null || search.isBlank()) {
-            return scholarshipTypeRepository.findAll().stream().map(this::toResponse).toList();
+            return scholarshipTypeRepository.findAll(sort).stream().map(this::toResponse).toList();
         }
         String pattern = "%" + search.trim().toLowerCase() + "%";
         Specification<ScholarshipType> spec = (root, query, cb) ->
@@ -42,7 +43,7 @@ public class ScholarshipTypeService {
                 cb.like(cb.lower(root.get("name")), pattern),
                 cb.like(cb.lower(root.get("code")), pattern)
             );
-        return scholarshipTypeRepository.findAll(spec).stream().map(this::toResponse).toList();
+        return scholarshipTypeRepository.findAll(spec, sort).stream().map(this::toResponse).toList();
     }
 
     public Page<ScholarshipTypeResponse> findPage(String search, Pageable pageable) {

@@ -1,6 +1,7 @@
 package com.cms.controller;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -9,10 +10,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -49,12 +47,31 @@ import com.cms.service.FeeRefundService;
 import com.cms.service.OneBookIntegrationService;
 import com.cms.service.PaymentCollectionService;
 import com.cms.service.PenaltyCalculationService;
+import com.cms.util.ExportSortUtils;
+import com.cms.util.export.ExportMetadata;
+import com.cms.util.export.ExportResponseFactory;
 
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/student-fees")
 public class StudentFeeController {
+
+    private static final Map<String, String> EXPLORER_SORT_FIELDS = new LinkedHashMap<>();
+    static {
+        EXPLORER_SORT_FIELDS.put("rollNumber", "Roll No.");
+        EXPLORER_SORT_FIELDS.put("firstName", "Student Name");
+        EXPLORER_SORT_FIELDS.put("program.name", "Program");
+    }
+
+    private static final Map<String, String> REFUND_SORT_FIELDS = new LinkedHashMap<>();
+    static {
+        REFUND_SORT_FIELDS.put("requestedAt", "Requested At");
+        REFUND_SORT_FIELDS.put("refundAmount", "Refund Amount");
+        REFUND_SORT_FIELDS.put("status", "Status");
+        REFUND_SORT_FIELDS.put("originalReceiptNumber", "Original Receipt");
+        REFUND_SORT_FIELDS.put("programName", "Program");
+    }
 
     private final FeeFinalizationService feeFinalizationService;
     private final PaymentCollectionService paymentCollectionService;
@@ -164,31 +181,27 @@ public class StudentFeeController {
             @RequestParam(required = false) String program,
             @RequestParam(required = false) String academicYear,
             @RequestParam(required = false) Integer yearOfStudy,
-            @RequestParam(required = false) String allocationStatus) {
+            @RequestParam(required = false) String allocationStatus,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction) {
 
+        Sort exportSort = ExportSortUtils.resolve(
+            sort, direction, EXPLORER_SORT_FIELDS.keySet(), "rollNumber", Sort.Direction.ASC);
         List<FeeExplorerResponse.StudentFeeSummary> data =
-            feeExplorerService.searchAll(search, program, academicYear, yearOfStudy, allocationStatus);
+            feeExplorerService.searchAll(search, program, academicYear, yearOfStudy, allocationStatus, exportSort);
 
-        try {
-            if ("pdf".equalsIgnoreCase(format)) {
-                byte[] bytes = feeExportService.toPdf(data);
-                String filename = "fee-explorer-" + LocalDate.now() + ".pdf";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            } else {
-                byte[] bytes = feeExportService.toExcel(data);
-                String filename = "fee-explorer-" + LocalDate.now() + ".xlsx";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.parseMediaType(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        Sort.Order order = ExportSortUtils.firstOrder(exportSort, "rollNumber", Sort.Direction.ASC);
+        ExportMetadata meta = ExportMetadata.of("Student Fee Explorer Export")
+            .filter("Search", search)
+            .filter("Program", (program != null && !program.equals("ALL")) ? program : null)
+            .filter("Academic Year", (academicYear != null && !academicYear.equals("ALL")) ? academicYear : null)
+            .filter("Year of Study", yearOfStudy != null ? String.valueOf(yearOfStudy) : null)
+            .filter("Allocation Status", (allocationStatus != null && !allocationStatus.equals("ALL")) ? allocationStatus : null)
+            .sort(EXPLORER_SORT_FIELDS.get(order.getProperty()), order.getDirection());
+
+        return ExportResponseFactory.respond(format, "fee-explorer",
+            () -> feeExportService.toExcel(data, meta),
+            () -> feeExportService.toPdf(data, meta));
     }
 
     /** Unified refund initiation — auto-detects entity type (STUDENT or ENQUIRY) from the receipt. */
@@ -222,29 +235,26 @@ public class StudentFeeController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String entityType,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction) {
+
+        Sort exportSort = ExportSortUtils.resolve(
+            sort, direction, REFUND_SORT_FIELDS.keySet(), "requestedAt", Sort.Direction.DESC);
         List<FeeRefundSummaryResponse> data = feeRefundService.getAllRefundsAll(
-            search, status, entityType, fromDate, toDate);
-        try {
-            if ("pdf".equalsIgnoreCase(format)) {
-                byte[] bytes = feeRefundExportService.toPdf(data);
-                String filename = "fee-refunds-" + LocalDate.now() + ".pdf";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            } else {
-                byte[] bytes = feeRefundExportService.toExcel(data);
-                String filename = "fee-refunds-" + LocalDate.now() + ".xlsx";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.parseMediaType(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+            search, status, entityType, fromDate, toDate, exportSort);
+
+        Sort.Order order = ExportSortUtils.firstOrder(exportSort, "requestedAt", Sort.Direction.DESC);
+        ExportMetadata meta = ExportMetadata.of("Fee Refunds Export")
+            .filter("Search", search)
+            .filter("Status", status)
+            .filter("Entity Type", entityType)
+            .filter("Date Range", (fromDate != null && toDate != null) ? fromDate + " to " + toDate : null)
+            .sort(REFUND_SORT_FIELDS.get(order.getProperty()), order.getDirection());
+
+        return ExportResponseFactory.respond(format, "fee-refunds",
+            () -> feeRefundExportService.toExcel(data, meta),
+            () -> feeRefundExportService.toPdf(data, meta));
     }
 
     @GetMapping("/refunds/pending")

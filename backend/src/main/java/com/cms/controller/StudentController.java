@@ -1,16 +1,15 @@
 package com.cms.controller;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -33,10 +32,19 @@ import com.cms.dto.RollNumberAssignment;
 import com.cms.dto.RollNumberAssignmentRequest;
 import com.cms.dto.StudentRequest;
 import com.cms.dto.StudentResponse;
+import com.cms.model.AcademicYear;
+import com.cms.model.Course;
+import com.cms.model.Program;
 import com.cms.model.enums.StudentStatus;
+import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.CourseRepository;
+import com.cms.repository.ProgramRepository;
 import com.cms.service.RollNumberGeneratorService;
 import com.cms.service.StudentExportService;
 import com.cms.service.StudentService;
+import com.cms.util.ExportSortUtils;
+import com.cms.util.export.ExportMetadata;
+import com.cms.util.export.ExportResponseFactory;
 
 import jakarta.validation.Valid;
 
@@ -44,16 +52,40 @@ import jakarta.validation.Valid;
 @RequestMapping("/students")
 public class StudentController {
 
+    private static final Map<String, String> EXPORT_SORT_FIELDS = new LinkedHashMap<>();
+    static {
+        EXPORT_SORT_FIELDS.put("firstName", "Name");
+        EXPORT_SORT_FIELDS.put("admissionNumber", "Admission No.");
+        EXPORT_SORT_FIELDS.put("rollNumber", "Roll No.");
+        EXPORT_SORT_FIELDS.put("program.name", "Program");
+        EXPORT_SORT_FIELDS.put("semester", "Semester");
+        EXPORT_SORT_FIELDS.put("admissionDate", "Admission Date");
+        EXPORT_SORT_FIELDS.put("status", "Status");
+        EXPORT_SORT_FIELDS.put("phone", "Phone");
+        EXPORT_SORT_FIELDS.put("email", "Email");
+        EXPORT_SORT_FIELDS.put("universityRegistrationNumber", "University Reg. No.");
+        EXPORT_SORT_FIELDS.put("labBatch", "Lab Batch");
+    }
+
     private final StudentService studentService;
     private final RollNumberGeneratorService rollNumberGeneratorService;
     private final StudentExportService studentExportService;
+    private final ProgramRepository programRepository;
+    private final CourseRepository courseRepository;
+    private final AcademicYearRepository academicYearRepository;
 
     public StudentController(StudentService studentService,
                              RollNumberGeneratorService rollNumberGeneratorService,
-                             StudentExportService studentExportService) {
+                             StudentExportService studentExportService,
+                             ProgramRepository programRepository,
+                             CourseRepository courseRepository,
+                             AcademicYearRepository academicYearRepository) {
         this.studentService = studentService;
         this.rollNumberGeneratorService = rollNumberGeneratorService;
         this.studentExportService = studentExportService;
+        this.programRepository = programRepository;
+        this.courseRepository = courseRepository;
+        this.academicYearRepository = academicYearRepository;
     }
 
     @PostMapping
@@ -116,31 +148,33 @@ public class StudentController {
             @RequestParam(required = false) Long academicYearId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String studentType,
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction) {
 
+        Sort exportSort = ExportSortUtils.resolve(
+            sort, direction, EXPORT_SORT_FIELDS.keySet(), "admissionNumber", Sort.Direction.ASC);
         List<StudentResponse> data = studentService.findExplorerAll(
-            programId, courseId, academicYearId, status, studentType, search);
+            programId, courseId, academicYearId, status, studentType, search, exportSort);
 
-        try {
-            if ("pdf".equalsIgnoreCase(format)) {
-                byte[] bytes = studentExportService.toPdf(data);
-                String filename = "students-" + LocalDate.now() + ".pdf";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            } else {
-                byte[] bytes = studentExportService.toExcel(data);
-                String filename = "students-" + LocalDate.now() + ".xlsx";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.parseMediaType(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        String programLabel = programId != null ? programRepository.findById(programId).map(Program::getName).orElse(null) : null;
+        String courseLabel = courseId != null ? courseRepository.findById(courseId).map(Course::getName).orElse(null) : null;
+        String academicYearLabel = academicYearId != null
+            ? academicYearRepository.findById(academicYearId).map(AcademicYear::getName).orElse(null) : null;
+
+        Sort.Order order = ExportSortUtils.firstOrder(exportSort, "admissionNumber", Sort.Direction.ASC);
+        ExportMetadata meta = ExportMetadata.of("Enrolled Students Export")
+            .filter("Search", search)
+            .filter("Program", programLabel)
+            .filter("Course", courseLabel)
+            .filter("Academic Year", academicYearLabel)
+            .filter("Status", status)
+            .filter("Student Type", studentType)
+            .sort(EXPORT_SORT_FIELDS.get(order.getProperty()), order.getDirection());
+
+        return ExportResponseFactory.respond(format, "students",
+            () -> studentExportService.toExcel(data, meta),
+            () -> studentExportService.toPdf(data, meta));
     }
 
     @GetMapping("/without-roll-number")

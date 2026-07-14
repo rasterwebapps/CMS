@@ -8,6 +8,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -325,14 +326,14 @@ public class FeeRefundService {
 
     public List<FeeRefundSummaryResponse> getAllRefundsAll(
             String search, String status, String entityType,
-            LocalDate fromDate, LocalDate toDate) {
+            LocalDate fromDate, LocalDate toDate, Sort sort) {
         Specification<FeeRefund> spec = Specification.where(null);
         if (search != null && search.length() >= 2)       spec = spec.and(FeeRefundSpecification.bySearch(search));
         if (status != null && !status.isBlank())          spec = spec.and(FeeRefundSpecification.byStatus(status));
         if (entityType != null && !entityType.isBlank())  spec = spec.and(FeeRefundSpecification.byEntityType(entityType));
         if (fromDate != null)                             spec = spec.and(FeeRefundSpecification.byDateFrom(fromDate));
         if (toDate != null)                               spec = spec.and(FeeRefundSpecification.byDateTo(toDate));
-        return refundRepository.findAll(spec).stream().map(this::toSummaryResponse).toList();
+        return refundRepository.findAll(spec, sort).stream().map(this::toSummaryResponse).toList();
     }
 
     public Page<FeeRefundSummaryResponse> getAllRefundsPage(

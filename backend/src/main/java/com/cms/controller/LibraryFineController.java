@@ -1,17 +1,14 @@
 package com.cms.controller;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -31,12 +28,20 @@ import com.cms.model.enums.LibraryMemberType;
 import com.cms.service.LibraryFineExportService;
 import com.cms.service.LibraryFineService;
 import com.cms.util.ExportSortUtils;
+import com.cms.util.export.ExportMetadata;
+import com.cms.util.export.ExportResponseFactory;
 
 @RestController
 @RequestMapping("/library/fines")
 public class LibraryFineController {
 
-    private static final Set<String> EXPORT_SORT_FIELDS = Set.of("createdAt", "overdueDays", "totalFine", "status");
+    private static final Map<String, String> EXPORT_SORT_FIELDS = new LinkedHashMap<>();
+    static {
+        EXPORT_SORT_FIELDS.put("createdAt", "Created Date");
+        EXPORT_SORT_FIELDS.put("overdueDays", "Overdue Days");
+        EXPORT_SORT_FIELDS.put("totalFine", "Fine Amount");
+        EXPORT_SORT_FIELDS.put("status", "Status");
+    }
 
     private final LibraryFineService fineService;
     private final LibraryFineExportService fineExportService;
@@ -95,29 +100,20 @@ public class LibraryFineController {
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String direction) {
 
-        Sort exportSort = ExportSortUtils.resolve(sort, direction, EXPORT_SORT_FIELDS, "createdAt", Sort.Direction.DESC);
+        Sort exportSort = ExportSortUtils.resolve(
+            sort, direction, EXPORT_SORT_FIELDS.keySet(), "createdAt", Sort.Direction.DESC);
         List<LibraryFineDetailResponse> data = fineService.findAllMatching(
             search, status, memberType, exportSort);
 
-        try {
-            if ("pdf".equalsIgnoreCase(format)) {
-                byte[] bytes = fineExportService.toPdf(data);
-                String filename = "fine-register-" + LocalDate.now() + ".pdf";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            } else {
-                byte[] bytes = fineExportService.toExcel(data);
-                String filename = "fine-register-" + LocalDate.now() + ".xlsx";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.parseMediaType(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        Sort.Order order = ExportSortUtils.firstOrder(exportSort, "createdAt", Sort.Direction.DESC);
+        ExportMetadata meta = ExportMetadata.of("Fine Register Export")
+            .filter("Search", search)
+            .filter("Status", status != null ? status.name() : null)
+            .filter("Member Type", memberType != null ? memberType.name() : null)
+            .sort(EXPORT_SORT_FIELDS.get(order.getProperty()), order.getDirection());
+
+        return ExportResponseFactory.respond(format, "fine-register",
+            () -> fineExportService.toExcel(data, meta),
+            () -> fineExportService.toPdf(data, meta));
     }
 }

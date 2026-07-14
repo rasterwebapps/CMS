@@ -63,9 +63,14 @@ export class StaffReferrerService {
     return this.http.patch<StaffReferrerStatusUpdateResponse>(`${this.url}/${id}/status`, request);
   }
 
-  exportStaffReferrers(format: 'excel' | 'pdf', filters: { search?: string | null } = {}): Observable<Blob> {
+  exportStaffReferrers(
+    format: 'excel' | 'pdf',
+    filters: { search?: string | null; sort?: string | null; direction?: string | null } = {},
+  ): Observable<Blob> {
     let params = new HttpParams().set('format', format);
-    if (filters.search) params = params.set('search', filters.search);
+    if (filters.search)    params = params.set('search', filters.search);
+    if (filters.sort)      params = params.set('sort', filters.sort);
+    if (filters.direction) params = params.set('direction', filters.direction);
     return this.http.get(`${this.url}/export`, { params, responseType: 'blob' });
   }
 }

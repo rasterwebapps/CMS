@@ -313,12 +313,18 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   protected onExport(format: ExportFormat): void {
     if (this.exporting()) return;
+    if (this.totalElements === 0) {
+      this.toast.error('No data available to export.');
+      return;
+    }
     this.exporting.set(true);
     this.facultyService.exportFaculty(format, {
       search:         this.searchValue().trim() || null,
       specialityId:   this.selectedSpecialityId(),
       status:         this.selectedStatus(),
       documentReview: this.selectedDocumentReview() !== 'ALL' ? this.selectedDocumentReview() : null,
+      sort:           this.sortMap[this.sortActive] ?? this.sortActive,
+      direction:      this.sortDirection,
     }).subscribe({
       next: (blob) => {
         const ext = format === 'pdf' ? 'pdf' : 'xlsx';

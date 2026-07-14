@@ -1,9 +1,9 @@
 package com.cms.controller;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +37,8 @@ import com.cms.service.LibraryBarcodeService;
 import com.cms.service.LibraryPeriodicalExportService;
 import com.cms.service.LibraryPeriodicalService;
 import com.cms.util.ExportSortUtils;
+import com.cms.util.export.ExportMetadata;
+import com.cms.util.export.ExportResponseFactory;
 
 import jakarta.validation.Valid;
 
@@ -46,8 +48,15 @@ public class LibraryPeriodicalController {
 
     private static final Logger log = LoggerFactory.getLogger(LibraryPeriodicalController.class);
 
-    private static final Set<String> EXPORT_SORT_FIELDS = Set.of(
-        "accessionNumber", "journalName", "journalType", "year", "subscriptionStatus", "receivedDate");
+    private static final Map<String, String> EXPORT_SORT_FIELDS = new LinkedHashMap<>();
+    static {
+        EXPORT_SORT_FIELDS.put("accessionNumber", "Acc. No.");
+        EXPORT_SORT_FIELDS.put("journalName", "Journal Name");
+        EXPORT_SORT_FIELDS.put("journalType", "Type");
+        EXPORT_SORT_FIELDS.put("year", "Year");
+        EXPORT_SORT_FIELDS.put("subscriptionStatus", "Status");
+        EXPORT_SORT_FIELDS.put("receivedDate", "Received Date");
+    }
 
     private final LibraryPeriodicalService periodicalService;
     private final LibraryPeriodicalExportService periodicalExportService;
@@ -141,30 +150,21 @@ public class LibraryPeriodicalController {
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String direction) {
 
-        Sort exportSort = ExportSortUtils.resolve(sort, direction, EXPORT_SORT_FIELDS, "journalName", Sort.Direction.ASC);
+        Sort exportSort = ExportSortUtils.resolve(
+            sort, direction, EXPORT_SORT_FIELDS.keySet(), "journalName", Sort.Direction.ASC);
         List<LibraryPeriodicalResponse> data = periodicalService.findAllMatching(
             search, subscriptionStatus, journalType, exportSort);
 
-        try {
-            if ("pdf".equalsIgnoreCase(format)) {
-                byte[] bytes = periodicalExportService.toPdf(data);
-                String filename = "journals-periodicals-" + LocalDate.now() + ".pdf";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_PDF);
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            } else {
-                byte[] bytes = periodicalExportService.toExcel(data);
-                String filename = "journals-periodicals-" + LocalDate.now() + ".xlsx";
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.parseMediaType(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-                headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
-                return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        Sort.Order order = ExportSortUtils.firstOrder(exportSort, "journalName", Sort.Direction.ASC);
+        ExportMetadata meta = ExportMetadata.of("Journals & Periodicals Export")
+            .filter("Search", search)
+            .filter("Subscription Status", subscriptionStatus != null ? subscriptionStatus.name() : null)
+            .filter("Journal Type", journalType != null ? journalType.name() : null)
+            .sort(EXPORT_SORT_FIELDS.get(order.getProperty()), order.getDirection());
+
+        return ExportResponseFactory.respond(format, "journals-periodicals",
+            () -> periodicalExportService.toExcel(data, meta),
+            () -> periodicalExportService.toPdf(data, meta));
     }
 
     @GetMapping("/{id}/barcode.png")
