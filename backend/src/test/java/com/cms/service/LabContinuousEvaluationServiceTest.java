@@ -209,7 +209,7 @@ class LabContinuousEvaluationServiceTest {
     }
 
     private Subject createSubject() {
-        Subject course = new Subject("Physics", "PHY101", 4, 3, 1, null, null, 1);
+        Subject course = new Subject("Physics", "PHY101", 4, 3, 1, null, 1);
         course.setId(1L);
         return course;
     }

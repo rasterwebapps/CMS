@@ -16,6 +16,8 @@ import {
   AttendanceThreshold,
   AttendanceComponentType,
 } from '../curriculum-version.model';
+import { CourseService } from '../../course/course.service';
+import { Course } from '../../course/course.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
@@ -37,6 +39,7 @@ export class CurriculumMapComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly service = inject(CurriculumVersionService);
+  private readonly courseService = inject(CourseService);
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
@@ -53,6 +56,7 @@ export class CurriculumMapComponent implements OnInit {
   protected readonly creatingElectiveGroup = signal(false);
   protected readonly thresholds = signal<AttendanceThreshold[]>([]);
   protected readonly savingThresholds = signal(false);
+  protected readonly programCourses = signal<Course[]>([]);
 
   protected readonly newElectiveGroupNameControl = this.fb.control('');
 
@@ -73,6 +77,7 @@ export class CurriculumMapComponent implements OnInit {
     theoryThreshold: [null],
     labThreshold: [null],
     clinicalThreshold: [null],
+    restrictCourseId: [null as number | null],
   });
 
   private curriculumVersionId!: number;
@@ -112,6 +117,7 @@ export class CurriculumMapComponent implements OnInit {
         theoryThreshold: null,
         labThreshold: null,
         clinicalThreshold: null,
+        restrictCourseId: null,
       });
       this.setHourFieldState('theoryEnabled', 'theoryHours', false);
       this.setHourFieldState('labEnabled', 'labHours', false);
@@ -139,6 +145,7 @@ export class CurriculumMapComponent implements OnInit {
       theoryThreshold: null,
       labThreshold: null,
       clinicalThreshold: null,
+      restrictCourseId: course.courseId,
     });
     this.addCourseForm.get('subjectId')?.disable();
     this.setHourFieldState('theoryEnabled', 'theoryHours', course.theoryHours > 0);
@@ -263,6 +270,7 @@ export class CurriculumMapComponent implements OnInit {
       subjectType: v.subjectType,
       isElective: v.isElective,
       electiveGroupId: v.isElective ? v.electiveGroupId : null,
+      courseId: v.restrictCourseId ?? null,
     };
     const editingId = this.editingCourseId();
     this.adding.set(termNumber);
@@ -335,6 +343,10 @@ export class CurriculumMapComponent implements OnInit {
       next: (data) => {
         this.curriculum.set(data);
         this.loading.set(false);
+        this.courseService.getByProgram(data.programId).subscribe({
+          next: (courses) => this.programCourses.set(courses),
+          error: () => this.programCourses.set([]),
+        });
       },
       error: () => {
         this.toast.error('Failed to load curriculum');

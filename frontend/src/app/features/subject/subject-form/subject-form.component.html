@@ -1,0 +1,158 @@
+<div class="entry-form-page">
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/subjects" aria-label="Back to subjects">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Subject</em></h1>
+      <p class="page-subtitle">
+        {{ isEditMode() ? 'Update the subject details below.' : 'Fill in the details below to register a new subject.' }}
+      </p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+      <div class="entry-form-card entry-form-card--sectioned">
+
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Subject Information</div>
+            <div class="entry-form-card__hdr-sub">Subject details and credits</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="field-group">
+              <label for="subj-name" class="field-label">Subject Name <span class="required-star">*</span></label>
+              <input id="subj-name" class="field-input" formControlName="name"
+                placeholder="e.g., Applied Anatomy" autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+              @if (form.get('name')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">{{ getErrorMessage('name') }}</p>
+              }
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="subj-code" class="field-label">Subject Code <span class="required-star">*</span></label>
+                <input id="subj-code" class="field-input" formControlName="code"
+                  placeholder="e.g., BSN101" autocomplete="off"
+                  (input)="onCodeInput($event)"
+                  [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched" />
+                <p class="field-hint">Short identifier</p>
+                @if (form.get('code')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (form.get('code')?.invalid && form.get('code')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('code') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="subj-term" class="field-label">Term Number <span class="required-star">*</span></label>
+                <input id="subj-term" class="field-input" formControlName="termNumber"
+                  type="number" min="1" max="12" placeholder="e.g., 1" autocomplete="off"
+                  [class.field-input--error]="form.get('termNumber')?.invalid && form.get('termNumber')?.touched" />
+                @if (form.get('termNumber')?.invalid && form.get('termNumber')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('termNumber') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="subj-credits" class="field-label">Credits <span class="required-star">*</span></label>
+                <input id="subj-credits" class="field-input" formControlName="credits"
+                  type="number" min="1" max="20" autocomplete="off"
+                  [class.field-input--error]="form.get('credits')?.invalid && form.get('credits')?.touched" />
+                @if (form.get('credits')?.invalid && form.get('credits')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('credits') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="subj-theory-credits" class="field-label">Theory Credits <span class="required-star">*</span></label>
+                <input id="subj-theory-credits" class="field-input" formControlName="theoryCredits"
+                  type="number" min="0" max="20" autocomplete="off"
+                  [class.field-input--error]="form.get('theoryCredits')?.invalid && form.get('theoryCredits')?.touched" />
+                @if (form.get('theoryCredits')?.invalid && form.get('theoryCredits')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('theoryCredits') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="subj-lab-credits" class="field-label">Lab Credits <span class="required-star">*</span></label>
+                <input id="subj-lab-credits" class="field-input" formControlName="labCredits"
+                  type="number" min="0" max="20" autocomplete="off"
+                  [class.field-input--error]="form.get('labCredits')?.invalid && form.get('labCredits')?.touched" />
+                @if (form.get('labCredits')?.invalid && form.get('labCredits')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('labCredits') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="subj-speciality" class="field-label">Speciality</label>
+              <select id="subj-speciality" class="field-select" formControlName="specialityId">
+                <option [ngValue]="null">— None —</option>
+                @for (speciality of specialities(); track speciality.id) {
+                  <option [ngValue]="speciality.id">{{ speciality.name }}</option>
+                }
+              </select>
+              <p class="field-hint">Optional — which speciality teaches this subject</p>
+            </div>
+
+            <div class="field-group" style="margin-top: 12px;">
+              <label for="subj-status" class="field-label">Status</label>
+              <select id="subj-status" class="field-select" formControlName="isActive">
+                <option [ngValue]="true">Active</option>
+                <option [ngValue]="false">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <button type="button" class="btn-cancel" routerLink="/subjects">Cancel</button>
+            <button type="submit" class="btn-submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                {{ isEditMode() ? 'Update Subject' : 'Create Subject' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-code">{{ previewCode() || '—' }}</div>
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Subject name will appear here' }}
+          </div>
+          <div class="prev-meta-row">
+            @if (previewTermNumber()) {
+              <span class="prev-pill">Term {{ previewTermNumber() }}</span>
+            }
+            @if (previewCredits()) {
+              <span class="prev-pill">{{ previewCredits() }} credits</span>
+            }
+          </div>
+        </cms-preview-card>
+
+        <cms-tips-card heading="Guidance" [tips]="TIPS" />
+      </aside>
+    </div>
+  }
+</div>

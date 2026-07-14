@@ -22,12 +22,12 @@ import com.cms.dto.CurriculumSemesterCourseDto;
 import com.cms.dto.CurriculumSemesterCourseRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
-import com.cms.model.Course;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.CurriculumVersion;
 import com.cms.model.Program;
 import com.cms.model.Subject;
 import com.cms.model.enums.ProgramStatus;
+import com.cms.repository.CourseRepository;
 import com.cms.repository.CurriculumElectiveGroupRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
@@ -48,6 +48,9 @@ class CurriculumSemesterCourseServiceTest {
     @Mock
     private CurriculumElectiveGroupRepository electiveGroupRepository;
 
+    @Mock
+    private CourseRepository courseMasterRepository;
+
     private CurriculumSemesterCourseService service;
 
     private Program testProgram;
@@ -58,7 +61,8 @@ class CurriculumSemesterCourseServiceTest {
     @BeforeEach
     void setUp() {
         service = new CurriculumSemesterCourseService(
-            courseRepository, curriculumVersionRepository, subjectRepository, electiveGroupRepository);
+            courseRepository, curriculumVersionRepository, subjectRepository, electiveGroupRepository,
+            courseMasterRepository);
 
         testProgram = createProgram(1L, "BSc Nursing", "BSCN", 4);
         testAcademicYear = createAcademicYear(1L, "2026-2027");
@@ -68,7 +72,7 @@ class CurriculumSemesterCourseServiceTest {
 
     @Test
     void shouldAddCourseToSemester() {
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1, null, null, null, null, null, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1, null, null, null, null, null, null, null);
         CurriculumSemesterCourse saved = createCsc(1L, testCv, 1, testSubject, 1);
 
         when(curriculumVersionRepository.findById(1L)).thenReturn(Optional.of(testCv));
@@ -87,7 +91,7 @@ class CurriculumSemesterCourseServiceTest {
     @Test
     void shouldRejectInvalidSemesterNumber() {
         // 4-year program has 8 semesters max; semester 9 is invalid
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 9, 1L, null, null, null, null, null, null, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 9, 1L, null, null, null, null, null, null, null, null);
 
         when(curriculumVersionRepository.findById(1L)).thenReturn(Optional.of(testCv));
 
@@ -98,7 +102,7 @@ class CurriculumSemesterCourseServiceTest {
 
     @Test
     void shouldRejectSemesterNumberBelowOne() {
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 0, 1L, null, null, null, null, null, null, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 0, 1L, null, null, null, null, null, null, null, null);
 
         when(curriculumVersionRepository.findById(1L)).thenReturn(Optional.of(testCv));
 
@@ -108,7 +112,7 @@ class CurriculumSemesterCourseServiceTest {
 
     @Test
     void shouldThrowWhenCurriculumVersionNotFoundOnAdd() {
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(999L, 1, 1L, null, null, null, null, null, null, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(999L, 1, 1L, null, null, null, null, null, null, null, null);
 
         when(curriculumVersionRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -119,7 +123,7 @@ class CurriculumSemesterCourseServiceTest {
 
     @Test
     void shouldThrowWhenSubjectNotFoundOnAdd() {
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 999L, null, null, null, null, null, null, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 999L, null, null, null, null, null, null, null, null);
 
         when(curriculumVersionRepository.findById(1L)).thenReturn(Optional.of(testCv));
         when(subjectRepository.findById(999L)).thenReturn(Optional.empty());
@@ -133,7 +137,7 @@ class CurriculumSemesterCourseServiceTest {
     void shouldUpdateCourseDetailsWithHoursAndSubjectType() {
         CurriculumSemesterCourse existing = createCsc(1L, testCv, 1, testSubject, 1);
         CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(
-            1L, 1, 1L, 1, 40, 80, 320, com.cms.model.enums.SubjectType.CORE, false, null);
+            1L, 1, 1L, 1, 40, 80, 320, com.cms.model.enums.SubjectType.CORE, false, null, null);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(courseRepository.save(any(CurriculumSemesterCourse.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -150,7 +154,7 @@ class CurriculumSemesterCourseServiceTest {
     @Test
     void shouldThrowWhenUpdatingNonExistentCourse() {
         CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(
-            1L, 1, 1L, 1, null, null, null, null, null, null);
+            1L, 1, 1L, 1, null, null, null, null, null, null, null);
 
         when(courseRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -163,7 +167,7 @@ class CurriculumSemesterCourseServiceTest {
     void shouldRejectElectiveWithoutGroup() {
         CurriculumSemesterCourse existing = createCsc(1L, testCv, 1, testSubject, 1);
         CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(
-            1L, 1, 1L, 1, null, null, null, com.cms.model.enums.SubjectType.ELECTIVE, true, null);
+            1L, 1, 1L, 1, null, null, null, com.cms.model.enums.SubjectType.ELECTIVE, true, null, null);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existing));
 
@@ -179,7 +183,7 @@ class CurriculumSemesterCourseServiceTest {
             new com.cms.model.CurriculumElectiveGroup(testCv, 2, "Term 2 Electives", "T2E");
         group.setId(5L);
         CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(
-            1L, 1, 1L, 1, null, null, null, com.cms.model.enums.SubjectType.ELECTIVE, true, 5L);
+            1L, 1, 1L, 1, null, null, null, com.cms.model.enums.SubjectType.ELECTIVE, true, 5L, null);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(electiveGroupRepository.findById(5L)).thenReturn(Optional.of(group));
@@ -196,7 +200,7 @@ class CurriculumSemesterCourseServiceTest {
             new com.cms.model.CurriculumElectiveGroup(testCv, 1, "Term 1 Electives", "T1E");
         group.setId(5L);
         CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(
-            1L, 1, 1L, 1, null, null, null, com.cms.model.enums.SubjectType.ELECTIVE, true, 5L);
+            1L, 1, 1L, 1, null, null, null, com.cms.model.enums.SubjectType.ELECTIVE, true, 5L, null);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(electiveGroupRepository.findById(5L)).thenReturn(Optional.of(group));
@@ -325,9 +329,7 @@ class CurriculumSemesterCourseServiceTest {
     }
 
     private Subject createSubject(Long id, String name, String code) {
-        Course course = new Course();
-        course.setId(1L);
-        Subject s = new Subject(name, code, 4, 3, 1, course, null, 1);
+        Subject s = new Subject(name, code, 4, 3, 1, null, 1);
         s.setId(id);
         s.setCreatedAt(Instant.now());
         s.setUpdatedAt(Instant.now());

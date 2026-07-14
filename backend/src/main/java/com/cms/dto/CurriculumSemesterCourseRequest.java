@@ -31,5 +31,8 @@ public record CurriculumSemesterCourseRequest(
 
     Boolean isElective,
 
-    Long electiveGroupId
+    Long electiveGroupId,
+
+    /** Optional: restrict this row to one specific course under the curriculum's program. */
+    Long courseId
 ) {}

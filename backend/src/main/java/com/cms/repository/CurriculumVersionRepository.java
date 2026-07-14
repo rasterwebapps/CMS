@@ -13,4 +13,10 @@ public interface CurriculumVersionRepository extends JpaRepository<CurriculumVer
     List<CurriculumVersion> findByProgramIdAndIsActiveTrue(Long programId);
 
     boolean existsByProgramIdAndIsActiveTrue(Long programId);
+
+    /** Course-specific active versions — takes precedence over the program-wide fallback below. */
+    List<CurriculumVersion> findByProgramIdAndCourseIdAndIsActiveTrue(Long programId, Long courseId);
+
+    /** Program-wide active versions (course_id IS NULL) — used when no course-specific version exists. */
+    List<CurriculumVersion> findByProgramIdAndCourseIdIsNullAndIsActiveTrue(Long programId);
 }

@@ -24,9 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.cms.dto.CourseResponse;
 import com.cms.dto.SpecialityResponse;
-import com.cms.dto.ProgramResponse;
 import com.cms.dto.SubjectRequest;
 import com.cms.dto.SubjectResponse;
 import com.cms.exception.ResourceNotFoundException;
@@ -50,20 +48,17 @@ class SubjectControllerTest {
 
     private SubjectResponse createTestResponse(Long id, String name, String code) {
         SpecialityResponse dept = new SpecialityResponse(1L, "MSN", "MSN", "Desc", null, "Dr. X", now, now);
-        ProgramResponse prog = new ProgramResponse(1L, "B.Sc. Nursing", "BSCN", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, now, now);
-        CourseResponse courseResp = new CourseResponse(1L, "BSN Course", "BSN",
-            "General", null, prog, now, now);
-        return new SubjectResponse(id, name, code, 4, 3, 1, courseResp, dept, 1, now, now);
+        return new SubjectResponse(id, name, code, 4, 3, 1, dept, 1, true, now, now);
     }
 
     @Test
     void shouldCreateSubject() throws Exception {
-        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 1L, 1L, 1);
+        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 1L, 1, null);
         SubjectResponse response = createTestResponse(1L, "Anatomy", "ANAT101");
 
         when(subjectService.create(any(SubjectRequest.class))).thenReturn(response);
 
-        mockMvc.perform(post("/api/v1/subjects")
+        mockMvc.perform(post("/subjects")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
@@ -78,14 +73,14 @@ class SubjectControllerTest {
     @Test
     void shouldFindAllSubjects() throws Exception {
         SubjectResponse response = createTestResponse(1L, "Anatomy", "ANAT101");
-        when(subjectService.findAll()).thenReturn(List.of(response));
+        when(subjectService.findAll(false)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/api/v1/subjects"))
+        mockMvc.perform(get("/subjects"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].name").value("Anatomy"));
 
-        verify(subjectService).findAll();
+        verify(subjectService).findAll(false);
     }
 
     @Test
@@ -93,7 +88,7 @@ class SubjectControllerTest {
         SubjectResponse response = createTestResponse(1L, "Anatomy", "ANAT101");
         when(subjectService.findById(1L)).thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/subjects/1"))
+        mockMvc.perform(get("/subjects/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.name").value("Anatomy"));
@@ -106,7 +101,7 @@ class SubjectControllerTest {
         when(subjectService.findById(999L)).thenThrow(
             new ResourceNotFoundException("Subject not found with id: 999"));
 
-        mockMvc.perform(get("/api/v1/subjects/999"))
+        mockMvc.perform(get("/subjects/999"))
             .andExpect(status().isNotFound());
     }
 
@@ -115,7 +110,7 @@ class SubjectControllerTest {
         SubjectResponse response = createTestResponse(1L, "Anatomy", "ANAT101");
         when(subjectService.findByCourseId(1L)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/api/v1/subjects/course/1"))
+        mockMvc.perform(get("/subjects/course/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].name").value("Anatomy"));
@@ -128,7 +123,7 @@ class SubjectControllerTest {
         SubjectResponse response = createTestResponse(1L, "Anatomy", "ANAT101");
         when(subjectService.findBySpecialityId(1L)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/api/v1/subjects/speciality/1"))
+        mockMvc.perform(get("/subjects/speciality/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].name").value("Anatomy"));
@@ -138,12 +133,12 @@ class SubjectControllerTest {
 
     @Test
     void shouldUpdateSubject() throws Exception {
-        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 1L, 1L, 2);
+        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 1L, 2, null);
         SubjectResponse response = createTestResponse(1L, "Physiology", "PHYS101");
 
         when(subjectService.update(eq(1L), any(SubjectRequest.class))).thenReturn(response);
 
-        mockMvc.perform(put("/api/v1/subjects/1")
+        mockMvc.perform(put("/subjects/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
@@ -156,7 +151,7 @@ class SubjectControllerTest {
     void shouldDeleteSubject() throws Exception {
         doNothing().when(subjectService).delete(1L);
 
-        mockMvc.perform(delete("/api/v1/subjects/1"))
+        mockMvc.perform(delete("/subjects/1"))
             .andExpect(status().isNoContent());
 
         verify(subjectService).delete(1L);
@@ -167,8 +162,7 @@ class SubjectControllerTest {
         doThrow(new ResourceNotFoundException("Subject not found with id: 999"))
             .when(subjectService).delete(999L);
 
-        mockMvc.perform(delete("/api/v1/subjects/999"))
+        mockMvc.perform(delete("/subjects/999"))
             .andExpect(status().isNotFound());
     }
 }
-

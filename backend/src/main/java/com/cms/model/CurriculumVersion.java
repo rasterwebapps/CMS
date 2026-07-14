@@ -30,6 +30,15 @@ public class CurriculumVersion {
     @JoinColumn(name = "program_id", nullable = false)
     private Program program;
 
+    /**
+     * Optional narrower scope than program: when set, this version applies only to this
+     * course (e.g. MSc Nursing (Adult) vs (Child), which share one Program but need
+     * independent curricula). NULL means program-wide, matching pre-existing behaviour.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id")
+    private Course course;
+
     @Column(name = "version_name", nullable = false, length = 100)
     private String versionName;
 
@@ -53,7 +62,13 @@ public class CurriculumVersion {
 
     public CurriculumVersion(Program program, String versionName,
                               AcademicYear effectiveFromAcademicYear, Boolean isActive) {
+        this(program, null, versionName, effectiveFromAcademicYear, isActive);
+    }
+
+    public CurriculumVersion(Program program, Course course, String versionName,
+                              AcademicYear effectiveFromAcademicYear, Boolean isActive) {
         this.program = program;
+        this.course = course;
         this.versionName = versionName;
         this.effectiveFromAcademicYear = effectiveFromAcademicYear;
         this.isActive = isActive != null ? isActive : true;
@@ -73,6 +88,14 @@ public class CurriculumVersion {
 
     public void setProgram(Program program) {
         this.program = program;
+    }
+
+    public Course getCourse() {
+        return course;
+    }
+
+    public void setCourse(Course course) {
+        this.course = course;
     }
 
     public String getVersionName() {

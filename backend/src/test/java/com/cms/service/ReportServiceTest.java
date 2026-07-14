@@ -162,7 +162,7 @@ class ReportServiceTest {
     }
 
     private Subject createSubject() {
-        Subject subject = new Subject("Physics", "PHY101", 4, 3, 1, null, null, 1);
+        Subject subject = new Subject("Physics", "PHY101", 4, 3, 1, null, 1);
         subject.setId(1L);
         return subject;
     }

@@ -200,7 +200,7 @@ class LabCurriculumMappingServiceTest {
         program.setId(1L);
         program.setName("Computer Science");
 
-        Subject course = new Subject(name, code, 3, 2, 1, null, null, 1);
+        Subject course = new Subject(name, code, 3, 2, 1, null, 1);
         course.setId(id);
         return course;
     }

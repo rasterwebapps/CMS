@@ -9,9 +9,9 @@ public record SubjectResponse(
     Integer credits,
     Integer theoryCredits,
     Integer labCredits,
-    CourseResponse course,
     SpecialityResponse speciality,
     Integer termNumber,
+    Boolean isActive,
     Instant createdAt,
     Instant updatedAt
 ) {}

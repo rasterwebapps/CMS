@@ -20,6 +20,7 @@ import com.cms.model.Student;
 import com.cms.model.enums.AttendanceStatus;
 import com.cms.model.enums.AttendanceType;
 import com.cms.repository.AttendanceRepository;
+import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.SubjectRepository;
 import com.cms.repository.StudentRepository;
 
@@ -30,15 +31,18 @@ public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
     private final StudentRepository studentRepository;
     private final SubjectRepository subjectRepository;
+    private final CourseRegistrationRepository courseRegistrationRepository;
     private final AttendanceThresholdService thresholdService;
 
     public AttendanceService(AttendanceRepository attendanceRepository,
                               StudentRepository studentRepository,
                               SubjectRepository subjectRepository,
+                              CourseRegistrationRepository courseRegistrationRepository,
                               AttendanceThresholdService thresholdService) {
         this.attendanceRepository = attendanceRepository;
         this.studentRepository = studentRepository;
         this.subjectRepository = subjectRepository;
+        this.courseRegistrationRepository = courseRegistrationRepository;
         this.thresholdService = thresholdService;
     }
 
@@ -174,7 +178,7 @@ public class AttendanceService {
         Subject subject = subjectRepository.findById(subjectId)
             .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + subjectId));
 
-        List<Student> students = studentRepository.findByProgramId(subject.getCourse().getProgram().getId());
+        List<Student> students = courseRegistrationRepository.findRegisteredStudentsBySubjectId(subjectId);
 
         List<AttendanceReportResponse> alerts = new ArrayList<>();
         for (Student student : students) {

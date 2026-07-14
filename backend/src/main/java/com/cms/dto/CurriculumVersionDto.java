@@ -6,6 +6,8 @@ public record CurriculumVersionDto(
     Long id,
     Long programId,
     String programName,
+    Long courseId,
+    String courseName,
     String versionName,
     Long effectiveFromAcademicYearId,
     String effectiveFromAcademicYearName,

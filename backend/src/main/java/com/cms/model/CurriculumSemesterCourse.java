@@ -43,6 +43,17 @@ public class CurriculumSemesterCourse {
     @JoinColumn(name = "subject_id", nullable = false)
     private Subject subject;
 
+    /**
+     * Optional: restricts this subject-in-term row to one specific course under the curriculum
+     * version's program. Null means the row applies to every course under that program (the
+     * common case). Used to distinguish variants sharing one program-wide curriculum — e.g. MSc
+     * Nursing (Adult) vs (Child), which share a Program and often a CurriculumVersion but need
+     * different advanced-practice subjects.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id")
+    private Course course;
+
     @Column(name = "sort_order")
     private Integer sortOrder;
 
@@ -115,6 +126,14 @@ public class CurriculumSemesterCourse {
 
     public void setSubject(Subject subject) {
         this.subject = subject;
+    }
+
+    public Course getCourse() {
+        return course;
+    }
+
+    public void setCourse(Course course) {
+        this.course = course;
     }
 
     public Integer getSortOrder() {

@@ -25,7 +25,6 @@ import com.cms.dto.AttendanceResponse;
 import com.cms.dto.BulkAttendanceRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Attendance;
-import com.cms.model.Course;
 import com.cms.model.Subject;
 import com.cms.model.Speciality;
 import com.cms.model.Program;
@@ -34,6 +33,7 @@ import com.cms.model.enums.AttendanceStatus;
 import com.cms.model.enums.AttendanceType;
 import com.cms.model.enums.StudentStatus;
 import com.cms.repository.AttendanceRepository;
+import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.SubjectRepository;
 import com.cms.repository.StudentRepository;
 
@@ -47,6 +47,8 @@ class AttendanceServiceTest {
     @Mock
     private SubjectRepository subjectRepository;
     @Mock
+    private CourseRegistrationRepository courseRegistrationRepository;
+    @Mock
     private AttendanceThresholdService thresholdService;
 
     private AttendanceService attendanceService;
@@ -58,7 +60,7 @@ class AttendanceServiceTest {
     @BeforeEach
     void setUp() {
         attendanceService = new AttendanceService(
-            attendanceRepository, studentRepository, subjectRepository, thresholdService);
+            attendanceRepository, studentRepository, subjectRepository, courseRegistrationRepository, thresholdService);
 
         Speciality speciality = new Speciality("Computer Science", "CS", "CS Dept", null, "Dr. Smith");
         speciality.setId(1L);
@@ -73,12 +75,8 @@ class AttendanceServiceTest {
         );
         testStudent.setId(1L);
 
-        testCourse = new Subject("Data Structures", "CS201", 3, 2, 1, null, null, 3);
+        testCourse = new Subject("Data Structures", "CS201", 3, 2, 1, null, 3);
         testCourse.setId(1L);
-        // Set course→program chain needed by getLowAttendanceAlerts
-        Course courseObj = new Course("B.Tech CS", "BTCS", null, testProgram);
-        courseObj.setId(1L);
-        testCourse.setCourse(courseObj);
     }
 
     @Test
@@ -324,7 +322,7 @@ class AttendanceServiceTest {
     @Test
     void shouldGetLowAttendanceAlerts() {
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
-        when(studentRepository.findByProgramId(1L)).thenReturn(List.of(testStudent));
+        when(courseRegistrationRepository.findRegisteredStudentsBySubjectId(1L)).thenReturn(List.of(testStudent));
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(attendanceRepository.countByStudentIdAndSubjectIdAndType(1L, 1L, AttendanceType.THEORY))
             .thenReturn(10L);

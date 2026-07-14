@@ -30,13 +30,12 @@ public record SubjectRequest(
     @Max(value = 20, message = "Lab credits must not exceed 20")
     Integer labCredits,
 
-    @NotNull(message = "Course ID is required")
-    Long courseId,
-
     Long specialityId,
 
     @NotNull(message = "Semester is required")
     @Min(value = 1, message = "Semester must be at least 1")
     @Max(value = 12, message = "Semester must not exceed 12")
-    Integer termNumber
+    Integer termNumber,
+
+    Boolean isActive
 ) {}

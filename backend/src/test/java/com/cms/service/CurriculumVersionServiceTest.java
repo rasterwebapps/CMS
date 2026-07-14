@@ -21,10 +21,12 @@ import com.cms.dto.CurriculumVersionDto;
 import com.cms.dto.CurriculumVersionRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
+import com.cms.model.Course;
 import com.cms.model.CurriculumVersion;
 import com.cms.model.Program;
 import com.cms.model.enums.ProgramStatus;
 import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.CourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
 import com.cms.repository.ProgramRepository;
 
@@ -40,6 +42,9 @@ class CurriculumVersionServiceTest {
     @Mock
     private AcademicYearRepository academicYearRepository;
 
+    @Mock
+    private CourseRepository courseRepository;
+
     private CurriculumVersionService curriculumVersionService;
 
     private Program testProgram;
@@ -48,7 +53,7 @@ class CurriculumVersionServiceTest {
     @BeforeEach
     void setUp() {
         curriculumVersionService = new CurriculumVersionService(
-            curriculumVersionRepository, programRepository, academicYearRepository);
+            curriculumVersionRepository, programRepository, academicYearRepository, courseRepository);
 
         testProgram = createProgram(1L, "BSc Nursing", "BSCN", 4);
         testAcademicYear = createAcademicYear(1L, "2026-2027",
@@ -57,7 +62,7 @@ class CurriculumVersionServiceTest {
 
     @Test
     void shouldCreateCurriculumVersion() {
-        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, "BSCN-2026", 1L, true);
+        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, null, "BSCN-2026", 1L, true);
 
         CurriculumVersion cv = createCurriculumVersion(1L, testProgram, "BSCN-2026", testAcademicYear, true);
 
@@ -77,7 +82,7 @@ class CurriculumVersionServiceTest {
 
     @Test
     void shouldThrowWhenProgramNotFoundOnCreate() {
-        CurriculumVersionRequest request = new CurriculumVersionRequest(999L, "BSCN-2026", 1L, true);
+        CurriculumVersionRequest request = new CurriculumVersionRequest(999L, null, "BSCN-2026", 1L, true);
 
         when(programRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -88,7 +93,7 @@ class CurriculumVersionServiceTest {
 
     @Test
     void shouldThrowWhenAcademicYearNotFoundOnCreate() {
-        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, "BSCN-2026", 999L, true);
+        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, null, "BSCN-2026", 999L, true);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(academicYearRepository.findById(999L)).thenReturn(Optional.empty());
@@ -144,7 +149,7 @@ class CurriculumVersionServiceTest {
     @Test
     void shouldUpdateCurriculumVersion() {
         CurriculumVersion cv = createCurriculumVersion(1L, testProgram, "BSCN-2026", testAcademicYear, true);
-        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, "BSCN-2026-Updated", 1L, false);
+        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, null, "BSCN-2026-Updated", 1L, false);
 
         CurriculumVersion updated = createCurriculumVersion(1L, testProgram, "BSCN-2026-Updated", testAcademicYear, false);
 
@@ -211,7 +216,7 @@ class CurriculumVersionServiceTest {
 
     @Test
     void shouldCreateVersionWithNullIsActive() {
-        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, "BSCN-2026", 1L, null);
+        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, null, "BSCN-2026", 1L, null);
         CurriculumVersion cv = createCurriculumVersion(1L, testProgram, "BSCN-2026", testAcademicYear, true);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));

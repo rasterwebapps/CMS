@@ -259,6 +259,7 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Settings',           icon: 'settings',          route: '/settings',                permissions: ['SETTINGS_VIEW', 'SETTINGS_CREATE', 'SETTINGS_EDIT', 'SETTINGS_DELETE', 'SETTINGS_MANAGE'] },
         { label: 'Specialities',       icon: 'business',          route: '/specialities',            permissions: ['DEPT_VIEW', 'DEPT_CREATE', 'DEPT_EDIT', 'DEPT_DELETE', 'DEPT_EXPORT', 'DEPT_MANAGE'] },
         { label: 'Staff Referrers',    icon: 'badge',             route: '/staff-referrers',         permissions: ['STAFF_REFERRER_VIEW', 'STAFF_REFERRER_CREATE', 'STAFF_REFERRER_EDIT', 'STAFF_REFERRER_DELETE', 'STAFF_REFERRER_EXPORT', 'STAFF_REFERRER_MANAGE'] },
+        { label: 'Subjects',           icon: 'menu_book',         route: '/subjects',                permissions: ['SUBJECT_VIEW', 'SUBJECT_MANAGE'] },
       ],
     },
     // 10. User Management

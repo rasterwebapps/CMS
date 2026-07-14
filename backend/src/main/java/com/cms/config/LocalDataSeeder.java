@@ -116,18 +116,18 @@ public class LocalDataSeeder {
             // ═══════════════════════════════════════════════════════════════
             // 5. SUBJECTS
             // ═══════════════════════════════════════════════════════════════
-            Subject subAnatomy = subjectRepo.save(createSubject("Anatomy", "BSN101", 4, 3, 1, courseBSCN, deptNFD, 1));
-            Subject subPhysiology = subjectRepo.save(createSubject("Physiology", "BSN102", 4, 3, 1, courseBSCN, deptNFD, 1));
-            Subject subNursingFoundation = subjectRepo.save(createSubject("Nursing Foundation", "BSN103", 6, 3, 3, courseBSCN, deptNFD, 1));
-            Subject subBiochemistry = subjectRepo.save(createSubject("Biochemistry", "BSN104", 3, 2, 1, courseBSCN, deptNFD, 2));
-            Subject subNutrition = subjectRepo.save(createSubject("Nutrition & Dietetics", "BSN105", 3, 2, 1, courseBSCN, deptCHN, 2));
-            Subject subMicrobiology = subjectRepo.save(createSubject("Microbiology", "BSN106", 4, 3, 1, courseBSCN, deptMSN, 2));
-            Subject subMSN1 = subjectRepo.save(createSubject("Medical-Surgical Nursing I", "BSN201", 6, 3, 3, courseBSCN, deptMSN, 3));
-            Subject subPharmacology = subjectRepo.save(createSubject("Pharmacology", "BSN202", 4, 3, 1, courseBSCN, deptMSN, 3));
-            Subject subChildHealth = subjectRepo.save(createSubject("Child Health Nursing", "BSN302", 5, 2, 3, courseBSCN, deptCHD, 5));
-            Subject subMentalHealth = subjectRepo.save(createSubject("Mental Health Nursing", "BSN303", 5, 2, 3, courseBSCN, deptMHN, 6));
-            Subject subOBGNursing = subjectRepo.save(createSubject("OBG Nursing", "BSN304", 5, 2, 3, courseBSCN, deptOBG, 6));
-            Subject subNursingResearch = subjectRepo.save(createSubject("Nursing Research & Statistics", "BSN402", 3, 3, 0, courseBSCN, deptNEA, 7));
+            Subject subAnatomy = subjectRepo.save(createSubject("Anatomy", "BSN101", 4, 3, 1, deptNFD, 1));
+            Subject subPhysiology = subjectRepo.save(createSubject("Physiology", "BSN102", 4, 3, 1, deptNFD, 1));
+            Subject subNursingFoundation = subjectRepo.save(createSubject("Nursing Foundation", "BSN103", 6, 3, 3, deptNFD, 1));
+            Subject subBiochemistry = subjectRepo.save(createSubject("Biochemistry", "BSN104", 3, 2, 1, deptNFD, 2));
+            Subject subNutrition = subjectRepo.save(createSubject("Nutrition & Dietetics", "BSN105", 3, 2, 1, deptCHN, 2));
+            Subject subMicrobiology = subjectRepo.save(createSubject("Microbiology", "BSN106", 4, 3, 1, deptMSN, 2));
+            Subject subMSN1 = subjectRepo.save(createSubject("Medical-Surgical Nursing I", "BSN201", 6, 3, 3, deptMSN, 3));
+            Subject subPharmacology = subjectRepo.save(createSubject("Pharmacology", "BSN202", 4, 3, 1, deptMSN, 3));
+            Subject subChildHealth = subjectRepo.save(createSubject("Child Health Nursing", "BSN302", 5, 2, 3, deptCHD, 5));
+            Subject subMentalHealth = subjectRepo.save(createSubject("Mental Health Nursing", "BSN303", 5, 2, 3, deptMHN, 6));
+            Subject subOBGNursing = subjectRepo.save(createSubject("OBG Nursing", "BSN304", 5, 2, 3, deptOBG, 6));
+            Subject subNursingResearch = subjectRepo.save(createSubject("Nursing Research & Statistics", "BSN402", 3, 3, 0, deptNEA, 7));
             log.info("✓ Created 12 subjects");
 
             // ═══════════════════════════════════════════════════════════════
@@ -376,14 +376,13 @@ public class LocalDataSeeder {
         return c;
     }
 
-    private Subject createSubject(String name, String code, int credits, int theory, int lab, Course course, Speciality speciality, int semester) {
+    private Subject createSubject(String name, String code, int credits, int theory, int lab, Speciality speciality, int semester) {
         Subject s = new Subject();
         s.setName(name);
         s.setCode(code);
         s.setCredits(credits);
         s.setTheoryCredits(theory);
         s.setLabCredits(lab);
-        s.setCourse(course);
         s.setSpeciality(speciality);
         s.setSemester(semester);
         return s;

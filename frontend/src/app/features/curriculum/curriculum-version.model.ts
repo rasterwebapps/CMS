@@ -41,6 +41,11 @@ export interface CurriculumSemesterCourse {
   isElective: boolean;
   electiveGroupId: number | null;
   electiveGroupName: string | null;
+  /** Optional: restricts this subject-in-term row to one specific course under the program
+   *  (e.g. MSc Nursing Adult vs Child sharing one program-wide curriculum). Null applies to
+   *  every course under the program. */
+  courseId: number | null;
+  courseName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -56,6 +61,8 @@ export interface CurriculumSemesterCourseRequest {
   subjectType?: SubjectType;
   isElective?: boolean;
   electiveGroupId?: number | null;
+  /** Optional — restrict this row to one specific course under the curriculum's program. */
+  courseId?: number | null;
 }
 
 export interface CurriculumElectiveGroup {

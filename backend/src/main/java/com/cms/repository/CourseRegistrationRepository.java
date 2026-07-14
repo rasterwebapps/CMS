@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.cms.model.CourseRegistration;
+import com.cms.model.Student;
 import com.cms.model.enums.RegistrationStatus;
 
 public interface CourseRegistrationRepository extends JpaRepository<CourseRegistration, Long> {
@@ -27,4 +28,8 @@ public interface CourseRegistrationRepository extends JpaRepository<CourseRegist
            "ORDER BY cr.studentTermEnrollment.termInstance.id DESC")
     List<CourseRegistration> findByStudentIdAndSubjectId(@Param("studentId") Long studentId,
                                                           @Param("subjectId") Long subjectId);
+
+    @Query("SELECT DISTINCT cr.studentTermEnrollment.student FROM CourseRegistration cr " +
+           "WHERE cr.courseOffering.subject.id = :subjectId AND cr.status = com.cms.model.enums.RegistrationStatus.REGISTERED")
+    List<Student> findRegisteredStudentsBySubjectId(@Param("subjectId") Long subjectId);
 }

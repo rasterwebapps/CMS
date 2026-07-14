@@ -18,15 +18,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.cms.dto.ProgramResponse;
 import com.cms.dto.SubjectRequest;
 import com.cms.dto.SubjectResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Course;
-import com.cms.model.Speciality;
 import com.cms.model.Program;
+import com.cms.model.Speciality;
 import com.cms.model.Subject;
+import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CourseRepository;
+import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.SpecialityRepository;
 import com.cms.repository.SubjectRepository;
 
@@ -43,19 +44,21 @@ class SubjectServiceTest {
     private SpecialityRepository specialityRepository;
 
     @Mock
-    private ProgramService programService;
+    private CurriculumSemesterCourseRepository curriculumSemesterCourseRepository;
+
+    @Mock
+    private CourseOfferingRepository courseOfferingRepository;
 
     private SubjectService subjectService;
 
-    private Program program;
-    private Course course;
     private Speciality speciality;
     private Subject testSubject;
     private final Instant now = Instant.now();
 
     @BeforeEach
     void setUp() {
-        subjectService = new SubjectService(subjectRepository, courseRepository, specialityRepository, programService);
+        subjectService = new SubjectService(subjectRepository, courseRepository, specialityRepository,
+            curriculumSemesterCourseRepository, courseOfferingRepository);
 
         speciality = new Speciality();
         speciality.setId(1L);
@@ -64,27 +67,7 @@ class SubjectServiceTest {
         speciality.setCreatedAt(now);
         speciality.setUpdatedAt(now);
 
-        program = new Program();
-        program.setId(1L);
-        program.setName("Bachelor");
-        program.setCode("BACHELOR");
-        program.setDurationYears(4);
-        program.setCreatedAt(now);
-        program.setUpdatedAt(now);
-
-        ProgramResponse progResponse = new ProgramResponse(1L, "Bachelor", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, now, now);
-        org.mockito.Mockito.lenient().when(programService.toResponse(any(Program.class))).thenReturn(progResponse);
-
-        course = new Course();
-        course.setId(1L);
-        course.setName("B.Sc. Nursing Course");
-        course.setCode("BSN");
-        course.setSpecialization("General");
-        course.setProgram(program);
-        course.setCreatedAt(now);
-        course.setUpdatedAt(now);
-
-        testSubject = new Subject("Anatomy", "ANAT101", 4, 3, 1, course, speciality, 1);
+        testSubject = new Subject("Anatomy", "ANAT101", 4, 3, 1, speciality, 1);
         testSubject.setId(1L);
         testSubject.setCreatedAt(now);
         testSubject.setUpdatedAt(now);
@@ -92,9 +75,8 @@ class SubjectServiceTest {
 
     @Test
     void shouldCreateSubject() {
-        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 1L, 1L, 1);
+        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 1L, 1, null);
 
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
         when(specialityRepository.findById(1L)).thenReturn(Optional.of(speciality));
         when(subjectRepository.save(any(Subject.class))).thenReturn(testSubject);
 
@@ -107,7 +89,6 @@ class SubjectServiceTest {
         assertThat(response.theoryCredits()).isEqualTo(3);
         assertThat(response.labCredits()).isEqualTo(1);
         assertThat(response.termNumber()).isEqualTo(1);
-        assertThat(response.course().id()).isEqualTo(1L);
         assertThat(response.speciality().id()).isEqualTo(1L);
 
         ArgumentCaptor<Subject> captor = ArgumentCaptor.forClass(Subject.class);
@@ -117,13 +98,12 @@ class SubjectServiceTest {
 
     @Test
     void shouldCreateSubjectWithoutSpeciality() {
-        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 1L, null, 1);
-        Subject subjectNoDept = new Subject("Anatomy", "ANAT101", 4, 3, 1, course, null, 1);
+        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, null, 1, null);
+        Subject subjectNoDept = new Subject("Anatomy", "ANAT101", 4, 3, 1, null, 1);
         subjectNoDept.setId(2L);
         subjectNoDept.setCreatedAt(now);
         subjectNoDept.setUpdatedAt(now);
 
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
         when(subjectRepository.save(any(Subject.class))).thenReturn(subjectNoDept);
 
         SubjectResponse response = subjectService.create(request);
@@ -134,19 +114,8 @@ class SubjectServiceTest {
     }
 
     @Test
-    void shouldThrowWhenCourseNotFoundOnCreate() {
-        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 999L, null, 1);
-        when(courseRepository.findById(999L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> subjectService.create(request))
-            .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Course not found with id: 999");
-    }
-
-    @Test
     void shouldThrowWhenSpecialityNotFoundOnCreate() {
-        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 1L, 999L, 1);
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
+        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 999L, 1, null);
         when(specialityRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> subjectService.create(request))
@@ -156,13 +125,24 @@ class SubjectServiceTest {
 
     @Test
     void shouldFindAllSubjects() {
-        when(subjectRepository.findAll()).thenReturn(List.of(testSubject));
+        when(subjectRepository.findAllByOrderByNameAsc()).thenReturn(List.of(testSubject));
 
-        List<SubjectResponse> results = subjectService.findAll();
+        List<SubjectResponse> results = subjectService.findAll(false);
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).name()).isEqualTo("Anatomy");
-        verify(subjectRepository).findAll();
+        verify(subjectRepository).findAllByOrderByNameAsc();
+    }
+
+    @Test
+    void shouldFindActiveSubjectsOnly() {
+        when(subjectRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(testSubject));
+
+        List<SubjectResponse> results = subjectService.findAll(true);
+
+        assertThat(results).hasSize(1);
+        verify(subjectRepository).findByIsActiveTrueOrderByNameAsc();
+        verify(subjectRepository, never()).findAllByOrderByNameAsc();
     }
 
     @Test
@@ -185,9 +165,16 @@ class SubjectServiceTest {
     }
 
     @Test
-    void shouldFindSubjectsByCourseId() {
-        when(courseRepository.existsById(1L)).thenReturn(true);
-        when(subjectRepository.findByCourseId(1L)).thenReturn(List.of(testSubject));
+    void shouldFindSubjectsUsedInCourseCurricula() {
+        Program program = new Program();
+        program.setId(1L);
+        Course course = new Course();
+        course.setId(1L);
+        course.setProgram(program);
+
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
+        when(curriculumSemesterCourseRepository.findDistinctSubjectIdsByCourseId(1L, 1L)).thenReturn(List.of(1L));
+        when(subjectRepository.findAllById(List.of(1L))).thenReturn(List.of(testSubject));
 
         List<SubjectResponse> results = subjectService.findByCourseId(1L);
 
@@ -197,7 +184,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldThrowWhenCourseNotFoundOnFindByCourseId() {
-        when(courseRepository.existsById(999L)).thenReturn(false);
+        when(courseRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> subjectService.findByCourseId(999L))
             .isInstanceOf(ResourceNotFoundException.class)
@@ -226,18 +213,17 @@ class SubjectServiceTest {
 
     @Test
     void shouldUpdateSubject() {
-        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 1L, 1L, 2);
+        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 1L, 2, null);
 
-        Subject updatedSubject = new Subject("Physiology", "PHYS101", 5, 4, 1, course, speciality, 2);
+        Subject updatedSubject = new Subject("Physiology", "PHYS101", 5, 4, 1, speciality, 2);
         updatedSubject.setId(1L);
         updatedSubject.setCreatedAt(now);
         updatedSubject.setUpdatedAt(now);
 
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
         when(specialityRepository.findById(1L)).thenReturn(Optional.of(speciality));
-        when(subjectRepository.existsByNameAndIdNot("Physiology", 1L)).thenReturn(false);
-        when(subjectRepository.existsByCodeAndIdNot("PHYS101", 1L)).thenReturn(false);
+        when(subjectRepository.existsByNameIgnoreCaseAndIdNot("Physiology", 1L)).thenReturn(false);
+        when(subjectRepository.existsByCodeIgnoreCaseAndIdNot("PHYS101", 1L)).thenReturn(false);
         when(subjectRepository.save(any(Subject.class))).thenReturn(updatedSubject);
 
         SubjectResponse response = subjectService.update(1L, request);
@@ -250,17 +236,16 @@ class SubjectServiceTest {
 
     @Test
     void shouldUpdateSubjectWithoutSpeciality() {
-        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 1L, null, 2);
+        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, null, 2, null);
 
-        Subject updatedSubject = new Subject("Physiology", "PHYS101", 5, 4, 1, course, null, 2);
+        Subject updatedSubject = new Subject("Physiology", "PHYS101", 5, 4, 1, null, 2);
         updatedSubject.setId(1L);
         updatedSubject.setCreatedAt(now);
         updatedSubject.setUpdatedAt(now);
 
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
-        when(subjectRepository.existsByNameAndIdNot("Physiology", 1L)).thenReturn(false);
-        when(subjectRepository.existsByCodeAndIdNot("PHYS101", 1L)).thenReturn(false);
+        when(subjectRepository.existsByNameIgnoreCaseAndIdNot("Physiology", 1L)).thenReturn(false);
+        when(subjectRepository.existsByCodeIgnoreCaseAndIdNot("PHYS101", 1L)).thenReturn(false);
         when(subjectRepository.save(any(Subject.class))).thenReturn(updatedSubject);
 
         SubjectResponse response = subjectService.update(1L, request);
@@ -271,10 +256,9 @@ class SubjectServiceTest {
 
     @Test
     void shouldThrowWhenUpdatingSubjectWithDuplicateName() {
-        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 5, 4, 1, 1L, null, 1);
+        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 5, 4, 1, null, 1, null);
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
-        when(subjectRepository.existsByNameAndIdNot("Anatomy", 1L)).thenReturn(true);
+        when(subjectRepository.existsByNameIgnoreCaseAndIdNot("Anatomy", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> subjectService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -286,11 +270,10 @@ class SubjectServiceTest {
 
     @Test
     void shouldThrowWhenUpdatingSubjectWithDuplicateCode() {
-        SubjectRequest request = new SubjectRequest("Physiology", "ANAT101", 5, 4, 1, 1L, null, 1);
+        SubjectRequest request = new SubjectRequest("Physiology", "ANAT101", 5, 4, 1, null, 1, null);
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
-        when(subjectRepository.existsByNameAndIdNot("Physiology", 1L)).thenReturn(false);
-        when(subjectRepository.existsByCodeAndIdNot("ANAT101", 1L)).thenReturn(true);
+        when(subjectRepository.existsByNameIgnoreCaseAndIdNot("Physiology", 1L)).thenReturn(false);
+        when(subjectRepository.existsByCodeIgnoreCaseAndIdNot("ANAT101", 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> subjectService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -302,7 +285,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldThrowWhenSubjectNotFoundOnUpdate() {
-        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 1L, null, 2);
+        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, null, 2, null);
         when(subjectRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> subjectService.update(999L, request))
@@ -311,21 +294,9 @@ class SubjectServiceTest {
     }
 
     @Test
-    void shouldThrowWhenCourseNotFoundOnUpdate() {
-        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 999L, null, 2);
-        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
-        when(courseRepository.findById(999L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> subjectService.update(1L, request))
-            .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Course not found with id: 999");
-    }
-
-    @Test
     void shouldThrowWhenSpecialityNotFoundOnUpdate() {
-        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 1L, 999L, 2);
+        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 999L, 2, null);
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
         when(specialityRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> subjectService.update(1L, request))
@@ -336,6 +307,8 @@ class SubjectServiceTest {
     @Test
     void shouldDeleteSubject() {
         when(subjectRepository.existsById(1L)).thenReturn(true);
+        when(curriculumSemesterCourseRepository.existsBySubjectId(1L)).thenReturn(false);
+        when(courseOfferingRepository.existsBySubjectId(1L)).thenReturn(false);
 
         subjectService.delete(1L);
 
@@ -352,5 +325,29 @@ class SubjectServiceTest {
 
         verify(subjectRepository, never()).deleteById(any());
     }
-}
 
+    @Test
+    void shouldThrowWhenDeletingSubjectMappedIntoCurriculum() {
+        when(subjectRepository.existsById(1L)).thenReturn(true);
+        when(curriculumSemesterCourseRepository.existsBySubjectId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> subjectService.delete(1L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("curriculum");
+
+        verify(subjectRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void shouldThrowWhenDeletingSubjectWithCourseOfferings() {
+        when(subjectRepository.existsById(1L)).thenReturn(true);
+        when(curriculumSemesterCourseRepository.existsBySubjectId(1L)).thenReturn(false);
+        when(courseOfferingRepository.existsBySubjectId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> subjectService.delete(1L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("course offerings");
+
+        verify(subjectRepository, never()).deleteById(any());
+    }
+}

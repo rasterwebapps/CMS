@@ -1,0 +1,202 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Academic <em>Subjects</em></h1>
+      <p class="mlp-sub">Manage subjects — map each into any curriculum via Curriculum Map</p>
+    </div>
+    <button class="btn-primary" routerLink="/subjects/new" aria-label="Add new subject">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Subject
+    </button>
+  </div>
+
+  <!-- ── Toolbar ─────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <div class="search-bar" role="search" style="flex:1; min-width:200px; max-width:380px;">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search subjects…"
+        type="text"
+        aria-label="Search subjects"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      }
+    </div>
+
+    <select
+      class="mlp-filter-select"
+      [value]="selectedCourseId() ?? ''"
+      (change)="onCourseFilterChange($any($event.target).value)"
+      aria-label="Filter by course"
+    >
+      <option value="">All Courses</option>
+      @for (course of courses(); track course.id) {
+        <option [value]="course.id">{{ course.name }}</option>
+      }
+    </select>
+
+    <cms-view-toggle
+      [mode]="viewMode()"
+      storageKey="subject-view-mode"
+      (modeChange)="setViewMode($event)"
+    />
+  </div>
+
+  <!-- ── Loading skeleton ─────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="mlp-loading-grid">
+      @for (n of [1,2,3,4,5,6]; track n) {
+        <div class="mlp-card-skeleton"></div>
+      }
+    </div>
+  }
+
+  <!-- ── Card view ────────────────────────────────────────────── -->
+  @else if (viewMode() === 'card') {
+    @if (dataSource.data.length === 0) {
+      <cms-empty-state
+        [icon]="searchValue() ? 'search_off' : 'menu_book'"
+        [title]="searchValue() ? 'No subjects found' : 'No subjects yet'"
+        [subtitle]="searchValue() ? 'No subjects match your search. Try a different term.' : 'Add your first subject to get started.'"
+        [actionLabel]="searchValue() ? 'Clear Search' : 'Add Subject'"
+        (actionClick)="handleEmptyAction()"
+      ></cms-empty-state>
+    } @else {
+      <div class="mlp-cards-grid">
+        @for (subject of dataSource.data; track subject.id; let i = $index) {
+          <div class="mlp-card sub-card" [style.animation-delay]="(i * 0.05) + 's'">
+            <div class="mlp-card__actions">
+              <cms-row-action-btn
+                variant="warning" [iconOnly]="true"
+                (clicked)="toggleSubjectStatus(subject)"
+                [tooltip]="(subject.isActive ? 'Deactivate ' : 'Activate ') + subject.name"
+                [ariaLabel]="subject.isActive ? 'Deactivate subject' : 'Activate subject'"
+              >
+                <cms-icon-toggle-status [active]="subject.isActive" [size]="13" />
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete subject" ariaLabel="Delete subject" (clicked)="deleteSubject(subject)">
+                <cms-icon-delete [size]="13" />
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit subject" ariaLabel="Edit subject" (clicked)="editSubject(subject)">
+                <cms-icon-edit [size]="13" />
+              </cms-row-action-btn>
+            </div>
+            <div class="sub-card__code">{{ subject.code }}</div>
+            <div class="sub-card__name">{{ subject.name }}</div>
+            <div class="sub-card__meta-row">
+              <span class="cms-badge">{{ subject.credits }} credits</span>
+              <span class="cms-badge">Term {{ subject.termNumber }}</span>
+              @if (subject.speciality) {
+                <span class="cms-badge cms-badge--gray">{{ subject.speciality.name }}</span>
+              }
+            </div>
+            <cms-status-badge [status]="subject.isActive ? 'ACTIVE' : 'INACTIVE'" />
+          </div>
+        }
+      </div>
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="25"
+        showFirstLastButtons
+      ></mat-paginator>
+    }
+  }
+
+  <!-- ── Table view ────────────────────────────────────────────── -->
+  @else {
+    <div class="content-card mlp-table-card">
+      <div class="table-wrapper">
+      <table mat-table [dataSource]="dataSource" matSort
+             [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+             matSortDisableClear (matSortChange)="onSortChange($event)"
+             class="modern-table">
+
+        <ng-container matColumnDef="code">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
+          <td mat-cell *matCellDef="let subject">
+            <span class="code-chip">{{ subject.code }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Subject Name</th>
+          <td mat-cell *matCellDef="let subject">
+            <span class="cell-name">{{ subject.name }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="credits">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Credits</th>
+          <td mat-cell *matCellDef="let subject">{{ subject.credits }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="term">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Term</th>
+          <td mat-cell *matCellDef="let subject">{{ subject.termNumber }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+          <td mat-cell *matCellDef="let subject">
+            <cms-status-badge [status]="subject.isActive ? 'ACTIVE' : 'INACTIVE'" />
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+          <td mat-cell *matCellDef="let subject">
+            <div class="row-actions">
+              <cms-row-action-btn
+                variant="warning" [iconOnly]="true"
+                [tooltip]="subject.isActive ? 'Deactivate' : 'Activate'"
+                [ariaLabel]="subject.isActive ? 'Deactivate subject' : 'Activate subject'"
+                (clicked)="toggleSubjectStatus(subject)"
+              >
+                <cms-icon-toggle-status [active]="subject.isActive" />
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete subject" (clicked)="deleteSubject(subject)">
+                <cms-icon-delete />
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit subject" (clicked)="editSubject(subject)">
+                <cms-icon-edit />
+              </cms-row-action-btn>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0; border: none;">
+            <cms-empty-state
+              [icon]="searchValue() ? 'search_off' : 'menu_book'"
+              [title]="searchValue() ? 'No subjects found' : 'No subjects yet'"
+              [subtitle]="searchValue() ? 'No subjects match your search.' : 'Add your first subject to get started.'"
+              [actionLabel]="searchValue() ? 'Clear Search' : 'Add Subject'"
+              (actionClick)="handleEmptyAction()"
+            ></cms-empty-state>
+          </td>
+        </tr>
+      </table>
+      </div>
+
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="25"
+        showFirstLastButtons
+      ></mat-paginator>
+    </div>
+  }
+
+</div>

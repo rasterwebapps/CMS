@@ -264,16 +264,16 @@ public class DataLoader implements CommandLineRunner {
                 new Course("GNM – General Nursing & Midwifery", "GNM-GEN", null, diplomaProgram));
 
         // ── 7. Subjects ──────────────────────────────────────────────────────
-        Subject anatomy    = subjectRepository.save(new Subject("Anatomy & Physiology",       "BSC-SUB-001", 4, 3, 1, bscCourse, gnDept, 1));
-        Subject biochem    = subjectRepository.save(new Subject("Biochemistry",               "BSC-SUB-002", 3, 2, 1, bscCourse, msnDept, 1));
-        Subject nfTheory   = subjectRepository.save(new Subject("Nursing Foundations Theory", "BSC-SUB-003", 4, 4, 0, bscCourse, gnDept, 2));
-        Subject nfLab      = subjectRepository.save(new Subject("Nursing Foundations Lab",    "BSC-SUB-004", 2, 0, 2, bscCourse, gnDept, 2));
-        Subject microbio   = subjectRepository.save(new Subject("Microbiology & Parasitology","BSC-SUB-005", 3, 2, 1, bscCourse, msnDept, 2));
-        Subject medSurg    = subjectRepository.save(new Subject("Medical-Surgical Nursing I", "BSC-SUB-006", 4, 3, 1, bscCourse, msnDept, 3));
-        Subject community  = subjectRepository.save(new Subject("Community Health Nursing",   "BSC-SUB-007", 3, 2, 1, bscCourse, chnDept, 4));
-        Subject advNursing = subjectRepository.save(new Subject("Advanced Nursing Practice",  "MSC-SUB-001", 4, 3, 1, mscCourse, gnDept, 1));
-        Subject resMethod  = subjectRepository.save(new Subject("Research Methodology",       "MSC-SUB-002", 3, 3, 0, mscCourse, msnDept, 1));
-        Subject basicNurs  = subjectRepository.save(new Subject("Basic Nursing Concepts",     "GNM-SUB-001", 4, 3, 1, gnmCourse, gnDept, 1));
+        Subject anatomy    = subjectRepository.save(new Subject("Anatomy & Physiology",       "BSC-SUB-001", 4, 3, 1, gnDept, 1));
+        Subject biochem    = subjectRepository.save(new Subject("Biochemistry",               "BSC-SUB-002", 3, 2, 1, msnDept, 1));
+        Subject nfTheory   = subjectRepository.save(new Subject("Nursing Foundations Theory", "BSC-SUB-003", 4, 4, 0, gnDept, 2));
+        Subject nfLab      = subjectRepository.save(new Subject("Nursing Foundations Lab",    "BSC-SUB-004", 2, 0, 2, gnDept, 2));
+        Subject microbio   = subjectRepository.save(new Subject("Microbiology & Parasitology","BSC-SUB-005", 3, 2, 1, msnDept, 2));
+        Subject medSurg    = subjectRepository.save(new Subject("Medical-Surgical Nursing I", "BSC-SUB-006", 4, 3, 1, msnDept, 3));
+        Subject community  = subjectRepository.save(new Subject("Community Health Nursing",   "BSC-SUB-007", 3, 2, 1, chnDept, 4));
+        Subject advNursing = subjectRepository.save(new Subject("Advanced Nursing Practice",  "MSC-SUB-001", 4, 3, 1, gnDept, 1));
+        Subject resMethod  = subjectRepository.save(new Subject("Research Methodology",       "MSC-SUB-002", 3, 3, 0, msnDept, 1));
+        Subject basicNurs  = subjectRepository.save(new Subject("Basic Nursing Concepts",     "GNM-SUB-001", 4, 3, 1, gnDept, 1));
 
         // ── 8. Faculty ───────────────────────────────────────────────────────
         DesignationMaster dHod       = desig("Head of Speciality",    "HOD");

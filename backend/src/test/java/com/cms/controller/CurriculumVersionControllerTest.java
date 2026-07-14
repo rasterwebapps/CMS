@@ -42,7 +42,7 @@ class CurriculumVersionControllerTest {
 
     @Test
     void shouldCreateCurriculumVersion() throws Exception {
-        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, "BSCN-2026", 1L, true);
+        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, null, "BSCN-2026", 1L, true);
         CurriculumVersionDto dto = createDto(1L, 1L, "BSc Nursing", "BSCN-2026", 1L, "2026-2027", true);
 
         when(curriculumVersionService.createCurriculumVersion(any(CurriculumVersionRequest.class))).thenReturn(dto);
@@ -60,7 +60,7 @@ class CurriculumVersionControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenVersionNameIsBlank() throws Exception {
-        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, "", 1L, true);
+        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, null, "", 1L, true);
 
         mockMvc.perform(post("/curriculum-versions")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -119,7 +119,7 @@ class CurriculumVersionControllerTest {
 
     @Test
     void shouldUpdateCurriculumVersion() throws Exception {
-        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, "BSCN-2026-Updated", 1L, false);
+        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, null, "BSCN-2026-Updated", 1L, false);
         CurriculumVersionDto dto = createDto(1L, 1L, "BSc Nursing", "BSCN-2026-Updated", 1L, "2026-2027", false);
 
         when(curriculumVersionService.update(eq(1L), any(CurriculumVersionRequest.class))).thenReturn(dto);
@@ -151,7 +151,7 @@ class CurriculumVersionControllerTest {
 
     private CurriculumVersionDto createDto(Long id, Long programId, String programName,
                                             String versionName, Long ayId, String ayName, Boolean isActive) {
-        return new CurriculumVersionDto(id, programId, programName, versionName, ayId, ayName, isActive,
+        return new CurriculumVersionDto(id, programId, programName, null, null, versionName, ayId, ayName, isActive,
             Instant.now(), Instant.now());
     }
 }

@@ -48,6 +48,21 @@
             </div>
 
             <div class="field-group">
+              <label for="cv-course" class="field-label">Course (optional)</label>
+              <select id="cv-course" class="field-select" formControlName="courseId"
+                [disabled]="!form.get('programId')?.value">
+                <option [value]="null">-- Program-wide (no specific course) --</option>
+                @for (c of coursesForProgram(); track c.id) {
+                  <option [value]="c.id">{{ c.name }}</option>
+                }
+              </select>
+              <p class="field-hint">
+                Leave blank if this program has only one course. Set a course when the program has
+                multiple courses that need independent curricula (e.g. MSc Nursing (Adult) vs (Child)).
+              </p>
+            </div>
+
+            <div class="field-group">
               <label for="cv-version-name" class="field-label">Version Name <span class="required-star">*</span></label>
               <input id="cv-version-name" class="field-input" formControlName="versionName"
                 placeholder="e.g., 2024-25 v1" autocomplete="off"
@@ -98,7 +113,11 @@
           <div class="prev-name" [class.prev-name--empty]="!previewVersion()">
             {{ previewVersion() || 'Version name will appear here' }}
           </div>
-          @if (previewProgramName()) { <div class="prev-sub">{{ previewProgramName() }}</div> }
+          @if (previewProgramName()) {
+            <div class="prev-sub">
+              {{ previewProgramName() }}{{ previewCourseName() ? ' — ' + previewCourseName() : '' }}
+            </div>
+          }
           <div class="prev-meta-row">
             @if (previewAyName()) { <span class="prev-pill prev-pill--primary">From {{ previewAyName() }}</span> }
             <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">

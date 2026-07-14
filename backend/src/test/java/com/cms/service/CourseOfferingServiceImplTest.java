@@ -22,6 +22,7 @@ import com.cms.dto.CourseOfferingDto;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Cohort;
+import com.cms.model.Course;
 import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.CurriculumVersion;
@@ -73,12 +74,19 @@ class CourseOfferingServiceImplTest {
         return p;
     }
 
-    private Cohort createCohort(Long id, Program program, AcademicYear admissionAY) {
+    private Course createCourse(Long id, String name, String code, Program program) {
+        Course course = new Course(name, code, null, program);
+        course.setId(id);
+        return course;
+    }
+
+    private Cohort createCohort(Long id, Course course, AcademicYear admissionAY) {
         Cohort c = new Cohort();
         c.setId(id);
+        c.setCourse(course);
         c.setAdmissionAcademicYear(admissionAY);
-        c.setCohortCode(program.getCode() + "-2024-2027");
-        c.setDisplayName(program.getName() + " (2024-2027)");
+        c.setCohortCode(course.getCode() + "-2024-2027");
+        c.setDisplayName(course.getName() + " (2024-2027)");
         c.setStatus(CohortStatus.ACTIVE);
         return c;
     }
@@ -98,8 +106,17 @@ class CourseOfferingServiceImplTest {
         return s;
     }
 
+    /** Program-wide curriculum version (course = null) — the pre-existing single-course-per-program shape. */
     private CurriculumVersion createCV(Long id, Program program, AcademicYear ay) {
         CurriculumVersion cv = new CurriculumVersion(program, "CV-2024", ay, true);
+        cv.setId(id);
+        cv.setCreatedAt(Instant.now());
+        return cv;
+    }
+
+    /** Course-scoped curriculum version — applies only to this specific course under the program. */
+    private CurriculumVersion createCV(Long id, Program program, Course course, AcademicYear ay, String versionName) {
+        CurriculumVersion cv = new CurriculumVersion(program, course, versionName, ay, true);
         cv.setId(id);
         cv.setCreatedAt(Instant.now());
         return cv;
@@ -128,7 +145,8 @@ class CourseOfferingServiceImplTest {
     void generateOfferingsForTermInstance_createsOfferingsForOddTerm() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
-        Cohort cohort = createCohort(1L, program, ay);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
         TermInstance termInstance = createTermInstance(1L, ay, TermType.ODD);
         Subject subject = createSubject(1L, "Math", "MATH101");
         CurriculumVersion cv = createCV(1L, program, ay);
@@ -136,7 +154,8 @@ class CourseOfferingServiceImplTest {
 
         when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(termInstance));
         when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
-        when(curriculumVersionRepository.findByProgramIdAndIsActiveTrue(1L)).thenReturn(List.of(cv));
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of());
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdIsNullAndIsActiveTrue(1L)).thenReturn(List.of(cv));
         when(curriculumSemesterCourseRepository.findByCurriculumVersionId(1L)).thenReturn(List.of(csc));
         when(courseOfferingRepository
             .findByTermInstanceIdAndCurriculumVersionIdAndSubjectIdAndSemesterNumber(1L, 1L, 1L, 1))
@@ -157,7 +176,8 @@ class CourseOfferingServiceImplTest {
     void generateOfferingsForTermInstance_skipsEvenSemestersForOddTerm() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
-        Cohort cohort = createCohort(1L, program, ay);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
         TermInstance termInstance = createTermInstance(1L, ay, TermType.ODD);
         Subject subject = createSubject(1L, "Soft Skills", "SS102");
         CurriculumVersion cv = createCV(1L, program, ay);
@@ -166,7 +186,8 @@ class CourseOfferingServiceImplTest {
 
         when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(termInstance));
         when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
-        when(curriculumVersionRepository.findByProgramIdAndIsActiveTrue(1L)).thenReturn(List.of(cv));
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of());
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdIsNullAndIsActiveTrue(1L)).thenReturn(List.of(cv));
         when(curriculumSemesterCourseRepository.findByCurriculumVersionId(1L)).thenReturn(List.of(csc));
 
         int count = service.generateOfferingsForTermInstance(1L);
@@ -179,7 +200,8 @@ class CourseOfferingServiceImplTest {
     void generateOfferingsForTermInstance_isIdempotent() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
-        Cohort cohort = createCohort(1L, program, ay);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
         TermInstance termInstance = createTermInstance(1L, ay, TermType.ODD);
         Subject subject = createSubject(1L, "Math", "MATH101");
         CurriculumVersion cv = createCV(1L, program, ay);
@@ -188,7 +210,8 @@ class CourseOfferingServiceImplTest {
 
         when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(termInstance));
         when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
-        when(curriculumVersionRepository.findByProgramIdAndIsActiveTrue(1L)).thenReturn(List.of(cv));
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of());
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdIsNullAndIsActiveTrue(1L)).thenReturn(List.of(cv));
         when(curriculumSemesterCourseRepository.findByCurriculumVersionId(1L)).thenReturn(List.of(csc));
         when(courseOfferingRepository
             .findByTermInstanceIdAndCurriculumVersionIdAndSubjectIdAndSemesterNumber(1L, 1L, 1L, 1))
@@ -204,17 +227,87 @@ class CourseOfferingServiceImplTest {
     void generateOfferingsForTermInstance_skipsCohortWithNoActiveCurriculumVersion() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
-        Cohort cohort = createCohort(1L, program, ay);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
         TermInstance termInstance = createTermInstance(1L, ay, TermType.ODD);
 
         when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(termInstance));
         when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
-        when(curriculumVersionRepository.findByProgramIdAndIsActiveTrue(1L)).thenReturn(List.of());
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of());
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdIsNullAndIsActiveTrue(1L)).thenReturn(List.of());
 
         int count = service.generateOfferingsForTermInstance(1L);
 
         assertThat(count).isEqualTo(0);
         verify(courseOfferingRepository, never()).save(any());
+    }
+
+    @Test
+    void generateOfferingsForTermInstance_prefersCourseSpecificCurriculumVersionOverProgramWide() {
+        // Regression test for MSc Nursing (Adult) / (Child): both share one Program, so the
+        // course-specific curriculum version must win over any program-wide fallback, and the
+        // program-wide version's subjects must NOT leak into this cohort's offerings.
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "MSc", 2);
+        Course adultCourse = createCourse(1L, "MSc Nursing (Adult)", "MSN-A", program);
+        Cohort cohort = createCohort(1L, adultCourse, ay);
+        TermInstance termInstance = createTermInstance(1L, ay, TermType.ODD);
+
+        Subject adultSubject = createSubject(1L, "Advanced Medical Surgical Nursing", "MSNA101");
+        CurriculumVersion courseSpecificCV = createCV(10L, program, adultCourse, ay, "MSc Adult V1");
+        CurriculumSemesterCourse adultCsc = createCSC(1L, courseSpecificCV, adultSubject, 1);
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(termInstance));
+        when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L))
+            .thenReturn(List.of(courseSpecificCV));
+        when(curriculumSemesterCourseRepository.findByCurriculumVersionId(10L)).thenReturn(List.of(adultCsc));
+        when(courseOfferingRepository
+            .findByTermInstanceIdAndCurriculumVersionIdAndSubjectIdAndSemesterNumber(1L, 10L, 1L, 1))
+            .thenReturn(Optional.empty());
+        when(courseOfferingRepository.save(any(CourseOffering.class))).thenAnswer(inv -> {
+            CourseOffering o = inv.getArgument(0);
+            o.setId(1L);
+            return o;
+        });
+
+        int count = service.generateOfferingsForTermInstance(1L);
+
+        assertThat(count).isEqualTo(1);
+        // The program-wide fallback lookup must never even be consulted once a course-specific
+        // version is found.
+        verify(curriculumVersionRepository, never()).findByProgramIdAndCourseIdIsNullAndIsActiveTrue(any());
+    }
+
+    @Test
+    void generateOfferingsForTermInstance_fallsBackToProgramWideWhenNoCourseSpecificVersion() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
+        TermInstance termInstance = createTermInstance(1L, ay, TermType.ODD);
+        Subject subject = createSubject(1L, "Math", "MATH101");
+        CurriculumVersion programWideCV = createCV(1L, program, ay);
+        CurriculumSemesterCourse csc = createCSC(1L, programWideCV, subject, 1);
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(termInstance));
+        when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of());
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdIsNullAndIsActiveTrue(1L))
+            .thenReturn(List.of(programWideCV));
+        when(curriculumSemesterCourseRepository.findByCurriculumVersionId(1L)).thenReturn(List.of(csc));
+        when(courseOfferingRepository
+            .findByTermInstanceIdAndCurriculumVersionIdAndSubjectIdAndSemesterNumber(1L, 1L, 1L, 1))
+            .thenReturn(Optional.empty());
+        when(courseOfferingRepository.save(any(CourseOffering.class))).thenAnswer(inv -> {
+            CourseOffering o = inv.getArgument(0);
+            o.setId(1L);
+            return o;
+        });
+
+        int count = service.generateOfferingsForTermInstance(1L);
+
+        assertThat(count).isEqualTo(1);
     }
 
     @Test

@@ -13,11 +13,13 @@ import com.cms.dto.CurriculumFullViewDto;
 import com.cms.dto.CurriculumSemesterCourseDto;
 import com.cms.dto.CurriculumSemesterCourseRequest;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.Course;
 import com.cms.model.CurriculumElectiveGroup;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.CurriculumVersion;
 import com.cms.model.Subject;
 import com.cms.model.enums.AssessmentPattern;
+import com.cms.repository.CourseRepository;
 import com.cms.repository.CurriculumElectiveGroupRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
@@ -31,15 +33,18 @@ public class CurriculumSemesterCourseService {
     private final CurriculumVersionRepository curriculumVersionRepository;
     private final SubjectRepository subjectRepository;
     private final CurriculumElectiveGroupRepository electiveGroupRepository;
+    private final CourseRepository courseMasterRepository;
 
     public CurriculumSemesterCourseService(CurriculumSemesterCourseRepository courseRepository,
                                             CurriculumVersionRepository curriculumVersionRepository,
                                             SubjectRepository subjectRepository,
-                                            CurriculumElectiveGroupRepository electiveGroupRepository) {
+                                            CurriculumElectiveGroupRepository electiveGroupRepository,
+                                            CourseRepository courseMasterRepository) {
         this.courseRepository = courseRepository;
         this.curriculumVersionRepository = curriculumVersionRepository;
         this.subjectRepository = subjectRepository;
         this.electiveGroupRepository = electiveGroupRepository;
+        this.courseMasterRepository = courseMasterRepository;
     }
 
     @Transactional
@@ -84,6 +89,19 @@ public class CurriculumSemesterCourseService {
         entry.setClinicalHours(request.clinicalHours());
         entry.setSubjectType(request.subjectType());
         entry.setIsElective(request.isElective());
+
+        if (request.courseId() != null) {
+            Course restrictedCourse = courseMasterRepository.findById(request.courseId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                    "Course not found with id: " + request.courseId()));
+            if (!restrictedCourse.getProgram().getId().equals(cv.getProgram().getId())) {
+                throw new IllegalArgumentException(
+                    "Course must belong to the same program as the curriculum version");
+            }
+            entry.setCourse(restrictedCourse);
+        } else {
+            entry.setCourse(null);
+        }
 
         if (Boolean.TRUE.equals(request.isElective())) {
             if (request.electiveGroupId() == null) {
@@ -185,6 +203,8 @@ public class CurriculumSemesterCourseService {
             c.getIsElective(),
             c.getElectiveGroup() != null ? c.getElectiveGroup().getId() : null,
             c.getElectiveGroup() != null ? c.getElectiveGroup().getGroupName() : null,
+            c.getCourse() != null ? c.getCourse().getId() : null,
+            c.getCourse() != null ? c.getCourse().getName() : null,
             c.getCreatedAt(),
             c.getUpdatedAt()
         );

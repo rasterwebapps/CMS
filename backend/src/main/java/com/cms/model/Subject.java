@@ -42,15 +42,14 @@ public class Subject {
     private Integer labCredits;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
-    private Course course;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "speciality_id")
     private Speciality speciality;
 
     @Column(name = "term_number", nullable = false)
     private Integer semester;
+
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -64,13 +63,12 @@ public class Subject {
     }
 
     public Subject(String name, String code, Integer credits, Integer theoryCredits, Integer labCredits,
-                   Course course, Speciality speciality, Integer termNumber) {
+                   Speciality speciality, Integer termNumber) {
         this.name = name;
         this.code = code;
         this.credits = credits;
         this.theoryCredits = theoryCredits;
         this.labCredits = labCredits;
-        this.course = course;
         this.speciality = speciality;
         this.semester = termNumber;
     }
@@ -123,14 +121,6 @@ public class Subject {
         this.labCredits = labCredits;
     }
 
-    public Course getCourse() {
-        return course;
-    }
-
-    public void setCourse(Course course) {
-        this.course = course;
-    }
-
     public Speciality getSpeciality() {
         return speciality;
     }
@@ -150,6 +140,14 @@ public class Subject {
 
     public void setSemester(Integer termNumber) {
         this.semester = termNumber;
+    }
+
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
 
     public Instant getCreatedAt() {

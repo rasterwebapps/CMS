@@ -49,17 +49,20 @@ export class CurriculumVersionFormComponent implements OnInit {
   protected readonly pageTitle = signal('New Curriculum Version');
   protected readonly programs = signal<{ id: number; name: string; code: string }[]>([]);
   protected readonly academicYears = signal<{ id: number; name: string }[]>([]);
+  protected readonly coursesForProgram = signal<{ id: number; name: string; code: string }[]>([]);
 
   // Preview signals
   protected readonly previewVersion   = signal('');
   protected readonly previewProgramId = signal<number | null>(null);
   protected readonly previewAyId      = signal<number | null>(null);
+  protected readonly previewCourseId  = signal<number | null>(null);
   protected readonly previewActive    = signal(true);
   protected readonly previewProgramName = computed(() => {
     const p = this.programs().find(x => x.id === this.previewProgramId());
     return p ? p.name : '';
   });
   protected readonly previewAyName = computed(() => this.academicYears().find(a => a.id === this.previewAyId())?.name ?? '');
+  protected readonly previewCourseName = computed(() => this.coursesForProgram().find(c => c.id === this.previewCourseId())?.name ?? '');
 
   protected readonly TIPS: CmsTip[] = [
     { icon: 'fork_right',  title: 'Versioning',     subtitle: 'Create a new version when course structure changes — never edit a deployed version in place.' },
@@ -68,9 +71,11 @@ export class CurriculumVersionFormComponent implements OnInit {
   ];
 
   private versionId: number | null = null;
+  private lastLoadedCoursesForProgramId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
     programId: [null, Validators.required],
+    courseId: [null],
     versionName: ['', [Validators.required, Validators.maxLength(100)]],
     effectiveFromAcademicYearId: [null, Validators.required],
     isActive: [true],
@@ -83,7 +88,27 @@ export class CurriculumVersionFormComponent implements OnInit {
         this.previewVersion.set((v.versionName ?? '').trim());
         this.previewProgramId.set(v.programId ? Number(v.programId) : null);
         this.previewAyId.set(v.effectiveFromAcademicYearId ? Number(v.effectiveFromAcademicYearId) : null);
+        this.previewCourseId.set(v.courseId ? Number(v.courseId) : null);
         this.previewActive.set(!!v.isActive);
+
+        const programId = v.programId ? Number(v.programId) : null;
+        if (programId !== this.lastLoadedCoursesForProgramId) {
+          this.lastLoadedCoursesForProgramId = programId;
+          this.form.patchValue({ courseId: null }, { emitEvent: false });
+          this.loadCoursesForProgram(programId);
+        }
+      });
+  }
+
+  private loadCoursesForProgram(programId: number | null): void {
+    if (!programId) {
+      this.coursesForProgram.set([]);
+      return;
+    }
+    this.http.get<{ id: number; name: string; code: string }[]>(`${environment.apiUrl}/courses/program/${programId}`)
+      .subscribe({
+        next: (data) => this.coursesForProgram.set(data),
+        error: () => this.coursesForProgram.set([]),
       });
   }
 
@@ -118,6 +143,7 @@ export class CurriculumVersionFormComponent implements OnInit {
     const v = this.form.value;
     const request: CurriculumVersionRequest = {
       programId: v.programId,
+      courseId: v.courseId ?? null,
       versionName: v.versionName.trim(),
       effectiveFromAcademicYearId: v.effectiveFromAcademicYearId,
       isActive: v.isActive,
@@ -151,6 +177,9 @@ export class CurriculumVersionFormComponent implements OnInit {
           effectiveFromAcademicYearId: v.effectiveFromAcademicYearId,
           isActive: v.isActive,
         });
+        this.loadCoursesForProgram(v.programId);
+        this.lastLoadedCoursesForProgramId = v.programId;
+        this.form.patchValue({ courseId: v.courseId });
         this.loading.set(false);
       },
       error: () => {

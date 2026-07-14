@@ -86,7 +86,7 @@ class LabScheduleServiceTest {
             "Main Building", "L001", 30, LabStatus.ACTIVE);
         testLab.setId(1L);
 
-        testCourse = new Subject("Data Structures Lab", "CS201L", 3, 0, 3, null, null, 3);
+        testCourse = new Subject("Data Structures Lab", "CS201L", 3, 0, 3, null, 3);
         testCourse.setId(1L);
 
         DesignationMaster asstProf = new DesignationMaster("Assistant Professor", "ASSISTANT_PROFESSOR", null);

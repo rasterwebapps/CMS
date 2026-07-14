@@ -109,6 +109,19 @@
                   </select>
                 </div>
 
+                @if (programCourses().length > 1) {
+                  <div class="field-group">
+                    <label class="field-label">Restrict to Course (optional)</label>
+                    <select class="field-input" formControlName="restrictCourseId">
+                      <option [value]="null">-- Applies to all courses under this program --</option>
+                      @for (course of programCourses(); track course.id) {
+                        <option [value]="course.id">{{ course.name }}</option>
+                      }
+                    </select>
+                    <p class="field-hint">Use this when the program has course variants sharing one curriculum (e.g. MSc Nursing Adult vs Child) and this subject only applies to one of them.</p>
+                  </div>
+                }
+
                 <div class="field-group">
                   <label class="field-label">Components &amp; Hours</label>
                   <div class="component-hours-row">

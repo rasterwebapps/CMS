@@ -210,7 +210,7 @@ class ExperimentServiceTest {
     }
 
     private Subject createSubject(Long id, String name, String code) {
-        Subject subject = new Subject(name, code, 3, 2, 1, null, null, 1);
+        Subject subject = new Subject(name, code, 3, 2, 1, null, 1);
         subject.setId(id);
         return subject;
     }

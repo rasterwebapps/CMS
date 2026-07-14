@@ -9,9 +9,11 @@ import com.cms.dto.CurriculumVersionDto;
 import com.cms.dto.CurriculumVersionRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
+import com.cms.model.Course;
 import com.cms.model.CurriculumVersion;
 import com.cms.model.Program;
 import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.CourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
 import com.cms.repository.ProgramRepository;
 
@@ -22,13 +24,16 @@ public class CurriculumVersionService {
     private final CurriculumVersionRepository curriculumVersionRepository;
     private final ProgramRepository programRepository;
     private final AcademicYearRepository academicYearRepository;
+    private final CourseRepository courseRepository;
 
     public CurriculumVersionService(CurriculumVersionRepository curriculumVersionRepository,
                                      ProgramRepository programRepository,
-                                     AcademicYearRepository academicYearRepository) {
+                                     AcademicYearRepository academicYearRepository,
+                                     CourseRepository courseRepository) {
         this.curriculumVersionRepository = curriculumVersionRepository;
         this.programRepository = programRepository;
         this.academicYearRepository = academicYearRepository;
+        this.courseRepository = courseRepository;
     }
 
     @Transactional
@@ -41,8 +46,10 @@ public class CurriculumVersionService {
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Academic year not found with id: " + request.effectiveFromAcademicYearId()));
 
+        Course course = resolveCourse(request.courseId(), program);
+
         Boolean isActive = request.isActive() != null ? request.isActive() : true;
-        CurriculumVersion cv = new CurriculumVersion(program, request.versionName(), academicYear, isActive);
+        CurriculumVersion cv = new CurriculumVersion(program, course, request.versionName(), academicYear, isActive);
         return toDto(curriculumVersionRepository.save(cv));
     }
 
@@ -77,7 +84,10 @@ public class CurriculumVersionService {
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Academic year not found with id: " + request.effectiveFromAcademicYearId()));
 
+        Course course = resolveCourse(request.courseId(), program);
+
         cv.setProgram(program);
+        cv.setCourse(course);
         cv.setVersionName(request.versionName());
         cv.setEffectiveFromAcademicYear(academicYear);
         if (request.isActive() != null) {
@@ -109,15 +119,32 @@ public class CurriculumVersionService {
                 "Academic year not found with id: " + newEffectiveAcademicYearId));
 
         CurriculumVersion clone = new CurriculumVersion(
-            source.getProgram(), newVersionName, newAcademicYear, true);
+            source.getProgram(), source.getCourse(), newVersionName, newAcademicYear, true);
         return toDto(curriculumVersionRepository.save(clone));
     }
 
+    /** Resolves the optional course, verifying it actually belongs to the given program. */
+    private Course resolveCourse(Long courseId, Program program) {
+        if (courseId == null) {
+            return null;
+        }
+        Course course = courseRepository.findById(courseId)
+            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
+        if (!course.getProgram().getId().equals(program.getId())) {
+            throw new IllegalArgumentException(
+                "Course " + course.getName() + " does not belong to program " + program.getName());
+        }
+        return course;
+    }
+
     private CurriculumVersionDto toDto(CurriculumVersion cv) {
+        Course course = cv.getCourse();
         return new CurriculumVersionDto(
             cv.getId(),
             cv.getProgram().getId(),
             cv.getProgram().getName(),
+            course != null ? course.getId() : null,
+            course != null ? course.getName() : null,
             cv.getVersionName(),
             cv.getEffectiveFromAcademicYear().getId(),
             cv.getEffectiveFromAcademicYear().getName(),
