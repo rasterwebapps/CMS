@@ -162,6 +162,31 @@
   }
 }
 
+.seat-allocation-table__footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px 140px 130px 130px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 14px;
+  border-top: 1px solid var(--cms-line);
+  background: var(--cms-bg-surface-2);
+
+  span:nth-child(n+2) { text-align: right; }
+}
+
+.seat-allocation-table__footer-label {
+  font-size: var(--cms-text-xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cms-text-muted);
+}
+
+.seat-allocation-table__footer-value {
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
 .seat-allocation-table__program {
   display: flex;
   align-items: center;

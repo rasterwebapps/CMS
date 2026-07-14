@@ -306,6 +306,6 @@ class OneBookWebhookServiceTest {
         return new OneBookPostingTrackCompletionPayload(
                 invoiceNumber, null, status, null, null,
                 "PAY-001", "SBI", "NEFT", "TXN-001",
-                LocalDate.now(), "cashier", "BATCH-1");
+                LocalDate.now().toString(), "cashier", "BATCH-1");
     }
 }

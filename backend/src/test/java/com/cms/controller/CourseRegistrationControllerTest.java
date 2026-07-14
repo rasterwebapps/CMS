@@ -45,7 +45,7 @@ class CourseRegistrationControllerTest {
         CourseRegistrationDto dto = createDto(1L, 1L, 1L);
         when(service.getRegistrationsByEnrollment(1L)).thenReturn(List.of(dto));
 
-        mockMvc.perform(get("/api/course-registrations").param("enrollmentId", "1"))
+        mockMvc.perform(get("/course-registrations").param("enrollmentId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].id").value(1))
@@ -59,7 +59,7 @@ class CourseRegistrationControllerTest {
         CourseRegistrationDto dto = createDto(1L, 1L, 1L);
         when(service.getRegistrationsByCourseOffering(1L)).thenReturn(List.of(dto));
 
-        mockMvc.perform(get("/api/course-registrations").param("courseOfferingId", "1"))
+        mockMvc.perform(get("/course-registrations").param("courseOfferingId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1));
 
@@ -68,7 +68,7 @@ class CourseRegistrationControllerTest {
 
     @Test
     void getRegistrations_badRequestWhenNoParams() throws Exception {
-        mockMvc.perform(get("/api/course-registrations"))
+        mockMvc.perform(get("/course-registrations"))
             .andExpect(status().isBadRequest());
     }
 
@@ -77,7 +77,7 @@ class CourseRegistrationControllerTest {
         CourseRegistrationDto dto = createDto(1L, 1L, 1L);
         when(service.getById(1L)).thenReturn(dto);
 
-        mockMvc.perform(get("/api/course-registrations/1"))
+        mockMvc.perform(get("/course-registrations/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.studentName").value("John Doe"));
@@ -89,7 +89,7 @@ class CourseRegistrationControllerTest {
     void generate() throws Exception {
         when(service.generateRegistrationsForTermInstance(1L)).thenReturn(5);
 
-        mockMvc.perform(post("/api/course-registrations/generate").param("termInstanceId", "1"))
+        mockMvc.perform(post("/course-registrations/generate").param("termInstanceId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.registrationsCreated").value(5));
 
@@ -105,7 +105,7 @@ class CourseRegistrationControllerTest {
         );
         when(service.dropRegistration(1L)).thenReturn(dto);
 
-        mockMvc.perform(put("/api/course-registrations/1/drop"))
+        mockMvc.perform(put("/course-registrations/1/drop"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("DROPPED"));
 

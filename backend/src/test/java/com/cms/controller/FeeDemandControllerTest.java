@@ -50,7 +50,7 @@ class FeeDemandControllerTest {
         FeeDemandDto demand = buildDemand(1L, 5L, 1L, DemandStatus.UNPAID);
         when(feeDemandService.getDemandByEnrollment(5L)).thenReturn(demand);
 
-        mockMvc.perform(get("/api/fee-demands").param("enrollmentId", "5"))
+        mockMvc.perform(get("/fee-demands").param("enrollmentId", "5"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].id").value(1))
             .andExpect(jsonPath("$[0].enrollmentId").value(5));
@@ -63,7 +63,7 @@ class FeeDemandControllerTest {
             buildDemand(2L, 2L, 10L, DemandStatus.PAID));
         when(feeDemandService.getDemandsByTermInstance(10L)).thenReturn(demands);
 
-        mockMvc.perform(get("/api/fee-demands").param("termInstanceId", "10"))
+        mockMvc.perform(get("/fee-demands").param("termInstanceId", "10"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(2));
     }
@@ -73,7 +73,7 @@ class FeeDemandControllerTest {
         List<FeeDemandDto> demands = List.of(buildDemand(1L, 1L, 10L, DemandStatus.UNPAID));
         when(feeDemandService.getDemandsByTermInstanceAndStatus(10L, DemandStatus.UNPAID)).thenReturn(demands);
 
-        mockMvc.perform(get("/api/fee-demands")
+        mockMvc.perform(get("/fee-demands")
                 .param("termInstanceId", "10")
                 .param("status", "UNPAID"))
             .andExpect(status().isOk())
@@ -83,7 +83,7 @@ class FeeDemandControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenNoQueryParams() throws Exception {
-        mockMvc.perform(get("/api/fee-demands"))
+        mockMvc.perform(get("/fee-demands"))
             .andExpect(status().isBadRequest());
     }
 
@@ -96,7 +96,7 @@ class FeeDemandControllerTest {
         FeeDemandDto demand = buildDemand(1L, 1L, 1L, DemandStatus.UNPAID);
         when(feeDemandService.getById(1L)).thenReturn(demand);
 
-        mockMvc.perform(get("/api/fee-demands/1"))
+        mockMvc.perform(get("/fee-demands/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1));
     }
@@ -110,7 +110,7 @@ class FeeDemandControllerTest {
         when(feeDemandService.generateDemandsForTermInstance(5L))
             .thenReturn(new FeeDemandService.GenerateResult(15, 3));
 
-        mockMvc.perform(post("/api/fee-demands/generate").param("termInstanceId", "5"))
+        mockMvc.perform(post("/fee-demands/generate").param("termInstanceId", "5"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.demandsCreated").value(15))
             .andExpect(jsonPath("$.yearlySkipped").value(3));

@@ -25,9 +25,26 @@ import com.cms.dto.DashboardTrendPoint;
 import com.cms.dto.DashboardTrendsResponse;
 import com.cms.model.AppRole;
 import com.cms.model.AppUser;
+import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
+import com.cms.repository.AgentRepository;
 import com.cms.repository.AppUserRepository;
+import com.cms.repository.AuditLogRepository;
+import com.cms.repository.CohortRepository;
+import com.cms.repository.ComplianceDocumentRepository;
+import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.EnquiryRepository;
+import com.cms.repository.FacultyRepository;
+import com.cms.repository.FeeDemandRepository;
+import com.cms.repository.FeeInstallmentRepository;
+import com.cms.repository.FeeRefundRepository;
+import com.cms.repository.LabScheduleRepository;
+import com.cms.repository.PaymentReceiptRepository;
+import com.cms.repository.ProgramRepository;
+import com.cms.repository.SpecialityRepository;
+import com.cms.repository.StudentFeeAllocationRepository;
+import com.cms.repository.StudentRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.service.DashboardService;
 
 @WebMvcTest(controllers = WidgetDataController.class)
@@ -47,6 +64,57 @@ class WidgetDataControllerTest {
 
     @MockitoBean
     private EnquiryRepository enquiryRepository;
+
+    @MockitoBean
+    private FeeDemandRepository feeDemandRepository;
+
+    @MockitoBean
+    private FeeInstallmentRepository feeInstallmentRepository;
+
+    @MockitoBean
+    private ProgramRepository programRepository;
+
+    @MockitoBean
+    private StudentRepository studentRepository;
+
+    @MockitoBean
+    private AgentRepository agentRepository;
+
+    @MockitoBean
+    private StudentFeeAllocationRepository studentFeeAllocationRepository;
+
+    @MockitoBean
+    private EnquiryDocumentRepository enquiryDocumentRepository;
+
+    @MockitoBean
+    private FeeRefundRepository feeRefundRepository;
+
+    @MockitoBean
+    private SpecialityRepository specialityRepository;
+
+    @MockitoBean
+    private FacultyRepository facultyRepository;
+
+    @MockitoBean
+    private LabScheduleRepository labScheduleRepository;
+
+    @MockitoBean
+    private StudentTermEnrollmentRepository studentTermEnrollmentRepository;
+
+    @MockitoBean
+    private PaymentReceiptRepository paymentReceiptRepository;
+
+    @MockitoBean
+    private ComplianceDocumentRepository complianceDocumentRepository;
+
+    @MockitoBean
+    private AuditLogRepository auditLogRepository;
+
+    @MockitoBean
+    private CohortRepository cohortRepository;
+
+    @MockitoBean
+    private AcademicYearRepository academicYearRepository;
 
     @MockitoBean(name = "perm")
     private PermSecurityBean perm;
@@ -69,7 +137,8 @@ class WidgetDataControllerTest {
             Map.of("ENQUIRED", 10L, "ENROLLED", 50L),
             BigDecimal.valueOf(250000),
             BigDecimal.valueOf(75000),
-            7L
+            7L,
+            4L
         );
 
         adminRole = new AppRole();
@@ -85,7 +154,7 @@ class WidgetDataControllerTest {
 
     @Test
     void getHeroReturnsWelcomeBannerForAuthenticatedUser() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("testadmin"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("testadmin"))
             .thenReturn(Optional.of(adminUser));
         when(dashboardService.getSummary()).thenReturn(summary);
 
@@ -99,7 +168,7 @@ class WidgetDataControllerTest {
 
     @Test
     void getHeroReturns404WhenUserNotFound() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("ghost"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("ghost"))
             .thenReturn(Optional.empty());
 
         mockMvc.perform(get("/dashboard/data/hero")
@@ -116,7 +185,7 @@ class WidgetDataControllerTest {
         cashierUser.setKeycloakUsername("cashier1");
         cashierUser.setAppRole(cashierRole);
 
-        when(appUserRepository.findByKeycloakUsername("cashier1"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("cashier1"))
             .thenReturn(Optional.of(cashierUser));
         when(dashboardService.getSummary()).thenReturn(summary);
 
@@ -135,7 +204,7 @@ class WidgetDataControllerTest {
         foUser.setKeycloakUsername("fo1");
         foUser.setAppRole(foRole);
 
-        when(appUserRepository.findByKeycloakUsername("fo1"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("fo1"))
             .thenReturn(Optional.of(foUser));
         when(dashboardService.getSummary()).thenReturn(summary);
 
@@ -154,7 +223,7 @@ class WidgetDataControllerTest {
         facultyUser.setKeycloakUsername("faculty1");
         facultyUser.setAppRole(facultyRole);
 
-        when(appUserRepository.findByKeycloakUsername("faculty1"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("faculty1"))
             .thenReturn(Optional.of(facultyUser));
         when(dashboardService.getSummary()).thenReturn(summary);
 
@@ -170,7 +239,7 @@ class WidgetDataControllerTest {
         noRoleUser.setKeycloakUsername("norole");
         noRoleUser.setAppRole(null);
 
-        when(appUserRepository.findByKeycloakUsername("norole"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("norole"))
             .thenReturn(Optional.of(noRoleUser));
 
         mockMvc.perform(get("/dashboard/data/hero")
@@ -320,6 +389,7 @@ class WidgetDataControllerTest {
             Map.of(), Map.of("OPEN", 0L), Map.of(),
             Map.of(), Map.of("ENQUIRED", 0L),
             BigDecimal.ZERO, BigDecimal.ZERO,
+            0L,
             0L
         );
         when(dashboardService.getSummary()).thenReturn(zeroSummary);
@@ -346,6 +416,7 @@ class WidgetDataControllerTest {
             0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L,
             null, null, null, null, null,
             BigDecimal.ZERO, BigDecimal.ZERO,
+            0L,
             0L
         );
         when(dashboardService.getSummary()).thenReturn(emptySummary);
@@ -373,7 +444,7 @@ class WidgetDataControllerTest {
 
     @Test
     void getQuickActionsReturnsAdminActions() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("testadmin"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("testadmin"))
             .thenReturn(Optional.of(adminUser));
 
         mockMvc.perform(get("/dashboard/data/quick-actions")
@@ -392,7 +463,7 @@ class WidgetDataControllerTest {
         facultyUser.setKeycloakUsername("faculty1");
         facultyUser.setAppRole(facultyRole);
 
-        when(appUserRepository.findByKeycloakUsername("faculty1"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("faculty1"))
             .thenReturn(Optional.of(facultyUser));
 
         mockMvc.perform(get("/dashboard/data/quick-actions")
@@ -410,7 +481,7 @@ class WidgetDataControllerTest {
         studentUser.setKeycloakUsername("student1");
         studentUser.setAppRole(studentRole);
 
-        when(appUserRepository.findByKeycloakUsername("student1"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("student1"))
             .thenReturn(Optional.of(studentUser));
 
         mockMvc.perform(get("/dashboard/data/quick-actions")
@@ -428,7 +499,7 @@ class WidgetDataControllerTest {
         cashierUser.setKeycloakUsername("cashier1");
         cashierUser.setAppRole(cashierRole);
 
-        when(appUserRepository.findByKeycloakUsername("cashier1"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("cashier1"))
             .thenReturn(Optional.of(cashierUser));
 
         mockMvc.perform(get("/dashboard/data/quick-actions")
@@ -446,7 +517,7 @@ class WidgetDataControllerTest {
         foUser.setKeycloakUsername("fo1");
         foUser.setAppRole(foRole);
 
-        when(appUserRepository.findByKeycloakUsername("fo1"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("fo1"))
             .thenReturn(Optional.of(foUser));
 
         mockMvc.perform(get("/dashboard/data/quick-actions")
@@ -464,7 +535,7 @@ class WidgetDataControllerTest {
         otherUser.setKeycloakUsername("other1");
         otherUser.setAppRole(unknownRole);
 
-        when(appUserRepository.findByKeycloakUsername("other1"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("other1"))
             .thenReturn(Optional.of(otherUser));
 
         mockMvc.perform(get("/dashboard/data/quick-actions")
@@ -475,7 +546,7 @@ class WidgetDataControllerTest {
 
     @Test
     void getQuickActionsReturns404WhenUserNotFound() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("ghost"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("ghost"))
             .thenReturn(Optional.empty());
 
         mockMvc.perform(get("/dashboard/data/quick-actions")

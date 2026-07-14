@@ -17,7 +17,7 @@ import com.cms.model.enums.DemandStatus;
 import com.cms.service.FeeDemandService;
 
 @RestController
-@RequestMapping("/api/fee-demands")
+@RequestMapping("/fee-demands")
 public class FeeDemandController {
 
     private final FeeDemandService feeDemandService;

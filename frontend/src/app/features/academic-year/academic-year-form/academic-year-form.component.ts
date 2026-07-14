@@ -35,6 +35,7 @@ import {
 import { Course } from '../../course/course.model';
 import { CourseService } from '../../course/course.service';
 import { ToastService } from '../../../core/toast/toast.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ACADEMIC_YEAR_FORM_TOUR } from '../../../shared/tour/tours/academic-year.tours';
@@ -63,6 +64,7 @@ export class AcademicYearFormComponent implements OnInit {
   private readonly tourService         = inject(TourService);
   private readonly destroyRef          = inject(DestroyRef);
   private readonly http                = inject(HttpClient);
+  private readonly permissionService   = inject(PermissionService);
 
   protected readonly loading    = signal(false);
   protected readonly saving     = signal(false);
@@ -412,6 +414,10 @@ export class AcademicYearFormComponent implements OnInit {
     return 'step--pending';
   }
 
+  protected canViewCourseOfferings(): boolean {
+    return this.permissionService.has('COURSE_VIEW') || this.permissionService.has('COURSE_MANAGE');
+  }
+
   // ── Counselling toggle ────────────────────────────────────────────────────────
 
   protected toggleQuotaStatus(row: FormGroup, quota: 'MANAGEMENT' | 'COUNSELLING'): void {
@@ -495,6 +501,18 @@ export class AcademicYearFormComponent implements OnInit {
   protected getDerivedCounsellingPercentage(row: AbstractControl): number {
     const pct = Number(row.get('managementPercentage')?.value ?? 0) || 0;
     return Math.max(0, 100 - pct);
+  }
+
+  /** Grand totals across every course/program row — recomputed on each change detection pass since
+   *  the underlying FormArray isn't itself a signal. */
+  protected grandSeatTotals(): { total: number; management: number; counselling: number } {
+    let total = 0, management = 0, counselling = 0;
+    for (const row of this.seatAllocationControls()) {
+      total       += this.getSeatTotal(row);
+      management  += this.getDerivedManagementSeats(row);
+      counselling += this.getDerivedCounsellingSeats(row);
+    }
+    return { total, management, counselling };
   }
 
   protected lateFeeLabel(type: string, amount: number): string {

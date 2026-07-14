@@ -1,0 +1,64 @@
+// ── Dialog title bar ─────────────────────────────────────────
+.coed-dialog-title-bar {
+  display: flex !important;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px 16px !important;
+  margin: 0 !important;
+  border-bottom: 1px solid var(--cms-border-default);
+}
+
+.coed-dialog-title-bar__icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--cms-radius-md);
+  background: var(--cms-primary-light);
+  border: 1px solid var(--cms-primary-alpha-30);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 1.25rem;
+    width: 20px;
+    height: 20px;
+    color: var(--cms-primary);
+  }
+}
+
+.coed-dialog-title-bar__heading {
+  font-size: var(--cms-text-md);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.coed-dialog-title-bar__sub {
+  font-size: var(--cms-text-base);
+  color: var(--cms-text-secondary);
+  margin: 2px 0 0;
+  font-weight: 400;
+}
+
+// ── Dialog content / form ─────────────────────────────────────
+mat-dialog-content {
+  padding: 0 24px !important;
+}
+
+.coed-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 20px;
+  padding-bottom: 4px;
+}
+
+// ── Dialog actions ────────────────────────────────────────────
+mat-dialog-actions {
+  padding: 12px 24px 20px !important;
+  gap: 8px;
+  border-top: 1px solid var(--cms-border-default);
+  margin: 0 !important;
+}

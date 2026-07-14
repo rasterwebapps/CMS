@@ -50,7 +50,7 @@ class ExamSessionControllerTest {
             LocalDate.of(2024, 11, 1), LocalDate.of(2024, 11, 30));
         when(examSessionService.create(any())).thenReturn(dto());
 
-        mockMvc.perform(post("/api/exam-sessions")
+        mockMvc.perform(post("/exam-sessions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(req)))
             .andExpect(status().isCreated())
@@ -60,7 +60,7 @@ class ExamSessionControllerTest {
     @Test
     void shouldGetById() throws Exception {
         when(examSessionService.getById(1L)).thenReturn(dto());
-        mockMvc.perform(get("/api/exam-sessions/1"))
+        mockMvc.perform(get("/exam-sessions/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.sessionType").value("FINAL"));
     }
@@ -68,7 +68,7 @@ class ExamSessionControllerTest {
     @Test
     void shouldGetByTermInstance() throws Exception {
         when(examSessionService.getByTermInstance(1L)).thenReturn(List.of(dto()));
-        mockMvc.perform(get("/api/exam-sessions?termInstanceId=1"))
+        mockMvc.perform(get("/exam-sessions?termInstanceId=1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].id").value(1));
     }
@@ -78,7 +78,7 @@ class ExamSessionControllerTest {
         ExamSessionDto published = new ExamSessionDto(1L, 1L, "2024 Sem 1", ExamSessionType.FINAL,
             ExamSessionStatus.PUBLISHED, LocalDate.of(2024, 11, 1), LocalDate.of(2024, 11, 30));
         when(examSessionService.publish(1L)).thenReturn(published);
-        mockMvc.perform(post("/api/exam-sessions/1/publish"))
+        mockMvc.perform(post("/exam-sessions/1/publish"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("PUBLISHED"));
     }
@@ -88,7 +88,7 @@ class ExamSessionControllerTest {
         ExamSessionDto locked = new ExamSessionDto(1L, 1L, "2024 Sem 1", ExamSessionType.FINAL,
             ExamSessionStatus.LOCKED, LocalDate.of(2024, 11, 1), LocalDate.of(2024, 11, 30));
         when(examSessionService.lock(1L)).thenReturn(locked);
-        mockMvc.perform(post("/api/exam-sessions/1/lock"))
+        mockMvc.perform(post("/exam-sessions/1/lock"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("LOCKED"));
     }

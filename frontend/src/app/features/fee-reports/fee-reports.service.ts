@@ -14,27 +14,23 @@ import {
 export class FeeReportsService {
   private readonly http = inject(HttpClient);
 
-  private get baseUrl(): string {
-    return environment.apiUrl.replace('/api/v1', '');
-  }
-
   getOutstandingDemands(termInstanceId: number): Observable<FeeDemandReport[]> {
     return this.http.get<FeeDemandReport[]>(
-      `${this.baseUrl}/api/fee-reports/outstanding`,
+      `${environment.apiUrl}/fee-reports/outstanding`,
       { params: new HttpParams().set('termInstanceId', termInstanceId.toString()) },
     );
   }
 
   getCollectionSummary(termInstanceId: number): Observable<FeeCollectionSummary[]> {
     return this.http.get<FeeCollectionSummary[]>(
-      `${this.baseUrl}/api/fee-reports/collection-summary`,
+      `${environment.apiUrl}/fee-reports/collection-summary`,
       { params: new HttpParams().set('termInstanceId', termInstanceId.toString()) },
     );
   }
 
   getStudentLedger(studentId: number): Observable<StudentFeeLedgerReport> {
     return this.http.get<StudentFeeLedgerReport>(
-      `${this.baseUrl}/api/fee-reports/student-ledger`,
+      `${environment.apiUrl}/fee-reports/student-ledger`,
       { params: new HttpParams().set('studentId', studentId.toString()) },
     );
   }

@@ -59,8 +59,8 @@ public class CohortController {
     public ResponseEntity<List<CohortSummaryResponse>> getCohorts(
             @RequestParam(required = false) Long academicYearId) {
         List<Cohort> cohorts = academicYearId != null
-            ? cohortRepository.findByAdmissionAcademicYearId(academicYearId)
-            : cohortRepository.findAll();
+            ? cohortRepository.findByAdmissionAcademicYearIdWithCourse(academicYearId)
+            : cohortRepository.findAllWithCourse();
         return ResponseEntity.ok(cohorts.stream().map(this::toResponse).toList());
     }
 
@@ -177,7 +177,7 @@ public class CohortController {
                     return cohortRepository.save(c);
                 });
         }
-        List<Cohort> result = cohortRepository.findByAdmissionAcademicYearId(academicYearId);
+        List<Cohort> result = cohortRepository.findByAdmissionAcademicYearIdWithCourse(academicYearId);
         return ResponseEntity.ok(result.stream().map(this::toResponse).toList());
     }
 
@@ -186,7 +186,7 @@ public class CohortController {
     public ResponseEntity<CohortSummaryResponse> updateSeats(
             @PathVariable Long id,
             @RequestBody CohortSeatsRequest request) {
-        Cohort cohort = cohortRepository.findById(id)
+        Cohort cohort = cohortRepository.findByIdWithCourse(id)
             .orElseThrow(() -> new ResourceNotFoundException("Cohort not found: " + id));
 
         Integer total = request.totalSeats();
@@ -207,7 +207,7 @@ public class CohortController {
     public ResponseEntity<CohortSummaryResponse> updateQuotaStatus(
             @PathVariable Long id,
             @RequestBody CohortQuotaStatusRequest request) {
-        Cohort cohort = cohortRepository.findById(id)
+        Cohort cohort = cohortRepository.findByIdWithCourse(id)
             .orElseThrow(() -> new ResourceNotFoundException("Cohort not found: " + id));
         LocalDate today = request.closed() ? LocalDate.now() : null;
         if (request.quota() == AdmissionQuota.COUNSELLING) {

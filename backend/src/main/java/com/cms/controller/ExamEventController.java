@@ -22,7 +22,7 @@ import com.cms.service.ExamEventService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/exam-events")
+@RequestMapping("/exam-events")
 public class ExamEventController {
 
     private final ExamEventService examEventService;

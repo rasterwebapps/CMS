@@ -43,7 +43,7 @@ class SemesterResultControllerTest {
     void computeForEnrollment_returns200() throws Exception {
         when(semesterResultService.computeForEnrollment(10L)).thenReturn(dto());
 
-        mockMvc.perform(post("/api/semester-results/compute")
+        mockMvc.perform(post("/semester-results/compute")
                 .param("enrollmentId", "10"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1));
@@ -53,7 +53,7 @@ class SemesterResultControllerTest {
     void computeForTermInstance_returns200() throws Exception {
         doNothing().when(semesterResultService).computeResultsForTermInstance(anyLong());
 
-        mockMvc.perform(post("/api/semester-results/compute-term")
+        mockMvc.perform(post("/semester-results/compute-term")
                 .param("termInstanceId", "5"))
             .andExpect(status().isOk());
     }
@@ -62,7 +62,7 @@ class SemesterResultControllerTest {
     void getResults_byTermInstance_returns200() throws Exception {
         when(semesterResultService.getByTermInstance(5L)).thenReturn(List.of(dto()));
 
-        mockMvc.perform(get("/api/semester-results").param("termInstanceId", "5"))
+        mockMvc.perform(get("/semester-results").param("termInstanceId", "5"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].id").value(1));
     }
@@ -71,7 +71,7 @@ class SemesterResultControllerTest {
     void getResults_byStudent_returns200() throws Exception {
         when(semesterResultService.getByStudent(100L)).thenReturn(List.of(dto()));
 
-        mockMvc.perform(get("/api/semester-results").param("studentId", "100"))
+        mockMvc.perform(get("/semester-results").param("studentId", "100"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].studentId").value(100));
     }
@@ -80,7 +80,7 @@ class SemesterResultControllerTest {
     void getByEnrollment_returns200() throws Exception {
         when(semesterResultService.getByEnrollment(10L)).thenReturn(dto());
 
-        mockMvc.perform(get("/api/semester-results/enrollment/10"))
+        mockMvc.perform(get("/semester-results/enrollment/10"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.enrollmentId").doesNotExist());
     }
@@ -89,7 +89,7 @@ class SemesterResultControllerTest {
     void lockResult_returns200() throws Exception {
         when(semesterResultService.lockResult(1L)).thenReturn(dto());
 
-        mockMvc.perform(post("/api/semester-results/1/lock"))
+        mockMvc.perform(post("/semester-results/1/lock"))
             .andExpect(status().isOk());
     }
 }

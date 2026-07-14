@@ -20,7 +20,7 @@ import com.cms.service.ExamSessionService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/exam-sessions")
+@RequestMapping("/exam-sessions")
 public class ExamSessionController {
 
     private final ExamSessionService examSessionService;

@@ -19,7 +19,7 @@ import com.cms.service.StudentMarkService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/student-marks")
+@RequestMapping("/student-marks")
 public class StudentMarkController {
 
     private final StudentMarkService studentMarkService;

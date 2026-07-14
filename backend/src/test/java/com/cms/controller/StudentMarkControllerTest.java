@@ -47,7 +47,7 @@ class StudentMarkControllerTest {
         StudentMarkRequest req = new StudentMarkRequest(1L, 1L, MarkStatus.PRESENT,
             new BigDecimal("75"), null);
         when(studentMarkService.upsert(any())).thenReturn(dto());
-        mockMvc.perform(post("/api/student-marks")
+        mockMvc.perform(post("/student-marks")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(req)))
             .andExpect(status().isOk())
@@ -57,7 +57,7 @@ class StudentMarkControllerTest {
     @Test
     void shouldGetById() throws Exception {
         when(studentMarkService.getById(1L)).thenReturn(dto());
-        mockMvc.perform(get("/api/student-marks/1"))
+        mockMvc.perform(get("/student-marks/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.markStatus").value("PRESENT"));
     }
@@ -65,7 +65,7 @@ class StudentMarkControllerTest {
     @Test
     void shouldGetByExamEvent() throws Exception {
         when(studentMarkService.getByExamEvent(1L)).thenReturn(List.of(dto()));
-        mockMvc.perform(get("/api/student-marks?examEventId=1"))
+        mockMvc.perform(get("/student-marks?examEventId=1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].id").value(1));
     }
@@ -73,7 +73,7 @@ class StudentMarkControllerTest {
     @Test
     void shouldGetByEnrollment() throws Exception {
         when(studentMarkService.getByEnrollment(1L)).thenReturn(List.of(dto()));
-        mockMvc.perform(get("/api/student-marks?enrollmentId=1"))
+        mockMvc.perform(get("/student-marks?enrollmentId=1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].studentName").value("Alice"));
     }

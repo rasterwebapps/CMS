@@ -46,7 +46,7 @@ class StudentTermEnrollmentControllerTest {
         StudentTermEnrollmentDto dto = createDto(1L, 1L, 1L, 1L, 1, 1);
         when(service.getEnrollmentsByTermInstance(1L)).thenReturn(List.of(dto));
 
-        mockMvc.perform(get("/api/student-term-enrollments").param("termInstanceId", "1"))
+        mockMvc.perform(get("/student-term-enrollments").param("termInstanceId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].id").value(1))
@@ -60,7 +60,7 @@ class StudentTermEnrollmentControllerTest {
         StudentTermEnrollmentDto dto = createDto(1L, 1L, 1L, 1L, 1, 1);
         when(service.getEnrollmentsByTermInstanceAndSemester(1L, 1)).thenReturn(List.of(dto));
 
-        mockMvc.perform(get("/api/student-term-enrollments")
+        mockMvc.perform(get("/student-term-enrollments")
                 .param("termInstanceId", "1")
                 .param("termNumber", "1"))
             .andExpect(status().isOk())
@@ -74,7 +74,7 @@ class StudentTermEnrollmentControllerTest {
         StudentTermEnrollmentDto dto = createDto(1L, 1L, 1L, 1L, 1, 1);
         when(service.getEnrollmentsByStudent(1L)).thenReturn(List.of(dto));
 
-        mockMvc.perform(get("/api/student-term-enrollments").param("studentId", "1"))
+        mockMvc.perform(get("/student-term-enrollments").param("studentId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1));
 
@@ -83,7 +83,7 @@ class StudentTermEnrollmentControllerTest {
 
     @Test
     void getEnrollments_badRequestWhenNoParams() throws Exception {
-        mockMvc.perform(get("/api/student-term-enrollments"))
+        mockMvc.perform(get("/student-term-enrollments"))
             .andExpect(status().isBadRequest());
     }
 
@@ -92,7 +92,7 @@ class StudentTermEnrollmentControllerTest {
         StudentTermEnrollmentDto dto = createDto(1L, 1L, 1L, 1L, 1, 1);
         when(service.getById(1L)).thenReturn(dto);
 
-        mockMvc.perform(get("/api/student-term-enrollments/1"))
+        mockMvc.perform(get("/student-term-enrollments/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.studentName").value("John Doe"));
@@ -104,7 +104,7 @@ class StudentTermEnrollmentControllerTest {
     void generate() throws Exception {
         when(service.generateEnrollmentsForTermInstance(1L)).thenReturn(5);
 
-        mockMvc.perform(post("/api/student-term-enrollments/generate").param("termInstanceId", "1"))
+        mockMvc.perform(post("/student-term-enrollments/generate").param("termInstanceId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.enrollmentsCreated").value(5));
 

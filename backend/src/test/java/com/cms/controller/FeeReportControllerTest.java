@@ -40,7 +40,7 @@ class FeeReportControllerTest {
             BigDecimal.ZERO, BigDecimal.valueOf(10000), DemandStatus.UNPAID);
         when(feeReportService.getOutstandingDemands(1L)).thenReturn(List.of(demand));
 
-        mockMvc.perform(get("/api/fee-reports/outstanding").param("termInstanceId", "1"))
+        mockMvc.perform(get("/fee-reports/outstanding").param("termInstanceId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].status").value("UNPAID"));
@@ -54,7 +54,7 @@ class FeeReportControllerTest {
             30L, 10L, 10L);
         when(feeReportService.getCollectionSummary(1L)).thenReturn(List.of(summary));
 
-        mockMvc.perform(get("/api/fee-reports/collection-summary").param("termInstanceId", "1"))
+        mockMvc.perform(get("/fee-reports/collection-summary").param("termInstanceId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].programCode").value("CS"));
@@ -65,7 +65,7 @@ class FeeReportControllerTest {
         StudentFeeLedgerDto ledger = new StudentFeeLedgerDto(1L, "Student A", List.of());
         when(feeReportService.getStudentLedger(1L)).thenReturn(ledger);
 
-        mockMvc.perform(get("/api/fee-reports/student-ledger").param("studentId", "1"))
+        mockMvc.perform(get("/fee-reports/student-ledger").param("studentId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.studentId").value(1))
             .andExpect(jsonPath("$.studentName").value("Student A"));

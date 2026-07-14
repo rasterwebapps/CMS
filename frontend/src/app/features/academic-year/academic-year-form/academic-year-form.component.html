@@ -19,9 +19,9 @@
           <cms-tour-button tourKey="academic-year-form" [iconOnly]="true" iconVariant="info-circle" />
         }
         @if (isViewMode() && form.get('isCurrent')?.value) {
-          <span class="cms-badge cms-badge--soft-success">Current Year</span>
+          <span class="cms-badge cms-badge--soft-green">Current Year</span>
         } @else if (isViewMode()) {
-          <span class="cms-badge cms-badge--soft-default">Past Year</span>
+          <span class="cms-badge cms-badge--soft-gray">Past Year</span>
         }
       </div>
       <p class="page-subtitle">
@@ -116,11 +116,11 @@
                   <label class="field-label">Status</label>
                   @if (form.get('isCurrent')?.value) {
                     <p class="ayf-view-value">
-                      <span class="cms-badge cms-badge--soft-success">Current Year</span>
+                      <span class="cms-badge cms-badge--soft-green">Current Year</span>
                     </p>
                   } @else {
                     <p class="ayf-view-value">
-                      <span class="cms-badge cms-badge--soft-default">Past / Inactive</span>
+                      <span class="cms-badge cms-badge--soft-gray">Past / Inactive</span>
                     </p>
                   }
                 }
@@ -155,9 +155,9 @@
                   @if (oddTermInstance(); as term) {
                     <div class="ayf-term-status-row">
                       <span class="cms-badge"
-                        [class.cms-badge--soft-default]="term.status === 'PLANNED'"
-                        [class.cms-badge--soft-warning]="term.status === 'OPEN'"
-                        [class.cms-badge--soft-success]="term.status === 'LOCKED'">
+                        [class.cms-badge--soft-gray]="term.status === 'PLANNED'"
+                        [class.cms-badge--soft-amber]="term.status === 'OPEN'"
+                        [class.cms-badge--soft-green]="term.status === 'LOCKED'">
                         {{ term.status }}
                       </span>
                       @if (isEditMode() || isViewMode()) {
@@ -199,9 +199,19 @@
                     }
                   </div>
                   @if ((isEditMode() || isViewMode()) && oddTermInstance(); as term) {
-                    @let nextStatus = getNextStatus(term.status);
-                    @if (term.status === 'OPEN' || nextStatus) {
+                    @if (canViewCourseOfferings()) {
+                      @let nextStatus = getNextStatus(term.status);
                       <div class="ayf-term-actions">
+                        <a class="btn-secondary btn-sm"
+                           [routerLink]="['/course-offerings']"
+                           [queryParams]="{ termInstanceId: term.id, academicYearId: route.snapshot.paramMap.get('id') }">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                          </svg>
+                          View Course Offerings
+                        </a>
                         @if (term.status === 'OPEN') {
                           <button type="button" class="btn-secondary btn-sm"
                             (click)="generateEnrollments('ODD')" [disabled]="generatingOdd()">
@@ -235,9 +245,9 @@
                   @if (evenTermInstance(); as term) {
                     <div class="ayf-term-status-row">
                       <span class="cms-badge"
-                        [class.cms-badge--soft-default]="term.status === 'PLANNED'"
-                        [class.cms-badge--soft-warning]="term.status === 'OPEN'"
-                        [class.cms-badge--soft-success]="term.status === 'LOCKED'">
+                        [class.cms-badge--soft-gray]="term.status === 'PLANNED'"
+                        [class.cms-badge--soft-amber]="term.status === 'OPEN'"
+                        [class.cms-badge--soft-green]="term.status === 'LOCKED'">
                         {{ term.status }}
                       </span>
                       @if (isEditMode() || isViewMode()) {
@@ -279,9 +289,19 @@
                     }
                   </div>
                   @if ((isEditMode() || isViewMode()) && evenTermInstance(); as term) {
-                    @let nextStatus = getNextStatus(term.status);
-                    @if (term.status === 'OPEN' || nextStatus) {
+                    @if (canViewCourseOfferings()) {
+                      @let nextStatus = getNextStatus(term.status);
                       <div class="ayf-term-actions">
+                        <a class="btn-secondary btn-sm"
+                           [routerLink]="['/course-offerings']"
+                           [queryParams]="{ termInstanceId: term.id, academicYearId: route.snapshot.paramMap.get('id') }">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                          </svg>
+                          View Course Offerings
+                        </a>
                         @if (term.status === 'OPEN') {
                           <button type="button" class="btn-secondary btn-sm"
                             (click)="generateEnrollments('EVEN')" [disabled]="generatingEven()">
@@ -437,6 +457,13 @@
                       </span>
                     </div>
                   }
+                  <div class="seat-allocation-table__footer" role="row">
+                    <span class="seat-allocation-table__footer-label" role="cell">Grand Total</span>
+                    <span class="seat-allocation-table__footer-value" role="cell">{{ grandSeatTotals().total }}</span>
+                    <span role="cell"></span>
+                    <span class="seat-allocation-table__footer-value" role="cell">{{ grandSeatTotals().management }}</span>
+                    <span class="seat-allocation-table__footer-value" role="cell">{{ grandSeatTotals().counselling }}</span>
+                  </div>
                 </div>
                 <p class="field-hint" style="margin-top: 12px;">
                   @if (isCreateMode()) {

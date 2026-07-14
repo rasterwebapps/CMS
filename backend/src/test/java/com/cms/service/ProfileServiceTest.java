@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,12 +51,15 @@ class ProfileServiceTest {
     @Mock
     private AppUserRepository appUserRepository;
 
+    @Mock
+    private StorageService storageService;
+
     private ProfileService profileService;
 
     @BeforeEach
     void setUp() {
         profileService = new ProfileService(
-            facultyRepository, studentRepository, admissionRepository, appUserRepository);
+            facultyRepository, studentRepository, admissionRepository, appUserRepository, storageService);
     }
 
     @AfterEach
@@ -74,8 +78,9 @@ class ProfileServiceTest {
 
         profileService.uploadPhoto(file);
 
-        assertThat(user.getProfilePhoto()).containsExactly(1, 2, 3);
+        assertThat(user.getProfilePhotoKey()).isNotBlank();
         assertThat(user.getProfilePhotoType()).isEqualTo("image/jpeg");
+        verify(storageService).upload(eq(user.getProfilePhotoKey()), any(), eq(3L), eq("image/jpeg"));
         verify(appUserRepository).save(user);
     }
 
@@ -146,7 +151,9 @@ class ProfileServiceTest {
     void updateSelfInfoUpdatesOnlyFacultyWhitelistedFields() {
         setJwt("faculty.user", "faculty@college.edu");
         Faculty faculty = new Faculty();
-        when(facultyRepository.findByEmail("faculty@college.edu")).thenReturn(Optional.of(faculty));
+        AppUser appUser = new AppUser();
+        appUser.setLinkedFaculty(faculty);
+        when(appUserRepository.findByKeycloakUsername("faculty.user")).thenReturn(Optional.of(appUser));
 
         SelfUpdateRequest request = new SelfUpdateRequest(
             "9876543210", "O+", null, null, "Main Road", "Erode", "Erode", "Tamil Nadu", "638001",
@@ -165,8 +172,9 @@ class ProfileServiceTest {
     void updateSelfInfoUpdatesStudentWhenEmailMatchesStudent() {
         setJwt("student.user", "student@college.edu");
         Student student = new Student();
-        when(facultyRepository.findByEmail("student@college.edu")).thenReturn(Optional.empty());
-        when(studentRepository.findByEmail("student@college.edu")).thenReturn(Optional.of(student));
+        AppUser appUser = new AppUser();
+        appUser.setLinkedStudent(student);
+        when(appUserRepository.findByKeycloakUsername("student.user")).thenReturn(Optional.of(appUser));
 
         SelfUpdateRequest request = new SelfUpdateRequest(
             "9123456780", "AB+", null, null, null, "Salem", null, "Tamil Nadu", null,
@@ -183,6 +191,7 @@ class ProfileServiceTest {
     @Test
     void updateSelfInfoDoesNothingForAdminWithoutEmail() {
         setJwt("devadmin", null);
+        when(appUserRepository.findByKeycloakUsername("devadmin")).thenReturn(Optional.of(new AppUser()));
 
         assertThatCode(() -> profileService.updateSelfInfo(
             new SelfUpdateRequest("1", "B+", null, null, null, null, null, null, null, null, null, null)))
@@ -254,7 +263,9 @@ class ProfileServiceTest {
 
         profileService.uploadCoverPhoto(file);
 
-        assertThat(user.getCoverPhoto()).containsExactly(5, 6, 7);
+        assertThat(user.getCoverPhotoKey()).isNotBlank();
+        assertThat(user.getCoverPhotoType()).isEqualTo("image/jpeg");
+        verify(storageService).upload(eq(user.getCoverPhotoKey()), any(), eq(3L), eq("image/jpeg"));
         verify(appUserRepository).save(user);
     }
 
@@ -303,7 +314,9 @@ class ProfileServiceTest {
         faculty.setLastName("Smith");
         faculty.setBio("Faculty bio");
         faculty.setPhone("9876543210");
-        when(facultyRepository.findByEmail("faculty@college.edu")).thenReturn(Optional.of(faculty));
+        AppUser appUser = new AppUser();
+        appUser.setLinkedFaculty(faculty);
+        when(appUserRepository.findByKeycloakUsername("faculty.user")).thenReturn(Optional.of(appUser));
 
         ProfileIdentity identity = profileService.resolveCurrentUser();
 
@@ -315,13 +328,14 @@ class ProfileServiceTest {
     @Test
     void resolveCurrentUserReturnsStudentIdentityWhenEmailMatchesStudent() {
         setJwt("student.user", "student@college.edu");
-        when(facultyRepository.findByEmail("student@college.edu")).thenReturn(Optional.empty());
 
         Student student = new Student();
         student.setId(10L);
         student.setFirstName("Bob");
         student.setLastName("Jones");
-        when(studentRepository.findByEmail("student@college.edu")).thenReturn(Optional.of(student));
+        AppUser appUser = new AppUser();
+        appUser.setLinkedStudent(student);
+        when(appUserRepository.findByKeycloakUsername("student.user")).thenReturn(Optional.of(appUser));
         when(admissionRepository.findByStudentId(10L)).thenReturn(Optional.empty());
 
         ProfileIdentity identity = profileService.resolveCurrentUser();
@@ -334,8 +348,6 @@ class ProfileServiceTest {
     @Test
     void resolveCurrentUserReturnsAdminIdentityWhenNeitherFacultyNorStudent() {
         setJwt("admin", "admin@cms.edu");
-        when(facultyRepository.findByEmail("admin@cms.edu")).thenReturn(Optional.empty());
-        when(studentRepository.findByEmail("admin@cms.edu")).thenReturn(Optional.empty());
         AppUser adminUser = new AppUser();
         adminUser.setBio("Admin bio");
         when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(adminUser));
@@ -361,8 +373,6 @@ class ProfileServiceTest {
     @Test
     void updateSelfInfoUpdatesAdminFields() {
         setJwt("devadmin", "admin@college.edu");
-        when(facultyRepository.findByEmail("admin@college.edu")).thenReturn(Optional.empty());
-        when(studentRepository.findByEmail("admin@college.edu")).thenReturn(Optional.empty());
         AppUser user = new AppUser();
         when(appUserRepository.findByKeycloakUsername("devadmin")).thenReturn(Optional.of(user));
 

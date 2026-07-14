@@ -16,7 +16,7 @@ import com.cms.dto.StudentResultSheetDto;
 import com.cms.service.ResultReportService;
 
 @RestController
-@RequestMapping("/api/result-reports")
+@RequestMapping("/result-reports")
 public class ResultReportController {
 
     private final ResultReportService resultReportService;

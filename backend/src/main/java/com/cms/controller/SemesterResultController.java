@@ -15,7 +15,7 @@ import com.cms.dto.SemesterResultDto;
 import com.cms.service.SemesterResultService;
 
 @RestController
-@RequestMapping("/api/semester-results")
+@RequestMapping("/semester-results")
 public class SemesterResultController {
 
     private final SemesterResultService semesterResultService;

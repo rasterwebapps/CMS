@@ -52,7 +52,7 @@ class ExamEventControllerTest {
         ExamEventRequest req = new ExamEventRequest(1L, 1L, LocalDate.of(2024, 11, 10),
             new BigDecimal("100"), new BigDecimal("40"));
         when(examEventService.create(any())).thenReturn(dto());
-        mockMvc.perform(post("/api/exam-events")
+        mockMvc.perform(post("/exam-events")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(req)))
             .andExpect(status().isCreated())
@@ -62,7 +62,7 @@ class ExamEventControllerTest {
     @Test
     void shouldGetById() throws Exception {
         when(examEventService.getById(1L)).thenReturn(dto());
-        mockMvc.perform(get("/api/exam-events/1"))
+        mockMvc.perform(get("/exam-events/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.subjectCode").value("MATH101"));
     }
@@ -70,7 +70,7 @@ class ExamEventControllerTest {
     @Test
     void shouldGetByExamSession() throws Exception {
         when(examEventService.getByExamSession(1L)).thenReturn(List.of(dto()));
-        mockMvc.perform(get("/api/exam-events?examSessionId=1"))
+        mockMvc.perform(get("/exam-events?examSessionId=1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].id").value(1));
     }
@@ -78,7 +78,7 @@ class ExamEventControllerTest {
     @Test
     void shouldGetByTermInstance() throws Exception {
         when(examEventService.getByTermInstance(1L)).thenReturn(List.of(dto()));
-        mockMvc.perform(get("/api/exam-events?termInstanceId=1"))
+        mockMvc.perform(get("/exam-events?termInstanceId=1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].id").value(1));
     }
@@ -88,7 +88,7 @@ class ExamEventControllerTest {
         ExamEventRequest req = new ExamEventRequest(1L, 1L, LocalDate.of(2024, 11, 11),
             new BigDecimal("100"), new BigDecimal("40"));
         when(examEventService.update(any(), any())).thenReturn(dto());
-        mockMvc.perform(put("/api/exam-events/1")
+        mockMvc.perform(put("/exam-events/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(req)))
             .andExpect(status().isOk());
@@ -96,7 +96,7 @@ class ExamEventControllerTest {
 
     @Test
     void shouldDelete() throws Exception {
-        mockMvc.perform(delete("/api/exam-events/1"))
+        mockMvc.perform(delete("/exam-events/1"))
             .andExpect(status().isNoContent());
     }
 }

@@ -53,12 +53,15 @@ class AdmissionDocumentServiceTest {
     @Mock
     private com.cms.config.PermSecurityBean permSecurityBean;
 
+    @Mock
+    private StorageService storageService;
+
     private AdmissionDocumentService admissionDocumentService;
 
     @BeforeEach
     void setUp() {
         admissionDocumentService = new AdmissionDocumentService(enquiryDocumentRepository, historyRepository,
-            admissionRepository, currentUserResolver, permSecurityBean);
+            admissionRepository, currentUserResolver, permSecurityBean, storageService);
     }
 
     private Admission createAdmission(Long id) {

@@ -48,6 +48,8 @@ class OneBookIntegrationServiceTest {
     @Mock private StudentRepository studentRepo;
     @Mock private StudentScholarshipRepository scholarshipRepo;
     @Mock private ApplicationNumberSequenceService numberSequenceService;
+    @Mock private FeeRefundExportService refundExportService;
+    @Mock private StorageService storageService;
 
     private OneBookIntegrationService service;
 
@@ -56,7 +58,8 @@ class OneBookIntegrationServiceTest {
         service = new OneBookIntegrationService(
                 config, obRepo, enquiryRepo, staffRepo, facultyRepo,
                 refundRepo, studentRepo, scholarshipRepo,
-                numberSequenceService, new ObjectMapper());
+                numberSequenceService, new ObjectMapper(),
+                refundExportService, storageService, "http://minio:9000", "cms-bucket");
     }
 
     // ── pushScholarshipPayment — guard clauses ────────────────────────────────

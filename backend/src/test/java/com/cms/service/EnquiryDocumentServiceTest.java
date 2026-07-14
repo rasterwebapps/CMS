@@ -50,6 +50,8 @@ class EnquiryDocumentServiceTest {
     private com.cms.util.CurrentUserResolver currentUserResolver;
     @Mock
     private com.cms.config.PermSecurityBean permSecurityBean;
+    @Mock
+    private StorageService storageService;
 
     private EnquiryDocumentService documentService;
 
@@ -58,7 +60,7 @@ class EnquiryDocumentServiceTest {
     @BeforeEach
     void setUp() {
         documentService = new EnquiryDocumentService(documentRepository, historyRepository, enquiryRepository,
-            statusHistoryRepository, currentUserResolver, permSecurityBean);
+            statusHistoryRepository, currentUserResolver, permSecurityBean, storageService);
 
         testEnquiry = new Enquiry("Test", "test@email.com", "1234567890", null,
             java.time.LocalDate.now(), new ReferralType("Walk In", "WALK_IN", java.math.BigDecimal.ZERO, false, "Walk in", true), EnquiryStatus.FEES_PAID);

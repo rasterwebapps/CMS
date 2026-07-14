@@ -1,0 +1,49 @@
+<div mat-dialog-title class="coed-dialog-title-bar">
+  <div class="coed-dialog-title-bar__icon-wrap">
+    <mat-icon>menu_book</mat-icon>
+  </div>
+  <div>
+    <h2 class="coed-dialog-title-bar__heading">Edit Course Offering</h2>
+    <p class="coed-dialog-title-bar__sub">{{ data.offering.subjectCode }} · {{ data.offering.subjectName }} — Semester {{ data.offering.semesterNumber }}</p>
+  </div>
+</div>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="coed-form">
+
+    <div class="field-group">
+      <label for="coed-faculty" class="field-label">Faculty</label>
+      <select id="coed-faculty" class="field-select" formControlName="facultyId">
+        <option [ngValue]="null">Unassigned</option>
+        @for (f of data.facultyOptions; track f.id) {
+          <option [ngValue]="f.id">{{ f.name }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label for="coed-section" class="field-label">Section Label</label>
+      <input
+        id="coed-section"
+        class="field-input"
+        formControlName="sectionLabel"
+        placeholder="e.g. Section A"
+      />
+    </div>
+
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button class="btn-secondary" type="button" (click)="onCancel()" [disabled]="saving()">
+    Cancel
+  </button>
+  <button class="btn-primary" type="button" (click)="onSubmit()" [disabled]="saving()">
+    @if (saving()) {
+      <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+    } @else {
+      <mat-icon>save</mat-icon>
+    }
+    Save
+  </button>
+</mat-dialog-actions>

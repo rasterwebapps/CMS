@@ -82,22 +82,20 @@ export class StudentService {
   }
 
   getEnrollmentsByStudent(studentId: number): Observable<StudentTermEnrollment[]> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
     return this.http.get<StudentTermEnrollment[]>(
-      `${baseUrl}/api/student-term-enrollments?studentId=${studentId}`,
+      `${environment.apiUrl}/student-term-enrollments?studentId=${studentId}`,
     );
   }
 
   getRegistrationsByEnrollment(enrollmentId: number): Observable<CourseRegistration[]> {
-    const baseUrl = environment.apiUrl.replace('/api/v1', '');
     return this.http.get<CourseRegistration[]>(
-      `${baseUrl}/api/course-registrations?enrollmentId=${enrollmentId}`,
+      `${environment.apiUrl}/course-registrations?enrollmentId=${enrollmentId}`,
     );
   }
 
   getStudentFeeLedger(studentId: number): Observable<StudentFeeLedger> {
     return this.http.get<StudentFeeLedger>(
-      `${environment.apiUrl}/api/fee-reports/student-ledger?studentId=${studentId}`,
+      `${environment.apiUrl}/fee-reports/student-ledger?studentId=${studentId}`,
     );
   }
 

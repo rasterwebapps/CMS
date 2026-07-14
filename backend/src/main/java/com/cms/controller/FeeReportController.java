@@ -15,7 +15,7 @@ import com.cms.dto.StudentFeeLedgerDto;
 import com.cms.service.FeeReportService;
 
 @RestController
-@RequestMapping("/api/fee-reports")
+@RequestMapping("/fee-reports")
 public class FeeReportController {
 
     private final FeeReportService feeReportService;

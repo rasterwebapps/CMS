@@ -40,7 +40,7 @@ class ResultReportControllerTest {
 
         when(resultReportService.getResultSheet(10L)).thenReturn(sheet);
 
-        mockMvc.perform(get("/api/result-reports/result-sheet/10"))
+        mockMvc.perform(get("/result-reports/result-sheet/10"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.studentId").value(100));
     }
@@ -53,7 +53,7 @@ class ResultReportControllerTest {
 
         when(resultReportService.getSummaryByTermInstance(5L)).thenReturn(List.of(summary));
 
-        mockMvc.perform(get("/api/result-reports/summary").param("termInstanceId", "5"))
+        mockMvc.perform(get("/result-reports/summary").param("termInstanceId", "5"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].cohortCode").value("BSCN-2026-2030"));
     }
@@ -66,7 +66,7 @@ class ResultReportControllerTest {
 
         when(resultReportService.getCourseStatsByTermInstance(5L)).thenReturn(List.of(stats));
 
-        mockMvc.perform(get("/api/result-reports/course-stats").param("termInstanceId", "5"))
+        mockMvc.perform(get("/result-reports/course-stats").param("termInstanceId", "5"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].subjectCode").value("MATH101"));
     }

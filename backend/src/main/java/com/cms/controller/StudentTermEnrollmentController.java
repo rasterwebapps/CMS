@@ -16,7 +16,7 @@ import com.cms.dto.StudentTermEnrollmentDto;
 import com.cms.service.StudentTermEnrollmentService;
 
 @RestController
-@RequestMapping("/api/student-term-enrollments")
+@RequestMapping("/student-term-enrollments")
 public class StudentTermEnrollmentController {
 
     private final StudentTermEnrollmentService service;
