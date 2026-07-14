@@ -205,12 +205,12 @@ export class App implements OnInit, AfterViewInit {
       items: [
         { label: 'Issue Books',      icon: 'add_circle_outline', route: '/library/issues/new',     permissions: ['LIBRARY_QUICK_ISSUE'] },
         { label: 'Issue Explorer',   icon: 'book_online',        route: '/library/issues',         permissions: ['LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_DELETE', 'LIBRARY_ISSUE_EXPORT', 'LIBRARY_ISSUE_MANAGE'] },
+        { label: 'Overdue Books',    icon: 'warning',            route: '/library/reports',        permissions: ['LIBRARY_REPORT_VIEW'] },
         { label: 'Book Explorer',    icon: 'menu_book',          route: '/library/books',          permissions: ['LIBRARY_CATALOGUE_VIEW', 'LIBRARY_CATALOGUE_CREATE', 'LIBRARY_CATALOGUE_EDIT', 'LIBRARY_CATALOGUE_DELETE', 'LIBRARY_CATALOGUE_EXPORT', 'LIBRARY_CATALOGUE_MANAGE'] },
         { label: 'Journal Explorer', icon: 'newspaper',          route: '/library/periodicals',    permissions: ['LIBRARY_PERIODICAL_VIEW', 'LIBRARY_PERIODICAL_CREATE', 'LIBRARY_PERIODICAL_EDIT', 'LIBRARY_PERIODICAL_DELETE', 'LIBRARY_PERIODICAL_EXPORT', 'LIBRARY_PERIODICAL_MANAGE'] },
         { label: 'My Library',       icon: 'person',             route: '/library/my-issues',      permissions: ['MY_LIBRARY_VIEW'] },
         { label: 'Fines',            icon: 'currency_rupee',     route: '/library/fines',          permissions: ['LIBRARY_FINE_VIEW', 'LIBRARY_FINE_CREATE', 'LIBRARY_FINE_EDIT', 'LIBRARY_FINE_DELETE', 'LIBRARY_FINE_EXPORT', 'LIBRARY_FINE_MANAGE'] },
         { label: 'Racks & Shelves',  icon: 'shelves',            route: '/library/racks',          permissions: ['LIBRARY_SHELF_VIEW', 'LIBRARY_SHELF_MANAGE'] },
-        { label: 'Reports',          icon: 'assessment',         route: '/library/reports',        permissions: ['LIBRARY_REPORT_VIEW'] },
         { label: 'Import',           icon: 'upload',             route: '/library/import',         permissions: ['LIBRARY_IMPORT', 'LIBRARY_PERIODICAL_IMPORT'] },
         { label: 'Library Settings', icon: 'settings',           route: '/library/settings',       permissions: ['LIBRARY_SETTINGS_EDIT', 'LIBRARY_SETTINGS_MANAGE'] },
       ],
