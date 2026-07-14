@@ -41,6 +41,7 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 const DEFAULT_PAGE_SIZE = 25;
 const SEARCH_MIN_LENGTH = 3;
 const SORT_FIELD_MAP: Record<string, string> = {
@@ -77,7 +78,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsIconDeleteComponent,
     CmsIconEditComponent,
     CmsIconViewComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './student-list.component.html',
   styleUrl: './student-list.component.scss',

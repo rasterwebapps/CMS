@@ -11,13 +11,15 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { ToastService } from '../../../core/toast/toast.service';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+
 @Component({
   selector: 'app-exam-result-list',
   standalone: true,
   imports: [
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatIconModule, MatProgressSpinnerModule, CmsStatusBadgeComponent, CmsEmptyStateComponent,
-    CmsColumnPickerComponent
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent
   ],
   templateUrl: './exam-result-list.component.html',
   styleUrl: './exam-result-list.component.scss',

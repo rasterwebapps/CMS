@@ -116,6 +116,7 @@
       </button>
     }
     <div class="toolbar-right">
+      <cms-wrap-text-toggle [state]="colState" />
       <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
     </div>
   </div>
@@ -129,7 +130,7 @@
     <div class="table-wrapper">
       <table mat-table [dataSource]="dataSource" matSort
              [matSortActive]="sortActive" [matSortDirection]="sortDirection"
-             matSortDisableClear (matSortChange)="onSortChange($event)"
+             matSortDisableClear (matSortChange)="onSortChange($event)" [cmsResizableColumns]="colState"
              class="mlp-table" aria-label="Book catalogue">
 
         <ng-container matColumnDef="select" [sticky]="colState.isSticky('select')">

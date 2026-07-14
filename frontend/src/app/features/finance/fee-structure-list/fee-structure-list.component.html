@@ -82,6 +82,7 @@
       </button>
     }
     <div class="toolbar-right">
+      <cms-wrap-text-toggle [state]="colState" />
       <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
       <cms-view-toggle
       id="tour-fs-view-toggle"
@@ -222,7 +223,7 @@
     <!-- ── Table view ──────────────────────────────────────────────────── -->
     <div class="content-card mlp-table-card">
       <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+        <table mat-table [dataSource]="dataSource" matSort [cmsResizableColumns]="colState" class="modern-table">
 
           <ng-container matColumnDef="programName" [sticky]="colState.isSticky('programName')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>

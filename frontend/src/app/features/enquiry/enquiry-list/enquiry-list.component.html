@@ -193,6 +193,7 @@
     }
 
     <div class="filterbar-right">
+      <cms-wrap-text-toggle [state]="colState" />
       <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
     </div>
   </div>
@@ -271,7 +272,7 @@
       <div id="tour-enq-content" class="table-wrapper">
         <table mat-table [dataSource]="rows()" matSort matSortDisableClear
                [matSortActive]="sortActive" [matSortDirection]="sortDirection"
-               (matSortChange)="onSortChange($event)" class="modern-table enq-table">
+               (matSortChange)="onSortChange($event)" [cmsResizableColumns]="colState" class="modern-table enq-table">
 
           <!-- Name -->
           <ng-container matColumnDef="name" [sticky]="colState.isSticky('name')">

@@ -24,6 +24,8 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+
 @Component({
   selector: 'app-scholarship-type-list',
   standalone: true,
@@ -42,7 +44,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './scholarship-type-list.component.html',
   styleUrl: './scholarship-type-list.component.scss',

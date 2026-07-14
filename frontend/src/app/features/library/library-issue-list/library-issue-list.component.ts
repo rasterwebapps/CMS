@@ -22,6 +22,8 @@ import { PermissionService } from '../../../core/permissions/permission.service'
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+
 @Component({
   selector: 'app-library-issue-list',
   standalone: true,
@@ -30,7 +32,7 @@ import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/col
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent, ExportButtonComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './library-issue-list.component.html',
   styleUrl: './library-issue-list.component.scss',

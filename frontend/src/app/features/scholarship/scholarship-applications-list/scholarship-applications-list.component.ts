@@ -24,6 +24,7 @@ import { ScholarshipApproveDialogComponent } from '../approve-dialog/scholarship
 import { ScholarshipRejectDialogComponent } from '../reject-dialog/scholarship-reject-dialog.component';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 const DEFAULT_PAGE_SIZE = 25;
 const SORT_FIELD_MAP: Record<string, string> = {
   studentName:      'student.firstName',
@@ -41,7 +42,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     MatIconModule, MatDialogModule, MatTableModule, MatPaginatorModule, MatSortModule,
     AppDatePipe, InrPipe,
     CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsRowActionButtonComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './scholarship-applications-list.component.html',
   styleUrl: './scholarship-applications-list.component.scss',

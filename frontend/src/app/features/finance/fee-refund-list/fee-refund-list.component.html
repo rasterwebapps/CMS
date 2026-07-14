@@ -453,6 +453,7 @@
       </button>
     }
     <div class="toolbar-right">
+      <cms-wrap-text-toggle [state]="colState" />
       <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
     </div>
   </div>
@@ -467,7 +468,7 @@
        <div class="table-wrapper">
          <table id="tour-refund-table" mat-table [dataSource]="dataSource" matSort matSortDisableClear
                 [matSortActive]="sortActive" [matSortDirection]="sortDirection"
-                (matSortChange)="onSortChange($event)" class="modern-table rfl-table">
+                (matSortChange)="onSortChange($event)" [cmsResizableColumns]="colState" class="modern-table rfl-table">
 
           <!-- Requested At -->
           <ng-container matColumnDef="requestedAt" [sticky]="colState.isSticky('requestedAt')">

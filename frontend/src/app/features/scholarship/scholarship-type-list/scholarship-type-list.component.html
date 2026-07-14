@@ -34,6 +34,7 @@
     </div>
 
     <div class="toolbar-right">
+      <cms-wrap-text-toggle [state]="colState" />
       <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
     </div>
   </div>
@@ -49,7 +50,7 @@
       <div class="table-wrapper">
       <table mat-table [dataSource]="dataSource" matSort
              [matSortActive]="sortActive" [matSortDirection]="sortDirection"
-             matSortDisableClear (matSortChange)="onSort($event)"
+             matSortDisableClear (matSortChange)="onSort($event)" [cmsResizableColumns]="colState"
              class="modern-table">
         <ng-container matColumnDef="code" [sticky]="colState.isSticky('code')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>

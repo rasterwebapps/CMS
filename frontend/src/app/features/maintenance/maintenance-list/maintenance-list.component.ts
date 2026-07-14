@@ -20,6 +20,8 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+
 @Component({
   selector: 'app-maintenance-list',
   standalone: true,
@@ -33,7 +35,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
     CmsIconDeleteComponent,
     CmsIconEditComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './maintenance-list.component.html',
   styleUrl: './maintenance-list.component.scss',

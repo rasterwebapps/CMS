@@ -37,6 +37,7 @@ import { CmsIconViewComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 type PanelMode = 'view' | 'approve' | 'reject';
 
 const DEFAULT_PAGE_SIZE = 25;
@@ -60,7 +61,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     FormsModule, ReactiveFormsModule, TitleCasePipe,
     InrPipe, PaymentModeLabelPipe, AppDatePipe,
     CmsEmptyStateComponent, ExportButtonComponent, CashDenominationComponent, CmsTourButtonComponent,
-    CmsRowActionButtonComponent, CmsTypeBadgeComponent, CmsColumnPickerComponent,
+    CmsRowActionButtonComponent, CmsTypeBadgeComponent, CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
     CmsIconViewComponent,

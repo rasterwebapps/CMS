@@ -11,6 +11,8 @@ interface StoredPrefs {
   order?: string[];
   visible?: string[];
   sticky?: string[];
+  widths?: Record<string, number>;
+  wrapText?: boolean;
 }
 
 export class ColumnPickerState {
@@ -18,13 +20,17 @@ export class ColumnPickerState {
   readonly orderedColumns: Signal<ColumnDef[]>;
   readonly visibleColumns: Signal<string[]>;
   readonly stickyColumns: Signal<Set<string>>;
+  readonly widths: Signal<Record<string, number>>;
+  readonly wrapText: Signal<boolean>;
 
   private readonly storageKey: string;
   private readonly mandatoryKeys: Set<string>;
   private readonly colMap: Map<string, ColumnDef>;
-  private readonly _order:   WritableSignal<string[]>;
-  private readonly _visible: WritableSignal<Set<string>>;
-  private readonly _sticky:  WritableSignal<Set<string>>;
+  private readonly _order:    WritableSignal<string[]>;
+  private readonly _visible:  WritableSignal<Set<string>>;
+  private readonly _sticky:   WritableSignal<Set<string>>;
+  private readonly _widths:   WritableSignal<Record<string, number>>;
+  private readonly _wrapText: WritableSignal<boolean>;
 
   constructor(config: {
     columns: ColumnDef[];
@@ -57,9 +63,11 @@ export class ColumnPickerState {
       (prefs.sticky ?? config.defaultSticky ?? []).filter(k => this.colMap.has(k))
     );
 
-    this._order   = signal(order);
-    this._visible = signal(visible);
-    this._sticky  = signal(sticky);
+    this._order    = signal(order);
+    this._visible  = signal(visible);
+    this._sticky   = signal(sticky);
+    this._widths   = signal(prefs.widths ?? {});
+    this._wrapText = signal(prefs.wrapText ?? false);
 
     this.orderedColumns = computed(() =>
       this._order().map(k => this.colMap.get(k)!).filter(Boolean)
@@ -68,6 +76,8 @@ export class ColumnPickerState {
       this._order().filter(k => this._visible().has(k))
     );
     this.stickyColumns = computed(() => this._sticky());
+    this.widths = computed(() => this._widths());
+    this.wrapText = computed(() => this._wrapText());
   }
 
   toggle(key: string): void {
@@ -110,6 +120,18 @@ export class ColumnPickerState {
   isMandatory(key: string): boolean { return this.mandatoryKeys.has(key); }
   isPinnable(key: string): boolean  { return this.colMap.get(key)?.pinnable !== false; }
 
+  getWidth(key: string): number | undefined { return this._widths()[key]; }
+
+  setWidth(key: string, px: number): void {
+    this._widths.update(w => ({ ...w, [key]: Math.round(px) }));
+    this._save();
+  }
+
+  toggleWrap(): void {
+    this._wrapText.update(w => !w);
+    this._save();
+  }
+
   private _load(): StoredPrefs {
     try {
       const raw = JSON.parse(localStorage.getItem(this.storageKey)!);
@@ -120,9 +142,11 @@ export class ColumnPickerState {
 
   private _save(): void {
     localStorage.setItem(this.storageKey, JSON.stringify({
-      order:   this._order(),
-      visible: [...this._visible()],
-      sticky:  [...this._sticky()],
+      order:    this._order(),
+      visible:  [...this._visible()],
+      sticky:   [...this._sticky()],
+      widths:   this._widths(),
+      wrapText: this._wrapText(),
     }));
   }
 }

@@ -30,6 +30,7 @@ import { PermissionService } from '../../../core/permissions/permission.service'
 import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { printFeeReceipt, downloadFeeReceipt } from '../../../shared/utils/print-receipt.utils';
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 
 const DEFAULT_PAGE_SIZE = 25;
 const DEFAULT_SORT_FIELD = 'paymentDate';
@@ -56,6 +57,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
     CmsColumnPickerComponent,
+    ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './receipts-list.component.html',
   styleUrl: './receipts-list.component.scss',

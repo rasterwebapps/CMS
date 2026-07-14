@@ -43,6 +43,7 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 const DEFAULT_PAGE_SIZE = 25;
 const SEARCH_MIN_LENGTH = 3;
 const SORT_FIELD_MAP: Record<string, string> = {
@@ -79,7 +80,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsIconEditComponent,
     CmsIconViewComponent,
     ExportButtonComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './admission-list.component.html',
   styleUrl: './admission-list.component.scss',

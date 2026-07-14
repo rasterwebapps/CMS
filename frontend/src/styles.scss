@@ -1723,6 +1723,75 @@ tr.mat-mdc-no-data-row {
   }
 }
 
+// ── Resizable Tables (cmsResizableColumns directive) ──────────────────────
+// Scoped under .cms-resizable-table so it never affects the ~13 other
+// .modern-table screens that don't opt into resize/wrap/tooltips.
+//
+// Columns are NOT forced into a fixed/viewport-constrained layout — a column
+// with no user-set width stays on the table's natural `auto` sizing, so it
+// expands to fit its content and `.table-wrapper`'s `overflow-x: auto`
+// handles any overflow via horizontal scroll. Only a column the user has
+// actually resized (drag or double-click auto-fit) gets a pinned width +
+// ellipsis clipping — that's injected per-column by the directive itself,
+// not applied blanket here.
+table.cms-resizable-table {
+  th.mat-header-cell,
+  th.mat-mdc-header-cell,
+  td.mat-cell,
+  td.mat-mdc-cell {
+    white-space: nowrap;
+  }
+
+  &.cms-wrap-active {
+    th.mat-header-cell,
+    th.mat-mdc-header-cell,
+    td.mat-cell,
+    td.mat-mdc-cell {
+      white-space: normal;
+      text-overflow: clip;
+      overflow: visible;
+      word-break: break-word;
+    }
+  }
+}
+
+.cms-col-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  // Above Angular Material CDK's own sticky-column border decoration
+  // elements (.mat-mdc-table-sticky-border-elem-*), which otherwise
+  // intercept pointerdown right at column boundaries.
+  z-index: 20;
+  background: transparent;
+  transition: background 0.12s;
+  pointer-events: auto;
+
+  &:hover,
+  &:active {
+    background: var(--cms-primary);
+  }
+}
+
+.cms-cell-tooltip-panel {
+  pointer-events: none;
+}
+
+.cms-cell-tooltip {
+  max-width: 320px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(20, 20, 24, 0.94);
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  word-break: break-word;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
 // ── Cell Styles ──────────────────────────────────
 .cell-code {
   font-family: var(--cms-font-mono);
@@ -4051,6 +4120,18 @@ html.dark-theme .detail-card {
     border-color: var(--cms-primary);
     color: var(--cms-primary);
     background: var(--cms-primary-alpha-8);
+  }
+
+  &--active {
+    border-color: var(--cms-primary);
+    color: var(--cms-primary);
+    background: var(--cms-primary-alpha-8);
+  }
+
+  &--icon-only {
+    width: var(--cms-list-filter-height);
+    padding: 0;
+    justify-content: center;
   }
 }
 

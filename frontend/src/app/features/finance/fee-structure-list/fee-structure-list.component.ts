@@ -22,6 +22,7 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 interface Program { id: number; name: string; }
 interface Course  { id: number; name: string; }
 interface AcademicYear { id: number; name: string; }
@@ -47,7 +48,7 @@ type Gender = 'MALE' | 'FEMALE' | 'OTHER' | null;
     CmsTypeBadgeComponent,
       CmsIconDeleteComponent,
       CmsIconEditComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './fee-structure-list.component.html',
   styleUrl: './fee-structure-list.component.scss',

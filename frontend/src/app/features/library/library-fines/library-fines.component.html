@@ -58,6 +58,7 @@
     }
 
     <div class="toolbar-right">
+      <cms-wrap-text-toggle [state]="colState" />
       <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
     </div>
   </div>
@@ -69,7 +70,7 @@
     <div class="table-wrapper">
       <table mat-table [dataSource]="dataSource" matSort
              [matSortActive]="sortActive" [matSortDirection]="sortDirection"
-             matSortDisableClear (matSortChange)="onSortChange($event)"
+             matSortDisableClear (matSortChange)="onSortChange($event)" [cmsResizableColumns]="colState"
              class="mlp-table" aria-label="Fine register">
 
         <ng-container matColumnDef="accessionNumber" [sticky]="colState.isSticky('accessionNumber')">

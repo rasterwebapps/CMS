@@ -44,6 +44,7 @@
       }
     </div>
     <div class="toolbar-right">
+      <cms-wrap-text-toggle [state]="colState" />
       <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
     </div>
   </div>
@@ -55,7 +56,7 @@
       </div>
     } @else {
       <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+        <table mat-table [dataSource]="dataSource" matSort [cmsResizableColumns]="colState" class="modern-table">
           <ng-container matColumnDef="courseName" [sticky]="colState.isSticky('courseName')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
             <td mat-cell *matCellDef="let row">

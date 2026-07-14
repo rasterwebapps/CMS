@@ -26,6 +26,7 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 import { CommissionExplorerService } from '../commission-explorer.service';
 import {
   CommissionRecord,
@@ -50,7 +51,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     ReactiveFormsModule,
     InrPipe, AppDatePipe, PaymentModeLabelPipe,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent,
-    ExportButtonComponent, CmsColumnPickerComponent,
+    ExportButtonComponent, CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
   ],

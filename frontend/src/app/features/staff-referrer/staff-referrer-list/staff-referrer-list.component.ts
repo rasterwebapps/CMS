@@ -22,6 +22,8 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+
 @Component({
   selector: 'app-staff-referrer-list',
   standalone: true,
@@ -40,7 +42,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './staff-referrer-list.component.html',
   styleUrl: './staff-referrer-list.component.scss',

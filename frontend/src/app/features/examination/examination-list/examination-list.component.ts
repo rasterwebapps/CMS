@@ -18,6 +18,8 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+
 @Component({
   selector: 'app-examination-list',
   standalone: true,
@@ -28,7 +30,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
     CmsIconDeleteComponent,
     CmsIconEditComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './examination-list.component.html',
   styleUrl: './examination-list.component.scss',

@@ -21,6 +21,8 @@ import { PermissionService } from '../../../core/permissions/permission.service'
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+
 @Component({
   selector: 'app-library-fines',
   standalone: true,
@@ -29,7 +31,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule,
     CmsRowActionButtonComponent, CmsTypeBadgeComponent, CmsEmptyStateComponent, ExportButtonComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './library-fines.component.html',
   styleUrl: './library-fines.component.scss',

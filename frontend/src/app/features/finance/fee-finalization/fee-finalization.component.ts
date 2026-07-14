@@ -23,6 +23,7 @@ import { environment } from '../../../../environments';
 import { CmsIconEditComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 interface YearFeeRow {
   yearNumber: number;
   yearLabel: string;
@@ -43,7 +44,7 @@ interface Program { id: number; name: string; durationYears: number; }
     MatPaginatorModule, MatSortModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent,
       CmsIconEditComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './fee-finalization.component.html',
   styleUrl: './fee-finalization.component.scss',

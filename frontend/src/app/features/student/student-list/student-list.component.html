@@ -102,6 +102,7 @@
         <span class="row-count">{{ totalElements }} students</span>
       }
 
+      <cms-wrap-text-toggle [state]="colState" />
       <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
     </div>
   </div>
@@ -127,7 +128,7 @@
       <div id="tour-stu-table" class="table-wrapper">
         <table mat-table [dataSource]="dataSource" matSort matSortDisableClear
                [matSortActive]="sortActive" [matSortDirection]="sortDirection"
-               (matSortChange)="onSortChange($event)" class="modern-table">
+               (matSortChange)="onSortChange($event)" [cmsResizableColumns]="colState" class="modern-table">
 
           <!-- Admission Number -->
           <ng-container matColumnDef="admissionNumber" [sticky]="colState.isSticky('admissionNumber')">

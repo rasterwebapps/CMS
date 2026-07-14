@@ -301,6 +301,7 @@
       </button>
     }
     <div class="toolbar-right">
+      <cms-wrap-text-toggle [state]="colState" />
       <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
     </div>
   </div>
@@ -321,7 +322,7 @@
       <div class="table-wrapper">
       <table mat-table [dataSource]="dataSource" matSort matSortDisableClear
              [matSortActive]="sortActive" [matSortDirection]="sortDirection"
-             (matSortChange)="onSortChange($event)" multiTemplateDataRows class="mlp-table">
+             (matSortChange)="onSortChange($event)" multiTemplateDataRows [cmsResizableColumns]="colState" class="mlp-table">
 
         <!-- Student Name -->
         <ng-container matColumnDef="studentName" [sticky]="colState.isSticky('studentName')">

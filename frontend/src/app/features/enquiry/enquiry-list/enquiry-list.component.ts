@@ -34,6 +34,7 @@ import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } fr
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 export const STATUS_LABELS: Record<string, string> = {
   ENQUIRED:             'Enquired',
   INTERESTED:           'Interested',
@@ -61,7 +62,7 @@ export const STATUS_LABELS: Record<string, string> = {
     CmsIconEditComponent,
     CmsIconViewComponent,
     ExportButtonComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './enquiry-list.component.html',
   styleUrl: './enquiry-list.component.scss',

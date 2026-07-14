@@ -177,6 +177,7 @@
       </button>
     }
     <div class="toolbar-right">
+      <cms-wrap-text-toggle [state]="colState" />
       <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
     </div>
   </div>
@@ -191,7 +192,7 @@
        <div class="table-wrapper">
        <table id="tour-receipts-table" mat-table [dataSource]="dataSource" matSort matSortDisableClear
               [matSortActive]="sortActive" [matSortDirection]="sortDirection"
-              (matSortChange)="onSortChange($event)" class="modern-table">
+              (matSortChange)="onSortChange($event)" [cmsResizableColumns]="colState" class="modern-table">
 
         <ng-container matColumnDef="receiptNumber" [sticky]="colState.isSticky('receiptNumber')">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Receipt No.</th>

@@ -18,6 +18,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsIconViewComponent } from '../../../shared/icons';
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { PermissionService } from '../../../core/permissions/permission.service';
 
@@ -42,7 +43,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     InrPipe, MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent,
     CmsRowActionButtonComponent, CmsIconViewComponent, ExportButtonComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',

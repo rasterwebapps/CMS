@@ -19,6 +19,8 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+
 @Component({
   selector: 'app-co-po-mapping',
   standalone: true,
@@ -38,7 +40,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     CmsRowActionButtonComponent,
     CmsIconDeleteComponent,
     CmsIconEditComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
 ],
   templateUrl: './co-po-mapping.component.html',
   styleUrl: './co-po-mapping.component.scss',

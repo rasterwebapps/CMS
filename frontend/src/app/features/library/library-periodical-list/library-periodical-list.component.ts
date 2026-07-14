@@ -25,6 +25,7 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 import { LibraryBarcodePreviewDialogComponent, LibraryBarcodePreviewDialogData } from '../library-barcode-preview-dialog/library-barcode-preview-dialog.component';
 import { LibraryItemHistoryDialogComponent, LibraryItemHistoryDialogData } from '../library-item-history-dialog/library-item-history-dialog.component';
 
@@ -37,7 +38,7 @@ import { LibraryItemHistoryDialogComponent, LibraryItemHistoryDialogData } from 
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatTooltipModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent,
-    CmsTypeBadgeComponent, CmsStatusBadgeComponent, ExportButtonComponent, CmsColumnPickerComponent,
+    CmsTypeBadgeComponent, CmsStatusBadgeComponent, ExportButtonComponent, CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
     LibraryBarcodePreviewDialogComponent, LibraryItemHistoryDialogComponent,
   ],
   templateUrl: './library-periodical-list.component.html',

@@ -93,6 +93,7 @@
       }
 
       <div class="toolbar-right">
+        <cms-wrap-text-toggle [state]="colState" />
         <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
       </div>
 
@@ -110,7 +111,7 @@
   } @else if (!selectedEnquiry()) {
     <div id="tour-feefinal-table" class="content-card mlp-table-card fee-finalization-table-card">
       <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table fee-finalization-table">
+        <table mat-table [dataSource]="dataSource" matSort [cmsResizableColumns]="colState" class="modern-table fee-finalization-table">
 
             <ng-container matColumnDef="name" [sticky]="colState.isSticky('name')">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>

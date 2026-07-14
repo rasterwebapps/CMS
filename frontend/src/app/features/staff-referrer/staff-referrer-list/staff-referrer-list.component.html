@@ -44,6 +44,7 @@
 
     <div class="toolbar-right">
       @if (viewMode() === 'table') {
+        <cms-wrap-text-toggle [state]="colState" />
         <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
       }
       <cms-view-toggle
@@ -129,7 +130,7 @@
       <div class="table-wrapper">
         <table mat-table [dataSource]="dataSource" matSort matSortDisableClear
                [matSortActive]="sortActive" [matSortDirection]="sortDirection"
-               (matSortChange)="onSortChange($event)" class="modern-table">
+               (matSortChange)="onSortChange($event)" [cmsResizableColumns]="colState" class="modern-table">
 
           <ng-container matColumnDef="name" [sticky]="colState.isSticky('name')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>

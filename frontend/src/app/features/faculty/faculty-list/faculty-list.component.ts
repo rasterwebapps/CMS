@@ -36,6 +36,8 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+
 @Component({
   selector: 'app-faculty-list',
   standalone: true,
@@ -58,7 +60,7 @@ import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/col
     CmsIconDeleteComponent,
     CmsIconEditComponent,
     CmsIconViewComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './faculty-list.component.html',
   styleUrl: './faculty-list.component.scss',

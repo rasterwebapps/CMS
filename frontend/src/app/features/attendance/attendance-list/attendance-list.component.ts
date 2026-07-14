@@ -19,6 +19,8 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
 import { CmsIconDeleteComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+
 @Component({
   selector: 'app-attendance-list',
   standalone: true,
@@ -37,7 +39,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
     CmsIconDeleteComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
 ],
   templateUrl: './attendance-list.component.html',
   styleUrl: './attendance-list.component.scss',

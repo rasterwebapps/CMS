@@ -73,6 +73,7 @@
         <span class="row-count">{{ totalElements }} candidates</span>
       }
 
+      <cms-wrap-text-toggle [state]="colState" />
       <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
     </div>
   </div>
@@ -97,7 +98,7 @@
       <div class="table-wrapper">
         <table mat-table [dataSource]="dataSource" matSort matSortDisableClear
                [matSortActive]="sortActive" [matSortDirection]="sortDirection"
-               (matSortChange)="onSortChange($event)" class="modern-table adcomp-table">
+               (matSortChange)="onSortChange($event)" [cmsResizableColumns]="colState" class="modern-table adcomp-table">
 
           <!-- Student -->
           <ng-container matColumnDef="name" [sticky]="colState.isSticky('name')">

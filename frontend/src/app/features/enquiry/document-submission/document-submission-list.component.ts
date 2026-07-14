@@ -31,6 +31,7 @@ import { Program } from '../../program/program.model';
 import { Course } from '../../course/course.model';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 const DEFAULT_PAGE_SIZE = 25;
 const DEFAULT_SORT_FIELD = 'enquiryDate';
 const DEFAULT_SORT_DIR: 'asc' | 'desc' = 'desc';
@@ -59,7 +60,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
     CmsIconViewComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './document-submission-list.component.html',
   styleUrl: './document-submission-list.component.scss',

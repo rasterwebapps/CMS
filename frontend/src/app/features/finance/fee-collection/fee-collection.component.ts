@@ -31,6 +31,7 @@ import { pastDateOnlyValidator } from '../../../shared/validators/date.validator
 import { HttpErrorResponse } from '@angular/common/http';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 export type FilterType   = 'ALL' | 'ENQUIRY' | 'STUDENT';
 export type FilterStatus = 'ALL' | 'OVERDUE' | 'OUTSTANDING';
 export type PersonType   = 'ENQUIRY' | 'STUDENT';
@@ -66,7 +67,7 @@ export interface FeeEntry {
     CmsTypeBadgeComponent,
     CashDenominationComponent,
     FeeReceiptDialogComponent,
-    CmsColumnPickerComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './fee-collection.component.html',
   styleUrl: './fee-collection.component.scss',

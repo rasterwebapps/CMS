@@ -29,6 +29,7 @@ import { LibraryBarcodePreviewDialogComponent, LibraryBarcodePreviewDialogData }
 import { LibraryItemHistoryDialogComponent, LibraryItemHistoryDialogData } from '../library-item-history-dialog/library-item-history-dialog.component';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { LIBRARY_BOOK_LIST_TOUR } from '../../../shared/tour/tours/library.tours';
@@ -42,7 +43,7 @@ import { LIBRARY_BOOK_LIST_TOUR } from '../../../shared/tour/tours/library.tours
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatTooltipModule,
     MatSelectModule, MatInputModule, MatFormFieldModule,
-    CmsRowActionButtonComponent, CmsEmptyStateComponent, ExportButtonComponent, CmsColumnPickerComponent,
+    CmsRowActionButtonComponent, CmsEmptyStateComponent, ExportButtonComponent, CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
     LibraryBarcodePreviewDialogComponent, LibraryItemHistoryDialogComponent, LibraryBookTransferDialogComponent,
     CmsTourButtonComponent,
   ],

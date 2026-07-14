@@ -70,6 +70,7 @@
       }
 
       <div class="toolbar-right">
+        <cms-wrap-text-toggle [state]="colState" />
         <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
       </div>
 
@@ -88,7 +89,7 @@
   } @else if (!selectedEntry()) {
     <div id="tour-feecol-table" class="content-card mlp-table-card">
       <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table fee-collection-table">
+        <table mat-table [dataSource]="dataSource" matSort [cmsResizableColumns]="colState" class="modern-table fee-collection-table">
 
             <ng-container matColumnDef="name" [sticky]="colState.isSticky('name')">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
