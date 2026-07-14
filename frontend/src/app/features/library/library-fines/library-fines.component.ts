@@ -128,6 +128,8 @@ export class LibraryFinesComponent implements OnInit, OnDestroy {
       search: this.searchValue() || undefined,
       status: this.statusFilter(),
       memberType: this.memberFilter(),
+      sort: this.sortActive,
+      direction: this.sortDirection,
     }).subscribe({
       next: blob => {
         const ext = format === 'pdf' ? 'pdf' : 'xlsx';

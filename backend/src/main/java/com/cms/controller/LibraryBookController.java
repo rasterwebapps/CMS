@@ -3,6 +3,7 @@ package com.cms.controller;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,7 @@ import com.cms.model.enums.BookStatus;
 import com.cms.service.LibraryBarcodeService;
 import com.cms.service.LibraryBookExportService;
 import com.cms.service.LibraryBookService;
+import com.cms.util.ExportSortUtils;
 
 import jakarta.validation.Valid;
 
@@ -46,6 +48,11 @@ import jakarta.validation.Valid;
 public class LibraryBookController {
 
     private static final Logger log = LoggerFactory.getLogger(LibraryBookController.class);
+
+    private static final Set<String> EXPORT_SORT_FIELDS = Set.of(
+        "accessionNumber", "title", "authors", "publisher", "callNumber", "status",
+        "entryDate", "isbn", "edition", "yearOfPublication", "collation", "series",
+        "subjectCategory", "vendorDonorName", "billNumber", "priceRs", "remarks");
 
     private final LibraryBookService bookService;
     private final LibraryBookExportService bookExportService;
@@ -134,21 +141,25 @@ public class LibraryBookController {
             @RequestParam(required = false) BookStatus status,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Long rackId,
-            @RequestParam(required = false) Long shelfId) {
+            @RequestParam(required = false) Long shelfId,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction,
+            @RequestParam(required = false) List<String> columns) {
 
+        Sort exportSort = ExportSortUtils.resolve(sort, direction, EXPORT_SORT_FIELDS, "title", Sort.Direction.ASC);
         List<LibraryBookResponse> data = bookService.findAllMatching(
-            search, status, category, rackId, shelfId, Sort.by("title").ascending());
+            search, status, category, rackId, shelfId, exportSort);
 
         try {
             if ("pdf".equalsIgnoreCase(format)) {
-                byte[] bytes = bookExportService.toPdf(data);
+                byte[] bytes = bookExportService.toPdf(data, columns);
                 String filename = "book-catalogue-" + LocalDate.now() + ".pdf";
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_PDF);
                 headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
                 return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
             } else {
-                byte[] bytes = bookExportService.toExcel(data);
+                byte[] bytes = bookExportService.toExcel(data, columns);
                 String filename = "book-catalogue-" + LocalDate.now() + ".xlsx";
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.parseMediaType(

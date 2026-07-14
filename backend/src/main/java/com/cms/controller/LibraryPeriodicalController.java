@@ -3,6 +3,7 @@ package com.cms.controller;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,7 @@ import com.cms.model.enums.SubscriptionStatus;
 import com.cms.service.LibraryBarcodeService;
 import com.cms.service.LibraryPeriodicalExportService;
 import com.cms.service.LibraryPeriodicalService;
+import com.cms.util.ExportSortUtils;
 
 import jakarta.validation.Valid;
 
@@ -43,6 +45,9 @@ import jakarta.validation.Valid;
 public class LibraryPeriodicalController {
 
     private static final Logger log = LoggerFactory.getLogger(LibraryPeriodicalController.class);
+
+    private static final Set<String> EXPORT_SORT_FIELDS = Set.of(
+        "accessionNumber", "journalName", "journalType", "year", "subscriptionStatus", "receivedDate");
 
     private final LibraryPeriodicalService periodicalService;
     private final LibraryPeriodicalExportService periodicalExportService;
@@ -132,10 +137,13 @@ public class LibraryPeriodicalController {
             @RequestParam(defaultValue = "excel") String format,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) SubscriptionStatus subscriptionStatus,
-            @RequestParam(required = false) JournalType journalType) {
+            @RequestParam(required = false) JournalType journalType,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction) {
 
+        Sort exportSort = ExportSortUtils.resolve(sort, direction, EXPORT_SORT_FIELDS, "journalName", Sort.Direction.ASC);
         List<LibraryPeriodicalResponse> data = periodicalService.findAllMatching(
-            search, subscriptionStatus, journalType, Sort.by("journalName").ascending());
+            search, subscriptionStatus, journalType, exportSort);
 
         try {
             if ("pdf".equalsIgnoreCase(format)) {

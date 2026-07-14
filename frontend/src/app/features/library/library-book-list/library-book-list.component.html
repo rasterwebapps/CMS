@@ -190,6 +190,61 @@
           </td>
         </ng-container>
 
+        <ng-container matColumnDef="entryDate" [sticky]="colState.isSticky('entryDate')">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Entry Date</th>
+          <td mat-cell *matCellDef="let book">{{ book.entryDate ? (book.entryDate | date:'dd MMM yyyy') : '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="isbn" [sticky]="colState.isSticky('isbn')">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>ISBN</th>
+          <td mat-cell *matCellDef="let book">{{ book.isbn ?? '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="edition" [sticky]="colState.isSticky('edition')">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Edition</th>
+          <td mat-cell *matCellDef="let book">{{ book.edition ?? '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="yearOfPublication" [sticky]="colState.isSticky('yearOfPublication')">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Year</th>
+          <td mat-cell *matCellDef="let book">{{ book.yearOfPublication ?? '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="collation" [sticky]="colState.isSticky('collation')">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Collation</th>
+          <td mat-cell *matCellDef="let book">{{ book.collation ?? '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="series" [sticky]="colState.isSticky('series')">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Series</th>
+          <td mat-cell *matCellDef="let book">{{ book.series ?? '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="subjectCategory" [sticky]="colState.isSticky('subjectCategory')">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Subject</th>
+          <td mat-cell *matCellDef="let book">{{ book.subjectCategory ?? '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="vendorDonorName" [sticky]="colState.isSticky('vendorDonorName')">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Source / Vendor</th>
+          <td mat-cell *matCellDef="let book">{{ book.vendorDonorName ?? '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="billNumber" [sticky]="colState.isSticky('billNumber')">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Bill No. &amp; Date</th>
+          <td mat-cell *matCellDef="let book">{{ book.billNumber ?? '—' }}{{ book.billDate ? ' / ' + (book.billDate | date:'dd MMM yyyy') : '' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="priceRs" [sticky]="colState.isSticky('priceRs')">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Price (₹)</th>
+          <td mat-cell *matCellDef="let book">{{ book.priceRs ?? '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="remarks" [sticky]="colState.isSticky('remarks')">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Remarks</th>
+          <td mat-cell *matCellDef="let book">{{ book.remarks ?? '—' }}</td>
+        </ng-container>
+
         <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let book" class="actions-cell">

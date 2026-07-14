@@ -396,12 +396,41 @@ public class LibraryIssueService {
     }
 
     /**
-     * Effectively-overdue issues as of right now — a read-only check for the Overdue
-     * Report so it stays accurate between runs of the nightly {@link #markOverdueIssues()}
-     * job, without that job's write cost on every report load.
+     * Effectively-overdue issues as of right now, paginated/filtered/sorted — the Overdue
+     * Report stays accurate between runs of the nightly {@link #markOverdueIssues()} job,
+     * without that job's write cost on every report load.
      */
-    public List<LibraryIssueResponse> findEffectivelyOverdue() {
-        return toResponses(issueRepository.findByStatusInAndDueDateBefore(ACTIVE_STATUSES, LocalDate.now()));
+    public Page<LibraryIssueResponse> findOverduePage(String search, LibraryMemberType memberType, Pageable pageable) {
+        Specification<LibraryIssue> spec = buildOverdueSpec(search, memberType);
+        Page<LibraryIssue> page = issueRepository.findAll(spec, pageable);
+        return new PageImpl<>(toResponses(page.getContent()), pageable, page.getTotalElements());
+    }
+
+    /** Unpaged, filtered, sorted — used by the Overdue Report export endpoint. */
+    public List<LibraryIssueResponse> findAllOverdueMatching(String search, LibraryMemberType memberType, Sort sort) {
+        List<LibraryIssue> issues = issueRepository.findAll(buildOverdueSpec(search, memberType), sort);
+        return toResponses(issues);
+    }
+
+    private Specification<LibraryIssue> buildOverdueSpec(String search, LibraryMemberType memberType) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(root.get("status").in(ACTIVE_STATUSES));
+            predicates.add(cb.lessThan(root.get("dueDate"), LocalDate.now()));
+            if (memberType != null) predicates.add(cb.equal(root.get("memberType"), memberType));
+            if (search != null && !search.isBlank()) {
+                String p = "%" + search.trim().toLowerCase() + "%";
+                Join<Object, Object> book = root.join("book", JoinType.LEFT);
+                Join<Object, Object> periodical = root.join("periodical", JoinType.LEFT);
+                predicates.add(cb.or(
+                    cb.like(cb.lower(book.get("title")), p),
+                    cb.like(cb.lower(book.get("accessionNumber")), p),
+                    cb.like(cb.lower(periodical.get("journalName")), p),
+                    cb.like(cb.lower(periodical.get("accessionNumber")), p)
+                ));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     /**

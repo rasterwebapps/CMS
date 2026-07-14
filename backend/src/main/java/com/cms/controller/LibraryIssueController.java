@@ -2,6 +2,7 @@ package com.cms.controller;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,12 +34,15 @@ import com.cms.model.enums.LibraryItemType;
 import com.cms.model.enums.LibraryMemberType;
 import com.cms.service.LibraryIssueExportService;
 import com.cms.service.LibraryIssueService;
+import com.cms.util.ExportSortUtils;
 
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/library/issues")
 public class LibraryIssueController {
+
+    private static final Set<String> EXPORT_SORT_FIELDS = Set.of("issuedDate", "dueDate", "status");
 
     private final LibraryIssueService issueService;
     private final LibraryIssueExportService issueExportService;
@@ -154,10 +158,13 @@ public class LibraryIssueController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) IssueStatus status,
             @RequestParam(required = false) LibraryMemberType memberType,
-            @RequestParam(required = false) LibraryItemType itemType) {
+            @RequestParam(required = false) LibraryItemType itemType,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction) {
 
+        Sort exportSort = ExportSortUtils.resolve(sort, direction, EXPORT_SORT_FIELDS, "issuedDate", Sort.Direction.DESC);
         List<LibraryIssueResponse> data = issueService.findAllMatching(
-            search, status, memberType, itemType, Sort.by("issuedDate").descending());
+            search, status, memberType, itemType, exportSort);
 
         try {
             if ("pdf".equalsIgnoreCase(format)) {

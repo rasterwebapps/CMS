@@ -1,5 +1,6 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SelectionModel } from '@angular/cdk/collections';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
@@ -37,7 +38,7 @@ import { LIBRARY_BOOK_LIST_TOUR } from '../../../shared/tour/tours/library.tours
   selector: 'app-library-book-list',
   standalone: true,
   imports: [
-    RouterLink, FormsModule,
+    RouterLink, FormsModule, DatePipe,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatTooltipModule,
     MatSelectModule, MatInputModule, MatFormFieldModule,
@@ -79,16 +80,28 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   protected readonly colState = new ColumnPickerState({
     storageKey: 'library-book-columns',
     columns: [
-      { key: 'select',          label: 'Select',       mandatory: true, pinnable: false },
-      { key: 'accessionNumber', label: 'Acc. No.' },
-      { key: 'title',           label: 'Title',        mandatory: true },
-      { key: 'authors',         label: 'Authors' },
-      { key: 'publisher',       label: 'Publisher' },
-      { key: 'shelf',           label: 'Shelf' },
-      { key: 'callNumber',      label: 'Call No.' },
-      { key: 'status',          label: 'Status' },
-      { key: 'actions',         label: 'Actions',      mandatory: true, pinnable: false },
+      { key: 'select',            label: 'Select',           mandatory: true, pinnable: false },
+      { key: 'accessionNumber',   label: 'Acc. No.' },
+      { key: 'title',             label: 'Title',            mandatory: true },
+      { key: 'authors',           label: 'Author(s)' },
+      { key: 'publisher',         label: 'Publisher' },
+      { key: 'shelf',             label: 'Shelf' },
+      { key: 'callNumber',        label: 'Call No.' },
+      { key: 'status',            label: 'Status' },
+      { key: 'entryDate',         label: 'Entry Date' },
+      { key: 'isbn',              label: 'ISBN' },
+      { key: 'edition',           label: 'Edition' },
+      { key: 'yearOfPublication', label: 'Year' },
+      { key: 'collation',         label: 'Collation' },
+      { key: 'series',            label: 'Series' },
+      { key: 'subjectCategory',   label: 'Subject' },
+      { key: 'vendorDonorName',   label: 'Source / Vendor' },
+      { key: 'billNumber',        label: 'Bill No. & Date' },
+      { key: 'priceRs',           label: 'Price (₹)' },
+      { key: 'remarks',           label: 'Remarks' },
+      { key: 'actions',           label: 'Actions',          mandatory: true, pinnable: false },
     ],
+    defaults: ['select', 'accessionNumber', 'title', 'authors', 'publisher', 'shelf', 'callNumber', 'status', 'actions'],
   });
   protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource    = new MatTableDataSource<LibraryBook>([]);
@@ -181,6 +194,9 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
       category: this.categoryFilter(),
       rackId: this.rackFilter(),
       shelfId: this.shelfFilter(),
+      sort: this.sortActive,
+      direction: this.sortDirection,
+      columns: this.colState.visibleColumns(),
     }).subscribe({
       next: blob => {
         const ext = format === 'pdf' ? 'pdf' : 'xlsx';

@@ -80,13 +80,15 @@ export class LibraryService {
     return this.http.get<Page<LibraryBook>>(`${this.baseUrl}/page`, { params });
   }
 
-  exportBooks(format: 'excel' | 'pdf', p: { search?: string; status?: BookStatus | null; category?: string | null; rackId?: number | null; shelfId?: number | null }): Observable<Blob> {
+  exportBooks(format: 'excel' | 'pdf', p: { search?: string; status?: BookStatus | null; category?: string | null; rackId?: number | null; shelfId?: number | null; sort?: string; direction?: string; columns?: string[] }): Observable<Blob> {
     let params = new HttpParams().set('format', format);
     if (p.search)   params = params.set('search', p.search);
     if (p.status)   params = params.set('status', p.status);
     if (p.category) params = params.set('category', p.category);
     if (p.rackId)   params = params.set('rackId', p.rackId.toString());
     if (p.shelfId)  params = params.set('shelfId', p.shelfId.toString());
+    if (p.sort)     params = params.set('sort', p.sort).set('direction', p.direction ?? 'asc');
+    if (p.columns?.length) params = params.set('columns', p.columns.join(','));
     return this.http.get(`${this.baseUrl}/export`, { params, responseType: 'blob' });
   }
 
@@ -256,11 +258,12 @@ export class LibraryService {
     return this.http.get<Page<LibraryFineDetail>>(`${environment.apiUrl}/library/fines/page`, { params });
   }
 
-  exportFines(format: 'excel' | 'pdf', p: { search?: string; status?: FineStatus | null; memberType?: LibraryMemberType | null }): Observable<Blob> {
+  exportFines(format: 'excel' | 'pdf', p: { search?: string; status?: FineStatus | null; memberType?: LibraryMemberType | null; sort?: string; direction?: string }): Observable<Blob> {
     let params = new HttpParams().set('format', format);
     if (p.search)     params = params.set('search', p.search);
     if (p.status)     params = params.set('status', p.status);
     if (p.memberType) params = params.set('memberType', p.memberType);
+    if (p.sort)       params = params.set('sort', p.sort).set('direction', p.direction ?? 'desc');
     return this.http.get(`${environment.apiUrl}/library/fines/export`, { params, responseType: 'blob' });
   }
 
@@ -289,27 +292,20 @@ export class LibraryService {
 
   // ── Reports ───────────────────────────────────────────────────
 
-  getOverdueReport(): Observable<LibraryIssue[]> {
-    return this.http.get<LibraryIssue[]>(`${environment.apiUrl}/library/reports/overdue`);
+  getOverduePage(p: { search?: string; memberType?: LibraryMemberType | null; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibraryIssue>> {
+    let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
+    if (p.search)     params = params.set('search', p.search);
+    if (p.memberType) params = params.set('memberType', p.memberType);
+    if (p.sort)       params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
+    return this.http.get<Page<LibraryIssue>>(`${environment.apiUrl}/library/reports/overdue/page`, { params });
   }
 
-  getFineReport(memberType?: LibraryMemberType): Observable<LibraryIssue[]> {
-    const params = memberType ? new HttpParams().set('memberType', memberType) : undefined;
-    return this.http.get<LibraryIssue[]>(`${environment.apiUrl}/library/reports/fines`, { params });
-  }
-
-  getIssueHistoryReport(memberType?: LibraryMemberType, status?: IssueStatus): Observable<LibraryIssue[]> {
-    let params = new HttpParams();
-    if (memberType) params = params.set('memberType', memberType);
-    if (status)     params = params.set('status', status);
-    return this.http.get<LibraryIssue[]>(`${environment.apiUrl}/library/reports/issue-history`, { params });
-  }
-
-  getAccessionRegisterReport(subjectCategory?: string, status?: BookStatus): Observable<LibraryBook[]> {
-    let params = new HttpParams();
-    if (subjectCategory) params = params.set('subjectCategory', subjectCategory);
-    if (status)          params = params.set('status', status);
-    return this.http.get<LibraryBook[]>(`${environment.apiUrl}/library/reports/accession-register`, { params });
+  exportOverdue(format: 'excel' | 'pdf', p: { search?: string; memberType?: LibraryMemberType | null; sort?: string; direction?: string }): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (p.search)     params = params.set('search', p.search);
+    if (p.memberType) params = params.set('memberType', p.memberType);
+    if (p.sort)       params = params.set('sort', p.sort).set('direction', p.direction ?? 'asc');
+    return this.http.get(`${environment.apiUrl}/library/reports/overdue/export`, { params, responseType: 'blob' });
   }
 
   // ── Circulation ───────────────────────────────────────────────
@@ -324,12 +320,13 @@ export class LibraryService {
     return this.http.get<Page<LibraryIssue>>(`${environment.apiUrl}/library/issues/page`, { params });
   }
 
-  exportIssues(format: 'excel' | 'pdf', p: { search?: string; status?: IssueStatus | null; memberType?: LibraryMemberType | null; itemType?: LibraryItemType | null }): Observable<Blob> {
+  exportIssues(format: 'excel' | 'pdf', p: { search?: string; status?: IssueStatus | null; memberType?: LibraryMemberType | null; itemType?: LibraryItemType | null; sort?: string; direction?: string }): Observable<Blob> {
     let params = new HttpParams().set('format', format);
     if (p.search)     params = params.set('search', p.search);
     if (p.status)     params = params.set('status', p.status);
     if (p.memberType) params = params.set('memberType', p.memberType);
     if (p.itemType)   params = params.set('itemType', p.itemType);
+    if (p.sort)       params = params.set('sort', p.sort).set('direction', p.direction ?? 'desc');
     return this.http.get(`${environment.apiUrl}/library/issues/export`, { params, responseType: 'blob' });
   }
 
@@ -388,11 +385,12 @@ export class LibraryService {
     return this.http.get<Page<LibraryPeriodical>>(`${environment.apiUrl}/library/periodicals/page`, { params });
   }
 
-  exportPeriodicals(format: 'excel' | 'pdf', p: { search?: string; subscriptionStatus?: SubscriptionStatus | null; journalType?: JournalType | null }): Observable<Blob> {
+  exportPeriodicals(format: 'excel' | 'pdf', p: { search?: string; subscriptionStatus?: SubscriptionStatus | null; journalType?: JournalType | null; sort?: string; direction?: string }): Observable<Blob> {
     let params = new HttpParams().set('format', format);
     if (p.search)             params = params.set('search', p.search);
     if (p.subscriptionStatus) params = params.set('subscriptionStatus', p.subscriptionStatus);
     if (p.journalType)        params = params.set('journalType', p.journalType);
+    if (p.sort)                params = params.set('sort', p.sort).set('direction', p.direction ?? 'asc');
     return this.http.get(`${environment.apiUrl}/library/periodicals/export`, { params, responseType: 'blob' });
   }
 

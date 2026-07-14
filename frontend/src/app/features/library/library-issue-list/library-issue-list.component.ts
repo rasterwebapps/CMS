@@ -142,6 +142,8 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
       status: this.statusFilter(),
       memberType: this.memberFilter(),
       itemType: this.itemTypeFilter(),
+      sort: this.sortActive,
+      direction: this.sortDirection,
     }).subscribe({
       next: blob => {
         const ext = format === 'pdf' ? 'pdf' : 'xlsx';

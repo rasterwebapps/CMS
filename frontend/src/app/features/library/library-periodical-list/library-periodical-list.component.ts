@@ -152,6 +152,8 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
       search: this.searchValue() || undefined,
       subscriptionStatus: this.statusFilter(),
       journalType: this.typeFilter(),
+      sort: this.sortActive,
+      direction: this.sortDirection,
     }).subscribe({
       next: blob => {
         const ext = format === 'pdf' ? 'pdf' : 'xlsx';

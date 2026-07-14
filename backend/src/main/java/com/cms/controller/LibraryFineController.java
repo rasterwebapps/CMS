@@ -2,6 +2,7 @@ package com.cms.controller;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,10 +30,13 @@ import com.cms.model.enums.FineStatus;
 import com.cms.model.enums.LibraryMemberType;
 import com.cms.service.LibraryFineExportService;
 import com.cms.service.LibraryFineService;
+import com.cms.util.ExportSortUtils;
 
 @RestController
 @RequestMapping("/library/fines")
 public class LibraryFineController {
+
+    private static final Set<String> EXPORT_SORT_FIELDS = Set.of("createdAt", "overdueDays", "totalFine", "status");
 
     private final LibraryFineService fineService;
     private final LibraryFineExportService fineExportService;
@@ -87,10 +91,13 @@ public class LibraryFineController {
             @RequestParam(defaultValue = "excel") String format,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) FineStatus status,
-            @RequestParam(required = false) LibraryMemberType memberType) {
+            @RequestParam(required = false) LibraryMemberType memberType,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction) {
 
+        Sort exportSort = ExportSortUtils.resolve(sort, direction, EXPORT_SORT_FIELDS, "createdAt", Sort.Direction.DESC);
         List<LibraryFineDetailResponse> data = fineService.findAllMatching(
-            search, status, memberType, Sort.by("createdAt").descending());
+            search, status, memberType, exportSort);
 
         try {
             if ("pdf".equalsIgnoreCase(format)) {
