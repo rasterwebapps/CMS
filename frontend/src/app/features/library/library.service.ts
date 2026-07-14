@@ -7,8 +7,8 @@ import {
   LibraryBook,
   LibraryBookRequest,
   BookStatus,
-  LibraryBookImportValidationResult,
-  LibraryBookImportExecuteResult,
+  LibraryImportValidationResult,
+  LibraryImportExecuteResult,
   LibraryIssue,
   LibraryIssueRequest,
   LibraryReturnRequest,
@@ -43,7 +43,8 @@ import {
 export class LibraryService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/library/books`;
-  private readonly importUrl = `${this.baseUrl}/import`;
+  private readonly bookImportUrl = `${this.baseUrl}/import`;
+  private readonly periodicalImportUrl = `${environment.apiUrl}/library/periodicals/import`;
 
   // ── Book Catalogue ────────────────────────────────────────────
 
@@ -456,24 +457,28 @@ export class LibraryService {
 
   // ── Import ────────────────────────────────────────────────────
 
-  downloadImportTemplate(): void {
+  private importUrlFor(itemType: 'book' | 'journal'): string {
+    return itemType === 'book' ? this.bookImportUrl : this.periodicalImportUrl;
+  }
+
+  downloadImportTemplate(itemType: 'book' | 'journal'): void {
     const a = document.createElement('a');
-    a.href = `${this.importUrl}/template`;
-    a.download = 'library_books_import_template.xlsx';
+    a.href = `${this.importUrlFor(itemType)}/template`;
+    a.download = itemType === 'book' ? 'library_books_import_template.xlsx' : 'library_journals_import_template.xlsx';
     a.click();
   }
 
-  validateImport(file: File, skipErroredRows = true): Observable<LibraryBookImportValidationResult> {
+  validateImport(itemType: 'book' | 'journal', file: File, skipErroredRows = true): Observable<LibraryImportValidationResult> {
     const form = new FormData();
     form.append('file', file);
     const params = new HttpParams().set('skipErroredRows', String(skipErroredRows));
-    return this.http.post<LibraryBookImportValidationResult>(`${this.importUrl}/validate`, form, { params });
+    return this.http.post<LibraryImportValidationResult>(`${this.importUrlFor(itemType)}/validate`, form, { params });
   }
 
-  executeImport(file: File, skipErroredRows = true): Observable<LibraryBookImportExecuteResult> {
+  executeImport(itemType: 'book' | 'journal', file: File, skipErroredRows = true): Observable<LibraryImportExecuteResult> {
     const form = new FormData();
     form.append('file', file);
     const params = new HttpParams().set('skipErroredRows', String(skipErroredRows));
-    return this.http.post<LibraryBookImportExecuteResult>(`${this.importUrl}/execute`, form, { params });
+    return this.http.post<LibraryImportExecuteResult>(`${this.importUrlFor(itemType)}/execute`, form, { params });
   }
 }

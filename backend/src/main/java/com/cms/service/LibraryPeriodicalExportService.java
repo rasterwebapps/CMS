@@ -35,7 +35,7 @@ public class LibraryPeriodicalExportService {
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     private static final String[] HEADERS = {
-        "#", "Journal Name", "Type", "Volume / Issue", "Year", "Copies", "Status", "Received",
+        "#", "Acc. No.", "Journal Name", "Type", "Volume / Issue", "Year", "Status", "Received",
     };
 
     // ── Excel ─────────────────────────────────────────────────────────────────
@@ -93,18 +93,18 @@ public class LibraryPeriodicalExportService {
                 XSSFCellStyle style = (rowIdx % 2 == 0) ? dataStyle : altStyle;
 
                 setCell(row, 0, String.valueOf(rowIdx - 1), style);
-                setCell(row, 1, nvl(p.journalName()), style);
-                setCell(row, 2, p.journalType() != null ? p.journalType().name() : "—", style);
-                setCell(row, 3, volumeIssue(p), style);
-                setCell(row, 4, p.year() != null ? String.valueOf(p.year()) : "—", style);
-                setCell(row, 5, String.valueOf(p.copiesCount()), style);
+                setCell(row, 1, nvl(p.accessionNumber()), style);
+                setCell(row, 2, nvl(p.journalName()), style);
+                setCell(row, 3, p.journalType() != null ? p.journalType().name() : "—", style);
+                setCell(row, 4, volumeIssue(p), style);
+                setCell(row, 5, p.year() != null ? String.valueOf(p.year()) : "—", style);
                 setCell(row, 6, p.subscriptionStatus() != null ? p.subscriptionStatus().name() : "—", style);
                 setCell(row, 7, p.receivedDate() != null ? p.receivedDate().format(DATE_FMT) : "—", style);
 
                 rowIdx++;
             }
 
-            int[] widths = { 6, 32, 14, 20, 10, 10, 14, 14 };
+            int[] widths = { 6, 16, 32, 14, 20, 10, 14, 14 };
             for (int i = 0; i < widths.length; i++) {
                 sheet.setColumnWidth(i, widths[i] * 256);
             }
@@ -134,7 +134,7 @@ public class LibraryPeriodicalExportService {
 
             PdfPTable table = new PdfPTable(HEADERS.length);
             table.setWidthPercentage(100);
-            float[] colWidths = { 4, 26, 12, 17, 8, 8, 12, 13 };
+            float[] colWidths = { 4, 12, 24, 12, 16, 7, 11, 12 };
             table.setWidths(colWidths);
 
             java.awt.Color headerBg = new java.awt.Color(13, 27, 62);
@@ -152,11 +152,11 @@ public class LibraryPeriodicalExportService {
             for (LibraryPeriodicalResponse p : rows) {
                 java.awt.Color rowBg = (idx % 2 == 0) ? altBg : null;
                 addCell(table, String.valueOf(idx), dataFont, rowBg, Element.ALIGN_CENTER);
+                addCell(table, nvl(p.accessionNumber()), dataFont, rowBg, Element.ALIGN_LEFT);
                 addCell(table, nvl(p.journalName()), dataFont, rowBg, Element.ALIGN_LEFT);
                 addCell(table, p.journalType() != null ? p.journalType().name() : "—", dataFont, rowBg, Element.ALIGN_LEFT);
                 addCell(table, volumeIssue(p), dataFont, rowBg, Element.ALIGN_LEFT);
                 addCell(table, p.year() != null ? String.valueOf(p.year()) : "—", dataFont, rowBg, Element.ALIGN_CENTER);
-                addCell(table, String.valueOf(p.copiesCount()), dataFont, rowBg, Element.ALIGN_CENTER);
                 addCell(table, p.subscriptionStatus() != null ? p.subscriptionStatus().name() : "—", dataFont, rowBg, Element.ALIGN_LEFT);
                 addCell(table, p.receivedDate() != null ? p.receivedDate().format(DATE_FMT) : "—", dataFont, rowBg, Element.ALIGN_CENTER);
                 idx++;

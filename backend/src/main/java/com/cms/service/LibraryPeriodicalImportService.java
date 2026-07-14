@@ -2,7 +2,6 @@ package com.cms.service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -28,47 +27,39 @@ import org.springframework.web.multipart.MultipartFile;
 import com.cms.dto.ImportRowError;
 import com.cms.dto.LibraryImportExecuteResult;
 import com.cms.dto.LibraryImportValidationResult;
-import com.cms.model.Library;
-import com.cms.model.LibraryBook;
-import com.cms.model.enums.BookSourceOfSupply;
+import com.cms.model.LibraryPeriodical;
 import com.cms.model.enums.BookStatus;
-import com.cms.repository.LibraryBookRepository;
+import com.cms.model.enums.JournalType;
+import com.cms.model.enums.SubscriptionStatus;
+import com.cms.repository.LibraryPeriodicalRepository;
 
 @Service
-public class LibraryBookImportService {
+public class LibraryPeriodicalImportService {
 
     private static final DateTimeFormatter DATE_FMT_DMY = DateTimeFormatter.ofPattern("dd-MM-yyyy");
     private static final DateTimeFormatter DATE_FMT_ISO = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     // Template column headers (must match parseRow order)
     private static final String[] HEADERS = {
-        "Acc No (leave blank for auto)", "Entry Date (dd-MM-yyyy)", "Title*",
-        "Authors*", "Publisher", "Year of Publication", "Edition", "ISBN",
-        "Collation", "Series", "Call No", "Shelf Location", "Subject Category",
-        "Source (PURCHASE/DONATION/EXCHANGE)", "Vendor / Donor Name",
-        "Bill No", "Bill Date (dd-MM-yyyy)", "Price (Rs)", "Remarks"
+        "Acc No (leave blank for auto)", "Journal Name*", "Journal Type (NATIONAL/INTERNATIONAL)",
+        "Organization", "Volume Number", "Issue Number", "Month Range", "Year",
+        "Subscription Status (ACTIVE/EXPIRED)", "Received Date (dd-MM-yyyy)", "Received By", "Remarks"
     };
 
-    private final LibraryBookRepository bookRepository;
+    private final LibraryPeriodicalRepository periodicalRepository;
     private final LibraryAccessionRegistryService accessionRegistry;
-    private final LibraryService libraryService;
-    private final LibraryShelfService shelfService;
 
-    public LibraryBookImportService(LibraryBookRepository bookRepository,
-                                     LibraryAccessionRegistryService accessionRegistry,
-                                     LibraryService libraryService,
-                                     LibraryShelfService shelfService) {
-        this.bookRepository = bookRepository;
+    public LibraryPeriodicalImportService(LibraryPeriodicalRepository periodicalRepository,
+                                           LibraryAccessionRegistryService accessionRegistry) {
+        this.periodicalRepository = periodicalRepository;
         this.accessionRegistry = accessionRegistry;
-        this.libraryService = libraryService;
-        this.shelfService = shelfService;
     }
 
     // ── Template download ─────────────────────────────────────────
 
     public byte[] generateTemplate() throws IOException {
         try (XSSFWorkbook wb = new XSSFWorkbook()) {
-            XSSFSheet sheet = wb.createSheet("Books");
+            XSSFSheet sheet = wb.createSheet("Journals");
 
             XSSFCellStyle headerStyle = buildHeaderStyle(wb);
             XSSFCellStyle sampleStyle = buildSampleStyle(wb);
@@ -87,11 +78,9 @@ public class LibraryBookImportService {
             // Sample row
             XSSFRow sample = sheet.createRow(1);
             String[] sampleData = {
-                "", "01-01-2026", "Human Physiology",
-                "Vander Sherman Luciano", "McGraw Hill", "1990", "5th Edition", "9780071009980",
-                "800 pages", "", "612 VAN/H", "C1-R2", "Anatomy & Physiology",
-                "PURCHASE", "Sri Krishna Book Store",
-                "INV-001", "01-01-2026", "650.00", ""
+                "", "Indian Journal of Nursing", "NATIONAL",
+                "Trained Nurses Association of India", "45", "3", "Jul-Sep", "2026",
+                "ACTIVE", "01-07-2026", "Librarian", ""
             };
             for (int i = 0; i < sampleData.length; i++) {
                 var cell = sample.createCell(i);
@@ -101,10 +90,12 @@ public class LibraryBookImportService {
 
             // Reference sheet
             XSSFSheet ref = wb.createSheet("Reference");
-            ref.createRow(0).createCell(0).setCellValue("SOURCE values");
-            ref.createRow(1).createCell(0).setCellValue("PURCHASE");
-            ref.createRow(2).createCell(0).setCellValue("DONATION");
-            ref.createRow(3).createCell(0).setCellValue("EXCHANGE");
+            ref.createRow(0).createCell(0).setCellValue("JOURNAL TYPE values");
+            ref.createRow(1).createCell(0).setCellValue("NATIONAL");
+            ref.createRow(2).createCell(0).setCellValue("INTERNATIONAL");
+            ref.createRow(4).createCell(0).setCellValue("SUBSCRIPTION STATUS values");
+            ref.createRow(5).createCell(0).setCellValue("ACTIVE");
+            ref.createRow(6).createCell(0).setCellValue("EXPIRED");
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             wb.write(out);
@@ -121,9 +112,9 @@ public class LibraryBookImportService {
         int validRows = 0;
 
         try (XSSFWorkbook wb = new XSSFWorkbook(file.getInputStream())) {
-            XSSFSheet sheet = wb.getSheet("Books");
+            XSSFSheet sheet = wb.getSheet("Journals");
             if (sheet == null) {
-                errors.add(new ImportRowError("Books", 0, "Sheet", "No sheet named 'Books' found in the uploaded file", "ERROR"));
+                errors.add(new ImportRowError("Journals", 0, "Sheet", "No sheet named 'Journals' found in the uploaded file", "ERROR"));
                 return new LibraryImportValidationResult(0, 0, 0, errors, warnings);
             }
 
@@ -149,15 +140,14 @@ public class LibraryBookImportService {
 
     @Transactional
     public LibraryImportExecuteResult execute(MultipartFile file, boolean skipErroredRows) throws Exception {
-        List<ImportRowError> errors   = new ArrayList<>();
+        List<ImportRowError> errors = new ArrayList<>();
         int imported = 0;
         int skipped  = 0;
-        Library library = libraryService.getDefault();
 
         try (XSSFWorkbook wb = new XSSFWorkbook(file.getInputStream())) {
-            XSSFSheet sheet = wb.getSheet("Books");
+            XSSFSheet sheet = wb.getSheet("Journals");
             if (sheet == null) {
-                errors.add(new ImportRowError("Books", 0, "Sheet", "No sheet named 'Books' found", "ERROR"));
+                errors.add(new ImportRowError("Journals", 0, "Sheet", "No sheet named 'Journals' found", "ERROR"));
                 return new LibraryImportExecuteResult(0, 0, errors);
             }
 
@@ -179,9 +169,9 @@ public class LibraryBookImportService {
                     }
                 }
 
-                LibraryBook book = parseRow(row, i + 1, errors, library);
-                if (book != null) {
-                    bookRepository.save(book);
+                LibraryPeriodical periodical = parseRow(row, i + 1, errors);
+                if (periodical != null) {
+                    periodicalRepository.save(periodical);
                     imported++;
                 } else {
                     skipped++;
@@ -197,88 +187,94 @@ public class LibraryBookImportService {
     private List<ImportRowError> validateRow(Row row, int displayRow) {
         List<ImportRowError> errors = new ArrayList<>();
 
-        String title = str(row, 2);
-        if (title.isBlank()) {
-            errors.add(new ImportRowError("Books", displayRow, "Title", "Title is required", "ERROR"));
-        }
-        String authors = str(row, 3);
-        if (authors.isBlank()) {
-            errors.add(new ImportRowError("Books", displayRow, "Authors", "Author(s) is required", "ERROR"));
+        String journalName = str(row, 1);
+        if (journalName.isBlank()) {
+            errors.add(new ImportRowError("Journals", displayRow, "Journal Name", "Journal name is required", "ERROR"));
         }
 
         // Accession number uniqueness check
         String accNo = str(row, 0);
         if (!accNo.isBlank() && accessionRegistry.exists(accNo, null, null)) {
-            errors.add(new ImportRowError("Books", displayRow, "Acc No", "Accession number '" + accNo + "' already exists", "ERROR"));
+            errors.add(new ImportRowError("Journals", displayRow, "Acc No", "Accession number '" + accNo + "' already exists", "ERROR"));
         }
 
-        // Source of supply validation
-        String source = str(row, 13);
-        if (!source.isBlank()) {
+        // Journal type validation
+        String type = str(row, 2);
+        if (!type.isBlank()) {
             try {
-                BookSourceOfSupply.valueOf(source.toUpperCase());
+                JournalType.valueOf(type.toUpperCase());
             } catch (IllegalArgumentException e) {
-                errors.add(new ImportRowError("Books", displayRow, "Source", "Invalid source '" + source + "'. Use PURCHASE, DONATION, or EXCHANGE", "ERROR"));
+                errors.add(new ImportRowError("Journals", displayRow, "Journal Type", "Invalid type '" + type + "'. Use NATIONAL or INTERNATIONAL", "ERROR"));
+            }
+        }
+
+        // Year validation
+        String yearStr = str(row, 7);
+        if (!yearStr.isBlank()) {
+            try { Integer.parseInt(yearStr); }
+            catch (NumberFormatException e) {
+                errors.add(new ImportRowError("Journals", displayRow, "Year", "Invalid year value '" + yearStr + "'", "WARNING"));
+            }
+        }
+
+        // Subscription status validation
+        String status = str(row, 8);
+        if (!status.isBlank()) {
+            try {
+                SubscriptionStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                errors.add(new ImportRowError("Journals", displayRow, "Subscription Status", "Invalid status '" + status + "'. Use ACTIVE or EXPIRED", "ERROR"));
             }
         }
 
         // Date format validation
-        String entryDate = str(row, 1);
-        if (!entryDate.isBlank()) {
-            parseDate(entryDate).ifPresentOrElse(d -> {}, () ->
-                errors.add(new ImportRowError("Books", displayRow, "Entry Date", "Invalid date format '" + entryDate + "'. Use dd-MM-yyyy", "WARNING")));
-        }
-
-        String billDate = str(row, 16);
-        if (!billDate.isBlank()) {
-            parseDate(billDate).ifPresentOrElse(d -> {}, () ->
-                errors.add(new ImportRowError("Books", displayRow, "Bill Date", "Invalid date format '" + billDate + "'. Use dd-MM-yyyy", "WARNING")));
+        String receivedDate = str(row, 9);
+        if (!receivedDate.isBlank()) {
+            parseDate(receivedDate).ifPresentOrElse(d -> {}, () ->
+                errors.add(new ImportRowError("Journals", displayRow, "Received Date", "Invalid date format '" + receivedDate + "'. Use dd-MM-yyyy", "WARNING")));
         }
 
         return errors;
     }
 
-    private LibraryBook parseRow(Row row, int displayRow, List<ImportRowError> errors, Library library) {
-        LibraryBook book = new LibraryBook();
-        book.setLibrary(library);
+    private LibraryPeriodical parseRow(Row row, int displayRow, List<ImportRowError> errors) {
+        LibraryPeriodical p = new LibraryPeriodical();
 
         String accNo = str(row, 0);
-        book.setAccessionNumber(accessionRegistry.resolveAccessionNumber(accNo.isBlank() ? null : accNo));
+        p.setAccessionNumber(accessionRegistry.resolveAccessionNumber(accNo.isBlank() ? null : accNo));
 
-        parseDate(str(row, 1)).ifPresent(book::setEntryDate);
-        book.setTitle(blankToNull(str(row, 2)));
-        book.setAuthors(blankToNull(str(row, 3)));
-        book.setPublisher(blankToNull(str(row, 4)));
-        book.setYearOfPublication(blankToNull(str(row, 5)));
-        book.setEdition(blankToNull(str(row, 6)));
-        book.setIsbn(blankToNull(str(row, 7)));
-        book.setCollation(blankToNull(str(row, 8)));
-        book.setSeries(blankToNull(str(row, 9)));
-        book.setCallNumber(blankToNull(str(row, 10)));
-        book.setShelf(shelfService.resolveOrCreateFromLegacyText(library, str(row, 11)));
-        book.setSubjectCategory(blankToNull(str(row, 12)));
+        p.setJournalName(blankToNull(str(row, 1)));
 
-        String source = str(row, 13).toUpperCase();
-        if (!source.isBlank()) {
-            try { book.setSourceOfSupply(BookSourceOfSupply.valueOf(source)); }
+        String type = str(row, 2).toUpperCase();
+        if (!type.isBlank()) {
+            try { p.setJournalType(JournalType.valueOf(type)); }
             catch (IllegalArgumentException ignored) {}
         }
 
-        book.setVendorDonorName(blankToNull(str(row, 14)));
-        book.setBillNumber(blankToNull(str(row, 15)));
-        parseDate(str(row, 16)).ifPresent(book::setBillDate);
+        p.setOrganization(blankToNull(str(row, 3)));
+        p.setVolumeNumber(blankToNull(str(row, 4)));
+        p.setIssueNumber(blankToNull(str(row, 5)));
+        p.setMonthRange(blankToNull(str(row, 6)));
 
-        String priceStr = str(row, 17);
-        if (!priceStr.isBlank()) {
-            try { book.setPriceRs(new BigDecimal(priceStr)); }
+        String yearStr = str(row, 7);
+        if (!yearStr.isBlank()) {
+            try { p.setYear(Integer.parseInt(yearStr)); }
             catch (NumberFormatException e) {
-                errors.add(new ImportRowError("Books", displayRow, "Price", "Invalid price value '" + priceStr + "'", "WARNING"));
+                errors.add(new ImportRowError("Journals", displayRow, "Year", "Invalid year value '" + yearStr + "'", "WARNING"));
             }
         }
 
-        book.setRemarks(blankToNull(str(row, 18)));
-        book.setStatus(BookStatus.AVAILABLE);
-        return book;
+        String status = str(row, 8).toUpperCase();
+        if (!status.isBlank()) {
+            try { p.setSubscriptionStatus(SubscriptionStatus.valueOf(status)); }
+            catch (IllegalArgumentException ignored) {}
+        }
+
+        parseDate(str(row, 9)).ifPresent(p::setReceivedDate);
+        p.setReceivedBy(blankToNull(str(row, 10)));
+        p.setRemarks(blankToNull(str(row, 11)));
+        p.setStatus(BookStatus.AVAILABLE);
+        return p;
     }
 
     // ── Utilities ─────────────────────────────────────────────────

@@ -18,7 +18,6 @@ public record LibraryPeriodicalResponse(
     String issueNumber,
     String monthRange,
     Integer year,
-    int copiesCount,
     SubscriptionStatus subscriptionStatus,
     BookStatus status,
     LocalDate receivedDate,

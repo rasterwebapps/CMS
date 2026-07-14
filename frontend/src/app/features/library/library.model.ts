@@ -159,7 +159,7 @@ export interface LibraryBookShelfTransfer {
   notes?: string;
 }
 
-export interface LibraryBookImportRowError {
+export interface LibraryImportRowError {
   sheet: string;
   rowNumber: number;
   column: string;
@@ -167,18 +167,18 @@ export interface LibraryBookImportRowError {
   severity: 'ERROR' | 'WARNING';
 }
 
-export interface LibraryBookImportValidationResult {
+export interface LibraryImportValidationResult {
   totalRows: number;
   validRows: number;
   invalidRows: number;
-  errors: LibraryBookImportRowError[];
-  warnings: LibraryBookImportRowError[];
+  errors: LibraryImportRowError[];
+  warnings: LibraryImportRowError[];
 }
 
-export interface LibraryBookImportExecuteResult {
-  booksImported: number;
-  booksSkipped: number;
-  errors: LibraryBookImportRowError[];
+export interface LibraryImportExecuteResult {
+  imported: number;
+  skipped: number;
+  errors: LibraryImportRowError[];
 }
 
 export const BOOK_STATUS_OPTIONS: { value: BookStatus; label: string; colorClass: string }[] = [
@@ -227,7 +227,6 @@ export interface LibraryPeriodical {
   issueNumber?: string;
   monthRange?: string;
   year?: number;
-  copiesCount: number;
   subscriptionStatus: SubscriptionStatus;
   status: BookStatus;
   receivedDate?: string;
@@ -247,7 +246,6 @@ export interface LibraryPeriodicalRequest {
   issueNumber?: string;
   monthRange?: string;
   year?: number;
-  copiesCount?: number;
   subscriptionStatus?: SubscriptionStatus;
   status?: BookStatus;
   receivedDate?: string;

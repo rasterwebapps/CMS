@@ -57,6 +57,15 @@
   &:hover { border-color: var(--cms-primary); color: var(--cms-primary); }
 }
 
+// ── Book / Journal toggle ─────────────────────────────────────
+// .mlp-seg / .mlp-seg-btn are defined globally in styles.scss — this wrapper
+// just centers the segmented control on its own row below the header.
+
+.imp-toggle-row {
+  display: flex;
+  justify-content: center;
+}
+
 // ── Step nav ──────────────────────────────────────────────────
 
 .step-nav {

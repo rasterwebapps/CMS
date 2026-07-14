@@ -1113,11 +1113,11 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'library/books/import',
-    canActivate: withPermission('LIBRARY_IMPORT'),
+    path: 'library/import',
+    canActivate: withPermission('LIBRARY_IMPORT', 'LIBRARY_PERIODICAL_IMPORT'),
     loadComponent: () =>
-      import('./features/library/library-book-import/library-book-import.component').then(
-        (m) => m.LibraryBookImportComponent
+      import('./features/library/library-import/library-import.component').then(
+        (m) => m.LibraryImportComponent
       ),
   },
   {

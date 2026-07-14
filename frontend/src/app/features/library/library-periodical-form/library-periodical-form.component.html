@@ -124,17 +124,6 @@
         <h2 class="form-section__title">Receipt Details</h2>
         <div class="form-grid form-grid--3">
           <div class="form-field">
-            <label class="form-label" for="copiesCount">No. of Copies</label>
-            <input id="copiesCount" type="number" min="1" formControlName="copiesCount" class="form-input" />
-            @if (f['copiesCount'].touched && f['copiesCount'].errors?.['min']) {
-              <span class="form-error">Copies must be at least 1</span>
-            }
-            @if (f['accessionNumber'].value?.trim()) {
-              <span class="form-hint">Each accessioned copy is its own entry, so this is always 1.</span>
-            }
-          </div>
-
-          <div class="form-field">
             <label class="form-label" for="receivedDate">Date Received</label>
             <input id="receivedDate" type="date" formControlName="receivedDate" class="form-input" />
           </div>

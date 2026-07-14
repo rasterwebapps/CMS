@@ -74,11 +74,11 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
     storageKey: 'library-periodical-columns',
     columns: [
       { key: 'select',             label: 'Select',      mandatory: true, pinnable: false },
+      { key: 'accessionNumber',    label: 'Acc. No.' },
       { key: 'journalName',        label: 'Journal' },
       { key: 'journalType',        label: 'Type' },
       { key: 'volumeIssue',        label: 'Vol./Issue' },
       { key: 'year',               label: 'Year' },
-      { key: 'copiesCount',        label: 'Copies' },
       { key: 'subscriptionStatus', label: 'Status' },
       { key: 'receivedDate',       label: 'Received' },
       { key: 'actions',            label: 'Actions', mandatory: true, pinnable: false },
@@ -95,6 +95,7 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
   protected readonly statusOptions = SUBSCRIPTION_STATUS_OPTIONS;
   protected readonly canManage     = computed(() => this.permissions.hasAny('LIBRARY_PERIODICAL_MANAGE'));
   protected readonly canExport     = computed(() => this.permissions.hasAny('LIBRARY_PERIODICAL_EXPORT'));
+  protected readonly canImport     = computed(() => this.permissions.hasAny('LIBRARY_PERIODICAL_IMPORT'));
   protected readonly canPrintBarcode = computed(() => this.permissions.hasAny('LIBRARY_PERIODICAL_PRINT_BARCODE'));
   protected readonly printingLabels = signal(false);
   protected readonly canViewHistory = computed(() => this.permissions.hasAny('LIBRARY_PERIODICAL_VIEW_HISTORY'));

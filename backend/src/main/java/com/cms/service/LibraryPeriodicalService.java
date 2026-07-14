@@ -51,7 +51,6 @@ public class LibraryPeriodicalService {
         applyFields(p, request);
         p.setAccessionNumber(accessionNumber);
         p.setBarcode(barcode);
-        p.setCopiesCount(1);
         return toResponse(repository.save(p));
     }
 
@@ -136,9 +135,6 @@ public class LibraryPeriodicalService {
         applyFields(p, request);
         p.setAccessionNumber(accessionNumber);
         p.setBarcode(barcode);
-        if (accessionNumber != null) {
-            p.setCopiesCount(1);
-        }
         return toResponse(repository.save(p));
     }
 
@@ -166,7 +162,6 @@ public class LibraryPeriodicalService {
         p.setIssueNumber(trim(r.issueNumber()));
         p.setMonthRange(trim(r.monthRange()));
         p.setYear(r.year());
-        p.setCopiesCount(r.copiesCount() != null ? r.copiesCount() : 1);
         p.setSubscriptionStatus(r.subscriptionStatus() != null ? r.subscriptionStatus() : SubscriptionStatus.ACTIVE);
         if (r.status() != null) p.setStatus(r.status());
         p.setReceivedDate(r.receivedDate());
@@ -192,7 +187,6 @@ public class LibraryPeriodicalService {
             p.getIssueNumber(),
             p.getMonthRange(),
             p.getYear(),
-            p.getCopiesCount(),
             p.getSubscriptionStatus(),
             p.getStatus(),
             p.getReceivedDate(),

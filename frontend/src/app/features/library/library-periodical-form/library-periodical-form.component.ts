@@ -69,27 +69,11 @@ export class LibraryPeriodicalFormComponent implements OnInit {
       issueNumber:        ['', Validators.maxLength(20)],
       monthRange:         [''],
       year:               [this.currentYear],
-      copiesCount:        [1, [Validators.required, Validators.min(1)]],
       subscriptionStatus: ['ACTIVE'],
       receivedDate:       [''],
       receivedBy:         ['', Validators.maxLength(100)],
       remarks:            ['', Validators.maxLength(500)],
     });
-
-    // Each accessioned copy is its own entry — copies count is always 1 once
-    // an accession number is assigned (only legacy pre-accession rows keep
-    // an editable aggregate count).
-    this.form.get('accessionNumber')!.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(value => {
-        const copiesControl = this.form.get('copiesCount')!;
-        if (value?.trim()) {
-          copiesControl.setValue(1, { emitEvent: false });
-          copiesControl.disable({ emitEvent: false });
-        } else {
-          copiesControl.enable({ emitEvent: false });
-        }
-      });
   }
 
   private accessionNumberValidator(excludeId: number | null): AsyncValidatorFn {
@@ -130,7 +114,6 @@ export class LibraryPeriodicalFormComponent implements OnInit {
           issueNumber:        p.issueNumber  ?? '',
           monthRange:         p.monthRange   ?? '',
           year:               p.year ?? this.currentYear,
-          copiesCount:        p.copiesCount,
           subscriptionStatus: p.subscriptionStatus,
           receivedDate:       p.receivedDate ?? '',
           receivedBy:         p.receivedBy   ?? '',
@@ -160,7 +143,6 @@ export class LibraryPeriodicalFormComponent implements OnInit {
       issueNumber:        v.issueNumber?.trim()  || undefined,
       monthRange:         v.monthRange  || undefined,
       year:               v.year        || undefined,
-      copiesCount:        v.copiesCount,
       subscriptionStatus: v.subscriptionStatus || undefined,
       receivedDate:       v.receivedDate || undefined,
       receivedBy:         v.receivedBy?.trim() || undefined,

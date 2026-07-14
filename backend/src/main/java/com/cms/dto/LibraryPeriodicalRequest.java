@@ -6,7 +6,6 @@ import com.cms.model.enums.BookStatus;
 import com.cms.model.enums.JournalType;
 import com.cms.model.enums.SubscriptionStatus;
 
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -38,9 +37,6 @@ public record LibraryPeriodicalRequest(
     String monthRange,
 
     Integer year,
-
-    @Min(value = 1, message = "Copies count must be at least 1")
-    Integer copiesCount,
 
     SubscriptionStatus subscriptionStatus,
 

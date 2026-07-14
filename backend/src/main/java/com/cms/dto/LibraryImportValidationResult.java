@@ -2,7 +2,7 @@ package com.cms.dto;
 
 import java.util.List;
 
-public record LibraryBookImportValidationResult(
+public record LibraryImportValidationResult(
     int totalRows,
     int validRows,
     int invalidRows,

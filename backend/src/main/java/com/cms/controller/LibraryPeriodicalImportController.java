@@ -15,16 +15,16 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.cms.dto.LibraryImportExecuteResult;
 import com.cms.dto.LibraryImportValidationResult;
-import com.cms.service.LibraryBookImportService;
+import com.cms.service.LibraryPeriodicalImportService;
 
 @RestController
-@RequestMapping("/library/books/import")
-@PreAuthorize("@perm.has('LIBRARY_IMPORT')")
-public class LibraryBookImportController {
+@RequestMapping("/library/periodicals/import")
+@PreAuthorize("@perm.has('LIBRARY_PERIODICAL_IMPORT')")
+public class LibraryPeriodicalImportController {
 
-    private final LibraryBookImportService importService;
+    private final LibraryPeriodicalImportService importService;
 
-    public LibraryBookImportController(LibraryBookImportService importService) {
+    public LibraryPeriodicalImportController(LibraryPeriodicalImportService importService) {
         this.importService = importService;
     }
 
@@ -35,7 +35,7 @@ public class LibraryBookImportController {
         headers.setContentType(MediaType.parseMediaType(
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
         headers.setContentDisposition(ContentDisposition.attachment()
-            .filename("library_books_import_template.xlsx").build());
+            .filename("library_journals_import_template.xlsx").build());
         return ResponseEntity.ok().headers(headers).body(bytes);
     }
 

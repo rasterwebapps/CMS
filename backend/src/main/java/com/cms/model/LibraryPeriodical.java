@@ -57,9 +57,6 @@ public class LibraryPeriodical {
 
     private Integer year;
 
-    @Column(name = "copies_count", nullable = false)
-    private int copiesCount = 1;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "subscription_status", nullable = false, length = 20)
     private SubscriptionStatus subscriptionStatus = SubscriptionStatus.ACTIVE;
@@ -114,9 +111,6 @@ public class LibraryPeriodical {
 
     public Integer getYear() { return year; }
     public void setYear(Integer year) { this.year = year; }
-
-    public int getCopiesCount() { return copiesCount; }
-    public void setCopiesCount(int copiesCount) { this.copiesCount = copiesCount; }
 
     public SubscriptionStatus getSubscriptionStatus() { return subscriptionStatus; }
     public void setSubscriptionStatus(SubscriptionStatus subscriptionStatus) { this.subscriptionStatus = subscriptionStatus; }
