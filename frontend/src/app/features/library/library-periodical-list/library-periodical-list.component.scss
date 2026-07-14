@@ -5,6 +5,11 @@
   margin-left: auto;
 }
 
+.mlp-table mat-checkbox {
+  transform: scale(0.6);
+  transform-origin: center;
+}
+
 .acc-no {
   font-family: monospace;
   font-size: 0.85rem;
