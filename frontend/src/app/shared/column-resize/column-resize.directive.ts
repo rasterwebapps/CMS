@@ -14,13 +14,11 @@ import { DomPortal } from '@angular/cdk/portal';
 import { ColumnPickerState } from '../column-picker';
 
 const MIN_WIDTH_PX = 60;
-// Added per side (`* 2` at the call site). Actual cell padding is
-// `12px 20px` (styles.scss) — 20px per side — plus a couple px of slack for
-// canvas measureText() slightly underestimating actual rendered text width
-// (subpixel/kerning rounding differences vs real DOM text layout). The old
-// value of 16 undercounted the real 20px padding, so auto-fit consistently
-// landed a few px too narrow and clipped trailing characters.
-const AUTO_FIT_PADDING_PX = 22;
+// Auto-fit now measures the *entire* cell (padding included, via
+// box-sizing: border-box), so this is just a small safety margin for
+// sub-pixel rounding — not a padding reconstruction. See
+// `measureUnconstrainedWidth()`.
+const AUTO_FIT_SAFETY_MARGIN_PX = 4;
 const BOUNDARY_HIT_TOLERANCE_PX = 8;
 /** Minimum pointer movement before a pointerdown-on-boundary counts as an
  *  intentional drag, rather than jitter from an ordinary click. */
@@ -137,6 +135,16 @@ export class ColumnResizeDirective implements OnDestroy {
       .filter(Boolean)
       .join('\n');
     this.styleEl.textContent = rules;
+    // `table-layout: auto` can leave a multi-line/wrapped-content column
+    // rendered at its old width for a beat after the stylesheet text itself
+    // has already changed, until something else (e.g. a sort re-rendering
+    // rows) forces a full layout pass — seen concretely on a 3-line stacked
+    // cell (name/phone/email) that stayed visually truncated post-auto-fit
+    // until an unrelated sort click on the same column fixed it. Reading a
+    // layout property forces the browser to fully recompute column widths
+    // against the just-written rule immediately, instead of leaving that to
+    // chance.
+    void this.el.nativeElement.offsetHeight;
   }
 
   /** Purely decorative — the cursor/hover affordance. Actual interaction is
@@ -341,54 +349,111 @@ export class ColumnResizeDirective implements OnDestroy {
   }
 
   private autoFit(th: HTMLElement, key: string): void {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // Text-measurement approximations (canvas, or reconstructing a width
+    // leaf-by-leaf with manual offset/icon-width arithmetic) kept breaking
+    // on one column pattern after another — avatars, sort-arrow icons, web
+    // fonts, badges, each needed its own special case, and every fix risked
+    // both under- and over-sizing other columns. `measureUnconstrainedWidth`
+    // below replaces all of that: it clones the cell's *entire* real DOM
+    // structure and measures the clone's real rendered width, so it handles
+    // any markup pattern correctly without needing to know what's in it.
+    const container = document.createElement('div');
+    container.style.cssText = 'position:absolute; visibility:hidden; left:-99999px; top:0;';
+    document.body.appendChild(container);
 
-    let max = this.measureCellWidth(ctx, th);
+    try {
+      let max = this.measureUnconstrainedWidth(th, container);
 
-    const i = this.state.visibleColumns().indexOf(key);
-    if (i >= 0) {
-      const rows = this.el.nativeElement.querySelectorAll('tr.mat-row, tr.mat-mdc-row');
-      rows.forEach(row => {
-        const cell = row.children[i] as HTMLElement | undefined;
-        if (!cell) return;
-        const w = this.measureCellWidth(ctx, cell);
-        if (w > max) max = w;
-      });
+      const i = this.state.visibleColumns().indexOf(key);
+      if (i >= 0) {
+        const rows = this.el.nativeElement.querySelectorAll('tr.mat-row, tr.mat-mdc-row');
+        rows.forEach(row => {
+          const cell = row.children[i] as HTMLElement | undefined;
+          if (!cell) return;
+          const w = this.measureUnconstrainedWidth(cell, container);
+          if (w > max) max = w;
+        });
+      }
+
+      const px = Math.max(MIN_WIDTH_PX, Math.round(max) + AUTO_FIT_SAFETY_MARGIN_PX);
+      this.state.setWidth(key, px);
+      this.matTable?.updateStickyColumnStyles();
+    } finally {
+      container.remove();
     }
-
-    const px = Math.max(MIN_WIDTH_PX, Math.round(max + AUTO_FIT_PADDING_PX * 2));
-    this.state.setWidth(key, px);
-    this.matTable?.updateStickyColumnStyles();
   }
 
   /**
-   * Measures the widest *single rendered line* a cell needs, not its whole
-   * `textContent` at the cell's own font. Two things break a naive
-   * `ctx.measureText(cell.textContent)` at `getComputedStyle(cell).font`:
-   * stacked multi-line cells (e.g. name + email) concatenate every line's
-   * text into one string with no separators, wildly overestimating since
-   * those lines never render on one line together; and any inner element
-   * with its own font (e.g. a `<span class="cell-mono">` phone number)
-   * renders at a different size/family than the outer `<td>`, so measuring
-   * with the cell's own font under/overestimates what's actually on screen.
-   * Measuring each childless leaf with its *own* computed font and taking
-   * the max fixes both.
+   * Measures a cell's (or header's) true unconstrained width by cloning its
+   * *entire* real DOM subtree — not an approximation built from isolated
+   * leaf text — into an offscreen container and reading the clone's real
+   * rendered width. This is what makes it correct for any markup pattern
+   * without special-casing each one: an avatar beside stacked name/email
+   * text, a sort-arrow icon in front of a header label, badges, buttons,
+   * custom components — all included automatically, because it's the real
+   * markup laid out by the real browser engine, not reconstructed piece by
+   * piece.
+   *
+   * Every element in the clone gets `white-space: nowrap` so no individual
+   * text run wraps, but block-level structure (e.g. stacked name/email
+   * divs, or a `<br>`) still stacks on its own lines exactly as designed —
+   * white-space doesn't affect that — and the clone's own shrink-to-fit
+   * width (`display: inline-block`) then naturally equals the widest line,
+   * same as the real column would need. Absolutely-positioned decoration
+   * (e.g. our own `.cms-col-resize-handle`) is correctly excluded from this
+   * automatically too, since absolutely-positioned descendants never
+   * contribute to a normal-flow ancestor's shrink-to-fit size.
    */
-  private measureCellWidth(ctx: CanvasRenderingContext2D, cell: HTMLElement): number {
-    const leaves = Array.from(cell.querySelectorAll('div, span')).filter(
-      el => el.children.length === 0 && (el.textContent ?? '').trim().length > 0
-    ) as HTMLElement[];
-    const targets = leaves.length ? leaves : [cell];
+  private measureUnconstrainedWidth(source: HTMLElement, container: HTMLElement): number {
+    const clone = source.cloneNode(true) as HTMLElement;
+    this.preserveBoxModelAndStripConstraints(source, clone);
+    clone.style.display = 'inline-block';
+    container.appendChild(clone);
+    const width = clone.getBoundingClientRect().width;
+    container.removeChild(clone);
+    return width;
+  }
 
-    let max = 0;
-    targets.forEach(el => {
-      ctx.font = getComputedStyle(el).font;
-      const w = ctx.measureText(el.textContent?.trim() ?? '').width;
-      if (w > max) max = w;
+  /**
+   * Walks the original element and its freshly-made clone in lockstep,
+   * pinning each node's *real, already-rendered* padding/border/font onto
+   * the clone as explicit inline styles before stripping width/overflow
+   * constraints. Necessary because this app's shared cell padding
+   * (`td.mat-cell` inside `.modern-table` — styles.scss) is a *scoped*
+   * descendant selector requiring a `table.modern-table` ancestor: once the
+   * clone is detached and reparented into an offscreen container for
+   * measurement, it no longer matches that selector and silently loses its
+   * padding — under-measuring every cell by the full padding amount. Inline
+   * styles always win regardless of where an element ends up in the DOM, so
+   * reading the real computed values first and pinning them explicitly
+   * preserves the actual rendered box model instead of hoping a scoped rule
+   * still applies after the move.
+   */
+  private preserveBoxModelAndStripConstraints(original: HTMLElement, clone: HTMLElement): void {
+    const style = getComputedStyle(original);
+    clone.style.paddingTop = style.paddingTop;
+    clone.style.paddingRight = style.paddingRight;
+    clone.style.paddingBottom = style.paddingBottom;
+    clone.style.paddingLeft = style.paddingLeft;
+    clone.style.borderWidth = style.borderWidth;
+    clone.style.borderStyle = style.borderStyle;
+    clone.style.boxSizing = style.boxSizing;
+    clone.style.font = style.font;
+    clone.style.letterSpacing = style.letterSpacing;
+
+    clone.style.width = 'auto';
+    clone.style.minWidth = '0';
+    clone.style.maxWidth = 'none';
+    clone.style.whiteSpace = 'nowrap';
+    clone.style.overflow = 'visible';
+    clone.style.textOverflow = 'clip';
+
+    const originalChildren = Array.from(original.children) as HTMLElement[];
+    const cloneChildren = Array.from(clone.children) as HTMLElement[];
+    originalChildren.forEach((child, i) => {
+      const clonedChild = cloneChildren[i];
+      if (clonedChild) this.preserveBoxModelAndStripConstraints(child, clonedChild);
     });
-    return max;
   }
 
   // ── Truncation tooltips (delegated, driven by textContent — works for any column's markup) ──
