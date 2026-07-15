@@ -1734,12 +1734,33 @@ tr.mat-mdc-no-data-row {
 // actually resized (drag or double-click auto-fit) gets a pinned width +
 // ellipsis clipping — that's injected per-column by the directive itself,
 // not applied blanket here.
+//
+// Wrap Text (below) never changes any of this — like Excel's Wrap Text, it
+// only controls whether overflowing content wraps within whatever width a
+// column already has. Turning it on for a column that's already wide enough
+// to show its content on one line does nothing visible, by design.
 table.cms-resizable-table {
   th.mat-header-cell,
   th.mat-mdc-header-cell,
   td.mat-cell,
   td.mat-mdc-cell {
     white-space: nowrap;
+  }
+
+  // `text-overflow: ellipsis` never cascades into nested block-level children
+  // (MDN: it only truncates a container's own single-line inline content) —
+  // so stacked two-line cells (e.g. `.cell-name` + `.cell-sub`) hard-clip with
+  // no "…" unless each leaf text line gets its own truncation rule. Scoped to
+  // childless div/span so badges, icon buttons, and row-action groups (which
+  // always have element children) are left untouched.
+  td.mat-cell div:not(:has(*)),
+  td.mat-cell span:not(:has(*)),
+  td.mat-mdc-cell div:not(:has(*)),
+  td.mat-mdc-cell span:not(:has(*)) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
   }
 
   &.cms-wrap-active {
@@ -1750,7 +1771,24 @@ table.cms-resizable-table {
       white-space: normal;
       text-overflow: clip;
       overflow: visible;
-      word-break: break-word;
+      // break-all fills each line greedily up to the column's locked width,
+      // splitting a word mid-character the instant it hits the boundary —
+      // not just as a last resort for a single unbreakable token the way
+      // break-word behaves. overflow-wrap is the standards-track fallback.
+      word-break: break-all;
+      overflow-wrap: break-word;
+      vertical-align: top !important; // row height now varies per-column; keep short cells pinned to the top instead of centering against a taller wrapped neighbor
+    }
+
+    td.mat-cell div:not(:has(*)),
+    td.mat-cell span:not(:has(*)),
+    td.mat-mdc-cell div:not(:has(*)),
+    td.mat-mdc-cell span:not(:has(*)) {
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+      word-break: break-all;
+      overflow-wrap: break-word;
     }
   }
 }
@@ -1758,8 +1796,8 @@ table.cms-resizable-table {
 .cms-col-resize-handle {
   position: absolute;
   top: 0;
-  right: -3px;
-  width: 6px;
+  right: -4px;
+  width: 8px;
   height: 100%;
   cursor: col-resize;
   // Above Angular Material CDK's own sticky-column border decoration
@@ -1768,12 +1806,31 @@ table.cms-resizable-table {
   z-index: 20;
   background: transparent;
   transition: background 0.12s;
-  pointer-events: auto;
+  // Always overridden to `none` inline by the directive (see attachHandles())
+  // so Material's sticky-border elements don't get their clicks swallowed by
+  // this decorative element — meaning `:hover`/`:active` below can never
+  // actually fire natively. `.cms-col-resize-handle--near` is the real
+  // affordance, toggled from JS by the directive's own coordinate-based hit
+  // test (`setupBoundaryInteractions()`'s mousemove handler).
+  pointer-events: none;
 
   &:hover,
-  &:active {
-    background: var(--cms-primary);
+  &:active,
+  &.cms-col-resize-handle--near {
+    background: var(--cms-primary-alpha-30);
   }
+}
+
+// `.mat-sort-header-container` carries its own `cursor: pointer` and spans
+// the full header cell width (`.mat-sort-header-container { width: 100% }`
+// above), so it wins the cursor for almost the entire header regardless of
+// any ancestor-level cursor style — `!important` on the exact descendant
+// Material already styles is what's needed to actually override it while
+// near a resize boundary (`cms-th-resize-hover`, toggled from JS since the
+// handle itself can't `:hover` — see `.cms-col-resize-handle` above).
+th.cms-th-resize-hover,
+th.cms-th-resize-hover .mat-sort-header-container {
+  cursor: col-resize !important;
 }
 
 .cms-cell-tooltip-panel {

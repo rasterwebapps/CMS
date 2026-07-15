@@ -128,6 +128,12 @@ tr.rfl-row--pending:hover td {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
+  // Defensive, matching the same rule applied to every other .student-cell
+  // variant in the app (see shared/column-resize/README.md) — this one is
+  // column-direction rather than row, so it isn't confirmed to hit the same
+  // bug, but min-width:0 is a harmless no-op if it never becomes a flex
+  // item itself.
+  min-width: 0;
 }
 
 .rfl-student-name {

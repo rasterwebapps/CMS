@@ -270,7 +270,11 @@
   letter-spacing: 0.03em;
 }
 
-.student-info { display: flex; flex-direction: column; gap: 1px; }
+// Flex items default to `min-width: auto`, which stops them shrinking below
+// their own content's natural (nowrap) width — without this, .student-info
+// never actually shrinks to fit a narrow column, silently bypassing
+// ellipsis/overflow:hidden. See shared/column-resize/README.md.
+.student-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .cell-name { font-size: var(--cms-text-base); font-weight: 500; color: var(--cms-text-primary); }
 .cell-sub  { font-size: var(--cms-text-sm); color: var(--cms-text-muted); }
 .cell-label { font-size: var(--cms-text-sm); color: var(--cms-text-primary); font-weight: 500; }

@@ -148,6 +148,14 @@
   display: flex;
   align-items: center;
   gap: 10px;
+
+  // Flex items default to `min-width: auto`, which stops them shrinking
+  // below their own content's natural (nowrap) width — without this,
+  // .cell-name never actually shrinks to fit a narrow column, silently
+  // bypassing ellipsis/overflow:hidden. See shared/column-resize/README.md.
+  > .cell-name {
+    min-width: 0;
+  }
 }
 
 .avatar {

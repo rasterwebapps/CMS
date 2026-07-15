@@ -381,6 +381,16 @@ $ctrl-h: var(--cms-list-filter-height);
   display: flex;
   align-items: center;
   gap: 10px;
+
+  // Flex items default to `min-width: auto`, which stops them shrinking
+  // below their own content's natural (nowrap) width — without this, the
+  // name/email wrapper below never actually shrinks to fit a narrow column,
+  // silently bypassing the ellipsis/overflow:hidden rules entirely. The
+  // <td>'s real box stays correctly sized (so resize math is accurate); only
+  // the visual content spills past it.
+  > div {
+    min-width: 0;
+  }
 }
 
 .name-av {
