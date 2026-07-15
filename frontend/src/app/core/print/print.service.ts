@@ -29,8 +29,16 @@ export class PrintService {
   /**
    * Clone `target` into a hidden iframe and print just that subtree.
    * Returns `true` when the print job was dispatched.
+   *
+   * `pageSizeMm`, when given, pins the print page to that exact physical size
+   * (e.g. a die-cut label) instead of the browser's default A4/Letter — without
+   * it, small-format printers (barcode/label printers) misprint because the
+   * content is laid out for a full sheet.
    */
-  printElement(target: ElementRef<HTMLElement> | HTMLElement): boolean {
+  printElement(
+    target: ElementRef<HTMLElement> | HTMLElement,
+    pageSizeMm?: { widthMm: number; heightMm: number },
+  ): boolean {
     if (typeof document === 'undefined' || typeof window === 'undefined') {
       return false;
     }
@@ -60,6 +68,35 @@ export class PrintService {
       headParts.push(el.outerHTML);
     });
 
+    const pageStyle = pageSizeMm
+      ? `<style>
+          @page { size: ${pageSizeMm.widthMm}mm ${pageSizeMm.heightMm}mm; margin: 0; }
+          html, body { margin: 0; padding: 0; }
+          .print-root { width: ${pageSizeMm.widthMm}mm; height: ${pageSizeMm.heightMm}mm; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+          /*
+           * !important throughout: the cloned element keeps whatever on-screen preview
+           * class it had (e.g. a flyout's own padding/background/border-radius for
+           * displaying the image in a card). Those rules are more specific than a plain
+           * ".print-root img" selector once Angular's per-component scoped-style
+           * attribute selectors are in the mix, so a caller's preview styling can outrank
+           * this reset and push content past the exact page-sized box — which prints as
+           * a silent overflow onto a second page rather than anything visibly broken here.
+           */
+          .print-root img {
+            max-width: 100% !important;
+            max-height: 100% !important;
+            width: auto !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-sizing: border-box !important;
+          }
+        </style>`
+      : '';
+
     doc.open();
     doc.write(`<!doctype html>
 <html>
@@ -67,6 +104,7 @@ export class PrintService {
     <meta charset="utf-8" />
     <title>${document.title || 'Print'}</title>
     ${headParts.join('\n')}
+    ${pageStyle}
   </head>
   <body class="${document.body.className}">
     <div class="print-root">${node.outerHTML}</div>
@@ -96,13 +134,37 @@ export class PrintService {
       }
     };
 
+    // With a print-preview dialog, the browser naturally waits for the user to
+    // click Print, which hides any image-decoding race. Some deployments run
+    // Chrome with --kiosk --disable-print-preview for unattended label/receipt
+    // printers, which fires the print job the instant the load/timeout below
+    // triggers — so a blob: URL image (e.g. a barcode PNG) that hasn't finished
+    // decoding yet gets silently rasterized as blank. Wait for every <img> in
+    // the print document to finish (or fail) loading before printing.
+    const imagesReady = (): Promise<void> => {
+      const images = Array.from(doc.images);
+      if (images.length === 0) return Promise.resolve();
+      const settled = images.map(img => img.complete
+        ? Promise.resolve()
+        : new Promise<void>(resolve => {
+            img.addEventListener('load', () => resolve(), { once: true });
+            img.addEventListener('error', () => resolve(), { once: true });
+          }));
+      const timeout = new Promise<void>(resolve => window.setTimeout(resolve, 2000));
+      return Promise.race([Promise.all(settled).then(() => undefined), timeout]);
+    };
+
+    const triggerPrintWhenReady = (): void => {
+      imagesReady().then(triggerPrint);
+    };
+
     if (iframe.contentWindow?.document.readyState === 'complete') {
-      triggerPrint();
+      triggerPrintWhenReady();
     } else {
-      iframe.addEventListener('load', triggerPrint, { once: true });
+      iframe.addEventListener('load', triggerPrintWhenReady, { once: true });
       // Safety net if the load event doesn't fire (e.g. about:blank race).
       // The `printed` flag prevents a duplicate call when the load event also fires.
-      window.setTimeout(triggerPrint, 500);
+      window.setTimeout(triggerPrintWhenReady, 500);
     }
     return true;
   }

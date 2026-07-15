@@ -173,7 +173,7 @@ public class LibraryPeriodicalController {
         LibraryPeriodicalResponse periodical = periodicalService.findById(id);
         String code = periodical.barcode() != null ? periodical.barcode() : periodical.accessionNumber();
         try {
-            byte[] png = barcodeService.generateBarcodePng(code);
+            byte[] png = barcodeService.generateBarcodePng(toLabelItem(periodical));
             return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(png);
         } catch (Exception e) {
             log.error("Failed to generate barcode PNG for periodical id={} code={}", id, code, e);
@@ -248,6 +248,7 @@ public class LibraryPeriodicalController {
 
     private LibraryBarcodeService.LabelItem toLabelItem(LibraryPeriodicalResponse periodical) {
         String code = periodical.barcode() != null ? periodical.barcode() : periodical.accessionNumber();
-        return new LibraryBarcodeService.LabelItem(code, periodical.journalName(), periodical.accessionNumber());
+        // Periodicals have no BR-35 rack/shelf assignment — footer shows accession number only.
+        return new LibraryBarcodeService.LabelItem(code, periodical.journalName(), periodical.accessionNumber(), null);
     }
 }

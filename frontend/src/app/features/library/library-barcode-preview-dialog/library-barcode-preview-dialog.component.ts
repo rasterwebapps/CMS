@@ -66,7 +66,13 @@ export class LibraryBarcodePreviewDialogComponent implements OnInit, OnDestroy {
 
     this.printTransport.getPrinterMode().subscribe(mode => {
       if (mode === 'BROWSER') {
-        if (this.barcodeImgRef) this.printService.printElement(this.barcodeImgRef);
+        if (!this.barcodeImgRef) return;
+        this.libraryService.getSettings().subscribe(settings => {
+          const widthMm = Number(settings.find(s => s.settingKey === 'barcode_label_width_mm')?.settingValue);
+          const heightMm = Number(settings.find(s => s.settingKey === 'barcode_label_height_mm')?.settingValue);
+          const pageSizeMm = widthMm > 0 && heightMm > 0 ? { widthMm, heightMm } : undefined;
+          this.printService.printElement(this.barcodeImgRef!, pageSizeMm);
+        });
         return;
       }
 

@@ -40,6 +40,17 @@ import com.lowagie.text.pdf.PdfWriter;
  * Barcode128 (already a backend dependency for PDF exports — no separate barcode
  * library needed). Single-item PNGs for on-screen preview/printing, and multi-item
  * label-sheet PDFs sized per the librarian-configured label dimensions (mm).
+ *
+ * Every label (PNG preview, PDF sheet cell, and each ZPL row cell) uses the same
+ * four-row layout — institution header, barcode, truncated title, accession+shelf
+ * footer. For ZPL, {@code barcode_labels_per_row} describes the physical media (how
+ * many labels are die-cut side by side across one row of the roll), not a way to print
+ * a wider composite row: the printable footprint per row always stays fixed at the
+ * configured {@code barcode_label_width_mm × barcode_label_height_mm}, and that fixed
+ * area gets subdivided into {@code barcode_labels_per_row} equally-scaled sub-cells
+ * (both width and height divided by the count) rather than being multiplied by it — see
+ * {@link #buildZplRow} for why side-by-side sub-labels always share the same feed-axis
+ * gap and so must scale down together.
  */
 @Service
 public class LibraryBarcodeService {
@@ -51,7 +62,7 @@ public class LibraryBarcodeService {
      * Minimum quiet-zone margin around the barcode, guaranteed even when the configured
      * label is tiny — a purely proportional margin (e.g. canvasWidth/40) collapses toward
      * zero at small label sizes and can starve the blank space scanners need beside the
-     * bars.
+     * bars. Also reused as the general outer margin for the header/title/footer text rows.
      */
     private static final float MIN_QUIET_ZONE_MM = 2f;
 
@@ -61,6 +72,9 @@ public class LibraryBarcodeService {
     /** Connect/read timeout for the raw ZPL socket, so an unreachable printer fails fast rather than hanging the request. */
     private static final int PRINTER_SOCKET_TIMEOUT_MS = 3000;
 
+    /** Short institution tag printed on every label — SKSCON's official short form, not the full college name, since label space is extremely tight. */
+    private static final String INSTITUTION_LABEL = "SKSCON";
+
     private static final Pattern IPV4_PATTERN = Pattern.compile("^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$");
 
     private final LibrarySettingRepository settingRepository;
@@ -69,50 +83,59 @@ public class LibraryBarcodeService {
         this.settingRepository = settingRepository;
     }
 
-    public record LabelItem(String code, String title, String accessionNumber) {}
+    /** @param shelfLocation formatted rack/shelf display string (e.g. "C3 / R2"), or null when the item has no shelf assignment (always null for periodicals — BR-35's rack/shelf hierarchy is book-only). */
+    public record LabelItem(String code, String title, String accessionNumber, String shelfLocation) {}
 
     /**
      * Renders a single barcode onto a canvas sized exactly to the configured label
-     * dimensions (mm, converted to pixels at {@link #PNG_DPI}), with the barcode
-     * centered and the code printed as a caption beneath it — so the PNG is a
+     * dimensions (mm, converted to pixels at {@link #PNG_DPI}), laid out as institution
+     * header / barcode / truncated title / accession+shelf footer, so the PNG is a
      * physically accurate preview/print of the sticker, not just a bare barcode.
      */
-    public byte[] generateBarcodePng(String value) throws IOException {
+    public byte[] generateBarcodePng(LabelItem item) throws IOException {
         int widthMm = getSettingInt("barcode_label_width_mm", 50);
         int heightMm = getSettingInt("barcode_label_height_mm", 25);
         int canvasWidth = mmToPixels(widthMm);
         int canvasHeight = mmToPixels(heightMm);
 
-        BufferedImage rawBarcode = renderRawBarcode(value);
+        BufferedImage rawBarcode = renderRawBarcode(item.code());
 
         BufferedImage canvas = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = canvas.createGraphics();
         g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g2d.setColor(Color.WHITE);
         g2d.fillRect(0, 0, canvasWidth, canvasHeight);
+        g2d.setColor(Color.BLACK);
 
         int padding = Math.max(mmToPixels(MIN_QUIET_ZONE_MM), canvasWidth / 40);
-        int captionHeight = Math.max(16, canvasHeight / 6);
+        int headerHeight = Math.max(14, canvasHeight / 9);
+        int titleHeight  = Math.max(14, canvasHeight / 9);
+        int footerHeight = Math.max(18, canvasHeight / 6);
         int drawableWidth = Math.max(1, canvasWidth - 2 * padding);
-        int drawableHeight = Math.max(1, canvasHeight - captionHeight - 2 * padding);
+        int drawableHeight = Math.max(1, canvasHeight - headerHeight - titleHeight - footerHeight - 2 * padding);
+
+        int y = padding;
+
+        g2d.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, Math.max(9, headerHeight - 4)));
+        drawCentered(g2d, INSTITUTION_LABEL, canvasWidth, y, headerHeight);
+        y += headerHeight;
 
         double scale = Math.min(
             (double) drawableWidth / rawBarcode.getWidth(),
             (double) drawableHeight / rawBarcode.getHeight());
         int scaledWidth = (int) Math.round(rawBarcode.getWidth() * scale);
         int scaledHeight = (int) Math.round(rawBarcode.getHeight() * scale);
-        int x = (canvasWidth - scaledWidth) / 2;
-        int y = padding;
-        g2d.drawImage(rawBarcode, x, y, scaledWidth, scaledHeight, null);
+        int bx = (canvasWidth - scaledWidth) / 2;
+        g2d.drawImage(rawBarcode, bx, y, scaledWidth, scaledHeight, null);
+        y += drawableHeight;
 
-        g2d.setColor(Color.BLACK);
-        Font font = new Font(Font.SANS_SERIF, Font.PLAIN, Math.max(10, captionHeight - 6));
-        g2d.setFont(font);
-        FontMetrics fm = g2d.getFontMetrics();
-        int textWidth = fm.stringWidth(value);
-        int textX = Math.max(padding, (canvasWidth - textWidth) / 2);
-        int textY = canvasHeight - padding;
-        g2d.drawString(value, textX, textY);
+        g2d.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, Math.max(9, titleHeight - 4)));
+        drawCentered(g2d, fitToWidth(g2d, item.title(), drawableWidth), canvasWidth, y, titleHeight);
+        y += titleHeight;
+
+        g2d.setFont(new Font(Font.SANS_SERIF, Font.BOLD, Math.max(11, footerHeight - 6)));
+        drawCentered(g2d, footerLine(item), canvasWidth, y, footerHeight);
 
         g2d.dispose();
 
@@ -129,7 +152,8 @@ public class LibraryBarcodeService {
      * each barcode image is scaled to fit its cell instead of rendering at a fixed size.
      */
     public byte[] generateLabelSheetPdf(List<LabelItem> items) throws Exception {
-        float widthPt = mmToPoints(getSettingInt("barcode_label_width_mm", 50));
+        int widthMm = getSettingInt("barcode_label_width_mm", 50);
+        float widthPt = mmToPoints(widthMm);
         float heightPt = mmToPoints(getSettingInt("barcode_label_height_mm", 25));
 
         float margin = 20f;
@@ -141,16 +165,20 @@ public class LibraryBarcodeService {
             PdfWriter writer = PdfWriter.getInstance(doc, out);
             doc.open();
 
-            com.lowagie.text.Font captionFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA, 7);
+            com.lowagie.text.Font headerFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA, 6);
+            com.lowagie.text.Font titleFont  = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA, 6);
+            com.lowagie.text.Font footerFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 7);
 
             PdfPTable table = new PdfPTable(columns);
             table.setTotalWidth(columns * widthPt);
             table.setLockedWidth(true);
 
             float cellPadding = mmToPoints(MIN_QUIET_ZONE_MM);
-            float captionSpace = 12f;
+            float headerSpace = 9f;
+            float titleSpace = 9f;
+            float footerSpace = 11f;
             float barcodeMaxWidth = widthPt - (2 * cellPadding);
-            float barcodeMaxHeight = heightPt - (2 * cellPadding) - captionSpace;
+            float barcodeMaxHeight = heightPt - (2 * cellPadding) - headerSpace - titleSpace - footerSpace;
 
             for (LabelItem item : items) {
                 PdfPCell cell = new PdfPCell();
@@ -158,6 +186,10 @@ public class LibraryBarcodeService {
                 cell.setHorizontalAlignment(Element.ALIGN_CENTER);
                 cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
                 cell.setPadding(cellPadding);
+
+                Paragraph header = new Paragraph(INSTITUTION_LABEL, headerFont);
+                header.setAlignment(Element.ALIGN_CENTER);
+                cell.addElement(header);
 
                 Barcode128 barcode128 = new Barcode128();
                 barcode128.setCode(item.code());
@@ -167,10 +199,13 @@ public class LibraryBarcodeService {
                 barcodeImage.setAlignment(Element.ALIGN_CENTER);
                 cell.addElement(barcodeImage);
 
-                String caption = item.accessionNumber() != null ? item.accessionNumber() : item.code();
-                Paragraph captionParagraph = new Paragraph(caption, captionFont);
-                captionParagraph.setAlignment(Element.ALIGN_CENTER);
-                cell.addElement(captionParagraph);
+                Paragraph title = new Paragraph(truncateChars(item.title(), titleMaxChars(widthMm)), titleFont);
+                title.setAlignment(Element.ALIGN_CENTER);
+                cell.addElement(title);
+
+                Paragraph footer = new Paragraph(footerLine(item), footerFont);
+                footer.setAlignment(Element.ALIGN_CENTER);
+                cell.addElement(footer);
 
                 table.addCell(cell);
             }
@@ -198,7 +233,8 @@ public class LibraryBarcodeService {
     public String generateZpl(LabelItem item) {
         int widthMm = getSettingInt("barcode_label_width_mm", 50);
         int heightMm = getSettingInt("barcode_label_height_mm", 25);
-        return buildZplRow(List.of(item), widthMm, heightMm);
+        int labelsPerRow = Math.max(1, getSettingInt("barcode_labels_per_row", 1));
+        return buildZplRow(List.of(item), widthMm, heightMm, labelsPerRow);
     }
 
     /**
@@ -215,7 +251,7 @@ public class LibraryBarcodeService {
         StringBuilder zpl = new StringBuilder();
         for (int i = 0; i < items.size(); i += labelsPerRow) {
             List<LabelItem> row = items.subList(i, Math.min(i + labelsPerRow, items.size()));
-            zpl.append(buildZplRow(new ArrayList<>(row), widthMm, heightMm));
+            zpl.append(buildZplRow(new ArrayList<>(row), widthMm, heightMm, labelsPerRow));
         }
         return zpl.toString();
     }
@@ -271,46 +307,118 @@ public class LibraryBarcodeService {
     }
 
     /**
-     * One ^XA...^XZ job containing {@code rowItems.size()} barcodes placed side by side —
-     * one physical "row" as the printer's gap sensor sees it. A single-item call (the
-     * on-demand single barcode print) is just the degenerate case of a row of one.
+     * One {@code ^XA...^XZ} job for one physical "row" as the printer's gap sensor sees it —
+     * the print area is always exactly the configured single-label footprint
+     * ({@code singleLabelWidthMm × heightMm}); it never grows with {@code slotsPerRow}. What
+     * changes is how that fixed footprint is subdivided: {@code slotsPerRow} labels are packed
+     * side by side, cross-web, each getting {@code 1/slotsPerRow} of both the width AND the
+     * height — side-by-side sub-labels share the same feed-direction gap, so they're always
+     * scaled down together, not just narrowed. {@code slotsPerRow} is the physical media's
+     * fixed layout (how many columns are actually die-cut across the roll), independent of how
+     * many real items are being printed right now — {@code rowItems} may be shorter than
+     * {@code slotsPerRow} (a batch's trailing partial row, or a single on-demand print onto
+     * multi-up media), in which case the remaining physical slots are simply left blank rather
+     * than stretched to fill the row, since a single die-cut position can't be resized per job.
      */
-    private String buildZplRow(List<LabelItem> rowItems, int singleLabelWidthMm, int heightMm) {
-        int quietZoneDots = mmToDots(MIN_QUIET_ZONE_MM);
-        int singleLabelWidthDots = mmToDots(singleLabelWidthMm);
-        int heightDots = mmToDots(heightMm);
-        int rowWidthDots = singleLabelWidthDots * rowItems.size();
+    private String buildZplRow(List<LabelItem> rowItems, int singleLabelWidthMm, int heightMm, int slotsPerRow) {
+        int rowWidthDots = mmToDots(singleLabelWidthMm);
+        int rowHeightDots = mmToDots(heightMm);
+        int cellWidthDots = Math.max(1, rowWidthDots / slotsPerRow);
+        int cellHeightDots = Math.max(1, rowHeightDots / slotsPerRow);
+        int quietZoneDots = Math.min(mmToDots(MIN_QUIET_ZONE_MM), Math.max(2, cellWidthDots / 10));
 
-        int captionHeightDots = Math.max(mmToDots(3f), heightDots / 6);
-        int barHeightDots = Math.max(mmToDots(4f), heightDots - captionHeightDots - 2 * quietZoneDots);
-        int barcodeAreaWidthDots = Math.max(1, singleLabelWidthDots - 2 * quietZoneDots);
+        int headerHeightDots = Math.max(10, cellHeightDots / 9);
+        int titleHeightDots  = Math.max(10, cellHeightDots / 9);
+        int footerHeightDots = Math.max(12, cellHeightDots / 6);
+        int barHeightDots = Math.max(mmToDots(3f), cellHeightDots - headerHeightDots - titleHeightDots - footerHeightDots - 2 * quietZoneDots);
+        int barcodeAreaWidthDots = Math.max(1, cellWidthDots - 2 * quietZoneDots);
+        int cellWidthMm = Math.max(1, singleLabelWidthMm / slotsPerRow);
 
         StringBuilder zpl = new StringBuilder();
         zpl.append("^XA\n");
         zpl.append("^PW").append(rowWidthDots).append('\n');
-        zpl.append("^LL").append(heightDots).append('\n');
+        zpl.append("^LL").append(rowHeightDots).append('\n');
         zpl.append("^CI28\n");
 
         for (int i = 0; i < rowItems.size(); i++) {
             LabelItem item = rowItems.get(i);
-            int xOffset = i * singleLabelWidthDots + quietZoneDots;
-            String caption = item.accessionNumber() != null ? item.accessionNumber() : item.code();
-            int captionFontSize = Math.max(14, captionHeightDots - 4);
+            int xOffset = i * cellWidthDots + quietZoneDots;
+            int y = quietZoneDots;
 
-            zpl.append("^FO").append(xOffset).append(',').append(quietZoneDots).append('\n');
+            int headerFontSize = Math.max(10, headerHeightDots - 2);
+            zpl.append("^FO").append(xOffset).append(',').append(y).append('\n');
+            zpl.append("^A0N,").append(headerFontSize).append(',').append(headerFontSize).append('\n');
+            zpl.append("^FB").append(barcodeAreaWidthDots).append(",1,0,C\n");
+            zpl.append("^FD").append(escapeZpl(INSTITUTION_LABEL)).append("^FS\n");
+            y += headerHeightDots;
+
+            zpl.append("^FO").append(xOffset).append(',').append(y).append('\n');
             zpl.append("^BY2,3,").append(barHeightDots).append('\n');
             zpl.append("^BCN,").append(barHeightDots).append(",N,N,N\n");
             zpl.append("^FD").append(escapeZpl(item.code())).append("^FS\n");
+            y += barHeightDots;
 
-            int captionY = quietZoneDots + barHeightDots + 4;
-            zpl.append("^FO").append(xOffset).append(',').append(captionY).append('\n');
-            zpl.append("^A0N,").append(captionFontSize).append(',').append(captionFontSize).append('\n');
+            int titleFontSize = Math.max(10, titleHeightDots - 2);
+            zpl.append("^FO").append(xOffset).append(',').append(y).append('\n');
+            zpl.append("^A0N,").append(titleFontSize).append(',').append(titleFontSize).append('\n');
             zpl.append("^FB").append(barcodeAreaWidthDots).append(",1,0,C\n");
-            zpl.append("^FD").append(escapeZpl(caption)).append("^FS\n");
+            zpl.append("^FD").append(escapeZpl(truncateChars(item.title(), titleMaxChars(cellWidthMm)))).append("^FS\n");
+            y += titleHeightDots;
+
+            int footerFontSize = Math.max(11, footerHeightDots - 2);
+            zpl.append("^FO").append(xOffset).append(',').append(y).append('\n');
+            zpl.append("^A0N,").append(footerFontSize).append(',').append(footerFontSize).append('\n');
+            zpl.append("^FB").append(barcodeAreaWidthDots).append(",1,0,C\n");
+            zpl.append("^FD").append(escapeZpl(footerLine(item))).append("^FS\n");
         }
 
         zpl.append("^XZ\n");
         return zpl.toString();
+    }
+
+    /** The bottom-row caption shared by all three renderers: accession number, plus shelf location when the item has one (books only — periodicals have no BR-35 shelf assignment). */
+    private static String footerLine(LabelItem item) {
+        String accession = item.accessionNumber() != null ? item.accessionNumber() : item.code();
+        String shelf = item.shelfLocation();
+        return (shelf == null || shelf.isBlank()) ? accession : accession + "  ·  " + shelf;
+    }
+
+    /** Rough chars-per-label-width budget for the title row on the ZPL/PDF renderers, which truncate by character count rather than measured text width. */
+    private static int titleMaxChars(int widthMm) {
+        return Math.max(6, Math.round(widthMm * 0.9f));
+    }
+
+    private static String truncateChars(String value, int maxChars) {
+        if (value == null) return "";
+        String trimmed = value.trim();
+        if (trimmed.length() <= maxChars) return trimmed;
+        int cut = Math.max(1, maxChars - 1);
+        return trimmed.substring(0, cut).trim() + "…";
+    }
+
+    /** Truncates to the exact pixel width available, using real font metrics — used only by the PNG renderer, which (unlike ZPL/PDF) has live glyph measurement on hand. */
+    private static String fitToWidth(Graphics2D g2d, String text, int maxWidthPx) {
+        if (text == null) return "";
+        String trimmed = text.trim();
+        FontMetrics fm = g2d.getFontMetrics();
+        if (fm.stringWidth(trimmed) <= maxWidthPx) return trimmed;
+        String ellipsis = "…";
+        int lo = 0, hi = trimmed.length();
+        while (lo < hi) {
+            int mid = (lo + hi + 1) / 2;
+            if (fm.stringWidth(trimmed.substring(0, mid) + ellipsis) <= maxWidthPx) lo = mid; else hi = mid - 1;
+        }
+        return lo == 0 ? ellipsis : trimmed.substring(0, lo) + ellipsis;
+    }
+
+    /** Horizontally centers `text` in the canvas and vertically centers it within the row spanning [rowTop, rowTop + rowHeight). No-op for blank text (e.g. an item with no shelf). */
+    private static void drawCentered(Graphics2D g2d, String text, int canvasWidth, int rowTop, int rowHeight) {
+        if (text == null || text.isBlank()) return;
+        FontMetrics fm = g2d.getFontMetrics();
+        int textWidth = fm.stringWidth(text);
+        int x = Math.max(0, (canvasWidth - textWidth) / 2);
+        int baselineY = rowTop + (rowHeight + fm.getAscent() - fm.getDescent()) / 2;
+        g2d.drawString(text, x, baselineY);
     }
 
     /** Strips ZPL's own command-prefix characters out of field data so encoded text can't break the command stream. */

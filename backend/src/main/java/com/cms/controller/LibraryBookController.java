@@ -200,12 +200,11 @@ public class LibraryBookController {
     @PreAuthorize("@perm.has('LIBRARY_CATALOGUE_PRINT_BARCODE')")
     public ResponseEntity<byte[]> barcodePng(@PathVariable Long id) {
         LibraryBookResponse book = bookService.findById(id);
-        String code = book.barcode() != null ? book.barcode() : book.accessionNumber();
         try {
-            byte[] png = barcodeService.generateBarcodePng(code);
+            byte[] png = barcodeService.generateBarcodePng(toLabelItem(book));
             return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(png);
         } catch (Exception e) {
-            log.error("Failed to generate barcode PNG for book id={} code={}", id, code, e);
+            log.error("Failed to generate barcode PNG for book id={}", id, e);
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -277,7 +276,8 @@ public class LibraryBookController {
 
     private LibraryBarcodeService.LabelItem toLabelItem(LibraryBookResponse book) {
         String code = book.barcode() != null ? book.barcode() : book.accessionNumber();
-        return new LibraryBarcodeService.LabelItem(code, book.title(), book.accessionNumber());
+        String shelf = book.shelfName() != null ? book.rackName() + " / " + book.shelfName() : null;
+        return new LibraryBarcodeService.LabelItem(code, book.title(), book.accessionNumber(), shelf);
     }
 
     @PostMapping("/{id}/transfer")

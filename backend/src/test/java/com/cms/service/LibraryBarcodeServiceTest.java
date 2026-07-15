@@ -48,9 +48,9 @@ class LibraryBarcodeServiceTest {
         stubSetting("barcode_labels_per_row", "2");
 
         List<LibraryBarcodeService.LabelItem> items = List.of(
-            new LibraryBarcodeService.LabelItem("CODE-1", "Book One", "ACC-1"),
-            new LibraryBarcodeService.LabelItem("CODE-2", "Book Two", "ACC-2"),
-            new LibraryBarcodeService.LabelItem("CODE-3", "Book Three", "ACC-3"));
+            new LibraryBarcodeService.LabelItem("CODE-1", "Book One", "ACC-1", "C1 / R1"),
+            new LibraryBarcodeService.LabelItem("CODE-2", "Book Two", "ACC-2", null),
+            new LibraryBarcodeService.LabelItem("CODE-3", "Book Three", "ACC-3", "C3 / R3"));
 
         String zpl = barcodeService.generateZplLabelSheet(items);
 
@@ -60,6 +60,44 @@ class LibraryBarcodeServiceTest {
         // One ^BC (barcode) block per item, regardless of row grouping.
         assertThat(countOccurrences(zpl, "^BCN,")).isEqualTo(3);
         assertThat(zpl).contains("^FDCODE-1^FS").contains("^FDCODE-2^FS").contains("^FDCODE-3^FS");
+        // Institution header on every cell, and shelf appended to the footer only when present.
+        assertThat(countOccurrences(zpl, "^FDSKSCON^FS")).isEqualTo(3);
+        assertThat(zpl).contains("^FDACC-1  ·  C1 / R1^FS");
+        assertThat(zpl).contains("^FDACC-2^FS");
+        assertThat(zpl).doesNotContain("ACC-2  ·");
+    }
+
+    @Test
+    void generateZplLabelSheet_rowFootprintStaysFixedRegardlessOfSlotCount() {
+        stubSetting("barcode_label_width_mm", "40");
+        stubSetting("barcode_label_height_mm", "25");
+        stubSetting("barcode_labels_per_row", "2");
+
+        List<LibraryBarcodeService.LabelItem> items = List.of(
+            new LibraryBarcodeService.LabelItem("CODE-1", "Book One", "ACC-1", null),
+            new LibraryBarcodeService.LabelItem("CODE-2", "Book Two", "ACC-2", null));
+
+        String zpl = barcodeService.generateZplLabelSheet(items);
+
+        // 40mm at 203dpi ~ 320 dots. "2 across" packs 2 sub-labels into that SAME fixed
+        // row footprint — ^PW must never be multiplied by the slot count (i.e. never 640).
+        assertThat(zpl).contains("^PW320\n");
+        assertThat(zpl).doesNotContain("^PW640");
+    }
+
+    @Test
+    void generateZplLabelSheet_partialRowLeavesRemainingSlotsBlankInsteadOfStretching() {
+        stubSetting("barcode_label_width_mm", "40");
+        stubSetting("barcode_label_height_mm", "25");
+        stubSetting("barcode_labels_per_row", "2");
+
+        // Only 1 real item on 2-across media: the second physical slot must stay blank,
+        // not have the single item stretched to fill the whole fixed footprint.
+        String zpl = barcodeService.generateZplLabelSheet(
+            List.of(new LibraryBarcodeService.LabelItem("CODE-1", "Book One", "ACC-1", null)));
+
+        assertThat(countOccurrences(zpl, "^BCN,")).isEqualTo(1);
+        assertThat(zpl).contains("^PW320\n");
     }
 
     @Test
@@ -67,12 +105,25 @@ class LibraryBarcodeServiceTest {
         stubSetting("barcode_label_width_mm", "50");
         stubSetting("barcode_label_height_mm", "25");
 
-        String zpl = barcodeService.generateZpl(new LibraryBarcodeService.LabelItem("CODE-1", "Book One", "ACC-1"));
+        String zpl = barcodeService.generateZpl(new LibraryBarcodeService.LabelItem("CODE-1", "Book One", "ACC-1", "C1 / R1"));
 
         assertThat(countOccurrences(zpl, "^XA")).isEqualTo(1);
         assertThat(countOccurrences(zpl, "^XZ")).isEqualTo(1);
         assertThat(countOccurrences(zpl, "^BCN,")).isEqualTo(1);
-        assertThat(zpl).contains("^FDACC-1^FS");
+        assertThat(zpl).contains("^FDSKSCON^FS");
+        assertThat(zpl).contains("^FDACC-1  ·  C1 / R1^FS");
+    }
+
+    @Test
+    void generateZpl_truncatesLongTitle() {
+        stubSetting("barcode_label_width_mm", "40");
+        stubSetting("barcode_label_height_mm", "25");
+
+        String longTitle = "A Very Long Book Title That Will Not Fit On A Small Label At All";
+        String zpl = barcodeService.generateZpl(new LibraryBarcodeService.LabelItem("CODE-1", longTitle, "ACC-1", null));
+
+        assertThat(zpl).doesNotContain(longTitle);
+        assertThat(zpl).contains("…^FS");
     }
 
     @Test
