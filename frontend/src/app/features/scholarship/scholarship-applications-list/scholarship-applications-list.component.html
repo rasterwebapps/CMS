@@ -34,10 +34,6 @@
       }
     </div>
 
-    @if (!loading()) {
-      <span class="row-count">{{ totalElements }} applications</span>
-    }
-
     <div class="toolbar-right">
       <cms-wrap-text-toggle [state]="colState" />
       <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />

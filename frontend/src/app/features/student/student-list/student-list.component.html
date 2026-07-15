@@ -94,12 +94,11 @@
 
     <div class="toolbar-right">
       @if (hasActiveFilters()) {
-        <button class="btn-toolbar btn-toolbar--clear" (click)="clearAllFilters()" aria-label="Clear all filters">
-          Clear Filters
+        <button class="btn-toolbar btn-toolbar--clear btn-toolbar--icon-only" (click)="clearAllFilters()" aria-label="Clear all filters" title="Clear all filters">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
         </button>
-      }
-      @if (!loading()) {
-        <span class="row-count">{{ totalElements }} students</span>
       }
 
       <cms-wrap-text-toggle [state]="colState" />
