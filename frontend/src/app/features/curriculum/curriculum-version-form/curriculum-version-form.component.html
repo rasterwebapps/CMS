@@ -48,18 +48,18 @@
             </div>
 
             <div class="field-group">
-              <label for="cv-course" class="field-label">Course (optional)</label>
+              <label for="cv-course" class="field-label">Course <span class="required-star">*</span></label>
               <select id="cv-course" class="field-select" formControlName="courseId"
-                [disabled]="!form.get('programId')?.value">
-                <option [value]="null">-- Program-wide (no specific course) --</option>
+                [disabled]="!form.get('programId')?.value"
+                [class.field-select--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched">
+                <option [value]="null">-- Select Course --</option>
                 @for (c of coursesForProgram(); track c.id) {
                   <option [value]="c.id">{{ c.name }}</option>
                 }
               </select>
-              <p class="field-hint">
-                Leave blank if this program has only one course. Set a course when the program has
-                multiple courses that need independent curricula (e.g. MSc Nursing (Adult) vs (Child)).
-              </p>
+              @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
+                <p class="field-error">Course is required</p>
+              }
             </div>
 
             <div class="field-group">
@@ -67,8 +67,11 @@
               <input id="cv-version-name" class="field-input" formControlName="versionName"
                 placeholder="e.g., 2024-25 v1" autocomplete="off"
                 [class.field-input--error]="form.get('versionName')?.invalid && form.get('versionName')?.touched" />
-              @if (form.get('versionName')?.invalid && form.get('versionName')?.touched) {
+              @if (form.get('versionName')?.hasError('required') && form.get('versionName')?.touched) {
                 <p class="field-error">Version name is required</p>
+              }
+              @if (form.get('versionName')?.hasError('duplicate') && form.get('versionName')?.touched) {
+                <p class="field-error">A version with this name already exists for this program/course</p>
               }
             </div>
 

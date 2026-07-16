@@ -6,7 +6,7 @@
     <div>
       <h1 class="page-title">Curriculum Map</h1>
       @if (curriculum()) {
-        <p class="page-subtitle">{{ curriculum()!.programName }} — {{ curriculum()!.versionName }}</p>
+        <p class="page-subtitle">{{ curriculum()!.programName }} — {{ curriculum()!.curriculumVersionName }}</p>
       }
     </div>
   </div>
@@ -32,22 +32,47 @@
             </button>
           </div>
 
-          <!-- Course list -->
+          <!-- Course list: hidden while the add/edit form is open for this term,
+               so the form replaces the card content instead of stacking below it. -->
+          @if (showAddForm() !== sem) {
           @if (getCoursesForTerm(sem).length === 0) {
             <p class="term-card__empty">No courses assigned</p>
           } @else {
-            <ul class="course-list">
-              @for (course of getCoursesForTerm(sem); track course.id) {
-                <li class="course-item">
-                  <div class="course-item__info">
-                    <div class="course-item__title-row">
-                      <span class="course-item__code">{{ course.subjectCode }}</span>
-                      <span class="course-item__name">{{ course.subjectName }}</span>
-                      <span class="subject-type-badge" [class.subject-type-badge--foundational]="course.subjectType === 'FOUNDATIONAL'"
-                        [class.subject-type-badge--elective]="course.subjectType === 'ELECTIVE'">
-                        {{ course.subjectType }}
-                      </span>
+            @if (getRegularCoursesForTerm(sem).length > 0) {
+              <ul class="course-list">
+                @for (course of getRegularCoursesForTerm(sem); track course.id) {
+                  <li class="course-item">
+                    <div class="course-item__row1">
+                      <div class="course-item__row1-left">
+                        <span class="course-item__code">{{ course.subjectCode }}</span>
+                        <span class="subject-type-badge" [class.subject-type-badge--core]="course.subjectType === 'CORE'"
+                          [class.subject-type-badge--foundational]="course.subjectType === 'FOUNDATIONAL'"
+                          [class.subject-type-badge--elective]="course.subjectType === 'ELECTIVE'">
+                          {{ course.subjectType }}
+                        </span>
+                        @if (course.isLocked) {
+                          <mat-icon class="locked-icon" matTooltip="Locked — already used in a course offering"
+                            aria-label="Locked">lock</mat-icon>
+                        }
+                      </div>
+                      <div class="course-item__actions">
+                        <button class="edit-btn" [matTooltip]="course.isLocked ? 'Locked — already used in a course offering' : 'Edit'"
+                          (click)="startEditCourse(course)" [disabled]="course.isLocked"
+                          type="button" aria-label="Edit subject">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+                        </button>
+                        <button class="remove-btn" [matTooltip]="course.isLocked ? 'Locked — already used in a course offering' : 'Remove'"
+                          (click)="confirmRemoveCourse(course)"
+                          [disabled]="course.isLocked || removing() === course.id" type="button" aria-label="Remove subject">
+                          @if (removing() === course.id) {
+                            <mat-spinner diameter="12"></mat-spinner>
+                          } @else {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                          }
+                        </button>
+                      </div>
                     </div>
+                    <div class="course-item__name" [matTooltip]="course.subjectName" matTooltipPosition="above">{{ course.subjectName }}</div>
                     <div class="course-item__meta-row">
                       @if (course.theoryHours > 0) {
                         <span class="hours-chip">Theory {{ course.theoryHours }}h</span>
@@ -58,46 +83,88 @@
                       @if (course.clinicalHours > 0) {
                         <span class="hours-chip">Clinical {{ course.clinicalHours }}h</span>
                       }
-                      @if (course.isElective && course.electiveGroupName) {
-                        <span class="hours-chip hours-chip--elective">Group: {{ course.electiveGroupName }}</span>
-                      }
                     </div>
-                  </div>
-                  <div class="course-item__actions">
-                    <button class="edit-btn" matTooltip="Edit" (click)="startEditCourse(course)"
-                      type="button" aria-label="Edit subject">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
-                    </button>
-                    <button class="remove-btn" matTooltip="Remove" (click)="removeCourse(course.id)"
-                      [disabled]="removing() === course.id" type="button" aria-label="Remove subject">
-                      @if (removing() === course.id) {
-                        <mat-spinner diameter="12"></mat-spinner>
-                      } @else {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                      }
-                    </button>
-                  </div>
-                </li>
-              }
-            </ul>
+                  </li>
+                }
+              </ul>
+            }
+
+            <!-- Elective groups: all options for a group are shown together
+                 in one block, since a student only ever picks one of them. -->
+            @for (group of getElectiveGroupsForTerm(sem); track group.groupId) {
+              <div class="elective-group-block">
+                <div class="elective-group-block__header">
+                  <span class="elective-group-block__title">{{ group.groupName }}</span>
+                  <span class="elective-group-block__hint">choose 1 of {{ group.courses.length }}</span>
+                </div>
+                <ul class="course-list course-list--elective">
+                  @for (course of group.courses; track course.id) {
+                    <li class="course-item course-item--elective">
+                      <div class="course-item__row1">
+                        <div class="course-item__row1-left">
+                          <span class="course-item__code">{{ course.subjectCode }}</span>
+                          @if (course.isLocked) {
+                            <mat-icon class="locked-icon" matTooltip="Locked — already used in a course offering"
+                              aria-label="Locked">lock</mat-icon>
+                          }
+                        </div>
+                        <div class="course-item__actions">
+                          <button class="edit-btn" [matTooltip]="course.isLocked ? 'Locked — already used in a course offering' : 'Edit'"
+                            (click)="startEditCourse(course)" [disabled]="course.isLocked"
+                            type="button" aria-label="Edit subject">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+                          </button>
+                          <button class="remove-btn" [matTooltip]="course.isLocked ? 'Locked — already used in a course offering' : 'Remove'"
+                            (click)="confirmRemoveCourse(course)"
+                            [disabled]="course.isLocked || removing() === course.id" type="button" aria-label="Remove subject">
+                            @if (removing() === course.id) {
+                              <mat-spinner diameter="12"></mat-spinner>
+                            } @else {
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            }
+                          </button>
+                        </div>
+                      </div>
+                      <div class="course-item__name" [matTooltip]="course.subjectName" matTooltipPosition="above">{{ course.subjectName }}</div>
+                      <div class="course-item__meta-row">
+                        @if (course.theoryHours > 0) {
+                          <span class="hours-chip">Theory {{ course.theoryHours }}h</span>
+                        }
+                        @if (course.labHours > 0) {
+                          <span class="hours-chip">Lab {{ course.labHours }}h</span>
+                        }
+                        @if (course.clinicalHours > 0) {
+                          <span class="hours-chip">Clinical {{ course.clinicalHours }}h</span>
+                        }
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+          }
           }
 
-          <!-- Add / edit course form -->
+          <!-- Add / edit course form: replaces the course list above while open -->
           @if (showAddForm() === sem) {
             <div class="add-form">
+              <h4 class="add-form__title">{{ editingCourseId() ? 'Edit Subject' : 'Add Subject' }} — {{ termLabel(sem) }}</h4>
               <form [formGroup]="addCourseForm" (ngSubmit)="submitAddCourse(sem)">
                 <div class="field-group">
                   <label class="field-label">Subject</label>
-                  <select class="field-input" formControlName="subjectId">
-                    <option [value]="null">-- Select --</option>
-                    @for (subject of subjects(); track subject.id) {
-                      <option [value]="subject.id">{{ subject.name }}</option>
+                  <input type="text" class="field-input" placeholder="Search by subject name or code…"
+                    [formControl]="subjectSearchControl" [matAutocomplete]="subjectAuto" />
+                  <mat-autocomplete #subjectAuto="matAutocomplete" [displayWith]="subjectDisplayFn"
+                    (optionSelected)="onSubjectSelected($event)">
+                    @for (subject of filteredSubjects(); track subject.id) {
+                      <mat-option [value]="subject.id">{{ subject.code }} — {{ subject.name }}</mat-option>
+                    } @empty {
+                      <mat-option disabled>No matching subjects</mat-option>
                     }
-                  </select>
-                </div>
-                <div class="field-group">
-                  <label class="field-label">Sort Order (optional)</label>
-                  <input type="number" class="field-input field-input--narrow" formControlName="sortOrder" min="0" />
+                  </mat-autocomplete>
+                  @if (addCourseForm.get('subjectId')?.invalid && addCourseForm.get('subjectId')?.touched) {
+                    <span class="field-error">Select a subject to continue</span>
+                  }
                 </div>
 
                 <div class="field-group">
@@ -108,19 +175,6 @@
                     }
                   </select>
                 </div>
-
-                @if (programCourses().length > 1) {
-                  <div class="field-group">
-                    <label class="field-label">Restrict to Course (optional)</label>
-                    <select class="field-input" formControlName="restrictCourseId">
-                      <option [value]="null">-- Applies to all courses under this program --</option>
-                      @for (course of programCourses(); track course.id) {
-                        <option [value]="course.id">{{ course.name }}</option>
-                      }
-                    </select>
-                    <p class="field-hint">Use this when the program has course variants sharing one curriculum (e.g. MSc Nursing Adult vs Child) and this subject only applies to one of them.</p>
-                  </div>
-                }
 
                 <div class="field-group">
                   <label class="field-label">Components &amp; Hours</label>
@@ -179,27 +233,9 @@
                 }
 
                 @if (addCourseForm.get('isElective')?.value) {
-                  <div class="field-group elective-group-picker">
-                    <label class="field-label">Elective Group</label>
-                    <select class="field-input" formControlName="electiveGroupId">
-                      <option [value]="null">-- Select group --</option>
-                      @for (group of electiveGroups(); track group.id) {
-                        <option [value]="group.id">{{ group.groupName }}</option>
-                      }
-                    </select>
-                    <div class="new-group-row">
-                      <input type="text" class="field-input" [formControl]="newElectiveGroupNameControl"
-                        placeholder="New group name" />
-                      <button type="button" class="btn-secondary" (click)="createElectiveGroup(sem)"
-                        [disabled]="creatingElectiveGroup() || !newElectiveGroupNameControl.value?.trim()">
-                        @if (creatingElectiveGroup()) {
-                          <mat-spinner diameter="12"></mat-spinner>
-                        } @else {
-                          + New Group
-                        }
-                      </button>
-                    </div>
-                  </div>
+                  <p class="field-hint">
+                    This subject will join {{ termLabel(sem) }}'s elective group (created automatically the first time).
+                  </p>
                 }
 
                 <div class="form-actions">

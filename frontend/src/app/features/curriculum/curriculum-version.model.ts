@@ -2,22 +2,35 @@ export interface CurriculumVersion {
   id: number;
   programId: number;
   programName: string;
-  /** Optional narrower scope than program — set when this version applies to one specific
-   *  course only (e.g. MSc Nursing (Adult) vs (Child), which share a Program). */
-  courseId: number | null;
-  courseName: string | null;
+  /** The specific course under the program this version applies to (e.g. MSc Nursing
+   *  (Adult) vs (Child), which share a Program). Mandatory. */
+  courseId: number;
+  courseName: string;
   versionName: string;
   effectiveFromAcademicYearId: number;
   effectiveFromAcademicYearName: string;
   isActive: boolean;
+  termCount: number;
+  subjectCount: number;
+  /** False when subjects are mapped into this version or course offerings reference it — blocks delete. */
+  deletable: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+}
+
 export interface CurriculumVersionRequest {
   programId: number;
-  /** Optional — leave undefined/null for a program-wide version. */
-  courseId?: number | null;
+  courseId: number;
   versionName: string;
   effectiveFromAcademicYearId: number;
   isActive?: boolean;
@@ -41,11 +54,10 @@ export interface CurriculumSemesterCourse {
   isElective: boolean;
   electiveGroupId: number | null;
   electiveGroupName: string | null;
-  /** Optional: restricts this subject-in-term row to one specific course under the program
-   *  (e.g. MSc Nursing Adult vs Child sharing one program-wide curriculum). Null applies to
-   *  every course under the program. */
-  courseId: number | null;
-  courseName: string | null;
+  /** True once a course offering has been generated against this mapping — hours, subject
+   *  type, and elective status become read-only at that point to avoid retroactively
+   *  invalidating attendance thresholds/registrations already recorded against it. */
+  isLocked: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -61,8 +73,6 @@ export interface CurriculumSemesterCourseRequest {
   subjectType?: SubjectType;
   isElective?: boolean;
   electiveGroupId?: number | null;
-  /** Optional — restrict this row to one specific course under the curriculum's program. */
-  courseId?: number | null;
 }
 
 export interface CurriculumElectiveGroup {
@@ -106,7 +116,7 @@ export interface CurriculumSemesterGroup {
 
 export interface CurriculumFullView {
   curriculumVersionId: number;
-  versionName: string;
+  curriculumVersionName: string;
   programId: number;
   programName: string;
   assessmentPattern: 'TERM_BASED' | 'YEARLY';

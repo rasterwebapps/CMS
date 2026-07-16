@@ -44,7 +44,6 @@ import com.cms.model.SemesterFee;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
 import com.cms.model.Subject;
-import com.cms.model.Syllabus;
 import com.cms.model.enums.AdmissionStatus;
 import com.cms.model.DesignationMaster;
 import com.cms.model.enums.DayOfWeek;
@@ -102,7 +101,6 @@ import com.cms.repository.TermInstanceRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.SubjectRepository;
-import com.cms.repository.SyllabusRepository;
 
 @Component
 @Profile("local")
@@ -133,7 +131,6 @@ public class DataLoader implements CommandLineRunner {
     private final MaintenanceRequestRepository maintenanceRequestRepository;
     private final ExaminationRepository examinationRepository;
     private final ExamResultRepository examResultRepository;
-    private final SyllabusRepository syllabusRepository;
     private final ExperimentRepository experimentRepository;
     private final LabCurriculumMappingRepository labCurriculumMappingRepository;
     private final LabScheduleRepository labScheduleRepository;
@@ -165,7 +162,6 @@ public class DataLoader implements CommandLineRunner {
                       MaintenanceRequestRepository maintenanceRequestRepository,
                       ExaminationRepository examinationRepository,
                       ExamResultRepository examResultRepository,
-                      SyllabusRepository syllabusRepository,
                       ExperimentRepository experimentRepository,
                       LabCurriculumMappingRepository labCurriculumMappingRepository,
                       LabScheduleRepository labScheduleRepository,
@@ -196,7 +192,6 @@ public class DataLoader implements CommandLineRunner {
         this.maintenanceRequestRepository = maintenanceRequestRepository;
         this.examinationRepository = examinationRepository;
         this.examResultRepository = examResultRepository;
-        this.syllabusRepository = syllabusRepository;
         this.experimentRepository = experimentRepository;
         this.labCurriculumMappingRepository = labCurriculumMappingRepository;
         this.labScheduleRepository = labScheduleRepository;
@@ -457,31 +452,11 @@ public class DataLoader implements CommandLineRunner {
         // ── 23. Enquiries ────────────────────────────────────────────────────
         seedEnquiries(bachelorProgram, diplomaProgram, masterProgram, bscCourse, gnmCourse, ag1);
 
-        // ── 24. Syllabi + Experiments + CO-PO Mappings ───────────────────────
-        Syllabus syl1 = syllabusRepository.save(new Syllabus(anatomy, 1, 45, 15, 10,
-                "To understand human body structure and physiological functions.",
-                "Unit 1: Organization of Human Body\nUnit 2: Skeletal System\nUnit 3: Muscular System\nUnit 4: Cardiovascular System\nUnit 5: Nervous System",
-                "Anatomy & Physiology – Ross & Wilson; Human Anatomy – Gray's",
-                "Gray's Anatomy; Principles of Anatomy – Tortora",
-                "CO1: Describe body structures\nCO2: Explain physiological functions\nCO3: Apply anatomical knowledge in nursing practice",
-                true));
-
-        Syllabus syl2 = syllabusRepository.save(new Syllabus(nfLab, 1, 0, 60, 0,
-                "To develop practical nursing skills in a simulated environment.",
-                "Unit 1: Bed Making\nUnit 2: Patient Hygiene\nUnit 3: Vital Signs\nUnit 4: Drug Administration\nUnit 5: Wound Care",
-                "Fundamentals of Nursing – Potter & Perry; Clinical Nursing Procedures – Shirdi",
-                "Taylor's Fundamentals of Nursing; Kozier & Erb's Fundamentals",
-                "CO1: Perform basic nursing procedures\nCO2: Apply aseptic technique\nCO3: Document nursing care",
-                true));
-
-        Syllabus syl3 = syllabusRepository.save(new Syllabus(basicNurs, 1, 40, 20, 5,
-                "To introduce core nursing concepts and professional values.",
-                "Unit 1: Introduction to Nursing\nUnit 2: Health and Illness\nUnit 3: Patient Assessment\nUnit 4: Communication\nUnit 5: Safety and Infection Control",
-                "Fundamentals of Nursing – Craven; Basic Concepts of Nursing – Henderson",
-                "Nursing Theories – Meleis; Professional Nursing – Chitty",
-                "CO1: Define nursing concepts\nCO2: Demonstrate basic patient assessment\nCO3: Practice therapeutic communication",
-                true));
-
+        // ── 24. Experiments + CO-PO Mappings ─────────────────────────────────
+        // (Syllabus seeding removed: Syllabus now links to a specific curriculum_term_courses
+        // mapping rather than a bare Subject, and this legacy seeder predates that model —
+        // it never produced usable data anyway, since its subject codes (BSC-SUB-001 etc.)
+        // don't match any subject in the real curriculum seed data.)
         Experiment exp1 = experimentRepository.save(new Experiment(nfLab,
                 1, "Vital Signs Measurement", "Students practice measuring temperature, pulse, BP and SpO2",
                 "To measure and record vital signs accurately",

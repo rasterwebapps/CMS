@@ -22,12 +22,13 @@ import com.cms.dto.CurriculumSemesterCourseDto;
 import com.cms.dto.CurriculumSemesterCourseRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
+import com.cms.model.Course;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.CurriculumVersion;
 import com.cms.model.Program;
 import com.cms.model.Subject;
 import com.cms.model.enums.ProgramStatus;
-import com.cms.repository.CourseRepository;
+import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CurriculumElectiveGroupRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
@@ -49,11 +50,12 @@ class CurriculumSemesterCourseServiceTest {
     private CurriculumElectiveGroupRepository electiveGroupRepository;
 
     @Mock
-    private CourseRepository courseMasterRepository;
+    private CourseOfferingRepository courseOfferingRepository;
 
     private CurriculumSemesterCourseService service;
 
     private Program testProgram;
+    private Course testCourse;
     private AcademicYear testAcademicYear;
     private CurriculumVersion testCv;
     private Subject testSubject;
@@ -62,17 +64,18 @@ class CurriculumSemesterCourseServiceTest {
     void setUp() {
         service = new CurriculumSemesterCourseService(
             courseRepository, curriculumVersionRepository, subjectRepository, electiveGroupRepository,
-            courseMasterRepository);
+            courseOfferingRepository);
 
         testProgram = createProgram(1L, "BSc Nursing", "BSCN", 4);
+        testCourse = createCourse(1L, "BSc Nursing", "BSCN-C", testProgram);
         testAcademicYear = createAcademicYear(1L, "2026-2027");
-        testCv = createCurriculumVersion(1L, testProgram, "BSCN-2026", testAcademicYear);
+        testCv = createCurriculumVersion(1L, testProgram, testCourse, "BSCN-2026", testAcademicYear);
         testSubject = createSubject(1L, "Anatomy", "ANAT");
     }
 
     @Test
     void shouldAddCourseToSemester() {
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1, null, null, null, null, null, null, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1, null, null, null, null, null, null);
         CurriculumSemesterCourse saved = createCsc(1L, testCv, 1, testSubject, 1);
 
         when(curriculumVersionRepository.findById(1L)).thenReturn(Optional.of(testCv));
@@ -91,7 +94,7 @@ class CurriculumSemesterCourseServiceTest {
     @Test
     void shouldRejectInvalidSemesterNumber() {
         // 4-year program has 8 semesters max; semester 9 is invalid
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 9, 1L, null, null, null, null, null, null, null, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 9, 1L, null, null, null, null, null, null, null);
 
         when(curriculumVersionRepository.findById(1L)).thenReturn(Optional.of(testCv));
 
@@ -102,7 +105,7 @@ class CurriculumSemesterCourseServiceTest {
 
     @Test
     void shouldRejectSemesterNumberBelowOne() {
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 0, 1L, null, null, null, null, null, null, null, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 0, 1L, null, null, null, null, null, null, null);
 
         when(curriculumVersionRepository.findById(1L)).thenReturn(Optional.of(testCv));
 
@@ -112,7 +115,7 @@ class CurriculumSemesterCourseServiceTest {
 
     @Test
     void shouldThrowWhenCurriculumVersionNotFoundOnAdd() {
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(999L, 1, 1L, null, null, null, null, null, null, null, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(999L, 1, 1L, null, null, null, null, null, null, null);
 
         when(curriculumVersionRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -123,7 +126,7 @@ class CurriculumSemesterCourseServiceTest {
 
     @Test
     void shouldThrowWhenSubjectNotFoundOnAdd() {
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 999L, null, null, null, null, null, null, null, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 999L, null, null, null, null, null, null, null);
 
         when(curriculumVersionRepository.findById(1L)).thenReturn(Optional.of(testCv));
         when(subjectRepository.findById(999L)).thenReturn(Optional.empty());
@@ -136,8 +139,7 @@ class CurriculumSemesterCourseServiceTest {
     @Test
     void shouldUpdateCourseDetailsWithHoursAndSubjectType() {
         CurriculumSemesterCourse existing = createCsc(1L, testCv, 1, testSubject, 1);
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(
-            1L, 1, 1L, 1, 40, 80, 320, com.cms.model.enums.SubjectType.CORE, false, null, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1, 40, 80, 320, com.cms.model.enums.SubjectType.CORE, false, null);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(courseRepository.save(any(CurriculumSemesterCourse.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -152,9 +154,23 @@ class CurriculumSemesterCourseServiceTest {
     }
 
     @Test
+    void shouldRejectUpdateWhenCourseHasOfferings() {
+        CurriculumSemesterCourse existing = createCsc(1L, testCv, 1, testSubject, 1);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1, 40, 80, 320, com.cms.model.enums.SubjectType.CORE, false, null);
+
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(courseOfferingRepository.existsByCurriculumSemesterCourseId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.updateCourseDetails(1L, request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("course offerings");
+
+        verify(courseRepository, org.mockito.Mockito.never()).save(any(CurriculumSemesterCourse.class));
+    }
+
+    @Test
     void shouldThrowWhenUpdatingNonExistentCourse() {
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(
-            1L, 1, 1L, 1, null, null, null, null, null, null, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1, null, null, null, null, null, null);
 
         when(courseRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -166,8 +182,7 @@ class CurriculumSemesterCourseServiceTest {
     @Test
     void shouldRejectElectiveWithoutGroup() {
         CurriculumSemesterCourse existing = createCsc(1L, testCv, 1, testSubject, 1);
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(
-            1L, 1, 1L, 1, null, null, null, com.cms.model.enums.SubjectType.ELECTIVE, true, null, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1, null, null, null, com.cms.model.enums.SubjectType.ELECTIVE, true, null);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existing));
 
@@ -182,8 +197,7 @@ class CurriculumSemesterCourseServiceTest {
         com.cms.model.CurriculumElectiveGroup group =
             new com.cms.model.CurriculumElectiveGroup(testCv, 2, "Term 2 Electives", "T2E");
         group.setId(5L);
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(
-            1L, 1, 1L, 1, null, null, null, com.cms.model.enums.SubjectType.ELECTIVE, true, 5L, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1, null, null, null, com.cms.model.enums.SubjectType.ELECTIVE, true, 5L);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(electiveGroupRepository.findById(5L)).thenReturn(Optional.of(group));
@@ -199,8 +213,7 @@ class CurriculumSemesterCourseServiceTest {
         com.cms.model.CurriculumElectiveGroup group =
             new com.cms.model.CurriculumElectiveGroup(testCv, 1, "Term 1 Electives", "T1E");
         group.setId(5L);
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(
-            1L, 1, 1L, 1, null, null, null, com.cms.model.enums.SubjectType.ELECTIVE, true, 5L, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1, null, null, null, com.cms.model.enums.SubjectType.ELECTIVE, true, 5L);
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(electiveGroupRepository.findById(5L)).thenReturn(Optional.of(group));
@@ -219,6 +232,18 @@ class CurriculumSemesterCourseServiceTest {
         service.removeCourseFromSemester(1L);
 
         verify(courseRepository).deleteById(1L);
+    }
+
+    @Test
+    void shouldRejectRemoveWhenCourseHasOfferings() {
+        when(courseRepository.existsById(1L)).thenReturn(true);
+        when(courseOfferingRepository.existsByCurriculumSemesterCourseId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.removeCourseFromSemester(1L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("course offerings");
+
+        verify(courseRepository, org.mockito.Mockito.never()).deleteById(any(Long.class));
     }
 
     @Test
@@ -242,6 +267,21 @@ class CurriculumSemesterCourseServiceTest {
 
         assertThat(dtos).hasSize(1);
         assertThat(dtos.get(0).termNumber()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldMarkCourseAsLockedWhenOfferingsExist() {
+        CurriculumSemesterCourse csc = createCsc(1L, testCv, 1, testSubject, 1);
+
+        when(curriculumVersionRepository.existsById(1L)).thenReturn(true);
+        when(courseRepository.findByCurriculumVersionIdAndSemesterNumber(1L, 1))
+            .thenReturn(List.of(csc));
+        when(courseOfferingRepository.findLockedCurriculumSemesterCourseIds(1L))
+            .thenReturn(java.util.Set.of(1L));
+
+        List<CurriculumSemesterCourseDto> dtos = service.getCoursesBySemester(1L, 1);
+
+        assertThat(dtos.get(0).isLocked()).isTrue();
     }
 
     @Test
@@ -320,8 +360,15 @@ class CurriculumSemesterCourseServiceTest {
         return ay;
     }
 
-    private CurriculumVersion createCurriculumVersion(Long id, Program program, String versionName, AcademicYear ay) {
-        CurriculumVersion cv = new CurriculumVersion(program, versionName, ay, true);
+    private Course createCourse(Long id, String name, String code, Program program) {
+        Course c = new Course(name, code, null, program);
+        c.setId(id);
+        return c;
+    }
+
+    private CurriculumVersion createCurriculumVersion(Long id, Program program, Course course,
+                                                       String versionName, AcademicYear ay) {
+        CurriculumVersion cv = new CurriculumVersion(program, course, versionName, ay, true);
         cv.setId(id);
         cv.setCreatedAt(Instant.now());
         cv.setUpdatedAt(Instant.now());

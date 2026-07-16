@@ -8,8 +8,7 @@ public record CurriculumVersionRequest(
     @NotNull(message = "Program ID is required")
     Long programId,
 
-    /** Optional — scopes this version to one course under the program (e.g. MSc Nursing
-     *  (Adult) vs (Child)). Leave null for a program-wide version. */
+    @NotNull(message = "Course ID is required")
     Long courseId,
 
     @NotBlank(message = "Version name is required")

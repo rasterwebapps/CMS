@@ -51,7 +51,6 @@ public class LocalDataSeeder {
             ReferralTypeRepository referralTypeRepo,
             LabScheduleRepository labScheduleRepo,
             LabSlotRepository labSlotRepo,
-            SyllabusRepository syllabusRepo,
             ExperimentRepository experimentRepo,
             SystemConfigurationRepository sysConfigRepo,
             DesignationRepository designationRepo) {
@@ -318,13 +317,10 @@ public class LocalDataSeeder {
             log.info("✓ Created 5 lab schedules");
 
             // ═══════════════════════════════════════════════════════════════
-            // 22. SYLLABI
+            // 22. SYLLABI — removed: Syllabus now links to a specific
+            // curriculum_term_courses mapping rather than a bare Subject, and this
+            // legacy seeder has no curriculum-version/term context to build one from.
             // ═══════════════════════════════════════════════════════════════
-            syllabusRepo.save(createSyllabus(subAnatomy, 1, 45, 15, 0, "Study of human body structure, systems, organs, and tissues.", true));
-            syllabusRepo.save(createSyllabus(subPhysiology, 1, 45, 15, 0, "Study of body functions including homeostasis and system-wise organ functions.", true));
-            syllabusRepo.save(createSyllabus(subNursingFoundation, 1, 45, 60, 15, "Fundamental nursing procedures, patient care, vital signs, and nursing ethics.", true));
-            syllabusRepo.save(createSyllabus(subMSN1, 1, 45, 60, 15, "Care of adult patients with medical and surgical conditions.", true));
-            log.info("✓ Created 4 syllabi");
 
             // ═══════════════════════════════════════════════════════════════
             // 23. EXPERIMENTS
@@ -557,18 +553,6 @@ public class LocalDataSeeder {
         ls.setTermInstance(termInstance);
         ls.setIsActive(true);
         return ls;
-    }
-
-    private Syllabus createSyllabus(Subject subject, int version, int theoryHours, int labHours, int tutorialHours, String content, boolean isActive) {
-        Syllabus s = new Syllabus();
-        s.setSubject(subject);
-        s.setVersion(version);
-        s.setTheoryHours(theoryHours);
-        s.setLabHours(labHours);
-        s.setTutorialHours(tutorialHours);
-        s.setContent(content);
-        s.setIsActive(isActive);
-        return s;
     }
 
     private Experiment createExperiment(Subject subject, int experimentNumber, String name, String description, int durationMinutes) {

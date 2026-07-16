@@ -1,110 +1,235 @@
 <div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
   <div id="tour-cv-header" class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
       <div class="page-title-row">
         <h1 class="mlp-title">Curriculum <em>Versions</em></h1>
         <cms-tour-button tourKey="curriculum-version-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="mlp-sub">Manage curriculum versions per program</p>
+      <p class="mlp-sub">Manage curriculum versions across programs</p>
     </div>
-    <button id="tour-cv-add-btn" class="btn-primary" (click)="navigateToNew()" [disabled]="!selectedProgramId()" aria-label="Add new curriculum version">
+    <button id="tour-cv-add-btn" class="btn-primary" (click)="navigateToNew()" aria-label="Add new curriculum version">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       New Version
     </button>
   </div>
 
-  <!-- Program selector -->
+  <!-- ── Toolbar ─────────────────────────────────────────────── -->
   <div class="mlp-toolbar anim-rise anim-rise--d1">
-    <div id="tour-cv-program-select" class="field-group" style="max-width: 320px; margin: 0;">
-      <label class="field-label">Select Program</label>
-      <select class="field-input" (change)="onProgramChange($event)">
-        <option value="">-- Select a program --</option>
-        @for (p of programs(); track p.id) {
-          <option [value]="p.id" [selected]="p.id === selectedProgramId()">{{ p.name }}</option>
-        }
-      </select>
+    <div id="tour-cv-search" class="search-bar" role="search" style="flex:1; min-width:200px; max-width:380px;">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search version, program, or course…"
+        type="text"
+        aria-label="Search curriculum versions"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      }
     </div>
+
+    <select
+      id="tour-cv-program-filter"
+      class="mlp-filter-select"
+      [value]="selectedProgramId() ?? ''"
+      (change)="onProgramFilterChange($any($event.target).value)"
+      aria-label="Filter by program"
+    >
+      <option value="">All Programs</option>
+      @for (p of programs(); track p.id) {
+        <option [value]="p.id">{{ p.name }}</option>
+      }
+    </select>
+
+    <select
+      id="tour-cv-status-filter"
+      class="mlp-filter-select"
+      [value]="statusFilter()"
+      (change)="onStatusFilterChange($any($event.target).value)"
+      aria-label="Filter by status"
+    >
+      <option value="ALL">All Status</option>
+      <option value="ACTIVE">Active</option>
+      <option value="INACTIVE">Inactive</option>
+    </select>
+
+    <cms-view-toggle
+      id="tour-cv-view-toggle"
+      [mode]="viewMode()"
+      storageKey="curriculum-version-view-mode"
+      (modeChange)="setViewMode($event)"
+    />
   </div>
 
+  <!-- ── Loading skeleton ─────────────────────────────────────── -->
   @if (loading()) {
     <div class="mlp-loading-grid">
-      @for (n of [1,2,3]; track n) {
+      @for (n of [1,2,3,4,5,6]; track n) {
         <div class="mlp-card-skeleton"></div>
       }
     </div>
-  } @else if (!selectedProgramId()) {
-    <cms-empty-state
-      icon="school"
-      title="Select a program"
-      subtitle="Choose a program above to view its curriculum versions"
-    ></cms-empty-state>
-  } @else if (versions().length === 0) {
-    <cms-empty-state
-      icon="menu_book"
-      title="No curriculum versions"
-      subtitle="Create the first curriculum version for this program"
-      actionLabel="New Version"
-      (actionClick)="navigateToNew()"
-    ></cms-empty-state>
-  } @else {
-    <div id="tour-cv-content" class="mlp-cards-grid mlp-table-card">
-      @for (version of versions(); track version.id; let i = $index) {
-        <div class="mlp-card" [style.animation-delay]="(i * 0.05) + 's'">
-          <div class="mlp-card__actions">
-            <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Clone" ariaLabel="Clone" (clicked)="openCloneForm(version)">
-              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            </cms-row-action-btn>
-            <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit" (clicked)="editVersion(version)">
-              <cms-icon-edit [size]="13" />
-            </cms-row-action-btn>
-          </div>
-          <div class="cv-card__version">{{ version.versionName }}</div>
-          <div class="cv-card__program">
-            {{ version.programName }}{{ version.courseName ? ' — ' + version.courseName : '' }}
-          </div>
-          <div class="cv-card__ay">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Effective: {{ version.effectiveFromAcademicYearName }}
-          </div>
-          <cms-status-badge [status]="version.isActive ? 'ACTIVE' : 'INACTIVE'" />
-          <div class="cv-card__footer">
-            <button class="btn-view-curriculum" (click)="viewCurriculum(version)">
-              View Curriculum Map
-            </button>
-          </div>
+  }
 
-          @if (showCloneForm() === version.id) {
-            <div class="clone-form-inline">
-              <h5 class="clone-form-inline__title">Clone Version</h5>
-              <form [formGroup]="cloneForm" (ngSubmit)="submitClone(version.id)">
-                <div class="field-group">
-                  <label class="field-label">New Version Name</label>
-                  <input class="field-input" formControlName="newVersionName" placeholder="e.g., 2025-26 v1" />
-                </div>
-                <div class="field-group">
-                  <label class="field-label">Effective Academic Year</label>
-                  <select class="field-input" formControlName="newEffectiveAcademicYearId">
-                    <option [value]="null">-- Select --</option>
-                    @for (ay of academicYears(); track ay.id) {
-                      <option [value]="ay.id">{{ ay.name }}</option>
-                    }
-                  </select>
-                </div>
-                <div class="form-footer" style="padding-top: 0.5rem;">
-                  <button type="button" class="btn-cancel" (click)="cancelClone()">Cancel</button>
-                  <button type="submit" class="btn-submit" [disabled]="cloning() === version.id">
-                    @if (cloning() === version.id) {
-                      <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
-                    } @else {
-                      Clone
-                    }
-                  </button>
-                </div>
-              </form>
+  <!-- ── Card view ────────────────────────────────────────────── -->
+  @else if (viewMode() === 'card') {
+    @if (dataSource.data.length === 0) {
+      <cms-empty-state
+        [icon]="searchValue() ? 'search_off' : 'menu_book'"
+        [title]="searchValue() ? 'No curriculum versions found' : 'No curriculum versions yet'"
+        [subtitle]="searchValue() ? 'No versions match your search. Try a different term.' : 'Create the first curriculum version to get started.'"
+        [actionLabel]="searchValue() ? 'Clear Search' : 'New Version'"
+        (actionClick)="handleEmptyAction()"
+      ></cms-empty-state>
+    } @else {
+      <div id="tour-cv-content" class="mlp-cards-grid">
+        @for (version of dataSource.data; track version.id; let i = $index) {
+          <div class="mlp-card cv-card" [style.animation-delay]="(i * 0.05) + 's'">
+            <div class="mlp-card__actions">
+              <cms-row-action-btn
+                variant="danger" [iconOnly]="true"
+                [tooltip]="deleteTooltip(version)"
+                ariaLabel="Delete curriculum version"
+                [disabled]="!version.deletable"
+                (clicked)="deleteVersion(version)"
+              >
+                <cms-icon-delete [size]="13" />
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Clone" ariaLabel="Clone" (clicked)="openCloneDialog(version)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit" (clicked)="editVersion(version)">
+                <cms-icon-edit [size]="13" />
+              </cms-row-action-btn>
             </div>
-          }
-        </div>
-      }
+            <div class="cv-card__version">{{ version.versionName }}</div>
+            <div class="cv-card__program">
+              {{ version.programName }} — {{ version.courseName }}
+            </div>
+            <div class="cv-card__ay">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Effective: {{ version.effectiveFromAcademicYearName }}
+            </div>
+            <div class="cv-card__content">{{ version.termCount }} terms · {{ version.subjectCount }} subjects</div>
+            <cms-status-badge [status]="version.isActive ? 'ACTIVE' : 'INACTIVE'" />
+            <div class="cv-card__footer">
+              <button class="btn-view-curriculum" (click)="viewCurriculum(version)">
+                View Curriculum Map
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="25"
+        showFirstLastButtons
+      ></mat-paginator>
+    }
+  }
+
+  <!-- ── Table view ────────────────────────────────────────────── -->
+  @else {
+    <div class="content-card mlp-table-card">
+      <div class="table-wrapper">
+      <table mat-table [dataSource]="dataSource" matSort
+             [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+             matSortDisableClear (matSortChange)="onSortChange($event)"
+             class="modern-table">
+
+        <ng-container matColumnDef="versionName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Version Name</th>
+          <td mat-cell *matCellDef="let version">
+            <span class="cell-name">{{ version.versionName }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="program">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Program</th>
+          <td mat-cell *matCellDef="let version">
+            {{ version.programName }} — {{ version.courseName }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="effectiveFromAcademicYearName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Effective From</th>
+          <td mat-cell *matCellDef="let version">{{ version.effectiveFromAcademicYearName }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="content">
+          <th mat-header-cell *matHeaderCellDef>Content</th>
+          <td mat-cell *matCellDef="let version">
+            <span class="cms-badge cms-badge--gray">{{ version.termCount }} terms · {{ version.subjectCount }} subjects</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+          <td mat-cell *matCellDef="let version">
+            <cms-status-badge [status]="version.isActive ? 'ACTIVE' : 'INACTIVE'" />
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+          <td mat-cell *matCellDef="let version">
+            <div class="row-actions">
+              <cms-row-action-btn
+                variant="danger" [iconOnly]="true"
+                [tooltip]="deleteTooltip(version)"
+                ariaLabel="Delete curriculum version"
+                [disabled]="!version.deletable"
+                (clicked)="deleteVersion(version)"
+              >
+                <cms-icon-delete />
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Clone" ariaLabel="Clone" (clicked)="openCloneDialog(version)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit" (clicked)="editVersion(version)">
+                <cms-icon-edit />
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="View Curriculum Map" ariaLabel="View curriculum map" (clicked)="viewCurriculum(version)">
+                <cms-icon-view />
+              </cms-row-action-btn>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0; border: none;">
+            <cms-empty-state
+              [icon]="searchValue() ? 'search_off' : 'menu_book'"
+              [title]="searchValue() ? 'No curriculum versions found' : 'No curriculum versions yet'"
+              [subtitle]="searchValue() ? 'No versions match your search.' : 'Create the first curriculum version to get started.'"
+              [actionLabel]="searchValue() ? 'Clear Search' : 'New Version'"
+              (actionClick)="handleEmptyAction()"
+            ></cms-empty-state>
+          </td>
+        </tr>
+      </table>
+      </div>
+
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        [pageSize]="25"
+        showFirstLastButtons
+      ></mat-paginator>
     </div>
   }
+
+  @if (cloneTarget(); as t) {
+    <app-curriculum-version-clone-dialog [data]="t" (closed)="onCloneClosed($event)" />
+  }
+
 </div>

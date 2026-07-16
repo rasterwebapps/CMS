@@ -44,7 +44,7 @@ class CurriculumSemesterCourseControllerTest {
 
     @Test
     void shouldAddCourseToSemester() throws Exception {
-        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1, null, null, null, null, null, null, null);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1, null, null, null, null, null, null);
         CurriculumSemesterCourseDto dto = createCscDto(1L, 1L, "BSCN-2026", 1, 1L, "Anatomy", "ANAT", 1);
 
         when(service.addCourseToSemester(any(CurriculumSemesterCourseRequest.class))).thenReturn(dto);
@@ -75,10 +75,10 @@ class CurriculumSemesterCourseControllerTest {
     @Test
     void shouldUpdateCourseDetails() throws Exception {
         CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(
-            1L, 1, 1L, 1, 40, 0, 0, com.cms.model.enums.SubjectType.CORE, false, null, null);
+            1L, 1, 1L, 1, 40, 0, 0, com.cms.model.enums.SubjectType.CORE, false, null);
         CurriculumSemesterCourseDto dto = new CurriculumSemesterCourseDto(1L, 1L, "BSCN-2026", 1, 1L,
-            "Anatomy", "ANAT", 1, 40, 0, 0, com.cms.model.enums.SubjectType.CORE, false, null, null,
-            null, null, Instant.now(), Instant.now());
+            "Anatomy", "ANAT", 1, 40, 0, 0, com.cms.model.enums.SubjectType.CORE, false, null, null, false,
+            Instant.now(), Instant.now());
 
         when(service.updateCourseDetails(org.mockito.ArgumentMatchers.eq(1L),
             any(CurriculumSemesterCourseRequest.class))).thenReturn(dto);
@@ -146,7 +146,7 @@ class CurriculumSemesterCourseControllerTest {
                                                       Integer semNo, Long subjId, String subjName,
                                                       String subjCode, Integer sortOrder) {
         return new CurriculumSemesterCourseDto(id, cvId, cvName, semNo, subjId, subjName, subjCode,
-            sortOrder, 0, 0, 0, com.cms.model.enums.SubjectType.CORE, false, null, null,
-            null, null, Instant.now(), Instant.now());
+            sortOrder, 0, 0, 0, com.cms.model.enums.SubjectType.CORE, false, null, null, false,
+            Instant.now(), Instant.now());
     }
 }

@@ -556,14 +556,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'syllabi/:id/edit',
-    canActivate: withPermission('SYLLABUS_MANAGE'),
-    loadComponent: () =>
-      import('./features/curriculum/syllabus-form/syllabus-form.component').then(
-        (m) => m.SyllabusFormComponent
-      ),
-  },
-  {
     path: 'experiments',
     canActivate: withPermission('EXPERIMENT_VIEW', 'EXPERIMENT_MANAGE'),
     loadComponent: () =>

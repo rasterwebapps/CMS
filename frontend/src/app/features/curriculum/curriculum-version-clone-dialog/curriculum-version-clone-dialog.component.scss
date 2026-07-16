@@ -1,0 +1,42 @@
+.step {
+  min-width: 420px;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.source-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--cms-bg-muted);
+  border: 1px solid var(--cms-border-default);
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: var(--cms-text-base);
+  }
+
+  &__label {
+    color: var(--cms-text-secondary);
+  }
+
+  &__value {
+    font-weight: 500;
+    text-align: right;
+  }
+}
+
+.clone-note {
+  margin: 0;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+  line-height: 1.5;
+}

@@ -4,14 +4,14 @@
   margin: 0 auto;
 }
 
-.semesters-grid {
+.terms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1rem;
   margin-top: 1rem;
 }
 
-.semester-card {
+.term-card {
   background: var(--cms-bg-card);
   border: 1px solid var(--cms-border-default);
   border-radius: 12px;
@@ -21,6 +21,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.75rem;
     margin-bottom: 0.75rem;
   }
 
@@ -68,25 +69,26 @@
 
 .course-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.25rem;
   padding: 0.375rem 0.5rem;
   background: var(--cms-bg-hover);
   border-radius: 6px;
+  min-width: 0;
 
-  &__info {
+  &__row1 {
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
   }
 
-  &__title-row {
+  &__row1-left {
     display: flex;
     align-items: center;
     gap: 0.375rem;
     flex-wrap: wrap;
+    min-width: 0;
   }
 
   &__meta-row {
@@ -107,6 +109,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    cursor: default;
   }
 
   &__actions {
@@ -115,6 +118,42 @@
     gap: 0.125rem;
     flex-shrink: 0;
   }
+}
+
+.elective-group-block {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px dashed #8b5cf6;
+  border-radius: 8px;
+
+  &__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.375rem;
+  }
+
+  &__title {
+    font-size: var(--cms-text-sm);
+    font-weight: 600;
+    color: #8b5cf6;
+  }
+
+  &__hint {
+    font-size: 0.7rem;
+    color: var(--cms-text-secondary);
+    font-style: italic;
+  }
+}
+
+.course-list--elective {
+  gap: 0.25rem;
+}
+
+.course-item--elective {
+  background: var(--cms-bg-card);
 }
 
 .subject-type-badge {
@@ -128,6 +167,11 @@
   border: 1px solid var(--cms-border-default);
   color: var(--cms-text-secondary);
 
+  &--core {
+    border-color: var(--cms-success);
+    color: var(--cms-success);
+  }
+
   &--foundational {
     border-color: #f59e0b;
     color: #f59e0b;
@@ -137,6 +181,14 @@
     border-color: #8b5cf6;
     color: #8b5cf6;
   }
+}
+
+.locked-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  color: var(--cms-text-secondary);
+  flex-shrink: 0;
 }
 
 .hours-chip {
@@ -190,8 +242,12 @@
 
 .add-form {
   margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--cms-border-default);
+
+  &__title {
+    font-size: var(--cms-text-base);
+    font-weight: 600;
+    margin: 0 0 0.75rem;
+  }
 }
 
 .form-actions {

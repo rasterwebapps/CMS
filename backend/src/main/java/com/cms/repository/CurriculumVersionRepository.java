@@ -3,10 +3,14 @@ package com.cms.repository;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.cms.model.CurriculumVersion;
 
-public interface CurriculumVersionRepository extends JpaRepository<CurriculumVersion, Long> {
+public interface CurriculumVersionRepository extends JpaRepository<CurriculumVersion, Long>,
+    JpaSpecificationExecutor<CurriculumVersion> {
 
     List<CurriculumVersion> findByProgramId(Long programId);
 
@@ -14,9 +18,17 @@ public interface CurriculumVersionRepository extends JpaRepository<CurriculumVer
 
     boolean existsByProgramIdAndIsActiveTrue(Long programId);
 
-    /** Course-specific active versions — takes precedence over the program-wide fallback below. */
+    /** Active curriculum versions scoped to this exact course. */
     List<CurriculumVersion> findByProgramIdAndCourseIdAndIsActiveTrue(Long programId, Long courseId);
 
-    /** Program-wide active versions (course_id IS NULL) — used when no course-specific version exists. */
-    List<CurriculumVersion> findByProgramIdAndCourseIdIsNullAndIsActiveTrue(Long programId);
+    /** Uniqueness scoped to program+course; excludeId used when editing. */
+    @Query("select case when count(cv) > 0 then true else false end from CurriculumVersion cv "
+        + "where cv.program.id = :programId "
+        + "and cv.course.id = :courseId "
+        + "and lower(cv.versionName) = lower(:versionName) "
+        + "and (:excludeId is null or cv.id <> :excludeId)")
+    boolean existsByProgramAndCourseAndVersionName(@Param("programId") Long programId,
+                                                    @Param("courseId") Long courseId,
+                                                    @Param("versionName") String versionName,
+                                                    @Param("excludeId") Long excludeId);
 }

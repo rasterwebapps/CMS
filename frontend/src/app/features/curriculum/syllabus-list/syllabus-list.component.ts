@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
@@ -17,7 +17,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { TourService } from '../../../shared/tour/tour.service';
 import { SYLLABUS_LIST_TOUR } from '../../../shared/tour/tours/syllabus.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
-import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
+import { CmsIconToggleStatusComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
@@ -38,8 +38,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
     MatTooltipModule,
     CmsEmptyStateComponent,
     CmsRowActionButtonComponent,
-    CmsIconDeleteComponent,
-    CmsIconEditComponent,
+    CmsIconToggleStatusComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
 ],
   templateUrl: './syllabus-list.component.html',
@@ -47,7 +46,6 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
 })
 export class SyllabusListComponent implements OnInit {
   private readonly curriculumService = inject(CurriculumService);
-  private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly tourService = inject(TourService);
@@ -63,11 +61,14 @@ export class SyllabusListComponent implements OnInit {
   protected readonly colState = new ColumnPickerState({
     storageKey: 'syllabus-list-cols',
     columns: [
-      { key: 'courseName', label: 'Course', mandatory: true },
-      { key: 'courseCode', label: 'Code' },
+      { key: 'subjectName', label: 'Subject', mandatory: true },
+      { key: 'subjectCode', label: 'Code' },
+      { key: 'curriculumVersionName', label: 'Curriculum Version' },
+      { key: 'termNumber', label: 'Term' },
       { key: 'version', label: 'Version' },
       { key: 'theoryHours', label: 'Theory Hrs' },
       { key: 'labHours', label: 'Lab Hrs' },
+      { key: 'clinicalHours', label: 'Clinical Hrs' },
       { key: 'isActive', label: 'Status' },
       { key: 'actions', label: 'Actions', mandatory: true, pinnable: false },
     ],
@@ -96,38 +97,32 @@ export class SyllabusListComponent implements OnInit {
     this.dataSource.filter = '';
   }
 
-  protected edit(item: Syllabus): void {
-    void this.router.navigate(['/syllabi', item.id, 'edit']);
+  /** A syllabus version is immutable once created — this is the only permitted change.
+   *  Activating clears every other active version for the same subject+term mapping. */
+  protected toggleStatus(item: Syllabus): void {
+    const nextAction = item.isActive ? 'Deactivate' : 'Activate';
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: `${nextAction} Syllabus`,
+        message: `${nextAction} "${item.subjectName}" v${item.version}?`
+          + (item.isActive ? '' : ' This will deactivate any other active version for this subject and term.'),
+        confirmText: nextAction,
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe((confirmed) => {
+      if (confirmed) this.doToggle(item);
+    });
   }
 
-  protected delete(item: Syllabus): void {
-    this.dialog
-      .open(ConfirmDialogComponent, {
-        data: {
-          title: 'Delete Syllabus',
-          message: `Delete syllabus for "${item.courseName}" v${item.version}?`,
-          confirmText: 'Delete',
-          cancelText: 'Cancel',
-        },
-      })
-      .afterClosed()
-      .subscribe((confirmed) => {
-        if (confirmed) this.doDelete(item);
-      });
-  }
-
-
-
-
-  private doDelete(item: Syllabus): void {
+  private doToggle(item: Syllabus): void {
     this.loading.set(true);
-    this.curriculumService.deleteSyllabus(item.id).subscribe({
+    this.curriculumService.setSyllabusActive(item.id, { isActive: !item.isActive }).subscribe({
       next: () => {
-        this.toast.success('Deleted successfully');
+        this.toast.success(`Syllabus ${item.isActive ? 'deactivated' : 'activated'} successfully`);
         this.load();
       },
       error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to delete');
+        this.toast.error(err?.error?.message ?? `Failed to ${item.isActive ? 'deactivate' : 'activate'} syllabus`);
         this.loading.set(false);
       },
     });

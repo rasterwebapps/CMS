@@ -5,12 +5,13 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.SyllabusActivationRequest;
 import com.cms.dto.SyllabusRequest;
 import com.cms.dto.SyllabusResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Subject;
+import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Syllabus;
-import com.cms.repository.SubjectRepository;
+import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.SyllabusRepository;
 
 @Service
@@ -18,26 +19,30 @@ import com.cms.repository.SyllabusRepository;
 public class SyllabusService {
 
     private final SyllabusRepository syllabusRepository;
-    private final SubjectRepository subjectRepository;
+    private final CurriculumSemesterCourseRepository curriculumSemesterCourseRepository;
 
-    public SyllabusService(SyllabusRepository syllabusRepository, SubjectRepository subjectRepository) {
+    public SyllabusService(SyllabusRepository syllabusRepository,
+                            CurriculumSemesterCourseRepository curriculumSemesterCourseRepository) {
         this.syllabusRepository = syllabusRepository;
-        this.subjectRepository = subjectRepository;
+        this.curriculumSemesterCourseRepository = curriculumSemesterCourseRepository;
     }
 
     @Transactional
     public SyllabusResponse create(SyllabusRequest request) {
-        Subject subject = subjectRepository.findById(request.subjectId())
-            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
+        CurriculumSemesterCourse mapping = curriculumSemesterCourseRepository.findById(request.curriculumTermCourseId())
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Curriculum mapping not found with id: " + request.curriculumTermCourseId()));
 
         Boolean isActive = request.isActive() != null ? request.isActive() : false;
+        if (Boolean.TRUE.equals(isActive)) {
+            syllabusRepository.clearActiveForMapping(mapping.getId());
+        }
+
+        int nextVersion = syllabusRepository.findMaxVersion(mapping.getId()) + 1;
 
         Syllabus syllabus = new Syllabus(
-            subject,
-            request.version(),
-            request.theoryHours(),
-            request.labHours(),
-            request.tutorialHours(),
+            mapping,
+            nextVersion,
             request.objectives(),
             request.content(),
             request.textBooks(),
@@ -63,65 +68,51 @@ public class SyllabusService {
     }
 
     public List<SyllabusResponse> findBySubjectId(Long subjectId) {
-        if (!subjectRepository.existsById(subjectId)) {
-            throw new ResourceNotFoundException("Subject not found with id: " + subjectId);
-        }
-        return syllabusRepository.findBySubjectId(subjectId).stream()
+        return syllabusRepository.findByCurriculumSemesterCourse_Subject_Id(subjectId).stream()
             .map(this::toResponse)
             .toList();
     }
 
     public SyllabusResponse findActiveBySubjectId(Long subjectId) {
-        return syllabusRepository.findBySubjectIdAndIsActiveTrue(subjectId)
+        return syllabusRepository.findByCurriculumSemesterCourse_Subject_IdAndIsActiveTrue(subjectId)
             .map(this::toResponse)
             .orElseThrow(() -> new ResourceNotFoundException("No active syllabus found for subject id: " + subjectId));
     }
 
+    /** A syllabus version is immutable once created — activating/deactivating is the only
+     *  permitted change. Activating clears every other active version for the same mapping
+     *  (mirrors AcademicYearService's "only one current at a time" pattern); deactivating has
+     *  no such guard — a subject can legitimately have zero active syllabus versions between
+     *  revisions. Content changes go through create() as a new version instead. */
     @Transactional
-    public SyllabusResponse update(Long id, SyllabusRequest request) {
+    public SyllabusResponse setActive(Long id, SyllabusActivationRequest request) {
         Syllabus syllabus = syllabusRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Syllabus not found with id: " + id));
 
-        Subject subject = subjectRepository.findById(request.subjectId())
-            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
-
-        syllabus.setSubject(subject);
-        syllabus.setVersion(request.version());
-        syllabus.setTheoryHours(request.theoryHours());
-        syllabus.setLabHours(request.labHours());
-        syllabus.setTutorialHours(request.tutorialHours());
-        syllabus.setObjectives(request.objectives());
-        syllabus.setContent(request.content());
-        syllabus.setTextBooks(request.textBooks());
-        syllabus.setReferenceBooks(request.referenceBooks());
-        syllabus.setCourseOutcomes(request.courseOutcomes());
-
-        if (request.isActive() != null) {
-            syllabus.setIsActive(request.isActive());
+        if (Boolean.TRUE.equals(request.isActive())) {
+            syllabusRepository.clearActiveForMapping(syllabus.getCurriculumSemesterCourse().getId());
         }
+        syllabus.setIsActive(request.isActive());
 
         Syllabus updated = syllabusRepository.save(syllabus);
         return toResponse(updated);
     }
 
-    @Transactional
-    public void delete(Long id) {
-        if (!syllabusRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Syllabus not found with id: " + id);
-        }
-        syllabusRepository.deleteById(id);
-    }
-
     private SyllabusResponse toResponse(Syllabus syllabus) {
+        CurriculumSemesterCourse mapping = syllabus.getCurriculumSemesterCourse();
         return new SyllabusResponse(
             syllabus.getId(),
-            syllabus.getSubject().getId(),
-            syllabus.getSubject().getName(),
-            syllabus.getSubject().getCode(),
+            mapping.getId(),
+            mapping.getCurriculumVersion().getId(),
+            mapping.getCurriculumVersion().getVersionName(),
+            mapping.getSemesterNumber(),
+            mapping.getSubject().getId(),
+            mapping.getSubject().getName(),
+            mapping.getSubject().getCode(),
             syllabus.getVersion(),
-            syllabus.getTheoryHours(),
-            syllabus.getLabHours(),
-            syllabus.getTutorialHours(),
+            mapping.getTheoryHours(),
+            mapping.getLabHours(),
+            mapping.getClinicalHours(),
             syllabus.getObjectives(),
             syllabus.getContent(),
             syllabus.getTextBooks(),

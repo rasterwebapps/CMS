@@ -106,15 +106,10 @@ class CourseOfferingServiceImplTest {
         return s;
     }
 
-    /** Program-wide curriculum version (course = null) — the pre-existing single-course-per-program shape. */
-    private CurriculumVersion createCV(Long id, Program program, AcademicYear ay) {
-        CurriculumVersion cv = new CurriculumVersion(program, "CV-2024", ay, true);
-        cv.setId(id);
-        cv.setCreatedAt(Instant.now());
-        return cv;
+    private CurriculumVersion createCV(Long id, Program program, Course course, AcademicYear ay) {
+        return createCV(id, program, course, ay, "CV-2024");
     }
 
-    /** Course-scoped curriculum version — applies only to this specific course under the program. */
     private CurriculumVersion createCV(Long id, Program program, Course course, AcademicYear ay, String versionName) {
         CurriculumVersion cv = new CurriculumVersion(program, course, versionName, ay, true);
         cv.setId(id);
@@ -149,13 +144,12 @@ class CourseOfferingServiceImplTest {
         Cohort cohort = createCohort(1L, course, ay);
         TermInstance termInstance = createTermInstance(1L, ay, TermType.ODD);
         Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CurriculumSemesterCourse csc = createCSC(1L, cv, subject, 1);
 
         when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(termInstance));
         when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
-        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of());
-        when(curriculumVersionRepository.findByProgramIdAndCourseIdIsNullAndIsActiveTrue(1L)).thenReturn(List.of(cv));
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of(cv));
         when(curriculumSemesterCourseRepository.findByCurriculumVersionId(1L)).thenReturn(List.of(csc));
         when(courseOfferingRepository
             .findByTermInstanceIdAndCurriculumVersionIdAndSubjectIdAndSemesterNumber(1L, 1L, 1L, 1))
@@ -180,14 +174,13 @@ class CourseOfferingServiceImplTest {
         Cohort cohort = createCohort(1L, course, ay);
         TermInstance termInstance = createTermInstance(1L, ay, TermType.ODD);
         Subject subject = createSubject(1L, "Soft Skills", "SS102");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         // Even semester number — should be skipped for ODD term
         CurriculumSemesterCourse csc = createCSC(1L, cv, subject, 2);
 
         when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(termInstance));
         when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
-        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of());
-        when(curriculumVersionRepository.findByProgramIdAndCourseIdIsNullAndIsActiveTrue(1L)).thenReturn(List.of(cv));
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of(cv));
         when(curriculumSemesterCourseRepository.findByCurriculumVersionId(1L)).thenReturn(List.of(csc));
 
         int count = service.generateOfferingsForTermInstance(1L);
@@ -204,14 +197,13 @@ class CourseOfferingServiceImplTest {
         Cohort cohort = createCohort(1L, course, ay);
         TermInstance termInstance = createTermInstance(1L, ay, TermType.ODD);
         Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CurriculumSemesterCourse csc = createCSC(1L, cv, subject, 1);
         CourseOffering existing = createOffering(1L, termInstance, cv, subject, 1);
 
         when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(termInstance));
         when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
-        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of());
-        when(curriculumVersionRepository.findByProgramIdAndCourseIdIsNullAndIsActiveTrue(1L)).thenReturn(List.of(cv));
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of(cv));
         when(curriculumSemesterCourseRepository.findByCurriculumVersionId(1L)).thenReturn(List.of(csc));
         when(courseOfferingRepository
             .findByTermInstanceIdAndCurriculumVersionIdAndSubjectIdAndSemesterNumber(1L, 1L, 1L, 1))
@@ -234,7 +226,6 @@ class CourseOfferingServiceImplTest {
         when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(termInstance));
         when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
         when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of());
-        when(curriculumVersionRepository.findByProgramIdAndCourseIdIsNullAndIsActiveTrue(1L)).thenReturn(List.of());
 
         int count = service.generateOfferingsForTermInstance(1L);
 
@@ -243,10 +234,10 @@ class CourseOfferingServiceImplTest {
     }
 
     @Test
-    void generateOfferingsForTermInstance_prefersCourseSpecificCurriculumVersionOverProgramWide() {
-        // Regression test for MSc Nursing (Adult) / (Child): both share one Program, so the
-        // course-specific curriculum version must win over any program-wide fallback, and the
-        // program-wide version's subjects must NOT leak into this cohort's offerings.
+    void generateOfferingsForTermInstance_scopesToCohortsExactCourseUnderSharedProgram() {
+        // Regression test for MSc Nursing (Adult) / (Child): both share one Program but each has
+        // its own course-scoped CurriculumVersion, so a course-specific lookup must resolve only
+        // the Adult cohort's own version, never the Child course's.
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "MSc", 2);
         Course adultCourse = createCourse(1L, "MSc Nursing (Adult)", "MSN-A", program);
@@ -274,40 +265,6 @@ class CourseOfferingServiceImplTest {
         int count = service.generateOfferingsForTermInstance(1L);
 
         assertThat(count).isEqualTo(1);
-        // The program-wide fallback lookup must never even be consulted once a course-specific
-        // version is found.
-        verify(curriculumVersionRepository, never()).findByProgramIdAndCourseIdIsNullAndIsActiveTrue(any());
-    }
-
-    @Test
-    void generateOfferingsForTermInstance_fallsBackToProgramWideWhenNoCourseSpecificVersion() {
-        AcademicYear ay = createAY(1L, "2024-2025");
-        Program program = createProgram(1L, "BCA", 3);
-        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
-        Cohort cohort = createCohort(1L, course, ay);
-        TermInstance termInstance = createTermInstance(1L, ay, TermType.ODD);
-        Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion programWideCV = createCV(1L, program, ay);
-        CurriculumSemesterCourse csc = createCSC(1L, programWideCV, subject, 1);
-
-        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(termInstance));
-        when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
-        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of());
-        when(curriculumVersionRepository.findByProgramIdAndCourseIdIsNullAndIsActiveTrue(1L))
-            .thenReturn(List.of(programWideCV));
-        when(curriculumSemesterCourseRepository.findByCurriculumVersionId(1L)).thenReturn(List.of(csc));
-        when(courseOfferingRepository
-            .findByTermInstanceIdAndCurriculumVersionIdAndSubjectIdAndSemesterNumber(1L, 1L, 1L, 1))
-            .thenReturn(Optional.empty());
-        when(courseOfferingRepository.save(any(CourseOffering.class))).thenAnswer(inv -> {
-            CourseOffering o = inv.getArgument(0);
-            o.setId(1L);
-            return o;
-        });
-
-        int count = service.generateOfferingsForTermInstance(1L);
-
-        assertThat(count).isEqualTo(1);
     }
 
     @Test
@@ -323,9 +280,10 @@ class CourseOfferingServiceImplTest {
     void getOfferingsByTermInstance_returnsMappedDtos() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
         TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
         Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
 
         when(courseOfferingRepository.findByTermInstanceId(1L)).thenReturn(List.of(offering));
@@ -341,9 +299,10 @@ class CourseOfferingServiceImplTest {
     void getOfferingsByTermInstanceAndSemester_returnsMappedDtos() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
         TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
         Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
 
         when(courseOfferingRepository.findByTermInstanceIdAndSemesterNumber(1L, 1)).thenReturn(List.of(offering));
@@ -358,9 +317,10 @@ class CourseOfferingServiceImplTest {
     void getById_returnsDto() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
         TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
         Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
 
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
@@ -384,9 +344,10 @@ class CourseOfferingServiceImplTest {
     void updateOffering_updatesFacultyAndSection() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
         TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
         Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
 
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
@@ -402,9 +363,10 @@ class CourseOfferingServiceImplTest {
     void deactivateOffering_setsIsActiveFalse() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
         TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
         Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
 
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
@@ -419,9 +381,10 @@ class CourseOfferingServiceImplTest {
     void deactivateAllOfferingsForTermInstance_deactivatesAll() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
         TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
         Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CourseOffering o1 = createOffering(1L, ti, cv, subject, 1);
         CourseOffering o2 = createOffering(2L, ti, cv, subject, 3);
 

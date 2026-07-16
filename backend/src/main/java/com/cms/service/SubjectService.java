@@ -14,7 +14,6 @@ import com.cms.dto.SpecialityResponse;
 import com.cms.dto.SubjectRequest;
 import com.cms.dto.SubjectResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
 import com.cms.model.Speciality;
 import com.cms.model.Subject;
 import com.cms.repository.CourseOfferingRepository;
@@ -122,10 +121,10 @@ public class SubjectService {
     }
 
     private List<Long> subjectIdsUsedByCourse(Long courseId) {
-        Course course = courseRepository.findById(courseId)
-            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
-        return curriculumSemesterCourseRepository
-            .findDistinctSubjectIdsByCourseId(courseId, course.getProgram().getId());
+        if (!courseRepository.existsById(courseId)) {
+            throw new ResourceNotFoundException("Course not found with id: " + courseId);
+        }
+        return curriculumSemesterCourseRepository.findDistinctSubjectIdsByCourseId(courseId);
     }
 
     public List<SubjectResponse> findBySpecialityId(Long specialityId) {

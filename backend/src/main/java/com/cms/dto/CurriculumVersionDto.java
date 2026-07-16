@@ -12,6 +12,9 @@ public record CurriculumVersionDto(
     Long effectiveFromAcademicYearId,
     String effectiveFromAcademicYearName,
     Boolean isActive,
+    Integer termCount,
+    Integer subjectCount,
+    Boolean deletable,
     Instant createdAt,
     Instant updatedAt
 ) {}

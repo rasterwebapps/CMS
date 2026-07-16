@@ -1,0 +1,67 @@
+<cms-flyout-panel width="480px" ariaLabel="Clone curriculum version" (closed)="cancel()">
+  <h2 flyoutHeader>Clone Curriculum Version</h2>
+
+  <div flyoutBody>
+    <div class="step">
+      <div class="source-summary">
+        <div class="source-summary__row">
+          <span class="source-summary__label">Cloning from</span>
+          <span class="source-summary__value">{{ data().source.versionName }}</span>
+        </div>
+        <div class="source-summary__row">
+          <span class="source-summary__label">Program</span>
+          <span class="source-summary__value">
+            {{ data().source.programName }} — {{ data().source.courseName }}
+          </span>
+        </div>
+        <div class="source-summary__row">
+          <span class="source-summary__label">Effective from</span>
+          <span class="source-summary__value">{{ data().source.effectiveFromAcademicYearName }}</span>
+        </div>
+        <div class="source-summary__row">
+          <span class="source-summary__label">Status</span>
+          <cms-status-badge [status]="data().source.isActive ? 'ACTIVE' : 'INACTIVE'" />
+        </div>
+        <div class="source-summary__row">
+          <span class="source-summary__label">Content</span>
+          <span class="source-summary__value">{{ data().source.termCount }} terms · {{ data().source.subjectCount }} subjects</span>
+        </div>
+      </div>
+
+      <p class="clone-note">
+        This will create a new version pre-populated with all {{ data().source.termCount }} terms and
+        {{ data().source.subjectCount }} subjects copied from "{{ data().source.versionName }}".
+      </p>
+
+      <form [formGroup]="form">
+        <div class="field-group">
+          <label class="field-label">New Version Name</label>
+          <input class="field-input" formControlName="newVersionName" placeholder="e.g., 2025-26 v1" />
+          @if (form.get('newVersionName')?.hasError('duplicate') && form.get('newVersionName')?.touched) {
+            <span class="field-error">A version with this name already exists for this program/course</span>
+          }
+        </div>
+        <div class="field-group">
+          <label class="field-label">Effective Academic Year</label>
+          <select class="field-input" formControlName="newEffectiveAcademicYearId">
+            <option [ngValue]="null">-- Select --</option>
+            @for (ay of academicYears; track ay.id) {
+              <option [ngValue]="ay.id">{{ ay.name }}</option>
+            }
+          </select>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div flyoutFooter>
+    <button type="button" class="btn-cancel" (click)="cancel()">Cancel</button>
+    <button type="button" class="btn-submit" [disabled]="submitting || form.invalid" (click)="submit()">
+      @if (submitting) {
+        <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+      } @else {
+        Clone Version
+      }
+    </button>
+  </div>
+</cms-flyout-panel>

@@ -8,7 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.CourseRegistrationDto;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
 import com.cms.model.CourseOffering;
 import com.cms.model.CourseRegistration;
 import com.cms.model.CurriculumSemesterCourse;
@@ -56,27 +55,18 @@ public class CourseRegistrationServiceImpl implements CourseRegistrationService 
         for (StudentTermEnrollment enrollment : enrollments) {
             // Find active course offerings for this term, matching the enrollment's semester number
             // and belonging to the cohort's own program AND course. The program check alone isn't
-            // enough — e.g. MSc Nursing (Adult) and (Child) share one Program (and often one
-            // program-wide CurriculumVersion), so without the course check students would get
-            // cross-registered into the other specialty's subjects. Course is no longer read off the
-            // subject (subjects can now be shared across courses/programs) — instead it's resolved
-            // with a layered fallback: the specific curriculum-term-course row's own course
-            // restriction wins if set, otherwise the curriculum version's course, otherwise no
-            // course-specific restriction (applies to every course under the program).
+            // enough — e.g. MSc Nursing (Adult) and (Child) share one Program, so without the course
+            // check students would get cross-registered into the other specialty's subjects. Every
+            // CurriculumVersion is now itself mandatorily scoped to one course, so its course is
+            // always the authoritative match — no more per-row course-restriction fallback needed.
             List<CourseOffering> offerings = courseOfferingRepository
                 .findByTermInstanceIdAndSemesterNumber(termInstanceId, enrollment.getSemesterNumber())
                 .stream()
                 .filter(o -> Boolean.TRUE.equals(o.getIsActive()))
                 .filter(o -> o.getCurriculumVersion().getProgram().getId()
                     .equals(enrollment.getCohort().getProgram().getId()))
-                .filter(o -> {
-                    CurriculumSemesterCourse csc = o.getCurriculumSemesterCourse();
-                    Course restrictedCourse = csc != null && csc.getCourse() != null
-                        ? csc.getCourse()
-                        : o.getCurriculumVersion().getCourse();
-                    return restrictedCourse == null
-                        || restrictedCourse.getId().equals(enrollment.getCohort().getCourse().getId());
-                })
+                .filter(o -> o.getCurriculumVersion().getCourse().getId()
+                    .equals(enrollment.getCohort().getCourse().getId()))
                 // Choice-based electives are not bulk-registered — a student is enrolled into
                 // exactly one option via assignElectiveChoice(), picked by an admin. An offering
                 // with no resolved curriculum mapping (legacy/unresolved) is treated as non-elective,

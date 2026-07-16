@@ -16,6 +16,7 @@ import { CURRICULUM_VERSION_FORM_TOUR } from '../../../shared/tour/tours/curricu
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 
 @Component({
   selector: 'app-curriculum-version-form',
@@ -72,10 +73,11 @@ export class CurriculumVersionFormComponent implements OnInit {
 
   private versionId: number | null = null;
   private lastLoadedCoursesForProgramId: number | null = null;
+  private lastVersionNameScopeCourseId: number | null | undefined = undefined;
 
   protected readonly form: FormGroup = this.fb.group({
     programId: [null, Validators.required],
-    courseId: [null],
+    courseId: [null, Validators.required],
     versionName: ['', [Validators.required, Validators.maxLength(100)]],
     effectiveFromAcademicYearId: [null, Validators.required],
     isActive: [true],
@@ -92,10 +94,17 @@ export class CurriculumVersionFormComponent implements OnInit {
         this.previewActive.set(!!v.isActive);
 
         const programId = v.programId ? Number(v.programId) : null;
-        if (programId !== this.lastLoadedCoursesForProgramId) {
+        const programChanged = programId !== this.lastLoadedCoursesForProgramId;
+        if (programChanged) {
           this.lastLoadedCoursesForProgramId = programId;
           this.form.patchValue({ courseId: null }, { emitEvent: false });
           this.loadCoursesForProgram(programId);
+        }
+
+        const courseId = v.courseId ? Number(v.courseId) : null;
+        if (programChanged || courseId !== this.lastVersionNameScopeCourseId) {
+          this.lastVersionNameScopeCourseId = courseId;
+          this.form.get('versionName')?.updateValueAndValidity({ emitEvent: false });
         }
       });
   }
@@ -114,6 +123,17 @@ export class CurriculumVersionFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('curriculum-version-form', CURRICULUM_VERSION_FORM_TOUR);
+
+    this.form.get('versionName')?.setAsyncValidators(
+      uniqueFieldValidator(this.http, `${environment.apiUrl}/curriculum-versions/name-exists`,
+        () => this.versionId,
+        () => {
+          const programId = this.form.value.programId ? Number(this.form.value.programId) : null;
+          const courseId = this.form.value.courseId ? Number(this.form.value.courseId) : null;
+          if (!programId || !courseId) return null;
+          return { programId, courseId };
+        }),
+    );
 
     this.http.get<{ id: number; name: string; code: string }[]>(`${environment.apiUrl}/programs`)
       .subscribe({ next: (data) => this.programs.set(data) });
@@ -143,7 +163,7 @@ export class CurriculumVersionFormComponent implements OnInit {
     const v = this.form.value;
     const request: CurriculumVersionRequest = {
       programId: v.programId,
-      courseId: v.courseId ?? null,
+      courseId: v.courseId,
       versionName: v.versionName.trim(),
       effectiveFromAcademicYearId: v.effectiveFromAcademicYearId,
       isActive: v.isActive,
@@ -153,11 +173,9 @@ export class CurriculumVersionFormComponent implements OnInit {
       ? this.service.update(this.versionId!, request)
       : this.service.create(request);
     op$.subscribe({
-      next: (result) => {
+      next: () => {
         this.toast.success(this.isEditMode() ? 'Updated successfully' : 'Created successfully');
-        void this.router.navigate(['/curriculum-versions'], {
-          queryParams: { programId: result.programId }
-        });
+        void this.router.navigate(['/curriculum-versions']);
       },
       error: (err) => {
         this.toast.error(err?.error?.message ?? 'Failed to save');

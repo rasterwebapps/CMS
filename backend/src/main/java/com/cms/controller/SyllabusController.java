@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.SyllabusActivationRequest;
 import com.cms.dto.SyllabusRequest;
 import com.cms.dto.SyllabusResponse;
 import com.cms.service.SyllabusService;
@@ -59,19 +59,15 @@ public class SyllabusController {
         return ResponseEntity.ok(response);
     }
 
+    /** A syllabus version is immutable once created — this only ever toggles isActive.
+     *  Content changes must go through create() as a new version instead. There is no
+     *  delete endpoint: versions are permanent, append-only history. */
     @PutMapping("/{id}")
     @PreAuthorize("@perm.has('SYLLABUS_MANAGE')")
-    public ResponseEntity<SyllabusResponse> update(
+    public ResponseEntity<SyllabusResponse> setActive(
             @PathVariable Long id,
-            @Valid @RequestBody SyllabusRequest request) {
-        SyllabusResponse response = syllabusService.update(id, request);
+            @Valid @RequestBody SyllabusActivationRequest request) {
+        SyllabusResponse response = syllabusService.setActive(id, request);
         return ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping("/{id}")
-    @PreAuthorize("@perm.has('SYLLABUS_MANAGE')")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        syllabusService.delete(id);
-        return ResponseEntity.noContent().build();
     }
 }

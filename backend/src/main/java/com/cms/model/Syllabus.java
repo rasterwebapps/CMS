@@ -27,20 +27,11 @@ public class Syllabus {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subject_id", nullable = false)
-    private Subject subject;
+    @JoinColumn(name = "curriculum_term_course_id", nullable = false)
+    private CurriculumSemesterCourse curriculumSemesterCourse;
 
     @Column(nullable = false)
     private Integer version;
-
-    @Column(name = "theory_hours")
-    private Integer theoryHours;
-
-    @Column(name = "lab_hours")
-    private Integer labHours;
-
-    @Column(name = "tutorial_hours")
-    private Integer tutorialHours;
 
     @Column(length = 2000)
     private String objectives;
@@ -71,14 +62,11 @@ public class Syllabus {
     public Syllabus() {
     }
 
-    public Syllabus(Subject subject, Integer version, Integer theoryHours, Integer labHours,
-                    Integer tutorialHours, String objectives, String content,
-                    String textBooks, String referenceBooks, String courseOutcomes, Boolean isActive) {
-        this.subject = subject;
+    public Syllabus(CurriculumSemesterCourse curriculumSemesterCourse, Integer version, String objectives,
+                    String content, String textBooks, String referenceBooks, String courseOutcomes,
+                    Boolean isActive) {
+        this.curriculumSemesterCourse = curriculumSemesterCourse;
         this.version = version;
-        this.theoryHours = theoryHours;
-        this.labHours = labHours;
-        this.tutorialHours = tutorialHours;
         this.objectives = objectives;
         this.content = content;
         this.textBooks = textBooks;
@@ -95,12 +83,12 @@ public class Syllabus {
         this.id = id;
     }
 
-    public Subject getSubject() {
-        return subject;
+    public CurriculumSemesterCourse getCurriculumSemesterCourse() {
+        return curriculumSemesterCourse;
     }
 
-    public void setSubject(Subject subject) {
-        this.subject = subject;
+    public void setCurriculumSemesterCourse(CurriculumSemesterCourse curriculumSemesterCourse) {
+        this.curriculumSemesterCourse = curriculumSemesterCourse;
     }
 
     public Integer getVersion() {
@@ -109,30 +97,6 @@ public class Syllabus {
 
     public void setVersion(Integer version) {
         this.version = version;
-    }
-
-    public Integer getTheoryHours() {
-        return theoryHours;
-    }
-
-    public void setTheoryHours(Integer theoryHours) {
-        this.theoryHours = theoryHours;
-    }
-
-    public Integer getLabHours() {
-        return labHours;
-    }
-
-    public void setLabHours(Integer labHours) {
-        this.labHours = labHours;
-    }
-
-    public Integer getTutorialHours() {
-        return tutorialHours;
-    }
-
-    public void setTutorialHours(Integer tutorialHours) {
-        this.tutorialHours = tutorialHours;
     }
 
     public String getObjectives() {

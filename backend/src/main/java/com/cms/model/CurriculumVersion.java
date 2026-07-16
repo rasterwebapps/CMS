@@ -31,12 +31,12 @@ public class CurriculumVersion {
     private Program program;
 
     /**
-     * Optional narrower scope than program: when set, this version applies only to this
-     * course (e.g. MSc Nursing (Adult) vs (Child), which share one Program but need
-     * independent curricula). NULL means program-wide, matching pre-existing behaviour.
+     * The specific course under the program this version applies to (e.g. MSc Nursing (Adult)
+     * vs (Child), which share one Program but need independent curricula). Mandatory — every
+     * curriculum version is scoped to exactly one course.
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id")
+    @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 
     @Column(name = "version_name", nullable = false, length = 100)
@@ -58,11 +58,6 @@ public class CurriculumVersion {
     private Instant updatedAt;
 
     public CurriculumVersion() {
-    }
-
-    public CurriculumVersion(Program program, String versionName,
-                              AcademicYear effectiveFromAcademicYear, Boolean isActive) {
-        this(program, null, versionName, effectiveFromAcademicYear, isActive);
     }
 
     public CurriculumVersion(Program program, Course course, String versionName,

@@ -1,12 +1,17 @@
 export interface Syllabus {
   id: number;
-  courseId: number;
-  courseName: string;
-  courseCode: string;
+  curriculumTermCourseId: number;
+  curriculumVersionId: number;
+  curriculumVersionName: string;
+  termNumber: number;
+  subjectId: number;
+  subjectName: string;
+  subjectCode: string;
   version: number;
+  /** Read-only — Curriculum Map is the source of truth for these; derived from the linked mapping. */
   theoryHours?: number;
   labHours?: number;
-  tutorialHours?: number;
+  clinicalHours?: number;
   objectives?: string;
   content?: string;
   textBooks?: string;
@@ -17,18 +22,21 @@ export interface Syllabus {
   updatedAt: string;
 }
 
+/** Create-only — a syllabus is immutable once created (see BR: syllabus versioning).
+ *  Version is auto-assigned by the backend (next integer for the mapping). */
 export interface SyllabusRequest {
-  courseId: number;
-  version: number;
-  theoryHours?: number;
-  labHours?: number;
-  tutorialHours?: number;
+  curriculumTermCourseId: number;
   objectives?: string;
   content?: string;
   textBooks?: string;
   referenceBooks?: string;
   courseOutcomes?: string;
   isActive?: boolean;
+}
+
+/** The only permitted change to an existing syllabus version. */
+export interface SyllabusActivationRequest {
+  isActive: boolean;
 }
 
 export interface Experiment {

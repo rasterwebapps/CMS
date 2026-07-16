@@ -2,11 +2,8 @@ package com.cms.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -24,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.cms.dto.SyllabusActivationRequest;
 import com.cms.dto.SyllabusRequest;
 import com.cms.dto.SyllabusResponse;
 import com.cms.exception.ResourceNotFoundException;
@@ -46,18 +44,12 @@ class SyllabusControllerTest {
     @Test
     void shouldCreateSyllabus() throws Exception {
         SyllabusRequest request = new SyllabusRequest(
-            1L, 1, 30, 15, 10,
+            1L,
             "Objectives", "Content", "Text books",
             "Ref books", "Outcomes", true
         );
 
-        Instant now = Instant.now();
-        SyllabusResponse response = new SyllabusResponse(
-            1L, 1L, "Data Structures", "CS201",
-            1, 30, 15, 10, "Objectives", "Content",
-            "Text books", "Ref books", "Outcomes",
-            true, now, now
-        );
+        SyllabusResponse response = sampleResponse(1L, 1, 30, 15, 10, true);
 
         when(syllabusService.create(any(SyllabusRequest.class))).thenReturn(response);
 
@@ -73,9 +65,9 @@ class SyllabusControllerTest {
     }
 
     @Test
-    void shouldReturnBadRequestWhenCourseIdIsNull() throws Exception {
+    void shouldReturnBadRequestWhenCurriculumTermCourseIdIsNull() throws Exception {
         SyllabusRequest request = new SyllabusRequest(
-            null, 1, 30, 15, 10,
+            null,
             "Objectives", "Content", "Text books",
             "Ref books", "Outcomes", true
         );
@@ -88,13 +80,7 @@ class SyllabusControllerTest {
 
     @Test
     void shouldFindAllSyllabi() throws Exception {
-        Instant now = Instant.now();
-        SyllabusResponse response = new SyllabusResponse(
-            1L, 1L, "Data Structures", "CS201",
-            1, 30, 15, 10, "Objectives", "Content",
-            "Text books", "Ref books", "Outcomes",
-            true, now, now
-        );
+        SyllabusResponse response = sampleResponse(1L, 1, 30, 15, 10, true);
 
         when(syllabusService.findAll()).thenReturn(List.of(response));
 
@@ -107,14 +93,8 @@ class SyllabusControllerTest {
     }
 
     @Test
-    void shouldFindSyllabiByCourseId() throws Exception {
-        Instant now = Instant.now();
-        SyllabusResponse response = new SyllabusResponse(
-            1L, 1L, "Data Structures", "CS201",
-            1, 30, 15, 10, "Objectives", "Content",
-            "Text books", "Ref books", "Outcomes",
-            true, now, now
-        );
+    void shouldFindSyllabiBySubjectId() throws Exception {
+        SyllabusResponse response = sampleResponse(1L, 1, 30, 15, 10, true);
 
         when(syllabusService.findBySubjectId(1L)).thenReturn(List.of(response));
 
@@ -128,13 +108,7 @@ class SyllabusControllerTest {
 
     @Test
     void shouldFindSyllabusById() throws Exception {
-        Instant now = Instant.now();
-        SyllabusResponse response = new SyllabusResponse(
-            1L, 1L, "Data Structures", "CS201",
-            1, 30, 15, 10, "Objectives", "Content",
-            "Text books", "Ref books", "Outcomes",
-            true, now, now
-        );
+        SyllabusResponse response = sampleResponse(1L, 1, 30, 15, 10, true);
 
         when(syllabusService.findById(1L)).thenReturn(response);
 
@@ -158,50 +132,41 @@ class SyllabusControllerTest {
     }
 
     @Test
-    void shouldUpdateSyllabus() throws Exception {
-        SyllabusRequest request = new SyllabusRequest(
-            1L, 2, 40, 20, 15,
-            "Updated", "Updated", "Updated",
-            "Updated", "Updated", true
-        );
+    void shouldActivateSyllabus() throws Exception {
+        SyllabusActivationRequest request = new SyllabusActivationRequest(true);
+        SyllabusResponse response = sampleResponse(1L, 2, 40, 20, 15, true);
 
-        Instant now = Instant.now();
-        SyllabusResponse response = new SyllabusResponse(
-            1L, 1L, "Data Structures", "CS201",
-            2, 40, 20, 15, "Updated", "Updated",
-            "Updated", "Updated", "Updated",
-            true, now, now
-        );
-
-        when(syllabusService.update(eq(1L), any(SyllabusRequest.class))).thenReturn(response);
+        when(syllabusService.setActive(eq(1L), any(SyllabusActivationRequest.class))).thenReturn(response);
 
         mockMvc.perform(put("/syllabi/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.version").value(2));
+            .andExpect(jsonPath("$.isActive").value(true));
 
-        verify(syllabusService).update(eq(1L), any(SyllabusRequest.class));
+        verify(syllabusService).setActive(eq(1L), any(SyllabusActivationRequest.class));
     }
 
     @Test
-    void shouldDeleteSyllabus() throws Exception {
-        doNothing().when(syllabusService).delete(1L);
+    void shouldReturnNotFoundWhenActivatingNonExistentSyllabus() throws Exception {
+        when(syllabusService.setActive(eq(999L), any(SyllabusActivationRequest.class)))
+            .thenThrow(new ResourceNotFoundException("Syllabus not found with id: 999"));
 
-        mockMvc.perform(delete("/syllabi/1"))
-            .andExpect(status().isNoContent());
-
-        verify(syllabusService).delete(1L);
-    }
-
-    @Test
-    void shouldReturnNotFoundWhenDeletingNonExistentSyllabus() throws Exception {
-        doThrow(new ResourceNotFoundException("Syllabus not found with id: 999"))
-            .when(syllabusService).delete(999L);
-
-        mockMvc.perform(delete("/syllabi/999"))
+        mockMvc.perform(put("/syllabi/999")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new SyllabusActivationRequest(false))))
             .andExpect(status().isNotFound());
+    }
 
-        verify(syllabusService).delete(999L);
+    private SyllabusResponse sampleResponse(Long id, Integer version, Integer theoryHours, Integer labHours,
+                                             Integer clinicalHours, Boolean isActive) {
+        Instant now = Instant.now();
+        return new SyllabusResponse(
+            id, 1L, 1L, "BSCN-2026", 1,
+            1L, "Data Structures", "CS201",
+            version, theoryHours, labHours, clinicalHours,
+            "Objectives", "Content", "Text books", "Ref books", "Outcomes",
+            isActive, now, now
+        );
     }
 }

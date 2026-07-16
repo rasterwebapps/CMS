@@ -5,19 +5,16 @@
     </a>
     <div class="entry-form-hdr-text">
       <div class="page-title-row">
-        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Syllabus</em></h1>
+        <h1 class="page-title">Add <em>Syllabus</em></h1>
         <cms-tour-button tourKey="syllabus-form" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="page-subtitle">
-        {{ isEditMode() ? 'Update the syllabus details below.' : 'Fill in the details below to create a new syllabus.' }}
+        Fill in the details below to create a new syllabus version. Versions are locked once saved — activate/deactivate from the list screen instead of editing.
       </p>
     </div>
   </div>
 
-  @if (loading()) {
-    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
-  } @else {
-    <div class="entry-form-layout">
+  <div class="entry-form-layout">
       <div class="entry-form-card entry-form-card--sectioned">
 
         <div class="entry-form-card__hdr">
@@ -35,44 +32,54 @@
 
             <div class="field-row">
               <div class="field-group">
-                <label for="syl-course" class="field-label">Course <span class="required-star">*</span></label>
-                <select id="syl-course" class="field-select" formControlName="courseId"
-                  [class.field-select--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched">
-                  <option [ngValue]="null" disabled>Select a course</option>
-                  @for (course of courses(); track course.id) {
-                    <option [ngValue]="course.id">{{ course.name }}</option>
+                <label for="syl-cv" class="field-label">Curriculum Version <span class="required-star">*</span></label>
+                <select id="syl-cv" class="field-select" formControlName="curriculumVersionId"
+                  [class.field-select--error]="form.get('curriculumVersionId')?.invalid && form.get('curriculumVersionId')?.touched">
+                  <option [ngValue]="null" disabled>Select a curriculum version</option>
+                  @for (cv of curriculumVersions(); track cv.id) {
+                    <option [ngValue]="cv.id">{{ cv.programName }} — {{ cv.versionName }}</option>
                   }
                 </select>
-                @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
-                  <p class="field-error">Course is required</p>
+                @if (form.get('curriculumVersionId')?.invalid && form.get('curriculumVersionId')?.touched) {
+                  <p class="field-error">Curriculum version is required</p>
                 }
               </div>
 
               <div class="field-group">
-                <label for="syl-version" class="field-label">Version <span class="required-star">*</span></label>
-                <input id="syl-version" class="field-input" type="number" formControlName="version"
-                  min="1" placeholder="e.g., 1"
-                  [class.field-input--error]="form.get('version')?.invalid && form.get('version')?.touched" />
-                @if (form.get('version')?.invalid && form.get('version')?.touched) {
-                  <p class="field-error">Version is required (minimum 1)</p>
-                }
+                <label for="syl-term" class="field-label">Term <span class="required-star">*</span></label>
+                <select id="syl-term" class="field-select" formControlName="termNumber"
+                  [class.field-select--error]="form.get('termNumber')?.invalid && form.get('termNumber')?.touched">
+                  <option [ngValue]="null" disabled>Select a term</option>
+                  @for (n of getTermNumbers(); track n) {
+                    <option [ngValue]="n">{{ termLabel(n) }}</option>
+                  }
+                </select>
               </div>
             </div>
 
-            <div class="field-row">
-              <div class="field-group">
-                <label for="syl-theory" class="field-label">Theory Hours</label>
-                <input id="syl-theory" class="field-input" type="number" formControlName="theoryHours" min="0" placeholder="0" />
-              </div>
-              <div class="field-group">
-                <label for="syl-lab" class="field-label">Lab Hours</label>
-                <input id="syl-lab" class="field-input" type="number" formControlName="labHours" min="0" placeholder="0" />
-              </div>
-              <div class="field-group">
-                <label for="syl-tutorial" class="field-label">Tutorial Hours</label>
-                <input id="syl-tutorial" class="field-input" type="number" formControlName="tutorialHours" min="0" placeholder="0" />
-              </div>
+            <div class="field-group">
+              <label for="syl-subject" class="field-label">Subject <span class="required-star">*</span></label>
+              <select id="syl-subject" class="field-select" formControlName="curriculumTermCourseId"
+                [class.field-select--error]="form.get('curriculumTermCourseId')?.invalid && form.get('curriculumTermCourseId')?.touched">
+                <option [ngValue]="null" disabled>Select a subject</option>
+                @for (course of getCoursesForSelectedTerm(); track course.id) {
+                  <option [ngValue]="course.id">{{ course.subjectCode }} — {{ course.subjectName }}</option>
+                }
+              </select>
+              @if (form.get('curriculumTermCourseId')?.invalid && form.get('curriculumTermCourseId')?.touched) {
+                <p class="field-error">Subject is required</p>
+              }
             </div>
+
+            @if (selectedMapping(); as mapping) {
+              <div class="field-group">
+                <label class="field-label">Theory / Lab / Clinical Hours</label>
+                <p class="field-hint">
+                  Theory {{ mapping.theoryHours }}h · Lab {{ mapping.labHours }}h · Clinical {{ mapping.clinicalHours }}h
+                  — set on the <a routerLink="/curriculum-map/{{ mapping.curriculumVersionId }}">Curriculum Map</a> screen, not here.
+                </p>
+              </div>
+            }
 
             <div class="field-group">
               <label for="syl-objectives" class="field-label">Objectives</label>
@@ -110,7 +117,7 @@
               @if (saving()) {
                 <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
               } @else {
-                {{ isEditMode() ? 'Update Syllabus' : 'Create Syllabus' }}
+                Create Syllabus
               }
             </button>
           </div>
@@ -119,15 +126,16 @@
 
       <aside class="entry-form-side-panel">
         <cms-preview-card label="Live preview">
-          <div class="prev-name" [class.prev-name--empty]="!previewCourseName()">
-            {{ previewCourseName() || 'Course will appear here' }}
+          <div class="prev-name" [class.prev-name--empty]="!previewSubjectName()">
+            {{ previewSubjectName() || 'Subject will appear here' }}
           </div>
-          @if (previewVersionNum()) { <div class="prev-sub">Version {{ previewVersionNum() }}</div> }
           <div class="prev-meta-row">
-            @if (previewTheory()) { <span class="prev-pill">{{ previewTheory() }}h Theory</span> }
-            @if (previewLab()) { <span class="prev-pill">{{ previewLab() }}h Lab</span> }
-            @if (previewTutorial()) { <span class="prev-pill">{{ previewTutorial() }}h Tut</span> }
-            @if (totalHours()) { <span class="prev-pill prev-pill--primary">Σ {{ totalHours() }}h</span> }
+            @if (selectedMapping(); as mapping) {
+              <span class="prev-pill">{{ mapping.theoryHours }}h Theory</span>
+              <span class="prev-pill">{{ mapping.labHours }}h Lab</span>
+              <span class="prev-pill">{{ mapping.clinicalHours }}h Clinical</span>
+              <span class="prev-pill prev-pill--primary">Σ {{ totalHours() }}h</span>
+            }
             <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">
               {{ previewActive() ? 'Active' : 'Inactive' }}
             </span>
@@ -137,5 +145,4 @@
         <cms-tips-card heading="Guidance" [tips]="TIPS" />
       </aside>
     </div>
-  }
 </div>

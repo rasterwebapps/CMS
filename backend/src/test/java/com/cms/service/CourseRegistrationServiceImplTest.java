@@ -119,17 +119,8 @@ class CourseRegistrationServiceImplTest {
         return s;
     }
 
-    /** A curriculum-term-course row restricted to one specific course (e.g. an MSc Adult/Child variant). */
-    private CurriculumSemesterCourse createCscWithCourse(Long id, CurriculumVersion cv, Subject subject,
-                                                          Integer semesterNumber, Course course) {
-        CurriculumSemesterCourse csc = new CurriculumSemesterCourse(cv, semesterNumber, subject, 1);
-        csc.setId(id);
-        csc.setCourse(course);
-        return csc;
-    }
-
-    private CurriculumVersion createCV(Long id, Program program, AcademicYear ay) {
-        CurriculumVersion cv = new CurriculumVersion(program, "CV-2024", ay, true);
+    private CurriculumVersion createCV(Long id, Program program, Course course, AcademicYear ay) {
+        CurriculumVersion cv = new CurriculumVersion(program, course, "CV-2024", ay, true);
         cv.setId(id);
         return cv;
     }
@@ -171,7 +162,7 @@ class CourseRegistrationServiceImplTest {
         Student student = createStudent(1L, program, cohort);
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
         Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
 
         when(termInstanceRepository.existsById(1L)).thenReturn(true);
@@ -194,10 +185,10 @@ class CourseRegistrationServiceImplTest {
 
     @Test
     void generateRegistrationsForTermInstance_excludesOfferingsFromDifferentCourseUnderSameProgram() {
-        // Regression test: MSc Nursing (Adult) and (Child) share one Program and one program-wide
-        // CurriculumVersion. An Adult student's enrollment must not pick up a Child-only course
-        // offering. Since subjects are no longer owned by a single course, the distinction now
-        // lives on the curriculum-term-course row itself (CurriculumSemesterCourse.course).
+        // Regression test: MSc Nursing (Adult) and (Child) share one Program but — since
+        // CurriculumVersion.course is now mandatory — each has its own course-scoped
+        // CurriculumVersion rather than one shared program-wide version with row-level
+        // exceptions. An Adult student's enrollment must not pick up a Child-only course offering.
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "MSc");
         Course adultCourse = createCourse(1L, "MSc Nursing (Adult)", "MSN-A", program);
@@ -209,13 +200,10 @@ class CourseRegistrationServiceImplTest {
 
         Subject adultSubject = createSubject(1L, "Advanced Medical Surgical Nursing", "MSNA101");
         Subject childSubject = createSubject(2L, "Advanced Child Health Nursing", "MSNC101");
-        CurriculumVersion cv = createCV(1L, program, ay);
-        CourseOffering adultOffering = createOffering(1L, ti, cv, adultSubject, 1);
-        adultOffering.setCurriculumSemesterCourse(
-            createCscWithCourse(1L, cv, adultSubject, 1, adultCourse));
-        CourseOffering childOffering = createOffering(2L, ti, cv, childSubject, 1);
-        childOffering.setCurriculumSemesterCourse(
-            createCscWithCourse(2L, cv, childSubject, 1, childCourse));
+        CurriculumVersion adultCv = createCV(1L, program, adultCourse, ay);
+        CurriculumVersion childCv = createCV(2L, program, childCourse, ay);
+        CourseOffering adultOffering = createOffering(1L, ti, adultCv, adultSubject, 1);
+        CourseOffering childOffering = createOffering(2L, ti, childCv, childSubject, 1);
 
         when(termInstanceRepository.existsById(1L)).thenReturn(true);
         when(enrollmentRepository.findByTermInstanceId(1L)).thenReturn(List.of(enrollment));
@@ -246,7 +234,7 @@ class CourseRegistrationServiceImplTest {
         Student student = createStudent(1L, program, cohort);
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
         Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
         CourseRegistration existing = new CourseRegistration();
         existing.setId(99L);
@@ -274,7 +262,7 @@ class CourseRegistrationServiceImplTest {
         Student student = createStudent(1L, program, cohort);
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
         Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
         offering.setIsActive(false); // Inactive
 
@@ -308,7 +296,7 @@ class CourseRegistrationServiceImplTest {
         Student student = createStudent(1L, program, cohort);
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
         Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
 
         CourseRegistration reg = new CourseRegistration();
@@ -338,7 +326,7 @@ class CourseRegistrationServiceImplTest {
         Student student = createStudent(1L, program, cohort);
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
         Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
 
         CourseRegistration reg = new CourseRegistration();
@@ -390,7 +378,7 @@ class CourseRegistrationServiceImplTest {
         Student student = createStudent(1L, program, cohort);
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
         Subject subject = createSubject(1L, "Community Health Elective", "ELEC101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CurriculumElectiveGroup group = new CurriculumElectiveGroup(cv, 1, "Term 1 Electives", "T1E");
         group.setId(1L);
         CurriculumSemesterCourse csc = createElectiveCsc(1L, cv, 1, subject, group);
@@ -418,7 +406,7 @@ class CourseRegistrationServiceImplTest {
         Student student = createStudent(1L, program, cohort);
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
         Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1); // no curriculumSemesterCourse
 
         when(enrollmentRepository.findById(1L)).thenReturn(Optional.of(enrollment));
@@ -441,7 +429,7 @@ class CourseRegistrationServiceImplTest {
         Student student = createStudent(1L, program, cohort);
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
         Subject subject = createSubject(1L, "Community Health Elective", "ELEC101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CurriculumElectiveGroup group = new CurriculumElectiveGroup(cv, 1, "Term 1 Electives", "T1E");
         group.setId(1L);
         CurriculumSemesterCourse csc = createElectiveCsc(1L, cv, 1, subject, group);
@@ -474,7 +462,7 @@ class CourseRegistrationServiceImplTest {
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
         Subject subjectA = createSubject(1L, "Community Health Elective", "ELECA");
         Subject subjectB = createSubject(2L, "School Health Elective", "ELECB");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CurriculumElectiveGroup group = new CurriculumElectiveGroup(cv, 1, "Term 1 Electives", "T1E");
         group.setId(1L);
         CurriculumSemesterCourse cscA = createElectiveCsc(1L, cv, 1, subjectA, group);
@@ -511,7 +499,7 @@ class CourseRegistrationServiceImplTest {
         Student student = createStudent(1L, program, cohort);
         StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
         Subject subject = createSubject(1L, "Community Health Elective", "ELEC101");
-        CurriculumVersion cv = createCV(1L, program, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
         CurriculumElectiveGroup group = new CurriculumElectiveGroup(cv, 1, "Term 1 Electives", "T1E");
         group.setId(1L);
         CurriculumSemesterCourse csc = createElectiveCsc(1L, cv, 1, subject, group);

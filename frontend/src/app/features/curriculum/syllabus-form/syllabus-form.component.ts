@@ -1,15 +1,15 @@
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CurriculumService } from '../curriculum.service';
+import { CurriculumVersionService } from '../curriculum-version.service';
 import { SyllabusRequest } from '../curriculum.model';
-import { environment } from '../../../../environments/environment';
+import { CurriculumVersion, CurriculumFullView, CurriculumSemesterCourse } from '../curriculum-version.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -18,6 +18,9 @@ import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-ca
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
+/** Create-only — a syllabus version is immutable once saved (see BR: syllabus versioning).
+ *  There is no edit route; changing content means creating a new version here again, and
+ *  activating/deactivating an existing version happens from the list screen instead. */
 @Component({
   selector: 'app-syllabus-form',
   standalone: true,
@@ -37,47 +40,49 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 })
 export class SyllabusFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
-  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly curriculumService = inject(CurriculumService);
-  private readonly http = inject(HttpClient);
+  private readonly curriculumVersionService = inject(CurriculumVersionService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly loading = signal(false);
   protected readonly saving = signal(false);
-  protected readonly isEditMode = signal(false);
-  protected readonly pageTitle = signal('Add Syllabus');
-  protected readonly courses = signal<{ id: number; name: string; code: string }[]>([]);
+
+  protected readonly curriculumVersions = signal<CurriculumVersion[]>([]);
+  /** Full term/subject tree for the currently-selected curriculum version — drives the
+   *  Term and Subject dropdowns, and is where the read-only Theory/Lab/Clinical hours
+   *  ultimately come from (Curriculum Map is the source of truth, not this form). */
+  protected readonly curriculum = signal<CurriculumFullView | null>(null);
+  protected readonly loadingCurriculum = signal(false);
+
+  protected readonly selectedMapping = computed<CurriculumSemesterCourse | null>(() => {
+    const c = this.curriculum();
+    const termNumber = this.form?.get('termNumber')?.value;
+    const mappingId = this.form?.get('curriculumTermCourseId')?.value;
+    if (!c || !termNumber || !mappingId) return null;
+    const term = c.terms.find(t => t.termNumber === Number(termNumber));
+    return term?.courses.find(course => course.id === Number(mappingId)) ?? null;
+  });
 
   // Preview signals
-  protected readonly previewCourseId   = signal<number | null>(null);
-  protected readonly previewVersionNum = signal<number | null>(null);
-  protected readonly previewTheory     = signal<number | null>(null);
-  protected readonly previewLab        = signal<number | null>(null);
-  protected readonly previewTutorial   = signal<number | null>(null);
   protected readonly previewActive     = signal(true);
-  protected readonly previewCourseName = computed(() => {
-    const c = this.courses().find(x => x.id === this.previewCourseId());
-    return c ? c.name : '';
+  protected readonly previewSubjectName = computed(() => this.selectedMapping()?.subjectName ?? '');
+  protected readonly totalHours = computed(() => {
+    const m = this.selectedMapping();
+    return m ? m.theoryHours + m.labHours + m.clinicalHours : 0;
   });
-  protected readonly totalHours = computed(() => (this.previewTheory() ?? 0) + (this.previewLab() ?? 0) + (this.previewTutorial() ?? 0));
 
   protected readonly TIPS: CmsTip[] = [
-    { icon: 'history',   title: 'Versioning',       subtitle: 'Increment version on substantive content changes; old versions stay attached to past batches.' },
-    { icon: 'schedule',  title: 'Hours allocation', subtitle: 'Total weekly hours = Theory + Lab + Tutorial — used for credit and load calculations.' },
+    { icon: 'history',   title: 'Versioning',       subtitle: 'A syllabus is locked once saved — the version number is assigned automatically. To change content later, create a new version here; activate it from the list to make it current.' },
+    { icon: 'schedule',  title: 'Hours allocation', subtitle: 'Theory/Lab/Clinical hours are set on the Curriculum Map screen, not here — this form only links to that mapping.' },
     { icon: 'menu_book', title: 'References',       subtitle: 'List one book per line including author and edition for accreditation reports.' },
   ];
 
-  private itemId: number | null = null;
-
   protected readonly form: FormGroup = this.fb.group({
-    courseId: [null, Validators.required],
-    version: [null, [Validators.required, Validators.min(1)]],
-    theoryHours: [null, [Validators.min(0)]],
-    labHours: [null, [Validators.min(0)]],
-    tutorialHours: [null, [Validators.min(0)]],
+    curriculumVersionId: [null, Validators.required],
+    termNumber: [{ value: null, disabled: true }, Validators.required],
+    curriculumTermCourseId: [{ value: null, disabled: true }, Validators.required],
     objectives: [''],
     content: [''],
     textBooks: [''],
@@ -90,54 +95,69 @@ export class SyllabusFormComponent implements OnInit {
     this.form.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(v => {
-        this.previewCourseId.set(v.courseId ?? null);
-        this.previewVersionNum.set(v.version ? Number(v.version) : null);
-        this.previewTheory.set(v.theoryHours != null && v.theoryHours !== '' ? Number(v.theoryHours) : null);
-        this.previewLab.set(v.labHours != null && v.labHours !== '' ? Number(v.labHours) : null);
-        this.previewTutorial.set(v.tutorialHours != null && v.tutorialHours !== '' ? Number(v.tutorialHours) : null);
         this.previewActive.set(!!v.isActive);
+      });
+
+    this.form.get('curriculumVersionId')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((curriculumVersionId: number | null) => {
+        this.form.get('termNumber')!.reset(null, { emitEvent: false });
+        this.form.get('curriculumTermCourseId')!.reset(null, { emitEvent: false });
+        this.curriculum.set(null);
+        if (curriculumVersionId == null) {
+          this.form.get('termNumber')!.disable({ emitEvent: false });
+          this.form.get('curriculumTermCourseId')!.disable({ emitEvent: false });
+          return;
+        }
+        this.loadingCurriculum.set(true);
+        this.curriculumVersionService.getFullCurriculum(curriculumVersionId).subscribe({
+          next: (data) => {
+            this.curriculum.set(data);
+            this.form.get('termNumber')!.enable({ emitEvent: false });
+            this.loadingCurriculum.set(false);
+          },
+          error: () => {
+            this.toast.error('Failed to load curriculum terms');
+            this.loadingCurriculum.set(false);
+          },
+        });
+      });
+
+    this.form.get('termNumber')!.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((termNumber: number | null) => {
+        this.form.get('curriculumTermCourseId')!.reset(null, { emitEvent: false });
+        if (termNumber == null) {
+          this.form.get('curriculumTermCourseId')!.disable({ emitEvent: false });
+        } else {
+          this.form.get('curriculumTermCourseId')!.enable({ emitEvent: false });
+        }
       });
   }
 
   ngOnInit(): void {
     this.tourService.register('syllabus-form', SYLLABUS_FORM_TOUR);
-    this.http
-      .get<{ id: number; name: string; code: string }[]>(`${environment.apiUrl}/courses`)
-      .subscribe({
-        next: (data) => this.courses.set(data),
-        error: () => {
-          this.toast.error('Failed to load courses');
-        },
-      });
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.itemId = Number(id);
-      this.isEditMode.set(true);
-      this.pageTitle.set('Edit Syllabus');
-      this.loading.set(true);
-      this.curriculumService.getSyllabusById(this.itemId).subscribe({
-        next: (item) => {
-          this.form.patchValue({
-            courseId: item.courseId,
-            version: item.version,
-            theoryHours: item.theoryHours,
-            labHours: item.labHours,
-            tutorialHours: item.tutorialHours,
-            objectives: item.objectives || '',
-            content: item.content || '',
-            textBooks: item.textBooks || '',
-            referenceBooks: item.referenceBooks || '',
-            courseOutcomes: item.courseOutcomes || '',
-            isActive: item.isActive,
-          });
-          this.loading.set(false);
-        },
-        error: () => {
-          this.toast.error('Failed to load');
-          void this.router.navigate(['/syllabi']);
-        },
-      });
-    }
+    this.curriculumVersionService.getPage({ size: 500, sort: 'versionName' }).subscribe({
+      next: (page) => this.curriculumVersions.set(page.content),
+      error: () => this.toast.error('Failed to load curriculum versions'),
+    });
+  }
+
+  protected termLabel(n: number): string {
+    return this.curriculum()?.assessmentPattern === 'YEARLY' ? `Year ${n}` : `Term ${n}`;
+  }
+
+  protected getTermNumbers(): number[] {
+    const c = this.curriculum();
+    if (!c) return [];
+    return Array.from({ length: c.totalTerms }, (_, i) => i + 1);
+  }
+
+  protected getCoursesForSelectedTerm(): CurriculumSemesterCourse[] {
+    const c = this.curriculum();
+    const termNumber = this.form.get('termNumber')?.value;
+    if (!c || !termNumber) return [];
+    return c.terms.find(t => t.termNumber === Number(termNumber))?.courses ?? [];
   }
 
   protected onSubmit(): void {
@@ -145,13 +165,9 @@ export class SyllabusFormComponent implements OnInit {
       scrollToFirstInvalid(this.form);
       return;
     }
-    const v = this.form.value;
+    const v = this.form.getRawValue();
     const request: SyllabusRequest = {
-      courseId: v.courseId,
-      version: v.version,
-      theoryHours: v.theoryHours ?? undefined,
-      labHours: v.labHours ?? undefined,
-      tutorialHours: v.tutorialHours ?? undefined,
+      curriculumTermCourseId: v.curriculumTermCourseId,
       objectives: v.objectives?.trim() || undefined,
       content: v.content?.trim() || undefined,
       textBooks: v.textBooks?.trim() || undefined,
@@ -160,12 +176,9 @@ export class SyllabusFormComponent implements OnInit {
       isActive: v.isActive,
     };
     this.saving.set(true);
-    const op$ = this.isEditMode()
-      ? this.curriculumService.updateSyllabus(this.itemId!, request)
-      : this.curriculumService.createSyllabus(request);
-    op$.subscribe({
+    this.curriculumService.createSyllabus(request).subscribe({
       next: () => {
-        this.toast.success(this.isEditMode() ? 'Updated' : 'Created');
+        this.toast.success('Syllabus version created');
         void this.router.navigate(['/syllabi']);
       },
       error: (err) => {

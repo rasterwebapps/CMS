@@ -26,7 +26,11 @@ import com.cms.model.CurriculumVersion;
 import com.cms.model.Program;
 import com.cms.model.enums.ProgramStatus;
 import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.AttendanceThresholdRepository;
+import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CourseRepository;
+import com.cms.repository.CurriculumElectiveGroupRepository;
+import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
 import com.cms.repository.ProgramRepository;
 
@@ -45,29 +49,46 @@ class CurriculumVersionServiceTest {
     @Mock
     private CourseRepository courseRepository;
 
+    @Mock
+    private CurriculumSemesterCourseRepository curriculumSemesterCourseRepository;
+
+    @Mock
+    private CurriculumElectiveGroupRepository curriculumElectiveGroupRepository;
+
+    @Mock
+    private AttendanceThresholdRepository attendanceThresholdRepository;
+
+    @Mock
+    private CourseOfferingRepository courseOfferingRepository;
+
     private CurriculumVersionService curriculumVersionService;
 
     private Program testProgram;
+    private Course testCourse;
     private AcademicYear testAcademicYear;
 
     @BeforeEach
     void setUp() {
         curriculumVersionService = new CurriculumVersionService(
-            curriculumVersionRepository, programRepository, academicYearRepository, courseRepository);
+            curriculumVersionRepository, programRepository, academicYearRepository, courseRepository,
+            curriculumSemesterCourseRepository, curriculumElectiveGroupRepository,
+            attendanceThresholdRepository, courseOfferingRepository);
 
         testProgram = createProgram(1L, "BSc Nursing", "BSCN", 4);
+        testCourse = createCourse(1L, "BSc Nursing", "BSCN-C", testProgram);
         testAcademicYear = createAcademicYear(1L, "2026-2027",
             LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31));
     }
 
     @Test
     void shouldCreateCurriculumVersion() {
-        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, null, "BSCN-2026", 1L, true);
+        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, 1L, "BSCN-2026", 1L, true);
 
-        CurriculumVersion cv = createCurriculumVersion(1L, testProgram, "BSCN-2026", testAcademicYear, true);
+        CurriculumVersion cv = createCurriculumVersion(1L, testProgram, testCourse, "BSCN-2026", testAcademicYear, true);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(curriculumVersionRepository.save(any(CurriculumVersion.class))).thenReturn(cv);
 
         CurriculumVersionDto dto = curriculumVersionService.createCurriculumVersion(request);
@@ -82,7 +103,7 @@ class CurriculumVersionServiceTest {
 
     @Test
     void shouldThrowWhenProgramNotFoundOnCreate() {
-        CurriculumVersionRequest request = new CurriculumVersionRequest(999L, null, "BSCN-2026", 1L, true);
+        CurriculumVersionRequest request = new CurriculumVersionRequest(999L, 1L, "BSCN-2026", 1L, true);
 
         when(programRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -93,7 +114,7 @@ class CurriculumVersionServiceTest {
 
     @Test
     void shouldThrowWhenAcademicYearNotFoundOnCreate() {
-        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, null, "BSCN-2026", 999L, true);
+        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, 1L, "BSCN-2026", 999L, true);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(academicYearRepository.findById(999L)).thenReturn(Optional.empty());
@@ -105,7 +126,7 @@ class CurriculumVersionServiceTest {
 
     @Test
     void shouldGetCurriculumVersionsByProgram() {
-        CurriculumVersion cv = createCurriculumVersion(1L, testProgram, "BSCN-2026", testAcademicYear, true);
+        CurriculumVersion cv = createCurriculumVersion(1L, testProgram, testCourse, "BSCN-2026", testAcademicYear, true);
 
         when(programRepository.existsById(1L)).thenReturn(true);
         when(curriculumVersionRepository.findByProgramId(1L)).thenReturn(List.of(cv));
@@ -127,7 +148,7 @@ class CurriculumVersionServiceTest {
 
     @Test
     void shouldGetCurriculumVersionById() {
-        CurriculumVersion cv = createCurriculumVersion(1L, testProgram, "BSCN-2026", testAcademicYear, true);
+        CurriculumVersion cv = createCurriculumVersion(1L, testProgram, testCourse, "BSCN-2026", testAcademicYear, true);
 
         when(curriculumVersionRepository.findById(1L)).thenReturn(Optional.of(cv));
 
@@ -148,14 +169,16 @@ class CurriculumVersionServiceTest {
 
     @Test
     void shouldUpdateCurriculumVersion() {
-        CurriculumVersion cv = createCurriculumVersion(1L, testProgram, "BSCN-2026", testAcademicYear, true);
-        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, null, "BSCN-2026-Updated", 1L, false);
+        CurriculumVersion cv = createCurriculumVersion(1L, testProgram, testCourse, "BSCN-2026", testAcademicYear, true);
+        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, 1L, "BSCN-2026-Updated", 1L, false);
 
-        CurriculumVersion updated = createCurriculumVersion(1L, testProgram, "BSCN-2026-Updated", testAcademicYear, false);
+        CurriculumVersion updated = createCurriculumVersion(
+            1L, testProgram, testCourse, "BSCN-2026-Updated", testAcademicYear, false);
 
         when(curriculumVersionRepository.findById(1L)).thenReturn(Optional.of(cv));
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(curriculumVersionRepository.save(any(CurriculumVersion.class))).thenReturn(updated);
 
         CurriculumVersionDto dto = curriculumVersionService.update(1L, request);
@@ -166,8 +189,9 @@ class CurriculumVersionServiceTest {
 
     @Test
     void shouldDeactivateCurriculumVersion() {
-        CurriculumVersion cv = createCurriculumVersion(1L, testProgram, "BSCN-2026", testAcademicYear, true);
-        CurriculumVersion deactivated = createCurriculumVersion(1L, testProgram, "BSCN-2026", testAcademicYear, false);
+        CurriculumVersion cv = createCurriculumVersion(1L, testProgram, testCourse, "BSCN-2026", testAcademicYear, true);
+        CurriculumVersion deactivated = createCurriculumVersion(
+            1L, testProgram, testCourse, "BSCN-2026", testAcademicYear, false);
 
         when(curriculumVersionRepository.findById(1L)).thenReturn(Optional.of(cv));
         when(curriculumVersionRepository.save(any(CurriculumVersion.class))).thenReturn(deactivated);
@@ -188,14 +212,15 @@ class CurriculumVersionServiceTest {
 
     @Test
     void shouldCloneCurriculumVersion() {
-        CurriculumVersion source = createCurriculumVersion(1L, testProgram, "BSCN-2026", testAcademicYear, true);
+        CurriculumVersion source = createCurriculumVersion(1L, testProgram, testCourse, "BSCN-2026", testAcademicYear, true);
         AcademicYear newAY = createAcademicYear(2L, "2027-2028",
             LocalDate.of(2027, 6, 1), LocalDate.of(2028, 5, 31));
-        CurriculumVersion cloned = createCurriculumVersion(2L, testProgram, "BSCN-2027", newAY, true);
+        CurriculumVersion cloned = createCurriculumVersion(2L, testProgram, testCourse, "BSCN-2027", newAY, true);
 
         when(curriculumVersionRepository.findById(1L)).thenReturn(Optional.of(source));
         when(academicYearRepository.findById(2L)).thenReturn(Optional.of(newAY));
         when(curriculumVersionRepository.save(any(CurriculumVersion.class))).thenReturn(cloned);
+        when(curriculumVersionRepository.findById(2L)).thenReturn(Optional.of(cloned));
 
         CurriculumVersionDto dto = curriculumVersionService.cloneCurriculumVersion(1L, "BSCN-2027", 2L);
 
@@ -216,11 +241,12 @@ class CurriculumVersionServiceTest {
 
     @Test
     void shouldCreateVersionWithNullIsActive() {
-        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, null, "BSCN-2026", 1L, null);
-        CurriculumVersion cv = createCurriculumVersion(1L, testProgram, "BSCN-2026", testAcademicYear, true);
+        CurriculumVersionRequest request = new CurriculumVersionRequest(1L, 1L, "BSCN-2026", 1L, null);
+        CurriculumVersion cv = createCurriculumVersion(1L, testProgram, testCourse, "BSCN-2026", testAcademicYear, true);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(testAcademicYear));
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(testCourse));
         when(curriculumVersionRepository.save(any(CurriculumVersion.class))).thenReturn(cv);
 
         CurriculumVersionDto dto = curriculumVersionService.createCurriculumVersion(request);
@@ -236,6 +262,12 @@ class CurriculumVersionServiceTest {
         return p;
     }
 
+    private Course createCourse(Long id, String name, String code, Program program) {
+        Course c = new Course(name, code, null, program);
+        c.setId(id);
+        return c;
+    }
+
     private AcademicYear createAcademicYear(Long id, String name,
                                              LocalDate startDate, LocalDate endDate) {
         AcademicYear ay = new AcademicYear(name, startDate, endDate, false);
@@ -245,9 +277,9 @@ class CurriculumVersionServiceTest {
         return ay;
     }
 
-    private CurriculumVersion createCurriculumVersion(Long id, Program program, String versionName,
+    private CurriculumVersion createCurriculumVersion(Long id, Program program, Course course, String versionName,
                                                        AcademicYear ay, Boolean isActive) {
-        CurriculumVersion cv = new CurriculumVersion(program, versionName, ay, isActive);
+        CurriculumVersion cv = new CurriculumVersion(program, course, versionName, ay, isActive);
         cv.setId(id);
         cv.setCreatedAt(Instant.now());
         cv.setUpdatedAt(Instant.now());

@@ -21,8 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.SubjectRequest;
 import com.cms.dto.SubjectResponse;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
-import com.cms.model.Program;
 import com.cms.model.Speciality;
 import com.cms.model.Subject;
 import com.cms.repository.CourseOfferingRepository;
@@ -166,14 +164,8 @@ class SubjectServiceTest {
 
     @Test
     void shouldFindSubjectsUsedInCourseCurricula() {
-        Program program = new Program();
-        program.setId(1L);
-        Course course = new Course();
-        course.setId(1L);
-        course.setProgram(program);
-
-        when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
-        when(curriculumSemesterCourseRepository.findDistinctSubjectIdsByCourseId(1L, 1L)).thenReturn(List.of(1L));
+        when(courseRepository.existsById(1L)).thenReturn(true);
+        when(curriculumSemesterCourseRepository.findDistinctSubjectIdsByCourseId(1L)).thenReturn(List.of(1L));
         when(subjectRepository.findAllById(List.of(1L))).thenReturn(List.of(testSubject));
 
         List<SubjectResponse> results = subjectService.findByCourseId(1L);
@@ -184,7 +176,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldThrowWhenCourseNotFoundOnFindByCourseId() {
-        when(courseRepository.findById(999L)).thenReturn(Optional.empty());
+        when(courseRepository.existsById(999L)).thenReturn(false);
 
         assertThatThrownBy(() -> subjectService.findByCourseId(999L))
             .isInstanceOf(ResourceNotFoundException.class)

@@ -10,4 +10,8 @@ public interface CurriculumElectiveGroupRepository extends JpaRepository<Curricu
 
     List<CurriculumElectiveGroup> findByCurriculumVersionIdAndTermNumber(
         Long curriculumVersionId, Integer termNumber);
+
+    List<CurriculumElectiveGroup> findByCurriculumVersionId(Long curriculumVersionId);
+
+    void deleteByCurriculumVersionId(Long curriculumVersionId);
 }

@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,13 +14,12 @@ import com.cms.dto.CurriculumFullViewDto;
 import com.cms.dto.CurriculumSemesterCourseDto;
 import com.cms.dto.CurriculumSemesterCourseRequest;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.Course;
 import com.cms.model.CurriculumElectiveGroup;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.CurriculumVersion;
 import com.cms.model.Subject;
 import com.cms.model.enums.AssessmentPattern;
-import com.cms.repository.CourseRepository;
+import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CurriculumElectiveGroupRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
@@ -33,18 +33,18 @@ public class CurriculumSemesterCourseService {
     private final CurriculumVersionRepository curriculumVersionRepository;
     private final SubjectRepository subjectRepository;
     private final CurriculumElectiveGroupRepository electiveGroupRepository;
-    private final CourseRepository courseMasterRepository;
+    private final CourseOfferingRepository courseOfferingRepository;
 
     public CurriculumSemesterCourseService(CurriculumSemesterCourseRepository courseRepository,
                                             CurriculumVersionRepository curriculumVersionRepository,
                                             SubjectRepository subjectRepository,
                                             CurriculumElectiveGroupRepository electiveGroupRepository,
-                                            CourseRepository courseMasterRepository) {
+                                            CourseOfferingRepository courseOfferingRepository) {
         this.courseRepository = courseRepository;
         this.curriculumVersionRepository = curriculumVersionRepository;
         this.subjectRepository = subjectRepository;
         this.electiveGroupRepository = electiveGroupRepository;
-        this.courseMasterRepository = courseMasterRepository;
+        this.courseOfferingRepository = courseOfferingRepository;
     }
 
     @Transactional
@@ -69,7 +69,7 @@ public class CurriculumSemesterCourseService {
         CurriculumSemesterCourse entry = new CurriculumSemesterCourse(
             cv, request.termNumber(), subject, request.sortOrder());
         applyDetails(entry, cv, request);
-        return toDto(courseRepository.save(entry));
+        return toDto(courseRepository.save(entry), false);
     }
 
     @Transactional
@@ -78,8 +78,13 @@ public class CurriculumSemesterCourseService {
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Curriculum semester course not found with id: " + id));
 
+        if (courseOfferingRepository.existsByCurriculumSemesterCourseId(id)) {
+            throw new IllegalStateException(
+                "Cannot edit a subject mapping that already has course offerings against it");
+        }
+
         applyDetails(entry, entry.getCurriculumVersion(), request);
-        return toDto(courseRepository.save(entry));
+        return toDto(courseRepository.save(entry), false);
     }
 
     private void applyDetails(CurriculumSemesterCourse entry, CurriculumVersion cv,
@@ -89,19 +94,6 @@ public class CurriculumSemesterCourseService {
         entry.setClinicalHours(request.clinicalHours());
         entry.setSubjectType(request.subjectType());
         entry.setIsElective(request.isElective());
-
-        if (request.courseId() != null) {
-            Course restrictedCourse = courseMasterRepository.findById(request.courseId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                    "Course not found with id: " + request.courseId()));
-            if (!restrictedCourse.getProgram().getId().equals(cv.getProgram().getId())) {
-                throw new IllegalArgumentException(
-                    "Course must belong to the same program as the curriculum version");
-            }
-            entry.setCourse(restrictedCourse);
-        } else {
-            entry.setCourse(null);
-        }
 
         if (Boolean.TRUE.equals(request.isElective())) {
             if (request.electiveGroupId() == null) {
@@ -128,6 +120,10 @@ public class CurriculumSemesterCourseService {
             throw new ResourceNotFoundException(
                 "Curriculum semester course not found with id: " + id);
         }
+        if (courseOfferingRepository.existsByCurriculumSemesterCourseId(id)) {
+            throw new IllegalStateException(
+                "Cannot remove a subject mapping that already has course offerings against it");
+        }
         courseRepository.deleteById(id);
     }
 
@@ -137,9 +133,10 @@ public class CurriculumSemesterCourseService {
             throw new ResourceNotFoundException(
                 "Curriculum version not found with id: " + curriculumVersionId);
         }
+        Set<Long> lockedIds = courseOfferingRepository.findLockedCurriculumSemesterCourseIds(curriculumVersionId);
         return courseRepository.findByCurriculumVersionIdAndSemesterNumber(curriculumVersionId, termNumber)
             .stream()
-            .map(this::toDto)
+            .map(c -> toDto(c, lockedIds.contains(c.getId())))
             .toList();
     }
 
@@ -148,9 +145,10 @@ public class CurriculumSemesterCourseService {
             throw new ResourceNotFoundException(
                 "Curriculum version not found with id: " + curriculumVersionId);
         }
+        Set<Long> lockedIds = courseOfferingRepository.findLockedCurriculumSemesterCourseIds(curriculumVersionId);
         return courseRepository.findByCurriculumVersionId(curriculumVersionId)
             .stream()
-            .map(this::toDto)
+            .map(c -> toDto(c, lockedIds.contains(c.getId())))
             .toList();
     }
 
@@ -160,6 +158,7 @@ public class CurriculumSemesterCourseService {
                 "Curriculum version not found with id: " + curriculumVersionId));
 
         List<CurriculumSemesterCourse> allCourses = courseRepository.findByCurriculumVersionId(curriculumVersionId);
+        Set<Long> lockedIds = courseOfferingRepository.findLockedCurriculumSemesterCourseIds(curriculumVersionId);
 
         Map<Integer, List<CurriculumSemesterCourseDto>> grouped = new LinkedHashMap<>();
         int totalTerms = cv.getProgram().getTotalTerms();
@@ -167,7 +166,8 @@ public class CurriculumSemesterCourseService {
             grouped.put(i, new ArrayList<>());
         }
         for (CurriculumSemesterCourse c : allCourses) {
-            grouped.computeIfAbsent(c.getSemesterNumber(), k -> new ArrayList<>()).add(toDto(c));
+            grouped.computeIfAbsent(c.getSemesterNumber(), k -> new ArrayList<>())
+                .add(toDto(c, lockedIds.contains(c.getId())));
         }
 
         List<CurriculumFullViewDto.TermGroup> semesterGroups = grouped.entrySet().stream()
@@ -186,7 +186,7 @@ public class CurriculumSemesterCourseService {
         );
     }
 
-    private CurriculumSemesterCourseDto toDto(CurriculumSemesterCourse c) {
+    private CurriculumSemesterCourseDto toDto(CurriculumSemesterCourse c, boolean isLocked) {
         return new CurriculumSemesterCourseDto(
             c.getId(),
             c.getCurriculumVersion().getId(),
@@ -203,8 +203,7 @@ public class CurriculumSemesterCourseService {
             c.getIsElective(),
             c.getElectiveGroup() != null ? c.getElectiveGroup().getId() : null,
             c.getElectiveGroup() != null ? c.getElectiveGroup().getGroupName() : null,
-            c.getCourse() != null ? c.getCourse().getId() : null,
-            c.getCourse() != null ? c.getCourse().getName() : null,
+            isLocked,
             c.getCreatedAt(),
             c.getUpdatedAt()
         );

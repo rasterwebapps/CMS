@@ -20,8 +20,7 @@ public record CurriculumSemesterCourseDto(
     Boolean isElective,
     Long electiveGroupId,
     String electiveGroupName,
-    Long courseId,
-    String courseName,
+    Boolean isLocked,
     Instant createdAt,
     Instant updatedAt
 ) {}

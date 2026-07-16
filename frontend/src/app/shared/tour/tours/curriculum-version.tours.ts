@@ -6,7 +6,7 @@ export const CURRICULUM_VERSION_LIST_TOUR: TourDefinition = {
       popover: {
         title: '📚 Welcome to Curriculum Versions',
         description:
-          'This screen lets you manage curriculum versions per academic program — clone, revise, and activate versions over time. Let\'s walk through it.',
+          'This screen lists every curriculum version across all programs — clone, revise, and activate versions over time. Let\'s walk through it.',
         side: 'over',
         align: 'center',
       },
@@ -15,26 +15,43 @@ export const CURRICULUM_VERSION_LIST_TOUR: TourDefinition = {
       element: '#tour-cv-header',
       popover: {
         title: 'Curriculum Versions',
-        description: 'Manage curriculum versions for the program selected below.',
+        description: 'All curriculum versions are listed here by default — filter down to one program below if needed.',
         side: 'bottom',
         align: 'start',
       },
     },
     {
-      element: '#tour-cv-program-select',
+      element: '#tour-cv-program-filter',
       popover: {
-        title: 'Pick a Program',
-        description:
-          'Choose a program here to view its curriculum versions. The <strong>New Version</strong> button enables once a program is selected.',
+        title: 'Filter by Program',
+        description: 'Narrow the list down to one program, or leave it on <em>All Programs</em>.',
         side: 'bottom',
         align: 'start',
+      },
+    },
+    {
+      element: '#tour-cv-status-filter',
+      popover: {
+        title: 'Filter by Status',
+        description: 'Show only Active or only Inactive versions.',
+        side: 'bottom',
+        align: 'start',
+      },
+    },
+    {
+      element: '#tour-cv-view-toggle',
+      popover: {
+        title: 'Card or Table View',
+        description: 'Switch between a card layout and a sortable table — your choice is remembered.',
+        side: 'bottom',
+        align: 'end',
       },
     },
     {
       element: '#tour-cv-add-btn',
       popover: {
         title: 'New Version',
-        description: 'Create a brand-new curriculum version for the selected program.',
+        description: 'Create a brand-new curriculum version — you\'ll pick the program inside the form.',
         side: 'bottom',
         align: 'end',
       },
@@ -44,7 +61,7 @@ export const CURRICULUM_VERSION_LIST_TOUR: TourDefinition = {
       popover: {
         title: 'Version Cards',
         description:
-          'Each card shows the version name, effective academic year, and status. Use the <strong>clone</strong> icon to fork a new version, or click <em>View Curriculum Map</em> to see the full curriculum.',
+          'Each card shows the version name, program, effective academic year, content summary, and status. Use <strong>Clone</strong> to duplicate a version with its full term/subject mapping, or click <em>View Curriculum Map</em> to see the full curriculum.',
         side: 'top',
         align: 'start',
       },

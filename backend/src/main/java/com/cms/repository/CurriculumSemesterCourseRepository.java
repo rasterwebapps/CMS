@@ -21,16 +21,16 @@ public interface CurriculumSemesterCourseRepository extends JpaRepository<Curric
 
     boolean existsBySubjectId(Long subjectId);
 
-    /**
-     * Subjects mapped into any curriculum term row that applies to the given course: either the
-     * row itself restricts to this course, or (absent a row-level restriction) the curriculum
-     * version restricts to this course, or (absent both) the row's curriculum version is
-     * program-wide and this course belongs to that program.
-     */
+    @Query("select count(distinct csc.semesterNumber) from CurriculumSemesterCourse csc "
+        + "where csc.curriculumVersion.id = :curriculumVersionId")
+    long countDistinctTermsByCurriculumVersionId(@Param("curriculumVersionId") Long curriculumVersionId);
+
+    @Query("select count(distinct csc.subject.id) from CurriculumSemesterCourse csc "
+        + "where csc.curriculumVersion.id = :curriculumVersionId")
+    long countDistinctSubjectsByCurriculumVersionId(@Param("curriculumVersionId") Long curriculumVersionId);
+
+    /** Subjects mapped into any curriculum term row whose curriculum version is scoped to this course. */
     @Query("select distinct csc.subject.id from CurriculumSemesterCourse csc "
-        + "where csc.course.id = :courseId "
-        + "or (csc.course is null and csc.curriculumVersion.course.id = :courseId) "
-        + "or (csc.course is null and csc.curriculumVersion.course is null "
-        + "    and csc.curriculumVersion.program.id = :programId)")
-    List<Long> findDistinctSubjectIdsByCourseId(@Param("courseId") Long courseId, @Param("programId") Long programId);
+        + "where csc.curriculumVersion.course.id = :courseId")
+    List<Long> findDistinctSubjectIdsByCourseId(@Param("courseId") Long courseId);
 }

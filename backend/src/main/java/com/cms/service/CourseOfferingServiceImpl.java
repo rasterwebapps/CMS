@@ -100,11 +100,10 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
     }
 
     /**
-     * Prefers a curriculum version scoped to this cohort's exact course (e.g. MSc Nursing
-     * (Adult) vs (Child), which share one Program but need independent curricula) over a
-     * program-wide version (course_id IS NULL). Falls back to program-wide when no
-     * course-specific version is active, preserving behaviour for programs with a single
-     * course (e.g. BSc Nursing under Bachelor). Among ties, the most recently created wins.
+     * Resolves the active curriculum version scoped to this cohort's exact course (e.g. MSc
+     * Nursing (Adult) vs (Child), which share one Program but need independent curricula — every
+     * CurriculumVersion is now mandatorily course-scoped, so there is no program-wide fallback).
+     * Among ties, the most recently created wins.
      */
     private CurriculumVersion resolveActiveCurriculumVersion(Cohort cohort) {
         Long programId = cohort.getProgram().getId();
@@ -112,18 +111,10 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
 
         List<CurriculumVersion> courseScoped =
             curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(programId, courseId);
-        if (!courseScoped.isEmpty()) {
-            return courseScoped.stream()
-                .max(java.util.Comparator.comparing(CurriculumVersion::getCreatedAt))
-                .orElseThrow();
-        }
-
-        List<CurriculumVersion> programWide =
-            curriculumVersionRepository.findByProgramIdAndCourseIdIsNullAndIsActiveTrue(programId);
-        if (programWide.isEmpty()) {
+        if (courseScoped.isEmpty()) {
             return null;
         }
-        return programWide.stream()
+        return courseScoped.stream()
             .max(java.util.Comparator.comparing(CurriculumVersion::getCreatedAt))
             .orElseThrow();
     }

@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   Syllabus,
   SyllabusRequest,
+  SyllabusActivationRequest,
   Experiment,
   ExperimentRequest,
   LabCurriculumMapping,
@@ -33,12 +34,10 @@ export class CurriculumService {
     return this.http.post<Syllabus>(this.syllabiUrl, request);
   }
 
-  updateSyllabus(id: number, request: SyllabusRequest): Observable<Syllabus> {
+  /** The only permitted change to an existing syllabus version — content changes require
+   *  creating a new version via createSyllabus() instead. */
+  setSyllabusActive(id: number, request: SyllabusActivationRequest): Observable<Syllabus> {
     return this.http.put<Syllabus>(`${this.syllabiUrl}/${id}`, request);
-  }
-
-  deleteSyllabus(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.syllabiUrl}/${id}`);
   }
 
   // Experiment

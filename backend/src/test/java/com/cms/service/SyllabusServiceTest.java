@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,12 +19,20 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.SyllabusActivationRequest;
 import com.cms.dto.SyllabusRequest;
 import com.cms.dto.SyllabusResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.AcademicYear;
+import com.cms.model.Course;
+import com.cms.model.CurriculumSemesterCourse;
+import com.cms.model.CurriculumVersion;
+import com.cms.model.Program;
 import com.cms.model.Subject;
 import com.cms.model.Syllabus;
-import com.cms.repository.SubjectRepository;
+import com.cms.model.enums.ProgramStatus;
+import com.cms.model.enums.SubjectType;
+import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.SyllabusRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,64 +42,101 @@ class SyllabusServiceTest {
     private SyllabusRepository syllabusRepository;
 
     @Mock
-    private SubjectRepository subjectRepository;
+    private CurriculumSemesterCourseRepository curriculumSemesterCourseRepository;
 
     private SyllabusService syllabusService;
 
-    private Subject testCourse;
+    private CurriculumSemesterCourse testMapping;
 
     @BeforeEach
     void setUp() {
-        syllabusService = new SyllabusService(syllabusRepository, subjectRepository);
-        testCourse = createSubject(1L, "Data Structures", "CS201");
+        syllabusService = new SyllabusService(syllabusRepository, curriculumSemesterCourseRepository);
+        testMapping = createMapping(1L, 1, "Data Structures", "CS201", 30, 15, 10);
     }
 
     @Test
-    void shouldCreateSyllabus() {
+    void shouldCreateSyllabusWithAutoAssignedVersion() {
         SyllabusRequest request = new SyllabusRequest(
-            1L, 1, 30, 15, 10,
+            1L,
             "Course objectives", "Course content",
             "Text books", "Reference books",
-            "Course outcomes", true
+            "Course outcomes", false
         );
 
-        Syllabus savedSyllabus = createSyllabus(1L, testCourse, 1, true);
-
-        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
-        when(syllabusRepository.save(any(Syllabus.class))).thenReturn(savedSyllabus);
+        when(curriculumSemesterCourseRepository.findById(1L)).thenReturn(Optional.of(testMapping));
+        when(syllabusRepository.findMaxVersion(1L)).thenReturn(0);
+        when(syllabusRepository.save(any(Syllabus.class))).thenAnswer(inv -> {
+            Syllabus s = inv.getArgument(0);
+            s.setId(1L);
+            s.setCreatedAt(Instant.now());
+            s.setUpdatedAt(Instant.now());
+            return s;
+        });
 
         SyllabusResponse response = syllabusService.create(request);
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.subjectId()).isEqualTo(1L);
+        assertThat(response.curriculumTermCourseId()).isEqualTo(1L);
         assertThat(response.version()).isEqualTo(1);
-        assertThat(response.isActive()).isTrue();
+        assertThat(response.theoryHours()).isEqualTo(30);
+        assertThat(response.labHours()).isEqualTo(15);
+        assertThat(response.clinicalHours()).isEqualTo(10);
 
-        ArgumentCaptor<Syllabus> captor = ArgumentCaptor.forClass(Syllabus.class);
-        verify(syllabusRepository).save(captor.capture());
-        assertThat(captor.getValue().getVersion()).isEqualTo(1);
+        verify(syllabusRepository, never()).clearActiveForMapping(any());
     }
 
     @Test
-    void shouldThrowExceptionWhenCreatingSyllabusWithNonExistentCourse() {
+    void shouldAssignNextVersionAfterExistingOnes() {
         SyllabusRequest request = new SyllabusRequest(
-            999L, 1, 30, 15, 10,
-            "Objectives", "Content", "Text", "Ref", "CO", true
+            1L, "Objectives", "Content", "Text", "Ref", "CO", false
         );
 
-        when(subjectRepository.findById(999L)).thenReturn(Optional.empty());
+        when(curriculumSemesterCourseRepository.findById(1L)).thenReturn(Optional.of(testMapping));
+        when(syllabusRepository.findMaxVersion(1L)).thenReturn(3);
+        when(syllabusRepository.save(any(Syllabus.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ArgumentCaptor<Syllabus> captor = ArgumentCaptor.forClass(Syllabus.class);
+        syllabusService.create(request);
+        verify(syllabusRepository).save(captor.capture());
+
+        assertThat(captor.getValue().getVersion()).isEqualTo(4);
+    }
+
+    @Test
+    void shouldClearOtherActiveVersionsWhenCreatingAnActiveOne() {
+        SyllabusRequest request = new SyllabusRequest(
+            1L, "Objectives", "Content", "Text", "Ref", "CO", true
+        );
+
+        when(curriculumSemesterCourseRepository.findById(1L)).thenReturn(Optional.of(testMapping));
+        when(syllabusRepository.findMaxVersion(1L)).thenReturn(1);
+        when(syllabusRepository.save(any(Syllabus.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        syllabusService.create(request);
+
+        verify(syllabusRepository).clearActiveForMapping(1L);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenCreatingSyllabusWithNonExistentMapping() {
+        SyllabusRequest request = new SyllabusRequest(
+            999L, "Objectives", "Content", "Text", "Ref", "CO", true
+        );
+
+        when(curriculumSemesterCourseRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> syllabusService.create(request))
             .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Subject not found with id: 999");
+            .hasMessage("Curriculum mapping not found with id: 999");
 
         verify(syllabusRepository, never()).save(any(Syllabus.class));
     }
 
     @Test
     void shouldFindAllSyllabi() {
-        Syllabus syllabus1 = createSyllabus(1L, testCourse, 1, true);
-        Syllabus syllabus2 = createSyllabus(2L, testCourse, 2, false);
+        Syllabus syllabus1 = createSyllabus(1L, testMapping, 1, true);
+        Syllabus syllabus2 = createSyllabus(2L, testMapping, 2, false);
 
         when(syllabusRepository.findAll()).thenReturn(List.of(syllabus1, syllabus2));
 
@@ -103,7 +149,7 @@ class SyllabusServiceTest {
 
     @Test
     void shouldFindSyllabusById() {
-        Syllabus syllabus = createSyllabus(1L, testCourse, 1, true);
+        Syllabus syllabus = createSyllabus(1L, testMapping, 1, true);
 
         when(syllabusRepository.findById(1L)).thenReturn(Optional.of(syllabus));
 
@@ -123,11 +169,10 @@ class SyllabusServiceTest {
     }
 
     @Test
-    void shouldFindSyllabusByCourseId() {
-        Syllabus syllabus = createSyllabus(1L, testCourse, 1, true);
+    void shouldFindSyllabusBySubjectId() {
+        Syllabus syllabus = createSyllabus(1L, testMapping, 1, true);
 
-        when(subjectRepository.existsById(1L)).thenReturn(true);
-        when(syllabusRepository.findBySubjectId(1L)).thenReturn(List.of(syllabus));
+        when(syllabusRepository.findByCurriculumSemesterCourse_Subject_Id(1L)).thenReturn(List.of(syllabus));
 
         List<SyllabusResponse> responses = syllabusService.findBySubjectId(1L);
 
@@ -136,10 +181,11 @@ class SyllabusServiceTest {
     }
 
     @Test
-    void shouldFindActiveSyllabusByCourseId() {
-        Syllabus syllabus = createSyllabus(1L, testCourse, 1, true);
+    void shouldFindActiveSyllabusBySubjectId() {
+        Syllabus syllabus = createSyllabus(1L, testMapping, 1, true);
 
-        when(syllabusRepository.findBySubjectIdAndIsActiveTrue(1L)).thenReturn(Optional.of(syllabus));
+        when(syllabusRepository.findByCurriculumSemesterCourse_Subject_IdAndIsActiveTrue(1L))
+            .thenReturn(Optional.of(syllabus));
 
         SyllabusResponse response = syllabusService.findActiveBySubjectId(1L);
 
@@ -149,7 +195,8 @@ class SyllabusServiceTest {
 
     @Test
     void shouldThrowExceptionWhenNoActiveSyllabusFound() {
-        when(syllabusRepository.findBySubjectIdAndIsActiveTrue(1L)).thenReturn(Optional.empty());
+        when(syllabusRepository.findByCurriculumSemesterCourse_Subject_IdAndIsActiveTrue(1L))
+            .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> syllabusService.findActiveBySubjectId(1L))
             .isInstanceOf(ResourceNotFoundException.class)
@@ -157,66 +204,66 @@ class SyllabusServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenFindByCourseIdWithNonExistentCourse() {
-        when(subjectRepository.existsById(999L)).thenReturn(false);
+    void shouldActivateAndClearOtherActiveVersionsForSameMapping() {
+        Syllabus existing = createSyllabus(1L, testMapping, 2, false);
 
-        assertThatThrownBy(() -> syllabusService.findBySubjectId(999L))
-            .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Subject not found with id: 999");
+        when(syllabusRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(syllabusRepository.save(any(Syllabus.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SyllabusResponse response = syllabusService.setActive(1L, new SyllabusActivationRequest(true));
+
+        assertThat(response.isActive()).isTrue();
+        verify(syllabusRepository).clearActiveForMapping(testMapping.getId());
     }
 
     @Test
-    void shouldUpdateSyllabus() {
-        Syllabus existingSyllabus = createSyllabus(1L, testCourse, 1, true);
+    void shouldDeactivateWithoutClearingOthers() {
+        Syllabus existing = createSyllabus(1L, testMapping, 2, true);
 
-        SyllabusRequest updateRequest = new SyllabusRequest(
-            1L, 2, 40, 20, 15,
-            "Updated objectives", "Updated content",
-            "Updated text books", "Updated ref books",
-            "Updated outcomes", true
-        );
+        when(syllabusRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(syllabusRepository.save(any(Syllabus.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Syllabus updatedSyllabus = createSyllabus(1L, testCourse, 2, true);
+        SyllabusResponse response = syllabusService.setActive(1L, new SyllabusActivationRequest(false));
 
-        when(syllabusRepository.findById(1L)).thenReturn(Optional.of(existingSyllabus));
-        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
-        when(syllabusRepository.save(any(Syllabus.class))).thenReturn(updatedSyllabus);
-
-        SyllabusResponse response = syllabusService.update(1L, updateRequest);
-
-        assertThat(response.version()).isEqualTo(2);
-        verify(syllabusRepository).save(any(Syllabus.class));
+        assertThat(response.isActive()).isFalse();
+        verify(syllabusRepository, never()).clearActiveForMapping(any());
     }
 
     @Test
-    void shouldDeleteSyllabus() {
-        when(syllabusRepository.existsById(1L)).thenReturn(true);
+    void shouldThrowExceptionWhenActivatingNonExistentSyllabus() {
+        when(syllabusRepository.findById(999L)).thenReturn(Optional.empty());
 
-        syllabusService.delete(1L);
-
-        verify(syllabusRepository).deleteById(1L);
-    }
-
-    @Test
-    void shouldThrowExceptionWhenDeletingNonExistentSyllabus() {
-        when(syllabusRepository.existsById(999L)).thenReturn(false);
-
-        assertThatThrownBy(() -> syllabusService.delete(999L))
+        assertThatThrownBy(() -> syllabusService.setActive(999L, new SyllabusActivationRequest(true)))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessage("Syllabus not found with id: 999");
-
-        verify(syllabusRepository, never()).deleteById(any());
     }
 
-    private Subject createSubject(Long id, String name, String code) {
-        Subject subject = new Subject(name, code, 3, 2, 1, null, 1);
-        subject.setId(id);
-        return subject;
+    private CurriculumSemesterCourse createMapping(Long id, Integer termNumber, String subjectName, String subjectCode,
+                                                     Integer theoryHours, Integer labHours, Integer clinicalHours) {
+        Program program = new Program("BSc Nursing", "BSCN", 4, ProgramStatus.ACTIVE);
+        program.setId(1L);
+        Course course = new Course("BSc Nursing", "BSCN-C", null, program);
+        course.setId(1L);
+        AcademicYear ay = new AcademicYear("2026-2027", LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31), false);
+        ay.setId(1L);
+        CurriculumVersion cv = new CurriculumVersion(program, course, "BSCN-2026", ay, true);
+        cv.setId(1L);
+        Subject subject = new Subject(subjectName, subjectCode, 4, 3, 1, null, 1);
+        subject.setId(1L);
+
+        CurriculumSemesterCourse mapping = new CurriculumSemesterCourse(cv, termNumber, subject, 1);
+        mapping.setId(id);
+        mapping.setTheoryHours(theoryHours);
+        mapping.setLabHours(labHours);
+        mapping.setClinicalHours(clinicalHours);
+        mapping.setSubjectType(SubjectType.CORE);
+        mapping.setIsElective(false);
+        return mapping;
     }
 
-    private Syllabus createSyllabus(Long id, Subject subject, Integer version, Boolean isActive) {
+    private Syllabus createSyllabus(Long id, CurriculumSemesterCourse mapping, Integer version, Boolean isActive) {
         Syllabus syllabus = new Syllabus(
-            subject, version, 30, 15, 10,
+            mapping, version,
             "Objectives", "Content", "Text books",
             "Reference books", "Course outcomes", isActive
         );
