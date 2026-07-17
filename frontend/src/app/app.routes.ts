@@ -540,6 +540,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'student-promotions',
+    canActivate: withPermission('STUDENT_PROMOTION_VIEW', 'STUDENT_PROMOTION_MANAGE'),
+    loadComponent: () =>
+      import('./features/student-promotion/student-promotion.component').then(
+        (m) => m.StudentPromotionComponent
+      ),
+  },
+  {
     path: 'syllabi',
     canActivate: withPermission('SYLLABUS_VIEW', 'SYLLABUS_MANAGE'),
     loadComponent: () =>

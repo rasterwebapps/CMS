@@ -150,10 +150,14 @@ public class TermInstanceService {
 
         TermInstance saved = termInstanceRepository.save(instance);
         if (request.status() != null && request.status() == TermInstanceStatus.OPEN) {
-            studentTermEnrollmentService.generateEnrollmentsForTermInstance(id);
+            // Course offerings are curriculum/cohort-driven, not per-student, so they can be
+            // generated as soon as the term opens. Student enrollments, course registrations, and
+            // fee demands are NOT generated here anymore — blindly advancing every active student
+            // by calendar math had no concept of arrears/attendance/exam eligibility. That's now
+            // owned by StudentPromotionService, which creates next-term enrollments (and can
+            // trigger registration/fee-demand generation) only for students an admin has actually
+            // reviewed and promoted.
             courseOfferingService.generateOfferingsForTermInstance(id);
-            courseRegistrationService.generateRegistrationsForTermInstance(id);
-            feeDemandService.generateDemandsForTermInstance(id);
         }
         if (request.status() != null && request.status() == TermInstanceStatus.LOCKED) {
             courseOfferingService.deactivateAllOfferingsForTermInstance(id);

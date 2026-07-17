@@ -15,4 +15,6 @@ public interface StudentTermEnrollmentRepository extends JpaRepository<StudentTe
     List<StudentTermEnrollment> findByTermInstanceIdAndCohortId(Long termInstanceId, Long cohortId);
     Optional<StudentTermEnrollment> findByStudentIdAndTermInstanceId(Long studentId, Long termInstanceId);
     List<StudentTermEnrollment> findByTermInstanceIdAndSemesterNumber(Long termInstanceId, Integer termNumber);
+
+    List<StudentTermEnrollment> findByCohortIdAndStatus(Long cohortId, EnrollmentStatus status);
 }

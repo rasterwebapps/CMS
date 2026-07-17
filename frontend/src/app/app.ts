@@ -196,6 +196,7 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Attendance',          icon: 'fact_check',         route: '/attendance',          permissions: ['ATTENDANCE_VIEW', 'ATTENDANCE_CREATE', 'ATTENDANCE_EDIT', 'ATTENDANCE_DELETE', 'ATTENDANCE_EXPORT', 'ATTENDANCE_MANAGE'] },
         { label: 'Manage Exams',        icon: 'quiz',               route: '/examinations',        permissions: ['EXAMINATION_VIEW', 'EXAMINATION_CREATE', 'EXAMINATION_EDIT', 'EXAMINATION_DELETE', 'EXAMINATION_MANAGE'] },
         { label: 'Exam Results',        icon: 'grade',              route: '/exam-results',        permissions: ['EXAM_RESULT_VIEW', 'EXAM_RESULT_CREATE', 'EXAM_RESULT_EDIT', 'EXAM_RESULT_DELETE', 'EXAM_RESULT_EXPORT', 'EXAM_RESULT_MANAGE'] },
+        { label: 'Student Promotion',   icon: 'move_up',            route: '/student-promotions',  permissions: ['STUDENT_PROMOTION_VIEW', 'STUDENT_PROMOTION_MANAGE'] },
       ],
     },
     // 6. Library

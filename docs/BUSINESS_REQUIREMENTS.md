@@ -56,6 +56,8 @@
 - [BR-47: India Location & Country Master](#br-47-india-location--country-master)
 - [BR-48: JWT Revoked-Token Tracking (Logout Denylist)](#br-48-jwt-revoked-token-tracking-logout-denylist)
 - [BR-49: INC Nursing Curriculum Compliance — Per-Semester Hours, Electives, Attendance Thresholds & Batches](#br-49-inc-nursing-curriculum-compliance--per-semester-hours-electives-attendance-thresholds--batches)
+- [BR-52: Student Promotion / Progression](#br-52-student-promotion--progression)
+- [BR-53: Term Lifecycle Confirmation & Overdue Alerting](#br-53-term-lifecycle-confirmation--overdue-alerting)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -1411,6 +1413,9 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-07-17 | BR-53, BR-28 | **Term Lifecycle Confirmation & Overdue Alerting added:** advancing a term's status (`PLANNED→OPEN`/`OPEN→LOCKED`) now requires confirming a consequence dialog first. New daily `AcademicTermAlertService` job raises an in-app alert when a term is still `PLANNED` within 14 days of its start date, auto-resolving once the admin acts. First real slice of BR-28's notification-sending backend — new `notifications`/`notification_dismissals` tables (broadcast-style alerts, per-user dismissal), `GET /notifications/feed`/`POST /notifications/{id}/dismiss`, and the toolbar bell (previously a dead hardcoded badge) now wired to a real feed. New `academicTermAlerts` preference category, gated by `ACADEMIC_YEAR_MANAGE`. Migration V287. | — |
+| 2026-07-17 | BR-52 | **Student Promotion select-step simplified:** picking a cohort was previously followed by two full academic-year → term cascades (From and To), meaningless repeat clicking for the common case. New `GET /student-promotions/active-terms?cohortId=` auto-detects the term instance(s) a cohort currently has `ENROLLED` students in (usually exactly one) and `GET /student-promotions/suggested-next-term?fromTermInstanceId=` auto-suggests the destination — the cascade now only appears as a manual fallback (new cohort with no enrollment yet, no next term created, or opted into via "Choose different terms manually"). No schema change; new repository query methods only (`AcademicYearRepository.findByStartDateGreaterThanOrderByStartDateAsc`, `StudentTermEnrollmentRepository.findByCohortIdAndStatus`). | — |
+| 2026-07-16 | BR-52 | **Student Promotion / Progression added:** the first mechanism in the system for moving an existing student to the next academic year/term, following the real INC/Dr. MGR Medical University model (subject-wise arrears carried forward, cleared only by Final Year; max duration = double program length; per-subject attendance detention; mandatory preview before an irreversible bulk commit). Discovered and removed a pre-existing blind auto-advance (`TermInstanceService`'s `OPEN` transition previously called `generateEnrollmentsForTermInstance`/`generateRegistrationsForTermInstance`/`generateDemandsForTermInstance` unconditionally for every active student, with no eligibility check) — Promotion is now the sole owner of that rollover. `ExamResult` gains a persisted `outcome` (PASS/FAIL, external-marks-only for v1 — CIA marks don't exist yet). New `student_promotion_decisions` audit table; `STUDENT_PROMOTION_VIEW`/`MANAGE` permissions; new Academics nav screen. Migrations V284–V286. | — |
 | 2026-07-16 | BR-49 | **Curriculum Version's course scope is now mandatory, removing the program-wide pattern entirely:** `curriculum_versions.course_id` (added nullable in V264 to let one version apply program-wide, e.g. to a single-course program like plain BSc Nursing) is now `NOT NULL` — every curriculum version must be tied to one specific course, eliminating the ambiguity of "which curriculum applies to this cohort" that the program-wide/course-scoped fallback created. Existing NULL rows are backfilled to the program's lowest-id course (V282; all pre-existing data was test/dummy, confirmed safe). As a direct consequence, the row-level override on `curriculum_term_courses.course_id` (V278 — let one program-wide version carve out course-specific exceptions for individual subjects, e.g. MSc Nursing Adult vs Child sharing a version) became pure duplication of the parent version's course and was dropped (V282), along with the Curriculum Map screen's "Restrict to Course (optional)" per-subject UI. `CourseOfferingServiceImpl.resolveActiveCurriculumVersion` no longer has a program-wide fallback branch — it resolves a cohort's curriculum version by program+course only. The New/Edit Curriculum Version form's Course field is now required (previously optional with a "Program-wide" choice). | — |
 | 2026-07-16 | BR-49 | **Curriculum Version list screen rebuilt to the standard master-list pattern:** previously gated behind a mandatory program dropdown before showing anything, card-only, with an inline expand-under-card Clone form and no Delete at all. Now shows all versions across programs by default (Program is an optional filter, alongside a new Status filter), with dual card/table view (`cms-view-toggle`, matching Program/Course/Subject), server-side search/sort/pagination, and cards/table rows showing a term/subject content summary. Clone moved to a `cms-flyout-panel` (source-version summary + live name-uniqueness check + single confirm step) usable from either view; inline expand-under-card removed entirely. Added a Delete action, blocked with a tooltip when the version has course offerings against it (see the Clone Change Log row below for the underlying delete/usage-check endpoint). Controller `@PreAuthorize` also rewired from the blanket `CURRICULUM_MANAGE` to the granular `CURRICULUM_CREATE`/`CURRICULUM_EDIT`/`CURRICULUM_DELETE` permissions (already existed unused in the DB since V242; every role holding `CURRICULUM_MANAGE` already had all three via that migration's backfill, so no access changed). The standalone New/Edit Version form also gained the same real-time name-uniqueness check. | — |
 | 2026-07-16 | BR-49 | **Curriculum Version Clone now deep-copies content:** `POST /curriculum-versions/{id}/clone` previously created an empty version stub sharing only the program/course — every `curriculum_term_courses` row, elective group, and attendance threshold had to be rebuilt by hand after every clone, which defeated the point of "cloning" a version to iterate on it for a new academic year. `CurriculumVersionService.cloneCurriculumVersion` now copies all term/subject mappings, elective groups (copied first to build an old→new id map for remapping), and per-mapping attendance thresholds into the new version. Also added: paginated/searchable/sortable `GET /curriculum-versions/page` and a `name-exists` uniqueness endpoint (scoped per program+course), and a `DELETE /curriculum-versions/{id}` that blocks with 409 if course offerings reference the version. No schema change; existing tables only. | — |
@@ -1460,7 +1465,7 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 ## BR-28: Notification & Alert Preferences
 
-> **Status:** UI scaffold complete (localStorage only). Backend service and delivery pipeline pending.
+> **Status:** Preferences CRUD (`GET`/`PUT /notifications/preferences`) and in-app delivery are live for one category. [BR-53](#br-53-term-lifecycle-confirmation--overdue-alerting) shipped the first real notification-sending slice — `academicTermAlerts`, in-app only, via a real `notifications` feed/dismiss backend and a working toolbar bell. All other categories (`feeAlerts`, `admissionUpdates`, `examSchedule`, `attendanceAlerts`, `systemAnnouncements`, `documentReminders`/`profileReminders`) still have no sending trigger wired up, and the `EMAIL`/`BOTH` channels remain unimplemented for every category.
 
 ### Summary
 
@@ -2705,6 +2710,108 @@ None — no new endpoints, buttons, or role-gated behavior; every screen's exist
 ### Migration Notes
 
 None — presentation-layer only, no schema changes.
+
+---
+
+## BR-52: Student Promotion / Progression
+
+### Business Rule
+
+Prior to this BR, no code path existed to move an existing student from one academic year/term into the next — `AcademicYearService.create()` only created brand-new `Cohort`s for new admissions. A second discovery during implementation: `StudentTermEnrollmentServiceImpl.generateEnrollmentsForTermInstance()` (wired into `TermInstanceService.updateTermInstance()`'s transition to `OPEN`) already auto-advanced *every* active student the moment a term opened, computing year-of-study purely from calendar years-since-admission — with **zero regard for arrears, attendance, or exam eligibility**. That blind auto-advance (and its downstream course-registration/fee-demand generation) has been **removed** from the term-open transition; course offering generation is unaffected since it's curriculum-driven, not per-student. Student Promotion is now the sole path that creates the next term's `StudentTermEnrollment`, `CourseRegistration`, and `FeeDemand` rows.
+
+The feature follows the real **INC (Indian Nursing Council) / Dr. MGR Medical University** promotion model, verified via research against current regulations rather than assumed:
+
+- **Subject-wise arrears.** A student can be promoted to the next year while carrying a failed subject forward (`PROMOTED_WITH_ARREARS`). All arrears must be cleared before the student is allowed to enter the program's **Final Year term** — a hard, non-overridable block (`ARREARS_AT_FINAL_YEAR_GATE`).
+- **Max duration.** A student cannot be promoted/graduated past **double the program's normal duration** (e.g. 8 years for a 4-year B.Sc. Nursing) — a hard, non-overridable block (`MAX_DURATION_EXCEEDED`).
+- **Per-subject detention.** Low attendance (using the existing configurable `AttendanceThresholdService` thresholds — no hardcoded percentage) creates an arrear for that specific subject; it does not by itself force a whole-year repeat. A manual `DETAINED_REPEAT` override remains available for admin discretion (e.g. a max-duration breach, or a case-by-case decision).
+- **Pass/fail is external-marks-only for v1.** `ExamResult` gains a persisted `outcome` (`PASS`/`FAIL`), derived from `marksObtained >= 50%` of `Examination.maxMarks` once a result is `PUBLISHED`. INC's rule that internal and external marks must each be passed separately cannot be implemented yet — **Continuous/Internal Assessment (CIA) marks do not exist anywhere in this system.** This is a known, accepted v1 limitation, not an oversight; revisit once CIA marks are built.
+- **Mandatory preview before commit.** `POST /student-promotions/preview` is a read-only computation (per-student attendance, carried/new/total arrears, exam outcomes, recommended decision, block reasons) that must be reviewed before `POST /student-promotions/execute` — an irreversible bulk mutation on live student, enrollment, registration, and fee-demand records. `execute` always re-validates every submitted decision against a freshly recomputed preview server-side; it never trusts client-supplied eligibility.
+- **Cohort-driven term detection.** Picking a cohort is the only mandatory input for the common case — the screen auto-detects which term instance(s) that cohort currently has `ENROLLED` students in (`GET /student-promotions/active-terms?cohortId=`) and auto-suggests the chronologically next destination term (`GET /student-promotions/suggested-next-term?fromTermInstanceId=`), skipping the academic-year/term cascade entirely when there's exactly one active term (the normal case). The full manual cascade remains available as a fallback (a brand-new cohort with no enrollment yet, no next term created, or a non-standard rollover) — either auto-shown when nothing can be detected, or opted into via "Choose different terms manually".
+- **Cohort-level `GRADUATED` status stays manual** (explicit decision) — promotion only ever sets `Student.status = GRADUATED` for individual students at their program's final term with no arrears; it never touches `Cohort.status`.
+- **Max-duration breach is block-only.** No automatic `Student.status` change (e.g. `WITHDRAWN`/`EXPELLED`) is applied — that terminal outcome is a separate manual admin action outside this feature.
+
+### Decision Outcomes
+
+| Outcome | Effect |
+|---|---|
+| `PROMOTED` | No arrears. Old `StudentTermEnrollment` marked `COMPLETED`; a new one created for the destination term (`semesterNumber + 1`); `Student.semester` updated. |
+| `PROMOTED_WITH_ARREARS` | Same enrollment transition as `PROMOTED`, but the student carries one or more failed subjects forward. |
+| `DETAINED_REPEAT` | No new enrollment. The current `StudentTermEnrollment` stays `ENROLLED`; the student reappears unchanged in the next promotion cycle's preview. |
+| `GRADUATED` | Only legal at the program's final term with no arrears. Enrollment marked `COMPLETED`; `Student.status = GRADUATED`. No new enrollment created. |
+| `EXCLUDED` | Skipped entirely — no `StudentPromotionDecision` row is written, reported back for transparency. |
+
+Every non-`EXCLUDED` decision writes an audit row to `student_promotion_decisions` (student, cohort, from/to term instance, outcome, a snapshot of arrear subject IDs at decision time, decided-by, decided-at, remarks) — the system's first lifecycle-transition audit trail; `CohortStatus.GRADUATED` and `StudentStatus.GRADUATED` existed as enum values but were previously dead code with no real code path setting them.
+
+### Scope
+
+- `ExamResult.outcome` (new `ExamOutcome` enum column) — computed in `ExamResultService.create()`/`update()`.
+- `StudentPromotionDecision` (new entity/table) + `student_promotion_decision_arrears` (arrear-subject snapshot, `@ElementCollection`).
+- `StudentPromotionService`/`Impl` — `previewPromotion()`, `executePromotion()`, `getHistoryByCohort()`/`getHistoryByStudent()`.
+- `StudentPromotionController` — `GET /student-promotions/active-terms?cohortId=`, `GET /student-promotions/suggested-next-term?fromTermInstanceId=`, `POST /student-promotions/preview`, `POST /student-promotions/execute`, `GET /student-promotions/history?cohortId=|studentId=`.
+- `TermInstanceService.updateTermInstance()` — the `OPEN` transition no longer calls `generateEnrollmentsForTermInstance`/`generateRegistrationsForTermInstance`/`generateDemandsForTermInstance`; only `generateOfferingsForTermInstance` remains automatic.
+- Frontend: `features/student-promotion/` — a select → preview → result screen (cohort-driven term auto-detection with a manual cascade fallback, a per-student editable decision table, bulk execute with optional course-registration/fee-demand generation), added to the Academics nav group.
+
+### Permissions
+
+- `STUDENT_PROMOTION_VIEW` / `STUDENT_PROMOTION_MANAGE` — new, dedicated (per the operation-wise permission mapping rule), category `EXAMINATION`, auto-granted to existing `EXAM_RESULT_VIEW`/`EXAM_RESULT_MANAGE` holders respectively.
+
+### Migration Notes
+
+- V284 — adds `exam_results.outcome`; backfills existing `PUBLISHED` rows.
+- V285 — creates `student_promotion_decisions` + `student_promotion_decision_arrears`.
+- V286 — `STUDENT_PROMOTION_VIEW`/`MANAGE` permissions.
+
+### Explicitly Out of Scope
+
+- **Internal/Continuous Assessment (CIA) marks** and the INC rule requiring internal + external to each be passed separately — CIA doesn't exist in this system yet; promotion's pass/fail is external-marks-only for v1.
+- **Automatic `Cohort.status = GRADUATED`** — stays a manual, separate action.
+- **Automatic terminal student status on max-duration breach** — `execute` blocks the transition only; `WITHDRAWN`/`EXPELLED` is a manual follow-up action.
+
+---
+
+## BR-53: Term Lifecycle Confirmation & Overdue Alerting
+
+### Business Rule
+
+Found during a live debugging session: `2025-2026`'s term instances sat at `PLANNED` while `2026-2027`'s were already fully `LOCKED` — an admin never advanced/enrolled the earlier year on schedule, and nothing in the system surfaced that. Two changes close this gap, both scoped to the `TermInstance` lifecycle (`PLANNED → OPEN → LOCKED`, see `TermInstanceService.validateStatusTransition()` — one-directional, no skipping):
+
+1. **Consequence confirmation.** Advancing a term's status now requires confirming a dialog describing what that transition actually does, so an admin isn't guessing:
+   - `PLANNED → OPEN`: "will generate course offerings from the curriculum, making it available for course registration and fee collection."
+   - `OPEN → LOCKED`: "is permanent and cannot be undone. It deactivates all course offerings for this term. Make sure exam results are published and fee collection is finalized first."
+   Academic Year *creation* itself is not gated by a confirmation — nothing depends on it until a term inside it is advanced.
+2. **Overdue alerting.** A daily scheduled job (`AcademicTermAlertService`, cron `0 0 6 * * *`) raises an in-app notification when a `TermInstance` is still `PLANNED` within 14 days of its `startDate`. The alert auto-resolves once an admin advances that term past `PLANNED` — regardless of whether anyone dismissed it first.
+
+This is also the **first shipped slice of BR-28**'s notification-sending backend (pending since 2026-05-16) — see that section for how it fits into the broader category/preference system.
+
+### Notification Design
+
+- Notifications are **broadcast-style**, not per-user rows — `notifications` table holds one row per alert instance; visibility to a given caller is computed at read time from their own category preference plus (for `academicTermAlerts` specifically) whether they hold `ACADEMIC_YEAR_MANAGE`.
+- **Idempotent per source.** A partial unique index (`source_type, source_id, category_key WHERE resolved_at IS NULL`) guarantees at most one active alert per term, so the daily job never spams duplicates.
+- **Per-user dismissal**, not global — `notification_dismissals (notification_id, user_id)` — so each admin who sees a broadcast alert can independently dismiss their own copy of it without hiding it from others.
+- New category `academicTermAlerts` added to `NotificationPreferenceService.CATEGORY_DEFAULTS` (default: on) — respects the existing BR-28 opt-out mechanism.
+
+### Scope
+
+- `Notification` / `NotificationDismissal` (new entities) — `notifications`, `notification_dismissals` tables.
+- `AcademicTermAlertService` — daily `@Scheduled` job; raises/auto-resolves `academicTermAlerts` notifications for `PLANNED` terms starting within 14 days.
+- `NotificationService` — `getFeed()` (preference + permission + dismissal filtered), `dismiss()`.
+- `NotificationPreferenceController` (existing `/notifications` route) — new `GET /notifications/feed`, `POST /notifications/{id}/dismiss`, both self-service (`isAuthenticated()` only, same as the existing `/notifications/preferences` endpoints — no dedicated RBAC permission, per that existing precedent).
+- Frontend: the toolbar notification bell (`app.html`/`app.ts`) — previously a hardcoded `notificationCount = signal(0)` with no menu wired to it — now shows a real unread count and a dropdown feed with per-item dismiss.
+- `academic-year-form.component.ts`'s `advanceTermStatus()` — wrapped with the existing shared `ConfirmDialogComponent` (same pattern already used for delete confirmations across the app).
+
+### Permissions
+
+- No new permission — `academicTermAlerts` visibility reuses the existing `ACADEMIC_YEAR_MANAGE` permission that already gates the Academic Years screen; viewing/dismissing your own notification feed is self-service, matching the existing `/notifications/preferences` endpoints.
+
+### Migration Notes
+
+- V287 — creates `notifications` + `notification_dismissals`.
+
+### Explicitly Out of Scope
+
+- **Email/other delivery channels** for `academicTermAlerts` — in-app only for now; BR-28's `EMAIL`/`BOTH` channel option exists in the preference schema but nothing sends mail yet for any category.
+- **Role-filtered category visibility for the other BR-28 categories** (`feeAlerts`, `admissionUpdates`, etc.) — still unimplemented; this BR only wires up `academicTermAlerts` end-to-end.
+- **Real-time push** — the feed loads once on app init; no polling or websocket refresh.
 
 ---
 

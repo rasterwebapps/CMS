@@ -3,6 +3,7 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -376,10 +377,12 @@ class TermInstanceServiceTest {
         termInstanceService.updateTermInstance(1L, request);
 
         assertThat(ti.getStatus()).isEqualTo(TermInstanceStatus.OPEN);
-        verify(studentTermEnrollmentService).generateEnrollmentsForTermInstance(1L);
         verify(courseOfferingService).generateOfferingsForTermInstance(1L);
-        verify(courseRegistrationService).generateRegistrationsForTermInstance(1L);
-        verify(feeDemandService).generateDemandsForTermInstance(1L);
+        // Enrollment/registration/fee-demand generation moved to StudentPromotionService —
+        // opening a term no longer blindly advances every student by calendar math.
+        verify(studentTermEnrollmentService, never()).generateEnrollmentsForTermInstance(anyLong());
+        verify(courseRegistrationService, never()).generateRegistrationsForTermInstance(anyLong());
+        verify(feeDemandService, never()).generateDemandsForTermInstance(anyLong());
     }
 
     @Test

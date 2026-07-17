@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.cms.dto.ExamResultRequest;
 import com.cms.dto.ExamResultResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.enums.ExamOutcome;
 import com.cms.model.enums.ExamResultStatus;
 import com.cms.service.ExamResultService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -145,7 +146,7 @@ class ExamResultControllerTest {
 
         ExamResultResponse response = new ExamResultResponse(
             1L, 1L, "Midterm", 1L, "John Doe", "ROLL001",
-            new BigDecimal("90.00"), "A+", ExamResultStatus.PUBLISHED, Instant.now(), Instant.now()
+            new BigDecimal("90.00"), "A+", ExamResultStatus.PUBLISHED, ExamOutcome.PASS, Instant.now(), Instant.now()
         );
 
         when(examResultService.update(eq(1L), any(ExamResultRequest.class))).thenReturn(response);
@@ -173,7 +174,7 @@ class ExamResultControllerTest {
     private ExamResultResponse createExamResultResponse() {
         return new ExamResultResponse(
             1L, 1L, "Midterm", 1L, "John Doe", "ROLL001",
-            new BigDecimal("85.50"), "A", ExamResultStatus.PUBLISHED, Instant.now(), Instant.now()
+            new BigDecimal("85.50"), "A", ExamResultStatus.PUBLISHED, ExamOutcome.PASS, Instant.now(), Instant.now()
         );
     }
 }

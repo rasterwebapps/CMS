@@ -27,6 +27,7 @@ import com.cms.model.Subject;
 import com.cms.model.ExamResult;
 import com.cms.model.Examination;
 import com.cms.model.Student;
+import com.cms.model.enums.ExamOutcome;
 import com.cms.model.enums.ExamResultStatus;
 import com.cms.model.enums.ExamType;
 import com.cms.model.enums.StudentStatus;
@@ -75,6 +76,63 @@ class ExamResultServiceTest {
         ArgumentCaptor<ExamResult> captor = ArgumentCaptor.forClass(ExamResult.class);
         verify(examResultRepository).save(captor.capture());
         assertThat(captor.getValue().getGrade()).isEqualTo("A");
+    }
+
+    @Test
+    void shouldDeriveOutcomePassWhenMarksAtOrAboveHalfMaxMarks() {
+        Examination examination = createExamination(); // maxMarks = 100
+        Student student = createStudent();
+        ExamResultRequest request = new ExamResultRequest(
+            1L, 1L, new BigDecimal("50.00"), "C", ExamResultStatus.PUBLISHED
+        );
+
+        when(examinationRepository.findById(1L)).thenReturn(Optional.of(examination));
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(examResultRepository.save(any(ExamResult.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        examResultService.create(request);
+
+        ArgumentCaptor<ExamResult> captor = ArgumentCaptor.forClass(ExamResult.class);
+        verify(examResultRepository).save(captor.capture());
+        assertThat(captor.getValue().getOutcome()).isEqualTo(ExamOutcome.PASS);
+    }
+
+    @Test
+    void shouldDeriveOutcomeFailWhenMarksBelowHalfMaxMarks() {
+        Examination examination = createExamination(); // maxMarks = 100
+        Student student = createStudent();
+        ExamResultRequest request = new ExamResultRequest(
+            1L, 1L, new BigDecimal("49.99"), "F", ExamResultStatus.PUBLISHED
+        );
+
+        when(examinationRepository.findById(1L)).thenReturn(Optional.of(examination));
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(examResultRepository.save(any(ExamResult.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        examResultService.create(request);
+
+        ArgumentCaptor<ExamResult> captor = ArgumentCaptor.forClass(ExamResult.class);
+        verify(examResultRepository).save(captor.capture());
+        assertThat(captor.getValue().getOutcome()).isEqualTo(ExamOutcome.FAIL);
+    }
+
+    @Test
+    void shouldLeaveOutcomeNullWhenNotPublished() {
+        Examination examination = createExamination();
+        Student student = createStudent();
+        ExamResultRequest request = new ExamResultRequest(
+            1L, 1L, new BigDecimal("90.00"), "A", ExamResultStatus.PENDING
+        );
+
+        when(examinationRepository.findById(1L)).thenReturn(Optional.of(examination));
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(examResultRepository.save(any(ExamResult.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        examResultService.create(request);
+
+        ArgumentCaptor<ExamResult> captor = ArgumentCaptor.forClass(ExamResult.class);
+        verify(examResultRepository).save(captor.capture());
+        assertThat(captor.getValue().getOutcome()).isNull();
     }
 
     @Test

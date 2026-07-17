@@ -1,0 +1,260 @@
+<div class="sp-page">
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <div class="sp-hdr anim-rise">
+    <div class="sp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="sp-title">Student <em>Promotion</em></h1>
+      </div>
+      <p class="sp-sub">Review academic eligibility and promote a cohort to its next term</p>
+    </div>
+  </div>
+
+  <!-- ── Step 1: Select cohort + terms ─────────────────────────── -->
+  @if (step() === 'select') {
+    <div class="content-card sp-select-card anim-rise anim-rise--d1">
+
+      <div class="sp-field sp-field--cohort">
+        <label>Cohort</label>
+        <select class="mlp-filter-select" [(ngModel)]="selectedCohortId" (ngModelChange)="onCohortChange()"
+                aria-label="Cohort">
+          <option [ngValue]="null">Select cohort…</option>
+          @for (c of cohorts(); track c.id) {
+            <option [ngValue]="c.id">{{ c.displayName }} ({{ c.cohortCode }})</option>
+          }
+        </select>
+      </div>
+
+      @if (loadingActiveTerms()) {
+        <p class="sp-hint">Detecting this cohort's current term…</p>
+      }
+
+      <!-- Streamlined path: cohort has exactly one active term (auto-selected) or a short list to
+           pick from — no academic-year cascade needed. -->
+      @if (!showAdvanced() && activeTermOptions().length) {
+        @if (activeTermOptions().length > 1) {
+          <div class="sp-field">
+            <label>From — Term (multiple found for this cohort)</label>
+            <select class="mlp-filter-select" [ngModel]="selectedFromTermInstanceId"
+                    (ngModelChange)="selectFromTerm($event)" aria-label="From term">
+              <option [ngValue]="null">Select term…</option>
+              @for (t of activeTermOptions(); track t.termInstanceId) {
+                <option [ngValue]="t.termInstanceId">{{ t.termLabel }} — {{ t.enrolledCount }} student(s)</option>
+              }
+            </select>
+          </div>
+        } @else if (selectedFromTermInstanceId) {
+          <p class="sp-hint">
+            <strong>{{ activeTermOptions()[0].termLabel }}</strong> — {{ activeTermOptions()[0].enrolledCount }} student(s) currently enrolled.
+            @if (suggestedToTerm(); as toTerm) {
+              Promoting to <strong>{{ toTerm.termLabel }}</strong>.
+            }
+          </p>
+        }
+
+        <button class="btn-toolbar sp-advanced-toggle" type="button" (click)="toggleAdvanced()">
+          Choose different terms manually
+        </button>
+      }
+
+      <!-- Fallback: full manual academic-year/term cascade — shown automatically when nothing
+           can be auto-detected (no active enrollment for this cohort, or no next term exists
+           yet), or when the admin opts in via "Choose different terms manually". -->
+      @if (showAdvanced()) {
+        <div class="sp-select-grid">
+          <div class="sp-field">
+            <label>From — Academic Year</label>
+            <select class="mlp-filter-select" [(ngModel)]="selectedFromAcademicYearId"
+                    (ngModelChange)="onFromAcademicYearChange()" aria-label="From academic year">
+              <option [ngValue]="null">Select academic year…</option>
+              @for (y of academicYears(); track y.id) {
+                <option [ngValue]="y.id">{{ y.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="sp-field">
+            <label>From — Term</label>
+            <select class="mlp-filter-select" [(ngModel)]="selectedFromTermInstanceId"
+                    (ngModelChange)="onFromTermChange()" [disabled]="!fromTermInstances().length"
+                    aria-label="From term">
+              <option [ngValue]="null">Select term…</option>
+              @for (t of fromTermInstances(); track t.id) {
+                <option [ngValue]="t.id">{{ t.termType }} ({{ t.status }})</option>
+              }
+            </select>
+          </div>
+
+          <div class="sp-field">
+            <label>To — Academic Year</label>
+            <select class="mlp-filter-select" [(ngModel)]="selectedToAcademicYearId"
+                    (ngModelChange)="onToAcademicYearChange()" aria-label="To academic year">
+              <option [ngValue]="null">Select academic year…</option>
+              @for (y of academicYears(); track y.id) {
+                <option [ngValue]="y.id">{{ y.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="sp-field">
+            <label>To — Term</label>
+            <select class="mlp-filter-select" [(ngModel)]="selectedToTermInstanceId"
+                    [disabled]="!toTermInstances().length" aria-label="To term">
+              <option [ngValue]="null">Select term…</option>
+              @for (t of toTermInstances(); track t.id) {
+                <option [ngValue]="t.id">{{ t.termType }} ({{ t.status }})</option>
+              }
+            </select>
+          </div>
+        </div>
+      }
+
+      <div class="sp-select-actions">
+        <button class="btn-primary" [disabled]="!readyForPreview() || loadingPreview()" (click)="loadPreview()">
+          @if (loadingPreview()) { Loading… } @else { Review Eligibility }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ── Step 2: Preview + decide ──────────────────────────────── -->
+  @if (step() === 'preview' && preview(); as p) {
+    <div class="sp-preview-hdr anim-rise">
+      <div class="sp-preview-summary">
+        <strong>{{ p.cohortCode }}</strong>
+        <span class="sp-preview-arrow">{{ p.fromTermLabel }} → {{ p.toTermLabel }}</span>
+      </div>
+      <button class="btn-toolbar" type="button" (click)="backToSelect()">Change Selection</button>
+    </div>
+
+    <div class="content-card sp-table-card">
+      @if (!rows().length) {
+        <cms-empty-state icon="groups" title="No enrolled students"
+          subtitle="There are no ENROLLED students for this cohort/term." />
+      } @else {
+        <div class="table-wrapper">
+          <table mat-table [dataSource]="rows()" class="modern-table">
+
+            <ng-container matColumnDef="student">
+              <th mat-header-cell *matHeaderCellDef>Student</th>
+              <td mat-cell *matCellDef="let row">
+                <div class="student-info">
+                  <span class="cell-name">{{ row.preview.studentName }}</span>
+                  <span class="cell-sub">{{ row.preview.rollNumber }}</span>
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="attendance">
+              <th mat-header-cell *matHeaderCellDef>Attendance</th>
+              <td mat-cell *matCellDef="let row">
+                @for (a of row.preview.subjectAttendance; track a.subjectId + a.type) {
+                  <div class="sp-attendance-line" [class.sp-attendance-line--low]="a.lowAttendance">
+                    {{ a.subjectCode }} ({{ a.type }}): {{ a.attendancePercentage }}%
+                  </div>
+                }
+                @if (!row.preview.subjectAttendance.length) { <span class="cell-sub">—</span> }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="arrears">
+              <th mat-header-cell *matHeaderCellDef>Arrears</th>
+              <td mat-cell *matCellDef="let row">
+                @if (row.preview.totalArrearSubjects.length) {
+                  @for (s of row.preview.totalArrearSubjects; track s.subjectId) {
+                    <span class="sp-chip sp-chip--arrear">{{ s.subjectCode || ('#' + s.subjectId) }}</span>
+                  }
+                } @else {
+                  <span class="sp-chip sp-chip--clear">Clear</span>
+                }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="block">
+              <th mat-header-cell *matHeaderCellDef>Blocked</th>
+              <td mat-cell *matCellDef="let row">
+                @if (isBlocked(row)) {
+                  @for (reason of row.preview.blockReasons; track reason) {
+                    <div class="sp-block-reason" [matTooltip]="blockLabel(reason)">{{ blockLabel(reason) }}</div>
+                  }
+                } @else {
+                  <span class="cell-sub">—</span>
+                }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="outcome">
+              <th mat-header-cell *matHeaderCellDef>Decision</th>
+              <td mat-cell *matCellDef="let row">
+                <select class="mlp-filter-select" [(ngModel)]="row.outcome" aria-label="Promotion decision">
+                  @for (o of outcomeOptionsFor(row); track o) {
+                    <option [ngValue]="o">{{ outcomeLabels[o] }}</option>
+                  }
+                </select>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="remarks">
+              <th mat-header-cell *matHeaderCellDef>Remarks</th>
+              <td mat-cell *matCellDef="let row">
+                <input class="sp-remarks-input" [(ngModel)]="row.remarks" placeholder="Optional" aria-label="Remarks" />
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+          </table>
+        </div>
+      }
+    </div>
+
+    <div class="sp-execute-bar anim-rise">
+      <label class="sp-checkbox">
+        <input type="checkbox" [(ngModel)]="generateCourseRegistrations" />
+        Generate course registrations for promoted students
+      </label>
+      <label class="sp-checkbox">
+        <input type="checkbox" [(ngModel)]="generateFeeDemands" />
+        Generate fee demands for promoted students
+      </label>
+      @if (permissions.has('STUDENT_PROMOTION_MANAGE')) {
+        <button class="btn-primary" [disabled]="executing() || !rows().length" (click)="executeAll()">
+          @if (executing()) { Executing… } @else { Execute Promotion }
+        </button>
+      }
+    </div>
+  }
+
+  <!-- ── Step 3: Result ────────────────────────────────────────── -->
+  @if (step() === 'result' && executeResult(); as r) {
+    <div class="content-card sp-result-card anim-rise">
+      <h2 class="sp-result-title">Promotion Complete</h2>
+      <div class="sp-result-grid">
+        <div class="sp-result-stat"><span class="sp-result-num">{{ r.promotedCount }}</span><span>Promoted</span></div>
+        <div class="sp-result-stat"><span class="sp-result-num">{{ r.promotedWithArrearsCount }}</span><span>With Arrears</span></div>
+        <div class="sp-result-stat"><span class="sp-result-num">{{ r.detainedCount }}</span><span>Detained</span></div>
+        <div class="sp-result-stat"><span class="sp-result-num">{{ r.graduatedCount }}</span><span>Graduated</span></div>
+        <div class="sp-result-stat"><span class="sp-result-num">{{ r.excludedCount }}</span><span>Excluded</span></div>
+      </div>
+
+      @if (r.courseRegistrationsGenerated != null) {
+        <p class="sp-result-note">Course registrations generated: {{ r.courseRegistrationsGenerated }}</p>
+      }
+      @if (r.feeDemandsGenerated != null) {
+        <p class="sp-result-note">Fee demands generated: {{ r.feeDemandsGenerated }}</p>
+      }
+
+      @if (r.rejectedDecisions.length) {
+        <div class="sp-rejected">
+          <h3>Rejected Decisions</h3>
+          @for (rej of r.rejectedDecisions; track rej.studentId) {
+            <div class="sp-rejected-row">Student #{{ rej.studentId }}: {{ rej.reason }}</div>
+          }
+        </div>
+      }
+
+      <button class="btn-primary" type="button" (click)="startOver()">Start New Promotion</button>
+    </div>
+  }
+
+</div>

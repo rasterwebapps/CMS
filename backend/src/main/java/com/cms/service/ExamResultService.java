@@ -5,12 +5,16 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+
 import com.cms.dto.ExamResultRequest;
 import com.cms.dto.ExamResultResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.ExamResult;
 import com.cms.model.Examination;
 import com.cms.model.Student;
+import com.cms.model.enums.ExamOutcome;
+import com.cms.model.enums.ExamResultStatus;
 import com.cms.repository.ExamResultRepository;
 import com.cms.repository.ExaminationRepository;
 import com.cms.repository.StudentRepository;
@@ -40,6 +44,7 @@ public class ExamResultService {
         ExamResult examResult = new ExamResult(
             examination, student, request.marksObtained(), request.grade(), request.status()
         );
+        examResult.setOutcome(deriveOutcome(examination, request.marksObtained(), request.status()));
         ExamResult saved = examResultRepository.save(examResult);
         return toResponse(saved);
     }
@@ -71,8 +76,24 @@ public class ExamResultService {
         examResult.setMarksObtained(request.marksObtained());
         examResult.setGrade(request.grade());
         examResult.setStatus(request.status());
+        examResult.setOutcome(deriveOutcome(examination, request.marksObtained(), request.status()));
         ExamResult updated = examResultRepository.save(examResult);
         return toResponse(updated);
+    }
+
+    /**
+     * PASS/FAIL, derived from marksObtained vs. 50% of the examination's maxMarks, only once a
+     * result is PUBLISHED — pending/withheld results don't count toward Student Promotion arrear
+     * detection. External/university marks only for v1; internal/CIA marks don't exist yet.
+     */
+    private ExamOutcome deriveOutcome(Examination examination, BigDecimal marksObtained, ExamResultStatus status) {
+        if (status != ExamResultStatus.PUBLISHED || marksObtained == null || examination.getMaxMarks() == null) {
+            return null;
+        }
+        BigDecimal maxMarks = BigDecimal.valueOf(examination.getMaxMarks());
+        boolean passed = marksObtained.multiply(BigDecimal.valueOf(100))
+            .compareTo(maxMarks.multiply(BigDecimal.valueOf(50))) >= 0;
+        return passed ? ExamOutcome.PASS : ExamOutcome.FAIL;
     }
 
     @Transactional
@@ -94,6 +115,7 @@ public class ExamResultService {
             examResult.getMarksObtained(),
             examResult.getGrade(),
             examResult.getStatus(),
+            examResult.getOutcome(),
             examResult.getCreatedAt(),
             examResult.getUpdatedAt()
         );

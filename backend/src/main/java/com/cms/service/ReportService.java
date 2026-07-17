@@ -81,6 +81,7 @@ public class ReportService {
                 er.getMarksObtained(),
                 er.getGrade(),
                 er.getStatus(),
+                er.getOutcome(),
                 er.getCreatedAt(),
                 er.getUpdatedAt()
             )).toList();

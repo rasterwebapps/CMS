@@ -81,6 +81,12 @@ export class AcademicYearService {
     });
   }
 
+  /** All cohorts regardless of admission year — used by screens that operate on a cohort's
+   *  current progression rather than its admission batch (e.g. Student Promotion). */
+  getAllCohorts(): Observable<CohortSummary[]> {
+    return this.http.get<CohortSummary[]>(`${environment.apiUrl}/cohorts`);
+  }
+
   initializeCohorts(academicYearId: number): Observable<CohortSummary[]> {
     return this.http.post<CohortSummary[]>(`${environment.apiUrl}/cohorts/initialize`, null, {
       params: { academicYearId: academicYearId.toString() },

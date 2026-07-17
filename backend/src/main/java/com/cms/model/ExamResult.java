@@ -7,6 +7,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.cms.model.enums.ExamOutcome;
 import com.cms.model.enums.ExamResultStatus;
 
 import jakarta.persistence.Column;
@@ -47,6 +48,10 @@ public class ExamResult {
     @Enumerated(EnumType.STRING)
     private ExamResultStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private ExamOutcome outcome;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -78,6 +83,8 @@ public class ExamResult {
     public void setGrade(String grade) { this.grade = grade; }
     public ExamResultStatus getStatus() { return status; }
     public void setStatus(ExamResultStatus status) { this.status = status; }
+    public ExamOutcome getOutcome() { return outcome; }
+    public void setOutcome(ExamOutcome outcome) { this.outcome = outcome; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

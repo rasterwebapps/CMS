@@ -1,6 +1,7 @@
 package com.cms.repository;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,6 +25,9 @@ public interface AcademicYearRepository extends JpaRepository<AcademicYear, Long
     boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
 
     Optional<AcademicYear> findByIsCurrentTrue();
+
+    /** Used to resolve "the next academic year" when suggesting a promotion destination term. */
+    List<AcademicYear> findByStartDateGreaterThanOrderByStartDateAsc(LocalDate startDate);
 
     @Modifying
     @Query("UPDATE AcademicYear a SET a.isCurrent = false WHERE a.isCurrent = true")
