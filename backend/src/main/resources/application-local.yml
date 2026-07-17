@@ -20,3 +20,26 @@ spring:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8280/realms/cms}
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8280/realms/cms/protocol/openid-connect/certs}
+
+# Keycloak has no fixed KC_HOSTNAME locally, so the `iss` claim on issued tokens
+# matches whatever Host header the browser used to reach it — localhost for the
+# dev machine itself, its LAN IP for anyone else on the network. Both must be
+# accepted or LAN clients get a 401 on every request despite a valid token.
+keycloak:
+  allowed-issuers: ${KEYCLOAK_ALLOWED_ISSUERS:http://localhost:8280/realms/cms,http://172.17.3.133:8280/realms/cms}
+
+# ng serve now runs over HTTPS (see frontend/angular.json). A browser on a
+# secure page silently upgrades (and blocks if it fails) any http:// fetch to
+# the backend, so the backend needs a matching local cert or every API call
+# from the LAN-accessible frontend fails as "mixed content"/CORS.
+# Generate this file yourself (gitignored, not committed) with:
+#   keytool -genkeypair -alias cms-local -keyalg RSA -keysize 2048 -validity 3650 \
+#     -storetype PKCS12 -keystore backend/local-dev.p12 -storepass changeit \
+#     -dname "CN=localhost" -ext "SAN=dns:localhost,ip:127.0.0.1,ip:172.17.3.133"
+server:
+  ssl:
+    enabled: ${SERVER_SSL_ENABLED:true}
+    key-store: ${SERVER_SSL_KEY_STORE:file:local-dev.p12}
+    key-store-password: ${SERVER_SSL_KEY_STORE_PASSWORD:changeit}
+    key-store-type: PKCS12
+    key-alias: cms-local

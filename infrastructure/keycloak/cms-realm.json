@@ -11,6 +11,10 @@
       "redirectUris": [
         "http://localhost:4200/*",
         "http://localhost:4300/*",
+        "https://localhost:4200/*",
+        "https://localhost:4300/*",
+        "https://172.17.3.133:4200/*",
+        "https://172.17.3.133:4300/*",
         "https://172.17.1.243/*",
         "https://dev.raster.in:212/*",
         "https://122.165.219.66:212/*",
@@ -23,6 +27,10 @@
       "webOrigins": [
         "http://localhost:4200",
         "http://localhost:4300",
+        "https://localhost:4200",
+        "https://localhost:4300",
+        "https://172.17.3.133:4200",
+        "https://172.17.3.133:4300",
         "https://172.17.1.243",
         "https://dev.raster.in:212",
         "https://122.165.219.66:212",
