@@ -31,6 +31,7 @@ public class NotificationPreferenceService {
         CATEGORY_DEFAULTS.put("feeAlerts",           true);
         CATEGORY_DEFAULTS.put("examSchedule",        true);
         CATEGORY_DEFAULTS.put("attendanceAlerts",    true);
+        CATEGORY_DEFAULTS.put("academicTermAlerts",  true);
     }
 
     private final UserNotificationPreferenceRepository preferenceRepository;

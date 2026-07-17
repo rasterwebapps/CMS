@@ -958,6 +958,86 @@
   }
 }
 
+// ── Notification menu panel (BR-53) ────────────────────────────────────────────
+::ng-deep .notification-menu .mat-mdc-menu-panel {
+  min-width: 320px !important;
+  max-width: 380px !important;
+  border-radius: var(--cms-radius-xl) !important;
+  overflow: hidden;
+  box-shadow: var(--cms-shadow-xl) !important;
+  border: 1px solid var(--cms-line) !important;
+}
+
+.notification-menu-header {
+  padding:     14px 16px 10px;
+  font-size:   0.8rem;
+  font-weight: 700;
+  color:       var(--cms-text-primary);
+  cursor:      default;
+  user-select: none;
+}
+
+.notification-item {
+  position:      relative;
+  display:       flex;
+  flex-direction: column;
+  gap:           2px;
+  padding:       10px 40px 10px 16px;
+  cursor:        default;
+  border-bottom: 1px solid var(--cms-line);
+
+  &:hover {
+    background: var(--cms-bg-surface-2);
+  }
+}
+
+.notification-item-title {
+  font-size:   0.825rem;
+  font-weight: 600;
+  color:       var(--cms-primary);
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}
+
+.notification-item-message {
+  margin:      0;
+  font-size:   0.775rem;
+  color:       var(--cms-text-muted);
+  line-height: 1.4;
+}
+
+.notification-item-dismiss {
+  position:        absolute;
+  top:             6px;
+  right:           6px;
+  width:           24px;
+  height:          24px;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  border:          none;
+  background:      transparent;
+  border-radius:   50%;
+  color:           var(--cms-text-muted);
+  cursor:          pointer;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &:hover {
+    background: var(--cms-bg-surface-2);
+    color:      var(--cms-danger);
+  }
+}
+
+.notification-empty {
+  padding:    18px 16px;
+  margin:     0;
+  font-size:  0.8rem;
+  color:      var(--cms-text-muted);
+  text-align: center;
+}
+
 .toolbar-action-btn {
   width: 38px !important;
   height: 38px !important;

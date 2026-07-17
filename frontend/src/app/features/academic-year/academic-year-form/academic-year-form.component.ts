@@ -9,6 +9,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, map, Observable, of, switchMap } from 'rxjs';
 import { AcademicYearService } from '../academic-year.service';
@@ -42,12 +43,13 @@ import { ACADEMIC_YEAR_FORM_TOUR } from '../../../shared/tour/tours/academic-yea
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-academic-year-form',
   standalone: true,
   imports: [
-    RouterLink, ReactiveFormsModule,
+    RouterLink, ReactiveFormsModule, MatDialogModule,
     CmsTourButtonComponent, CmsTipsCardComponent, AppDatePipe,
   ],
   templateUrl: './academic-year-form.component.html',
@@ -65,6 +67,7 @@ export class AcademicYearFormComponent implements OnInit {
   private readonly destroyRef          = inject(DestroyRef);
   private readonly http                = inject(HttpClient);
   private readonly permissionService   = inject(PermissionService);
+  private readonly dialog              = inject(MatDialog);
 
   protected readonly loading    = signal(false);
   protected readonly saving     = signal(false);
@@ -373,13 +376,41 @@ export class AcademicYearFormComponent implements OnInit {
 
   // ── Term status operations ────────────────────────────────────────────────────
 
+  /** BR-53: consequence text shown before a term status advance — PLANNED→OPEN and OPEN→LOCKED
+   *  each do something real behind the scenes, so an admin should see what before confirming. */
+  private termAdvanceConfirmMessage(termType: 'ODD' | 'EVEN', next: TermInstanceStatus): string {
+    const ayName = this.form.get('name')?.value ?? 'this academic year';
+    const termLabel = `${termType} term for ${ayName}`;
+    if (next === 'OPEN') {
+      return `Opening the ${termLabel} will generate course offerings from the curriculum, `
+        + `making it available for course registration and fee collection. Continue?`;
+    }
+    return `Locking the ${termLabel} is permanent and cannot be undone. It deactivates all `
+      + `course offerings for this term. Make sure exam results are published and fee collection `
+      + `is finalized first. Continue?`;
+  }
+
   protected advanceTermStatus(termType: 'ODD' | 'EVEN'): void {
     const term = termType === 'ODD' ? this.oddTermInstance() : this.evenTermInstance();
     const next = term ? this.getNextStatus(term.status) : null;
     if (!term || !next) return;
+
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: next === 'OPEN' ? 'Open Term' : 'Lock Term',
+        message: this.termAdvanceConfirmMessage(termType, next),
+        confirmText: next === 'OPEN' ? 'Open Term' : 'Lock Term',
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe((confirmed) => {
+      if (confirmed) this.performAdvanceTermStatus(termType, term.id, next);
+    });
+  }
+
+  private performAdvanceTermStatus(termType: 'ODD' | 'EVEN', termId: number, next: TermInstanceStatus): void {
     const advancing = termType === 'ODD' ? this.advancingOdd : this.advancingEven;
     advancing.set(true);
-    this.academicYearService.updateTermInstance(term.id, { status: next }).subscribe({
+    this.academicYearService.updateTermInstance(termId, { status: next }).subscribe({
       next: () => {
         this.toast.success(`Term advanced to ${next}`);
         this.reloadTermInstances();

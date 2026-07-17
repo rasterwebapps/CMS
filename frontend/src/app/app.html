@@ -47,12 +47,36 @@
       <span class="toolbar-spacer"></span>
       <app-global-search />
       @if (!isMobile()) {
-        <button mat-icon-button matTooltip="Notifications" class="toolbar-action-btn"
+        <button mat-icon-button [matMenuTriggerFor]="notificationMenu" matTooltip="Notifications" class="toolbar-action-btn"
                 [matBadge]="notificationCount()"
                 [matBadgeHidden]="notificationCount() === 0"
                 matBadgeColor="warn" matBadgeSize="small">
           <mat-icon>notifications_none</mat-icon>
         </button>
+        <mat-menu #notificationMenu="matMenu" class="notification-menu">
+          <div class="notification-menu-header" (click)="$event.stopPropagation()">
+            <span>Notifications</span>
+          </div>
+          <mat-divider></mat-divider>
+          @if (notificationService.feed().length) {
+            @for (n of notificationService.feed(); track n.id) {
+              <div class="notification-item" (click)="$event.stopPropagation()">
+                @if (n.link) {
+                  <a [routerLink]="n.link" class="notification-item-title">{{ n.title }}</a>
+                } @else {
+                  <span class="notification-item-title">{{ n.title }}</span>
+                }
+                <p class="notification-item-message">{{ n.message }}</p>
+                <button type="button" class="notification-item-dismiss" (click)="dismissNotification(n.id, $event)"
+                        aria-label="Dismiss notification">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            }
+          } @else {
+            <p class="notification-empty">You're all caught up.</p>
+          }
+        </mat-menu>
         <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkTheme() ? 'Light mode' : 'Dark mode'" class="toolbar-action-btn">
           <mat-icon>{{ darkTheme() ? 'light_mode' : 'dark_mode' }}</mat-icon>
         </button>

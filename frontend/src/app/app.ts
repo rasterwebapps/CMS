@@ -24,6 +24,7 @@ import { ToastHostComponent } from './core/toast/toast-host.component';
 import { TourService, ONBOARDING_TOUR_STEPS } from './core/tour';
 import { ProfileService } from './features/profile/profile.service';
 import { ThemeService } from './core/theme/theme.service';
+import { NotificationService } from './core/notifications/notification.service';
 import { environment } from '../environments';
 
 interface NavItem {
@@ -84,6 +85,7 @@ export class App implements OnInit, AfterViewInit {
   private readonly http = inject(HttpClient);
   private readonly tourService = inject(TourService);
   private readonly themeService = inject(ThemeService);
+  protected readonly notificationService = inject(NotificationService);
 
   /** Tracks the current route URL so collapsed-group active state is reactive. */
   private readonly currentUrl = signal(this.router.url);
@@ -110,7 +112,7 @@ export class App implements OnInit, AfterViewInit {
   protected readonly mobileDrawerOpen = signal(false);
   protected readonly menuSearch = signal('');
   protected readonly toolbarLogoError = signal(false);
-  protected readonly notificationCount = signal(0);
+  protected readonly notificationCount = computed(() => this.notificationService.feed().length);
   protected readonly navBadgeCounts = signal<Record<string, number>>({});
   protected readonly isNavGroup = isNavGroup;
 
@@ -422,6 +424,11 @@ export class App implements OnInit, AfterViewInit {
     // Load initial profile avatar for the toolbar.
     this.profileService.loadAvatar();
 
+    // Load the in-app notification feed (BR-53) for the toolbar bell.
+    if (isPlatformBrowser(this.platformId)) {
+      this.notificationService.loadFeed().subscribe({ error: () => { /* silently ignore feed fetch errors */ } });
+    }
+
     // Sync expanded group on initial load
     this.syncExpandedGroupToRoute(this.router.url);
 
@@ -471,6 +478,11 @@ export class App implements OnInit, AfterViewInit {
     // returns real positions instead of zeros, and @if blocks have resolved.
     this.tourService.registerTour('onboarding', ONBOARDING_TOUR_STEPS);
     setTimeout(() => this.tourService.maybeAutoStart('onboarding'), 900);
+  }
+
+  protected dismissNotification(id: number, event: Event): void {
+    event.stopPropagation();
+    this.notificationService.dismiss(id).subscribe({ error: () => { /* silently ignore dismiss errors */ } });
   }
 
   protected toggleTheme(): void {
