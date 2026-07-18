@@ -32,12 +32,43 @@
           </button>
         }
       </div>
+
+      <select
+        class="mlp-filter-select"
+        [value]="selectedCurriculumVersionId() ?? ''"
+        (change)="onCurriculumVersionChange(+$any($event.target).value || null)"
+        aria-label="Filter by curriculum version"
+      >
+        <option value="">All Curricula</option>
+        @for (cv of curriculumVersionOptions(); track cv.id) {
+          <option [value]="cv.id">{{ cv.name }}</option>
+        }
+      </select>
+
+      <select
+        class="mlp-filter-select"
+        [value]="selectedTermNumber() ?? ''"
+        (change)="onTermNumberChange(+$any($event.target).value || null)"
+        aria-label="Filter by term"
+      >
+        <option value="">All Terms</option>
+        @for (term of termNumberOptions(); track term) {
+          <option [value]="term">Term {{ term }}</option>
+        }
+      </select>
+
+      @if (hasActiveFilters()) {
+        <button class="btn-clear-filters btn-toolbar--icon-only" (click)="clearFilters()" aria-label="Clear filters" title="Clear filters">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      }
+
       @if (!loading()) {
         <span class="count-badge" aria-live="polite">
-          @if (dataSource.filteredData.length < dataSource.data.length) {
-            {{ dataSource.filteredData.length }} of {{ dataSource.data.length }}
+          @if (filteredSyllabi().length < totalSyllabi()) {
+            {{ filteredSyllabi().length }} of {{ totalSyllabi() }}
           } @else {
-            {{ dataSource.data.length }}
+            {{ totalSyllabi() }}
           }
           syllabi
         </span>
@@ -142,8 +173,8 @@
             <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding: 0; border: none;">
               <cms-empty-state
                 icon="menu_book"
-                [title]="searchValue() ? 'No syllabi found' : 'No syllabi yet'"
-                [subtitle]="searchValue() ? 'No syllabi match your search.' : 'Syllabi will appear here once created.'"
+                [title]="hasActiveFilters() ? 'No syllabi found' : 'No syllabi yet'"
+                [subtitle]="hasActiveFilters() ? 'No syllabi match your filters.' : 'Syllabi will appear here once created.'"
               />
             </td>
           </tr>

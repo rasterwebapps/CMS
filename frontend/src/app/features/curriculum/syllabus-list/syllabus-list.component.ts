@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
@@ -78,6 +78,60 @@ export class SyllabusListComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
 
+  private readonly allSyllabi = signal<Syllabus[]>([]);
+  protected readonly selectedCurriculumVersionId = signal<number | null>(null);
+  protected readonly selectedTermNumber = signal<number | null>(null);
+
+  /** Distinct curriculum versions actually present in the loaded syllabi, not every
+   *  curriculum version in the system — no point offering one with zero syllabi to filter by. */
+  protected readonly curriculumVersionOptions = computed(() => {
+    const map = new Map<number, string>();
+    for (const s of this.allSyllabi()) {
+      if (!map.has(s.curriculumVersionId)) map.set(s.curriculumVersionId, s.curriculumVersionName);
+    }
+    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  });
+
+  /** Term options scope to the selected curriculum version (terms differ per curriculum) —
+   *  mirrors the cascading curriculum-version -> term picker used on the syllabus form. */
+  protected readonly termNumberOptions = computed(() => {
+    const cvId = this.selectedCurriculumVersionId();
+    const terms = new Set(
+      this.allSyllabi()
+        .filter((s) => cvId === null || s.curriculumVersionId === cvId)
+        .map((s) => s.termNumber)
+    );
+    return Array.from(terms).sort((a, b) => a - b);
+  });
+
+  protected readonly filteredSyllabi = computed(() => {
+    const cvId = this.selectedCurriculumVersionId();
+    const term = this.selectedTermNumber();
+    const search = this.searchValue().trim().toLowerCase();
+    return this.allSyllabi().filter((s) => {
+      if (cvId !== null && s.curriculumVersionId !== cvId) return false;
+      if (term !== null && s.termNumber !== term) return false;
+      if (search) {
+        const haystack = [s.subjectName, s.subjectCode, s.curriculumVersionName].join(' ').toLowerCase();
+        if (!haystack.includes(search)) return false;
+      }
+      return true;
+    });
+  });
+
+  protected readonly totalSyllabi = computed(() => this.allSyllabi().length);
+
+  protected readonly hasActiveFilters = computed(() =>
+    !!this.searchValue() || this.selectedCurriculumVersionId() !== null || this.selectedTermNumber() !== null
+  );
+
+  constructor() {
+    effect(() => {
+      this.dataSource.data = this.filteredSyllabi();
+      if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+    });
+  }
+
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
   ngOnInit(): void {
@@ -86,15 +140,26 @@ export class SyllabusListComponent implements OnInit {
   }
 
   protected applyFilter(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.searchValue.set(value);
-    this.dataSource.filter = value.trim().toLowerCase();
-    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+    this.searchValue.set((event.target as HTMLInputElement).value);
   }
 
   protected clearFilter(): void {
     this.searchValue.set('');
-    this.dataSource.filter = '';
+  }
+
+  protected onCurriculumVersionChange(id: number | null): void {
+    this.selectedCurriculumVersionId.set(id);
+    this.selectedTermNumber.set(null);
+  }
+
+  protected onTermNumberChange(term: number | null): void {
+    this.selectedTermNumber.set(term);
+  }
+
+  protected clearFilters(): void {
+    this.searchValue.set('');
+    this.selectedCurriculumVersionId.set(null);
+    this.selectedTermNumber.set(null);
   }
 
   /** A syllabus version is immutable once created — this is the only permitted change.
@@ -132,7 +197,7 @@ export class SyllabusListComponent implements OnInit {
     this.loading.set(true);
     this.curriculumService.getAllSyllabi().subscribe({
       next: (data) => {
-        this.dataSource.data = data;
+        this.allSyllabi.set(data);
         this.loading.set(false);
       },
       error: () => {
