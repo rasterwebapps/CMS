@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.lenient;
 
@@ -22,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 import com.cms.dto.CollectPaymentRequest;
 import com.cms.dto.CollectPaymentResponse;
@@ -413,5 +416,192 @@ class PaymentCollectionServiceTest {
 
         assertThatThrownBy(() -> service.getReceiptById(999L, 1L))
             .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    // ── BR-36: Excess Bank Payment with Auto-Generated Refund (collectAdvancePayment) ──────────
+
+    @Test
+    void shouldCreateAutoExcessRefundForBankTransferAboveOutstanding() {
+        CollectPaymentRequest request = new CollectPaymentRequest(
+            new BigDecimal("450000"), LocalDate.now(), PaymentMode.BANK_TRANSFER, "DD-REF-1", null, null, true
+        );
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
+        when(permSecurityBean.has("FEE_COLLECT_EXCESS")).thenReturn(true);
+        when(unifiedReceiptService.generateReceiptNumber(anyInt())).thenReturn("RCP-2026-00001");
+        when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CollectPaymentResponse response = service.collectAdvancePayment(1L, request);
+
+        // Receipt records the FULL amount physically received, not just what was applied to fees.
+        assertThat(response.amountPaid()).isEqualByComparingTo("450000");
+        assertThat(response.installmentBreakdown()).hasSize(2);
+
+        ArgumentCaptor<BigDecimal> excessCaptor = ArgumentCaptor.forClass(BigDecimal.class);
+        verify(feeRefundService).createAutoExcessRefund(eq(testStudent), eq("RCP-2026-00001"), excessCaptor.capture());
+        assertThat(excessCaptor.getValue()).isEqualByComparingTo("50000");
+    }
+
+    @Test
+    void shouldCreateAutoExcessRefundForDemandDraftAboveOutstanding() {
+        CollectPaymentRequest request = new CollectPaymentRequest(
+            new BigDecimal("420000"), LocalDate.now(), PaymentMode.DEMAND_DRAFT, "DD-REF-2", null, null, true
+        );
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
+        when(permSecurityBean.has("FEE_COLLECT_EXCESS")).thenReturn(true);
+        when(unifiedReceiptService.generateReceiptNumber(anyInt())).thenReturn("RCP-2026-00002");
+        when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CollectPaymentResponse response = service.collectAdvancePayment(1L, request);
+
+        assertThat(response.amountPaid()).isEqualByComparingTo("420000");
+        ArgumentCaptor<BigDecimal> excessCaptor = ArgumentCaptor.forClass(BigDecimal.class);
+        verify(feeRefundService).createAutoExcessRefund(eq(testStudent), eq("RCP-2026-00002"), excessCaptor.capture());
+        assertThat(excessCaptor.getValue()).isEqualByComparingTo("20000");
+    }
+
+    @Test
+    void shouldCapAutoExcessRefundToExactExcessAmount() {
+        // Semester 2 already fully paid — only 200000 (semester 1) is actually outstanding.
+        CollectPaymentRequest request = new CollectPaymentRequest(
+            new BigDecimal("260000"), LocalDate.now(), PaymentMode.BANK_TRANSFER, "DD-REF-3", null, null, true
+        );
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(new BigDecimal("200000"));
+        when(permSecurityBean.has("FEE_COLLECT_EXCESS")).thenReturn(true);
+        when(unifiedReceiptService.generateReceiptNumber(anyInt())).thenReturn("RCP-2026-00003");
+        when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CollectPaymentResponse response = service.collectAdvancePayment(1L, request);
+
+        assertThat(response.amountPaid()).isEqualByComparingTo("260000");
+        // Only semester 1 (200000) actually gets applied to a fee installment.
+        assertThat(response.installmentBreakdown()).hasSize(1);
+        ArgumentCaptor<BigDecimal> excessCaptor = ArgumentCaptor.forClass(BigDecimal.class);
+        verify(feeRefundService).createAutoExcessRefund(eq(testStudent), eq("RCP-2026-00003"), excessCaptor.capture());
+        assertThat(excessCaptor.getValue()).isEqualByComparingTo("60000");
+    }
+
+    @Test
+    void shouldRejectExcessAboveOutstandingWithoutAllowExcessFlag() {
+        CollectPaymentRequest request = new CollectPaymentRequest(
+            new BigDecimal("450000"), LocalDate.now(), PaymentMode.BANK_TRANSFER, "DD-REF-4", null, null, null
+        );
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
+
+        assertThatThrownBy(() -> service.collectAdvancePayment(1L, request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("exceeds total outstanding");
+
+        verifyNoInteractions(feeRefundService);
+    }
+
+    @Test
+    void shouldRejectExcessOnNonBankPaymentMode() {
+        CollectPaymentRequest request = new CollectPaymentRequest(
+            new BigDecimal("450000"), LocalDate.now(), PaymentMode.CASH, null, null, null, true
+        );
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
+
+        assertThatThrownBy(() -> service.collectAdvancePayment(1L, request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("only allowed for Demand Draft or Bank Transfer");
+
+        verifyNoInteractions(feeRefundService);
+        verifyNoInteractions(permSecurityBean);
+    }
+
+    @Test
+    void shouldRejectExcessPaymentWithoutPermission() {
+        CollectPaymentRequest request = new CollectPaymentRequest(
+            new BigDecimal("450000"), LocalDate.now(), PaymentMode.BANK_TRANSFER, "DD-REF-5", null, null, true
+        );
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
+        when(permSecurityBean.has("FEE_COLLECT_EXCESS")).thenReturn(false);
+
+        assertThatThrownBy(() -> service.collectAdvancePayment(1L, request))
+            .isInstanceOf(AccessDeniedException.class)
+            .hasMessageContaining("FEE_COLLECT_EXCESS");
+
+        verifyNoInteractions(feeRefundService);
+    }
+
+    @Test
+    void shouldNotCreateAutoExcessRefundWhenAmountExactlyMatchesOutstanding() {
+        CollectPaymentRequest request = new CollectPaymentRequest(
+            new BigDecimal("400000"), LocalDate.now(), PaymentMode.BANK_TRANSFER, "DD-REF-6", null, null, true
+        );
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
+        when(unifiedReceiptService.generateReceiptNumber(anyInt())).thenReturn("RCP-2026-00007");
+        when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CollectPaymentResponse response = service.collectAdvancePayment(1L, request);
+
+        assertThat(response.amountPaid()).isEqualByComparingTo("400000");
+        // An exact match never triggers excess handling — no permission check, no refund.
+        verifyNoInteractions(feeRefundService);
+        verifyNoInteractions(permSecurityBean);
+    }
+
+    @Test
+    void shouldLeaveNormalAdvancePaymentBelowOutstandingUnaffected() {
+        CollectPaymentRequest request = new CollectPaymentRequest(
+            new BigDecimal("100000"), LocalDate.now(), PaymentMode.CASH, null, null, null, null
+        );
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
+        when(unifiedReceiptService.generateReceiptNumber(anyInt())).thenReturn("RCP-2026-00008");
+        when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CollectPaymentResponse response = service.collectAdvancePayment(1L, request);
+
+        assertThat(response.amountPaid()).isEqualByComparingTo("100000");
+        verifyNoInteractions(feeRefundService);
+        verifyNoInteractions(permSecurityBean);
     }
 }

@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -19,11 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.FeeExplorerResponse;
 import com.cms.model.Admission;
+import com.cms.model.Enquiry;
 import com.cms.model.Penalty;
 import com.cms.model.SemesterFee;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
 import com.cms.repository.AdmissionRepository;
+import com.cms.repository.EnquiryCreditApplicationRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
@@ -44,6 +47,7 @@ public class FeeExplorerService {
     private final PenaltyRepository penaltyRepository;
     private final EnquiryRepository enquiryRepository;
     private final EnquiryPaymentRepository enquiryPaymentRepository;
+    private final EnquiryCreditApplicationRepository creditApplicationRepository;
     private final AdmissionRepository admissionRepository;
     private final PaymentCollectionService paymentCollectionService;
 
@@ -54,6 +58,7 @@ public class FeeExplorerService {
                                PenaltyRepository penaltyRepository,
                                EnquiryRepository enquiryRepository,
                                EnquiryPaymentRepository enquiryPaymentRepository,
+                               EnquiryCreditApplicationRepository creditApplicationRepository,
                                AdmissionRepository admissionRepository,
                                PaymentCollectionService paymentCollectionService) {
         this.studentRepository = studentRepository;
@@ -63,6 +68,7 @@ public class FeeExplorerService {
         this.penaltyRepository = penaltyRepository;
         this.enquiryRepository = enquiryRepository;
         this.enquiryPaymentRepository = enquiryPaymentRepository;
+        this.creditApplicationRepository = creditApplicationRepository;
         this.admissionRepository = admissionRepository;
         this.paymentCollectionService = paymentCollectionService;
     }
@@ -156,11 +162,32 @@ public class FeeExplorerService {
             List<SemesterFee> semesterFees = semesterFeeRepository
                 .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
 
+            // Enquiry pre-admission credit is real money already received — it must count toward
+            // "Paid" the same way PaymentCollectionService.calculateTotalOutstanding() and
+            // FeeFinalizationService.toResponse() treat it, or Paid + Pending won't sum to Total Fee.
+            Optional<Enquiry> sourceEnquiry = enquiryRepository.findByConvertedStudentId(student.getId());
+            BigDecimal totalEnquiryCredit = sourceEnquiry
+                .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
+                .orElse(BigDecimal.ZERO);
+            BigDecimal alreadyAppliedCredit = sourceEnquiry
+                .map(e -> creditApplicationRepository.sumAmountAppliedByEnquiryId(e.getId()))
+                .orElse(BigDecimal.ZERO);
+            BigDecimal remainingEnquiryCredit = totalEnquiryCredit.subtract(alreadyAppliedCredit).max(BigDecimal.ZERO);
+
             BigDecimal totalPaid = BigDecimal.ZERO;
             BigDecimal totalPenalty = BigDecimal.ZERO;
 
             for (SemesterFee sf : semesterFees) {
-                totalPaid = totalPaid.add(installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId()));
+                BigDecimal installmentPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+                BigDecimal alreadyCredited = sourceEnquiry.isPresent()
+                    ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
+                        sourceEnquiry.get().getId(), sf.getId())
+                    : BigDecimal.ZERO;
+                BigDecimal capacity = sf.getAmount().subtract(installmentPaid).subtract(alreadyCredited).max(BigDecimal.ZERO);
+                BigDecimal creditForThis = remainingEnquiryCredit.min(capacity);
+                remainingEnquiryCredit = remainingEnquiryCredit.subtract(creditForThis);
+
+                totalPaid = totalPaid.add(installmentPaid).add(alreadyCredited).add(creditForThis);
                 totalPenalty = totalPenalty.add(
                     penaltyRepository.findBySemesterFeeId(sf.getId()).stream()
                         .filter(p -> !p.getIsPaid())
@@ -169,14 +196,7 @@ public class FeeExplorerService {
                 );
             }
 
-            BigDecimal enquiryCredit = enquiryRepository.findByConvertedStudentId(student.getId())
-                .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
-                .orElse(BigDecimal.ZERO);
-
-            BigDecimal totalPending = allocation.getNetFee()
-                .subtract(totalPaid)
-                .subtract(enquiryCredit)
-                .max(BigDecimal.ZERO);
+            BigDecimal totalPending = allocation.getNetFee().subtract(totalPaid).max(BigDecimal.ZERO);
 
             BigDecimal collectibleOutstanding = paymentCollectionService.getCollectibleOutstanding(student);
             return new FeeExplorerResponse.StudentFeeSummary(
