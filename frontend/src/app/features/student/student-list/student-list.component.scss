@@ -24,7 +24,10 @@
   gap: 16px;
   flex-wrap: wrap;
   flex-shrink: 0;
-  padding-bottom: 14px;
+  // padding-bottom intentionally omitted: styles.scss zeroes it globally for
+  // .stu-hdr (part of the compact list-header reset) so .stu-page's own
+  // gap:16px is the single source of spacing above the toolbar. Do not
+  // reintroduce it here — it stacks on top of that 16px instead of replacing it.
 }
 
 .stu-hdr-left { display: flex; flex-direction: column; }

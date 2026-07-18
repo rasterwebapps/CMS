@@ -4728,6 +4728,14 @@ html.dark-theme .detail-card {
   flex-direction: column;
 }
 
+.mlp-hdr-actions,
+.mlp-hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 // ── Universal compact list-page headers ───────────────────────────────────
 // List pages are data-dense: headers must be minimal so the table fills
 // the viewport. No card background, no border, no shadow — just spacing.

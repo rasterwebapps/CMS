@@ -56,6 +56,7 @@ export class CmsStatusBadgeComponent {
       case 'VERIFIED':
       case 'YES':
       case 'EDITABLE':
+      case 'PUBLISHED':
         return 'status-active';
 
       // ── In-progress / warning states ────────────────────────────────────
@@ -100,6 +101,7 @@ export class CmsStatusBadgeComponent {
       case 'EXPIRED':
       case 'SUSPENDED':
       case 'EXPELLED':
+      case 'WITHHELD':
         return 'status-inactive';
 
       // ── Returned / handed-back documents ────────────────────────────────
