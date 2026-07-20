@@ -26,6 +26,7 @@ import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 
 @Service
+@Transactional(readOnly = true)
 public class LibraryFineService {
 
     private final LibraryFineRepository fineRepository;

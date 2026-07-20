@@ -487,16 +487,17 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
   // ── Status helpers ────────────────────────────────────────────────────────
   protected statusLabel(s: string): string { return STATUS_LABELS[s] ?? s; }
 
-  protected getNextStatuses(currentStatus: string): string[] {
+  protected getNextStatuses(currentStatus: string, item?: Enquiry): string[] {
+    const hasProgramAndCourse = !!item && !!item.programId && !!item.courseId;
     switch (currentStatus) {
-      case 'ENQUIRED':       return ['INTERESTED', 'NOT_INTERESTED'];
-      case 'NOT_INTERESTED': return ['INTERESTED'];
+      case 'ENQUIRED':       return hasProgramAndCourse ? ['INTERESTED', 'NOT_INTERESTED'] : ['NOT_INTERESTED'];
+      case 'NOT_INTERESTED': return hasProgramAndCourse ? ['INTERESTED'] : [];
       case 'FEES_FINALIZED': return ['NOT_INTERESTED'];
       default:               return [];
     }
   }
 
-  protected canChangeStatus(item: Enquiry): boolean { return this.getNextStatuses(item.status).length > 0; }
+  protected canChangeStatus(item: Enquiry): boolean { return this.getNextStatuses(item.status, item).length > 0; }
 
   protected onStatusUpdate(item: Enquiry, newStatus: string): void {
     this.enquiryService.updateStatus(item.id, newStatus).subscribe({

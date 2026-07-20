@@ -537,6 +537,11 @@ public class EnquiryService {
                 "Cannot manually transition from " + enquiry.getStatus() + " to " + status
             );
         }
+        if (status == EnquiryStatus.INTERESTED && (enquiry.getProgram() == null || enquiry.getCourse() == null)) {
+            throw new IllegalArgumentException(
+                "Program and Course must be set before marking this enquiry as Interested."
+            );
+        }
         EnquiryStatus oldStatus = enquiry.getStatus();
         enquiry.setStatus(status);
         Enquiry saved = enquiryRepository.save(enquiry);

@@ -59,7 +59,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "DevAdmin@123",
+          "value": "Dev@1cms",
           "temporary": false
         }
       ]
@@ -74,7 +74,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "SupportAdmin@123",
+          "value": "Support@1cms",
           "temporary": false
         }
       ]
