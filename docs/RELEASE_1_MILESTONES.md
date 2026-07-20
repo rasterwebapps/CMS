@@ -15,6 +15,7 @@
 - [R1-M3: Operational Logistics](#-r1-m3-operational-logistics)
 - [R1-M4: Finance & Asset Management](#-r1-m4-finance--asset-management)
 - [R1-M5: Assessment & Reporting](#-r1-m5-assessment--reporting)
+- [R1-M6: Post-R1 Academics Additions (INC Compliance, Promotion, Term Lifecycle)](#-r1-m6-post-r1-academics-additions-inc-compliance-promotion-term-lifecycle)
 - [Release 1 Definition of Done](#-release-1-definition-of-done)
 - [Release 1 Progress Tracking](#-release-1-progress-tracking)
 - [Deferred to Release 2](#-deferred-to-release-2)
@@ -31,6 +32,7 @@
 | **R1-M3** | Phase 3 | Modules 2, 5, 7.2 | Students, scheduling, attendance |
 | **R1-M4** | Phase 4 | Modules 7.3, 7.4, 8, 16 | Fees, equipment, inventory, assets |
 | **R1-M5** | Phase 5 | Modules 6, 7.5–7.10, 13 | Exams, lab evaluation, analytics, accreditation |
+| **R1-M6** | Post-R1 | Modules 4, 5, 6 (extensions) | INC curriculum compliance, student promotion, term lifecycle alerting |
 
 ---
 
@@ -329,7 +331,7 @@
 
 **Frontend:**
 - [x] **R1-3.2.8** Create `features/lab-schedule/` folder structure
-- [x] **R1-3.2.9** Create lab calendar view (weekly timetable grid)
+- [ ] **R1-3.2.9** Create lab calendar view (weekly timetable grid) — **correction 2026-07-18:** was checked off but never actually built; `lab-schedule-list.component.ts` is a plain sortable Material table, not a week-grid calendar. Left unchecked pending real implementation or a decision to fold it into the R1-M6.4 timetable-generation effort instead of building it standalone.
 - [x] **R1-3.2.10** Create schedule form with conflict alerts
 - [x] **R1-3.2.11** Create lab schedule routes (lazy-loaded)
 
@@ -623,6 +625,64 @@
 
 ---
 
+## 🎓 R1-M6: Post-R1 Academics Additions (INC Compliance, Promotion, Term Lifecycle)
+
+> **Goal:** Close the gap between the original Academics scope (R1-M2/M3/M5, written before these features existed) and what has actually shipped since. Each item below is real, working, deployed functionality — this section exists purely so the tracker stops under-representing Academics. See linked BRs in `BUSINESS_REQUIREMENTS.md` for full detail; this is a summary, not the source of truth.
+
+### R1-M6.1 — INC Nursing Curriculum Compliance (BR-49)
+
+> **Business Requirement:** [BR-49](BUSINESS_REQUIREMENTS.md#br-49-inc-nursing-curriculum-compliance--per-semester-hours-electives-attendance-thresholds--batches)
+
+**Backend:**
+- [x] **R1-6.1.1** Per-semester Theory/Lab/Clinical hours + `SubjectType` (CORE/FOUNDATIONAL/ELECTIVE) on `curriculum_term_courses` (curriculum-mapping row, not `Subject` master)
+- [x] **R1-6.1.2** `CurriculumElectiveGroup` — choice-based elective groups scoped to one curriculum version + term; bulk course-registration generation auto-skips elective offerings
+- [x] **R1-6.1.3** `CourseRegistrationServiceImpl.assignElectiveChoice()` + `POST /course-registrations/elective-assignment` — admin single-pick assignment, idempotent, rejects a second pick within the same group
+- [x] **R1-6.1.4** Per-component attendance thresholds (`attendance_thresholds` table, keyed on curriculum mapping + `AttendanceType` incl. new `CLINICAL`) replacing the flat 75% constant; `AttendanceService.getAttendanceReport()` returns one entry per component type
+- [x] **R1-6.1.5** Real `Batch` entity (lab/clinical roster splitting) with enforced capacity and real membership (`batch_students`); `LabSchedule.batch_id` nullable FK alongside pre-existing free-text `batch_name`
+- [x] **R1-6.1.6** `PUT /curriculum-semester-courses/{id}` — in-place edit of hours/type/elective/sort-order (Curriculum Map previously only supported add/remove)
+- [x] **R1-6.1.7** Migrations V265–V274; `CURRICULUM_ELECTIVE_GROUP_VIEW/MANAGE`, `ATTENDANCE_THRESHOLD_VIEW/MANAGE`, `BATCH_VIEW/MANAGE`, `COURSE_REGISTRATION_ELECTIVE_ASSIGN` permissions
+
+**Frontend:**
+- [x] **R1-6.1.8** Curriculum Map screen — Theory/Lab/Clinical checkboxes, inline attendance-threshold editing
+- [x] **R1-6.1.9** Batch Manage dialog nested under Course Offering list row
+- [x] **R1-6.1.10** New **Elective Assignment** screen (academic year → term → elective group → per-student assignment) — the first course-registration UI in the app
+- [x] **R1-6.1.11** Wire Course Offerings + Elective Assignment into the Academics sidebar nav — **fixed 2026-07-18**: both screens had working routes/permissions since BR-49 shipped but no inbound nav link anywhere in the app, making them reachable only by typing the URL directly. Added to `app.ts` Academics group.
+- [x] **R1-6.1.13** Migration V288 backfills `lab_schedules.batch_id` for any pre-existing row that unambiguously matches a real `Batch` by `(term_instance_id, subject_id via course_offerings, normalized name)` — additive only, never guesses across ambiguous same-named batches, idempotent (`batch_id IS NULL` guard). Verified syntactically valid against the local dev DB (empty `lab_schedules` table there, so 0 rows affected locally — real backfill effect will show wherever real data exists).
+- [ ] **R1-6.1.12** Remaining deferred technical debt (still explicitly out of scope, unchanged from BR-49): the Lab Schedule form (`lab-schedule-form.component.html`) still accepts a free-text `batchName` input alongside the roster dropdown, so `batch_name` remains load-bearing and cannot be dropped yet. Full cutover needs a deliberate decision to make the roster dropdown mandatory and remove free-text entry — a UX/behavior change, not a plain cleanup, so it wasn't done in this pass.
+
+### R1-M6.2 — Student Promotion / Progression (BR-52)
+
+> **Business Requirement:** [BR-52](BUSINESS_REQUIREMENTS.md#br-52-student-promotion--progression)
+
+**Backend:**
+- [x] **R1-6.2.1** Removed pre-existing blind auto-advance on term-open (`TermInstanceService`'s `OPEN` transition previously advanced every active student by calendar years-since-admission with zero eligibility check)
+- [x] **R1-6.2.2** `StudentPromotionService` — subject-wise arrears carried forward (cleared only before Final Year), max duration = double program length, per-subject attendance detention, mandatory preview before irreversible bulk commit
+- [x] **R1-6.2.3** `ExamResult.outcome` (PASS/FAIL, external-marks-only for v1 — CIA marks don't exist yet)
+- [x] **R1-6.2.4** Cohort-driven term auto-detection (`GET /student-promotions/active-terms`, `GET /student-promotions/suggested-next-term`) with manual cascade fallback
+- [x] **R1-6.2.5** `student_promotion_decisions` audit trail; `STUDENT_PROMOTION_VIEW/MANAGE` permissions
+- [x] **R1-6.2.6** Migrations V284–V286
+
+**Frontend:**
+- [x] **R1-6.2.7** `features/student-promotion/` — select → preview → result screen; per-student editable decision table; bulk execute
+- [x] **R1-6.2.8** Added to Academics nav group
+
+### R1-M6.3 — Term Lifecycle Confirmation & Overdue Alerting (BR-53)
+
+> **Business Requirement:** [BR-53](BUSINESS_REQUIREMENTS.md#br-53-term-lifecycle-confirmation--overdue-alerting)
+
+**Backend:**
+- [x] **R1-6.3.1** Consequence-confirmation dialog before `PLANNED → OPEN` / `OPEN → LOCKED` term transitions
+- [x] **R1-6.3.2** `AcademicTermAlertService` — daily job raising an in-app alert when a term is still `PLANNED` within 14 days of `startDate`, auto-resolving once advanced
+- [x] **R1-6.3.3** `Notification`/`NotificationDismissal` entities — broadcast-style with per-user dismissal; first real slice of BR-28's notification-sending backend
+- [x] **R1-6.3.4** `GET /notifications/feed`, `POST /notifications/{id}/dismiss`; new `academicTermAlerts` preference category
+- [x] **R1-6.3.5** Migration V287
+
+**Frontend:**
+- [x] **R1-6.3.6** Toolbar notification bell wired to the real feed (previously a dead hardcoded badge)
+- [x] **R1-6.3.7** Academic Year form's `advanceTermStatus()` wrapped with shared `ConfirmDialogComponent`
+
+---
+
 ## ✅ Release 1 Definition of Done
 
 Every task/milestone is considered **complete** only when ALL of the following are met:
@@ -650,9 +710,10 @@ Every task/milestone is considered **complete** only when ALL of the following a
 | R1-M0: Project Scaffolding | ✅ Complete | 100% |
 | R1-M1: Foundation & Identity | ✅ Complete | 100% |
 | R1-M2: Core Academic & Lab Mapping | ✅ Complete | 100% |
-| R1-M3: Operational Logistics | ✅ Complete | 100% |
+| R1-M3: Operational Logistics | ⚠️ Near-complete | 99% — R1-3.2.9 (lab calendar/week-grid view) was found unbuilt 2026-07-18 despite being checked; a plain table exists instead |
 | R1-M4: Finance & Asset Management | ✅ Complete | 100% |
 | R1-M5: Assessment & Reporting | ✅ Complete | 100% |
+| R1-M6: Post-R1 Academics Additions | ⚠️ Mostly complete | BR-49/52/53 all shipped; one deferred item open (`lab_schedules.batch_name` cleanup) |
 
 ---
 

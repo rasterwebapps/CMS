@@ -18,7 +18,7 @@ import com.cms.repository.EquipmentRepository;
 import com.cms.repository.ExamResultRepository;
 import com.cms.repository.LabContinuousEvaluationRepository;
 import com.cms.repository.LabRepository;
-import com.cms.repository.LabScheduleRepository;
+import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.StudentRepository;
 
 @Service
@@ -26,7 +26,7 @@ import com.cms.repository.StudentRepository;
 public class ReportService {
 
     private final LabRepository labRepository;
-    private final LabScheduleRepository labScheduleRepository;
+    private final ClassScheduleRepository labScheduleRepository;
     private final StudentRepository studentRepository;
     private final AttendanceRepository attendanceRepository;
     private final ExamResultRepository examResultRepository;
@@ -34,7 +34,7 @@ public class ReportService {
     private final EquipmentRepository equipmentRepository;
 
     public ReportService(LabRepository labRepository,
-                          LabScheduleRepository labScheduleRepository,
+                          ClassScheduleRepository labScheduleRepository,
                           StudentRepository studentRepository,
                           AttendanceRepository attendanceRepository,
                           ExamResultRepository examResultRepository,

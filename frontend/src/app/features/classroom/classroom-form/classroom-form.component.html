@@ -1,0 +1,126 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/classrooms" aria-label="Back to classrooms">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Classroom</em></h1>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update the classroom details below.' : 'Fill in the details below to register a new classroom.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+
+      <!-- ── LEFT: Form Card ─────────────────────────────────── -->
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9v.01M9 12v.01M9 15v.01M15 9v.01M15 12v.01M15 15v.01"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Classroom Information</div>
+            <div class="entry-form-card__hdr-sub">Name, building, room, and capacity</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <!-- Name -->
+            <div class="field-group">
+              <label for="clr-name" class="field-label">
+                Classroom Name <span class="required-star">*</span>
+              </label>
+              <input
+                id="clr-name"
+                class="field-input"
+                formControlName="name"
+                placeholder="e.g., Room 101"
+                autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+              />
+              @if (form.get('name')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">{{ getErrorMessage('name') }}</p>
+              }
+            </div>
+
+            <!-- Building -->
+            <div class="field-group">
+              <label for="clr-building" class="field-label">Building</label>
+              <input
+                id="clr-building"
+                class="field-input"
+                formControlName="building"
+                placeholder="e.g., Main Block"
+                autocomplete="off"
+              />
+            </div>
+
+            <!-- Room Number -->
+            <div class="field-group">
+              <label for="clr-room" class="field-label">Room Number</label>
+              <input
+                id="clr-room"
+                class="field-input"
+                formControlName="roomNumber"
+                placeholder="e.g., 101"
+                autocomplete="off"
+              />
+            </div>
+
+            <!-- Capacity -->
+            <div class="field-group">
+              <label for="clr-capacity" class="field-label">Capacity</label>
+              <input
+                id="clr-capacity"
+                class="field-input"
+                type="number"
+                min="1"
+                formControlName="capacity"
+                placeholder="e.g., 60"
+              />
+            </div>
+
+            <!-- Footer -->
+            <div class="entry-form-card__footer">
+              <a routerLink="/classrooms" class="btn-secondary">Cancel</a>
+              <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+                @if (saving()) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                }
+                {{ isEditMode() ? 'Update' : 'Save' }}
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+      <!-- ── RIGHT: Preview Card ─────────────────────────────── -->
+      <aside class="entry-form-side-panel">
+        <div class="dept-preview-card">
+          <div class="dept-preview-hdr">
+            <span class="dept-preview-label">Preview</span>
+          </div>
+          <div class="dept-preview-body">
+            <div class="dept-prev-name">{{ previewName() || 'Classroom Name' }}</div>
+            @if (previewBuilding() || previewRoomNumber()) {
+              <p class="dept-prev-desc">{{ previewBuilding() }}@if (previewRoomNumber()) { &middot; Room {{ previewRoomNumber() }} }</p>
+            }
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  }
+
+</div>

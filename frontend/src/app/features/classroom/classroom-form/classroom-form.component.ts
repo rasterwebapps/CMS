@@ -1,0 +1,141 @@
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ClassroomService } from '../classroom.service';
+import { ClassroomRequest } from '../classroom.model';
+import { ToastService } from '../../../core/toast/toast.service';
+import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { noConsecutiveSpaces, trimmedMinLength, cmsFieldError } from '../../../shared/validators/cms-validators';
+import { environment } from '../../../../environments';
+import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
+
+@Component({
+  selector: 'app-classroom-form',
+  standalone: true,
+  imports: [
+    RouterLink,
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+  ],
+  templateUrl: './classroom-form.component.html',
+  styleUrl: './classroom-form.component.scss',
+})
+export class ClassroomFormComponent implements OnInit {
+  private readonly fb               = inject(FormBuilder);
+  private readonly route            = inject(ActivatedRoute);
+  private readonly router           = inject(Router);
+  private readonly classroomService = inject(ClassroomService);
+  private readonly toast            = inject(ToastService);
+  private readonly destroyRef       = inject(DestroyRef);
+  private readonly http             = inject(HttpClient);
+
+  protected readonly loading    = signal(false);
+  protected readonly saving     = signal(false);
+  protected readonly isEditMode = signal(false);
+  protected readonly pageTitle  = signal('Add Classroom');
+
+  protected readonly previewName = signal('');
+  protected readonly previewBuilding = signal('');
+  protected readonly previewRoomNumber = signal('');
+
+  private classroomId: number | null = null;
+
+  protected readonly form: FormGroup = this.fb.group({
+    name:       ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(255), noConsecutiveSpaces()]],
+    building:   ['', [Validators.maxLength(255)]],
+    roomNumber: ['', [Validators.maxLength(255)]],
+    capacity:   [null],
+  });
+
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => {
+        this.previewName.set((v.name ?? '').trim());
+        this.previewBuilding.set((v.building ?? '').trim());
+        this.previewRoomNumber.set((v.roomNumber ?? '').trim());
+      });
+  }
+
+  ngOnInit(): void {
+    const idParam = this.route.snapshot.paramMap.get('id');
+    if (idParam) {
+      this.classroomId = Number(idParam);
+      this.isEditMode.set(true);
+      this.pageTitle.set('Edit Classroom');
+      this.loadClassroom();
+    }
+    this.setupUniquenessValidators();
+  }
+
+  private setupUniquenessValidators(): void {
+    const nameCtrl = this.form.get('name');
+    if (nameCtrl) {
+      nameCtrl.setAsyncValidators(
+        uniqueFieldValidator(this.http, `${environment.apiUrl}/classrooms/name-exists`, () => this.classroomId)
+      );
+      nameCtrl.updateValueAndValidity({ emitEvent: false });
+    }
+  }
+
+  protected onSubmit(): void {
+    if (this.form.invalid) {
+      scrollToFirstInvalid(this.form);
+      return;
+    }
+
+    const request: ClassroomRequest = {
+      name:       (this.form.value.name ?? '').trim(),
+      building:   this.form.value.building?.trim() || undefined,
+      roomNumber: this.form.value.roomNumber?.trim() || undefined,
+      capacity:   this.form.value.capacity ?? undefined,
+    };
+
+    this.saving.set(true);
+    const op$ = this.isEditMode()
+      ? this.classroomService.update(this.classroomId!, request)
+      : this.classroomService.create(request);
+
+    op$.subscribe({
+      next: () => {
+        this.toast.success(this.isEditMode() ? 'Classroom updated successfully' : 'Classroom created successfully');
+        this.saving.set(false);
+        void this.router.navigate(['/classrooms']);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? (this.isEditMode() ? 'Failed to update classroom' : 'Failed to create classroom'));
+        this.saving.set(false);
+      },
+    });
+  }
+
+  private static readonly FIELD_LABELS: Record<string, string> = {
+    name: 'Name', building: 'Building', roomNumber: 'Room Number', capacity: 'Capacity',
+  };
+
+  protected getErrorMessage(fieldName: string): string {
+    return cmsFieldError(this.form.get(fieldName), ClassroomFormComponent.FIELD_LABELS[fieldName] ?? fieldName);
+  }
+
+  private loadClassroom(): void {
+    if (!this.classroomId) return;
+    this.loading.set(true);
+    this.classroomService.getById(this.classroomId).subscribe({
+      next: (c) => {
+        this.form.patchValue({ name: c.name, building: c.building || '', roomNumber: c.roomNumber || '', capacity: c.capacity ?? null });
+        this.loading.set(false);
+      },
+      error: () => {
+        this.toast.error('Failed to load classroom');
+        void this.router.navigate(['/classrooms']);
+      },
+    });
+  }
+}

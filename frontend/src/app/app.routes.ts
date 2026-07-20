@@ -36,6 +36,54 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'classrooms',
+    canActivate: withPermission('CLASSROOM_VIEW', 'CLASSROOM_MANAGE'),
+    loadComponent: () =>
+      import('./features/classroom/classroom-list/classroom-list.component').then(
+        (m) => m.ClassroomListComponent
+      ),
+  },
+  {
+    path: 'classrooms/new',
+    canActivate: withPermission('CLASSROOM_MANAGE'),
+    loadComponent: () =>
+      import('./features/classroom/classroom-form/classroom-form.component').then(
+        (m) => m.ClassroomFormComponent
+      ),
+  },
+  {
+    path: 'classrooms/:id/edit',
+    canActivate: withPermission('CLASSROOM_MANAGE'),
+    loadComponent: () =>
+      import('./features/classroom/classroom-form/classroom-form.component').then(
+        (m) => m.ClassroomFormComponent
+      ),
+  },
+  {
+    path: 'periods',
+    canActivate: withPermission('PERIOD_VIEW', 'PERIOD_MANAGE'),
+    loadComponent: () =>
+      import('./features/period/period-list/period-list.component').then(
+        (m) => m.PeriodListComponent
+      ),
+  },
+  {
+    path: 'periods/new',
+    canActivate: withPermission('PERIOD_MANAGE'),
+    loadComponent: () =>
+      import('./features/period/period-form/period-form.component').then(
+        (m) => m.PeriodFormComponent
+      ),
+  },
+  {
+    path: 'periods/:id/edit',
+    canActivate: withPermission('PERIOD_MANAGE'),
+    loadComponent: () =>
+      import('./features/period/period-form/period-form.component').then(
+        (m) => m.PeriodFormComponent
+      ),
+  },
+  {
     path: 'designations/new',
     canActivate: withPermission('DESIGNATION_MANAGE'),
     loadComponent: () =>
@@ -649,6 +697,30 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/course-offering/course-offering-list/course-offering-list.component').then(
         (m) => m.CourseOfferingListComponent
+      ),
+  },
+  {
+    path: 'my-timetable',
+    canActivate: withPermission('TIMETABLE_VIEW'),
+    loadComponent: () =>
+      import('./features/timetable/my-timetable/my-timetable.component').then(
+        (m) => m.MyTimetableComponent
+      ),
+  },
+  {
+    path: 'timetable/draft-review',
+    canActivate: withPermission('TIMETABLE_GENERATE', 'TIMETABLE_MANAGE'),
+    loadComponent: () =>
+      import('./features/timetable/timetable-draft-review/timetable-draft-review.component').then(
+        (m) => m.TimetableDraftReviewComponent
+      ),
+  },
+  {
+    path: 'timetable',
+    canActivate: withPermission('TIMETABLE_VIEW'),
+    loadComponent: () =>
+      import('./features/timetable/timetable-view/timetable-view.component').then(
+        (m) => m.TimetableViewComponent
       ),
   },
   {

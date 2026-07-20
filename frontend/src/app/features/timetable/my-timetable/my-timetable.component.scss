@@ -1,0 +1,22 @@
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.week-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.week-picker__label {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+}
+
+.week-picker .field-input {
+  padding: 8px 10px;
+  height: auto;
+}

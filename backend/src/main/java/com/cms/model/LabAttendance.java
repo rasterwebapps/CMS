@@ -49,7 +49,7 @@ public class LabAttendance {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lab_schedule_id")
-    private LabSchedule labSchedule;
+    private ClassSchedule labSchedule;
 
     @Column(name = "lab_batch", nullable = false)
     private String labBatch;
@@ -128,11 +128,11 @@ public class LabAttendance {
         this.lab = lab;
     }
 
-    public LabSchedule getLabSchedule() {
+    public ClassSchedule getClassSchedule() {
         return labSchedule;
     }
 
-    public void setLabSchedule(LabSchedule labSchedule) {
+    public void setClassSchedule(ClassSchedule labSchedule) {
         this.labSchedule = labSchedule;
     }
 

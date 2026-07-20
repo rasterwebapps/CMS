@@ -1,0 +1,69 @@
+<div class="week-grid-wrap">
+
+  @if (mode === 'review' && (allowGenerate || allowManage)) {
+    <div class="week-grid-toolbar">
+      @if (isEmpty()) {
+        @if (allowGenerate) {
+          <button type="button" class="btn-primary" [disabled]="generating" (click)="generateClick.emit()">
+            @if (generating) {
+              <span class="btn-spinner btn-spinner--dark"></span>
+            }
+            Generate
+          </button>
+        }
+      } @else if (allowManage) {
+        <button type="button" class="btn-secondary" [disabled]="saving" (click)="discardClick.emit()">Discard</button>
+        <button type="button" class="btn-primary" [disabled]="saving" (click)="approveClick.emit()">
+          @if (saving) {
+            <span class="btn-spinner btn-spinner--dark"></span>
+          }
+          Approve
+        </button>
+      }
+    </div>
+  }
+
+  @if (isEmpty()) {
+    <cms-empty-state
+      icon="calendar_today"
+      [title]="mode === 'review' ? 'No draft timetable yet' : 'No sessions scheduled'"
+      [subtitle]="mode === 'review' ? 'Click Generate to create a draft from the active curriculum.' : 'Nothing is scheduled for this view yet.'"
+    />
+  } @else {
+    <div class="week-grid" [style.grid-template-columns]="'88px repeat(' + days.length + ', 1fr)'">
+      <div class="week-grid__corner"></div>
+      @for (day of days; track day; let i = $index) {
+        <div class="week-grid__day-hdr" [class.week-grid__day-hdr--holiday]="isHoliday()(i)">
+          {{ dayLabels[day] }}
+          @if (isHoliday()(i)) {
+            <span class="week-grid__holiday-badge">Holiday</span>
+          }
+        </div>
+      }
+
+      @for (row of rows(); track row.key) {
+        <div class="week-grid__time-cell">{{ row.label }}</div>
+        @for (day of days; track day; let i = $index) {
+          <div class="week-grid__cell" [class.week-grid__cell--holiday]="isHoliday()(i)">
+            @for (session of cell(day, row); track session.id) {
+              <button type="button"
+                class="session-chip"
+                [class.session-chip--theory]="session.sessionType === 'THEORY'"
+                [class.session-chip--lab]="session.sessionType === 'LAB'"
+                [class.session-chip--draft]="session.status === 'DRAFT'"
+                (click)="onSessionClick(session)">
+                <span class="session-chip__subject">{{ session.subjectName }}</span>
+                <span class="session-chip__room">{{ session.roomName }}</span>
+                @if (session.batchName) {
+                  <span class="session-chip__batch">{{ session.batchName }}</span>
+                }
+                <span class="session-chip__faculty">{{ session.facultyName }}</span>
+              </button>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+
+</div>

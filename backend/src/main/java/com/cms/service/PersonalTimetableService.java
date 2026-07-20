@@ -1,0 +1,125 @@
+package com.cms.service;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.cms.dto.MyTimetableResponse;
+import com.cms.dto.ProfileIdentity;
+import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.Batch;
+import com.cms.model.ClassSchedule;
+import com.cms.model.CourseRegistration;
+import com.cms.model.StudentTermEnrollment;
+import com.cms.model.TermInstance;
+import com.cms.model.enums.CalendarEventType;
+import com.cms.model.enums.ClassScheduleStatus;
+import com.cms.model.enums.RegistrationStatus;
+import com.cms.repository.BatchRepository;
+import com.cms.repository.CalendarEventRepository;
+import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.CourseRegistrationRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
+import com.cms.repository.TermInstanceRepository;
+
+/**
+ * Resolves "my timetable" for whichever student/faculty is currently authenticated, and adds a
+ * display-time-only holiday annotation for a specific viewed week. The schedule itself stays a
+ * recurring weekly template (no calendar dates in ClassSchedule) — this service never lets
+ * holiday-awareness leak into generation, only into what's shown for a given weekStart.
+ */
+@Service
+@Transactional(readOnly = true)
+public class PersonalTimetableService {
+
+    private final ClassScheduleRepository classScheduleRepository;
+    private final ClassScheduleService classScheduleService;
+    private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
+    private final CourseRegistrationRepository courseRegistrationRepository;
+    private final BatchRepository batchRepository;
+    private final TermInstanceRepository termInstanceRepository;
+    private final CalendarEventRepository calendarEventRepository;
+
+    public PersonalTimetableService(ClassScheduleRepository classScheduleRepository,
+                                     ClassScheduleService classScheduleService,
+                                     StudentTermEnrollmentRepository studentTermEnrollmentRepository,
+                                     CourseRegistrationRepository courseRegistrationRepository,
+                                     BatchRepository batchRepository,
+                                     TermInstanceRepository termInstanceRepository,
+                                     CalendarEventRepository calendarEventRepository) {
+        this.classScheduleRepository = classScheduleRepository;
+        this.classScheduleService = classScheduleService;
+        this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
+        this.courseRegistrationRepository = courseRegistrationRepository;
+        this.batchRepository = batchRepository;
+        this.termInstanceRepository = termInstanceRepository;
+        this.calendarEventRepository = calendarEventRepository;
+    }
+
+    public MyTimetableResponse findMyTimetable(ProfileIdentity identity, Long termInstanceId, LocalDate weekStart) {
+        List<ClassSchedule> rows = switch (identity.entityType()) {
+            case "STUDENT" -> findForStudent(identity.entityId(), termInstanceId);
+            case "FACULTY" -> classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(
+                termInstanceId, ClassScheduleStatus.PUBLISHED, identity.entityId());
+            default -> List.of();
+        };
+
+        List<Integer> holidayDayIndexes = weekStart != null
+            ? resolveHolidayDayIndexes(termInstanceId, weekStart)
+            : List.of();
+
+        return new MyTimetableResponse(classScheduleService.toResponseList(rows), holidayDayIndexes);
+    }
+
+    private List<ClassSchedule> findForStudent(Long studentId, Long termInstanceId) {
+        StudentTermEnrollment enrollment = studentTermEnrollmentRepository
+            .findByStudentIdAndTermInstanceId(studentId, termInstanceId).orElse(null);
+
+        Set<Long> courseOfferingIds = new LinkedHashSet<>();
+        if (enrollment != null) {
+            for (CourseRegistration reg : courseRegistrationRepository.findByStudentTermEnrollmentId(enrollment.getId())) {
+                if (reg.getStatus() == RegistrationStatus.REGISTERED) {
+                    courseOfferingIds.add(reg.getCourseOffering().getId());
+                }
+            }
+        }
+
+        List<Batch> batches = batchRepository.findByTermInstanceIdAndStudentId(termInstanceId, studentId);
+        List<Long> batchIds = batches.stream().map(Batch::getId).toList();
+
+        List<ClassSchedule> theoryRows = courseOfferingIds.isEmpty() ? List.of()
+            : classScheduleRepository.findByTermInstanceIdAndStatusAndCourseOfferingIdIn(
+                termInstanceId, ClassScheduleStatus.PUBLISHED, List.copyOf(courseOfferingIds))
+              .stream().filter(cs -> cs.getSessionType() == com.cms.model.enums.ClassSessionType.THEORY).toList();
+
+        List<ClassSchedule> labRows = batchIds.isEmpty() ? List.of()
+            : classScheduleRepository.findByTermInstanceIdAndStatusAndBatchIdIn(
+                termInstanceId, ClassScheduleStatus.PUBLISHED, batchIds);
+
+        List<ClassSchedule> merged = new ArrayList<>(theoryRows);
+        merged.addAll(labRows);
+        return merged;
+    }
+
+    private List<Integer> resolveHolidayDayIndexes(Long termInstanceId, LocalDate weekStart) {
+        TermInstance termInstance = termInstanceRepository.findById(termInstanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
+        Long academicYearId = termInstance.getAcademicYear().getId();
+
+        List<Integer> holidays = new ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            LocalDate date = weekStart.plusDays(i);
+            List<com.cms.model.CalendarEvent> events = calendarEventRepository.findOverlapping(
+                academicYearId, CalendarEventType.HOLIDAY, date, date);
+            if (!events.isEmpty()) {
+                holidays.add(i);
+            }
+        }
+        return holidays;
+    }
+}

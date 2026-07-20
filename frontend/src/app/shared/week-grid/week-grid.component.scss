@@ -1,0 +1,124 @@
+.week-grid-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.week-grid-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.week-grid {
+  display: grid;
+  gap: 1px;
+  background: var(--cms-border-default);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 12px;
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.week-grid__corner,
+.week-grid__day-hdr {
+  background: var(--cms-bg-muted);
+  padding: 10px 8px;
+  text-align: center;
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cms-text-secondary);
+}
+
+.week-grid__day-hdr--holiday {
+  background: rgba(239, 68, 68, 0.10);
+  color: #ef4444;
+}
+
+.week-grid__holiday-badge {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.5625rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.week-grid__time-cell {
+  background: var(--cms-bg-muted);
+  padding: 8px;
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  color: var(--cms-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 76px;
+}
+
+.week-grid__cell {
+  background: var(--cms-bg-card);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 76px;
+}
+
+.week-grid__cell--holiday {
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.session-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.25);
+  }
+}
+
+.session-chip--theory {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.28);
+}
+
+.session-chip--lab {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
+.session-chip--draft {
+  border-style: dashed;
+  opacity: 0.85;
+}
+
+.session-chip__subject {
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  line-height: 1.25;
+}
+
+.session-chip__room,
+.session-chip__batch,
+.session-chip__faculty {
+  font-size: 0.625rem;
+  color: var(--cms-text-muted);
+  line-height: 1.2;
+}

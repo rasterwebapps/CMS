@@ -49,7 +49,7 @@ public class LocalDataSeeder {
             AgentRepository agentRepo,
             EnquiryRepository enquiryRepo,
             ReferralTypeRepository referralTypeRepo,
-            LabScheduleRepository labScheduleRepo,
+            ClassScheduleRepository labScheduleRepo,
             LabSlotRepository labSlotRepo,
             ExperimentRepository experimentRepo,
             SystemConfigurationRepository sysConfigRepo,
@@ -309,11 +309,11 @@ public class LocalDataSeeder {
             // ═══════════════════════════════════════════════════════════════
             // 21. LAB SCHEDULES
             // ═══════════════════════════════════════════════════════════════
-            labScheduleRepo.save(createLabSchedule(lab1, subNursingFoundation, f6, slot1, "Batch A", DayOfWeek.MONDAY, oddTerm2025));
-            labScheduleRepo.save(createLabSchedule(lab2, subAnatomy, f3, slot2, "Batch A", DayOfWeek.TUESDAY, oddTerm2025));
-            labScheduleRepo.save(createLabSchedule(lab3, subMSN1, f1, slot3, "Batch B", DayOfWeek.WEDNESDAY, oddTerm2025));
-            labScheduleRepo.save(createLabSchedule(lab9, subMicrobiology, f8, slot1, "Batch A", DayOfWeek.THURSDAY, oddTerm2025));
-            labScheduleRepo.save(createLabSchedule(lab4, subOBGNursing, f4, slot2, "Batch B", DayOfWeek.FRIDAY, oddTerm2025));
+            labScheduleRepo.save(createClassSchedule(lab1, subNursingFoundation, f6, slot1, "Batch A", DayOfWeek.MONDAY, oddTerm2025));
+            labScheduleRepo.save(createClassSchedule(lab2, subAnatomy, f3, slot2, "Batch A", DayOfWeek.TUESDAY, oddTerm2025));
+            labScheduleRepo.save(createClassSchedule(lab3, subMSN1, f1, slot3, "Batch B", DayOfWeek.WEDNESDAY, oddTerm2025));
+            labScheduleRepo.save(createClassSchedule(lab9, subMicrobiology, f8, slot1, "Batch A", DayOfWeek.THURSDAY, oddTerm2025));
+            labScheduleRepo.save(createClassSchedule(lab4, subOBGNursing, f4, slot2, "Batch B", DayOfWeek.FRIDAY, oddTerm2025));
             log.info("✓ Created 5 lab schedules");
 
             // ═══════════════════════════════════════════════════════════════
@@ -542,8 +542,8 @@ public class LocalDataSeeder {
         return ls;
     }
 
-    private LabSchedule createLabSchedule(Lab lab, Subject subject, Faculty faculty, LabSlot labSlot, String batchName, DayOfWeek dayOfWeek, TermInstance termInstance) {
-        LabSchedule ls = new LabSchedule();
+    private ClassSchedule createClassSchedule(Lab lab, Subject subject, Faculty faculty, LabSlot labSlot, String batchName, DayOfWeek dayOfWeek, TermInstance termInstance) {
+        ClassSchedule ls = new ClassSchedule();
         ls.setLab(lab);
         ls.setSubject(subject);
         ls.setFaculty(faculty);

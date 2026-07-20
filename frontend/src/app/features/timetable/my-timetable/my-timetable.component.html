@@ -1,0 +1,41 @@
+<div class="mlp-page">
+
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="page-title">My <em>Timetable</em></h1>
+      <p class="page-subtitle">Your published theory and lab schedule for the selected term</p>
+    </div>
+  </div>
+
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
+      @for (ay of academicYears(); track ay.id) {
+        <option [ngValue]="ay.id">{{ ay.name }}</option>
+      }
+    </select>
+    <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()"
+      [disabled]="termsLoading() || termInstances().length === 0" aria-label="Term">
+      @if (termInstances().length === 0) {
+        <option [ngValue]="null">No terms yet</option>
+      }
+      @for (term of termInstances(); track term.id) {
+        <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
+      }
+    </select>
+    <label class="week-picker">
+      <span class="week-picker__label">Week of</span>
+      <input type="date" class="field-input" [(ngModel)]="weekStart" (ngModelChange)="onWeekStartChange()" aria-label="Week start date" />
+    </label>
+  </div>
+
+  <div class="content-card">
+    @if (loading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading timetable"></mat-spinner>
+      </div>
+    } @else {
+      <cms-week-grid mode="personal" [sessions]="sessions()" [holidayDayIndexes]="holidayDayIndexes()" />
+    }
+  </div>
+
+</div>

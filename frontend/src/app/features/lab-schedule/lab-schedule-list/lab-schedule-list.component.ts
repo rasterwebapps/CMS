@@ -57,9 +57,10 @@ export class LabScheduleListComponent implements OnInit {
     storageKey: 'lab-schedule-list-cols',
     columns: [
       { key: 'dayOfWeek', label: 'Day', mandatory: true },
-      { key: 'labName', label: 'Lab' },
-      { key: 'courseName', label: 'Course' },
-      { key: 'courseCode', label: 'Code' },
+      { key: 'sessionType', label: 'Type' },
+      { key: 'roomName', label: 'Room' },
+      { key: 'subjectName', label: 'Subject' },
+      { key: 'subjectCode', label: 'Code' },
       { key: 'facultyName', label: 'Faculty' },
       { key: 'batchName', label: 'Batch' },
       { key: 'startTime', label: 'Start' },
@@ -89,7 +90,7 @@ export class LabScheduleListComponent implements OnInit {
 
   protected delete(item: LabSchedule): void {
     this.dialog.open(ConfirmDialogComponent, {
-      data: { title: 'Delete Lab Schedule', message: `Delete schedule for "${item.courseName}" on ${item.dayOfWeek}?`, confirmText: 'Delete', cancelText: 'Cancel' },
+      data: { title: 'Delete Class Schedule', message: `Delete schedule for "${item.subjectName}" on ${item.dayOfWeek}?`, confirmText: 'Delete', cancelText: 'Cancel' },
     }).afterClosed().subscribe((confirmed) => { if (confirmed) this.doDelete(item); });
   }
 

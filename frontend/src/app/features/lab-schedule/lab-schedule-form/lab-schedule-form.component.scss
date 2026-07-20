@@ -40,3 +40,39 @@
   gap: 12px;
   margin-top: 16px;
 }
+
+// ── Session Type toggle ─────────────────────────────────────────
+.session-type-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.session-type-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  color: var(--cms-text-secondary);
+  font-size: var(--cms-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  input[type="radio"] {
+    accent-color: var(--cms-primary);
+    margin: 0;
+  }
+
+  &:hover {
+    border-color: rgba(var(--cms-primary-rgb), 0.3);
+  }
+
+  &--active {
+    background: rgba(var(--cms-primary-rgb), 0.10);
+    border-color: rgba(var(--cms-primary-rgb), 0.35);
+    color: var(--cms-primary);
+  }
+}

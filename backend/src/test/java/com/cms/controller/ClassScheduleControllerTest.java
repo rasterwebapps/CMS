@@ -26,17 +26,19 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.cms.dto.LabScheduleRequest;
-import com.cms.dto.LabScheduleResponse;
+import com.cms.dto.ClassScheduleRequest;
+import com.cms.dto.ClassScheduleResponse;
 import com.cms.dto.ScheduleConflictResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.enums.ClassScheduleStatus;
+import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
-import com.cms.service.LabScheduleService;
+import com.cms.service.ClassScheduleService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-@WebMvcTest(controllers = LabScheduleController.class)
+@WebMvcTest(controllers = ClassScheduleController.class)
 @AutoConfigureMockMvc(addFilters = false)
-class LabScheduleControllerTest {
+class ClassScheduleControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -45,17 +47,21 @@ class LabScheduleControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private LabScheduleService labScheduleService;
+    private ClassScheduleService classScheduleService;
+
+    private ClassScheduleRequest labRequest(String batchName, DayOfWeek dayOfWeek) {
+        return new ClassScheduleRequest(
+            ClassSessionType.LAB, 1L, 1L, 1L, 1L, batchName, null,
+            dayOfWeek, 1L, true, null, null, null
+        );
+    }
 
     @Test
-    void shouldCreateLabSchedule() throws Exception {
-        LabScheduleRequest request = new LabScheduleRequest(
-            1L, 1L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L, true, null
-        );
+    void shouldCreateClassSchedule() throws Exception {
+        ClassScheduleRequest request = labRequest("Batch-A", DayOfWeek.MONDAY);
+        ClassScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
 
-        LabScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
-
-        when(labScheduleService.create(any(LabScheduleRequest.class))).thenReturn(response);
+        when(classScheduleService.create(any(ClassScheduleRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/lab-schedules")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -64,111 +70,109 @@ class LabScheduleControllerTest {
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.batchName").value("Batch-A"));
 
-        verify(labScheduleService).create(any(LabScheduleRequest.class));
+        verify(classScheduleService).create(any(ClassScheduleRequest.class));
     }
 
     @Test
-    void shouldFindAllLabSchedules() throws Exception {
-        LabScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
+    void shouldFindAllClassSchedules() throws Exception {
+        ClassScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
 
-        when(labScheduleService.findAll()).thenReturn(List.of(response));
+        when(classScheduleService.findAll()).thenReturn(List.of(response));
 
         mockMvc.perform(get("/lab-schedules"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].id").value(1));
 
-        verify(labScheduleService).findAll();
+        verify(classScheduleService).findAll();
     }
 
     @Test
     void shouldFindByLabId() throws Exception {
-        LabScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
+        ClassScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
 
-        when(labScheduleService.findByLabId(1L)).thenReturn(List.of(response));
+        when(classScheduleService.findByLabId(1L)).thenReturn(List.of(response));
 
         mockMvc.perform(get("/lab-schedules").param("labId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1));
 
-        verify(labScheduleService).findByLabId(1L);
+        verify(classScheduleService).findByLabId(1L);
     }
 
     @Test
     void shouldFindByFacultyId() throws Exception {
-        LabScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
+        ClassScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
 
-        when(labScheduleService.findByFacultyId(1L)).thenReturn(List.of(response));
+        when(classScheduleService.findByFacultyId(1L)).thenReturn(List.of(response));
 
         mockMvc.perform(get("/lab-schedules").param("facultyId", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1));
 
-        verify(labScheduleService).findByFacultyId(1L);
+        verify(classScheduleService).findByFacultyId(1L);
     }
 
     @Test
     void shouldFindByBatchName() throws Exception {
-        LabScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
+        ClassScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
 
-        when(labScheduleService.findByBatchName("Batch-A")).thenReturn(List.of(response));
+        when(classScheduleService.findByBatchName("Batch-A")).thenReturn(List.of(response));
 
         mockMvc.perform(get("/lab-schedules").param("batchName", "Batch-A"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1));
 
-        verify(labScheduleService).findByBatchName("Batch-A");
+        verify(classScheduleService).findByBatchName("Batch-A");
     }
 
     @Test
     void shouldFindByDayOfWeek() throws Exception {
-        LabScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
+        ClassScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
 
-        when(labScheduleService.findByDayOfWeek(DayOfWeek.MONDAY)).thenReturn(List.of(response));
+        when(classScheduleService.findByDayOfWeek(DayOfWeek.MONDAY)).thenReturn(List.of(response));
 
         mockMvc.perform(get("/lab-schedules").param("dayOfWeek", "MONDAY"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1));
 
-        verify(labScheduleService).findByDayOfWeek(DayOfWeek.MONDAY);
+        verify(classScheduleService).findByDayOfWeek(DayOfWeek.MONDAY);
     }
 
     @Test
-    void shouldFindLabScheduleById() throws Exception {
-        LabScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
+    void shouldFindClassScheduleById() throws Exception {
+        ClassScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
 
-        when(labScheduleService.findById(1L)).thenReturn(response);
+        when(classScheduleService.findById(1L)).thenReturn(response);
 
         mockMvc.perform(get("/lab-schedules/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1))
             .andExpect(jsonPath("$.batchName").value("Batch-A"));
 
-        verify(labScheduleService).findById(1L);
+        verify(classScheduleService).findById(1L);
     }
 
     @Test
-    void shouldReturnNotFoundWhenLabScheduleNotExists() throws Exception {
-        when(labScheduleService.findById(999L))
-            .thenThrow(new ResourceNotFoundException("Lab schedule not found with id: 999"));
+    void shouldReturnNotFoundWhenClassScheduleNotExists() throws Exception {
+        when(classScheduleService.findById(999L))
+            .thenThrow(new ResourceNotFoundException("Class schedule not found with id: 999"));
 
         mockMvc.perform(get("/lab-schedules/999"))
             .andExpect(status().isNotFound());
 
-        verify(labScheduleService).findById(999L);
+        verify(classScheduleService).findById(999L);
     }
 
     @Test
     void shouldCheckConflicts() throws Exception {
-        LabScheduleRequest request = new LabScheduleRequest(
-            1L, 1L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L, true, null
-        );
+        ClassScheduleRequest request = labRequest("Batch-A", DayOfWeek.MONDAY);
 
         ScheduleConflictResponse response = new ScheduleConflictResponse(
             false, Collections.emptyList(), Collections.emptyList(), Collections.emptyList()
         );
 
-        when(labScheduleService.checkConflicts(any(LabScheduleRequest.class))).thenReturn(response);
+        when(classScheduleService.checkConflicts(any(ClassScheduleRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/lab-schedules/check-conflicts")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -176,18 +180,16 @@ class LabScheduleControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.hasConflict").value(false));
 
-        verify(labScheduleService).checkConflicts(any(LabScheduleRequest.class));
+        verify(classScheduleService).checkConflicts(any(ClassScheduleRequest.class));
     }
 
     @Test
-    void shouldUpdateLabSchedule() throws Exception {
-        LabScheduleRequest request = new LabScheduleRequest(
-            1L, 1L, 1L, 1L, "Batch-B", DayOfWeek.TUESDAY, 1L, true, null
-        );
+    void shouldUpdateClassSchedule() throws Exception {
+        ClassScheduleRequest request = labRequest("Batch-B", DayOfWeek.TUESDAY);
 
-        LabScheduleResponse response = createResponse(1L, "Batch-B", DayOfWeek.TUESDAY);
+        ClassScheduleResponse response = createResponse(1L, "Batch-B", DayOfWeek.TUESDAY);
 
-        when(labScheduleService.update(eq(1L), any(LabScheduleRequest.class))).thenReturn(response);
+        when(classScheduleService.update(eq(1L), any(ClassScheduleRequest.class))).thenReturn(response);
 
         mockMvc.perform(put("/lab-schedules/1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -195,37 +197,39 @@ class LabScheduleControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.batchName").value("Batch-B"));
 
-        verify(labScheduleService).update(eq(1L), any(LabScheduleRequest.class));
+        verify(classScheduleService).update(eq(1L), any(ClassScheduleRequest.class));
     }
 
     @Test
-    void shouldDeleteLabSchedule() throws Exception {
-        doNothing().when(labScheduleService).delete(1L);
+    void shouldDeleteClassSchedule() throws Exception {
+        doNothing().when(classScheduleService).delete(1L);
 
         mockMvc.perform(delete("/lab-schedules/1"))
             .andExpect(status().isNoContent());
 
-        verify(labScheduleService).delete(1L);
+        verify(classScheduleService).delete(1L);
     }
 
     @Test
-    void shouldReturnNotFoundWhenDeletingNonExistentLabSchedule() throws Exception {
-        doThrow(new ResourceNotFoundException("Lab schedule not found with id: 999"))
-            .when(labScheduleService).delete(999L);
+    void shouldReturnNotFoundWhenDeletingNonExistentClassSchedule() throws Exception {
+        doThrow(new ResourceNotFoundException("Class schedule not found with id: 999"))
+            .when(classScheduleService).delete(999L);
 
         mockMvc.perform(delete("/lab-schedules/999"))
             .andExpect(status().isNotFound());
 
-        verify(labScheduleService).delete(999L);
+        verify(classScheduleService).delete(999L);
     }
 
-    private LabScheduleResponse createResponse(Long id, String batchName, DayOfWeek dayOfWeek) {
+    private ClassScheduleResponse createResponse(Long id, String batchName, DayOfWeek dayOfWeek) {
         Instant now = Instant.now();
-        return new LabScheduleResponse(
-            id, 1L, "Lab 1", 1L, "Data Structures Lab", "CS201L",
-            1L, "John Doe", 1L, "Slot 1",
+        return new ClassScheduleResponse(
+            id, ClassSessionType.LAB, ClassScheduleStatus.PUBLISHED,
+            1L, "Lab 1", 1L, "Data Structures Lab", "CS201L",
+            1L, "John Doe", 1L, null, "Slot 1",
             LocalTime.of(9, 0), LocalTime.of(10, 30),
-            batchName, null, dayOfWeek, 1L, "Odd Semester 2024",
+            batchName, null, null, "Lab 1", null,
+            dayOfWeek, 1L, "Odd Semester 2024",
             true, now, now
         );
     }

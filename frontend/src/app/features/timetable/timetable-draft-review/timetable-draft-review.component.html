@@ -1,0 +1,61 @@
+<div class="mlp-page">
+
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="page-title">Timetable <em>Draft Review</em></h1>
+      <p class="page-subtitle">Generate a draft theory + lab timetable from the active curriculum and approve it once it looks right</p>
+    </div>
+  </div>
+
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
+      @for (ay of academicYears(); track ay.id) {
+        <option [ngValue]="ay.id">{{ ay.name }}</option>
+      }
+    </select>
+    <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()"
+      [disabled]="termsLoading() || termInstances().length === 0" aria-label="Term">
+      @if (termInstances().length === 0) {
+        <option [ngValue]="null">No terms yet</option>
+      }
+      @for (term of termInstances(); track term.id) {
+        <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
+      }
+    </select>
+  </div>
+
+  @if (unplaceable().length > 0) {
+    <div class="content-card timetable-warning-banner">
+      <div class="timetable-warning-banner__title">
+        {{ unplaceable().length }} session(s) could not be auto-placed — fix these manually via the Lab Schedules screen before approving:
+      </div>
+      <ul class="timetable-warning-banner__list">
+        @for (msg of unplaceable(); track msg) {
+          <li>{{ msg }}</li>
+        }
+      </ul>
+    </div>
+  }
+
+  <div class="content-card">
+    @if (loading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading timetable"></mat-spinner>
+      </div>
+    } @else {
+      <cms-week-grid
+        mode="review"
+        [sessions]="sessions()"
+        [generating]="generating()"
+        [saving]="saving()"
+        [allowGenerate]="canGenerate()"
+        [allowManage]="canManage()"
+        (generateClick)="onGenerate()"
+        (approveClick)="onApprove()"
+        (discardClick)="onDiscard()"
+        (sessionClick)="onSessionClick($event)"
+      />
+    }
+  </div>
+
+</div>

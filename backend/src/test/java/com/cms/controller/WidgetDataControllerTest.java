@@ -38,7 +38,7 @@ import com.cms.repository.FacultyRepository;
 import com.cms.repository.FeeDemandRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.FeeRefundRepository;
-import com.cms.repository.LabScheduleRepository;
+import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.SpecialityRepository;
@@ -96,7 +96,7 @@ class WidgetDataControllerTest {
     private FacultyRepository facultyRepository;
 
     @MockitoBean
-    private LabScheduleRepository labScheduleRepository;
+    private ClassScheduleRepository labScheduleRepository;
 
     @MockitoBean
     private StudentTermEnrollmentRepository studentTermEnrollmentRepository;

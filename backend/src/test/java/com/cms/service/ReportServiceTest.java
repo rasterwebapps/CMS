@@ -35,7 +35,7 @@ import com.cms.repository.EquipmentRepository;
 import com.cms.repository.ExamResultRepository;
 import com.cms.repository.LabContinuousEvaluationRepository;
 import com.cms.repository.LabRepository;
-import com.cms.repository.LabScheduleRepository;
+import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.StudentRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,7 +45,7 @@ class ReportServiceTest {
     private LabRepository labRepository;
 
     @Mock
-    private LabScheduleRepository labScheduleRepository;
+    private ClassScheduleRepository labScheduleRepository;
 
     @Mock
     private StudentRepository studentRepository;

@@ -1,0 +1,59 @@
+// ─────────────────────────────────────────────────────────────
+// Classroom Form Page
+// ─────────────────────────────────────────────────────────────
+
+.dept-preview-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 18px;
+  overflow: hidden;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--cms-primary);
+    border-radius: 18px 18px 0 0;
+  }
+}
+
+.dept-preview-hdr {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--cms-border-default);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--cms-primary);
+}
+
+.dept-preview-label {
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cms-text-muted);
+}
+
+.dept-preview-body {
+  padding: 22px 20px;
+}
+
+.dept-prev-name {
+  font-size: var(--cms-text-md);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+  min-height: 24px;
+}
+
+.dept-prev-desc {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-muted);
+  margin: 12px 0 0;
+  line-height: 1.6;
+}

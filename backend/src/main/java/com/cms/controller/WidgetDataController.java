@@ -32,7 +32,7 @@ import com.cms.model.Speciality;
 import com.cms.model.FeeDemand;
 import com.cms.model.FeeRefund;
 import com.cms.model.Faculty;
-import com.cms.model.LabSchedule;
+import com.cms.model.ClassSchedule;
 import com.cms.model.PaymentReceipt;
 import com.cms.model.Program;
 import com.cms.model.Student;
@@ -61,7 +61,7 @@ import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.FeeDemandRepository;
 import com.cms.repository.FeeRefundRepository;
-import com.cms.repository.LabScheduleRepository;
+import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
@@ -98,7 +98,7 @@ public class WidgetDataController {
     private final FeeRefundRepository                feeRefundRepository;
     private final SpecialityRepository              specialityRepository;
     private final FacultyRepository                 facultyRepository;
-    private final LabScheduleRepository             labScheduleRepository;
+    private final ClassScheduleRepository             labScheduleRepository;
     private final StudentTermEnrollmentRepository   studentTermEnrollmentRepository;
     private final PaymentReceiptRepository          paymentReceiptRepository;
     private final ComplianceDocumentRepository      complianceDocumentRepository;
@@ -120,7 +120,7 @@ public class WidgetDataController {
                                 FeeRefundRepository feeRefundRepository,
                                 SpecialityRepository specialityRepository,
                                 FacultyRepository facultyRepository,
-                                LabScheduleRepository labScheduleRepository,
+                                ClassScheduleRepository labScheduleRepository,
                                 StudentTermEnrollmentRepository studentTermEnrollmentRepository,
                                 PaymentReceiptRepository paymentReceiptRepository,
                                 ComplianceDocumentRepository complianceDocumentRepository,
@@ -1132,7 +1132,7 @@ public class WidgetDataController {
     @PreAuthorize("@perm.hasAny('LAB_VIEW','REPORT_VIEW')")
     public ResponseEntity<LabUtilizationData> getLabUtilizationHeatmap() {
         List<String> days = List.of("MON", "TUE", "WED", "THU", "FRI", "SAT");
-        List<LabSchedule> schedules = labScheduleRepository.findAll().stream()
+        List<ClassSchedule> schedules = labScheduleRepository.findAll().stream()
             .filter(s -> Boolean.TRUE.equals(s.getIsActive()))
             .toList();
         List<String> slots = schedules.stream()
@@ -1143,7 +1143,7 @@ public class WidgetDataController {
             .toList();
 
         Map<String, Long> counts = new HashMap<>();
-        for (LabSchedule s : schedules) {
+        for (ClassSchedule s : schedules) {
             String day = s.getDayOfWeek() != null ? s.getDayOfWeek().name().substring(0, 3) : "MON";
             String slot = s.getLabSlot() != null ? clean(s.getLabSlot().getName(), "Slot") : "Slot";
             counts.merge(day + "|" + slot, 1L, Long::sum);

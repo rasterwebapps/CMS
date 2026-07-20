@@ -4,7 +4,7 @@ import java.util.List;
 
 public record ScheduleConflictResponse(
     boolean hasConflict,
-    List<String> labConflicts,
+    List<String> roomConflicts,
     List<String> facultyConflicts,
-    List<String> batchConflicts
+    List<String> audienceConflicts
 ) {}

@@ -32,7 +32,7 @@ import com.cms.model.InventoryItem;
 import com.cms.model.Lab;
 import com.cms.model.LabCurriculumMapping;
 import com.cms.model.LabInChargeAssignment;
-import com.cms.model.LabSchedule;
+import com.cms.model.ClassSchedule;
 import com.cms.model.LabSlot;
 import com.cms.model.MaintenanceRequest;
 import com.cms.model.Program;
@@ -91,7 +91,7 @@ import com.cms.repository.InventoryItemRepository;
 import com.cms.repository.LabCurriculumMappingRepository;
 import com.cms.repository.LabInChargeAssignmentRepository;
 import com.cms.repository.LabRepository;
-import com.cms.repository.LabScheduleRepository;
+import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.LabSlotRepository;
 import com.cms.repository.MaintenanceRequestRepository;
 import com.cms.repository.ProgramRepository;
@@ -133,7 +133,7 @@ public class DataLoader implements CommandLineRunner {
     private final ExamResultRepository examResultRepository;
     private final ExperimentRepository experimentRepository;
     private final LabCurriculumMappingRepository labCurriculumMappingRepository;
-    private final LabScheduleRepository labScheduleRepository;
+    private final ClassScheduleRepository labScheduleRepository;
     private final StudentFeeAllocationRepository studentFeeAllocationRepository;
     private final SemesterFeeRepository semesterFeeRepository;
     private final CommunityRepository communityRepository;
@@ -164,7 +164,7 @@ public class DataLoader implements CommandLineRunner {
                       ExamResultRepository examResultRepository,
                       ExperimentRepository experimentRepository,
                       LabCurriculumMappingRepository labCurriculumMappingRepository,
-                      LabScheduleRepository labScheduleRepository,
+                      ClassScheduleRepository labScheduleRepository,
                       StudentFeeAllocationRepository studentFeeAllocationRepository,
                       SemesterFeeRepository semesterFeeRepository,
                       CommunityRepository communityRepository,
@@ -492,10 +492,10 @@ public class DataLoader implements CommandLineRunner {
         labCurriculumMappingRepository.save(new LabCurriculumMapping(exp3, OutcomeType.PROGRAM_SPECIFIC_OUTCOME, "PSO1", "Apply anatomy in clinical care",  MappingLevel.MEDIUM, "Foundation for clinical nursing"));
 
         // ── 25. Lab Schedules ────────────────────────────────────────────────
-        labScheduleRepository.save(new LabSchedule(nfLab2, nfLab,  f7, slot1, "Batch A", DayOfWeek.MONDAY,    oddTerm2425, true));
-        labScheduleRepository.save(new LabSchedule(nfLab2, nfLab,  f8, slot2, "Batch B", DayOfWeek.WEDNESDAY, oddTerm2425, true));
-        labScheduleRepository.save(new LabSchedule(anatLab, anatomy, f4, slot1, "Batch A", DayOfWeek.TUESDAY,  oddTerm2425, true));
-        labScheduleRepository.save(new LabSchedule(compLab, basicNurs, f7, slot3, "Batch A", DayOfWeek.FRIDAY, oddTerm2425, true));
+        labScheduleRepository.save(new ClassSchedule(nfLab2, nfLab,  f7, slot1, "Batch A", DayOfWeek.MONDAY,    oddTerm2425, true));
+        labScheduleRepository.save(new ClassSchedule(nfLab2, nfLab,  f8, slot2, "Batch B", DayOfWeek.WEDNESDAY, oddTerm2425, true));
+        labScheduleRepository.save(new ClassSchedule(anatLab, anatomy, f4, slot1, "Batch A", DayOfWeek.TUESDAY,  oddTerm2425, true));
+        labScheduleRepository.save(new ClassSchedule(compLab, basicNurs, f7, slot3, "Batch A", DayOfWeek.FRIDAY, oddTerm2425, true));
 
         log.info("Seed data loaded successfully.");
     }
