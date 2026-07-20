@@ -25,8 +25,19 @@ spring:
 # matches whatever Host header the browser used to reach it — localhost for the
 # dev machine itself, its LAN IP for anyone else on the network. Both must be
 # accepted or LAN clients get a 401 on every request despite a valid token.
+# The browser only ever obtains tokens via the HTTPS listener (8281 — see
+# environment.ts/docker-compose.yml); the plain-http 8280 entries are kept for
+# direct curl/Postman testing against the backend's own JWK-lookup port.
 keycloak:
-  allowed-issuers: ${KEYCLOAK_ALLOWED_ISSUERS:http://localhost:8280/realms/cms,http://172.17.3.133:8280/realms/cms}
+  allowed-issuers: ${KEYCLOAK_ALLOWED_ISSUERS:https://localhost:8281/realms/cms,https://172.17.3.133:8281/realms/cms,http://localhost:8280/realms/cms,http://172.17.3.133:8280/realms/cms}
+
+# CORS: SecurityConfig's own default (`http://localhost:4200,http://localhost:4300`)
+# predates ng serve running over HTTPS and predates LAN access — never
+# overridden here, so it was silently blocking every API call from
+# https://<LAN-IP>:4200 (and from https://localhost:4200 too). Mirrors the
+# CORS_ALLOWED_ORIGINS pattern already used in application-209.yml/application-243.yml.
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:https://localhost:4200,https://localhost:4300,https://172.17.3.133:4200,https://172.17.3.133:4300}
 
 # ng serve now runs over HTTPS (see frontend/angular.json). A browser on a
 # secure page silently upgrades (and blocks if it fails) any http:// fetch to
