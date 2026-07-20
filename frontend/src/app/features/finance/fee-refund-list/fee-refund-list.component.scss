@@ -427,6 +427,7 @@ tr.rfl-row--pending:hover td {
 // ── Pending action buttons ────────────────────────────────────────────────────
 .rfl-panel__pending-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
   padding-top: 4px;
@@ -443,6 +444,7 @@ tr.rfl-row--pending:hover td {
 
 .rfl-form-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 16px;
   justify-content: flex-end;
