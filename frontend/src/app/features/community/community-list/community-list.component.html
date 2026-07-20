@@ -65,16 +65,14 @@
     } @else {
       <div id="tour-community-content" class="mlp-cards-grid">
         @for (item of dataSource.data; track item.id) {
-          <div class="mlp-card">
-            <div class="mlp-card__header">
-              <div class="mlp-card__avatar">{{ item.code.slice(0, 2) }}</div>
-              <div class="mlp-card__meta">
-                <div class="mlp-card__title">{{ item.name }}</div>
-                <div class="mlp-card__sub">{{ item.code }}</div>
-              </div>
-              <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
+          <div class="mlp-card mlp-card--accent" [class.mlp-card--active]="item.isActive" [class.mlp-card--inactive]="!item.isActive">
+            <div class="mlp-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </div>
-            @if (item.description) {
+            <div class="mlp-card__title">{{ item.name }}</div>
+            <div class="mlp-card__sub">{{ item.code }}</div>
+            <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
+            @if (item.description && item.description !== item.name) {
               <p class="mlp-card__desc">{{ item.description }}</p>
             }
             @if (canManage()) {

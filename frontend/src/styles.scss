@@ -5029,6 +5029,65 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
   }
 }
 
+// ── Master Card content spec ─────────────────────────────────────
+// Standard anatomy for simple master-list cards (category icon, title,
+// mono code/sub line, status badge, optional 2-line description) — see
+// "Master Card Content Spec" in docs/TECHNICAL_STANDARDS.md. Applies on
+// top of the base .mlp-card/.dept-card box; entities with more fields
+// (Course, Fee Structure, Faculty) keep their own bespoke layout.
+.mlp-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+  color: var(--cms-primary);
+  flex-shrink: 0;
+
+  svg { width: 20px; height: 20px; }
+}
+
+.mlp-card__title {
+  font-size: var(--cms-text-md);
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+  padding-right: 56px; // clear the absolutely-positioned action buttons
+}
+
+.mlp-card__sub {
+  display: block;
+  font-family: var(--cms-font-mono);
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--cms-text-muted);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.mlp-card__desc {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-muted);
+  margin: 10px 0 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// Status-colored top accent bar — opt-in, shown always (not just on hover)
+.mlp-card--accent::before { opacity: 1; }
+.mlp-card--accent.mlp-card--active::before   { background: var(--cms-success); }
+.mlp-card--accent.mlp-card--warning::before  { background: var(--cms-warning); }
+.mlp-card--accent.mlp-card--inactive::before { background: var(--cms-text-muted); }
+
 // ── Table Card ────────────────────────────────────────────────
 // Used alongside .content-card. The fixed-height list standard above
 // (via :has(.mlp-table-card)) makes the page fill the viewport and
@@ -5460,6 +5519,7 @@ main.app-content > :not(router-outlet) {
   .rna-page,
   .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
   .mlp-page:has(.mlp-table-card),
+  .mlp-page:has(.mlp-cards-grid),
   .dept-list-page,
   .list-page:has(mat-paginator)
 ) {
@@ -5487,6 +5547,7 @@ main.app-content > :not(router-outlet) {
   .rna-page,
   .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
   .mlp-page:has(.mlp-table-card),
+  .mlp-page:has(.mlp-cards-grid),
   .dept-list-page,
   .list-page:has(mat-paginator)
 ) :is(
@@ -5518,6 +5579,7 @@ main.app-content > :not(router-outlet) {
   .rna-page,
   .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
   .mlp-page:has(.mlp-table-card),
+  .mlp-page:has(.mlp-cards-grid),
   .dept-list-page,
   .list-page:has(mat-paginator)
 ) .table-wrapper {
@@ -5525,6 +5587,34 @@ main.app-content > :not(router-outlet) {
   min-height: 0;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+}
+// Card view has no separate wrapper around .mlp-cards-grid (it sits directly
+// under .mlp-page next to the bare <mat-paginator>), so the grid itself takes
+// on the same flex-1/internal-scroll role .table-wrapper plays for table view —
+// otherwise the page scrolls as a whole and the paginator's position drifts
+// screen-to-screen depending on card count instead of pinning to the bottom.
+:is(
+  .mlp-page:has(.mlp-cards-grid)
+) .mlp-cards-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  align-content: start;
+}
+// Card view has no wrapping .mlp-table-card to clip the paginator flush against
+// (table view's footer sits with zero gap, inside the same rounded/bordered box
+// as the table). Cancel the .mlp-page flex gap between grid and paginator and
+// round its bottom corners so the two views read as the same footer treatment
+// instead of card view's looking like a taller, detached block.
+.mlp-cards-grid + mat-paginator {
+  margin-top: -16px;
+  border-radius: 0 0 16px 16px;
+}
+@media (max-width: 768px) {
+  .mlp-cards-grid + mat-paginator {
+    margin-top: -14px;
+  }
 }
 // ── Header & footer (paginator) use the same surface tone for visual parity.
 //    Some screens wrap the paginator in `.table-footer`/`.pagination-wrapper`,
@@ -5542,6 +5632,7 @@ main.app-content > :not(router-outlet) {
   .rna-page,
   .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
   .mlp-page:has(.mlp-table-card),
+  .mlp-page:has(.mlp-cards-grid),
   .dept-list-page,
   .list-page:has(mat-paginator)
 ) :is(.table-footer, .pagination-wrapper, mat-paginator, .mat-mdc-paginator) {
@@ -5561,6 +5652,7 @@ main.app-content > :not(router-outlet) {
   .rna-page,
   .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
   .mlp-page:has(.mlp-table-card),
+  .mlp-page:has(.mlp-cards-grid),
   .dept-list-page,
   .list-page:has(mat-paginator)
 ) :is(.mat-mdc-paginator, mat-paginator) .mat-mdc-paginator-outer-container,
@@ -5576,6 +5668,7 @@ main.app-content > :not(router-outlet) {
   .rna-page,
   .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
   .mlp-page:has(.mlp-table-card),
+  .mlp-page:has(.mlp-cards-grid),
   .dept-list-page,
   .list-page:has(mat-paginator)
 ) :is(.mat-mdc-paginator, mat-paginator) .mat-mdc-paginator-container {
@@ -5593,6 +5686,7 @@ main.app-content > :not(router-outlet) {
   .rna-page,
   .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
   .mlp-page:has(.mlp-table-card),
+  .mlp-page:has(.mlp-cards-grid),
   .dept-list-page,
   .list-page:has(mat-paginator)
 ) :is(th.mat-header-cell, th.mat-mdc-header-cell) {

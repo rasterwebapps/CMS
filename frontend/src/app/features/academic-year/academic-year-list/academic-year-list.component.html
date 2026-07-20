@@ -65,7 +65,7 @@
     } @else {
       <div id="tour-ay-content" class="mlp-cards-grid">
         @for (ay of dataSource.data; track ay.id) {
-          <div class="mlp-card">
+          <div class="mlp-card mlp-card--accent" [class.mlp-card--active]="ay.isCurrent" [class.mlp-card--inactive]="!ay.isCurrent">
             <div class="mlp-card__actions">
               <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete academic year" (clicked)="deleteAcademicYear(ay)">
                 <cms-icon-delete [size]="14" />
@@ -76,6 +76,9 @@
               <cms-row-action-btn variant="info" [iconOnly]="true" [routerLink]="['/academic-years', ay.id, 'detail']" tooltip="View detail" ariaLabel="View detail">
                 <cms-icon-view [size]="13" />
               </cms-row-action-btn>
+            </div>
+            <div class="mlp-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
             <p class="ay-card__name">{{ ay.name }}</p>
             <div class="ay-card__dates">

@@ -62,6 +62,7 @@ export class CmsStatusBadgeComponent {
       // ── In-progress / warning states ────────────────────────────────────
       case 'PARTIALLY_PAID':
       case 'IN_USE':
+      case 'UNDER_REPAIR':
       case 'LATE':
       case 'IN_PROGRESS':
       case 'WARNING':
@@ -102,6 +103,8 @@ export class CmsStatusBadgeComponent {
       case 'SUSPENDED':
       case 'EXPELLED':
       case 'WITHHELD':
+      case 'DAMAGED':
+      case 'DISPOSED':
         return 'status-inactive';
 
       // ── Returned / handed-back documents ────────────────────────────────

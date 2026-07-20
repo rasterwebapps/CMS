@@ -5,6 +5,16 @@
   margin-left: auto;
 }
 
+// Fee-structure cards carry materially more fields than a plain lookup master
+// (program/course, two badge rows, a two-row Day Scholar/Hosteler fee split),
+// so the shared 256px grid minimum leaves the fee-split rows too narrow —
+// their nowrap label + amount overflow and get clipped by .mlp-card's
+// overflow:hidden. Widen this screen's own grid; scoped locally via Angular
+// ViewEncapsulation so it doesn't affect any other .mlp-cards-grid screen.
+.mlp-cards-grid {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
 // Fee-structure-list card anatomy (layout handled by global mlp-* classes)
 .fs-card {
   &__program {
@@ -38,13 +48,11 @@
     font-size: var(--cms-text-lg);
     font-weight: 700;
     color: var(--cms-primary);
-    margin-top: auto;
     font-variant-numeric: tabular-nums;
   }
 
   // ── Day Scholar / Hosteler split display ──────────────────────────────────
   &__fee-split {
-    margin-top: auto;
     display: flex;
     flex-direction: column;
     gap: 5px;
@@ -79,18 +87,28 @@
     }
   }
 
+  // min-width:0 lets this flex item actually shrink instead of forcing the
+  // row to overflow (flex items default to min-width:auto); the amount gets
+  // flex-shrink:0 so a rupee figure is never the thing that gets truncated.
   &__fee-label {
     display: flex;
     align-items: center;
     gap: 4px;
+    min-width: 0;
     font-size: var(--cms-text-sm);
     font-weight: 500;
-    white-space: nowrap;
 
     svg { flex-shrink: 0; }
   }
 
+  &__fee-label-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   &__fee-amount {
+    flex-shrink: 0;
     font-size: var(--cms-text-base);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
@@ -135,16 +153,8 @@
   }
 }
 
-// #tour-fs-content is a tour-anchor wrapper with no global CSS of its own. It sits
-// between .mlp-page (flex column) and .content-card.mlp-table-card, so
-// without this it isn't a flex item and .mlp-table-card's flex:1 can't
-// stretch the card to fill remaining screen height — the table stays
-// content-sized and the paginator sits under the last row instead of
-// pinning to the bottom (the receipts-list/fee-refund-list reference
-// pattern has no such intermediate div).
-#tour-fs-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
+// NOTE: #tour-fs-content is the id on the CARD-view grid (.mlp-cards-grid), not a
+// table wrapper — it must not carry a display override. An id-selector flex override here
+// previously beat .mlp-cards-grid's `display: grid` (ID > class specificity), collapsing
+// the card view to one full-width card per row. Table view here needs no such wrapper: its
+// .content-card.mlp-table-card is already a direct .mlp-page child.

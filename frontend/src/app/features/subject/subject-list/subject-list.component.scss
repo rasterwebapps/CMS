@@ -1,21 +1,14 @@
 // Subject list — uses global mlp-* classes from styles.scss
 
 .sub-card__code {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  height: 44px;
-  padding: 0 10px;
-  border-radius: 12px;
-  background: rgba(var(--cms-primary-rgb), 0.10);
-  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+  display: block;
   font-family: var(--cms-font-mono);
   font-size: var(--cms-text-xs);
   font-weight: 600;
-  color: var(--cms-primary);
-  margin-bottom: 14px;
   letter-spacing: 0.04em;
+  color: var(--cms-text-muted);
+  margin-bottom: 10px;
+  text-transform: uppercase;
 }
 
 .sub-card__name {

@@ -64,7 +64,7 @@
     } @else {
       <div id="tour-rt-content" class="mlp-cards-grid">
         @for (item of dataSource.data; track item.id; let i = $index) {
-          <div class="mlp-card rt-card" [style.animation-delay]="(i * 0.05) + 's'">
+          <div class="mlp-card rt-card mlp-card--accent" [class.mlp-card--active]="item.isActive" [class.mlp-card--inactive]="!item.isActive" [style.animation-delay]="(i * 0.05) + 's'">
             <div class="mlp-card__actions">
               <cms-row-action-btn variant="warning" [iconOnly]="true"
                       [tooltip]="(item.isActive ? 'Deactivate ' : 'Activate ') + item.name"
@@ -75,6 +75,9 @@
               <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" [ariaLabel]="'Edit ' + item.name" (clicked)="edit(item)">
                 <cms-icon-edit [size]="13" />
               </cms-row-action-btn>
+            </div>
+            <div class="mlp-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             </div>
             <div class="rt-card__code">
               {{ item.code }}

@@ -63,7 +63,7 @@
     } @else {
       <div class="dept-grid">
         @for (item of dataSource.data; track item.id; let i = $index) {
-          <div class="dept-card" [style.animation-delay]="(i * 0.05) + 's'">
+          <div class="dept-card dept-card--accent" [class.dept-card--active]="item.isActive" [class.dept-card--inactive]="!item.isActive" [style.animation-delay]="(i * 0.05) + 's'">
             <div class="dept-card__actions">
               <cms-row-action-btn variant="warning" [iconOnly]="true" (clicked)="togglePeriodStatus(item)"
                       [tooltip]="item.isActive ? ('Deactivate ' + item.name) : ('Activate ' + item.name)"
@@ -74,11 +74,12 @@
                 <cms-icon-edit [size]="14" />
               </cms-row-action-btn>
             </div>
-            <div class="dept-card__body">
-              <div class="dept-card__name">{{ item.name }}</div>
-              <div class="dept-card__desc">{{ item.startTime }} &ndash; {{ item.endTime }}</div>
-              <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
+            <div class="dept-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </div>
+            <div class="dept-card__name">{{ item.name }}</div>
+            <div class="dept-card__code">{{ item.startTime }} &ndash; {{ item.endTime }}</div>
+            <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
           </div>
         }
       </div>

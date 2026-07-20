@@ -65,7 +65,7 @@
     } @else {
       <div id="tour-dsg-content" class="dept-grid">
         @for (item of dataSource.data; track item.id; let i = $index) {
-          <div class="dept-card" [style.animation-delay]="(i * 0.05) + 's'">
+          <div class="dept-card dept-card--accent" [class.dept-card--active]="item.isActive" [class.dept-card--inactive]="!item.isActive" [style.animation-delay]="(i * 0.05) + 's'">
             <div class="dept-card__actions">
               <cms-row-action-btn variant="warning" [iconOnly]="true" (clicked)="toggleDesignationStatus(item)"
                       [tooltip]="item.isActive ? ('Deactivate ' + item.name) : ('Activate ' + item.name)"
@@ -76,17 +76,15 @@
                 <cms-icon-edit [size]="14" />
               </cms-row-action-btn>
             </div>
-            <div class="dept-card__avatar">
-              <span class="dept-avatar-text">{{ item.code | slice:0:3 }}</span>
+            <div class="dept-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="7" width="14" height="15" rx="2"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><circle cx="12" cy="13" r="2"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
             </div>
-            <div class="dept-card__body">
-              <div class="dept-card__name">{{ item.name }}</div>
-              <div class="dept-card__code">{{ item.code }}</div>
-              <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
-              @if (item.description) {
-                <p class="dept-card__desc">{{ item.description }}</p>
-              }
-            </div>
+            <div class="dept-card__name">{{ item.name }}</div>
+            <div class="dept-card__code">{{ item.code }}</div>
+            <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
+            @if (item.description && item.description !== item.name) {
+              <p class="dept-card__desc">{{ item.description }}</p>
+            }
           </div>
         }
       </div>

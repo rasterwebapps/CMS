@@ -1,4 +1,5 @@
 import { Component, computed, inject, OnInit, OnDestroy, AfterViewInit, signal, ViewChild } from '@angular/core';
+import { NgClass } from '@angular/common';
 import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
@@ -31,6 +32,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
   selector: 'app-equipment-list',
   standalone: true,
   imports: [
+    NgClass,
     CmsEmptyStateComponent,
     ExportButtonComponent,
     CmsStatusBadgeComponent,
@@ -217,6 +219,15 @@ export class EquipmentListComponent implements OnInit, AfterViewInit, OnDestroy 
       next: () => { this.toast.success('Deleted successfully'); this.loadPage(); },
       error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to delete'); this.loading.set(false); },
     });
+  }
+
+  protected statusAccentClass(status: string): string {
+    switch (status?.toUpperCase()) {
+      case 'AVAILABLE': return 'mlp-card--active';
+      case 'IN_USE':
+      case 'UNDER_REPAIR': return 'mlp-card--warning';
+      default: return 'mlp-card--inactive'; // DAMAGED, DISPOSED
+    }
   }
 
   private loadPage(): void {

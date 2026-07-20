@@ -143,21 +143,14 @@
 }
 
 .dept-card__code {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  height: 44px;
-  padding: 0 10px;
-  border-radius: 12px;
-  background: rgba(var(--cms-primary-rgb), 0.10);
-  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+  display: block;
   font-family: var(--cms-font-mono);
   font-size: var(--cms-text-xs);
   font-weight: 600;
-  color: var(--cms-primary);
-  margin-bottom: 14px;
   letter-spacing: 0.04em;
+  color: var(--cms-text-muted);
+  margin-bottom: 10px;
+  text-transform: uppercase;
 }
 
 .dept-card__name {
@@ -202,26 +195,26 @@
   overflow: hidden;
 }
 
-.dept-card__avatar {
+.dept-card__icon {
   width: 44px;
   height: 44px;
   border-radius: 12px;
   background: rgba(var(--cms-primary-rgb), 0.10);
   border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 14px;
+  color: var(--cms-primary);
+  flex-shrink: 0;
+
+  svg { width: 20px; height: 20px; }
 }
 
-.dept-avatar-text {
-  font-family: var(--cms-font-mono);
-  font-size: var(--cms-text-xs);
-  font-weight: 700;
-  color: var(--cms-primary);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
+// Status-colored top accent bar — opt-in, shown always (not just on hover)
+.dept-card--accent::before { opacity: 1; }
+.dept-card--accent.dept-card--active::before   { background: var(--cms-success); }
+.dept-card--accent.dept-card--inactive::before { background: var(--cms-text-muted); }
 
 .dept-act-btn--danger:hover {
   background: rgba(239, 68, 68, 0.10);
@@ -295,16 +288,8 @@
   100% { background-position: 400px 0; }
 }
 
-// #tour-dsg-content is a tour-anchor wrapper with no global CSS of its own. It sits
-// between .mlp-page (flex column) and .content-card.mlp-table-card, so
-// without this it isn't a flex item and .mlp-table-card's flex:1 can't
-// stretch the card to fill remaining screen height — the table stays
-// content-sized and the paginator sits under the last row instead of
-// pinning to the bottom (the receipts-list/fee-refund-list reference
-// pattern has no such intermediate div).
-#tour-dsg-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
+// NOTE: #tour-dsg-content is the id on the CARD-view grid (.dept-grid), not a table
+// wrapper — it must not carry a display override. An id-selector flex override here
+// previously beat .dept-grid's `display: grid` (ID > class specificity), collapsing the
+// card view to one full-width card per row. Table view here needs no such wrapper: its
+// .content-card.mlp-table-card is already a direct .mlp-page child.

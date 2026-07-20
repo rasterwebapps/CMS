@@ -326,6 +326,33 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 | View toggle must always be the **last item** in `mlp-toolbar` | `CmsViewToggleComponent` has `:host { margin-left: auto }` which pushes it to the right edge automatically |
 | **Page container padding must use `var(--cms-page-padding)`** | All page containers (`.list-page`, `.detail-page`, `.entry-form-page`) use `padding: 24px var(--cms-page-padding)`. The token is defined as `16px` in `styles.scss`. Never hardcode `32px` or any fixed value for outer page padding. |
 
+#### 2.5.5 Master Card Content Spec
+
+Simple master screens (a handful of fields: code, name, optional description, status) must use this anatomy inside `.mlp-card`/`.dept-card` — added 2026-07-20 after an audit found the pattern applied ad hoc: three screens (`Community`, `Blood Group`, `Institution`) referenced `.mlp-card__header`/`__avatar`/`__meta` in their templates with **zero CSS defined anywhere** (a bare, unstyled box), and `Designation` rendered the same code twice (once in an avatar square, once in a code chip). Entities with materially more fields (Course, Fee Structure, Faculty) keep their own bespoke layout instead — this spec is for the plain lookup-table masters only.
+
+```html
+<div class="mlp-card mlp-card--accent" [class.mlp-card--active]="item.isActive" [class.mlp-card--inactive]="!item.isActive">
+  <div class="mlp-card__actions"> <!-- row-action buttons, unchanged --> </div>
+  <div class="mlp-card__icon">
+    <svg><!-- category icon, not initials/avatar --></svg>
+  </div>
+  <div class="mlp-card__title">{{ item.name }}</div>
+  <div class="mlp-card__sub">{{ item.code }}</div>
+  <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
+  @if (item.description && item.description !== item.name) {
+    <p class="mlp-card__desc">{{ item.description }}</p>
+  }
+</div>
+```
+
+| Rule | Reason |
+|------|--------|
+| Lead with `.mlp-card__icon` (a category SVG), never an avatar/initials square | Initials squares showing 2-3 letters of the code read as dated and, in several screens, duplicated the code chip shown lower in the same card |
+| Add `.mlp-card--accent` + `[class.mlp-card--active]`/`[class.mlp-card--inactive]` (or `--warning` for a 3-state field) on the card root | Turns the existing hover-only top accent bar into an always-visible status color (green/amber/gray) — defined once in `styles.scss`, not per component |
+| Suppress `.mlp-card__desc` when `item.description === item.name` | Several masters were seeded with `description` identical to `name`, rendering the same text twice with no added information |
+| `dept-card`-based screens (`Designation`, `Speciality`, and any future ones) replicate the same classes locally | `.dept-card` is intentionally duplicated per component (not shared globally), so `__icon`/`--accent` must be added to each component's own `.scss`, matching the existing duplication convention |
+| Before adding a new master screen's card, confirm every class referenced in the template (`.mlp-card__*`) actually has a rule in `styles.scss` or the component's own `.scss` | This exact spec exists because three screens skipped that check — see the **Badge/status/enum/flag consistency audit** gate for the equivalent check on badge classes |
+
 ---
 
 ### 2.5.5 Multi-Section Entry Form Pattern

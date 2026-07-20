@@ -79,8 +79,20 @@
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.dept-card__body {
-  padding-top: 4px;
+.dept-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  color: var(--cms-primary);
+  flex-shrink: 0;
+
+  svg { width: 20px; height: 20px; }
 }
 
 .dept-card__name {
@@ -91,12 +103,28 @@
   letter-spacing: -0.01em;
 }
 
+.dept-card__code {
+  display: block;
+  font-family: var(--cms-font-mono);
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--cms-text-muted);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
 .dept-card__desc {
   font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);
   margin: 10px 0 0;
   line-height: 1.5;
 }
+
+// Status-colored top accent bar — opt-in, shown always (not just on hover)
+.dept-card--accent::before { opacity: 1; }
+.dept-card--accent.dept-card--active::before   { background: var(--cms-success); }
+.dept-card--accent.dept-card--inactive::before { background: var(--cms-text-muted); }
 
 // ── Loading skeleton grid ─────────────────────────────────────
 .dept-loading-grid {

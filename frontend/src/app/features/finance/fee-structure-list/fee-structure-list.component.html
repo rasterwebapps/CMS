@@ -176,6 +176,9 @@
             </cms-row-action-btn>
           </div>
 
+          <div class="mlp-card__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>
+          </div>
           <div class="fs-card__program">{{ fs.programName }}</div>
           @if (fs.courseName) {
             <div class="fs-card__course cell-muted">{{ fs.courseName }}</div>
@@ -198,14 +201,14 @@
               <div class="fs-card__fee-row">
                 <span class="fs-card__fee-label">
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                  Day Scholar
+                  <span class="fs-card__fee-label-text">Day Scholar</span>
                 </span>
                 <span class="fs-card__fee-amount">{{ getDayScholarTotal(fs) | inr }}</span>
               </div>
               <div class="fs-card__fee-row">
                 <span class="fs-card__fee-label">
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                  Hosteler
+                  <span class="fs-card__fee-label-text">Hosteler</span>
                 </span>
                 <span class="fs-card__fee-amount">{{ getHostelerTotal(fs) | inr }}</span>
               </div>

@@ -77,7 +77,7 @@
     } @else {
       <div id="tour-course-content" class="mlp-cards-grid">
         @for (course of dataSource.data; track course.id; let i = $index) {
-          <div class="mlp-card crs-card" [style.animation-delay]="(i * 0.05) + 's'">
+          <div class="mlp-card crs-card mlp-card--accent" [class.mlp-card--active]="course.isActive" [class.mlp-card--inactive]="!course.isActive" [style.animation-delay]="(i * 0.05) + 's'">
             <div class="mlp-card__actions">
               <cms-row-action-btn
                 variant="warning" [iconOnly]="true"
@@ -93,6 +93,9 @@
               <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit course" ariaLabel="Edit course" (clicked)="editCourse(course)">
                 <cms-icon-edit [size]="13" />
               </cms-row-action-btn>
+            </div>
+            <div class="mlp-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             </div>
             <div class="crs-card__code">{{ course.code }}</div>
             <div class="crs-card__name">{{ course.name }}</div>

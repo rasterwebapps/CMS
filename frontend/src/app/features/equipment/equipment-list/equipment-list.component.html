@@ -74,7 +74,7 @@
     } @else {
       <div id="tour-eq-content" class="mlp-cards-grid">
         @for (item of dataSource.data; track item.id) {
-          <div class="mlp-card anim-rise">
+          <div class="mlp-card anim-rise mlp-card--accent" [ngClass]="statusAccentClass(item.status)">
             <div class="mlp-card__actions">
               <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit equipment" (clicked)="edit(item)">
                 <cms-icon-edit [size]="14" />
@@ -82,6 +82,9 @@
               <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete equipment" (clicked)="delete(item)">
                 <cms-icon-delete [size]="14" />
               </cms-row-action-btn>
+            </div>
+            <div class="mlp-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             </div>
             <div class="eq-card__name cell-name">{{ item.name }}</div>
             @if (item.model) {

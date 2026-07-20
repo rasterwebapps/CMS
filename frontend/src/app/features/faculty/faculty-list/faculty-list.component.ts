@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, OnDestroy, AfterViewInit, signal, computed, ViewChild } from '@angular/core';
 import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { TitleCasePipe } from '@angular/common';
+import { NgClass, TitleCasePipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -42,6 +42,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
   selector: 'app-faculty-list',
   standalone: true,
   imports: [
+    NgClass,
     CmsEmptyStateComponent,
     ExportButtonComponent,
     CmsViewToggleComponent,
@@ -267,6 +268,15 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
     }).afterClosed().subscribe((confirmed) => {
       if (confirmed) this.performDelete(faculty);
     });
+  }
+
+  protected statusAccentClass(status: string): string {
+    switch (status?.toUpperCase()) {
+      case 'ACTIVE': return 'mlp-card--active';
+      case 'ON_LEAVE':
+      case 'SABBATICAL': return 'mlp-card--warning';
+      default: return 'mlp-card--inactive'; // RESIGNED, RETIRED, TERMINATED
+    }
   }
 
   protected documentReviewBadge(faculty: Faculty): { label: string; className: string; tooltip: string } {

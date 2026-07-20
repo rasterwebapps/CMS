@@ -1,21 +1,14 @@
 // Course list — uses global mlp-* classes from styles.scss
 
 .crs-card__code {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  height: 44px;
-  padding: 0 10px;
-  border-radius: 12px;
-  background: rgba(var(--cms-primary-rgb), 0.10);
-  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+  display: block;
   font-family: var(--cms-font-mono);
   font-size: var(--cms-text-xs);
   font-weight: 600;
-  color: var(--cms-primary);
-  margin-bottom: 14px;
   letter-spacing: 0.04em;
+  color: var(--cms-text-muted);
+  margin-bottom: 10px;
+  text-transform: uppercase;
 }
 
 .crs-card__name {
@@ -44,16 +37,8 @@
   margin-top: 4px;
 }
 
-// #tour-course-content is a tour-anchor wrapper with no global CSS of its own. It sits
-// between .mlp-page (flex column) and .content-card.mlp-table-card, so
-// without this it isn't a flex item and .mlp-table-card's flex:1 can't
-// stretch the card to fill remaining screen height — the table stays
-// content-sized and the paginator sits under the last row instead of
-// pinning to the bottom (the receipts-list/fee-refund-list reference
-// pattern has no such intermediate div).
-#tour-course-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
+// NOTE: #tour-course-content is the id on the CARD-view grid (.mlp-cards-grid), not a
+// table wrapper — it must not carry a display override. An id-selector flex override here
+// previously beat .mlp-cards-grid's `display: grid` (ID > class specificity), collapsing
+// the card view to one full-width card per row. Table view here needs no such wrapper: its
+// .content-card.mlp-table-card is already a direct .mlp-page child.

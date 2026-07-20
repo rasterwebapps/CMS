@@ -64,7 +64,7 @@
     } @else {
       <div id="tour-program-content" class="mlp-cards-grid">
         @for (program of dataSource.data; track program.id; let i = $index) {
-          <div class="mlp-card prog-card" [style.animation-delay]="(i * 0.05) + 's'">
+          <div class="mlp-card prog-card mlp-card--accent" [class.mlp-card--active]="program.status === 'ACTIVE'" [class.mlp-card--inactive]="program.status !== 'ACTIVE'" [style.animation-delay]="(i * 0.05) + 's'">
             <div class="mlp-card__actions">
               <cms-row-action-btn
                 variant="warning" [iconOnly]="true"
@@ -80,6 +80,9 @@
               <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" [ariaLabel]="'Edit ' + program.name" (clicked)="editProgram(program)">
                 <cms-icon-edit [size]="13" />
               </cms-row-action-btn>
+            </div>
+            <div class="mlp-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
             </div>
             <div class="prog-card__code">{{ program.code }}</div>
             <div class="prog-card__name">{{ program.name }}</div>

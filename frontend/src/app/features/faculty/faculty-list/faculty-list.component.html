@@ -115,7 +115,7 @@
     } @else {
       <div id="tour-fac-content" class="mlp-cards-grid">
         @for (item of dataSource.data; track item.id) {
-          <div class="mlp-card anim-rise">
+          <div class="mlp-card anim-rise mlp-card--accent" [ngClass]="statusAccentClass(item.status)">
             <div class="mlp-card__actions">
               <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View" ariaLabel="View faculty" (clicked)="viewFaculty(item)">
                 <cms-icon-view [size]="14" />
@@ -126,6 +126,9 @@
               <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete faculty" (clicked)="deleteFaculty(item)">
                 <cms-icon-delete [size]="14" />
               </cms-row-action-btn>
+            </div>
+            <div class="mlp-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="10" r="3"/><circle cx="15" cy="10" r="3"/><circle cx="12" cy="16" r="3"/></svg>
             </div>
             <div class="fac-card__code">
               <span class="code-chip">{{ item.employeeCode }}</span>

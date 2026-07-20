@@ -63,7 +63,7 @@
     } @else {
       <div class="dept-grid">
         @for (item of dataSource.data; track item.id; let i = $index) {
-          <div class="dept-card" [style.animation-delay]="(i * 0.05) + 's'">
+          <div class="dept-card dept-card--accent" [class.dept-card--active]="item.isActive" [class.dept-card--inactive]="!item.isActive" [style.animation-delay]="(i * 0.05) + 's'">
             <div class="dept-card__actions">
               <cms-row-action-btn variant="warning" [iconOnly]="true" (clicked)="toggleClassroomStatus(item)"
                       [tooltip]="item.isActive ? ('Deactivate ' + item.name) : ('Activate ' + item.name)"
@@ -74,14 +74,15 @@
                 <cms-icon-edit [size]="14" />
               </cms-row-action-btn>
             </div>
-            <div class="dept-card__body">
-              <div class="dept-card__name">{{ item.name }}</div>
-              <div class="dept-card__desc">{{ item.building || '—' }}@if (item.roomNumber) { &middot; Room {{ item.roomNumber }} }</div>
-              <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
-              @if (item.capacity) {
-                <p class="dept-card__desc">Capacity: {{ item.capacity }}</p>
-              }
+            <div class="dept-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="1"/><circle cx="15" cy="12" r="1"/></svg>
             </div>
+            <div class="dept-card__name">{{ item.name }}</div>
+            <div class="dept-card__code">{{ item.building || '—' }}@if (item.roomNumber) { &middot; Room {{ item.roomNumber }} }</div>
+            <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
+            @if (item.capacity) {
+              <p class="dept-card__desc">Capacity: {{ item.capacity }}</p>
+            }
           </div>
         }
       </div>
