@@ -92,8 +92,8 @@ export class CourseOfferingListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.http.get<FacultyOption[]>(`${environment.apiUrl}/faculty`).subscribe({
-      next: (data) => this.faculty.set(data),
+    this.http.get<{ id: number; fullName: string }[]>(`${environment.apiUrl}/faculty`).subscribe({
+      next: (data) => this.faculty.set(data.map((f) => ({ id: f.id, name: f.fullName }))),
       error: () => { this.toast.error('Failed to load faculty'); },
     });
 

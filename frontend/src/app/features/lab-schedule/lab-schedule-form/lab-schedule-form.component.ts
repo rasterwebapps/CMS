@@ -200,8 +200,8 @@ export class LabScheduleFormComponent implements OnInit {
       next: (data) => this.subjects.set(data),
       error: () => { this.toast.error('Failed to load subjects'); },
     });
-    this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/faculty`).subscribe({
-      next: (data) => this.faculty.set(data),
+    this.http.get<{ id: number; fullName: string }[]>(`${environment.apiUrl}/faculty`).subscribe({
+      next: (data) => this.faculty.set(data.map((f) => ({ id: f.id, name: f.fullName }))),
       error: () => { this.toast.error('Failed to load faculty'); },
     });
     this.labScheduleService.getAllSlots().subscribe({
