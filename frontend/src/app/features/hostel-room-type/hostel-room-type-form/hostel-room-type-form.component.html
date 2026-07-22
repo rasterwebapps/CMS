@@ -1,0 +1,186 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/hostel-room-types" aria-label="Back to hostel room types">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Hostel Room Type</em></h1>
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update the room type details below.' : 'Fill in the details below to register a new hostel room type.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+
+      <!-- ── LEFT: Form Card ─────────────────────────────────── -->
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M3 11h18"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Room Type Information</div>
+            <div class="entry-form-card__hdr-sub">Name, code, sharing capacity, and yearly fee</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <!-- Name -->
+            <div class="field-group">
+              <label for="hrt-name" class="field-label">
+                Room Type Name <span class="required-star">*</span>
+              </label>
+              <input
+                id="hrt-name"
+                class="field-input"
+                formControlName="name"
+                placeholder="e.g., AC Double Sharing"
+                autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+              />
+              @if (form.get('name')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">{{ getErrorMessage('name') }}</p>
+              }
+            </div>
+
+            <!-- Code -->
+            <div class="field-group">
+              <label for="hrt-code" class="field-label">
+                Code <span class="required-star">*</span>
+              </label>
+              <div class="code-input-wrap">
+                <input
+                  id="hrt-code"
+                  class="field-input"
+                  formControlName="code"
+                  placeholder="e.g., AC_DOUBLE"
+                  maxlength="50"
+                  autocomplete="off"
+                  (input)="onCodeInput($event)"
+                  [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
+                />
+                <span class="code-badge-preview" aria-hidden="true">{{ previewCode() || '—' }}</span>
+              </div>
+              @if (form.get('code')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('code')?.invalid && form.get('code')?.touched) {
+                <p class="field-error">{{ getErrorMessage('code') }}</p>
+              } @else {
+                <p class="field-hint">{{ codeCharCount() }}/50 · Uppercase, no spaces</p>
+              }
+            </div>
+
+            <div class="field-row">
+              <!-- Sharing capacity -->
+              <div class="field-group">
+                <label for="hrt-capacity" class="field-label">
+                  Sharing Capacity <span class="required-star">*</span>
+                </label>
+                <input
+                  id="hrt-capacity"
+                  class="field-input"
+                  type="number"
+                  min="1"
+                  formControlName="sharingCapacity"
+                  placeholder="e.g., 2"
+                  [class.field-input--error]="form.get('sharingCapacity')?.invalid && form.get('sharingCapacity')?.touched"
+                />
+                @if (form.get('sharingCapacity')?.invalid && form.get('sharingCapacity')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('sharingCapacity') }}</p>
+                } @else {
+                  <p class="field-hint">Students per room</p>
+                }
+              </div>
+
+              <!-- Fee amount per year -->
+              <div class="field-group">
+                <label for="hrt-fee" class="field-label">
+                  Fee Amount / Year (₹) <span class="required-star">*</span>
+                </label>
+                <input
+                  id="hrt-fee"
+                  class="field-input"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  formControlName="feeAmountPerYear"
+                  placeholder="e.g., 45000"
+                  [class.field-input--error]="form.get('feeAmountPerYear')?.invalid && form.get('feeAmountPerYear')?.touched"
+                />
+                @if (form.get('feeAmountPerYear')?.invalid && form.get('feeAmountPerYear')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('feeAmountPerYear') }}</p>
+                }
+              </div>
+            </div>
+
+            <!-- AC -->
+            <div class="field-group" style="margin-bottom: 0;">
+              <mat-checkbox formControlName="isAc">Air-conditioned</mat-checkbox>
+            </div>
+
+            <!-- Description -->
+            <div class="field-group">
+              <label for="hrt-desc" class="field-label">Description</label>
+              <textarea
+                id="hrt-desc"
+                class="field-textarea"
+                formControlName="description"
+                placeholder="Optional description"
+                rows="3"
+                [class.field-textarea--error]="form.get('description')?.invalid && form.get('description')?.touched"
+              ></textarea>
+              @if (form.get('description')?.invalid && form.get('description')?.touched) {
+                <p class="field-error">{{ getErrorMessage('description') }}</p>
+              }
+            </div>
+
+            <!-- Footer -->
+            <div class="entry-form-card__footer">
+              <a routerLink="/hostel-room-types" class="btn-secondary">Cancel</a>
+              <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+                @if (saving()) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                }
+                {{ isEditMode() ? 'Update' : 'Save' }}
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+      <!-- ── RIGHT: Preview Card ─────────────────────────────── -->
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Room type will appear here' }}
+          </div>
+          @if (previewCode()) { <div class="prev-sub">Code: {{ previewCode() }}</div> }
+          <div class="prev-meta-row">
+            @if (previewSharingCapacity()) {
+              <span class="prev-pill">{{ previewSharingCapacity() }} sharing</span>
+            }
+            <span class="prev-pill" [class.prev-pill--primary]="previewIsAc()">{{ previewIsAc() ? 'AC' : 'Non-AC' }}</span>
+            @if (previewFeeAmount() !== null) {
+              <span class="prev-pill prev-pill--green">₹{{ previewFeeAmount() }}/yr</span>
+            }
+          </div>
+        </cms-preview-card>
+      </aside>
+
+    </div>
+  }
+
+</div>

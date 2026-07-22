@@ -680,6 +680,7 @@ public class EnquiryService {
         if (enquiry.getAdmissionQuota() != null) {
             student.setAdmissionCategory(AdmissionCategory.valueOf(enquiry.getAdmissionQuota().name()));
         }
+        student.setStudentType(enquiry.getStudentType());
 
         // Family information
         student.setFatherName(request.fatherName());

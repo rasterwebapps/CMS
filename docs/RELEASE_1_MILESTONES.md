@@ -331,7 +331,7 @@
 
 **Frontend:**
 - [x] **R1-3.2.8** Create `features/lab-schedule/` folder structure
-- [ ] **R1-3.2.9** Create lab calendar view (weekly timetable grid) — **correction 2026-07-18:** was checked off but never actually built; `lab-schedule-list.component.ts` is a plain sortable Material table, not a week-grid calendar. Left unchecked pending real implementation or a decision to fold it into the R1-M6.4 timetable-generation effort instead of building it standalone.
+- [x] **R1-3.2.9** Create lab calendar view (weekly timetable grid) — **resolved 2026-07-21:** confirmed covered by the existing `/timetables` browse view (`timetable-view.component.ts`), which already renders the shared `CmsWeekGridComponent` week-grid. `/lab-schedules` and `/timetables` read the same `class_schedules` table (renamed from `lab_schedules` in V293) — `/lab-schedules` is the full CRUD management screen (all rows, draft + published, THEORY + LAB), `/timetables` is the read-only PUBLISHED-only calendar browse/personal view. Decision: no new calendar UI needed on the management screen; `/timetables` already satisfies the "weekly timetable grid" requirement. `lab-schedule-list.component.ts` remains a plain table by design — that's the CRUD view, not the calendar view.
 - [x] **R1-3.2.10** Create schedule form with conflict alerts
 - [x] **R1-3.2.11** Create lab schedule routes (lazy-loaded)
 
@@ -648,7 +648,7 @@
 - [x] **R1-6.1.10** New **Elective Assignment** screen (academic year → term → elective group → per-student assignment) — the first course-registration UI in the app
 - [x] **R1-6.1.11** Wire Course Offerings + Elective Assignment into the Academics sidebar nav — **fixed 2026-07-18**: both screens had working routes/permissions since BR-49 shipped but no inbound nav link anywhere in the app, making them reachable only by typing the URL directly. Added to `app.ts` Academics group.
 - [x] **R1-6.1.13** Migration V288 backfills `lab_schedules.batch_id` for any pre-existing row that unambiguously matches a real `Batch` by `(term_instance_id, subject_id via course_offerings, normalized name)` — additive only, never guesses across ambiguous same-named batches, idempotent (`batch_id IS NULL` guard). Verified syntactically valid against the local dev DB (empty `lab_schedules` table there, so 0 rows affected locally — real backfill effect will show wherever real data exists).
-- [ ] **R1-6.1.12** Remaining deferred technical debt (still explicitly out of scope, unchanged from BR-49): the Lab Schedule form (`lab-schedule-form.component.html`) still accepts a free-text `batchName` input alongside the roster dropdown, so `batch_name` remains load-bearing and cannot be dropped yet. Full cutover needs a deliberate decision to make the roster dropdown mandatory and remove free-text entry — a UX/behavior change, not a plain cleanup, so it wasn't done in this pass.
+- [ ] **R1-6.1.12** Remaining deferred technical debt (still explicitly out of scope, unchanged from BR-49): the Lab Schedule form (`lab-schedule-form.component.html`) still accepts a free-text `batchName` input alongside the roster dropdown, so `batch_name` remains load-bearing and cannot be dropped yet. **Reviewed 2026-07-22, reconfirmed deferred:** `batchName` isn't just a display field — it's the authoritative value server-side (`ClassScheduleService` requires it for LAB rows; conflict-detection compares it via string equality) while `batchId` is only a soft/optional convenience FK. A real cutover means (1) making `batchId` mandatory, (2) rewriting conflict-detection to key off `batchId` instead of string equality, and (3) confirming/backfilling any production rows V288 couldn't unambiguously match by name — a genuine data-model change touching production data, not a plain cleanup. Product Owner call: not worth pursuing without a concrete pain point (e.g., a reporting bug from mismatched batch names) forcing the issue.
 
 ### R1-M6.2 — Student Promotion / Progression (BR-52)
 
@@ -710,10 +710,10 @@ Every task/milestone is considered **complete** only when ALL of the following a
 | R1-M0: Project Scaffolding | ✅ Complete | 100% |
 | R1-M1: Foundation & Identity | ✅ Complete | 100% |
 | R1-M2: Core Academic & Lab Mapping | ✅ Complete | 100% |
-| R1-M3: Operational Logistics | ⚠️ Near-complete | 99% — R1-3.2.9 (lab calendar/week-grid view) was found unbuilt 2026-07-18 despite being checked; a plain table exists instead |
+| R1-M3: Operational Logistics | ✅ Complete | 100% — R1-3.2.9 resolved 2026-07-21: `/timetables` browse view already covers the calendar/week-grid requirement |
 | R1-M4: Finance & Asset Management | ✅ Complete | 100% |
 | R1-M5: Assessment & Reporting | ✅ Complete | 100% |
-| R1-M6: Post-R1 Academics Additions | ⚠️ Mostly complete | BR-49/52/53 all shipped; one deferred item open (`lab_schedules.batch_name` cleanup) |
+| R1-M6: Post-R1 Academics Additions | ⚠️ Mostly complete | BR-49/52/53 all shipped; `batch_name` cleanup reviewed 2026-07-22 and reconfirmed deferred (real data-model cutover, not a quick fix — no concrete pain point forcing it yet) |
 
 ---
 

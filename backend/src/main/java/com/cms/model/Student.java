@@ -11,6 +11,7 @@ import com.cms.model.enums.AdmissionCategory;
 import com.cms.model.enums.BankAccountType;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentStatus;
+import com.cms.model.enums.StudentType;
 import com.cms.model.Cohort;
 import com.cms.model.TermInstance;
 
@@ -105,6 +106,10 @@ public class Student {
     @Enumerated(EnumType.STRING)
     @Column(name = "admission_category", length = 20)
     private AdmissionCategory admissionCategory;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "student_type", length = 20)
+    private StudentType studentType;
 
     @Column(name = "aadhar_number")
     private String aadharNumber;
@@ -383,6 +388,14 @@ public class Student {
 
     public void setAdmissionCategory(AdmissionCategory admissionCategory) {
         this.admissionCategory = admissionCategory;
+    }
+
+    public StudentType getStudentType() {
+        return studentType;
+    }
+
+    public void setStudentType(StudentType studentType) {
+        this.studentType = studentType;
     }
 
     public String getAadharNumber() {

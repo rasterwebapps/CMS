@@ -1,0 +1,34 @@
+// Local (not global) — mirrors designation-form.component.scss / hostel-room-type-form.component.scss
+.code-input-wrap {
+  position: relative;
+}
+
+.code-input-wrap .field-input {
+  font-family: var(--cms-font-mono);
+  font-size: var(--cms-text-base);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding-right: 58px;
+}
+
+.code-badge-preview {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: rgba(var(--cms-primary-rgb), 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--cms-font-mono);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  color: var(--cms-primary);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+}
