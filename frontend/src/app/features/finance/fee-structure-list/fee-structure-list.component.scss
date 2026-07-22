@@ -13,6 +13,17 @@
 // ViewEncapsulation so it doesn't affect any other .mlp-cards-grid screen.
 .mlp-cards-grid {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+
+  // Same over-the-plain-master-spec problem, vertically: .mlp-card's own
+  // overflow:hidden (there to clip the ::before top accent bar to its rounded
+  // corners) also clips this screen's taller content — program + course line
+  // + two badge rows + the two-row fee split — whenever a grid row's auto
+  // height is driven by shorter cards next to it. Let height track content
+  // instead of being capped to the row's shortest sibling.
+  .mlp-card {
+    height: auto;
+    overflow: visible;
+  }
 }
 
 // Fee-structure-list card anatomy (layout handled by global mlp-* classes)

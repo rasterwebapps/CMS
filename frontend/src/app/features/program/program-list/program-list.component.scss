@@ -1,5 +1,14 @@
 // Program card content — structural layout via mlp-* global classes
 
+// This card carries more lines (code, name, duration, terms, status badge) than the
+// plain "master card" spec .mlp-card was built for; its own overflow:hidden then clips
+// that content whenever a grid row's auto height is driven by a shorter sibling card.
+// Same fix as fee-structure-list.component.scss — scoped locally via ViewEncapsulation.
+.mlp-cards-grid .mlp-card {
+  height: auto;
+  overflow: visible;
+}
+
 .prog-card {
   &__code {
     display: block;

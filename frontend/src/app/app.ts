@@ -263,7 +263,7 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Location Master',    icon: 'public',            route: '/india-locations',         permissions: ['INDIA_LOCATION_VIEW', 'INDIA_LOCATION_CREATE', 'INDIA_LOCATION_EDIT', 'INDIA_LOCATION_DELETE', 'INDIA_LOCATION_EXPORT', 'INDIA_LOCATION_MANAGE'] },
         { label: 'Number Sequences',   icon: 'pin',               route: '/number-sequences',        permissions: ['NUMBER_SEQUENCE_VIEW'] },
         { label: 'Periods',            icon: 'schedule',          route: '/periods',                 permissions: ['PERIOD_VIEW', 'PERIOD_MANAGE'] },
-        { label: 'Programs',           icon: 'local_library',     route: '/programs',                permissions: ['PROGRAM_VIEW', 'PROGRAM_CREATE', 'PROGRAM_EDIT', 'PROGRAM_DELETE', 'PROGRAM_EXPORT', 'PROGRAM_MANAGE'] },
+        { label: 'Programs',           icon: 'school',            route: '/programs',                permissions: ['PROGRAM_VIEW', 'PROGRAM_CREATE', 'PROGRAM_EDIT', 'PROGRAM_DELETE', 'PROGRAM_EXPORT', 'PROGRAM_MANAGE'] },
         { label: 'Referral Types',     icon: 'share',             route: '/referral-types',          permissions: ['REFERRAL_TYPE_VIEW', 'REFERRAL_TYPE_CREATE', 'REFERRAL_TYPE_EDIT', 'REFERRAL_TYPE_DELETE', 'REFERRAL_TYPE_EXPORT', 'REFERRAL_TYPE_MANAGE'] },
         { label: 'Scholarship Types',  icon: 'workspace_premium', route: '/scholarships',            permissions: ['SCHOLARSHIP_VIEW', 'SCHOLARSHIP_CREATE', 'SCHOLARSHIP_EDIT', 'SCHOLARSHIP_DELETE', 'SCHOLARSHIP_EXPORT', 'SCHOLARSHIP_MANAGE'] },
         { label: 'Settings',           icon: 'settings',          route: '/settings',                permissions: ['SETTINGS_VIEW', 'SETTINGS_CREATE', 'SETTINGS_EDIT', 'SETTINGS_DELETE', 'SETTINGS_MANAGE'] },
