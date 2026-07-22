@@ -1,9 +1,12 @@
 package com.cms.service;
 
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +50,16 @@ import com.cms.repository.TermInstanceRepository;
  * THEORY/LAB). Elective offerings are skipped, matching the existing bulk course-registration
  * generation precedent (CourseRegistrationServiceImpl) of leaving electives for manual/individual
  * assignment.
+ *
+ * <p>{@link CurriculumSemesterCourse} hours are total-term hours, not a literal count of slots to
+ * place — {@link ClassSchedule} has no date, only a {@code dayOfWeek} + {@code termInstance} (it's
+ * already a weekly-recurring template, see {@link PersonalTimetableService}), so one placed row
+ * delivers {@code weeksInTerm} occurrences over the term. Placement therefore targets
+ * sessions-per-week = ceil(totalHours / weeksInTerm), rounding up so the term always meets or
+ * slightly exceeds the required hours rather than falling short. A same-subject/same-day cap (one
+ * theory session per subject per day, one lab session per subject+batch per day) keeps the now much
+ * smaller placement count from clustering multiple sessions of the same subject on one day just
+ * because slots happened to be free.
  */
 @Service
 @Transactional(readOnly = true)
@@ -111,6 +124,7 @@ public class TimetableGenerationService {
         List<Occupied> occupied = new ArrayList<>();
         List<String> unplaceable = new ArrayList<>();
         int generatedCount = 0;
+        int weeksInTerm = weeksInTerm(termInstance);
 
         for (CourseOffering offering : offerings) {
             CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
@@ -136,10 +150,12 @@ public class TimetableGenerationService {
 
             int theoryHours = csc.getTheoryHours() != null ? csc.getTheoryHours() : 0;
             if (theoryHours > 0) {
-                int placed = placeTheory(offering, faculty, theoryHours, periods, classrooms, occupied, termInstance);
-                if (placed < theoryHours) {
-                    unplaceable.add(subjectName + ": placed " + placed + "/" + theoryHours
-                        + " theory periods (no free day/period/classroom combination left)");
+                int sessionsPerWeek = sessionsPerWeek(theoryHours, weeksInTerm);
+                int placed = placeTheory(offering, faculty, sessionsPerWeek, periods, classrooms, occupied, termInstance);
+                if (placed < sessionsPerWeek) {
+                    unplaceable.add(subjectName + ": placed " + placed + "/" + sessionsPerWeek
+                        + " weekly theory session(s) (" + theoryHours + " hrs/term over " + weeksInTerm
+                        + " weeks; no free day/period/classroom combination left)");
                 }
                 generatedCount += placed;
             }
@@ -147,16 +163,18 @@ public class TimetableGenerationService {
             int labClinicalHours = (csc.getLabHours() != null ? csc.getLabHours() : 0)
                 + (csc.getClinicalHours() != null ? csc.getClinicalHours() : 0);
             if (labClinicalHours > 0) {
+                int sessionsPerWeek = sessionsPerWeek(labClinicalHours, weeksInTerm);
                 List<Batch> batches = batchRepository.findByCourseOfferingId(offering.getId());
                 if (batches.isEmpty()) {
                     unplaceable.add(subjectName + ": " + labClinicalHours
                         + " lab/clinical hours needed but no batches are defined for this offering");
                 } else {
                     for (Batch batch : batches) {
-                        int placed = placeLab(offering, faculty, batch, labClinicalHours, labSlots, labs, occupied, termInstance);
-                        if (placed < labClinicalHours) {
-                            unplaceable.add(subjectName + " (" + batch.getName() + "): placed " + placed + "/" + labClinicalHours
-                                + " lab/clinical periods (no free day/slot/lab combination left)");
+                        int placed = placeLab(offering, faculty, batch, sessionsPerWeek, labSlots, labs, occupied, termInstance);
+                        if (placed < sessionsPerWeek) {
+                            unplaceable.add(subjectName + " (" + batch.getName() + "): placed " + placed + "/" + sessionsPerWeek
+                                + " weekly lab/clinical session(s) (" + labClinicalHours + " hrs/term over " + weeksInTerm
+                                + " weeks; no free day/slot/lab combination left)");
                         }
                         generatedCount += placed;
                     }
@@ -167,16 +185,18 @@ public class TimetableGenerationService {
         return new TimetableGenerationResponse(generatedCount, unplaceable);
     }
 
-    private int placeTheory(CourseOffering offering, Faculty faculty, int hoursNeeded,
+    private int placeTheory(CourseOffering offering, Faculty faculty, int sessionsPerWeek,
                              List<Period> periods, List<Classroom> classrooms,
                              List<Occupied> occupied, TermInstance termInstance) {
         int placed = 0;
-        for (int i = 0; i < hoursNeeded; i++) {
+        Set<DayOfWeek> daysUsed = EnumSet.noneOf(DayOfWeek.class);
+        for (int i = 0; i < sessionsPerWeek; i++) {
             boolean found = false;
             for (Period period : periods) {
                 if (found) break;
                 for (DayOfWeek day : DayOfWeek.values()) {
                     if (found) break;
+                    if (daysUsed.contains(day)) continue;
                     for (Classroom classroom : classrooms) {
                         String roomKey = "THEORY:" + classroom.getId();
                         String audienceKey = "THEORY:" + offering.getId();
@@ -197,6 +217,7 @@ public class TimetableGenerationService {
                         classScheduleRepository.save(cs);
 
                         occupied.add(new Occupied(day, period.getStartTime(), period.getEndTime(), roomKey, faculty.getId(), audienceKey));
+                        daysUsed.add(day);
                         placed++;
                         found = true;
                         break;
@@ -210,16 +231,18 @@ public class TimetableGenerationService {
         return placed;
     }
 
-    private int placeLab(CourseOffering offering, Faculty faculty, Batch batch, int hoursNeeded,
+    private int placeLab(CourseOffering offering, Faculty faculty, Batch batch, int sessionsPerWeek,
                           List<LabSlot> labSlots, List<Lab> labs,
                           List<Occupied> occupied, TermInstance termInstance) {
         int placed = 0;
-        for (int i = 0; i < hoursNeeded; i++) {
+        Set<DayOfWeek> daysUsed = EnumSet.noneOf(DayOfWeek.class);
+        for (int i = 0; i < sessionsPerWeek; i++) {
             boolean found = false;
             for (LabSlot slot : labSlots) {
                 if (found) break;
                 for (DayOfWeek day : DayOfWeek.values()) {
                     if (found) break;
+                    if (daysUsed.contains(day)) continue;
                     for (Lab lab : labs) {
                         String roomKey = "LAB:" + lab.getId();
                         String audienceKey = "LAB:" + batch.getId();
@@ -242,6 +265,7 @@ public class TimetableGenerationService {
                         classScheduleRepository.save(cs);
 
                         occupied.add(new Occupied(day, slot.getStartTime(), slot.getEndTime(), roomKey, faculty.getId(), audienceKey));
+                        daysUsed.add(day);
                         placed++;
                         found = true;
                         break;
@@ -253,6 +277,23 @@ public class TimetableGenerationService {
             }
         }
         return placed;
+    }
+
+    /** Whole weeks spanned by the term, rounded up so a partial trailing week still counts as a
+     *  full placement opportunity; at least 1 to avoid a divide-by-zero for a same-day term. */
+    private static int weeksInTerm(TermInstance termInstance) {
+        long days = ChronoUnit.DAYS.between(termInstance.getStartDate(), termInstance.getEndDate()) + 1;
+        return (int) Math.max(1, Math.ceil(days / 7.0));
+    }
+
+    /** Total term hours are delivered by a recurring weekly slot (see class javadoc), so the
+     *  number of distinct weekly slots to place is the term hours spread across the term's weeks,
+     *  rounded up so the term never falls short of the required hours. */
+    private static int sessionsPerWeek(int totalHours, int weeksInTerm) {
+        if (totalHours <= 0) {
+            return 0;
+        }
+        return (int) Math.ceil(totalHours / (double) weeksInTerm);
     }
 
     private boolean isFree(List<Occupied> occupied, DayOfWeek day, LocalTime start, LocalTime end,

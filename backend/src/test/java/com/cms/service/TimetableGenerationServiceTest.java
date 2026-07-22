@@ -166,6 +166,63 @@ class TimetableGenerationServiceTest {
     }
 
     @Test
+    void shouldPlaceWeeklyRecurringSessionsInsteadOfOneRowPerTermHour() {
+        // The fixture term (2024-06-01 to 2024-11-30) spans 183 days = 27 whole weeks.
+        // 120 theory hours should place ceil(120/27) = 5 weekly recurring sessions,
+        // not 120 individual rows (one per raw curriculum hour, the old buggy behavior).
+        CourseOffering offering = offeringWithHours(100L, 120, 0, 0, faculty.getId());
+
+        when(classScheduleRepository.existsByTermInstanceId(10L)).thenReturn(false);
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(Collections.emptyList());
+        when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(classroom));
+        when(labRepository.findAll()).thenReturn(Collections.emptyList());
+        when(facultyRepository.findById(faculty.getId())).thenReturn(Optional.of(faculty));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TimetableGenerationResponse response = service.generate(10L);
+
+        assertThat(response.generatedCount()).isEqualTo(5);
+        assertThat(response.unplaceable()).isEmpty();
+        verify(classScheduleRepository, times(5)).save(any(ClassSchedule.class));
+    }
+
+    @Test
+    void shouldNotPlaceTheSameSubjectTwiceOnTheSameDay() {
+        // 2 periods, 1 classroom, 6 usable days (MON-SAT). Without the same-day cap, once all
+        // 6 days are used under period 1, the algorithm would fall through to period 2 and
+        // double-book a day. With the cap, placement stops once every day is used once, even
+        // though more sessions are still needed.
+        CourseOffering offering = offeringWithHours(100L, 200, 0, 0, faculty.getId());
+
+        Period p1 = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), 1);
+        p1.setId(1L);
+        Period p2 = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(11, 0), 2);
+        p2.setId(2L);
+
+        when(classScheduleRepository.existsByTermInstanceId(10L)).thenReturn(false);
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(p1, p2));
+        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(Collections.emptyList());
+        when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(classroom));
+        when(labRepository.findAll()).thenReturn(Collections.emptyList());
+        when(facultyRepository.findById(faculty.getId())).thenReturn(Optional.of(faculty));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TimetableGenerationResponse response = service.generate(10L);
+
+        // ceil(200/27) = 8 sessions/week needed, but the same-day cap allows at most 1 per day
+        // across 6 days, so only 6 get placed and the rest is reported unplaceable.
+        assertThat(response.generatedCount()).isEqualTo(6);
+        assertThat(response.unplaceable()).hasSize(1);
+        assertThat(response.unplaceable().get(0)).contains("placed 6/8 weekly theory session(s)");
+        verify(classScheduleRepository, times(6)).save(any(ClassSchedule.class));
+    }
+
+    @Test
     void shouldReportUnplaceableWhenOfferingHasNoFaculty() {
         CourseOffering offering = offeringWithHours(100L, 1, 0, 0, null);
 
