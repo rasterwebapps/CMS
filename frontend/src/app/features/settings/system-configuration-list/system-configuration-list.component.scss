@@ -6,6 +6,15 @@
   min-height: 0;
 }
 
+// This card carries more content (code chip, value, 3-badge meta-row) than the plain
+// "master card" spec .mlp-card was built for; its own overflow:hidden then clips that
+// content whenever a grid row's auto height is driven by a shorter sibling card.
+// Same fix as fee-structure-list/program-list — scoped locally via ViewEncapsulation.
+.mlp-cards-grid .mlp-card {
+  height: auto;
+  overflow: visible;
+}
+
 // cfg-card__* card content styles for System Configuration list
 .cfg-card__code {
   margin-bottom: 6px;
