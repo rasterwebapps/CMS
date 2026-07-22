@@ -49,6 +49,11 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
   return 'items' in entry;
 }
 
+/** Nav route matching must ignore query string/fragment — routes never carry one. */
+function stripQueryAndFragment(url: string): string {
+  return url.split(/[?#]/)[0];
+}
+
 
 @Component({
   selector: 'app-root',
@@ -87,8 +92,8 @@ export class App implements OnInit, AfterViewInit {
   private readonly themeService = inject(ThemeService);
   protected readonly notificationService = inject(NotificationService);
 
-  /** Tracks the current route URL so collapsed-group active state is reactive. */
-  private readonly currentUrl = signal(this.router.url);
+  /** Tracks the current route URL (path only — see stripQueryAndFragment) so collapsed-group active state is reactive. */
+  private readonly currentUrl = signal(stripQueryAndFragment(this.router.url));
 
   /** Timer for rail-hover peek open/close delay. */
   private railHoverTimer: ReturnType<typeof setTimeout> | null = null;
@@ -448,11 +453,14 @@ export class App implements OnInit, AfterViewInit {
     }
 
     // Sync expanded group on initial load
-    this.syncExpandedGroupToRoute(this.router.url);
+    this.syncExpandedGroupToRoute(stripQueryAndFragment(this.router.url));
 
     // Keep currentUrl signal in sync, auto-expand the active group, auto-close mobile drawer.
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe((e) => {
-      const url = (e as NavigationEnd).urlAfterRedirects;
+      // Nav active-state matching (isNavItemActive/isGroupActive/hasExactNavMatch below) compares
+      // this against route paths, which never carry a query string — a mat-sort-header changing
+      // ?sort=... (e.g. on Submit Documents) must not change which nav item reads as active.
+      const url = stripQueryAndFragment((e as NavigationEnd).urlAfterRedirects);
       this.currentUrl.set(url);
       this.syncExpandedGroupToRoute(url);
       this.navSearchActive.set(false);
