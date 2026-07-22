@@ -27,6 +27,18 @@
     }
   </div>
 
+  @if (!isMobile() && !focusMode()) {
+    <div class="toolbar-brand-desktop">
+      @if (!toolbarLogoError()) {
+        <img src="assets/images/sks-logo-icon.png" alt="SKS College Of Nursing" class="toolbar-brand-icon"
+             (error)="toolbarLogoError.set(true)" />
+      } @else {
+        <div class="toolbar-brand-fallback"><mat-icon>school</mat-icon></div>
+      }
+      <span class="toolbar-brand-name">SKS College Of Nursing</span>
+    </div>
+  }
+
   <div class="toolbar-right">
     @if (focusMode()) {
       <button mat-icon-button (click)="navigateBack()" class="toolbar-action-btn back-btn" matTooltip="Back">
@@ -35,15 +47,6 @@
       <span class="focus-title">{{ focusModeTitle() }}</span>
       <span class="toolbar-spacer"></span>
     } @else {
-      @if (!isMobile()) {
-        @if (!toolbarLogoError()) {
-          <img src="assets/images/sks-logo-icon.png" alt="SKS College Of Nursing" class="toolbar-brand-icon"
-               (error)="toolbarLogoError.set(true)" />
-        } @else {
-          <div class="toolbar-brand-fallback"><mat-icon>school</mat-icon></div>
-        }
-        <span class="toolbar-brand-name">SKS College Of Nursing</span>
-      }
       <span class="toolbar-spacer"></span>
       <app-global-search />
       @if (!isMobile()) {

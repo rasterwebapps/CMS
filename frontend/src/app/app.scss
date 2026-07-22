@@ -756,6 +756,35 @@
   }
 }
 
+// Desktop brand block: width-matched to the sidenav rail below it (56px icon
+// rail + 240px sidenav = 296px), so the logo + name center within the same
+// visual column the sidenav occupies rather than free-floating in .toolbar-right.
+.toolbar-brand-desktop {
+  width: var(--cms-sidenav-width);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  padding: 0 16px;
+  border-right: 1px solid var(--cms-toolbar-border, #e5e7eb);
+
+  // Scaled up from the shared 30px mobile-brand size to better fill this
+  // wider, dedicated rail instead of floating small inside it.
+  .toolbar-brand-icon,
+  .toolbar-brand-fallback {
+    width: 38px;
+    height: 38px;
+  }
+
+  .toolbar-brand-fallback mat-icon {
+    width: 22px;
+    height: 22px;
+    font-size: var(--cms-text-xl);
+  }
+}
+
 // Hamburger toggle button in the toolbar (desktop)
 .toolbar-hamburger-btn {
   flex-shrink: 0;
@@ -805,15 +834,15 @@
 
 // Static brand name text
 .toolbar-brand-name {
-  font-size: var(--cms-text-sm) !important;
-  font-weight: 500 !important;
+  font-size: var(--cms-text-base) !important;
+  font-weight: 600 !important;
   color: var(--cms-toolbar-text, var(--cms-text-primary)) !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
 }
 
 // ── Vertical divider between action buttons and avatar cluster ────────────────
