@@ -71,6 +71,7 @@ import com.cms.model.AgentCommissionGuideline;
 import com.cms.repository.AgentCommissionGuidelineRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.IntakeRuleRepository;
+import com.cms.repository.RoomPreferenceRepository;
 import com.cms.repository.StaffReferrerRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.model.IntakeRule;
@@ -112,6 +113,7 @@ public class EnquiryService {
     private final IntakeRuleRepository intakeRuleRepository;
     private final EnquiryPaymentService enquiryPaymentService;
     private final FeeFinalizationService feeFinalizationService;
+    private final RoomPreferenceRepository roomPreferenceRepository;
 
     public EnquiryService(EnquiryRepository enquiryRepository,
                            ProgramRepository programRepository,
@@ -135,7 +137,8 @@ public class EnquiryService {
                            CohortRepository cohortRepository,
                            IntakeRuleRepository intakeRuleRepository,
                            EnquiryPaymentService enquiryPaymentService,
-                           FeeFinalizationService feeFinalizationService) {
+                           FeeFinalizationService feeFinalizationService,
+                           RoomPreferenceRepository roomPreferenceRepository) {
         this.enquiryRepository = enquiryRepository;
         this.programRepository = programRepository;
         this.agentRepository = agentRepository;
@@ -159,6 +162,7 @@ public class EnquiryService {
         this.intakeRuleRepository = intakeRuleRepository;
         this.enquiryPaymentService = enquiryPaymentService;
         this.feeFinalizationService = feeFinalizationService;
+        this.roomPreferenceRepository = roomPreferenceRepository;
     }
 
     /**
@@ -706,6 +710,13 @@ public class EnquiryService {
         }
 
         Student savedStudent = studentRepository.save(student);
+
+        // Carry forward the enquiry's non-binding room preference (R2-4.1.3), if any, onto the
+        // new student -- same row, not duplicated, since the preference can keep changing.
+        roomPreferenceRepository.findByEnquiryId(enquiryId).ifPresent(preference -> {
+            preference.setStudent(savedStudent);
+            roomPreferenceRepository.save(preference);
+        });
 
         AcademicYear joiningYear = academicYearRepository.findById(request.joiningAcademicYearId())
             .orElseThrow(() -> new ResourceNotFoundException(

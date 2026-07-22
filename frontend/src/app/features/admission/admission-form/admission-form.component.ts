@@ -1,4 +1,5 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { of } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -30,6 +31,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { ADMISSION_FORM_TOUR } from '../../../shared/tour/tours/admission.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
+import { RoomPreferencePickerComponent } from '../../hostel/room-preference/room-preference-picker/room-preference-picker.component';
 
 
 // Edit-mode stepper (3 steps)
@@ -60,11 +62,13 @@ const ADM_EDIT_STEP_FIELDS: Record<number, string[]> = {
     MatProgressSpinnerModule,
     PageHeaderComponent,
     CmsTourButtonComponent,
-    CmsCountryStateDistrictSelectorComponent],
+    CmsCountryStateDistrictSelectorComponent,
+    RoomPreferencePickerComponent],
   templateUrl: './admission-form.component.html',
   styleUrl: './admission-form.component.scss',
 })
 export class AdmissionFormComponent implements OnInit {
+  @ViewChild(RoomPreferencePickerComponent) private preferencePicker?: RoomPreferencePickerComponent;
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
@@ -92,6 +96,9 @@ export class AdmissionFormComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly isEdit = signal(false);
   protected readonly editStudentId = signal<number | null>(null);
+  protected readonly editStudentType = signal<string | null>(null);
+  protected readonly isHostelerContext = computed(() =>
+    this.isEdit() ? this.editStudentType() === 'HOSTELER' : this.prefill()?.studentType === 'HOSTELER');
 
   // ── Edit-mode stepper ─────────────────────────────────────────────────────
   protected readonly editSteps       = ADM_EDIT_STEPS;
@@ -232,6 +239,7 @@ export class AdmissionFormComponent implements OnInit {
           }
           this.selectedAcademicYearId.set(a.joiningAcademicYearId);
           this.editStudentId.set(a.studentId);
+          this.editStudentType.set(a.studentType);
           this.form.patchValue({ ...a, joiningAcademicYearId: a.joiningAcademicYearId });
           this.form.get('studentId')?.disable();
           this.loading.set(false);
@@ -360,8 +368,19 @@ export class AdmissionFormComponent implements OnInit {
     const request = this.buildConversionRequest();
     this.enquiryService.convertEnquiry(enquiryId, request).subscribe({
       next: () => {
-        this.toast.success('Admission created and student enrolled successfully');
-        void this.router.navigate(['/admissions']);
+        const preference$ = (this.isHostelerContext() && this.preferencePicker)
+          ? this.preferencePicker.persist(enquiryId)
+          : of(null);
+        preference$.subscribe({
+          next: () => {
+            this.toast.success('Admission created and student enrolled successfully');
+            void this.router.navigate(['/admissions']);
+          },
+          error: () => {
+            this.toast.error('Admission created, but the room preference could not be saved');
+            void this.router.navigate(['/admissions']);
+          },
+        });
       },
       error: (error: HttpErrorResponse) => {
         this.toast.error(this.getErrorMessage(error, 'Failed to create admission'));
@@ -387,7 +406,19 @@ export class AdmissionFormComponent implements OnInit {
     const qualifications = v['qualifications'] as unknown[] ?? [];
 
     this.admissionService.update(id, admissionData).subscribe({
-      next: () => this.finish(),
+      next: () => {
+        const studentId = this.editStudentId();
+        const preference$ = (this.isHostelerContext() && this.preferencePicker && studentId)
+          ? this.preferencePicker.persist(undefined, studentId)
+          : of(null);
+        preference$.subscribe({
+          next: () => this.finish(),
+          error: () => {
+            this.toast.error('Admission saved, but the room preference could not be saved');
+            void this.router.navigate(['/admissions']);
+          },
+        });
+      },
       error: (error: HttpErrorResponse) => {
         this.toast.error(this.getErrorMessage(error, 'Failed to update admission'));
         this.saving.set(false);

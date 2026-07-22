@@ -238,6 +238,12 @@ public class CampusInfrastructureController {
 
     // ─── Zones ───────────────────────────────────────────────────────────────
 
+    @GetMapping("/zones")
+    @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_VIEW')")
+    public ResponseEntity<List<ZoneResponse>> getAllActiveZones() {
+        return ResponseEntity.ok(service.findAllActiveZones());
+    }
+
     @GetMapping("/floors/{floorId}/zones")
     @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_VIEW')")
     public ResponseEntity<List<ZoneResponse>> getZonesByFloor(

@@ -112,6 +112,9 @@ class EnquiryServiceTest {
     @Mock
     private FeeFinalizationService feeFinalizationService;
 
+    @Mock
+    private com.cms.repository.RoomPreferenceRepository roomPreferenceRepository;
+
     private EnquiryService enquiryService;
 
     private Program testProgram;
@@ -143,7 +146,8 @@ class EnquiryServiceTest {
             cohortRepository,
             intakeRuleRepository,
             enquiryPaymentService,
-            feeFinalizationService
+            feeFinalizationService,
+            roomPreferenceRepository
         );
         org.mockito.Mockito.lenient()
             .when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(org.mockito.ArgumentMatchers.any()))

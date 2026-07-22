@@ -114,6 +114,7 @@ export class CmsStatusBadgeComponent {
       // ── Completion states ────────────────────────────────────────────────
       case 'GRADUATED':
       case 'COMPLETED':
+      case 'FULFILLED':
         return 'status-graduated';
 
       // ── Maintenance / info states ────────────────────────────────────────

@@ -1,0 +1,127 @@
+<div class="rad-page">
+  <div class="rad-hdr">
+    <div>
+      <h1 class="rad-hdr__title">Room Allocation</h1>
+      <p class="rad-hdr__sub">Occupancy map across every active hostel room — allocate, filter, and free up beds.</p>
+    </div>
+  </div>
+
+  <div class="rad-toolbar">
+    <div class="rad-search">
+      <mat-icon>search</mat-icon>
+      <input type="text" placeholder="Search room number or student…"
+             [ngModel]="search()" (ngModelChange)="search.set($event)" />
+    </div>
+    <select class="rad-filter" [ngModel]="roomTypeFilter()" (ngModelChange)="roomTypeFilter.set($event)">
+      <option [ngValue]="null">All Room Types</option>
+      @for (rt of roomTypes(); track rt.id) {
+        <option [ngValue]="rt.id">{{ rt.name }}</option>
+      }
+    </select>
+    <select class="rad-filter" [ngModel]="zoneFilter()" (ngModelChange)="zoneFilter.set($event)">
+      <option [ngValue]="null">All Zones</option>
+      @for (z of zones(); track z.id) {
+        <option [ngValue]="z.id">{{ z.name }}</option>
+      }
+    </select>
+    <button type="button" class="rad-refresh" (click)="refresh()" [disabled]="loading()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="rad-loading">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (filteredRooms().length === 0) {
+    <cms-empty-state icon="bed" title="No hostel rooms found" subtitle="Try clearing filters, or set up rooms under Campus Infrastructure first."></cms-empty-state>
+  } @else {
+    <div class="rad-grid">
+      @for (room of filteredRooms(); track room.hostelRoomId) {
+        <div class="rad-card" [class.rad-card--full]="room.occupiedCount >= room.sharingCapacity">
+          <div class="rad-card__hdr">
+            <div class="rad-card__room">{{ room.roomNumber }}</div>
+            <div class="rad-card__zone">{{ room.zoneName }}</div>
+          </div>
+          <div class="rad-card__type">{{ room.roomTypeName }}</div>
+
+          <div class="rad-occupancy">
+            <div class="rad-occupancy__bar">
+              <div class="rad-occupancy__fill" [style.width.%]="occupancyPercent(room)"></div>
+            </div>
+            <span class="rad-occupancy__label">{{ room.occupiedCount }} / {{ room.sharingCapacity }}</span>
+          </div>
+
+          @if (room.occupants.length > 0) {
+            <ul class="rad-occupants">
+              @for (o of room.occupants; track o.allocationId) {
+                <li class="rad-occupant">
+                  <span class="rad-occupant__name">{{ o.studentName }}</span>
+                  <button type="button" class="rad-occupant__remove" title="Cancel allocation"
+                          (click)="cancelOccupant(room, o.allocationId, o.studentName)">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (room.occupiedCount < room.sharingCapacity) {
+            <button type="button" class="rad-allocate-btn" (click)="openAllocate(room)">
+              <mat-icon>person_add</mat-icon> Allocate
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
+
+@if (targetRoom(); as room) {
+  <cms-flyout-panel width="420px" ariaLabel="Allocate Room" (closed)="closeAllocate()">
+    <div flyoutHeader>
+      <h2 class="rad-flyout-title">Allocate Room {{ room.roomNumber }}</h2>
+      <p class="rad-flyout-sub">{{ room.roomTypeName }} · {{ room.zoneName }} · {{ room.occupiedCount }}/{{ room.sharingCapacity }} occupied</p>
+    </div>
+    <div flyoutBody>
+      <div class="rad-form-field">
+        <label class="rad-form-label">Student <span class="rad-required">*</span></label>
+        <input type="text" class="rad-form-input" placeholder="Search hosteler by name or admission no…"
+               [ngModel]="studentQuery()" (ngModelChange)="onStudentQueryChange($event)" />
+        @if (studentResults().length > 0) {
+          <ul class="rad-student-results">
+            @for (s of studentResults(); track s.id) {
+              <li (click)="selectStudent(s)">{{ s.fullName }} <span class="rad-student-results__meta">{{ s.admissionNumber }}</span></li>
+            }
+          </ul>
+        }
+        @if (selectedStudent()) {
+          <div class="rad-selected-student">Selected: {{ selectedStudent()!.fullName }}</div>
+        }
+      </div>
+
+      <div class="rad-form-field">
+        <label class="rad-form-label">Start Date <span class="rad-required">*</span></label>
+        <input type="date" class="rad-form-input" [ngModel]="startDate()" (ngModelChange)="startDate.set($event)" />
+      </div>
+
+      <div class="rad-form-field">
+        <label class="rad-form-label">End Date <span class="rad-optional">(optional)</span></label>
+        <input type="date" class="rad-form-input" [ngModel]="endDate()" (ngModelChange)="endDate.set($event)" />
+      </div>
+
+      <div class="rad-form-field">
+        <label class="rad-form-label">Remarks <span class="rad-optional">(optional)</span></label>
+        <input type="text" class="rad-form-input" maxlength="500" [ngModel]="remarks()" (ngModelChange)="remarks.set($event)" />
+      </div>
+    </div>
+    <div flyoutFooter>
+      <button type="button" class="rad-btn rad-btn--ghost" (click)="closeAllocate()">Cancel</button>
+      <button type="button" class="rad-btn rad-btn--primary"
+              [disabled]="!selectedStudent() || !startDate() || saving()"
+              (click)="submitAllocation()">
+        @if (saving()) { <mat-spinner diameter="16"></mat-spinner> } @else { Allocate }
+      </button>
+    </div>
+  </cms-flyout-panel>
+}

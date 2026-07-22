@@ -39,7 +39,7 @@ export const routes: Routes = [
     path: 'hostel-room-types',
     canActivate: withPermission('HOSTEL_ROOM_TYPE_VIEW', 'HOSTEL_ROOM_TYPE_MANAGE'),
     loadComponent: () =>
-      import('./features/hostel-room-type/hostel-room-type-list/hostel-room-type-list.component').then(
+      import('./features/hostel/hostel-room-type/hostel-room-type-list/hostel-room-type-list.component').then(
         (m) => m.HostelRoomTypeListComponent
       ),
   },
@@ -47,7 +47,7 @@ export const routes: Routes = [
     path: 'hostel-room-types/new',
     canActivate: withPermission('HOSTEL_ROOM_TYPE_MANAGE'),
     loadComponent: () =>
-      import('./features/hostel-room-type/hostel-room-type-form/hostel-room-type-form.component').then(
+      import('./features/hostel/hostel-room-type/hostel-room-type-form/hostel-room-type-form.component').then(
         (m) => m.HostelRoomTypeFormComponent
       ),
   },
@@ -55,15 +55,31 @@ export const routes: Routes = [
     path: 'hostel-room-types/:id/edit',
     canActivate: withPermission('HOSTEL_ROOM_TYPE_MANAGE'),
     loadComponent: () =>
-      import('./features/hostel-room-type/hostel-room-type-form/hostel-room-type-form.component').then(
+      import('./features/hostel/hostel-room-type/hostel-room-type-form/hostel-room-type-form.component').then(
         (m) => m.HostelRoomTypeFormComponent
+      ),
+  },
+  {
+    path: 'room-preferences',
+    canActivate: withPermission('HOSTEL_ROOM_PREFERENCE_VIEW', 'HOSTEL_ROOM_PREFERENCE_MANAGE'),
+    loadComponent: () =>
+      import('./features/hostel/room-preference/room-preference-list/room-preference-list.component').then(
+        (m) => m.RoomPreferenceListComponent
+      ),
+  },
+  {
+    path: 'room-allocations',
+    canActivate: withPermission('HOSTEL_ROOM_ALLOCATION_VIEW', 'HOSTEL_ROOM_ALLOCATION_MANAGE'),
+    loadComponent: () =>
+      import('./features/hostel/room-allocation/room-allocation-dashboard/room-allocation-dashboard.component').then(
+        (m) => m.RoomAllocationDashboardComponent
       ),
   },
   {
     path: 'campus-infrastructure',
     canActivate: withPermission('CAMPUS_INFRASTRUCTURE_VIEW', 'CAMPUS_INFRASTRUCTURE_MANAGE'),
     loadComponent: () =>
-      import('./features/campus-infrastructure/campus-infrastructure-list/campus-infrastructure-list.component').then(
+      import('./features/hostel/campus-infrastructure/campus-infrastructure-list/campus-infrastructure-list.component').then(
         (m) => m.CampusInfrastructureListComponent
       ),
   },
@@ -71,73 +87,73 @@ export const routes: Routes = [
     path: 'campus-infrastructure/organizations/new',
     canActivate: withPermission('CAMPUS_INFRASTRUCTURE_MANAGE'),
     loadComponent: () =>
-      import('./features/campus-infrastructure/organization-form/organization-form.component').then((m) => m.OrganizationFormComponent),
+      import('./features/hostel/campus-infrastructure/organization-form/organization-form.component').then((m) => m.OrganizationFormComponent),
   },
   {
     path: 'campus-infrastructure/organizations/:id/edit',
     canActivate: withPermission('CAMPUS_INFRASTRUCTURE_MANAGE'),
     loadComponent: () =>
-      import('./features/campus-infrastructure/organization-form/organization-form.component').then((m) => m.OrganizationFormComponent),
+      import('./features/hostel/campus-infrastructure/organization-form/organization-form.component').then((m) => m.OrganizationFormComponent),
   },
   {
     path: 'campus-infrastructure/branches/new',
     canActivate: withPermission('CAMPUS_INFRASTRUCTURE_MANAGE'),
     loadComponent: () =>
-      import('./features/campus-infrastructure/branch-form/branch-form.component').then((m) => m.BranchFormComponent),
+      import('./features/hostel/campus-infrastructure/branch-form/branch-form.component').then((m) => m.BranchFormComponent),
   },
   {
     path: 'campus-infrastructure/branches/:id/edit',
     canActivate: withPermission('CAMPUS_INFRASTRUCTURE_MANAGE'),
     loadComponent: () =>
-      import('./features/campus-infrastructure/branch-form/branch-form.component').then((m) => m.BranchFormComponent),
+      import('./features/hostel/campus-infrastructure/branch-form/branch-form.component').then((m) => m.BranchFormComponent),
   },
   {
     path: 'campus-infrastructure/blocks/new',
     canActivate: withPermission('CAMPUS_INFRASTRUCTURE_MANAGE'),
     loadComponent: () =>
-      import('./features/campus-infrastructure/block-form/block-form.component').then((m) => m.BlockFormComponent),
+      import('./features/hostel/campus-infrastructure/block-form/block-form.component').then((m) => m.BlockFormComponent),
   },
   {
     path: 'campus-infrastructure/blocks/:id/edit',
     canActivate: withPermission('CAMPUS_INFRASTRUCTURE_MANAGE'),
     loadComponent: () =>
-      import('./features/campus-infrastructure/block-form/block-form.component').then((m) => m.BlockFormComponent),
+      import('./features/hostel/campus-infrastructure/block-form/block-form.component').then((m) => m.BlockFormComponent),
   },
   {
     path: 'campus-infrastructure/floors/new',
     canActivate: withPermission('CAMPUS_INFRASTRUCTURE_MANAGE'),
     loadComponent: () =>
-      import('./features/campus-infrastructure/floor-form/floor-form.component').then((m) => m.FloorFormComponent),
+      import('./features/hostel/campus-infrastructure/floor-form/floor-form.component').then((m) => m.FloorFormComponent),
   },
   {
     path: 'campus-infrastructure/floors/:id/edit',
     canActivate: withPermission('CAMPUS_INFRASTRUCTURE_MANAGE'),
     loadComponent: () =>
-      import('./features/campus-infrastructure/floor-form/floor-form.component').then((m) => m.FloorFormComponent),
+      import('./features/hostel/campus-infrastructure/floor-form/floor-form.component').then((m) => m.FloorFormComponent),
   },
   {
     path: 'campus-infrastructure/zones/new',
     canActivate: withPermission('CAMPUS_INFRASTRUCTURE_MANAGE'),
     loadComponent: () =>
-      import('./features/campus-infrastructure/zone-form/zone-form.component').then((m) => m.ZoneFormComponent),
+      import('./features/hostel/campus-infrastructure/zone-form/zone-form.component').then((m) => m.ZoneFormComponent),
   },
   {
     path: 'campus-infrastructure/zones/:id/edit',
     canActivate: withPermission('CAMPUS_INFRASTRUCTURE_MANAGE'),
     loadComponent: () =>
-      import('./features/campus-infrastructure/zone-form/zone-form.component').then((m) => m.ZoneFormComponent),
+      import('./features/hostel/campus-infrastructure/zone-form/zone-form.component').then((m) => m.ZoneFormComponent),
   },
   {
     path: 'campus-infrastructure/rooms/new',
     canActivate: withPermission('CAMPUS_INFRASTRUCTURE_MANAGE'),
     loadComponent: () =>
-      import('./features/campus-infrastructure/room-form/room-form.component').then((m) => m.RoomFormComponent),
+      import('./features/hostel/campus-infrastructure/room-form/room-form.component').then((m) => m.RoomFormComponent),
   },
   {
     path: 'campus-infrastructure/rooms/:id/edit',
     canActivate: withPermission('CAMPUS_INFRASTRUCTURE_MANAGE'),
     loadComponent: () =>
-      import('./features/campus-infrastructure/room-form/room-form.component').then((m) => m.RoomFormComponent),
+      import('./features/hostel/campus-infrastructure/room-form/room-form.component').then((m) => m.RoomFormComponent),
   },
   {
     path: 'classrooms',

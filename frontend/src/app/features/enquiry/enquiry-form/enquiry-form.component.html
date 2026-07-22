@@ -283,6 +283,10 @@
                   </div>
                 </div>
 
+                @if (form.get('studentType')?.value === 'HOSTELER') {
+                  <app-room-preference-picker [enquiryId]="itemId"></app-room-preference-picker>
+                }
+
                 <!-- Estimated Fee banner -->
                 @if (feeLoading()) {
                   <div class="fee-banner fee-banner--loading">

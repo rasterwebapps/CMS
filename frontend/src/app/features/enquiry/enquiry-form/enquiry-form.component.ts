@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -21,6 +21,8 @@ import { ENQUIRY_FORM_TOUR } from '../../../shared/tour/tours/enquiry.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
 import { trimmedMinLength } from '../../../shared/validators/cms-validators';
+import { RoomPreferencePickerComponent } from '../../hostel/room-preference/room-preference-picker/room-preference-picker.component';
+import { of } from 'rxjs';
 interface ProgramInfo {
   id: number;
   name: string;
@@ -93,11 +95,13 @@ const MIN_AUTOCOMPLETE_CHARS = 2;
     RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule,
     MatProgressSpinnerModule,
     CmsTourButtonComponent,
-    CmsCountryStateDistrictSelectorComponent],
+    CmsCountryStateDistrictSelectorComponent,
+    RoomPreferencePickerComponent],
   templateUrl: './enquiry-form.component.html',
   styleUrl: './enquiry-form.component.scss',
 })
 export class EnquiryFormComponent implements OnInit, OnDestroy {
+  @ViewChild(RoomPreferencePickerComponent) private preferencePicker?: RoomPreferencePickerComponent;
   private scrollListener: (() => void) | null = null;
   private scrollContainer: Element | null = null;
   private rafId: number | null = null;
@@ -235,7 +239,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
   protected readonly selectedProgram = signal<ProgramInfo | null>(null);
   protected readonly ageRestrictionError = signal<string | null>(null);
   protected readonly totalFees = signal(0);
-  private itemId: number | null = null;
+  protected itemId: number | null = null;
   protected readonly form: FormGroup = this.fb.group({
     name:           ['', [Validators.required, Validators.maxLength(255)]],
     email:          [''],
@@ -792,9 +796,20 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
       ? this.enquiryService.updateEnquiry(this.itemId!, request)
       : this.enquiryService.createEnquiry(request);
     op$.subscribe({
-      next: () => {
-        this.toast.success(this.isEditMode() ? 'Updated' : 'Created');
-        void this.router.navigate(['/enquiries']);
+      next: (savedEnquiry) => {
+        const preference$ = (v.studentType === 'HOSTELER' && this.preferencePicker)
+          ? this.preferencePicker.persist(savedEnquiry.id)
+          : of(null);
+        preference$.subscribe({
+          next: () => {
+            this.toast.success(this.isEditMode() ? 'Updated' : 'Created');
+            void this.router.navigate(['/enquiries']);
+          },
+          error: () => {
+            this.toast.error('Saved, but the room preference could not be saved');
+            void this.router.navigate(['/enquiries']);
+          },
+        });
       },
       error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to save'); this.saving.set(false); },
     });

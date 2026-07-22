@@ -386,6 +386,12 @@ public class CampusInfrastructureService {
         return zoneRepository.findByFloorIdAndIsActiveTrueOrderByNameAsc(floorId).stream().map(this::toZoneResponse).toList();
     }
 
+    /** Flat, campus-wide list of active zones — for pickers (e.g. Room Preference) that need a
+     *  zone choice without walking the Organization/Branch/Block/Floor hierarchy first. */
+    public List<ZoneResponse> findAllActiveZones() {
+        return zoneRepository.findByIsActiveTrueOrderByNameAsc().stream().map(this::toZoneResponse).toList();
+    }
+
     public ZoneResponse findZoneById(Long id) {
         return toZoneResponse(fetchZone(id));
     }

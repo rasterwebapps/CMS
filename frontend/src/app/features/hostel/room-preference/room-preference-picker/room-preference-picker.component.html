@@ -1,0 +1,42 @@
+<div class="rpp-panel">
+  <div class="rpp-header">
+    <span class="rpp-title">Room Preference</span>
+    <span class="rpp-hint">Non-binding — can be changed any time before a room is actually allocated</span>
+  </div>
+
+  <div class="rpp-row">
+    <div class="rpp-field">
+      <label for="rpp-room-type" class="rpp-label">Preferred Room Type</label>
+      <select id="rpp-room-type" class="rpp-select"
+              [ngModel]="preferredRoomTypeId()"
+              (ngModelChange)="onRoomTypeChange($event)">
+        <option [ngValue]="null">— No preference yet —</option>
+        @for (rt of roomTypes(); track rt.id) {
+          <option [ngValue]="rt.id">{{ rt.name }} ({{ rt.sharingCapacity }}-sharing{{ rt.isAc ? ', AC' : '' }})</option>
+        }
+      </select>
+    </div>
+
+    <div class="rpp-field">
+      <label for="rpp-zone" class="rpp-label">Preferred Zone <span class="rpp-optional">(optional)</span></label>
+      <select id="rpp-zone" class="rpp-select"
+              [disabled]="!preferredRoomTypeId()"
+              [ngModel]="preferredZoneId()"
+              (ngModelChange)="onZoneChange($event)">
+        <option [ngValue]="null">— Any zone —</option>
+        @for (z of zones(); track z.id) {
+          <option [ngValue]="z.id">{{ z.name }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (preferredRoomTypeId()) {
+    <div class="rpp-field rpp-field--remarks">
+      <label for="rpp-remarks" class="rpp-label">Remarks <span class="rpp-optional">(optional)</span></label>
+      <input id="rpp-remarks" type="text" class="rpp-input" maxlength="500"
+             [ngModel]="remarks()" (ngModelChange)="remarks.set($event)"
+             placeholder="e.g. prefers ground floor" />
+    </div>
+  }
+</div>

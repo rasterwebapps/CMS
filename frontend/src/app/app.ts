@@ -250,7 +250,6 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Academic Years',     icon: 'calendar_month',    route: '/academic-years',          permissions: ['ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_CREATE', 'ACADEMIC_YEAR_EDIT', 'ACADEMIC_YEAR_DELETE', 'ACADEMIC_YEAR_EXPORT', 'ACADEMIC_YEAR_MANAGE'] },
         { label: 'Agents',             icon: 'support_agent',     route: '/agents',                  permissions: ['AGENT_VIEW', 'AGENT_CREATE', 'AGENT_EDIT', 'AGENT_DELETE', 'AGENT_EXPORT', 'AGENT_MANAGE'] },
         { label: 'Blood Groups',       icon: 'bloodtype',         route: '/blood-groups',            permissions: ['BLOOD_GROUP_VIEW', 'BLOOD_GROUP_CREATE', 'BLOOD_GROUP_EDIT', 'BLOOD_GROUP_DELETE', 'BLOOD_GROUP_EXPORT', 'BLOOD_GROUP_MANAGE'] },
-        { label: 'Campus Infrastructure', icon: 'apartment',      route: '/campus-infrastructure',   permissions: ['CAMPUS_INFRASTRUCTURE_VIEW', 'CAMPUS_INFRASTRUCTURE_MANAGE'] },
         { label: 'Classrooms',         icon: 'meeting_room',      route: '/classrooms',              permissions: ['CLASSROOM_VIEW', 'CLASSROOM_MANAGE'] },
         { label: 'Communities',        icon: 'people',            route: '/communities',             permissions: ['COMMUNITY_VIEW', 'COMMUNITY_CREATE', 'COMMUNITY_EDIT', 'COMMUNITY_DELETE', 'COMMUNITY_EXPORT', 'COMMUNITY_MANAGE'] },
         { label: 'Courses',            icon: 'menu_book',         route: '/courses',                 permissions: ['COURSE_VIEW', 'COURSE_CREATE', 'COURSE_EDIT', 'COURSE_DELETE', 'COURSE_EXPORT', 'COURSE_MANAGE'] },
@@ -259,7 +258,6 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Faculty',            icon: 'groups',            route: '/faculty',                 permissions: ['FACULTY_VIEW', 'FACULTY_CREATE', 'FACULTY_EDIT', 'FACULTY_DELETE', 'FACULTY_EXPORT', 'FACULTY_MANAGE'] },
         { label: 'Faculty Doc Config', icon: 'rule',              route: '/faculty/document-config', permissions: ['FACULTY_DOC_CONFIG_VIEW', 'FACULTY_DOC_CONFIG_MANAGE'] },
         { label: 'Fee Structures',     icon: 'account_balance',   route: '/fee-structures',          permissions: ['FEE_STRUCTURE_VIEW', 'FEE_STRUCTURE_CREATE', 'FEE_STRUCTURE_EDIT', 'FEE_STRUCTURE_DELETE', 'FEE_STRUCTURE_EXPORT', 'FEE_STRUCTURE_MANAGE'] },
-        { label: 'Hostel Room Types',  icon: 'bed',               route: '/hostel-room-types',       permissions: ['HOSTEL_ROOM_TYPE_VIEW', 'HOSTEL_ROOM_TYPE_MANAGE'] },
         { label: 'Institutions',       icon: 'corporate_fare',    route: '/institutions',            permissions: ['INSTITUTION_VIEW', 'INSTITUTION_CREATE', 'INSTITUTION_EDIT', 'INSTITUTION_DELETE', 'INSTITUTION_MANAGE'] },
         { label: 'Labs',               icon: 'science',           route: '/labs',                    permissions: ['LAB_VIEW', 'LAB_CREATE', 'LAB_EDIT', 'LAB_DELETE', 'LAB_EXPORT', 'LAB_MANAGE'] },
         { label: 'Location Master',    icon: 'public',            route: '/india-locations',         permissions: ['INDIA_LOCATION_VIEW', 'INDIA_LOCATION_CREATE', 'INDIA_LOCATION_EDIT', 'INDIA_LOCATION_DELETE', 'INDIA_LOCATION_EXPORT', 'INDIA_LOCATION_MANAGE'] },
@@ -272,6 +270,17 @@ export class App implements OnInit, AfterViewInit {
         { label: 'Specialities',       icon: 'business',          route: '/specialities',            permissions: ['DEPT_VIEW', 'DEPT_CREATE', 'DEPT_EDIT', 'DEPT_DELETE', 'DEPT_EXPORT', 'DEPT_MANAGE'] },
         { label: 'Staff Referrers',    icon: 'badge',             route: '/staff-referrers',         permissions: ['STAFF_REFERRER_VIEW', 'STAFF_REFERRER_CREATE', 'STAFF_REFERRER_EDIT', 'STAFF_REFERRER_DELETE', 'STAFF_REFERRER_EXPORT', 'STAFF_REFERRER_MANAGE'] },
         { label: 'Subjects',           icon: 'menu_book',         route: '/subjects',                permissions: ['SUBJECT_VIEW', 'SUBJECT_MANAGE'] },
+      ],
+    },
+    // 9a. Hostel
+    {
+      label: 'Hostel',
+      icon: 'bed',
+      items: [
+        { label: 'Campus Infrastructure', icon: 'apartment',   route: '/campus-infrastructure',   permissions: ['CAMPUS_INFRASTRUCTURE_VIEW', 'CAMPUS_INFRASTRUCTURE_MANAGE'] },
+        { label: 'Hostel Room Types',     icon: 'meeting_room', route: '/hostel-room-types',       permissions: ['HOSTEL_ROOM_TYPE_VIEW', 'HOSTEL_ROOM_TYPE_MANAGE'] },
+        { label: 'Room Preferences',      icon: 'star',         route: '/room-preferences',        permissions: ['HOSTEL_ROOM_PREFERENCE_VIEW', 'HOSTEL_ROOM_PREFERENCE_MANAGE'] },
+        { label: 'Room Allocation',       icon: 'king_bed',     route: '/room-allocations',        permissions: ['HOSTEL_ROOM_ALLOCATION_VIEW', 'HOSTEL_ROOM_ALLOCATION_MANAGE'] },
       ],
     },
     // 10. User Management
