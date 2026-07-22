@@ -1,3 +1,14 @@
+// This card carries more content (version name, program/course line, effective-AY line,
+// term/subject count line, status badge, footer "View Curriculum Map" button) than the plain
+// "master card" spec .mlp-card was built for; its own overflow:hidden then clips that content
+// whenever a grid row's auto height is driven by a shorter sibling card. Same fix as
+// fee-structure-list/program-list/system-configuration-list — scoped locally via
+// ViewEncapsulation.
+.mlp-cards-grid .mlp-card {
+  height: auto;
+  overflow: visible;
+}
+
 .cv-card {
   &__version {
     font-size: var(--cms-text-md);

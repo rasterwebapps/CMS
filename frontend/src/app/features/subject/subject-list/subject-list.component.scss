@@ -1,5 +1,15 @@
 // Subject list — uses global mlp-* classes from styles.scss
 
+// This card carries more content (code line, name line, a meta-row with credits badge + term
+// badge + optional speciality badge, status badge) than the plain "master card" spec .mlp-card
+// was built for; its own overflow:hidden then clips that content whenever a grid row's auto
+// height is driven by a shorter sibling card. Same fix as fee-structure-list/program-list/
+// system-configuration-list — scoped locally via ViewEncapsulation.
+.mlp-cards-grid .mlp-card {
+  height: auto;
+  overflow: visible;
+}
+
 .sub-card__code {
   display: block;
   font-family: var(--cms-font-mono);

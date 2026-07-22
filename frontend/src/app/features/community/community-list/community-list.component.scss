@@ -1,5 +1,15 @@
 /* Community list uses global mlp / table styles */
 
+// This card carries more content (an optional multi-line description paragraph shown only
+// when it differs from the name) than the plain "master card" spec .mlp-card was built for;
+// its own overflow:hidden then clips that content whenever a grid row's auto height is driven
+// by a shorter sibling card that has no description. Same fix as fee-structure-list/
+// program-list/system-configuration-list — scoped locally via ViewEncapsulation.
+.mlp-cards-grid .mlp-card {
+  height: auto;
+  overflow: visible;
+}
+
 // NOTE: #tour-community-content is the id on the CARD-view grid (.mlp-cards-grid), not a
 // table wrapper — it must not carry a display override. An id-selector flex override here
 // previously beat .mlp-cards-grid's `display: grid` (ID > class specificity), collapsing

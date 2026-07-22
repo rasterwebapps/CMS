@@ -1,3 +1,13 @@
+// This card carries more content (name, type badge, location line, capacity line, status
+// badge, department line) than the plain "master card" spec .mlp-card was built for; its own
+// overflow:hidden then clips that content whenever a grid row's auto height is driven by a
+// shorter sibling card. Same fix as fee-structure-list/program-list/system-configuration-list
+// — scoped locally via ViewEncapsulation.
+.mlp-cards-grid .mlp-card {
+  height: auto;
+  overflow: visible;
+}
+
 // Lab-list card anatomy (layout/colour handled by global mlp-* classes)
 .lab-card {
   &__name {

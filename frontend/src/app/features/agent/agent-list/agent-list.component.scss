@@ -7,6 +7,16 @@
 
 // Agent list — uses global mlp-* classes from styles.scss
 
+// This card carries more content (name, phone/email contact-row, area badge + seats badge +
+// status badge in a meta-row) than the plain "master card" spec .mlp-card was built for; its
+// own overflow:hidden then clips that content whenever a grid row's auto height is driven by
+// a shorter sibling card. Same fix as fee-structure-list/program-list/system-configuration-list
+// — scoped locally via ViewEncapsulation.
+.mlp-cards-grid .mlp-card {
+  height: auto;
+  overflow: visible;
+}
+
 .agt-card__name {
   font-size: var(--cms-text-md);
   font-weight: 600;
