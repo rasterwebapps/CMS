@@ -19,6 +19,7 @@ public record FeeExplorerResponse(
         String allocationStatus,
         Integer yearOfStudy,
         String academicYearName,
-        BigDecimal collectibleOutstanding
+        BigDecimal collectibleOutstanding,
+        BigDecimal currentInstallmentDue
     ) {}
 }

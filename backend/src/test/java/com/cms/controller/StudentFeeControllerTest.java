@@ -422,7 +422,7 @@ class StudentFeeControllerTest {
                     1L, "John Doe", "CS2024001", "B.Tech Computer Science",
                     4, new BigDecimal("200000.00"), new BigDecimal("50000.00"),
                     new BigDecimal("150000.00"), new BigDecimal("1500.00"),
-                    "FINALIZED", null, null, new BigDecimal("150000.00")
+                    "FINALIZED", null, null, new BigDecimal("150000.00"), new BigDecimal("150000.00")
                 )
             )
         );

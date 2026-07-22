@@ -55,6 +55,7 @@ export interface Enquiry {
   commissionAmount?: number | null;
   guidelineCommissionAmount?: number | null;
   collectibleOutstanding: number | null;
+  currentInstallmentDue: number | null;
 }
 
 export interface EnquiryRequest {

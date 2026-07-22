@@ -1098,6 +1098,9 @@ public class EnquiryService {
         BigDecimal collectibleOutstanding = e.getFinalizedNetFee() != null && !handedOffToStudentSide
             ? enquiryPaymentService.getCollectibleOutstanding(e, totalPaid)
             : null;
+        BigDecimal currentInstallmentDue = e.getFinalizedNetFee() != null && !handedOffToStudentSide
+            ? enquiryPaymentService.getCurrentInstallmentDue(e, totalPaid)
+            : null;
         return new EnquiryResponse(
             e.getId(),
             e.getName(),
@@ -1154,7 +1157,8 @@ public class EnquiryService {
             e.getAdmissionSource(),
             e.getCommissionAmount(),
             e.getGuidelineCommissionAmount(),
-            collectibleOutstanding
+            collectibleOutstanding,
+            currentInstallmentDue
         );
     }
 

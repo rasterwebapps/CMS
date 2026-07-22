@@ -221,6 +221,7 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
   protected readonly successState          = signal<SuccessState | null>(null);
   protected readonly admissionDocs         = signal<AdmissionDocumentResponse[]>([]);
   protected readonly admissionChecklist    = signal<{ mandatory: Record<string, string>; optional: Record<string, string> }>({ mandatory: {}, optional: {} });
+  protected readonly passportPhotoUrl      = signal<string | null>(null);
   protected readonly printReady            = signal(false);
   protected readonly seatWarning           = signal<string | null>(null);
   protected readonly seatWarningSoft       = signal(false);
@@ -644,10 +645,37 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
           next: ({ docs, checklist }) => {
             this.admissionDocs.set(docs);
             this.admissionChecklist.set(checklist);
-            this.printReady.set(true);
+            const photoDoc = docs.find((d) => d.documentType === 'PASSPORT_PHOTO' && d.hasFile);
+            if (photoDoc) {
+              this.loadPassportPhoto(photoDoc.id);
+            } else {
+              this.printReady.set(true);
+            }
           },
           error: () => this.printReady.set(true),
         });
+      },
+      error: () => this.printReady.set(true),
+    });
+  }
+
+  // Print/View/Download stay disabled (see printReady in the template) until this resolves,
+  // so an eager click can't produce a form with a blank photo box.
+  private loadPassportPhoto(documentId: number): void {
+    this.admissionService.downloadDocumentBlob(documentId).subscribe({
+      next: (response) => {
+        const blob = response.body;
+        if (blob) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            this.passportPhotoUrl.set(reader.result as string);
+            this.printReady.set(true);
+          };
+          reader.onerror = () => this.printReady.set(true);
+          reader.readAsDataURL(blob);
+        } else {
+          this.printReady.set(true);
+        }
       },
       error: () => this.printReady.set(true),
     });
@@ -701,6 +729,7 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
       collegeAddress:    this.collegeAddress(),
       collegePhone:      this.collegePhone(),
       collegeEmail:      this.collegeEmail(),
+      passportPhotoUrl:  this.passportPhotoUrl(),
       studentName:       s.studentName,
       dateOfBirth:       v['dateOfBirth'] as string | null ?? null,
       gender:            v['gender'] as string | null ?? null,

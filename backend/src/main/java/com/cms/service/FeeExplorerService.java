@@ -199,13 +199,14 @@ public class FeeExplorerService {
             BigDecimal totalPending = allocation.getNetFee().subtract(totalPaid).max(BigDecimal.ZERO);
 
             BigDecimal collectibleOutstanding = paymentCollectionService.getCollectibleOutstanding(student);
+            BigDecimal currentInstallmentDue = paymentCollectionService.getCurrentInstallmentDue(student);
             return new FeeExplorerResponse.StudentFeeSummary(
                 student.getId(), student.getFullName(), student.getRollNumber(),
                 programName,
                 student.getProgram() != null ? student.getProgram().getDurationYears() : null,
                 allocation.getNetFee(), totalPaid, totalPending, totalPenalty,
                 allocation.getStatus().name(), yearOfStudy, academicYearName,
-                collectibleOutstanding
+                collectibleOutstanding, currentInstallmentDue
             );
         }
         return new FeeExplorerResponse.StudentFeeSummary(
@@ -213,7 +214,7 @@ public class FeeExplorerService {
             programName,
             student.getProgram() != null ? student.getProgram().getDurationYears() : null,
             BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-            "NOT_ALLOCATED", yearOfStudy, academicYearName, BigDecimal.ZERO
+            "NOT_ALLOCATED", yearOfStudy, academicYearName, BigDecimal.ZERO, BigDecimal.ZERO
         );
     }
 

@@ -400,6 +400,61 @@ public class PaymentCollectionService {
     }
 
     /**
+     * Returns the outstanding amount of just the single next unpaid, currently-open semester fee
+     * — the figure a front-desk collector actually asks for right now. Differs from
+     * {@link #getCollectibleOutstanding}, which sums EVERY currently-open semester fee (the upper
+     * bound one payment may cover, e.g. two already-open semesters paid together).
+     * Returns ZERO for students with no finalized allocation.
+     */
+    public BigDecimal getCurrentInstallmentDue(Student student) {
+        StudentFeeAllocation allocation = allocationRepository.findByStudentId(student.getId()).orElse(null);
+        if (allocation == null) {
+            return BigDecimal.ZERO;
+        }
+
+        List<SemesterFee> semesterFees = semesterFeeRepository
+            .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
+        int joiningStartYear = termInstanceService.resolveJoiningStartYear(student);
+
+        Optional<Enquiry> sourceEnquiry = enquiryRepository.findByConvertedStudentId(student.getId());
+        BigDecimal totalEnquiryCredit = sourceEnquiry
+            .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
+            .orElse(BigDecimal.ZERO);
+        BigDecimal alreadyAppliedCredit = sourceEnquiry
+            .map(e -> creditApplicationRepository.sumAmountAppliedByEnquiryId(e.getId()))
+            .orElse(BigDecimal.ZERO);
+        BigDecimal remainingCredit = totalEnquiryCredit.subtract(alreadyAppliedCredit).max(BigDecimal.ZERO);
+
+        for (SemesterFee sf : semesterFees) {
+            boolean collectibleNow = termInstanceService.isSemesterFeeCollectibleNow(
+                joiningStartYear, sf.getYearNumber(), sf.getSemesterSequence());
+            BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+            BigDecimal alreadyCredited = sourceEnquiry.isPresent()
+                ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
+                    sourceEnquiry.get().getId(), sf.getId())
+                : BigDecimal.ZERO;
+            BigDecimal capacity = sf.getAmount().subtract(alreadyPaid).subtract(alreadyCredited).max(BigDecimal.ZERO);
+
+            if (!collectibleNow) {
+                // Mirror calculateCollectibleOutstanding()'s break logic: a non-open semester
+                // with real outstanding stops the search — later semesters aren't open either.
+                if (capacity.compareTo(BigDecimal.ZERO) > 0) {
+                    break;
+                }
+                continue;
+            }
+
+            BigDecimal creditForThis = remainingCredit.min(capacity);
+            remainingCredit = remainingCredit.subtract(creditForThis);
+            BigDecimal outstanding = capacity.subtract(creditForThis).max(BigDecimal.ZERO);
+            if (outstanding.compareTo(BigDecimal.ZERO) > 0) {
+                return outstanding;
+            }
+        }
+        return BigDecimal.ZERO;
+    }
+
+    /**
      * Sums outstanding only across installments that are currently open for collection
      * (their TermInstance is OPEN or LOCKED, not still PLANNED) — future terms are excluded
      * from the collectible cap even though they still count toward the student's full balance

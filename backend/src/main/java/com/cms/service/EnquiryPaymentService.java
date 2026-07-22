@@ -392,6 +392,62 @@ public class EnquiryPaymentService {
     }
 
     /**
+     * Returns the outstanding amount of just the single next unpaid, currently-open installment
+     * — the figure a front-desk collector actually asks for right now. Differs from
+     * {@link #getCollectibleOutstanding}, which sums EVERY currently-open installment (the upper
+     * bound one payment may cover, e.g. two already-open terms paid together).
+     */
+    public BigDecimal getCurrentInstallmentDue(Enquiry enquiry, BigDecimal totalPaid) {
+        AcademicYear currentAy = academicYearRepository.findByIsCurrentTrue().orElse(null);
+        int baseStartYear = currentAy != null ? currentAy.getStartYear() : LocalDate.now().getYear();
+
+        List<TermWiseFeeEntry> termEntries = parseTermWiseFees(enquiry.getSemesterWiseFees());
+        if (!termEntries.isEmpty()) {
+            termEntries.sort(Comparator.comparingInt(TermWiseFeeEntry::termNumber));
+            BigDecimal remaining = totalPaid;
+            for (TermWiseFeeEntry entry : termEntries) {
+                BigDecimal paid = remaining.min(entry.amount());
+                BigDecimal outstanding = entry.amount().subtract(paid);
+                remaining = remaining.subtract(paid);
+                int yearNumber = (entry.termNumber() + 1) / 2;
+                int semSeq = ((entry.termNumber() - 1) % 2) + 1;
+                if (outstanding.compareTo(BigDecimal.ZERO) > 0 && isTermCollectibleNow(yearNumber, semSeq, baseStartYear)) {
+                    return outstanding;
+                }
+            }
+            return BigDecimal.ZERO;
+        }
+
+        List<YearWiseFeeEntry> yearEntries = parseYearWiseFees(enquiry.getYearWiseFees());
+        if (!yearEntries.isEmpty()) {
+            yearEntries.sort(Comparator.comparingInt(YearWiseFeeEntry::yearNumber));
+            BigDecimal remaining = totalPaid;
+            for (YearWiseFeeEntry entry : yearEntries) {
+                BigDecimal sem1Amount = entry.amount().divide(BigDecimal.TWO, 0, RoundingMode.FLOOR);
+                BigDecimal sem2Amount = entry.amount().subtract(sem1Amount);
+
+                BigDecimal paid1 = remaining.min(sem1Amount);
+                BigDecimal outstanding1 = sem1Amount.subtract(paid1);
+                remaining = remaining.subtract(paid1);
+                if (outstanding1.compareTo(BigDecimal.ZERO) > 0 && isTermCollectibleNow(entry.yearNumber(), 1, baseStartYear)) {
+                    return outstanding1;
+                }
+
+                BigDecimal paid2 = remaining.min(sem2Amount);
+                BigDecimal outstanding2 = sem2Amount.subtract(paid2);
+                remaining = remaining.subtract(paid2);
+                if (outstanding2.compareTo(BigDecimal.ZERO) > 0 && isTermCollectibleNow(entry.yearNumber(), 2, baseStartYear)) {
+                    return outstanding2;
+                }
+            }
+            return BigDecimal.ZERO;
+        }
+
+        // No installment breakdown configured — the whole fee is one lump, collectible now.
+        return computeEffectiveTotalFee(enquiry).subtract(totalPaid).max(BigDecimal.ZERO);
+    }
+
+    /**
      * Returns the portion of the fee schedule that's currently due for collection — terms whose
      * TermInstance hasn't been opened yet (still PLANNED, e.g. next year's fee) are excluded even
      * though they still count toward {@link #computeEffectiveTotalFee}'s full balance.

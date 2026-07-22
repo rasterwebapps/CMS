@@ -60,6 +60,10 @@ export class AdmissionDetailComponent implements OnInit {
   readonly documents = signal<AdmissionDocumentResponse[]>([]);
   readonly checklist = signal<{ mandatory: Record<string, string>; optional: Record<string, string> }>({ mandatory: {}, optional: {} });
   readonly passportPhotoUrl = signal<string | null>(null);
+  // Gates the View/Print/Download Admission Form buttons — stays false until the passport
+  // photo (if any) has finished loading, so an eager click can't produce a form with a blank
+  // photo box while loadPassportPhoto() is still in flight.
+  readonly printReady = signal(false);
   readonly collegeLogo = signal<string | null>(null);
   readonly collegeName = signal<string | null>(null);
   readonly collegeTrustLine = signal<string | null>(null);
@@ -147,9 +151,10 @@ export class AdmissionDetailComponent implements OnInit {
           this.loadPassportPhoto(photoDoc.id);
         } else {
           this.passportPhotoUrl.set(null);
+          this.printReady.set(true);
         }
       },
-      error: () => this.loading.set(false),
+      error: () => { this.loading.set(false); this.printReady.set(true); },
     });
     this.admissionService.getDocumentChecklist(id).subscribe({
       next: (cl) => this.checklist.set(cl),
@@ -161,12 +166,19 @@ export class AdmissionDetailComponent implements OnInit {
     this.admissionService.downloadDocumentBlob(documentId).subscribe({
       next: (response) => {
         const blob = response.body;
-        if (!blob) return;
-        const reader = new FileReader();
-        reader.onload = () => this.passportPhotoUrl.set(reader.result as string);
-        reader.readAsDataURL(blob);
+        if (blob) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            this.passportPhotoUrl.set(reader.result as string);
+            this.printReady.set(true);
+          };
+          reader.onerror = () => this.printReady.set(true);
+          reader.readAsDataURL(blob);
+        } else {
+          this.printReady.set(true);
+        }
       },
-      error: () => {},
+      error: () => this.printReady.set(true),
     });
   }
 

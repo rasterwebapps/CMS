@@ -61,13 +61,13 @@
           </div>
         </div>
         <div class="profile-hero__actions">
-          <button class="btn-secondary" type="button" (click)="viewForm()" title="View Admission Form as PDF">
+          <button class="btn-secondary" type="button" (click)="viewForm()" [disabled]="!printReady()" [title]="printReady() ? 'View Admission Form as PDF' : 'Loading passport photo…'">
             <mat-icon>visibility</mat-icon> View Form
           </button>
-          <button class="btn-secondary" type="button" (click)="printForm()" title="Print Admission Form">
+          <button class="btn-secondary" type="button" (click)="printForm()" [disabled]="!printReady()" [title]="printReady() ? 'Print Admission Form' : 'Loading passport photo…'">
             <mat-icon>print</mat-icon> Print Form
           </button>
-          <button class="btn-secondary" type="button" (click)="downloadForm()" title="Download Admission Form">
+          <button class="btn-secondary" type="button" (click)="downloadForm()" [disabled]="!printReady()" [title]="printReady() ? 'Download Admission Form' : 'Loading passport photo…'">
             <mat-icon>download</mat-icon> Download
           </button>
           <a class="btn-secondary" [routerLink]="['/students', admission()!.studentId]" title="View Student Profile">

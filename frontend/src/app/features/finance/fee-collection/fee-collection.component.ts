@@ -33,7 +33,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 export type FilterType   = 'ALL' | 'ENQUIRY' | 'STUDENT';
-export type FilterStatus = 'ALL' | 'OVERDUE' | 'OUTSTANDING';
+export type FilterStatus = 'ALL' | 'OUTSTANDING';
 export type PersonType   = 'ENQUIRY' | 'STUDENT';
 
 export interface FeeEntry {
@@ -45,9 +45,13 @@ export interface FeeEntry {
   courseName: string | null;
   totalFee: number;
   totalPaid: number;
+  // Sum of every currently-open (collectible-now) installment — the ceiling a single payment
+  // may cover. Not shown as its own column; used for gating/prefill/max-cap logic only.
   totalOutstanding: number;
-  nextDueDate: string | null;
-  nextDueLabel: string | null;
+  // True lifetime remaining balance (Total Fee - Paid), independent of term-instance status.
+  lifetimeOutstanding: number;
+  // Outstanding amount of just the single next unpaid, currently-open installment.
+  currentDue: number;
 }
 
 
@@ -124,8 +128,8 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
       { key: 'programName', label: 'Program' },
       { key: 'totalFee', label: 'Total Fee' },
       { key: 'totalPaid', label: 'Paid' },
-      { key: 'totalOutstanding', label: 'Outstanding' },
-      { key: 'nextDueDate', label: 'Next Due' },
+      { key: 'lifetimeOutstanding', label: 'Total Outstanding' },
+      { key: 'currentDue', label: 'Current Due' },
       { key: 'actions', label: 'Actions', mandatory: true, pinnable: false },
     ],
   });
@@ -136,11 +140,9 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     const term   = this.searchTerm().toLowerCase().trim();
     const type   = this.filterType();
     const status = this.filterStatus();
-    const today  = new Date();
 
     return this.feeEntries().filter(e => {
       if (type !== 'ALL' && e.type !== type) return false;
-      if (status === 'OVERDUE'     && !(e.nextDueDate && new Date(e.nextDueDate) < today)) return false;
       if (status === 'OUTSTANDING' && !this.hasCollectableOutstanding(e.totalOutstanding)) return false;
 
       // Student search is server-side; enquiry search is client-side
@@ -363,7 +365,7 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     const status = params.get('status');
     if (search) this.searchTerm.set(search);
     if (type === 'ENQUIRY' || type === 'STUDENT' || type === 'ALL') this.filterType.set(type);
-    if (status === 'OVERDUE' || status === 'OUTSTANDING' || status === 'ALL') this.filterStatus.set(status);
+    if (status === 'OUTSTANDING' || status === 'ALL') this.filterStatus.set(status);
   }
 
   // Carries the current filter state along when leaving for a student's Fee Detail page,
@@ -401,21 +403,24 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
       programName: e.programName ?? '—', courseName: e.courseName,
       totalFee, totalPaid,
       totalOutstanding: this.getEnquiryOutstanding(e),
-      nextDueDate: null, nextDueLabel: null,
+      lifetimeOutstanding: Math.max(totalFee - totalPaid, 0),
+      currentDue: this.normalizeMoney(e.currentInstallmentDue ?? 0),
     };
   }
 
   private studentToEntry(s: StudentFeeSummary): FeeEntry {
+    const totalFee = this.normalizeMoney(s.totalFee);
+    const totalPaid = this.normalizeMoney(s.totalPaid);
     return {
       type: 'STUDENT', id: s.studentId, name: s.studentName,
       rollNumber: s.rollNumber ?? null,
       programName: s.programName ?? '—', courseName: null,
-      totalFee: this.normalizeMoney(s.totalFee),
-      totalPaid: this.normalizeMoney(s.totalPaid),
+      totalFee, totalPaid,
       // Capped to current + past dues — excludes not-yet-open future terms, even though
       // those still count toward totalPending (the full balance shown in Fee Explorer).
       totalOutstanding: this.normalizeMoney(s.collectibleOutstanding),
-      nextDueDate: null, nextDueLabel: null,
+      lifetimeOutstanding: this.normalizeMoney(s.totalPending),
+      currentDue: this.normalizeMoney(s.currentInstallmentDue),
     };
   }
 
