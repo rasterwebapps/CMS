@@ -90,6 +90,12 @@ public class EnquiryService {
         ALLOWED_MANUAL_TRANSITIONS = Map.copyOf(map);
     }
 
+    /** Mirrors FEE_LOCKED in enquiry-form.component.ts's applyStatusLocks(). */
+    private static final Set<EnquiryStatus> FEE_LOCKED_STATUSES = EnumSet.of(
+        EnquiryStatus.FEES_FINALIZED, EnquiryStatus.FEES_PAID, EnquiryStatus.PARTIALLY_PAID,
+        EnquiryStatus.DOCUMENTS_SUBMITTED, EnquiryStatus.DOCUMENTS_VERIFIED, EnquiryStatus.ADMITTED
+    );
+
     private final EnquiryRepository enquiryRepository;
     private final ProgramRepository programRepository;
     private final AgentRepository agentRepository;
@@ -288,7 +294,15 @@ public class EnquiryService {
         Enquiry enquiry = enquiryRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + id));
 
-        Program program = null;
+        // Program/Course/StudentType/AdmissionQuota/State are disabled (read-only) on the edit
+        // form once the enquiry reaches a fee-locked status (see applyStatusLocks() in
+        // enquiry-form.component.ts). Angular's FormGroup.value omits disabled controls entirely,
+        // so the request arrives with these fields null — that must be read as "unchanged", never
+        // as "clear this field". Falling back to the existing entity value when the request omits
+        // one is what makes that distinction; blindly overwriting with null previously wiped
+        // Program/Course (and silently reset AcademicYear, StudentType, AdmissionQuota, State)
+        // on every edit of an already fee-finalized enquiry.
+        Program program = enquiry.getProgram();
         if (request.programId() != null) {
             program = programRepository.findById(request.programId())
                 .orElseThrow(() -> new ResourceNotFoundException("Program not found with id: " + request.programId()));
@@ -303,7 +317,7 @@ public class EnquiryService {
         ReferralType referralType = referralTypeRepository.findById(request.referralTypeId())
             .orElseThrow(() -> new ResourceNotFoundException("Referral type not found with id: " + request.referralTypeId()));
 
-        Course course = null;
+        Course course = enquiry.getCourse();
         if (request.courseId() != null) {
             course = courseRepository.findById(request.courseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.courseId()));
@@ -313,7 +327,12 @@ public class EnquiryService {
             validateAgeRestriction(program, request.dateOfBirth(), request.enquiryDate().getYear());
         }
 
-        enquiry.setName(request.name());
+        // name/dateOfBirth/gender are likewise disabled on the edit form once the enquiry hits
+        // the IDENTITY_LOCKED tier (DOCUMENTS_SUBMITTED/DOCUMENTS_VERIFIED) — same
+        // omitted-means-unchanged handling as above.
+        if (request.name() != null && !request.name().isBlank()) {
+            enquiry.setName(request.name());
+        }
         enquiry.setEmail(request.email());
         enquiry.setPhone(request.phone());
         enquiry.setProgram(program);
@@ -323,12 +342,28 @@ public class EnquiryService {
         enquiry.setAgent(agent);
         enquiry.setReferralType(referralType);
         enquiry.setRemarks(request.remarks());
-        enquiry.setStudentType(request.studentType());
-        enquiry.setDateOfBirth(request.dateOfBirth());
-        enquiry.setGender(request.gender());
-        enquiry.setAdmissionQuota(request.admissionQuota());
+        if (request.studentType() != null) {
+            enquiry.setStudentType(request.studentType());
+        }
+        if (request.dateOfBirth() != null) {
+            enquiry.setDateOfBirth(request.dateOfBirth());
+        }
+        if (request.gender() != null) {
+            enquiry.setGender(request.gender());
+        }
+        if (request.admissionQuota() != null) {
+            enquiry.setAdmissionQuota(request.admissionQuota());
+        }
         applyFeeState(enquiry, request.feeStateId());
-        applyAuthoritativeFees(enquiry, request);
+        // Fee fields (feeDiscussedAmount/finalCalculatedFee/yearWiseFees) are owned exclusively by
+        // finalizeFees() from FEES_FINALIZED onward. Recomputing them here from whatever the edit
+        // form happened to submit — including nulling them when Program/Quota/FeeState/Gender were
+        // merely disabled, not actually cleared — was overwriting the admin's finalized, discounted
+        // fee breakdown on every unrelated edit (e.g. fixing a phone number). Only the pre-finalization
+        // guideline estimate should ever be recalculated here.
+        if (!FEE_LOCKED_STATUSES.contains(enquiry.getStatus())) {
+            applyAuthoritativeFees(enquiry, request);
+        }
         enquiry.setReferredStudentId(request.referredStudentId());
         enquiry.setReferredFacultyId(request.referredFacultyId());
         enquiry.setReferredStaffId(request.referredStaffId());
@@ -336,7 +371,9 @@ public class EnquiryService {
         enquiry.setCountry(request.countryId() != null
             ? countryRepository.findById(request.countryId()).orElse(null)
             : null);
-        enquiry.setState(request.state());
+        if (request.state() != null && !request.state().isBlank()) {
+            enquiry.setState(request.state());
+        }
         enquiry.setDistrict(request.district());
 
         if (request.status() != null) {
