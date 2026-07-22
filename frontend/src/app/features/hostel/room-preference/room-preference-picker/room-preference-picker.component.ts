@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Observable, of } from 'rxjs';
 
@@ -30,10 +30,23 @@ export class RoomPreferencePickerComponent implements OnChanges {
 
   @Input() enquiryId: number | null = null;
   @Input() studentId: number | null = null;
+  /** Student's gender, if known yet — narrows the zone list to gender-compatible zones
+   *  (a zone with no genderRestriction is unrestricted and shown regardless of gender). */
+  @Input() set gender(value: 'MALE' | 'FEMALE' | 'OTHER' | null | undefined) {
+    this.genderSignal.set(value ?? null);
+  }
+  get gender(): 'MALE' | 'FEMALE' | 'OTHER' | null {
+    return this.genderSignal();
+  }
   @Output() saved = new EventEmitter<RoomPreference>();
 
+  private readonly genderSignal = signal<'MALE' | 'FEMALE' | 'OTHER' | null>(null);
   protected readonly roomTypes = signal<HostelRoomType[]>([]);
   protected readonly zones = signal<Zone[]>([]);
+  protected readonly filteredZones = computed(() => {
+    const gender = this.genderSignal();
+    return this.zones().filter((z) => this.isZoneCompatible(z, gender));
+  });
   protected readonly preferredRoomTypeId = signal<number | null>(null);
   protected readonly preferredZoneId = signal<number | null>(null);
   protected readonly remarks = signal<string>('');
@@ -44,6 +57,26 @@ export class RoomPreferencePickerComponent implements OnChanges {
   constructor() {
     this.hostelRoomTypeService.getAll(true).subscribe((types) => this.roomTypes.set(types));
     this.campusInfrastructureService.getAllActiveZones().subscribe((zones) => this.zones.set(zones));
+
+    // If gender becomes known (or changes) after a zone was already picked, and that zone is
+    // no longer gender-compatible, clear the stale selection rather than silently keeping it.
+    effect(() => {
+      const compatible = this.filteredZones();
+      const current = this.preferredZoneId();
+      if (current !== null && !compatible.some((z) => z.id === current)) {
+        this.preferredZoneId.set(null);
+      }
+    });
+  }
+
+  /** A zone with no genderRestriction is unrestricted (open to all genders, including OTHER).
+   *  MALE only matches BOYS zones, FEMALE only matches GIRLS zones; OTHER has no matching
+   *  restriction value, so it can only use unrestricted zones. */
+  private isZoneCompatible(zone: Zone, gender: 'MALE' | 'FEMALE' | 'OTHER' | null): boolean {
+    if (zone.genderRestriction === null) return true;
+    if (gender === 'MALE') return zone.genderRestriction === 'BOYS';
+    if (gender === 'FEMALE') return zone.genderRestriction === 'GIRLS';
+    return false;
   }
 
   ngOnChanges(changes: SimpleChanges): void {

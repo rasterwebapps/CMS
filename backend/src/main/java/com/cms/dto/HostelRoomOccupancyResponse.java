@@ -1,5 +1,7 @@
 package com.cms.dto;
 
+import com.cms.model.enums.GenderRestriction;
+
 import java.util.List;
 
 /** Per-room occupancy snapshot backing the Room Allocation dashboard's occupancy map. */
@@ -9,6 +11,7 @@ public record HostelRoomOccupancyResponse(
     String roomNumber,
     Long zoneId,
     String zoneName,
+    GenderRestriction genderRestriction,
     Long roomTypeId,
     String roomTypeName,
     Integer sharingCapacity,

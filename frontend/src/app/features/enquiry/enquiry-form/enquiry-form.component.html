@@ -284,7 +284,7 @@
                 </div>
 
                 @if (form.get('studentType')?.value === 'HOSTELER') {
-                  <app-room-preference-picker [enquiryId]="itemId"></app-room-preference-picker>
+                  <app-room-preference-picker [enquiryId]="itemId" [gender]="form.get('gender')?.value ?? null"></app-room-preference-picker>
                 }
 
                 <!-- Estimated Fee banner -->

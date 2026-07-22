@@ -228,7 +228,7 @@
                 </div>
               </div>
               @if (isHostelerContext()) {
-                <app-room-preference-picker [enquiryId]="selectedEnquiry()?.id ?? null"></app-room-preference-picker>
+                <app-room-preference-picker [enquiryId]="selectedEnquiry()?.id ?? null" [gender]="form.get('gender')?.value ?? null"></app-room-preference-picker>
               }
             </div>
           </div>
@@ -735,7 +735,7 @@
                   </div>
                 </div>
                 @if (isHostelerContext()) {
-                  <app-room-preference-picker [studentId]="editStudentId()"></app-room-preference-picker>
+                  <app-room-preference-picker [studentId]="editStudentId()" [gender]="form.get('gender')?.value ?? null"></app-room-preference-picker>
                 }
               </div>
               <div class="cms-step-nav">

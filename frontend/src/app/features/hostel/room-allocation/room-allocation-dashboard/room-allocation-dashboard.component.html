@@ -24,6 +24,11 @@
         <option [ngValue]="z.id">{{ z.name }}</option>
       }
     </select>
+    <select class="rad-filter" [ngModel]="genderFilter()" (ngModelChange)="genderFilter.set($event)">
+      <option value="ALL">Any Gender</option>
+      <option value="MALE">Boys-eligible</option>
+      <option value="FEMALE">Girls-eligible</option>
+    </select>
     <button type="button" class="rad-refresh" (click)="refresh()" [disabled]="loading()">
       <mat-icon>refresh</mat-icon>
     </button>
@@ -43,7 +48,12 @@
             <div class="rad-card__room">{{ room.roomNumber }}</div>
             <div class="rad-card__zone">{{ room.zoneName }}</div>
           </div>
-          <div class="rad-card__type">{{ room.roomTypeName }}</div>
+          <div class="rad-card__type">
+            {{ room.roomTypeName }}
+            @if (room.genderRestriction) {
+              <span class="rad-card__gender">{{ room.genderRestriction === 'BOYS' ? 'Boys' : 'Girls' }}</span>
+            }
+          </div>
 
           <div class="rad-occupancy">
             <div class="rad-occupancy__bar">

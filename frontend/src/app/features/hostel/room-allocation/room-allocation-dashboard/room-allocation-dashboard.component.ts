@@ -42,14 +42,20 @@ export class RoomAllocationDashboardComponent implements OnInit {
   protected readonly search = signal('');
   protected readonly roomTypeFilter = signal<number | null>(null);
   protected readonly zoneFilter = signal<number | null>(null);
+  // 'MALE'/'FEMALE' narrow to BOYS/GIRLS zones respectively; unrestricted (null) zones match
+  // every gender filter since they're open to anyone. 'ALL' applies no gender filter.
+  protected readonly genderFilter = signal<'ALL' | 'MALE' | 'FEMALE'>('ALL');
 
   protected readonly filteredRooms = computed(() => {
     const term = this.search().trim().toLowerCase();
     const roomTypeId = this.roomTypeFilter();
     const zoneId = this.zoneFilter();
+    const gender = this.genderFilter();
     return this.rooms().filter((r) => {
       if (roomTypeId && r.roomTypeId !== roomTypeId) return false;
       if (zoneId && r.zoneId !== zoneId) return false;
+      if (gender === 'MALE' && r.genderRestriction !== null && r.genderRestriction !== 'BOYS') return false;
+      if (gender === 'FEMALE' && r.genderRestriction !== null && r.genderRestriction !== 'GIRLS') return false;
       if (!term) return true;
       return r.roomNumber.toLowerCase().includes(term)
         || r.occupants.some((o) => o.studentName.toLowerCase().includes(term));

@@ -51,6 +51,7 @@ export interface HostelRoomOccupancy {
   roomNumber: string;
   zoneId: number;
   zoneName: string;
+  genderRestriction: 'BOYS' | 'GIRLS' | null;
   roomTypeId: number;
   roomTypeName: string;
   sharingCapacity: number;

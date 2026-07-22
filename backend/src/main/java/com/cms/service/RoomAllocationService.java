@@ -132,6 +132,7 @@ public class RoomAllocationService {
                     hr.getRoom().getRoomNumber(),
                     hr.getRoom().getZone().getId(),
                     hr.getRoom().getZone().getName(),
+                    hr.getRoom().getZone().getGenderRestriction(),
                     hr.getRoomType().getId(),
                     hr.getRoomType().getName(),
                     hr.getRoomType().getSharingCapacity(),

@@ -25,6 +25,11 @@
   color: var(--cms-text-muted);
 }
 
+.rpp-hint--warn {
+  margin: 0;
+  color: var(--cms-warning);
+}
+
 .rpp-row {
   display: flex;
   flex-wrap: wrap;
