@@ -99,12 +99,14 @@
                 <select id="ls-faculty" class="field-select" formControlName="facultyId"
                   [class.field-select--error]="form.get('facultyId')?.invalid && form.get('facultyId')?.touched">
                   <option [ngValue]="null" disabled>Select faculty</option>
-                  @for (f of faculty(); track f.id) {
+                  @for (f of eligibleFaculty(); track f.id) {
                     <option [ngValue]="f.id">{{ f.name }}</option>
                   }
                 </select>
                 @if (form.get('facultyId')?.invalid && form.get('facultyId')?.touched) {
                   <p class="field-error">Faculty is required</p>
+                } @else if (selectedSubjectSpecialityName()) {
+                  <p class="field-hint">Showing {{ selectedSubjectSpecialityName() }} department faculty only</p>
                 }
               </div>
 

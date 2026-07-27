@@ -1,0 +1,71 @@
+<div class="mlp-page">
+
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="page-title">Faculty <em>Availability</em></h1>
+      <p class="page-subtitle">Mark when a faculty member is unavailable so Timetable Generate/Regenerate/Swap can steer around it</p>
+    </div>
+  </div>
+
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="mlp-filter-select" [(ngModel)]="selectedFacultyId" (ngModelChange)="onFacultyChange()" aria-label="Faculty">
+      @if (faculties().length === 0) {
+        <option [ngValue]="null">No faculty found</option>
+      }
+      @for (f of faculties(); track f.id) {
+        <option [ngValue]="f.id">{{ f.fullName }} ({{ f.employeeCode }})</option>
+      }
+    </select>
+  </div>
+
+  @if (!canManage()) {
+    <div class="content-card availability-readonly-banner">
+      You have view-only access — ask an admin with Manage permission to change availability.
+    </div>
+  }
+
+  <div class="content-card availability-grid-card">
+    <h2 class="availability-grid-card__title">Theory Periods</h2>
+    <div class="availability-grid" [style.grid-template-columns]="'120px repeat(' + days.length + ', 1fr)'">
+      <div class="availability-grid__corner"></div>
+      @for (day of days; track day) {
+        <div class="availability-grid__day-hdr">{{ dayLabels[day] }}</div>
+      }
+      @for (row of periodRows(); track row.key) {
+        <div class="availability-grid__time-cell">{{ row.label }}</div>
+        @for (day of days; track day) {
+          <button type="button"
+            class="availability-cell"
+            [class.availability-cell--blocked]="blockFor(day, row)"
+            [class.availability-cell--busy]="toggling() === (row.key + '-' + day)"
+            [disabled]="!canManage() || toggling() === (row.key + '-' + day)"
+            (click)="toggleCell(day, row)">
+            {{ blockFor(day, row) ? 'Blocked' : 'Free' }}
+          </button>
+        }
+      }
+    </div>
+
+    <h2 class="availability-grid-card__title availability-grid-card__title--spaced">Lab Slots</h2>
+    <div class="availability-grid" [style.grid-template-columns]="'120px repeat(' + days.length + ', 1fr)'">
+      <div class="availability-grid__corner"></div>
+      @for (day of days; track day) {
+        <div class="availability-grid__day-hdr">{{ dayLabels[day] }}</div>
+      }
+      @for (row of labSlotRows(); track row.key) {
+        <div class="availability-grid__time-cell">{{ row.label }}</div>
+        @for (day of days; track day) {
+          <button type="button"
+            class="availability-cell"
+            [class.availability-cell--blocked]="blockFor(day, row)"
+            [class.availability-cell--busy]="toggling() === (row.key + '-' + day)"
+            [disabled]="!canManage() || toggling() === (row.key + '-' + day)"
+            (click)="toggleCell(day, row)">
+            {{ blockFor(day, row) ? 'Blocked' : 'Free' }}
+          </button>
+        }
+      }
+    </div>
+  </div>
+
+</div>

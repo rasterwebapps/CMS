@@ -3,8 +3,11 @@ package com.cms.service;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -21,6 +24,7 @@ import com.cms.model.Classroom;
 import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Faculty;
+import com.cms.model.FacultyAvailability;
 import com.cms.model.Lab;
 import com.cms.model.LabSlot;
 import com.cms.model.Period;
@@ -32,7 +36,9 @@ import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.CourseOfferingRepository;
+import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.LabAttendanceRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.LabSlotRepository;
 import com.cms.repository.PeriodRepository;
@@ -40,16 +46,15 @@ import com.cms.repository.TermInstanceRepository;
 
 /**
  * "Suggest-and-approve" draft generation, not fully automatic: Generate produces DRAFT rows an
- * admin reviews (and can hand-fix via the extended /lab-schedules form) before Approve flips
- * them to PUBLISHED. v1 assumes full faculty/room availability — placement only avoids
- * double-booking against rows placed earlier in the *same run* (never against pre-existing
- * PUBLISHED rows for the term, since {@link #generate} refuses to run at all when any row
- * already exists for that term — see the regeneration guard, and the plan's note that checking
- * PUBLISHED rows would be dead code here). 1 Period/LabSlot = 1 curriculum hour for v1; lab and
- * clinical hours are summed into one LAB placement count (the schema discriminator is only
- * THEORY/LAB). Elective offerings are skipped, matching the existing bulk course-registration
- * generation precedent (CourseRegistrationServiceImpl) of leaving electives for manual/individual
- * assignment.
+ * admin reviews (and can hand-fix via the extended /lab-schedules form, or the in-grid Swap
+ * feature) before Approve flips them to PUBLISHED. Conflict-checking is only against rows placed
+ * earlier in the *same run* (never against pre-existing PUBLISHED rows for the term) — this is
+ * safe because {@link #generate} refuses to run at all once the term has been published (see the
+ * regeneration guard below); a DRAFT-only term has no PUBLISHED rows to conflict with in the first
+ * place. 1 Period/LabSlot = 1 curriculum hour for v1; lab and clinical hours are summed into one
+ * LAB placement count (the schema discriminator is only THEORY/LAB). Elective offerings are
+ * skipped, matching the existing bulk course-registration generation precedent
+ * (CourseRegistrationServiceImpl) of leaving electives for manual/individual assignment.
  *
  * <p>{@link CurriculumSemesterCourse} hours are total-term hours, not a literal count of slots to
  * place — {@link ClassSchedule} has no date, only a {@code dayOfWeek} + {@code termInstance} (it's
@@ -60,6 +65,13 @@ import com.cms.repository.TermInstanceRepository;
  * theory session per subject per day, one lab session per subject+batch per day) keeps the now much
  * smaller placement count from clustering multiple sessions of the same subject on one day just
  * because slots happened to be free.
+ *
+ * <p><b>Regenerate is the same call as Generate.</b> {@link #generate} deletes any existing DRAFT
+ * rows for the term up front and re-places from scratch — so it doubles as an in-place "try again"
+ * action that discards whatever manual Swap tweaks were made to the current draft. The
+ * period/classroom/lab/day iteration order is shuffled per call (see {@link #shuffledCopy}) so
+ * consecutive calls on the same input tend to produce a different arrangement rather than the
+ * same deterministic layout every time.
  */
 @Service
 @Transactional(readOnly = true)
@@ -74,6 +86,8 @@ public class TimetableGenerationService {
     private final PeriodRepository periodRepository;
     private final LabRepository labRepository;
     private final LabSlotRepository labSlotRepository;
+    private final FacultyAvailabilityRepository facultyAvailabilityRepository;
+    private final LabAttendanceRepository labAttendanceRepository;
 
     public TimetableGenerationService(ClassScheduleRepository classScheduleRepository,
                                        CourseOfferingRepository courseOfferingRepository,
@@ -83,7 +97,9 @@ public class TimetableGenerationService {
                                        ClassroomRepository classroomRepository,
                                        PeriodRepository periodRepository,
                                        LabRepository labRepository,
-                                       LabSlotRepository labSlotRepository) {
+                                       LabSlotRepository labSlotRepository,
+                                       FacultyAvailabilityRepository facultyAvailabilityRepository,
+                                       LabAttendanceRepository labAttendanceRepository) {
         this.classScheduleRepository = classScheduleRepository;
         this.courseOfferingRepository = courseOfferingRepository;
         this.termInstanceRepository = termInstanceRepository;
@@ -93,6 +109,8 @@ public class TimetableGenerationService {
         this.periodRepository = periodRepository;
         this.labRepository = labRepository;
         this.labSlotRepository = labSlotRepository;
+        this.facultyAvailabilityRepository = facultyAvailabilityRepository;
+        this.labAttendanceRepository = labAttendanceRepository;
     }
 
     /** One placement already committed this run, tracked purely in-memory for conflict-checking
@@ -107,22 +125,28 @@ public class TimetableGenerationService {
 
     @Transactional
     public TimetableGenerationResponse generate(Long termInstanceId) {
-        if (classScheduleRepository.existsByTermInstanceId(termInstanceId)) {
+        if (classScheduleRepository.existsByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.PUBLISHED)) {
             throw new LifecycleConflictException(
-                "A timetable already exists for this term. Clear it before regenerating.",
-                "TIMETABLE_ALREADY_EXISTS", "TermInstance", termInstanceId, null);
+                "This term's timetable has already been approved and published. Discard it before regenerating.",
+                "TIMETABLE_ALREADY_PUBLISHED", "TermInstance", termInstanceId, null);
         }
         TermInstance termInstance = termInstanceRepository.findById(termInstanceId)
             .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
 
+        // In-place regenerate: wipe whatever DRAFT rows (and any manual Swap tweaks) already exist
+        // for this term and re-place from scratch — see class javadoc.
+        classScheduleRepository.deleteByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT);
+
         List<CourseOffering> offerings = courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId);
-        List<Period> periods = periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc();
-        List<LabSlot> labSlots = labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc();
-        List<Classroom> classrooms = classroomRepository.findByIsActiveTrueOrderByNameAsc();
-        List<Lab> labs = labRepository.findAll();
+        List<Period> periods = shuffledCopy(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc());
+        List<LabSlot> labSlots = shuffledCopy(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc());
+        List<Classroom> classrooms = shuffledCopy(classroomRepository.findByIsActiveTrueOrderByNameAsc());
+        List<Lab> labs = shuffledCopy(labRepository.findAll());
+        List<DayOfWeek> days = shuffledCopy(List.of(DayOfWeek.values()));
 
         List<Occupied> occupied = new ArrayList<>();
         List<String> unplaceable = new ArrayList<>();
+        Map<Long, List<FacultyAvailability>> availabilityByFaculty = new HashMap<>();
         int generatedCount = 0;
         int weeksInTerm = weeksInTerm(termInstance);
 
@@ -147,11 +171,14 @@ public class TimetableGenerationService {
                 continue;
             }
             Faculty faculty = facultyOpt.get();
+            List<FacultyAvailability> availabilityBlocks = availabilityByFaculty.computeIfAbsent(
+                faculty.getId(), facultyAvailabilityRepository::findByFacultyIdOrderByDayOfWeekAscStartTimeAsc);
 
             int theoryHours = csc.getTheoryHours() != null ? csc.getTheoryHours() : 0;
             if (theoryHours > 0) {
                 int sessionsPerWeek = sessionsPerWeek(theoryHours, weeksInTerm);
-                int placed = placeTheory(offering, faculty, sessionsPerWeek, periods, classrooms, occupied, termInstance);
+                int placed = placeTheory(offering, faculty, sessionsPerWeek, periods, classrooms, days,
+                    availabilityBlocks, occupied, termInstance);
                 if (placed < sessionsPerWeek) {
                     unplaceable.add(subjectName + ": placed " + placed + "/" + sessionsPerWeek
                         + " weekly theory session(s) (" + theoryHours + " hrs/term over " + weeksInTerm
@@ -170,7 +197,8 @@ public class TimetableGenerationService {
                         + " lab/clinical hours needed but no batches are defined for this offering");
                 } else {
                     for (Batch batch : batches) {
-                        int placed = placeLab(offering, faculty, batch, sessionsPerWeek, labSlots, labs, occupied, termInstance);
+                        int placed = placeLab(offering, faculty, batch, sessionsPerWeek, labSlots, labs, days,
+                            availabilityBlocks, occupied, termInstance);
                         if (placed < sessionsPerWeek) {
                             unplaceable.add(subjectName + " (" + batch.getName() + "): placed " + placed + "/" + sessionsPerWeek
                                 + " weekly lab/clinical session(s) (" + labClinicalHours + " hrs/term over " + weeksInTerm
@@ -186,7 +214,8 @@ public class TimetableGenerationService {
     }
 
     private int placeTheory(CourseOffering offering, Faculty faculty, int sessionsPerWeek,
-                             List<Period> periods, List<Classroom> classrooms,
+                             List<Period> periods, List<Classroom> classrooms, List<DayOfWeek> days,
+                             List<FacultyAvailability> availabilityBlocks,
                              List<Occupied> occupied, TermInstance termInstance) {
         int placed = 0;
         Set<DayOfWeek> daysUsed = EnumSet.noneOf(DayOfWeek.class);
@@ -194,9 +223,10 @@ public class TimetableGenerationService {
             boolean found = false;
             for (Period period : periods) {
                 if (found) break;
-                for (DayOfWeek day : DayOfWeek.values()) {
+                for (DayOfWeek day : days) {
                     if (found) break;
                     if (daysUsed.contains(day)) continue;
+                    if (!isFacultyAvailable(availabilityBlocks, day, period.getStartTime(), period.getEndTime())) continue;
                     for (Classroom classroom : classrooms) {
                         String roomKey = "THEORY:" + classroom.getId();
                         String audienceKey = "THEORY:" + offering.getId();
@@ -232,7 +262,8 @@ public class TimetableGenerationService {
     }
 
     private int placeLab(CourseOffering offering, Faculty faculty, Batch batch, int sessionsPerWeek,
-                          List<LabSlot> labSlots, List<Lab> labs,
+                          List<LabSlot> labSlots, List<Lab> labs, List<DayOfWeek> days,
+                          List<FacultyAvailability> availabilityBlocks,
                           List<Occupied> occupied, TermInstance termInstance) {
         int placed = 0;
         Set<DayOfWeek> daysUsed = EnumSet.noneOf(DayOfWeek.class);
@@ -240,9 +271,10 @@ public class TimetableGenerationService {
             boolean found = false;
             for (LabSlot slot : labSlots) {
                 if (found) break;
-                for (DayOfWeek day : DayOfWeek.values()) {
+                for (DayOfWeek day : days) {
                     if (found) break;
                     if (daysUsed.contains(day)) continue;
+                    if (!isFacultyAvailable(availabilityBlocks, day, slot.getStartTime(), slot.getEndTime())) continue;
                     for (Lab lab : labs) {
                         String roomKey = "LAB:" + lab.getId();
                         String audienceKey = "LAB:" + batch.getId();
@@ -307,6 +339,24 @@ public class TimetableGenerationService {
         return true;
     }
 
+    private boolean isFacultyAvailable(List<FacultyAvailability> availabilityBlocks, DayOfWeek day,
+                                        LocalTime start, LocalTime end) {
+        for (FacultyAvailability block : availabilityBlocks) {
+            if (block.getDayOfWeek() == day && block.getStartTime().isBefore(end) && block.getEndTime().isAfter(start)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Fresh shuffled copy so consecutive {@link #generate} calls vary the placement order —
+     *  never mutates the caller's/repository's list. */
+    private static <T> List<T> shuffledCopy(List<T> source) {
+        List<T> copy = new ArrayList<>(source);
+        Collections.shuffle(copy);
+        return copy;
+    }
+
     @Transactional
     public TimetableActionResponse clear(Long termInstanceId) {
         if (!termInstanceRepository.existsById(termInstanceId)) {
@@ -328,5 +378,32 @@ public class TimetableGenerationService {
             classScheduleRepository.save(cs);
         }
         return new TimetableActionResponse(drafts.size());
+    }
+
+    /**
+     * Un-publishes a live timetable back to DRAFT so it can be edited/swapped and re-approved,
+     * without losing the placed sessions (unlike {@link #clear}, which deletes them outright).
+     * Blocked once any {@code LabAttendance} has been recorded against the term's sessions —
+     * {@code lab_attendances.lab_schedule_id} has no {@code ON DELETE}/status-transition handling,
+     * so silently reverting attendance-backed sessions back to DRAFT would let a subsequent
+     * regenerate/clear wipe out attendance history's session linkage.
+     */
+    @Transactional
+    public TimetableActionResponse revertToDraft(Long termInstanceId) {
+        List<ClassSchedule> published = classScheduleRepository.findByTermInstanceIdAndStatus(
+            termInstanceId, ClassScheduleStatus.PUBLISHED);
+        if (published.isEmpty()) {
+            throw new ResourceNotFoundException("No published timetable found for term instance id: " + termInstanceId);
+        }
+        if (labAttendanceRepository.existsByLabScheduleTermInstanceId(termInstanceId)) {
+            throw new LifecycleConflictException(
+                "Attendance has already been recorded against this term's timetable. It can no longer be reverted to draft.",
+                "TIMETABLE_ATTENDANCE_RECORDED", "TermInstance", termInstanceId, null);
+        }
+        for (ClassSchedule cs : published) {
+            cs.setStatus(ClassScheduleStatus.DRAFT);
+            classScheduleRepository.save(cs);
+        }
+        return new TimetableActionResponse(published.size());
     }
 }

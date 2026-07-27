@@ -844,6 +844,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'faculty-availability',
+    canActivate: withPermission('FACULTY_AVAILABILITY_VIEW', 'FACULTY_AVAILABILITY_MANAGE'),
+    loadComponent: () =>
+      import('./features/faculty-availability/faculty-availability.component').then(
+        (m) => m.FacultyAvailabilityComponent
+      ),
+  },
+  {
     path: 'elective-assignment',
     canActivate: withPermission('COURSE_REGISTRATION_ELECTIVE_ASSIGN'),
     loadComponent: () =>

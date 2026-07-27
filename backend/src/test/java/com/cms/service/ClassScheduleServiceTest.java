@@ -361,6 +361,71 @@ class ClassScheduleServiceTest {
     }
 
     @Test
+    void shouldBlockFacultyFromADifferentSpecialityThanTheSubject() {
+        Speciality nursingSpeciality = new Speciality("Nursing", "NUR", "Nursing Dept", null, null);
+        nursingSpeciality.setId(2L);
+        Subject nursingSubject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
+        nursingSubject.setId(2L);
+
+        ClassScheduleRequest request = labRequest(1L, 2L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L);
+        when(subjectRepository.findById(2L)).thenReturn(Optional.of(nursingSubject));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(testFaculty));
+
+        assertThatThrownBy(() -> classScheduleService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("not eligible to teach");
+
+        verify(classScheduleRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldAllowFacultyFromTheSameSpecialityAsTheSubject() {
+        Subject csSubject = new Subject("Algorithms", "CS301", 3, 3, 0, testSpeciality, 3);
+        csSubject.setId(3L);
+        ClassScheduleRequest request = labRequest(1L, 3L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L);
+        ClassSchedule saved = createLabSchedule(1L, testLab, csSubject, testFaculty,
+            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
+
+        when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
+        when(subjectRepository.findById(3L)).thenReturn(Optional.of(csSubject));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(testFaculty));
+        when(labSlotRepository.findById(1L)).thenReturn(Optional.of(testLabSlot));
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(testTermInstance));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenReturn(saved);
+
+        ClassScheduleResponse response = classScheduleService.create(request);
+
+        assertThat(response.id()).isEqualTo(1L);
+    }
+
+    @Test
+    void shouldGrandfatherAnUnchangedMismatchedFacultyOnUpdate() {
+        // A row saved before this eligibility rule existed (or via direct DB edit) may already
+        // carry a mismatched faculty-subject pairing. Resubmitting the SAME faculty on an
+        // otherwise-unrelated edit (e.g. changing the day) must not suddenly start failing.
+        Speciality nursingSpeciality = new Speciality("Nursing", "NUR", "Nursing Dept", null, null);
+        nursingSpeciality.setId(2L);
+        Subject nursingSubject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
+        nursingSubject.setId(2L);
+
+        ClassSchedule existing = createLabSchedule(1L, testLab, nursingSubject, testFaculty,
+            testLabSlot, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
+        ClassScheduleRequest updateRequest = labRequest(1L, 2L, 1L, 1L, "Batch-A", DayOfWeek.TUESDAY, 1L);
+
+        when(classScheduleRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
+        when(subjectRepository.findById(2L)).thenReturn(Optional.of(nursingSubject));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(testFaculty));
+        when(labSlotRepository.findById(1L)).thenReturn(Optional.of(testLabSlot));
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(testTermInstance));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenReturn(existing);
+
+        ClassScheduleResponse response = classScheduleService.update(1L, updateRequest);
+
+        assertThat(response.id()).isEqualTo(1L);
+    }
+
+    @Test
     void shouldDeleteClassSchedule() {
         when(classScheduleRepository.existsById(1L)).thenReturn(true);
 

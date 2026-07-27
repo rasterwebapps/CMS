@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -30,6 +30,32 @@ export class TimetableViewComponent implements OnInit {
 
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
+
+  protected readonly selectedFaculty = signal<string | null>(null);
+  protected readonly selectedRoom = signal<string | null>(null);
+  protected readonly selectedBatch = signal<string | null>(null);
+
+  /** Filter option lists are derived from the term's own loaded sessions rather than fetched
+   *  from the Faculty/Classroom/Lab/Batch masters — keeps the dropdowns scoped to only what's
+   *  actually scheduled this term instead of every faculty/room in the college. */
+  protected readonly facultyOptions = computed(() =>
+    Array.from(new Set(this.sessions().map((s) => s.facultyName))).sort());
+
+  protected readonly roomOptions = computed(() =>
+    Array.from(new Set(this.sessions().map((s) => s.roomName))).sort());
+
+  protected readonly batchOptions = computed(() =>
+    Array.from(new Set(this.sessions().flatMap((s) => s.batchName ? [s.batchName] : []))).sort());
+
+  protected readonly filteredSessions = computed(() => {
+    const faculty = this.selectedFaculty();
+    const room = this.selectedRoom();
+    const batch = this.selectedBatch();
+    return this.sessions().filter((s) =>
+      (!faculty || s.facultyName === faculty) &&
+      (!room || s.roomName === room) &&
+      (!batch || s.batchName === batch));
+  });
 
   ngOnInit(): void {
     const qpAcademicYearId = Number(this.route.snapshot.queryParamMap.get('academicYearId')) || null;
@@ -81,9 +107,16 @@ export class TimetableViewComponent implements OnInit {
 
   private loadPublished(termInstanceId: number): void {
     this.loading.set(true);
+    this.resetFilters();
     this.timetableService.getPublished(termInstanceId).subscribe({
       next: (data) => { this.sessions.set(data); this.loading.set(false); },
       error: () => { this.toast.error('Failed to load timetable'); this.loading.set(false); },
     });
+  }
+
+  private resetFilters(): void {
+    this.selectedFaculty.set(null);
+    this.selectedRoom.set(null);
+    this.selectedBatch.set(null);
   }
 }

@@ -86,6 +86,7 @@ public class ClassScheduleService {
             .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
         Faculty faculty = facultyRepository.findById(request.facultyId())
             .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + request.facultyId()));
+        requireEligibleFaculty(subject, faculty, cs.getFaculty());
         TermInstance termInstance = termInstanceRepository.findById(request.termInstanceId())
             .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + request.termInstanceId()));
 
@@ -124,6 +125,27 @@ public class ClassScheduleService {
             cs.setLabSlot(null);
             cs.setBatchName(null);
             cs.setBatch(null);
+        }
+    }
+
+    /**
+     * Department-level (Speciality) eligibility gate: a faculty can only be assigned to teach a
+     * subject from their own department. Skipped when the subject has no speciality set (not
+     * every subject is department-scoped) and grandfathered when the requested faculty is the
+     * same one already on the row — this blocks new/changed mismatched assignments without
+     * retroactively breaking rows saved before this rule existed on an otherwise-unrelated edit.
+     */
+    private void requireEligibleFaculty(Subject subject, Faculty faculty, Faculty previousFaculty) {
+        if (subject.getSpeciality() == null) {
+            return;
+        }
+        if (previousFaculty != null && previousFaculty.getId().equals(faculty.getId())) {
+            return;
+        }
+        if (!subject.getSpeciality().getId().equals(faculty.getSpeciality().getId())) {
+            throw new IllegalArgumentException("Faculty '" + faculty.getFullName() + "' belongs to the "
+                + faculty.getSpeciality().getName() + " department and is not eligible to teach '"
+                + subject.getName() + "' (" + subject.getSpeciality().getName() + ")");
         }
     }
 

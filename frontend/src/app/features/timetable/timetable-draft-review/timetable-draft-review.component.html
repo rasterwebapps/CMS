@@ -24,6 +24,13 @@
     </select>
   </div>
 
+  @if (swapMode()) {
+    <div class="content-card timetable-swap-banner">
+      <span>Pick a highlighted slot for <strong>{{ swapSource()?.subjectName }}</strong>, or</span>
+      <button type="button" class="btn-secondary" [disabled]="swapping()" (click)="onCancelSwap()">Cancel</button>
+    </div>
+  }
+
   @if (unplaceable().length > 0) {
     <div class="content-card timetable-warning-banner">
       <div class="timetable-warning-banner__title">
@@ -47,13 +54,19 @@
         mode="review"
         [sessions]="sessions()"
         [generating]="generating()"
-        [saving]="saving()"
+        [saving]="saving() || swapping()"
         [allowGenerate]="canGenerate()"
         [allowManage]="canManage()"
+        [allowRevert]="canRevert()"
+        [swapMode]="swapMode()"
+        [swapSourceSessionId]="swapSource()?.id ?? null"
+        [candidateCells]="candidateCells()"
         (generateClick)="onGenerate()"
         (approveClick)="onApprove()"
         (discardClick)="onDiscard()"
+        (revertClick)="onRevert()"
         (sessionClick)="onSessionClick($event)"
+        (cellClick)="onCandidateCellClick($event)"
       />
     }
   </div>

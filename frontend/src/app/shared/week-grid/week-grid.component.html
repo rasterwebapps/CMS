@@ -1,24 +1,34 @@
 <div class="week-grid-wrap">
 
-  @if (mode === 'review' && (allowGenerate || allowManage)) {
+  @if (mode === 'review' && (allowGenerate || allowManage || allowRevert)) {
     <div class="week-grid-toolbar">
-      @if (isEmpty()) {
+      @if (isPublishedView()) {
+        @if (allowRevert) {
+          <button type="button" class="btn-secondary" [disabled]="saving" (click)="revertClick.emit()">
+            @if (saving) {
+              <span class="btn-spinner btn-spinner--dark"></span>
+            }
+            Revert to Draft
+          </button>
+        }
+      } @else {
         @if (allowGenerate) {
-          <button type="button" class="btn-primary" [disabled]="generating" (click)="generateClick.emit()">
+          <button type="button" class="btn-primary" [disabled]="generating || saving" (click)="generateClick.emit()">
             @if (generating) {
               <span class="btn-spinner btn-spinner--dark"></span>
             }
-            Generate
+            {{ isEmpty() ? 'Generate' : 'Regenerate' }}
           </button>
         }
-      } @else if (allowManage) {
-        <button type="button" class="btn-secondary" [disabled]="saving" (click)="discardClick.emit()">Discard</button>
-        <button type="button" class="btn-primary" [disabled]="saving" (click)="approveClick.emit()">
-          @if (saving) {
-            <span class="btn-spinner btn-spinner--dark"></span>
-          }
-          Approve
-        </button>
+        @if (!isEmpty() && allowManage) {
+          <button type="button" class="btn-secondary" [disabled]="saving" (click)="discardClick.emit()">Discard</button>
+          <button type="button" class="btn-primary" [disabled]="saving" (click)="approveClick.emit()">
+            @if (saving) {
+              <span class="btn-spinner btn-spinner--dark"></span>
+            }
+            Approve
+          </button>
+        }
       }
     </div>
   }
@@ -44,14 +54,19 @@
       @for (row of rows(); track row.key) {
         <div class="week-grid__time-cell">{{ row.label }}</div>
         @for (day of days; track day; let i = $index) {
-          <div class="week-grid__cell" [class.week-grid__cell--holiday]="isHoliday()(i)">
+          <div class="week-grid__cell"
+            [class.week-grid__cell--holiday]="isHoliday()(i)"
+            [class.week-grid__cell--candidate]="swapMode && candidateFor(day, row)"
+            [class.week-grid__cell--dimmed]="swapMode && !candidateFor(day, row) && !isSourceCell(day, row)"
+            (click)="onCellClick(day, row)">
             @for (session of cell(day, row); track session.id) {
               <button type="button"
                 class="session-chip"
                 [class.session-chip--theory]="session.sessionType === 'THEORY'"
                 [class.session-chip--lab]="session.sessionType === 'LAB'"
                 [class.session-chip--draft]="session.status === 'DRAFT'"
-                (click)="onSessionClick(session)">
+                [class.session-chip--swap-source]="swapMode && session.id === swapSourceSessionId"
+                (click)="onSessionClick(session, day, row, $event)">
                 <span class="session-chip__subject">{{ session.subjectName }}</span>
                 <span class="session-chip__room">{{ session.roomName }}</span>
                 @if (session.batchName) {

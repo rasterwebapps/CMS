@@ -22,6 +22,27 @@
         <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
       }
     </select>
+
+    <select class="mlp-filter-select" [ngModel]="selectedFaculty()" (ngModelChange)="selectedFaculty.set($event)" aria-label="Faculty">
+      <option [ngValue]="null">All Faculty</option>
+      @for (name of facultyOptions(); track name) {
+        <option [ngValue]="name">{{ name }}</option>
+      }
+    </select>
+
+    <select class="mlp-filter-select" [ngModel]="selectedRoom()" (ngModelChange)="selectedRoom.set($event)" aria-label="Room">
+      <option [ngValue]="null">All Rooms</option>
+      @for (name of roomOptions(); track name) {
+        <option [ngValue]="name">{{ name }}</option>
+      }
+    </select>
+
+    <select class="mlp-filter-select" [ngModel]="selectedBatch()" (ngModelChange)="selectedBatch.set($event)" aria-label="Batch">
+      <option [ngValue]="null">All Batches</option>
+      @for (name of batchOptions(); track name) {
+        <option [ngValue]="name">{{ name }}</option>
+      }
+    </select>
   </div>
 
   <div class="content-card">
@@ -30,7 +51,7 @@
         <mat-spinner diameter="36" aria-label="Loading timetable"></mat-spinner>
       </div>
     } @else {
-      <cms-week-grid mode="browse" [sessions]="sessions()" />
+      <cms-week-grid mode="browse" [sessions]="filteredSessions()" />
     }
   </div>
 

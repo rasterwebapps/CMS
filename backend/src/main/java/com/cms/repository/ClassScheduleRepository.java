@@ -45,6 +45,8 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
 
     boolean existsByTermInstanceId(Long termInstanceId);
 
+    boolean existsByTermInstanceIdAndStatus(Long termInstanceId, ClassScheduleStatus status);
+
     void deleteByTermInstanceIdAndStatus(Long termInstanceId, ClassScheduleStatus status);
 
     void deleteByTermInstanceId(Long termInstanceId);

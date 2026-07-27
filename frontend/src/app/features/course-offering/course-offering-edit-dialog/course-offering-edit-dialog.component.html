@@ -15,10 +15,13 @@
       <label for="coed-faculty" class="field-label">Faculty</label>
       <select id="coed-faculty" class="field-select" formControlName="facultyId">
         <option [ngValue]="null">Unassigned</option>
-        @for (f of data.facultyOptions; track f.id) {
+        @for (f of eligibleFacultyOptions; track f.id) {
           <option [ngValue]="f.id">{{ f.name }}</option>
         }
       </select>
+      @if (data.offering.subjectSpecialityName) {
+        <p class="field-hint">Showing {{ data.offering.subjectSpecialityName }} department faculty only</p>
+      }
     </div>
 
     <div class="field-group">

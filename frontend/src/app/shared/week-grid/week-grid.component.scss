@@ -73,6 +73,18 @@
   background: rgba(239, 68, 68, 0.04);
 }
 
+.week-grid__cell--candidate {
+  cursor: pointer;
+  outline: 2px dashed var(--cms-primary);
+  outline-offset: -2px;
+  background: color-mix(in srgb, var(--cms-primary) 8%, transparent);
+}
+
+.week-grid__cell--dimmed {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
 .session-chip {
   display: flex;
   flex-direction: column;
@@ -106,6 +118,11 @@
 .session-chip--draft {
   border-style: dashed;
   opacity: 0.85;
+}
+
+.session-chip--swap-source {
+  outline: 2px solid var(--cms-primary);
+  outline-offset: 1px;
 }
 
 .session-chip__subject {

@@ -206,6 +206,8 @@ export interface CourseOffering {
   subjectId: number;
   subjectName: string;
   subjectCode: string;
+  subjectSpecialityId: number | null;
+  subjectSpecialityName: string | null;
   semesterNumber: number;
   facultyId: number | null;
   sectionLabel: string | null;

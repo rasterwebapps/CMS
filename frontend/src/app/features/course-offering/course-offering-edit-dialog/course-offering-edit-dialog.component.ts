@@ -10,6 +10,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 export interface FacultyOption {
   id: number;
   name: string;
+  specialityId: number | null;
 }
 
 export interface CourseOfferingEditDialogData {
@@ -32,6 +33,17 @@ export class CourseOfferingEditDialogComponent {
   private readonly toast = inject(ToastService);
 
   protected readonly saving = signal(false);
+
+  /** Faculty must belong to the subject's own department (Speciality) to be assignable — the
+   *  faculty already on this offering stays visible/selectable even if it predates the rule
+   *  (grandfathered), so an admin editing just the section label doesn't lose their current
+   *  faculty from the list. No restriction at all when the subject has no speciality set. */
+  protected readonly eligibleFacultyOptions: FacultyOption[] = (() => {
+    const specialityId = this.data.offering.subjectSpecialityId;
+    if (!specialityId) return this.data.facultyOptions;
+    return this.data.facultyOptions.filter((f) =>
+      f.specialityId === specialityId || f.id === this.data.offering.facultyId);
+  })();
 
   protected readonly form: FormGroup = this.fb.group({
     facultyId: [this.data.offering.facultyId],

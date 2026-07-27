@@ -44,7 +44,9 @@ import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.CourseOfferingRepository;
+import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.LabAttendanceRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.LabSlotRepository;
 import com.cms.repository.PeriodRepository;
@@ -62,6 +64,8 @@ class TimetableGenerationServiceTest {
     @Mock private PeriodRepository periodRepository;
     @Mock private LabRepository labRepository;
     @Mock private LabSlotRepository labSlotRepository;
+    @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
+    @Mock private LabAttendanceRepository labAttendanceRepository;
 
     private TimetableGenerationService service;
 
@@ -75,7 +79,8 @@ class TimetableGenerationServiceTest {
     void setUp() {
         service = new TimetableGenerationService(classScheduleRepository, courseOfferingRepository,
             termInstanceRepository, batchRepository, facultyRepository, classroomRepository,
-            periodRepository, labRepository, labSlotRepository);
+            periodRepository, labRepository, labSlotRepository, facultyAvailabilityRepository,
+            labAttendanceRepository);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);
@@ -126,8 +131,8 @@ class TimetableGenerationServiceTest {
     }
 
     @Test
-    void shouldBlockGenerationWhenTimetableAlreadyExists() {
-        when(classScheduleRepository.existsByTermInstanceId(10L)).thenReturn(true);
+    void shouldBlockGenerationWhenTimetableAlreadyPublished() {
+        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(true);
 
         assertThatThrownBy(() -> service.generate(10L))
             .isInstanceOf(LifecycleConflictException.class);
@@ -137,7 +142,7 @@ class TimetableGenerationServiceTest {
 
     @Test
     void shouldThrowWhenTermInstanceNotFound() {
-        when(classScheduleRepository.existsByTermInstanceId(10L)).thenReturn(false);
+        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(false);
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.generate(10L))
@@ -148,7 +153,7 @@ class TimetableGenerationServiceTest {
     void shouldPlaceATheorySessionAndReturnGeneratedCount() {
         CourseOffering offering = offeringWithHours(100L, 1, 0, 0, faculty.getId());
 
-        when(classScheduleRepository.existsByTermInstanceId(10L)).thenReturn(false);
+        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(false);
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
@@ -166,13 +171,70 @@ class TimetableGenerationServiceTest {
     }
 
     @Test
+    void shouldSkipSlotsBlockedByFacultyAvailability() {
+        // Only one period/classroom/day combination is even possible to isolate the effect:
+        // a single availability block covering that period's exact time window on every day
+        // must make the whole thing unplaceable, since there is nowhere else to place it.
+        CourseOffering offering = offeringWithHours(100L, 1, 0, 0, faculty.getId());
+
+        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(false);
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(Collections.emptyList());
+        when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(classroom));
+        when(labRepository.findAll()).thenReturn(Collections.emptyList());
+        when(facultyRepository.findById(faculty.getId())).thenReturn(Optional.of(faculty));
+        when(facultyAvailabilityRepository.findByFacultyIdOrderByDayOfWeekAscStartTimeAsc(faculty.getId()))
+            .thenReturn(java.util.stream.Stream.of(com.cms.model.enums.DayOfWeek.values())
+                .map(day -> {
+                    com.cms.model.FacultyAvailability b = new com.cms.model.FacultyAvailability();
+                    b.setFaculty(faculty);
+                    b.setDayOfWeek(day);
+                    b.setStartTime(period.getStartTime());
+                    b.setEndTime(period.getEndTime());
+                    return b;
+                }).toList());
+
+        TimetableGenerationResponse response = service.generate(10L);
+
+        assertThat(response.generatedCount()).isEqualTo(0);
+        assertThat(response.unplaceable()).hasSize(1);
+        assertThat(response.unplaceable().get(0)).contains("placed 0/1");
+        verify(classScheduleRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldDeleteExistingDraftRowsBeforeRegenerating() {
+        // Generate is also the in-place Regenerate action: it must wipe DRAFT rows up front
+        // (discarding any manual Swap tweaks) rather than refusing to run, as long as the term
+        // isn't already published.
+        CourseOffering offering = offeringWithHours(100L, 1, 0, 0, faculty.getId());
+
+        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(false);
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(Collections.emptyList());
+        when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(classroom));
+        when(labRepository.findAll()).thenReturn(Collections.emptyList());
+        when(facultyRepository.findById(faculty.getId())).thenReturn(Optional.of(faculty));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.generate(10L);
+
+        verify(classScheduleRepository, times(1))
+            .deleteByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT);
+    }
+
+    @Test
     void shouldPlaceWeeklyRecurringSessionsInsteadOfOneRowPerTermHour() {
         // The fixture term (2024-06-01 to 2024-11-30) spans 183 days = 27 whole weeks.
         // 120 theory hours should place ceil(120/27) = 5 weekly recurring sessions,
         // not 120 individual rows (one per raw curriculum hour, the old buggy behavior).
         CourseOffering offering = offeringWithHours(100L, 120, 0, 0, faculty.getId());
 
-        when(classScheduleRepository.existsByTermInstanceId(10L)).thenReturn(false);
+        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(false);
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
@@ -202,7 +264,7 @@ class TimetableGenerationServiceTest {
         Period p2 = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(11, 0), 2);
         p2.setId(2L);
 
-        when(classScheduleRepository.existsByTermInstanceId(10L)).thenReturn(false);
+        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(false);
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(p1, p2));
@@ -226,7 +288,7 @@ class TimetableGenerationServiceTest {
     void shouldReportUnplaceableWhenOfferingHasNoFaculty() {
         CourseOffering offering = offeringWithHours(100L, 1, 0, 0, null);
 
-        when(classScheduleRepository.existsByTermInstanceId(10L)).thenReturn(false);
+        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(false);
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
@@ -247,7 +309,7 @@ class TimetableGenerationServiceTest {
         CourseOffering offering = offeringWithHours(100L, 1, 0, 0, faculty.getId());
         offering.getCurriculumSemesterCourse().setIsElective(true);
 
-        when(classScheduleRepository.existsByTermInstanceId(10L)).thenReturn(false);
+        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(false);
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
@@ -310,5 +372,51 @@ class TimetableGenerationServiceTest {
 
         assertThatThrownBy(() -> service.approve(10L))
             .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldRevertAllPublishedRowsToDraft() {
+        ClassSchedule published1 = new ClassSchedule();
+        published1.setId(1L);
+        published1.setStatus(ClassScheduleStatus.PUBLISHED);
+        ClassSchedule published2 = new ClassSchedule();
+        published2.setId(2L);
+        published2.setStatus(ClassScheduleStatus.PUBLISHED);
+
+        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of(published1, published2));
+        when(labAttendanceRepository.existsByLabScheduleTermInstanceId(10L)).thenReturn(false);
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TimetableActionResponse response = service.revertToDraft(10L);
+
+        assertThat(response.affectedCount()).isEqualTo(2);
+        assertThat(published1.getStatus()).isEqualTo(ClassScheduleStatus.DRAFT);
+        assertThat(published2.getStatus()).isEqualTo(ClassScheduleStatus.DRAFT);
+    }
+
+    @Test
+    void shouldThrowWhenRevertingWithNoPublishedRows() {
+        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(Collections.emptyList());
+
+        assertThatThrownBy(() -> service.revertToDraft(10L))
+            .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldBlockRevertWhenAttendanceAlreadyRecorded() {
+        ClassSchedule published1 = new ClassSchedule();
+        published1.setId(1L);
+        published1.setStatus(ClassScheduleStatus.PUBLISHED);
+
+        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of(published1));
+        when(labAttendanceRepository.existsByLabScheduleTermInstanceId(10L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.revertToDraft(10L))
+            .isInstanceOf(LifecycleConflictException.class);
+
+        verify(classScheduleRepository, never()).save(any());
     }
 }

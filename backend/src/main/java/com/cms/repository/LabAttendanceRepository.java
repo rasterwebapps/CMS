@@ -38,4 +38,6 @@ public interface LabAttendanceRepository extends JpaRepository<LabAttendance, Lo
                                                @Param("status") AttendanceStatus status);
 
     boolean existsByStudentIdAndSubjectIdAndDate(Long studentId, Long subjectId, LocalDate date);
+
+    boolean existsByLabScheduleTermInstanceId(Long termInstanceId);
 }

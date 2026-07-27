@@ -50,8 +50,8 @@ export class LabScheduleFormComponent implements OnInit {
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Class Schedule');
   protected readonly labs = signal<{ id: number; name: string }[]>([]);
-  protected readonly subjects = signal<{ id: number; name: string; code: string }[]>([]);
-  protected readonly faculty = signal<{ id: number; name: string }[]>([]);
+  protected readonly subjects = signal<{ id: number; name: string; code: string; specialityId: number | null; specialityName: string | null }[]>([]);
+  protected readonly faculty = signal<{ id: number; name: string; specialityId: number | null }[]>([]);
   protected readonly labSlots = signal<LabSlot[]>([]);
   protected readonly classrooms = signal<Classroom[]>([]);
   protected readonly periods = signal<Period[]>([]);
@@ -98,6 +98,25 @@ export class LabScheduleFormComponent implements OnInit {
     return this.previewLabName();
   });
 
+  /** Faculty must belong to the selected subject's own department (Speciality) to be
+   *  assignable. Skipped (full list) when the subject has no speciality set. The row's original
+   *  faculty (edit mode) stays selectable even if it predates the rule, so editing an unrelated
+   *  field doesn't drop the currently-assigned faculty out of the dropdown. */
+  protected readonly selectedSubjectId = signal<number | null>(null);
+  private originalFacultyId: number | null = null;
+
+  protected readonly selectedSubjectSpecialityName = computed(() => {
+    const subject = this.subjects().find(s => s.id === this.selectedSubjectId());
+    return subject?.specialityName ?? null;
+  });
+
+  protected readonly eligibleFaculty = computed(() => {
+    const subject = this.subjects().find(s => s.id === this.selectedSubjectId());
+    const specialityId = subject?.specialityId ?? null;
+    if (!specialityId) return this.faculty();
+    return this.faculty().filter(f => f.specialityId === specialityId || f.id === this.originalFacultyId);
+  });
+
   protected readonly TIPS: CmsTip[] = [
     { icon: 'group',          title: 'Batch',     subtitle: 'Use a clear name (e.g., "Batch A") so students know which schedule applies to them.' },
     { icon: 'today',          title: 'Day & Slot', subtitle: 'Each room can host one schedule per Day + Slot — conflicts are blocked by the system.' },
@@ -131,6 +150,7 @@ export class LabScheduleFormComponent implements OnInit {
         this.sessionType.set(v.sessionType ?? 'LAB');
         this.previewLabId.set(v.labId ?? null);
         this.previewSubjectId.set(v.subjectId ?? null);
+        this.selectedSubjectId.set(v.subjectId ?? null);
         this.previewFacultyId.set(v.facultyId ?? null);
         this.previewSlotId.set(v.labSlotId ?? null);
         this.previewClassroomId.set(v.classroomId ?? null);
@@ -196,12 +216,16 @@ export class LabScheduleFormComponent implements OnInit {
       next: (data) => this.labs.set(data),
       error: () => { this.toast.error('Failed to load labs'); },
     });
-    this.http.get<{ id: number; name: string; code: string }[]>(`${environment.apiUrl}/courses`).subscribe({
-      next: (data) => this.subjects.set(data),
+    this.http.get<{ id: number; name: string; code: string; speciality: { id: number; name: string } | null }[]>(
+      `${environment.apiUrl}/subjects`).subscribe({
+      next: (data) => this.subjects.set(data.map((s) => ({
+        id: s.id, name: s.name, code: s.code,
+        specialityId: s.speciality?.id ?? null, specialityName: s.speciality?.name ?? null,
+      }))),
       error: () => { this.toast.error('Failed to load subjects'); },
     });
-    this.http.get<{ id: number; fullName: string }[]>(`${environment.apiUrl}/faculty`).subscribe({
-      next: (data) => this.faculty.set(data.map((f) => ({ id: f.id, name: f.fullName }))),
+    this.http.get<{ id: number; fullName: string; specialityId: number | null }[]>(`${environment.apiUrl}/faculty`).subscribe({
+      next: (data) => this.faculty.set(data.map((f) => ({ id: f.id, name: f.fullName, specialityId: f.specialityId }))),
       error: () => { this.toast.error('Failed to load faculty'); },
     });
     this.labScheduleService.getAllSlots().subscribe({
@@ -236,6 +260,7 @@ export class LabScheduleFormComponent implements OnInit {
       this.loading.set(true);
       this.labScheduleService.getById(this.itemId).subscribe({
         next: (item) => {
+          this.originalFacultyId = item.facultyId;
           this.form.patchValue({
             sessionType: item.sessionType,
             labId: item.labId,

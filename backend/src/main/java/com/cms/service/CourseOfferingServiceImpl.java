@@ -15,6 +15,8 @@ import com.cms.model.Cohort;
 import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.CurriculumVersion;
+import com.cms.model.Faculty;
+import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.CohortStatus;
@@ -23,6 +25,7 @@ import com.cms.repository.CohortRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
+import com.cms.repository.FacultyRepository;
 import com.cms.repository.TermInstanceRepository;
 
 @Service
@@ -34,17 +37,20 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
     private final CohortRepository cohortRepository;
     private final CurriculumVersionRepository curriculumVersionRepository;
     private final CurriculumSemesterCourseRepository curriculumSemesterCourseRepository;
+    private final FacultyRepository facultyRepository;
 
     public CourseOfferingServiceImpl(CourseOfferingRepository courseOfferingRepository,
                                       TermInstanceRepository termInstanceRepository,
                                       CohortRepository cohortRepository,
                                       CurriculumVersionRepository curriculumVersionRepository,
-                                      CurriculumSemesterCourseRepository curriculumSemesterCourseRepository) {
+                                      CurriculumSemesterCourseRepository curriculumSemesterCourseRepository,
+                                      FacultyRepository facultyRepository) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.cohortRepository = cohortRepository;
         this.curriculumVersionRepository = curriculumVersionRepository;
         this.curriculumSemesterCourseRepository = curriculumSemesterCourseRepository;
+        this.facultyRepository = facultyRepository;
     }
 
     @Override
@@ -157,9 +163,35 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
     public CourseOfferingDto updateOffering(Long id, Long facultyId, String sectionLabel) {
         CourseOffering offering = courseOfferingRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + id));
+        requireEligibleFaculty(offering, facultyId);
         offering.setFacultyId(facultyId);
         offering.setSectionLabel(sectionLabel);
         return toDto(courseOfferingRepository.save(offering));
+    }
+
+    /**
+     * Department-level (Speciality) eligibility gate, mirroring {@code ClassScheduleService}'s
+     * check for manually-edited sessions. Skipped when unassigning (facultyId null), when the
+     * subject has no speciality set, and grandfathered when the requested faculty is already the
+     * one on the offering — blocks new/changed mismatched assignments without retroactively
+     * breaking a row saved before this rule existed on an otherwise-unrelated edit (e.g. section
+     * label).
+     */
+    private void requireEligibleFaculty(CourseOffering offering, Long facultyId) {
+        if (facultyId == null || facultyId.equals(offering.getFacultyId())) {
+            return;
+        }
+        Subject subject = offering.getSubject();
+        if (subject.getSpeciality() == null) {
+            return;
+        }
+        Faculty faculty = facultyRepository.findById(facultyId)
+            .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + facultyId));
+        if (!subject.getSpeciality().getId().equals(faculty.getSpeciality().getId())) {
+            throw new IllegalArgumentException("Faculty '" + faculty.getFullName() + "' belongs to the "
+                + faculty.getSpeciality().getName() + " department and is not eligible to teach '"
+                + subject.getName() + "' (" + subject.getSpeciality().getName() + ")");
+        }
     }
 
     @Override
@@ -208,6 +240,8 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
             o.getSubject().getId(),
             o.getSubject().getName(),
             o.getSubject().getCode(),
+            o.getSubject().getSpeciality() != null ? o.getSubject().getSpeciality().getId() : null,
+            o.getSubject().getSpeciality() != null ? o.getSubject().getSpeciality().getName() : null,
             o.getSemesterNumber(),
             o.getFacultyId(),
             o.getSectionLabel(),

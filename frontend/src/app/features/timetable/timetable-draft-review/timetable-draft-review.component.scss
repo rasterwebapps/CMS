@@ -4,6 +4,19 @@
   padding: 48px;
 }
 
+.timetable-swap-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border: 1px solid color-mix(in srgb, var(--cms-primary) 35%, transparent);
+  background: color-mix(in srgb, var(--cms-primary) 8%, transparent);
+  border-radius: 12px;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-primary);
+}
+
 .timetable-warning-banner {
   padding: 14px 18px;
   border: 1px solid rgba(245, 158, 11, 0.35);

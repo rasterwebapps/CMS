@@ -13,6 +13,8 @@ public record CourseOfferingDto(
     Long subjectId,
     String subjectName,
     String subjectCode,
+    Long subjectSpecialityId,
+    String subjectSpecialityName,
     Integer termNumber,
     Long facultyId,
     String sectionLabel,

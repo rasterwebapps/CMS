@@ -26,10 +26,14 @@ import com.cms.model.Course;
 import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.CurriculumVersion;
+import com.cms.model.DesignationMaster;
+import com.cms.model.Faculty;
 import com.cms.model.Program;
+import com.cms.model.Speciality;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.CohortStatus;
+import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.ProgramStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
@@ -37,6 +41,7 @@ import com.cms.repository.CohortRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
+import com.cms.repository.FacultyRepository;
 import com.cms.repository.TermInstanceRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,6 +57,8 @@ class CourseOfferingServiceImplTest {
     private CurriculumVersionRepository curriculumVersionRepository;
     @Mock
     private CurriculumSemesterCourseRepository curriculumSemesterCourseRepository;
+    @Mock
+    private FacultyRepository facultyRepository;
 
     private CourseOfferingServiceImpl service;
 
@@ -59,7 +66,22 @@ class CourseOfferingServiceImplTest {
     void setUp() {
         service = new CourseOfferingServiceImpl(
             courseOfferingRepository, termInstanceRepository, cohortRepository,
-            curriculumVersionRepository, curriculumSemesterCourseRepository);
+            curriculumVersionRepository, curriculumSemesterCourseRepository, facultyRepository);
+    }
+
+    private Speciality createSpeciality(Long id, String name, String code) {
+        Speciality s = new Speciality(name, code, name + " Dept", null, null);
+        s.setId(id);
+        return s;
+    }
+
+    private Faculty createFaculty(Long id, Speciality speciality) {
+        DesignationMaster designation = new DesignationMaster("Assistant Professor", "ASSISTANT_PROFESSOR", null);
+        designation.setId(1L);
+        Faculty f = new Faculty("EMP0" + id, "Fac", "Ulty" + id, "fac" + id + "@college.edu", "1234567890",
+            speciality, designation, null, null, null, FacultyStatus.ACTIVE);
+        f.setId(id);
+        return f;
     }
 
     private AcademicYear createAY(Long id, String name) {
@@ -357,6 +379,77 @@ class CourseOfferingServiceImplTest {
 
         assertThat(offering.getFacultyId()).isEqualTo(42L);
         assertThat(offering.getSectionLabel()).isEqualTo("Section A");
+    }
+
+    @Test
+    void updateOffering_blocksFacultyFromADifferentSpecialityThanTheSubject() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
+        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
+        subject.setId(1L);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        Speciality csSpeciality = createSpeciality(2L, "Computer Science", "CS");
+        Faculty mismatchedFaculty = createFaculty(42L, csSpeciality);
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(facultyRepository.findById(42L)).thenReturn(Optional.of(mismatchedFaculty));
+
+        assertThatThrownBy(() -> service.updateOffering(1L, 42L, "Section A"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("not eligible to teach");
+
+        verify(courseOfferingRepository, never()).save(any());
+    }
+
+    @Test
+    void updateOffering_allowsFacultyFromTheSameSpecialityAsTheSubject() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
+        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
+        subject.setId(1L);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        Faculty matchingFaculty = createFaculty(42L, nursingSpeciality);
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(facultyRepository.findById(42L)).thenReturn(Optional.of(matchingFaculty));
+        when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
+
+        service.updateOffering(1L, 42L, "Section A");
+
+        assertThat(offering.getFacultyId()).isEqualTo(42L);
+    }
+
+    @Test
+    void updateOffering_grandfathersAnUnchangedMismatchedFaculty() {
+        // A row assigned before this eligibility rule existed may already carry a mismatched
+        // pairing. Resubmitting the SAME faculty on an otherwise-unrelated edit (section label)
+        // must not suddenly start failing, and must not require a facultyRepository lookup.
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
+        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
+        subject.setId(1L);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        offering.setFacultyId(42L);
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
+
+        service.updateOffering(1L, 42L, "Section A - Renamed");
+
+        assertThat(offering.getSectionLabel()).isEqualTo("Section A - Renamed");
+        verify(facultyRepository, never()).findById(any());
     }
 
     @Test

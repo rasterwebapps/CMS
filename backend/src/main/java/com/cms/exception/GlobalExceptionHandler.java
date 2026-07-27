@@ -117,6 +117,8 @@ public class GlobalExceptionHandler {
             message = "A student with this UMIS Number already exists. Please verify the UMIS number and try again.";
         } else if (causeMsg.contains("admission_number")) {
             message = "A student with this Admission Number already exists. Please contact the administrator.";
+        } else if (causeMsg.contains("uq_faculty_availability_slot")) {
+            message = "This faculty member is already marked unavailable for that day and time.";
         } else {
             message = "A record with the same value already exists. Please check for duplicates and try again.";
         }
