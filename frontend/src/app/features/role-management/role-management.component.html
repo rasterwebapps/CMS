@@ -184,7 +184,7 @@
                  [class.perm-group--open]="isGroupExpanded(group.category)"
                  [class.perm-group--all]="allInGroupChecked(group)"
                  [class.perm-group--some]="someInGroupChecked(group)"
-                 [attr.data-cat]="group.category">
+                 [style.--cat-color]="groupColor(group.category)">
 
               <!-- Accordion header: click to expand/collapse -->
               <div class="perm-group__hdr"

@@ -1,13 +1,16 @@
 package com.cms.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,6 +24,7 @@ import com.cms.model.AppUser;
 import com.cms.model.Permission;
 import com.cms.model.RoleDashboardWidgetConfig;
 import com.cms.model.UserDashboardWidgetConfig;
+import com.cms.repository.AppRoleRepository;
 import com.cms.repository.AppUserRepository;
 import com.cms.repository.PermissionRepository;
 import com.cms.repository.UserDashboardWidgetConfigRepository;
@@ -32,17 +36,20 @@ import com.cms.service.UserPermissionService;
 public class PermissionController {
 
     private final AppUserRepository appUserRepository;
+    private final AppRoleRepository appRoleRepository;
     private final PermissionRepository permissionRepository;
     private final UserPermissionService userPermissionService;
     private final UserDashboardWidgetConfigRepository userWidgetConfigRepo;
     private final AuditLogService auditLogService;
 
     public PermissionController(AppUserRepository appUserRepository,
+                                AppRoleRepository appRoleRepository,
                                 PermissionRepository permissionRepository,
                                 UserPermissionService userPermissionService,
                                 UserDashboardWidgetConfigRepository userWidgetConfigRepo,
                                 AuditLogService auditLogService) {
         this.appUserRepository    = appUserRepository;
+        this.appRoleRepository    = appRoleRepository;
         this.permissionRepository = permissionRepository;
         this.userPermissionService = userPermissionService;
         this.userWidgetConfigRepo  = userWidgetConfigRepo;
@@ -126,7 +133,7 @@ public class PermissionController {
             @AuthenticationPrincipal Jwt jwt) {
         int callerLevel = resolveHierarchyLevel(jwt);
         List<PermissionDetail> details = permissionRepository.findAll().stream()
-            .filter(p -> canDelegate(p.getTier(), callerLevel))
+            .filter(p -> Permission.tierAllowsLevel(p.getTier(), callerLevel))
             .sorted(java.util.Comparator.comparing(Permission::getCategory)
                 .thenComparing(Permission::getCode))
             .map(p -> new PermissionDetail(p.getId(), p.getCode(), p.getDisplayName(), p.getCategory(), p.getTier(), p.getScreenLabel()))
@@ -135,12 +142,46 @@ public class PermissionController {
     }
 
     /**
-     * Updates the tier of a single permission.
-     * Requires PERMISSION_TIER_MANAGE (DEV_ADMIN only).
-     * Changes are audit-logged.
+     * Previews the effect of one or more pending tier changes, before they're applied:
+     * for each change, which roles currently hold that permission but would no longer
+     * qualify to hold it under the new tier (and how many users each role has). Roles
+     * with zero impact are omitted. Used by the Permission Tiers screen's confirm dialog
+     * so an admin sees exactly what will be revoked before committing.
+     */
+    @PostMapping("/tier-impact")
+    @PreAuthorize("@perm.has('PERMISSION_TIER_MANAGE')")
+    public ResponseEntity<List<TierImpactEntry>> previewTierImpact(
+            @RequestBody List<TierChangeItem> changes) {
+        List<TierImpactEntry> result = new ArrayList<>();
+        for (TierChangeItem change : changes) {
+            Permission perm = permissionRepository.findById(change.id())
+                .orElseThrow(() -> new ResourceNotFoundException("Permission not found with id: " + change.id()));
+
+            List<ImpactedRole> impacted = appRoleRepository.findByPermissionCode(perm.getCode()).stream()
+                .filter(role -> !Permission.tierAllowsLevel(change.tier(), role.getHierarchyLevel()))
+                .map(role -> new ImpactedRole(role.getId(), role.getName(), role.getDisplayName(),
+                    appUserRepository.countByAppRoleId(role.getId())))
+                .toList();
+
+            if (!impacted.isEmpty()) {
+                result.add(new TierImpactEntry(perm.getId(), perm.getCode(), perm.getDisplayName(),
+                    perm.getTier(), change.tier(), impacted));
+            }
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Updates the tier of a single permission. Requires PERMISSION_TIER_MANAGE (DEV_ADMIN only).
+     * Any role currently holding this permission that no longer qualifies for the new tier
+     * (per {@link Permission#tierAllowsLevel}) has it revoked immediately as part of the same
+     * change — a role's held permissions always reflect its current tier eligibility, rather
+     * than silently drifting out of sync until someone next edits that role. Both the tier
+     * change and each auto-revoke are audit-logged.
      */
     @PutMapping("/{id}/tier")
     @PreAuthorize("@perm.has('PERMISSION_TIER_MANAGE')")
+    @Transactional
     public ResponseEntity<PermissionDetail> updateTier(
             @PathVariable Long id,
             @RequestBody TierUpdateRequest request,
@@ -160,6 +201,19 @@ public class PermissionController {
             String.valueOf(id),
             "'" + perm.getCode() + "' tier changed from " + previousTier + " to " + request.tier());
 
+        if (previousTier != request.tier()) {
+            for (AppRole role : appRoleRepository.findByPermissionCode(perm.getCode())) {
+                if (!Permission.tierAllowsLevel(request.tier(), role.getHierarchyLevel())) {
+                    role.getPermissions().removeIf(p -> p.getId().equals(perm.getId()));
+                    appRoleRepository.save(role);
+                    auditLogService.record(actor, "PERMISSION_AUTO_REVOKED", "AppRole",
+                        String.valueOf(role.getId()),
+                        "'" + perm.getCode() + "' revoked — role no longer qualifies after tier changed to " + request.tier());
+                }
+            }
+            userPermissionService.evictAll();
+        }
+
         return ResponseEntity.ok(
             new PermissionDetail(perm.getId(), perm.getCode(), perm.getDisplayName(), perm.getCategory(), perm.getTier(), perm.getScreenLabel()));
     }
@@ -174,14 +228,10 @@ public class PermissionController {
         return user.getAppRole() != null ? user.getAppRole().getHierarchyLevel() : Integer.MAX_VALUE;
     }
 
-    static boolean canDelegate(int tier, int callerLevel) {
-        return switch (tier) {
-            case 1 -> callerLevel <= 1;
-            case 2, 3 -> callerLevel <= 2;
-            default -> true;
-        };
-    }
-
     public record PermissionDetail(Long id, String code, String displayName, String category, int tier, String screenLabel) {}
     public record TierUpdateRequest(int tier) {}
+    public record TierChangeItem(Long id, int tier) {}
+    public record ImpactedRole(Long roleId, String roleName, String roleDisplayName, long userCount) {}
+    public record TierImpactEntry(Long permissionId, String code, String displayName,
+                                   int currentTier, int newTier, List<ImpactedRole> revokedFrom) {}
 }

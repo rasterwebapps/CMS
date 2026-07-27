@@ -5,6 +5,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { UserRoleService } from '../../core/permissions/user-role.service';
 import { PermissionService } from '../../core/permissions/permission.service';
+import { groupPermissionsByNav, colorForNavGroup } from '../../core/permissions/menu-order.util';
 import { AppRoleResponse, AllPermissionsResponse, PermissionGroup, WidgetConfigDto } from '../../core/permissions/permission.model';
 import { ToastService } from '../../core/toast/toast.service';
 import { WidgetPickerComponent } from '../../shared/widget-picker/widget-picker.component';
@@ -64,28 +65,23 @@ export class RoleManagementComponent implements OnInit {
   // ── Widget picker state ───────────────────────────────────────
   protected widgetEditTarget: AppRoleResponse | null = null;
 
-  /** Full permission list grouped by category → sub-grouped by resource prefix */
+  /** Full permission list grouped by sidenav module → sub-grouped by sidenav item, same headers/order as the menu */
   protected readonly permGroups = computed<PermGroupWithSubs[]>(() => {
-    const map = new Map<string, AllPermissionsResponse[]>();
-    for (const p of this.allPerms()) {
-      const arr = map.get(p.category) ?? [];
-      arr.push(p);
-      map.set(p.category, arr);
-    }
-    return Array.from(map.entries()).map(([category, permissions]) => {
-      const subMap = new Map<string, AllPermissionsResponse[]>();
-      for (const p of permissions) {
-        const key = p.screenLabel ?? this.resourcePrefix(p.code);
-        const arr = subMap.get(key) ?? [];
-        arr.push(p);
-        subMap.set(key, arr);
-      }
-      const subGroups = Array.from(subMap.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([screenLabel, perms]) => ({ screenLabel, permissions: perms }));
-      return { category, permissions, subGroups };
-    });
+    const navGroups = groupPermissionsByNav(
+      this.allPerms(),
+      (p) => p.code,
+      (p) => p.screenLabel ?? this.resourcePrefix(p.code),
+    );
+    return navGroups.map(({ groupLabel, itemGroups }) => ({
+      category: groupLabel,
+      permissions: itemGroups.flatMap(ig => ig.items),
+      subGroups: itemGroups.map(ig => ({ screenLabel: ig.itemLabel, permissions: ig.items })),
+    }));
   });
+
+  protected groupColor(label: string): string {
+    return colorForNavGroup(label);
+  }
 
   protected readonly filteredRoles = computed(() => {
     const term = this.searchTerm().toLowerCase().trim();

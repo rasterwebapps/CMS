@@ -3,7 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { UserRoleService } from '../../core/permissions/user-role.service';
-import { AllPermissionsResponse } from '../../core/permissions/permission.model';
+import { AllPermissionsResponse, TierImpactEntry } from '../../core/permissions/permission.model';
+import { groupPermissionsByNav, colorForNavGroup } from '../../core/permissions/menu-order.util';
 import { ToastService } from '../../core/toast/toast.service';
 import { forkJoin } from 'rxjs';
 
@@ -20,12 +21,13 @@ interface PermTierRow {
 }
 
 interface ScreenGroup {
-  screenLabel: string;
+  itemLabel: string;
   rows: PermTierRow[];
 }
 
 interface CategoryGroup {
-  category: string;
+  groupLabel: string;
+  groupIcon: string;
   rows: PermTierRow[];        // flat — used for dirty count / save / discard
   screenGroups: ScreenGroup[];
   expanded: boolean;
@@ -38,19 +40,6 @@ const TIER_META: Record<number, { label: string; desc: string; color: string }> 
   4: { label: 'Open',       desc: 'Any role can hold this permission, and any role that holds it can assign it to sub-roles.',   color: '#10b981' },
 };
 
-const CAT_COLOR: Record<string, string> = {
-  ADMISSION:      '#6366f1',
-  CURRICULUM:     '#3b82f6',
-  DOCUMENT:       '#0284c7',
-  EXAMINATION:    '#0ea5e9',
-  FINANCE:        '#10b981',
-  INFRASTRUCTURE: '#f59e0b',
-  LIBRARY:        '#14b8a6',
-  MASTER:         '#8b5cf6',
-  REPORTS:        '#ec4899',
-  SCHOLARSHIP:    '#f97316',
-  SYSTEM:         '#ef4444',
-};
 
 @Component({
   selector: 'app-permission-tier',
@@ -67,7 +56,6 @@ export class PermissionTierComponent implements OnInit {
   protected readonly saving   = signal(false);
   protected readonly groups   = signal<CategoryGroup[]>([]);
   protected readonly tierMeta = TIER_META;
-  protected readonly catColor = CAT_COLOR;
   protected readonly tiers    = [1, 2, 3, 4];
 
   protected readonly dirtyCount = computed(() =>
@@ -75,37 +63,30 @@ export class PermissionTierComponent implements OnInit {
   );
 
   protected readonly showConfirm = signal(false);
+  protected readonly loadingImpact = signal(false);
+  protected readonly tierImpact = signal<TierImpactEntry[]>([]);
 
   ngOnInit(): void {
     this.svc.getAllPermissions().subscribe({
       next: (perms) => {
-        const groupMap = new Map<string, PermTierRow[]>();
-        for (const p of perms) {
-          const row: PermTierRow = {
-            id: p.id, code: p.code, displayName: p.displayName,
-            category: p.category, screenLabel: p.screenLabel ?? '',
-            currentTier: p.tier, pendingTier: p.tier,
-            dirty: false, saving: false,
-          };
-          const arr = groupMap.get(p.category) ?? [];
-          arr.push(row);
-          groupMap.set(p.category, arr);
-        }
-        const groups: CategoryGroup[] = Array.from(groupMap.entries())
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([category, rows]) => {
-            const screenMap = new Map<string, PermTierRow[]>();
-            for (const row of rows) {
-              const label = row.screenLabel || 'General';
-              const arr = screenMap.get(label) ?? [];
-              arr.push(row);
-              screenMap.set(label, arr);
-            }
-            const screenGroups: ScreenGroup[] = Array.from(screenMap.entries())
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([screenLabel, srows]) => ({ screenLabel, rows: srows }));
-            return { category, rows, screenGroups, expanded: true };
-          });
+        const rows: PermTierRow[] = perms.map(p => ({
+          id: p.id, code: p.code, displayName: p.displayName,
+          category: p.category, screenLabel: p.screenLabel ?? '',
+          currentTier: p.tier, pendingTier: p.tier,
+          dirty: false, saving: false,
+        }));
+        const navGroups = groupPermissionsByNav(
+          rows,
+          (r) => r.code,
+          (r) => r.screenLabel || 'General',
+        );
+        const groups: CategoryGroup[] = navGroups.map(({ groupLabel, groupIcon, itemGroups }) => ({
+          groupLabel,
+          groupIcon,
+          rows: itemGroups.flatMap(ig => ig.items),
+          screenGroups: itemGroups.map(ig => ({ itemLabel: ig.itemLabel, rows: ig.items })),
+          expanded: true,
+        }));
         this.groups.set(groups);
         this.loading.set(false);
       },
@@ -122,17 +103,33 @@ export class PermissionTierComponent implements OnInit {
     this.groups.update(gs => [...gs]);
   }
 
-  protected catColorOf(cat: string): string {
-    return CAT_COLOR[cat] ?? '#6b7280';
+  protected catColorOf(label: string): string {
+    return colorForNavGroup(label);
   }
 
   protected requestSave(): void {
     if (this.dirtyCount() === 0) return;
-    this.showConfirm.set(true);
+    const dirtyRows = this.groups().flatMap(g => g.rows).filter(r => r.dirty);
+
+    this.loadingImpact.set(true);
+    this.svc.previewTierImpact(dirtyRows.map(r => ({ id: r.id, tier: r.pendingTier }))).subscribe({
+      next: (impact) => {
+        this.tierImpact.set(impact);
+        this.loadingImpact.set(false);
+        this.showConfirm.set(true);
+      },
+      error: () => {
+        this.tierImpact.set([]);
+        this.loadingImpact.set(false);
+        this.toast.error('Could not preview role impact — proceeding without it');
+        this.showConfirm.set(true);
+      },
+    });
   }
 
   protected cancelConfirm(): void {
     this.showConfirm.set(false);
+    this.tierImpact.set([]);
   }
 
   protected confirmSave(): void {
@@ -140,6 +137,10 @@ export class PermissionTierComponent implements OnInit {
     const dirtyRows = this.groups()
       .flatMap(g => g.rows)
       .filter(r => r.dirty);
+    const revokedRoleCount = new Set(
+      this.tierImpact().flatMap(i => i.revokedFrom.map(r => r.roleId))
+    ).size;
+    this.tierImpact.set([]);
 
     this.saving.set(true);
     const calls = dirtyRows.map(r =>
@@ -154,7 +155,10 @@ export class PermissionTierComponent implements OnInit {
         }
         this.groups.update(gs => [...gs]);
         this.saving.set(false);
-        this.toast.success(`Updated ${dirtyRows.length} permission tier${dirtyRows.length > 1 ? 's' : ''}`);
+        const tierMsg = `Updated ${dirtyRows.length} permission tier${dirtyRows.length > 1 ? 's' : ''}`;
+        this.toast.success(revokedRoleCount > 0
+          ? `${tierMsg} — revoked from ${revokedRoleCount} role${revokedRoleCount > 1 ? 's' : ''} that no longer qualify`
+          : tierMsg);
       },
       error: () => { this.toast.error('Some tier updates failed. Please refresh and retry.'); this.saving.set(false); },
     });

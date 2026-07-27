@@ -65,3 +65,25 @@ export interface PermissionGroup {
   category: string;
   permissions: AllPermissionsResponse[];
 }
+
+export interface TierChangeItem {
+  id: number;
+  tier: number;
+}
+
+export interface ImpactedRole {
+  roleId: number;
+  roleName: string;
+  roleDisplayName: string;
+  userCount: number;
+}
+
+/** A pending tier change that will revoke the permission from one or more roles that no longer qualify. */
+export interface TierImpactEntry {
+  permissionId: number;
+  code: string;
+  displayName: string;
+  currentTier: number;
+  newTier: number;
+  revokedFrom: ImpactedRole[];
+}

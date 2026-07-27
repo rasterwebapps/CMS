@@ -6,6 +6,7 @@ import {
   AppRoleResponse, AppUserResponse,
   CreateUserRequest, UpdateUserRequest,
   AllPermissionsResponse, WidgetConfigDto,
+  TierChangeItem, TierImpactEntry,
 } from './permission.model';
 
 @Injectable({ providedIn: 'root' })
@@ -68,6 +69,11 @@ export class UserRoleService {
 
   updatePermissionTier(id: number, tier: number): Observable<AllPermissionsResponse> {
     return this.http.put<AllPermissionsResponse>(`${this.base}/permissions/${id}/tier`, { tier });
+  }
+
+  /** Previews which roles (and how many users) would lose a permission under a pending tier change. */
+  previewTierImpact(changes: TierChangeItem[]): Observable<TierImpactEntry[]> {
+    return this.http.post<TierImpactEntry[]>(`${this.base}/permissions/tier-impact`, changes);
   }
 
   // ── Dashboard ─────────────────────────────────────────────────

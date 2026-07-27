@@ -137,4 +137,18 @@ public class Permission {
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
+
+    /**
+     * Whether a role at the given hierarchy level is allowed to hold (or delegate) a
+     * permission of the given tier. Tier 1 = DEV_ADMIN only, 2 & 3 = level ≤ 2
+     * (Support+), 4 = anyone. Shared by delegation-picker filtering, role-permission
+     * save validation, and the tier-change auto-revoke sweep — keep these in sync.
+     */
+    public static boolean tierAllowsLevel(int tier, int hierarchyLevel) {
+        return switch (tier) {
+            case 1 -> hierarchyLevel <= 1;
+            case 2, 3 -> hierarchyLevel <= 2;
+            default -> true;
+        };
+    }
 }

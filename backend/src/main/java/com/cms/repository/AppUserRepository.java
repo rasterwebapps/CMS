@@ -24,4 +24,7 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     boolean existsByKeycloakUsername(String username);
 
     boolean existsByEmail(String email);
+
+    /** Active-and-inactive user count for a role — used for tier-change impact preview. */
+    long countByAppRoleId(Long roleId);
 }

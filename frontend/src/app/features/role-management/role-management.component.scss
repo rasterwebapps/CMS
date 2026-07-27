@@ -347,15 +347,6 @@
   flex-shrink: 0;    // ← CRITICAL: prevents the flex-column from squashing groups
   transition: border-color 0.15s ease;
 
-  &[data-cat="ADMISSION"]      { --cat-color: #6366f1; }
-  &[data-cat="CURRICULUM"]     { --cat-color: #3b82f6; }
-  &[data-cat="EXAMINATION"]    { --cat-color: #0ea5e9; }
-  &[data-cat="FINANCE"]        { --cat-color: #10b981; }
-  &[data-cat="INFRASTRUCTURE"] { --cat-color: #f59e0b; }
-  &[data-cat="MASTER"]         { --cat-color: #8b5cf6; }
-  &[data-cat="REPORTS"]        { --cat-color: #ec4899; }
-  &[data-cat="SYSTEM"]         { --cat-color: #ef4444; }
-
   &--open { border-color: rgba(var(--cms-primary-rgb), 0.2); }
 
   // ── Group accordion header ──

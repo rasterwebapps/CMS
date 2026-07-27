@@ -301,6 +301,43 @@ class AppRoleServiceTest {
         verify(appRoleRepository, never()).save(any());
     }
 
+    @Test
+    void shouldPreserveExistingPermissionTheRequesterCannotSeeWhenSavingAnUnrelatedChange() {
+        // Role already holds ADMISSION_CREATE, which now sits at tier 1 (Dev Only) —
+        // outside a College-Admin-level requester's own delegatable/held set. The
+        // requester never sees or touches it in the picker; saving an unrelated new
+        // permission must not require them to also hold ADMISSION_CREATE themselves,
+        // and the permission must survive the save untouched.
+        Permission admissionCreate = new Permission("ADMISSION_CREATE", "Create Admissions", "ADMISSION", "");
+        admissionCreate.setId(44L);
+        admissionCreate.setTier(1);
+        Permission courseView = new Permission("COURSE_VIEW", "View Courses", "COURSE", "");
+        courseView.setTier(4);
+
+        AppRole role = createRole(5L, "COLLEGEADMIN", "College Admin", 4, false);
+        role.getPermissions().add(admissionCreate);
+
+        when(appRoleRepository.findById(5L)).thenReturn(Optional.of(role));
+        when(appRoleRepository.save(any(AppRole.class))).thenReturn(role);
+        // Submitted set = existing ADMISSION_CREATE (untouched) + newly added COURSE_VIEW.
+        when(permissionRepository.findByCodeIn(List.of("COURSE_VIEW")))
+            .thenReturn(List.of(courseView));
+        when(permissionRepository.findByCodeIn(List.of("ADMISSION_CREATE", "COURSE_VIEW")))
+            .thenReturn(List.of(admissionCreate, courseView));
+
+        Set<String> requesterPerms = Set.of("COURSE_VIEW"); // does NOT hold ADMISSION_CREATE
+
+        // Requester is SUPPORT_ADMIN (level 2) editing the level-4 College Admin role —
+        // strictly below, so the hierarchy check passes; ADMISSION_CREATE (tier 1) is
+        // still out of their delegation reach, same as it would be in the picker UI.
+        AppRoleResponse response = appRoleService.updatePermissions(
+            5L, List.of("ADMISSION_CREATE", "COURSE_VIEW"), requesterPerms, "supportadmin", 2);
+
+        assertThat(response).isNotNull();
+        assertThat(role.getPermissions()).contains(admissionCreate, courseView);
+        verify(appRoleRepository).save(role);
+    }
+
     // -------------------------------------------------------------------------
     // getPermissions
     // -------------------------------------------------------------------------

@@ -1,8 +1,11 @@
 package com.cms.service;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.cms.dto.WidgetConfigDto;
 import com.cms.model.RoleDashboardWidgetConfig;
@@ -132,6 +135,14 @@ public class AppRoleService {
      * Replaces the permission set of a role. The requester may only assign permissions
      * that they themselves hold (no privilege escalation), and may only modify roles
      * that are strictly below their own hierarchy level.
+     *
+     * <p>Escalation checks apply only to codes actually being <em>added</em> relative to
+     * the role's current set — codes the role already holds pass through untouched even
+     * if they now sit outside the requester's own delegation reach (e.g. a permission's
+     * tier was tightened after the role was granted it). Without this, a requester could
+     * never save an unrelated change to a role without first being forced to also decide
+     * on permissions they can't even see, since the picker UI only ever shows their own
+     * delegatable subset.
      */
     @Transactional
     public AppRoleResponse updatePermissions(Long roleId, List<String> permissionCodes,
@@ -143,26 +154,36 @@ public class AppRoleService {
         ensureRoleIsEditable(role, requesterLevel);
 
         if (permissionCodes != null) {
-            for (String code : permissionCodes) {
+            Set<String> currentCodes = role.getPermissions().stream()
+                .map(Permission::getCode)
+                .collect(Collectors.toSet());
+            Set<String> addedCodes = new HashSet<>(permissionCodes);
+            addedCodes.removeAll(currentCodes);
+
+            for (String code : addedCodes) {
                 if (!requesterPermissions.contains(code)) {
                     throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "You do not hold permission '" + code + "' and cannot assign it");
                 }
             }
 
-            List<Permission> permissions = permissionCodes.isEmpty()
+            List<Permission> addedPermissions = addedCodes.isEmpty()
                 ? List.of()
-                : permissionRepository.findByCodeIn(permissionCodes);
+                : permissionRepository.findByCodeIn(new ArrayList<>(addedCodes));
 
-            // Tier enforcement: requester can only delegate permissions within their tier authority.
+            // Tier enforcement: requester can only delegate NEW permissions within their tier authority.
             // Tier 1 → level 1 only; Tier 2 & 3 → level ≤ 2; Tier 4 → anyone.
-            for (Permission p : permissions) {
-                if (!canDelegateByTier(p.getTier(), requesterLevel)) {
+            for (Permission p : addedPermissions) {
+                if (!Permission.tierAllowsLevel(p.getTier(), requesterLevel)) {
                     throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "You cannot delegate permission '" + p.getCode()
                             + "' — it is above your delegation authority (tier " + p.getTier() + ")");
                 }
             }
+
+            List<Permission> permissions = permissionCodes.isEmpty()
+                ? List.of()
+                : permissionRepository.findByCodeIn(permissionCodes);
 
             role.getPermissions().clear();
             role.getPermissions().addAll(permissions);
@@ -274,13 +295,6 @@ public class AppRoleService {
             .toList();
     }
 
-    private static boolean canDelegateByTier(int tier, int requesterLevel) {
-        return switch (tier) {
-            case 1 -> requesterLevel <= 1;
-            case 2, 3 -> requesterLevel <= 2;
-            default -> true;
-        };
-    }
 
     private void ensureRoleIsEditable(AppRole role, int requesterLevel) {
         // DEV_ADMIN is absolutely immutable — nobody can change its permissions.
