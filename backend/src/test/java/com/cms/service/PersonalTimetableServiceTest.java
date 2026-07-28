@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.HolidayDayInfo;
 import com.cms.dto.MyTimetableResponse;
 import com.cms.dto.ProfileIdentity;
 import com.cms.model.AcademicYear;
@@ -31,6 +32,7 @@ import com.cms.model.TermInstance;
 import com.cms.model.enums.CalendarEventType;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
+import com.cms.model.enums.HolidayCategory;
 import com.cms.model.enums.RegistrationStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
@@ -80,7 +82,7 @@ class PersonalTimetableServiceTest {
 
         MyTimetableResponse response = service.findMyTimetable(identity, 10L, null);
 
-        assertThat(response.holidayDayIndexes()).isEmpty();
+        assertThat(response.holidays()).isEmpty();
     }
 
     @Test
@@ -134,7 +136,7 @@ class PersonalTimetableServiceTest {
     }
 
     @Test
-    void shouldReturnHolidayDayIndexesWhenWeekStartSupplied() {
+    void shouldReturnHolidaysWhenWeekStartSupplied() {
         ProfileIdentity identity = new ProfileIdentity("FACULTY", 5L, null, null, "Dr. Faculty", null, null, null, null);
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(anyLong(), any(), anyLong()))
             .thenReturn(Collections.emptyList());
@@ -142,13 +144,17 @@ class PersonalTimetableServiceTest {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
 
         LocalDate weekStart = LocalDate.of(2024, 8, 12); // Monday
+        CalendarEvent independenceDay = new CalendarEvent();
+        independenceDay.setTitle("Independence Day");
+        independenceDay.setHolidayCategory(HolidayCategory.GOVERNMENT);
         when(calendarEventRepository.findOverlapping(any(), any(), any(), any()))
             .thenReturn(Collections.emptyList());
         when(calendarEventRepository.findOverlapping(1L, CalendarEventType.HOLIDAY, weekStart.plusDays(2), weekStart.plusDays(2)))
-            .thenReturn(List.of(new CalendarEvent()));
+            .thenReturn(List.of(independenceDay));
 
         MyTimetableResponse response = service.findMyTimetable(identity, 10L, weekStart);
 
-        assertThat(response.holidayDayIndexes()).containsExactly(2);
+        assertThat(response.holidays()).containsExactly(
+            new HolidayDayInfo(2, "Independence Day", HolidayCategory.GOVERNMENT));
     }
 }

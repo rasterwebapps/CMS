@@ -33,6 +33,23 @@ export interface WeekGridCandidateCell {
   occupyingSubjectName: string | null;
 }
 
+export type WeekGridHolidayCategory = 'GOVERNMENT' | 'LOCAL' | 'INSTITUTIONAL';
+
+/** One holiday overlapping a viewed week — dayIndex is 0=Monday .. 5=Saturday, matching
+ *  WEEK_GRID_DAYS order. category is null for holidays created before HolidayCategory existed,
+ *  or left "Unspecified" on the calendar event. */
+export interface WeekGridHolidayInfo {
+  dayIndex: number;
+  title: string;
+  category: WeekGridHolidayCategory | null;
+}
+
+export const WEEK_GRID_HOLIDAY_CATEGORY_LABELS: Record<WeekGridHolidayCategory, string> = {
+  GOVERNMENT: 'Government',
+  LOCAL: 'Local',
+  INSTITUTIONAL: 'Institutional',
+};
+
 export const WEEK_GRID_DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 export const WEEK_GRID_DAY_LABELS: Record<string, string> = {
   MONDAY: 'Mon', TUESDAY: 'Tue', WEDNESDAY: 'Wed', THURSDAY: 'Thu', FRIDAY: 'Fri', SATURDAY: 'Sat',

@@ -24,7 +24,8 @@
     </select>
     <label class="week-picker">
       <span class="week-picker__label">Week of</span>
-      <input type="date" class="field-input" [(ngModel)]="weekStart" (ngModelChange)="onWeekStartChange()" aria-label="Week start date" />
+      <input type="date" class="field-input" [(ngModel)]="weekStart" (ngModelChange)="onWeekStartChange()"
+        [min]="weekMin()" [max]="weekMax()" aria-label="Week start date" />
     </label>
   </div>
 
@@ -34,7 +35,8 @@
         <mat-spinner diameter="36" aria-label="Loading timetable"></mat-spinner>
       </div>
     } @else {
-      <cms-week-grid mode="personal" [sessions]="sessions()" [holidayDayIndexes]="holidayDayIndexes()" />
+      <cms-week-grid mode="personal" [sessions]="sessions()" [holidays]="holidays()" [weekStart]="weekStart"
+        (sessionClick)="openLogProgress($event)" />
     }
   </div>
 

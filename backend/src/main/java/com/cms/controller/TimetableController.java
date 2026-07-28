@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.ClassScheduleOccurrenceResponse;
 import com.cms.dto.ClassScheduleResponse;
 import com.cms.dto.MyTimetableResponse;
 import com.cms.dto.ProfileIdentity;
@@ -26,6 +27,7 @@ import com.cms.service.ClassScheduleService;
 import com.cms.service.PersonalTimetableService;
 import com.cms.service.ProfileService;
 import com.cms.service.TimetableGenerationService;
+import com.cms.service.TimetableOccurrenceService;
 import com.cms.service.TimetableSwapService;
 
 import jakarta.validation.Valid;
@@ -39,17 +41,20 @@ public class TimetableController {
     private final ClassScheduleService classScheduleService;
     private final PersonalTimetableService personalTimetableService;
     private final ProfileService profileService;
+    private final TimetableOccurrenceService timetableOccurrenceService;
 
     public TimetableController(TimetableGenerationService timetableGenerationService,
                                 TimetableSwapService timetableSwapService,
                                 ClassScheduleService classScheduleService,
                                 PersonalTimetableService personalTimetableService,
-                                ProfileService profileService) {
+                                ProfileService profileService,
+                                TimetableOccurrenceService timetableOccurrenceService) {
         this.timetableGenerationService = timetableGenerationService;
         this.timetableSwapService = timetableSwapService;
         this.classScheduleService = classScheduleService;
         this.personalTimetableService = personalTimetableService;
         this.profileService = profileService;
+        this.timetableOccurrenceService = timetableOccurrenceService;
     }
 
     @GetMapping("/me")
@@ -59,6 +64,18 @@ public class TimetableController {
             @RequestParam(required = false) LocalDate weekStart) {
         ProfileIdentity identity = profileService.resolveCurrentUser();
         return ResponseEntity.ok(personalTimetableService.findMyTimetable(identity, termInstanceId, weekStart));
+    }
+
+    @GetMapping("/occurrences")
+    @PreAuthorize("@perm.has('TIMETABLE_VIEW')")
+    public ResponseEntity<List<ClassScheduleOccurrenceResponse>> findOccurrences(
+            @RequestParam Long termInstanceId,
+            @RequestParam LocalDate from,
+            @RequestParam LocalDate to,
+            @RequestParam(defaultValue = "browse") String scope) {
+        ProfileIdentity identity = profileService.resolveCurrentUser();
+        return ResponseEntity.ok(
+            timetableOccurrenceService.findOccurrences(identity, termInstanceId, from, to, scope));
     }
 
     @PostMapping("/generate")

@@ -31,7 +31,10 @@ export function uniqueFieldValidator(
   getExtraParams: () => Record<string, string | number> | null = () => ({}),
 ): AsyncValidatorFn {
   return (control: AbstractControl): Observable<ValidationErrors | null> => {
-    const value = (control.value ?? '').trim();
+    // control.value may be a number (e.g. a unit number field), not just text --
+    // coerce to string before trimming so numeric-valued controls don't throw here.
+    const raw = control.value;
+    const value = (raw === null || raw === undefined ? '' : String(raw)).trim();
     if (!value || value.length < 1) return of(null);
 
     const extraParams = getExtraParams();

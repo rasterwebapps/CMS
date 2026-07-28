@@ -1,0 +1,129 @@
+.dialog-subtitle {
+  display: block;
+  font-size: var(--cms-text-sm);
+  font-weight: 400;
+  color: var(--cms-text-muted);
+  margin-top: 2px;
+}
+
+.unit-dialog-content {
+  min-width: 420px;
+  max-width: 560px;
+}
+
+.loading-row {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.empty-hint {
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-base);
+  padding: 12px 0;
+}
+
+.hour-budget-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.hour-budget-chip {
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  color: var(--cms-text-muted);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 999px;
+  padding: 2px 10px;
+
+  &--over {
+    color: var(--cms-danger);
+    border-color: var(--cms-danger);
+  }
+}
+
+.unit-item__type {
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  color: var(--cms-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.unit-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.unit-item {
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  padding: 10px 12px;
+  position: relative;
+}
+
+.unit-item__main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-right: 72px;
+}
+
+.unit-item__number {
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  font-size: var(--cms-text-base);
+}
+
+.unit-item__title {
+  color: var(--cms-text-primary);
+  font-size: var(--cms-text-base);
+}
+
+.unit-item__hours {
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-xs);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.unit-item__description {
+  margin: 6px 0 0;
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-base);
+}
+
+.unit-item__actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 2px;
+}
+
+.add-unit-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.unit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}

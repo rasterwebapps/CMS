@@ -1,0 +1,119 @@
+<h2 mat-dialog-title>
+  Syllabus Units — {{ data.subjectCode }}
+  <span class="dialog-subtitle">{{ data.subjectName }}</span>
+</h2>
+
+<mat-dialog-content class="unit-dialog-content">
+  @if (loading()) {
+    <div class="loading-row">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else {
+    @if (!showForm()) {
+      <div class="hour-budget-row">
+        @for (type of availableComponentTypes(); track type) {
+          <span class="hour-budget-chip" [class.hour-budget-chip--over]="allocatedHoursByType()[type] > bucketTotal(type)">
+            {{ componentTypeLabels[type] }}: {{ allocatedHoursByType()[type] }}h / {{ bucketTotal(type) }}h
+          </span>
+        }
+      </div>
+
+      @if (units().length === 0) {
+        <p class="empty-hint">No units defined yet.</p>
+      } @else {
+        <ul class="unit-list">
+          @for (unit of units(); track unit.id) {
+            <li class="unit-item">
+              <div class="unit-item__main">
+                <span class="unit-item__number">Unit {{ unit.unitNumber }}</span>
+                <span class="unit-item__title">{{ unit.title }}</span>
+                <span class="unit-item__type">{{ componentTypeLabels[unit.componentType] }}</span>
+                @if (unit.plannedHours) {
+                  <span class="unit-item__hours">{{ unit.plannedHours }}h</span>
+                }
+              </div>
+              @if (unit.description) {
+                <p class="unit-item__description">{{ unit.description }}</p>
+              }
+              @if (canManage()) {
+                <div class="unit-item__actions">
+                  <button type="button" mat-icon-button (click)="openEditForm(unit)" aria-label="Edit unit" matTooltip="Edit">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button type="button" mat-icon-button (click)="confirmDelete(unit)" [disabled]="removingId() === unit.id"
+                    aria-label="Remove unit" matTooltip="Remove">
+                    @if (removingId() === unit.id) {
+                      <mat-spinner diameter="16"></mat-spinner>
+                    } @else {
+                      <mat-icon>delete</mat-icon>
+                    }
+                  </button>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      @if (canManage()) {
+        <button type="button" mat-stroked-button class="add-unit-btn" (click)="openAddForm()">
+          <mat-icon>add</mat-icon> Add Unit
+        </button>
+      }
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="submit()" class="unit-form">
+        <div class="field-row">
+          <div class="field-group field-group--narrow">
+            <label class="field-label">Unit Number</label>
+            <input type="number" class="field-input" formControlName="unitNumber" min="1" />
+            @if (form.get('unitNumber')?.hasError('duplicate')) {
+              <span class="field-error">This unit number is already used</span>
+            }
+          </div>
+          <div class="field-group field-group--narrow">
+            <label class="field-label">Component</label>
+            <select class="field-input" formControlName="componentType">
+              @for (type of availableComponentTypes(); track type) {
+                <option [value]="type">{{ componentTypeLabels[type] }}</option>
+              }
+            </select>
+          </div>
+          <div class="field-group field-group--narrow">
+            <label class="field-label">Planned Hours</label>
+            <input type="number" class="field-input" formControlName="plannedHours" min="0" />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Title</label>
+          <input type="text" class="field-input" formControlName="title" placeholder="e.g. Fundamentals of Anatomy" />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Description (optional)</label>
+          <textarea class="field-input" formControlName="description" rows="3"></textarea>
+        </div>
+
+        <div class="field-group field-group--narrow">
+          <label class="field-label">Sort Order (optional)</label>
+          <input type="number" class="field-input" formControlName="sortOrder" />
+        </div>
+
+        <div class="form-actions">
+          <button type="button" mat-stroked-button (click)="cancelForm()">Cancel</button>
+          <button type="submit" mat-flat-button color="primary" [disabled]="saving() || form.pending">
+            @if (saving()) {
+              <mat-spinner diameter="16"></mat-spinner>
+            } @else {
+              {{ editingId() ? 'Save' : 'Add' }}
+            }
+          </button>
+        </div>
+      </form>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button type="button" mat-stroked-button (click)="close()">Close</button>
+</mat-dialog-actions>

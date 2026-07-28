@@ -844,6 +844,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'progress-report',
+    canActivate: withPermission('PROGRESS_REPORT_VIEW'),
+    loadComponent: () =>
+      import('./features/timetable/progress-report/progress-report.component').then(
+        (m) => m.ProgressReportComponent
+      ),
+  },
+  {
     path: 'faculty-availability',
     canActivate: withPermission('FACULTY_AVAILABILITY_VIEW', 'FACULTY_AVAILABILITY_MANAGE'),
     loadComponent: () =>

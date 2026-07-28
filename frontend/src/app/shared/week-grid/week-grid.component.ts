@@ -1,11 +1,14 @@
 import { Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CmsEmptyStateComponent } from '../empty-state/empty-state.component';
 import {
   WeekGridSession,
   WeekGridMode,
   WeekGridCandidateCell,
+  WeekGridHolidayInfo,
   WEEK_GRID_DAYS,
   WEEK_GRID_DAY_LABELS,
+  WEEK_GRID_HOLIDAY_CATEGORY_LABELS,
 } from './week-grid.model';
 
 interface WeekGridRow {
@@ -25,7 +28,7 @@ interface WeekGridRow {
 @Component({
   selector: 'cms-week-grid',
   standalone: true,
-  imports: [CmsEmptyStateComponent],
+  imports: [CmsEmptyStateComponent, MatTooltipModule],
   templateUrl: './week-grid.component.html',
   styleUrl: './week-grid.component.scss',
 })
@@ -44,10 +47,12 @@ export class CmsWeekGridComponent {
   @Input() allowManage = false;
   @Input() allowRevert = false;
 
-  private readonly _holidayDayIndexes = signal<number[]>([]);
-  @Input() set holidayDayIndexes(value: number[] | null | undefined) {
-    this._holidayDayIndexes.set(value ?? []);
+  private readonly _holidays = signal<WeekGridHolidayInfo[]>([]);
+  @Input() set holidays(value: WeekGridHolidayInfo[] | null | undefined) {
+    this._holidays.set(value ?? []);
   }
+
+  protected readonly holidayCategoryLabels = WEEK_GRID_HOLIDAY_CATEGORY_LABELS;
 
   @Input() weekStart: string | null = null;
   @Input() generating = false;
@@ -74,9 +79,24 @@ export class CmsWeekGridComponent {
   protected readonly dayLabels = WEEK_GRID_DAY_LABELS;
 
   protected readonly isHoliday = computed(() => {
-    const set = new Set(this._holidayDayIndexes());
+    const set = new Set(this._holidays().map((h) => h.dayIndex));
     return (dayIndex: number) => set.has(dayIndex);
   });
+
+  protected readonly holidayFor = computed(() => {
+    const map = new Map(this._holidays().map((h) => [h.dayIndex, h]));
+    return (dayIndex: number) => map.get(dayIndex);
+  });
+
+  /** Actual calendar date for a day column, when the consumer knows which week is being viewed
+   *  (weekStart is a Monday date, dayIndex 0=Monday..5=Saturday per WEEK_GRID_DAYS) -- null for
+   *  review/browse screens that never pass weekStart, since a DRAFT template has no real date. */
+  protected dateLabelFor(dayIndex: number): string | null {
+    if (!this.weekStart) return null;
+    const date = new Date(`${this.weekStart}T00:00:00`);
+    date.setDate(date.getDate() + dayIndex);
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
 
   protected readonly rows = computed<WeekGridRow[]>(() => {
     const seen = new Map<string, WeekGridRow>();

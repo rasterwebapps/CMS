@@ -383,6 +383,18 @@
 .ev-title { font-weight: 600; flex: 1; color: var(--cms-text-primary); }
 .ev-date  { color: var(--cms-text-muted); font-size: var(--cms-text-base); white-space: nowrap; }
 
+// Secondary tag next to the HOLIDAY badge — deliberately not another cms-badge color so it
+// doesn't compete visually with the event-type badge it always sits beside.
+.ev-holiday-category {
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--cms-border-default);
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .btn-icon-action.danger:hover {
   color: var(--cms-danger);
   background: var(--cms-danger-light);

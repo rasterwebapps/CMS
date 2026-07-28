@@ -1,0 +1,129 @@
+package com.cms.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.cms.model.AcademicYear;
+import com.cms.model.CalendarEvent;
+import com.cms.model.ClassSchedule;
+import com.cms.model.TermInstance;
+import com.cms.model.enums.CalendarEventType;
+import com.cms.model.enums.DayOfWeek;
+import com.cms.model.enums.TermInstanceStatus;
+import com.cms.model.enums.TermType;
+import com.cms.repository.CalendarEventRepository;
+
+@ExtendWith(MockitoExtension.class)
+class ClassScheduleOccurrenceServiceTest {
+
+    @Mock
+    private CalendarEventRepository calendarEventRepository;
+
+    private ClassScheduleOccurrenceService service;
+    private AcademicYear academicYear;
+    private TermInstance termInstance;
+
+    @BeforeEach
+    void setUp() {
+        service = new ClassScheduleOccurrenceService(calendarEventRepository);
+
+        academicYear = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
+        academicYear.setId(1L);
+        academicYear.setCreatedAt(Instant.now());
+        academicYear.setUpdatedAt(Instant.now());
+
+        // Monday 2024-08-05 through Monday 2024-08-26 -- 4 Mondays inclusive.
+        termInstance = new TermInstance(academicYear, TermType.ODD,
+            LocalDate.of(2024, 8, 5), LocalDate.of(2024, 8, 26), TermInstanceStatus.OPEN);
+        termInstance.setId(10L);
+        termInstance.setCreatedAt(Instant.now());
+        termInstance.setUpdatedAt(Instant.now());
+    }
+
+    private ClassSchedule mondaySchedule() {
+        ClassSchedule schedule = new ClassSchedule();
+        schedule.setId(100L);
+        schedule.setTermInstance(termInstance);
+        schedule.setDayOfWeek(DayOfWeek.MONDAY);
+        return schedule;
+    }
+
+    @Test
+    void shouldReturnEveryMatchingWeekdayWithinTermBounds() {
+        when(calendarEventRepository.findOverlapping(any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+
+        List<LocalDate> dates = service.occurrenceDatesFor(
+            mondaySchedule(), LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+
+        assertThat(dates).containsExactly(
+            LocalDate.of(2024, 8, 5), LocalDate.of(2024, 8, 12),
+            LocalDate.of(2024, 8, 19), LocalDate.of(2024, 8, 26));
+    }
+
+    @Test
+    void shouldClampToCallerSuppliedWindow() {
+        when(calendarEventRepository.findOverlapping(any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+
+        List<LocalDate> dates = service.occurrenceDatesFor(
+            mondaySchedule(), LocalDate.of(2024, 8, 10), LocalDate.of(2024, 8, 20));
+
+        assertThat(dates).containsExactly(LocalDate.of(2024, 8, 12), LocalDate.of(2024, 8, 19));
+    }
+
+    @Test
+    void shouldExcludeHolidayDates() {
+        CalendarEvent independenceDayHoliday = new CalendarEvent();
+        independenceDayHoliday.setStartDate(LocalDate.of(2024, 8, 12));
+        independenceDayHoliday.setEndDate(LocalDate.of(2024, 8, 12));
+        when(calendarEventRepository.findOverlapping(
+                1L, CalendarEventType.HOLIDAY, LocalDate.of(2024, 8, 5), LocalDate.of(2024, 8, 26)))
+            .thenReturn(List.of(independenceDayHoliday));
+
+        List<LocalDate> dates = service.occurrenceDatesFor(
+            mondaySchedule(), LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+
+        assertThat(dates).containsExactly(
+            LocalDate.of(2024, 8, 5), LocalDate.of(2024, 8, 19), LocalDate.of(2024, 8, 26));
+    }
+
+    @Test
+    void shouldReturnEmptyWhenWindowIsBeforeTermStarts() {
+        List<LocalDate> dates = service.occurrenceDatesFor(
+            mondaySchedule(), LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 31));
+
+        assertThat(dates).isEmpty();
+    }
+
+    @Test
+    void batchedVariantShouldReuseHolidayLookupPerAcademicYear() {
+        when(calendarEventRepository.findOverlapping(any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+
+        ClassSchedule first = mondaySchedule();
+        ClassSchedule second = mondaySchedule();
+        second.setId(200L);
+
+        Map<Long, List<LocalDate>> result = service.occurrenceDatesForSchedules(
+            List.of(first, second), LocalDate.of(2024, 8, 1), LocalDate.of(2024, 8, 31));
+
+        assertThat(result.get(100L)).hasSize(4);
+        assertThat(result.get(200L)).hasSize(4);
+        org.mockito.Mockito.verify(calendarEventRepository, org.mockito.Mockito.times(1))
+            .findOverlapping(any(), any(), any(), any());
+    }
+}

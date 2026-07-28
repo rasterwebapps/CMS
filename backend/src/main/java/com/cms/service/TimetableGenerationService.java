@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.time.Duration;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -51,20 +52,25 @@ import com.cms.repository.TermInstanceRepository;
  * earlier in the *same run* (never against pre-existing PUBLISHED rows for the term) — this is
  * safe because {@link #generate} refuses to run at all once the term has been published (see the
  * regeneration guard below); a DRAFT-only term has no PUBLISHED rows to conflict with in the first
- * place. 1 Period/LabSlot = 1 curriculum hour for v1; lab and clinical hours are summed into one
- * LAB placement count (the schema discriminator is only THEORY/LAB). Elective offerings are
- * skipped, matching the existing bulk course-registration generation precedent
- * (CourseRegistrationServiceImpl) of leaving electives for manual/individual assignment.
+ * place. {@link CurriculumSemesterCourse} hours are 60-minute CLOCK hours (INC/UGC convention —
+ * a syllabus stating "160 hours" means 160 real hours of instruction, regardless of how long a
+ * campus's periods are), so 1 Period/LabSlot is <b>not</b> 1 curriculum hour whenever a period runs
+ * shorter or longer than 60 minutes — see {@link #sessionsPerWeek}. Lab and clinical hours are
+ * summed into one LAB placement count (the schema discriminator is only THEORY/LAB) and placed via
+ * LabSlot, matching how the schema already lumps them — a genuinely distinct shift-based clinical
+ * model is a separate, larger change, not done here. Elective offerings are skipped, matching the
+ * existing bulk course-registration generation precedent (CourseRegistrationServiceImpl) of leaving
+ * electives for manual/individual assignment.
  *
  * <p>{@link CurriculumSemesterCourse} hours are total-term hours, not a literal count of slots to
  * place — {@link ClassSchedule} has no date, only a {@code dayOfWeek} + {@code termInstance} (it's
  * already a weekly-recurring template, see {@link PersonalTimetableService}), so one placed row
  * delivers {@code weeksInTerm} occurrences over the term. Placement therefore targets
- * sessions-per-week = ceil(totalHours / weeksInTerm), rounding up so the term always meets or
- * slightly exceeds the required hours rather than falling short. A same-subject/same-day cap (one
- * theory session per subject per day, one lab session per subject+batch per day) keeps the now much
- * smaller placement count from clustering multiple sessions of the same subject on one day just
- * because slots happened to be free.
+ * sessions-per-week = ceil((totalHours × 60 / slotDurationMinutes) / weeksInTerm), rounding up so
+ * the term always meets or slightly exceeds the required clock-hours rather than falling short. A
+ * same-subject/same-day cap (one theory session per subject per day, one lab session per
+ * subject+batch per day) keeps the now much smaller placement count from clustering multiple
+ * sessions of the same subject on one day just because slots happened to be free.
  *
  * <p><b>Regenerate is the same call as Generate.</b> {@link #generate} deletes any existing DRAFT
  * rows for the term up front and re-places from scratch — so it doubles as an in-place "try again"
@@ -149,6 +155,10 @@ public class TimetableGenerationService {
         Map<Long, List<FacultyAvailability>> availabilityByFaculty = new HashMap<>();
         int generatedCount = 0;
         int weeksInTerm = weeksInTerm(termInstance);
+        double periodDurationMinutes = averageDurationMinutes(
+            periods.stream().map(Period::getDurationMinutes).toList());
+        double labSlotDurationMinutes = averageDurationMinutes(
+            labSlots.stream().map(s -> (int) Duration.between(s.getStartTime(), s.getEndTime()).toMinutes()).toList());
 
         for (CourseOffering offering : offerings) {
             CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
@@ -176,7 +186,7 @@ public class TimetableGenerationService {
 
             int theoryHours = csc.getTheoryHours() != null ? csc.getTheoryHours() : 0;
             if (theoryHours > 0) {
-                int sessionsPerWeek = sessionsPerWeek(theoryHours, weeksInTerm);
+                int sessionsPerWeek = sessionsPerWeek(theoryHours, weeksInTerm, periodDurationMinutes);
                 int placed = placeTheory(offering, faculty, sessionsPerWeek, periods, classrooms, days,
                     availabilityBlocks, occupied, termInstance);
                 if (placed < sessionsPerWeek) {
@@ -190,7 +200,7 @@ public class TimetableGenerationService {
             int labClinicalHours = (csc.getLabHours() != null ? csc.getLabHours() : 0)
                 + (csc.getClinicalHours() != null ? csc.getClinicalHours() : 0);
             if (labClinicalHours > 0) {
-                int sessionsPerWeek = sessionsPerWeek(labClinicalHours, weeksInTerm);
+                int sessionsPerWeek = sessionsPerWeek(labClinicalHours, weeksInTerm, labSlotDurationMinutes);
                 List<Batch> batches = batchRepository.findByCourseOfferingId(offering.getId());
                 if (batches.isEmpty()) {
                     unplaceable.add(subjectName + ": " + labClinicalHours
@@ -318,14 +328,30 @@ public class TimetableGenerationService {
         return (int) Math.max(1, Math.ceil(days / 7.0));
     }
 
-    /** Total term hours are delivered by a recurring weekly slot (see class javadoc), so the
-     *  number of distinct weekly slots to place is the term hours spread across the term's weeks,
-     *  rounded up so the term never falls short of the required hours. */
-    private static int sessionsPerWeek(int totalHours, int weeksInTerm) {
+    /** Total term hours are 60-minute CLOCK hours delivered by a recurring weekly slot (see class
+     *  javadoc) whose own duration may not be 60 minutes — a 50-minute period needs more weekly
+     *  occurrences than a 60-minute one to deliver the same clock-hours. Converts totalHours to
+     *  minutes, divides by the slot's actual duration to get total slots needed over the term,
+     *  then spreads that across the term's weeks — rounded up at each step so the term never falls
+     *  short of the required clock-hours. */
+    private static int sessionsPerWeek(int totalHours, int weeksInTerm, double slotDurationMinutes) {
         if (totalHours <= 0) {
             return 0;
         }
-        return (int) Math.ceil(totalHours / (double) weeksInTerm);
+        double slotsNeededOverTerm = (totalHours * 60.0) / slotDurationMinutes;
+        return (int) Math.ceil(slotsNeededOverTerm / weeksInTerm);
+    }
+
+    /** One representative duration for a pool of periods/lab-slots (per the agreed v1 scope: a
+     *  single duration per placement type, not exact per-slot minute accumulation — correct today
+     *  since every period/lab-slot pool in this system is configured uniformly, and a reasonable
+     *  approximation if that ever changes). Falls back to 60 minutes for an empty pool, where the
+     *  value is moot anyway since nothing will be placed. */
+    private static double averageDurationMinutes(List<Integer> durationsMinutes) {
+        return durationsMinutes.stream()
+            .mapToInt(Integer::intValue)
+            .average()
+            .orElse(60.0);
     }
 
     private boolean isFree(List<Occupied> occupied, DayOfWeek day, LocalTime start, LocalTime end,

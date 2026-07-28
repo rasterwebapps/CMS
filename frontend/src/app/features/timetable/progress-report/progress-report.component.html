@@ -1,0 +1,82 @@
+<div class="mlp-page">
+
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="page-title">Subject <em>Progress Report</em></h1>
+      <p class="page-subtitle">Unit-wise syllabus coverage across every subject in the selected term</p>
+    </div>
+  </div>
+
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
+      @for (ay of academicYears(); track ay.id) {
+        <option [ngValue]="ay.id">{{ ay.name }}</option>
+      }
+    </select>
+    <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()"
+      [disabled]="termsLoading() || termInstances().length === 0" aria-label="Term">
+      @if (termInstances().length === 0) {
+        <option [ngValue]="null">No terms yet</option>
+      }
+      @for (term of termInstances(); track term.id) {
+        <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="content-card">
+    @if (loading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading progress report"></mat-spinner>
+      </div>
+    } @else if (!summary() || summary()!.subjects.length === 0) {
+      <p class="empty-hint">No subject progress data for this term yet.</p>
+    } @else {
+      <div class="overall-row">
+        <span class="overall-row__label">Overall term progress</span>
+        <div class="progress-track">
+          <div class="progress-fill" [style.width.%]="summary()!.overallPercentComplete"></div>
+        </div>
+        <span class="overall-row__value">{{ summary()!.overallPercentComplete | number: '1.0-0' }}%</span>
+      </div>
+
+      <ul class="subject-list">
+        @for (subject of summary()!.subjects; track subject.courseOfferingId) {
+          <li class="subject-item">
+            <button type="button" class="subject-item__row" (click)="toggleExpand(subject.courseOfferingId)">
+              <span class="subject-item__code">{{ subject.subjectCode }}</span>
+              <span class="subject-item__name">{{ subject.subjectName }}</span>
+              <div class="progress-track progress-track--inline">
+                <div class="progress-fill" [style.width.%]="subject.percentComplete"></div>
+              </div>
+              <span class="subject-item__value">{{ subject.coveredUnitCount }}/{{ subject.totalUnits }} units</span>
+            </button>
+
+            @if (expandedOfferingId() === subject.courseOfferingId) {
+              <div class="subject-detail">
+                @if (detailLoading()) {
+                  <div class="loading-row">
+                    <mat-spinner diameter="24"></mat-spinner>
+                  </div>
+                } @else if (offeringDetail()) {
+                  <ul class="unit-detail-list">
+                    @for (unit of offeringDetail()!.units; track unit.unitId) {
+                      <li class="unit-detail-item" [class.unit-detail-item--covered]="unit.covered">
+                        <span class="unit-detail-item__status">{{ unit.covered ? '✓' : '—' }}</span>
+                        <span class="unit-detail-item__title">Unit {{ unit.unitNumber }} — {{ unit.title }}</span>
+                        @if (unit.coveredDates.length > 0) {
+                          <span class="unit-detail-item__dates">{{ unit.coveredDates.join(', ') }}</span>
+                        }
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+</div>

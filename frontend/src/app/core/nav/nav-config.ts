@@ -88,6 +88,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Lab Schedules',       icon: 'calendar_view_week', route: '/lab-schedules',       permissions: ['LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_CREATE', 'LAB_SCHEDULE_EDIT', 'LAB_SCHEDULE_DELETE', 'LAB_SCHEDULE_EXPORT', 'LAB_SCHEDULE_MANAGE'] },
       { label: 'Timetable',           icon: 'event_note',         route: '/timetable',           permissions: ['TIMETABLE_VIEW'] },
       { label: 'Timetable Draft Review', icon: 'auto_awesome',    route: '/timetable/draft-review', permissions: ['TIMETABLE_GENERATE', 'TIMETABLE_MANAGE'] },
+      { label: 'Progress Report',     icon: 'insights',           route: '/progress-report',     permissions: ['PROGRESS_REPORT_VIEW'] },
       { label: 'Faculty Availability', icon: 'event_busy',        route: '/faculty-availability', permissions: ['FACULTY_AVAILABILITY_VIEW', 'FACULTY_AVAILABILITY_MANAGE'] },
       { label: 'Attendance',          icon: 'fact_check',         route: '/attendance',          permissions: ['ATTENDANCE_VIEW', 'ATTENDANCE_CREATE', 'ATTENDANCE_EDIT', 'ATTENDANCE_DELETE', 'ATTENDANCE_EXPORT', 'ATTENDANCE_MANAGE'] },
       { label: 'Manage Exams',        icon: 'quiz',               route: '/examinations',        permissions: ['EXAMINATION_VIEW', 'EXAMINATION_CREATE', 'EXAMINATION_EDIT', 'EXAMINATION_DELETE', 'EXAMINATION_MANAGE'] },

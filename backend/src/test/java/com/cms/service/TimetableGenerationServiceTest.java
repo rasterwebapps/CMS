@@ -26,6 +26,7 @@ import com.cms.dto.TimetableGenerationResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
+import com.cms.model.Batch;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.CourseOffering;
@@ -110,6 +111,7 @@ class TimetableGenerationServiceTest {
 
         period = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), 1);
         period.setId(1L);
+        period.setDurationMinutes(60);
     }
 
     private CourseOffering offeringWithHours(Long id, int theoryHours, int labHours, int clinicalHours, Long facultyId) {
@@ -252,6 +254,71 @@ class TimetableGenerationServiceTest {
     }
 
     @Test
+    void shouldAccountForPeriodDurationShorterThanSixtyMinutes() {
+        // 54 theory CLOCK hours over the fixture's 27-week term. The old (buggy) 1-period=1-hour
+        // math would give ceil(54/27) = 2 weekly sessions; a 50-minute period actually needs
+        // ceil((54*60/50)/27) = ceil(64.8/27) = 3 -- proving the conversion, not just that a
+        // number came out (2 and 3 are different enough to not coincide by rounding luck).
+        CourseOffering offering = offeringWithHours(100L, 54, 0, 0, faculty.getId());
+        Period shortPeriod = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50), 1);
+        shortPeriod.setId(1L);
+        shortPeriod.setDurationMinutes(50);
+
+        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(false);
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(shortPeriod));
+        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(Collections.emptyList());
+        when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(classroom));
+        when(labRepository.findAll()).thenReturn(Collections.emptyList());
+        when(facultyRepository.findById(faculty.getId())).thenReturn(Optional.of(faculty));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TimetableGenerationResponse response = service.generate(10L);
+
+        assertThat(response.generatedCount()).isEqualTo(3);
+        assertThat(response.unplaceable()).isEmpty();
+        verify(classScheduleRepository, times(3)).save(any(ClassSchedule.class));
+    }
+
+    @Test
+    void shouldAccountForLabSlotDurationLongerThanSixtyMinutes() {
+        // 100 lab/clinical CLOCK hours over the 27-week fixture term, placed via a 2-hour LabSlot.
+        // Old (buggy) 1-slot=1-hour math: ceil(100/27) = 4 weekly sessions. Correct: each slot
+        // delivers 2 clock-hours, so ceil((100*60/120)/27) = ceil(50/27) = 2 -- fewer sessions
+        // needed, proving the longer slot is credited properly rather than undercounted.
+        CourseOffering offering = offeringWithHours(100L, 0, 100, 0, faculty.getId());
+        Batch batch = new Batch(offering, "Batch A", 20, termInstance);
+        batch.setId(1L);
+        com.cms.model.LabSlot twoHourSlot = new com.cms.model.LabSlot();
+        twoHourSlot.setId(1L);
+        twoHourSlot.setName("Lab Slot 1");
+        twoHourSlot.setStartTime(LocalTime.of(9, 0));
+        twoHourSlot.setEndTime(LocalTime.of(11, 0));
+        twoHourSlot.setSlotOrder(1);
+        com.cms.model.Lab lab = new com.cms.model.Lab("Skills Lab", com.cms.model.enums.LabType.OTHER,
+            null, "Main Block", "L1", 30, com.cms.model.enums.LabStatus.ACTIVE);
+        lab.setId(1L);
+
+        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(false);
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(Collections.emptyList());
+        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(List.of(twoHourSlot));
+        when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(Collections.emptyList());
+        when(labRepository.findAll()).thenReturn(List.of(lab));
+        when(batchRepository.findByCourseOfferingId(offering.getId())).thenReturn(List.of(batch));
+        when(facultyRepository.findById(faculty.getId())).thenReturn(Optional.of(faculty));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TimetableGenerationResponse response = service.generate(10L);
+
+        assertThat(response.generatedCount()).isEqualTo(2);
+        assertThat(response.unplaceable()).isEmpty();
+        verify(classScheduleRepository, times(2)).save(any(ClassSchedule.class));
+    }
+
+    @Test
     void shouldNotPlaceTheSameSubjectTwiceOnTheSameDay() {
         // 2 periods, 1 classroom, 6 usable days (MON-SAT). Without the same-day cap, once all
         // 6 days are used under period 1, the algorithm would fall through to period 2 and
@@ -261,8 +328,10 @@ class TimetableGenerationServiceTest {
 
         Period p1 = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), 1);
         p1.setId(1L);
+        p1.setDurationMinutes(60);
         Period p2 = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(11, 0), 2);
         p2.setId(2L);
+        p2.setDurationMinutes(60);
 
         when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(false);
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));

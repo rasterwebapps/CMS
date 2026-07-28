@@ -350,6 +350,10 @@ export class AcademicCalendarComponent implements OnInit {
     return this.events();
   }
 
+  protected eventDotTitle(evt: CalendarEvent): string {
+    return evt.holidayCategory ? `${evt.title} (${this.holidayCategoryLabels[evt.holidayCategory]})` : evt.title;
+  }
+
   protected eventTypeBadgeClass(type: CalendarEventType): string {
     const map: Record<CalendarEventType, string> = {
       HOLIDAY: 'cms-badge--amber',

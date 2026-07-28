@@ -109,6 +109,30 @@ export interface AttendanceThresholdRequest {
   minPercentage: number;
 }
 
+export interface SyllabusUnit {
+  id: number;
+  curriculumTermCourseId: number;
+  unitNumber: number;
+  title: string;
+  componentType: AttendanceComponentType;
+  plannedHours: number | null;
+  description: string | null;
+  sortOrder: number | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SyllabusUnitRequest {
+  curriculumTermCourseId: number;
+  unitNumber: number;
+  title: string;
+  componentType: AttendanceComponentType;
+  plannedHours?: number | null;
+  description?: string | null;
+  sortOrder?: number | null;
+}
+
 export interface CurriculumSemesterGroup {
   termNumber: number;
   courses: CurriculumSemesterCourse[];

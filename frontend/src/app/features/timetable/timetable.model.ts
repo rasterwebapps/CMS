@@ -1,4 +1,4 @@
-import { WeekGridCandidateCell, WeekGridSession } from '../../shared/week-grid/week-grid.model';
+import { WeekGridCandidateCell, WeekGridHolidayInfo, WeekGridSession } from '../../shared/week-grid/week-grid.model';
 
 export type ClassSchedule = WeekGridSession;
 export type SwapCandidate = WeekGridCandidateCell;
@@ -20,5 +20,5 @@ export interface TimetableActionResponse {
 
 export interface MyTimetableResponse {
   sessions: ClassSchedule[];
-  holidayDayIndexes: number[];
+  holidays: WeekGridHolidayInfo[];
 }

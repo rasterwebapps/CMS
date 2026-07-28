@@ -22,7 +22,7 @@
 }
 
 .week-grid__corner,
-.week-grid__day-hdr {
+.week-grid__period-hdr {
   background: var(--cms-bg-muted);
   padding: 10px 8px;
   text-align: center;
@@ -33,7 +33,33 @@
   color: var(--cms-text-secondary);
 }
 
-.week-grid__day-hdr--holiday {
+.week-grid__day-cell {
+  background: var(--cms-bg-muted);
+  padding: 8px;
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cms-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 76px;
+}
+
+.week-grid__day-date {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--cms-text-muted);
+}
+
+.week-grid__day-cell--holiday {
   background: rgba(239, 68, 68, 0.10);
   color: #ef4444;
 }
@@ -45,19 +71,6 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: none;
-}
-
-.week-grid__time-cell {
-  background: var(--cms-bg-muted);
-  padding: 8px;
-  font-size: var(--cms-text-xs);
-  font-weight: 600;
-  color: var(--cms-text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  min-height: 76px;
 }
 
 .week-grid__cell {

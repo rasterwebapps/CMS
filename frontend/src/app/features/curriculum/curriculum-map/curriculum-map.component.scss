@@ -204,7 +204,8 @@
 }
 
 .remove-btn,
-.edit-btn {
+.edit-btn,
+.units-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -220,6 +221,15 @@
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+}
+
+.units-btn {
+  color: var(--cms-text-secondary);
+
+  &:hover {
+    background: var(--cms-bg-card);
+    color: var(--cms-primary);
   }
 }
 

@@ -1,0 +1,61 @@
+<h2 mat-dialog-title>
+  Log Progress — {{ data.subjectCode }}
+  <span class="dialog-subtitle">{{ data.subjectName }}</span>
+</h2>
+
+<mat-dialog-content class="progress-dialog-content">
+  @if (hasNoDates()) {
+    <p class="empty-hint">This session has no past occurrence yet within the term — nothing to log.</p>
+  } @else if (hasNoUnits()) {
+    <p class="empty-hint">No syllabus units are defined for this subject yet.</p>
+  } @else {
+    <div class="field-group">
+      <label class="field-label">Session Date</label>
+      <select class="field-input" [ngModel]="selectedDate()" (ngModelChange)="onDateChange($event)">
+        @for (date of occurrenceDates(); track date) {
+          <option [value]="date">{{ date }}</option>
+        }
+      </select>
+    </div>
+
+    @if (loading()) {
+      <div class="loading-row">
+        <mat-spinner diameter="28"></mat-spinner>
+      </div>
+    } @else {
+      <div class="field-group">
+        <label class="field-label">Units Covered</label>
+        <ul class="unit-checklist">
+          @for (unit of availableUnits(); track unit.id) {
+            <li class="unit-checkbox-row">
+              <label>
+                <input type="checkbox" [checked]="isSelected(unit.id)"
+                  (change)="toggleUnit(unit.id, $any($event.target).checked)" />
+                Unit {{ unit.unitNumber }} — {{ unit.title }}
+                <span class="unit-checkbox-row__type">{{ componentTypeLabels[unit.componentType] }}</span>
+              </label>
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Remarks (optional)</label>
+        <textarea class="field-input" rows="2" [ngModel]="remarks()" (ngModelChange)="remarks.set($event)"></textarea>
+      </div>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button type="button" mat-stroked-button (click)="close()">Cancel</button>
+  @if (!hasNoDates() && !hasNoUnits()) {
+    <button type="button" mat-flat-button color="primary" [disabled]="saving() || loading() || !selectedDate()" (click)="save()">
+      @if (saving()) {
+        <mat-spinner diameter="16"></mat-spinner>
+      } @else {
+        Save
+      }
+    </button>
+  }
+</mat-dialog-actions>

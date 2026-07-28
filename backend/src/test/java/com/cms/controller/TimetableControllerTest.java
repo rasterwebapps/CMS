@@ -34,6 +34,7 @@ import com.cms.service.ClassScheduleService;
 import com.cms.service.PersonalTimetableService;
 import com.cms.service.ProfileService;
 import com.cms.service.TimetableGenerationService;
+import com.cms.service.TimetableOccurrenceService;
 import com.cms.service.TimetableSwapService;
 
 @WebMvcTest(controllers = TimetableController.class)
@@ -57,6 +58,9 @@ class TimetableControllerTest {
 
     @MockitoBean
     private ProfileService profileService;
+
+    @MockitoBean
+    private TimetableOccurrenceService timetableOccurrenceService;
 
     @Test
     void shouldGenerateTimetable() throws Exception {

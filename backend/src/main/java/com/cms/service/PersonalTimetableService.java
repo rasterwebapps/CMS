@@ -9,6 +9,7 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.HolidayDayInfo;
 import com.cms.dto.MyTimetableResponse;
 import com.cms.dto.ProfileIdentity;
 import com.cms.exception.ResourceNotFoundException;
@@ -62,18 +63,25 @@ public class PersonalTimetableService {
     }
 
     public MyTimetableResponse findMyTimetable(ProfileIdentity identity, Long termInstanceId, LocalDate weekStart) {
-        List<ClassSchedule> rows = switch (identity.entityType()) {
+        List<ClassSchedule> rows = findPublishedSchedules(identity, termInstanceId);
+
+        List<HolidayDayInfo> holidays = weekStart != null
+            ? resolveHolidays(termInstanceId, weekStart)
+            : List.of();
+
+        return new MyTimetableResponse(classScheduleService.toResponseList(rows), holidays);
+    }
+
+    /** Published sessions visible to this identity for a term — the same resolution
+     *  {@link #findMyTimetable} uses, exposed for other consumers (e.g. the occurrence-calendar
+     *  endpoint's "scope=personal") that need the raw entities rather than the DTO envelope. */
+    public List<ClassSchedule> findPublishedSchedules(ProfileIdentity identity, Long termInstanceId) {
+        return switch (identity.entityType()) {
             case "STUDENT" -> findForStudent(identity.entityId(), termInstanceId);
             case "FACULTY" -> classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(
                 termInstanceId, ClassScheduleStatus.PUBLISHED, identity.entityId());
             default -> List.of();
         };
-
-        List<Integer> holidayDayIndexes = weekStart != null
-            ? resolveHolidayDayIndexes(termInstanceId, weekStart)
-            : List.of();
-
-        return new MyTimetableResponse(classScheduleService.toResponseList(rows), holidayDayIndexes);
     }
 
     private List<ClassSchedule> findForStudent(Long studentId, Long termInstanceId) {
@@ -106,18 +114,19 @@ public class PersonalTimetableService {
         return merged;
     }
 
-    private List<Integer> resolveHolidayDayIndexes(Long termInstanceId, LocalDate weekStart) {
+    private List<HolidayDayInfo> resolveHolidays(Long termInstanceId, LocalDate weekStart) {
         TermInstance termInstance = termInstanceRepository.findById(termInstanceId)
             .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
         Long academicYearId = termInstance.getAcademicYear().getId();
 
-        List<Integer> holidays = new ArrayList<>();
+        List<HolidayDayInfo> holidays = new ArrayList<>();
         for (int i = 0; i < 6; i++) {
             LocalDate date = weekStart.plusDays(i);
             List<com.cms.model.CalendarEvent> events = calendarEventRepository.findOverlapping(
                 academicYearId, CalendarEventType.HOLIDAY, date, date);
             if (!events.isEmpty()) {
-                holidays.add(i);
+                com.cms.model.CalendarEvent event = events.get(0);
+                holidays.add(new HolidayDayInfo(i, event.getTitle(), event.getHolidayCategory()));
             }
         }
         return holidays;

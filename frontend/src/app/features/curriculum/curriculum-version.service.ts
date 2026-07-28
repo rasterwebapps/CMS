@@ -12,6 +12,8 @@ import {
   CurriculumElectiveGroupRequest,
   AttendanceThreshold,
   AttendanceThresholdRequest,
+  SyllabusUnit,
+  SyllabusUnitRequest,
   Page,
 } from './curriculum-version.model';
 
@@ -106,5 +108,23 @@ export class CurriculumVersionService {
 
   deleteAttendanceThreshold(id: number): Observable<void> {
     return this.http.delete<void>(`${environment.apiUrl}/attendance-thresholds/${id}`);
+  }
+
+  getSyllabusUnits(curriculumTermCourseId: number): Observable<SyllabusUnit[]> {
+    return this.http.get<SyllabusUnit[]>(`${environment.apiUrl}/syllabus-units`, {
+      params: { curriculumTermCourseId: curriculumTermCourseId.toString() }
+    });
+  }
+
+  createSyllabusUnit(request: SyllabusUnitRequest): Observable<SyllabusUnit> {
+    return this.http.post<SyllabusUnit>(`${environment.apiUrl}/syllabus-units`, request);
+  }
+
+  updateSyllabusUnit(id: number, request: SyllabusUnitRequest): Observable<SyllabusUnit> {
+    return this.http.put<SyllabusUnit>(`${environment.apiUrl}/syllabus-units/${id}`, request);
+  }
+
+  deleteSyllabusUnit(id: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/syllabus-units/${id}`);
   }
 }

@@ -11,6 +11,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { SyllabusUnitDialogComponent } from '../syllabus-unit-dialog/syllabus-unit-dialog.component';
+import { PermissionService } from '../../../core/permissions/permission.service';
 import { CurriculumVersionService } from '../curriculum-version.service';
 import {
   CurriculumFullView,
@@ -48,6 +50,9 @@ export class CurriculumMapComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly permissionService = inject(PermissionService);
+
+  protected readonly canViewUnits = computed(() => this.permissionService.has('SYLLABUS_UNIT_VIEW'));
 
   protected readonly loading = signal(true);
   protected readonly adding = signal<number | null>(null);
@@ -356,6 +361,20 @@ export class CurriculumMapComponent implements OnInit {
       error: () => {
         this.toast.error('Failed to prepare elective group');
         this.adding.set(null);
+      },
+    });
+  }
+
+  protected openUnitsDialog(course: CurriculumSemesterCourse): void {
+    this.dialog.open(SyllabusUnitDialogComponent, {
+      width: '600px',
+      data: {
+        curriculumTermCourseId: course.id,
+        subjectName: course.subjectName,
+        subjectCode: course.subjectCode,
+        theoryHours: course.theoryHours,
+        labHours: course.labHours,
+        clinicalHours: course.clinicalHours,
       },
     });
   }

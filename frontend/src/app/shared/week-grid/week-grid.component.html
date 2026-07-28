@@ -40,20 +40,25 @@
       [subtitle]="mode === 'review' ? 'Click Generate to create a draft from the active curriculum.' : 'Nothing is scheduled for this view yet.'"
     />
   } @else {
-    <div class="week-grid" [style.grid-template-columns]="'88px repeat(' + days.length + ', 1fr)'">
+    <div class="week-grid" [style.grid-template-columns]="'88px repeat(' + rows().length + ', 1fr)'">
       <div class="week-grid__corner"></div>
-      @for (day of days; track day; let i = $index) {
-        <div class="week-grid__day-hdr" [class.week-grid__day-hdr--holiday]="isHoliday()(i)">
-          {{ dayLabels[day] }}
-          @if (isHoliday()(i)) {
-            <span class="week-grid__holiday-badge">Holiday</span>
-          }
-        </div>
+      @for (row of rows(); track row.key) {
+        <div class="week-grid__period-hdr">{{ row.label }}</div>
       }
 
-      @for (row of rows(); track row.key) {
-        <div class="week-grid__time-cell">{{ row.label }}</div>
-        @for (day of days; track day; let i = $index) {
+      @for (day of days; track day; let i = $index) {
+        <div class="week-grid__day-cell" [class.week-grid__day-cell--holiday]="isHoliday()(i)">
+          {{ dayLabels[day] }}
+          @if (dateLabelFor(i); as dateLabel) {
+            <span class="week-grid__day-date">{{ dateLabel }}</span>
+          }
+          @if (holidayFor()(i); as holiday) {
+            <span class="week-grid__holiday-badge" [matTooltip]="holiday.title">
+              Holiday@if (holiday.category) { &middot; {{ holidayCategoryLabels[holiday.category] }} }
+            </span>
+          }
+        </div>
+        @for (row of rows(); track row.key) {
           <div class="week-grid__cell"
             [class.week-grid__cell--holiday]="isHoliday()(i)"
             [class.week-grid__cell--candidate]="swapMode && candidateFor(day, row)"

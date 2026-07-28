@@ -84,6 +84,9 @@
                 <span class="ue-title">{{ evt.title }}</span>
                 <span class="ue-date">{{ evt.startDate | appDate }}</span>
                 <span class="cms-badge {{ eventTypeBadgeClass(evt.eventType) }}">{{ eventTypeLabels[evt.eventType] }}</span>
+                @if (evt.holidayCategory) {
+                  <span class="ev-holiday-category">{{ holidayCategoryLabels[evt.holidayCategory] }}</span>
+                }
               </div>
             }
           </div>
@@ -201,6 +204,9 @@
                         <span class="ev-title">{{ evt.title }}</span>
                         <span class="ev-date">{{ evt.startDate | appDate }}@if (evt.startDate !== evt.endDate) { – {{ evt.endDate | appDate }} }</span>
                         <span class="cms-badge {{ eventTypeBadgeClass(evt.eventType) }}">{{ eventTypeLabels[evt.eventType] }}</span>
+                        @if (evt.holidayCategory) {
+                          <span class="ev-holiday-category">{{ holidayCategoryLabels[evt.holidayCategory] }}</span>
+                        }
                         @if (canManage()) {
                           <button class="btn-icon-action" (click)="openEditEvent(evt)" matTooltip="Edit">
                             <mat-icon>edit</mat-icon>
@@ -228,6 +234,9 @@
                 <span class="ev-title">{{ evt.title }}</span>
                 <span class="ev-date">{{ evt.startDate | appDate }}@if (evt.startDate !== evt.endDate) { – {{ evt.endDate | appDate }} }</span>
                 <span class="cms-badge {{ eventTypeBadgeClass(evt.eventType) }}">{{ eventTypeLabels[evt.eventType] }}</span>
+                @if (evt.holidayCategory) {
+                  <span class="ev-holiday-category">{{ holidayCategoryLabels[evt.holidayCategory] }}</span>
+                }
                 @if (canManage()) {
                   <button class="btn-icon-action" (click)="openEditEvent(evt)" matTooltip="Edit">
                     <mat-icon>edit</mat-icon>
@@ -267,7 +276,7 @@
                   @if (cell.events.length > 0 && cell.isCurrentMonth) {
                     <div class="event-dots">
                       @for (ev of cell.events.slice(0, 3); track ev.id) {
-                        <span class="dot dot-{{ ev.eventType.toLowerCase() }}" [title]="ev.title"></span>
+                        <span class="dot dot-{{ ev.eventType.toLowerCase() }}" [title]="eventDotTitle(ev)"></span>
                       }
                     </div>
                   }
