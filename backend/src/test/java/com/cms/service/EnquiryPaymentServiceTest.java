@@ -22,6 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.config.PermSecurityBean;
 import com.cms.dto.EnquiryPaymentRequest;
 import com.cms.dto.EnquiryPaymentResponse;
 import com.cms.dto.EnquiryYearWiseFeeStatusResponse;
@@ -67,6 +68,12 @@ class EnquiryPaymentServiceTest {
     @Mock
     private TermInstanceService termInstanceService;
 
+    @Mock
+    private FeeRefundService feeRefundService;
+
+    @Mock
+    private PermSecurityBean permSecurityBean;
+
     private EnquiryPaymentService enquiryPaymentService;
 
     private Enquiry testEnquiry;
@@ -80,7 +87,7 @@ class EnquiryPaymentServiceTest {
         enquiryPaymentService = new EnquiryPaymentService(
             enquiryPaymentRepository, enquiryRepository, statusHistoryRepository,
             new ObjectMapper(), unifiedReceiptService, academicYearRepository, billingScheduleRepository,
-            feeRefundRepository, termInstanceService
+            feeRefundRepository, termInstanceService, feeRefundService, permSecurityBean
         );
 
         testEnquiry = new Enquiry("Ravi Kumar", "ravi@email.com", "9876543210", null,
@@ -99,6 +106,8 @@ class EnquiryPaymentServiceTest {
             new BigDecimal("100000.00"),
             LocalDate.of(2024, 7, 1),
             PaymentMode.CASH,
+            null,
+            null,
             null,
             null
         );
@@ -131,7 +140,9 @@ class EnquiryPaymentServiceTest {
             LocalDate.of(2024, 7, 1),
             PaymentMode.UPI,
             "TXN123",
-            "First installment"
+            "First installment",
+            null,
+            null
         );
 
         EnquiryPayment savedPayment = createPayment(1L, testEnquiry, new BigDecimal("50000.00"), "RCP-20240701-EFGH5678");
@@ -161,6 +172,8 @@ class EnquiryPaymentServiceTest {
             LocalDate.of(2024, 7, 1),
             PaymentMode.CASH,
             null,
+            null,
+            null,
             null
         );
 
@@ -179,7 +192,9 @@ class EnquiryPaymentServiceTest {
             LocalDate.of(2024, 7, 1),
             PaymentMode.UPI,
             "TXN123",
-            "Balance after document submission"
+            "Balance after document submission",
+            null,
+            null
         );
 
         EnquiryPayment savedPayment = createPayment(1L, testEnquiry, new BigDecimal("30000.00"), "RCP-20240701-IJKL9012");
@@ -203,7 +218,7 @@ class EnquiryPaymentServiceTest {
         testEnquiry.setStatus(EnquiryStatus.NOT_INTERESTED);
 
         EnquiryPaymentRequest request = new EnquiryPaymentRequest(
-            new BigDecimal("50000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null
+            new BigDecimal("50000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null, null, null
         );
 
         when(enquiryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testEnquiry));
@@ -218,7 +233,7 @@ class EnquiryPaymentServiceTest {
         testEnquiry.setStatus(EnquiryStatus.ADMITTED);
 
         EnquiryPaymentRequest request = new EnquiryPaymentRequest(
-            new BigDecimal("50000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null
+            new BigDecimal("50000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null, null, null
         );
 
         EnquiryPayment savedPayment = createPayment(1L, testEnquiry, new BigDecimal("50000.00"), "RCP-20240701-ADMT0001");
@@ -241,7 +256,7 @@ class EnquiryPaymentServiceTest {
     @Test
     void shouldRejectOverpayment() {
         EnquiryPaymentRequest request = new EnquiryPaymentRequest(
-            new BigDecimal("20000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null
+            new BigDecimal("20000.00"), LocalDate.of(2024, 7, 1), PaymentMode.CASH, null, null, null, null
         );
 
         when(enquiryRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(testEnquiry));
@@ -278,7 +293,7 @@ class EnquiryPaymentServiceTest {
         // User pays 55 000 ≤ 274 999 → ALLOWED
 
         EnquiryPaymentRequest request = new EnquiryPaymentRequest(
-            new BigDecimal("55000.00"), LocalDate.of(2026, 6, 8), PaymentMode.UPI, "TXN-TEST", null
+            new BigDecimal("55000.00"), LocalDate.of(2026, 6, 8), PaymentMode.UPI, "TXN-TEST", null, null, null
         );
 
         EnquiryPayment savedPayment = createPayment(1L, testEnquiry, new BigDecimal("55000.00"), "RCP-2026-00002");

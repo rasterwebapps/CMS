@@ -449,6 +449,12 @@ export class AcademicYearFormComponent implements OnInit {
     return this.permissionService.has('COURSE_VIEW') || this.permissionService.has('COURSE_MANAGE');
   }
 
+  /** Backend gates PUT /term-instances/{id} on SEMESTER_MANAGE, not COURSE_VIEW/COURSE_MANAGE —
+   *  the Advance to OPEN/LOCKED action must match or a user sees a button that 403s on click. */
+  protected canAdvanceTermStatus(): boolean {
+    return this.permissionService.has('SEMESTER_MANAGE');
+  }
+
   // ── Counselling toggle ────────────────────────────────────────────────────────
 
   protected toggleQuotaStatus(row: FormGroup, quota: 'MANAGEMENT' | 'COUNSELLING'): void {

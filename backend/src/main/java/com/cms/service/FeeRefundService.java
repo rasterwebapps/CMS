@@ -184,6 +184,29 @@ public class FeeRefundService {
         refundRepository.save(refund);
     }
 
+    /** Same as {@link #createAutoExcessRefund(Student, String, BigDecimal)} but for a payment
+     *  collected against an Enquiry (pre-admission) rather than an admitted Student. */
+    @Transactional
+    public void createAutoExcessRefund(Enquiry enquiry, String receiptNumber, BigDecimal excessAmount) {
+        String programName = enquiry.getCourse() != null ? enquiry.getCourse().getName()
+            : enquiry.getProgram() != null ? enquiry.getProgram().getName() : null;
+
+        FeeRefund refund = new FeeRefund();
+        refund.setEntityType("ENQUIRY");
+        refund.setOriginalReceiptNumber(receiptNumber);
+        refund.setEnquiryId(enquiry.getId());
+        refund.setStudentName(enquiry.getName());
+        refund.setProgramName(programName);
+        refund.setRefundAmount(excessAmount);
+        refund.setReason("Auto-generated: payment exceeded the full course fee by ₹" + excessAmount.toPlainString());
+        refund.setStatus("PENDING");
+        refund.setSource("AUTO_EXCESS");
+        refund.setRequestedBy("SYSTEM");
+        refund.setRequestedAt(Instant.now());
+
+        refundRepository.save(refund);
+    }
+
     /** Step 2a — approver confirms the refund and records how the money was returned. */
     @Transactional
     public FeeRefundSummaryResponse approveRefund(Long refundId,

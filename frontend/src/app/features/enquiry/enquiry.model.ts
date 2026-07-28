@@ -144,6 +144,10 @@ export interface EnquiryPaymentRequest {
   paymentMode: string;
   transactionReference?: string;
   remarks?: string;
+  /** Opt-in: raises the cap to the enquiry's full remaining course fee. Requires ENQUIRY_FEE_COLLECT_ADVANCE. */
+  allowAdvance?: boolean;
+  /** Opt-in: exceed even the full course fee (DD/Bank Transfer only) — the excess becomes an auto-refund. */
+  allowExcess?: boolean;
 }
 
 export interface EnquiryPaymentResponse {

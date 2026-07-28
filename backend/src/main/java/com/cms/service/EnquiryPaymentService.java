@@ -9,9 +9,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.config.PermSecurityBean;
 import com.cms.dto.EnquiryPaymentRequest;
 import com.cms.model.FeeRefund;
 import com.cms.dto.EnquiryPaymentResponse;
@@ -25,6 +27,7 @@ import com.cms.model.EnquiryPayment;
 import com.cms.model.EnquiryStatusHistory;
 import com.cms.model.TermBillingSchedule;
 import com.cms.model.enums.EnquiryStatus;
+import com.cms.model.enums.PaymentMode;
 import com.cms.model.enums.StudentType;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
@@ -73,6 +76,8 @@ public class EnquiryPaymentService {
     private final TermBillingScheduleRepository billingScheduleRepository;
     private final FeeRefundRepository feeRefundRepository;
     private final TermInstanceService termInstanceService;
+    private final FeeRefundService feeRefundService;
+    private final PermSecurityBean permSecurityBean;
 
     public EnquiryPaymentService(EnquiryPaymentRepository enquiryPaymentRepository,
                                   EnquiryRepository enquiryRepository,
@@ -82,7 +87,9 @@ public class EnquiryPaymentService {
                                   AcademicYearRepository academicYearRepository,
                                   TermBillingScheduleRepository billingScheduleRepository,
                                   FeeRefundRepository feeRefundRepository,
-                                  TermInstanceService termInstanceService) {
+                                  TermInstanceService termInstanceService,
+                                  FeeRefundService feeRefundService,
+                                  PermSecurityBean permSecurityBean) {
         this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.enquiryRepository = enquiryRepository;
         this.statusHistoryRepository = statusHistoryRepository;
@@ -92,6 +99,8 @@ public class EnquiryPaymentService {
         this.billingScheduleRepository = billingScheduleRepository;
         this.feeRefundRepository = feeRefundRepository;
         this.termInstanceService = termInstanceService;
+        this.feeRefundService = feeRefundService;
+        this.permSecurityBean = permSecurityBean;
     }
 
     @Transactional
@@ -107,27 +116,64 @@ public class EnquiryPaymentService {
         BigDecimal totalPaidBefore = Optional.ofNullable(enquiryPaymentRepository.sumAmountPaidByEnquiryId(enquiryId))
             .orElse(BigDecimal.ZERO);
 
-        // The collection cap is the amount currently due (open/locked terms only) — a future,
-        // not-yet-opened term's fee can't be collected here even if the overall balance is larger.
+        // The default collection cap is the amount currently due (open/locked terms only) — a
+        // future, not-yet-opened term's fee can't be collected here even if the overall balance
+        // is larger, unless the caller opts into advance collection below.
         BigDecimal collectibleTotalFee = computeCollectibleTotalFee(enquiry);
         BigDecimal collectibleOutstandingBefore = collectibleTotalFee.subtract(totalPaidBefore).max(BigDecimal.ZERO);
         if (request.amountPaid().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalStateException("Payment amount must be greater than zero");
         }
-        if (collectibleOutstandingBefore.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalStateException("No fees are currently due for collection for this enquiry");
-        }
-        if (request.amountPaid().compareTo(collectibleOutstandingBefore) > 0) {
-            throw new IllegalStateException(
-                "Payment amount (" + request.amountPaid() + ") exceeds the amount currently due: " + collectibleOutstandingBefore
-            );
+
+        // Tier 1 (allowAdvance): raises the cap to the enquiry's full remaining course fee,
+        // covering terms that haven't opened yet — any payment mode, gated by permission.
+        // Tier 2 (allowAdvance + allowExcess): beyond even the full course fee, demand-draft/
+        // bank-transfer only — the excess is carved into a non-rejectable AUTO_EXCESS refund,
+        // mirroring PaymentCollectionService.collectAdvancePayment's FEE_COLLECT_EXCESS behavior.
+        BigDecimal fullCourseOutstandingBefore = effectiveTotalFee.subtract(totalPaidBefore).max(BigDecimal.ZERO);
+        boolean advanceRequested = request.isAllowAdvance();
+        boolean excessRequested = advanceRequested
+            && request.amountPaid().compareTo(fullCourseOutstandingBefore) > 0;
+
+        if (!advanceRequested) {
+            if (collectibleOutstandingBefore.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalStateException("No fees are currently due for collection for this enquiry");
+            }
+            if (request.amountPaid().compareTo(collectibleOutstandingBefore) > 0) {
+                throw new IllegalStateException(
+                    "Payment amount (" + request.amountPaid() + ") exceeds the amount currently due: " + collectibleOutstandingBefore
+                );
+            }
+        } else {
+            if (!permSecurityBean.has("ENQUIRY_FEE_COLLECT_ADVANCE")) {
+                throw new AccessDeniedException(
+                    "Collecting an advance payment requires the ENQUIRY_FEE_COLLECT_ADVANCE permission");
+            }
+            if (fullCourseOutstandingBefore.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalStateException("No fees are currently due for collection for this enquiry");
+            }
+            if (excessRequested) {
+                if (!request.isAllowExcess()) {
+                    throw new IllegalStateException(
+                        "Payment amount (" + request.amountPaid() + ") exceeds the full course fee: " + fullCourseOutstandingBefore
+                    );
+                }
+                if (request.paymentMode() != PaymentMode.DEMAND_DRAFT && request.paymentMode() != PaymentMode.BANK_TRANSFER) {
+                    throw new IllegalStateException("Excess payment is only allowed for Demand Draft or Bank Transfer payments");
+                }
+            }
         }
 
         String receiptNumber = unifiedReceiptService.generateReceiptNumber();
 
+        // With excess allowed, only the portion up to the full course fee is applied to the
+        // enquiry's fee ledger — the rest is never allocated, only carved into a refund below.
+        BigDecimal amountApplied = excessRequested ? fullCourseOutstandingBefore : request.amountPaid();
+        BigDecimal excessAmount = excessRequested ? request.amountPaid().subtract(fullCourseOutstandingBefore) : BigDecimal.ZERO;
+
         EnquiryPayment payment = new EnquiryPayment(
             enquiry,
-            request.amountPaid(),
+            amountApplied,
             request.paymentDate(),
             request.paymentMode(),
             request.transactionReference(),
@@ -138,7 +184,7 @@ public class EnquiryPaymentService {
 
         EnquiryPayment saved = enquiryPaymentRepository.save(payment);
 
-        BigDecimal totalPaid = totalPaidBefore.add(request.amountPaid());
+        BigDecimal totalPaid = totalPaidBefore.add(amountApplied);
 
         EnquiryStatus oldStatus = enquiry.getStatus();
         EnquiryStatus newStatus = resolvePostPaymentStatus(oldStatus, effectiveTotalFee, totalPaid);
@@ -157,17 +203,25 @@ public class EnquiryPaymentService {
         String towardsLabel = "TUITION_AND_HOSTEL".equals(feeCategory)
             ? "Tuition Fees And Hostel Fees" : "Tuition Fees";
 
-        // Persist to the unified receipts table
+        // Persist to the unified receipts table — the FULL amount physically received (matches
+        // the bank/DD reference), not just the portion applied to fees when excess is carved out.
+        BigDecimal receiptAmount = excessRequested ? request.amountPaid() : amountApplied;
         unifiedReceiptService.saveEnquiryReceipt(
             receiptNumber,
             enquiry.getId(), enquiry.getName(),
             enquiry.getCourse() != null ? enquiry.getCourse().getName()
                 : enquiry.getProgram() != null ? enquiry.getProgram().getName() : null,
-            request.amountPaid(), request.paymentDate(), request.paymentMode().name(),
+            receiptAmount, request.paymentDate(), request.paymentMode().name(),
             request.transactionReference(), request.remarks(),
             towardsLabel, collectedBy, feeCategory);
 
-        return toResponse(saved, newStatus);
+        if (excessRequested && excessAmount.compareTo(BigDecimal.ZERO) > 0) {
+            feeRefundService.createAutoExcessRefund(enquiry, receiptNumber, excessAmount);
+        }
+
+        // Response reflects the full amount physically received (matching the printed receipt),
+        // even though the saved EnquiryPayment row only carries the portion applied to fees.
+        return toResponse(saved, newStatus, receiptAmount);
     }
 
     private void validatePaymentEligibility(Enquiry enquiry) {
@@ -519,13 +573,17 @@ public class EnquiryPaymentService {
     }
 
     private EnquiryPaymentResponse toResponse(EnquiryPayment payment, EnquiryStatus newStatus) {
+        return toResponse(payment, newStatus, payment.getAmountPaid());
+    }
+
+    private EnquiryPaymentResponse toResponse(EnquiryPayment payment, EnquiryStatus newStatus, BigDecimal displayAmount) {
         String feeCategory = payment.getEnquiry().getStudentType() == StudentType.HOSTELER
             ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
         return new EnquiryPaymentResponse(
             payment.getId(),
             payment.getEnquiry().getId(),
             payment.getEnquiry().getName(),
-            payment.getAmountPaid(),
+            displayAmount,
             payment.getPaymentDate(),
             payment.getPaymentMode(),
             payment.getTransactionReference(),

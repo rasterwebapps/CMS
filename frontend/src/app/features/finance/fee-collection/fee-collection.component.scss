@@ -291,6 +291,88 @@
   margin: 0 0 4px;
 }
 
+// Advance payment toggle strip (mirrors student-fee-detail.component.scss — ViewEncapsulation
+// means that component's identically-named rules don't apply here).
+.advance-toggle {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  border: 1px solid var(--cms-line);
+  border-radius: 10px;
+  background: var(--cms-bg-subtle);
+  margin: -4px 0 4px;
+
+  &--on {
+    background: rgba(var(--cms-primary-rgb, 79, 70, 229), 0.06);
+    border-color: rgba(var(--cms-primary-rgb, 79, 70, 229), 0.2);
+  }
+
+  &__btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  &__track {
+    flex-shrink: 0;
+    position: relative;
+    width: 34px;
+    height: 18px;
+    border-radius: 9px;
+    background: var(--cms-line);
+    transition: background 0.18s;
+
+    .advance-toggle--on & { background: var(--cms-primary); }
+  }
+
+  &__thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.18s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+
+    .advance-toggle--on & { transform: translateX(16px); }
+  }
+
+  &__label {
+    font-size: var(--cms-text-sm);
+    font-weight: 500;
+    color: var(--cms-text-secondary);
+    text-align: left;
+
+    .advance-toggle--on & { color: var(--cms-primary); font-weight: 600; }
+  }
+}
+
+.field-warning { font-size: var(--cms-text-sm); color: var(--cms-warning); margin: 4px 0 0; font-weight: 600; }
+
+.excess-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: var(--cms-text-base);
+  color: var(--cms-text-primary);
+  margin-bottom: 4px;
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--cms-primary);
+    cursor: pointer;
+  }
+}
+
 .field-group   { display: flex; flex-direction: column; gap: 5px; }
 .field-label   { font-size: var(--cms-text-sm); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cms-text-muted); }
 .field-required { color: #EF4444; }

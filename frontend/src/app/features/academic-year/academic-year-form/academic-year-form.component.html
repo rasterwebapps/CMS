@@ -225,7 +225,7 @@
                             Generate Enrollments
                           </button>
                         }
-                        @if (nextStatus) {
+                        @if (nextStatus && canAdvanceTermStatus()) {
                           <button type="button" class="btn-secondary btn-sm"
                             (click)="advanceTermStatus('ODD')" [disabled]="advancingOdd()">
                             @if (advancingOdd()) { <span class="btn-spinner btn-spinner--dark"></span> }
@@ -315,7 +315,7 @@
                             Generate Enrollments
                           </button>
                         }
-                        @if (nextStatus) {
+                        @if (nextStatus && canAdvanceTermStatus()) {
                           <button type="button" class="btn-secondary btn-sm"
                             (click)="advanceTermStatus('EVEN')" [disabled]="advancingEven()">
                             @if (advancingEven()) { <span class="btn-spinner btn-spinner--dark"></span> }

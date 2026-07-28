@@ -269,6 +269,24 @@
        <!-- Right: Payment Form -->
        <div id="tour-collect-form" class="form-col">
          <h3 class="form-title">Payment Details</h3>
+
+         @if (canCollectAdvance() && selectedEntry()?.type === 'ENQUIRY') {
+           <div class="advance-toggle" [class.advance-toggle--on]="advanceMode()">
+             <button type="button" class="advance-toggle__btn" (click)="toggleAdvanceMode()" [attr.aria-pressed]="advanceMode()">
+               <span class="advance-toggle__track">
+                 <span class="advance-toggle__thumb"></span>
+               </span>
+               <span class="advance-toggle__label">
+                 @if (advanceMode()) {
+                   Advance mode — full course fee included
+                 } @else {
+                   Collect Advance Payment (include future terms)
+                 }
+               </span>
+             </button>
+           </div>
+         }
+
          <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
           <div class="field-group">
@@ -277,7 +295,11 @@
                    placeholder="0"
                    [class.field-input--error]="form.get('amount')?.invalid && form.get('amount')?.touched" />
             <p class="field-hint">
-              Pre-filled with current installment outstanding · you can collect across future installments, but never above total outstanding
+              @if (advanceMode()) {
+                Advance mode — you can collect up to the full remaining course fee
+              } @else {
+                Pre-filled with current installment outstanding · you can collect across future installments, but never above total outstanding
+              }
               @if (amountMax() !== null) {
                 <span> · Max now: ₹{{ amountMax()! | number:'1.0-0' }}</span>
               }
@@ -321,6 +343,19 @@
               }
             </div>
           </div>
+
+          @if (showExcessOption()) {
+            <div class="field-group">
+              <label class="excess-check">
+                <input type="checkbox" formControlName="allowExcess" />
+                <span>Allow payment above full course fee (bank excess)</span>
+              </label>
+              <p class="field-hint">For bank-disbursed payments (DD / Bank Transfer) that exceed the full course fee. The excess auto-generates a refund voucher that cannot be cancelled or rejected — only paid out.</p>
+              @if (excessPreviewAmount() > 0) {
+                <p class="field-warning">₹{{ excessPreviewAmount() | number:'1.0-0' }} exceeds the full course fee and will be auto-refunded.</p>
+              }
+            </div>
+          }
 
           @if (isCashMode()) {
             <div class="field-group">

@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -40,7 +41,11 @@ import com.cms.dto.FeeFinalizationRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.PaymentMode;
+import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.CourseRepository;
+import com.cms.repository.ProgramRepository;
 import com.cms.service.EnquiryDocumentService;
+import com.cms.service.EnquiryExportService;
 import com.cms.service.EnquiryPaymentService;
 import com.cms.service.EnquiryService;
 import com.cms.service.PaymentCollectionService;
@@ -67,6 +72,18 @@ class EnquiryControllerTest {
 
     @MockitoBean
     private PaymentCollectionService paymentCollectionService;
+
+    @MockitoBean
+    private EnquiryExportService enquiryExportService;
+
+    @MockitoBean
+    private ProgramRepository programRepository;
+
+    @MockitoBean
+    private CourseRepository courseRepository;
+
+    @MockitoBean
+    private AcademicYearRepository academicYearRepository;
 
     @Test
     void shouldCreateEnquiry() throws Exception {
@@ -233,29 +250,31 @@ class EnquiryControllerTest {
         EnquiryResponse feesPaid = createResponse(1L, "Ravi Kumar", EnquiryStatus.FEES_PAID);
         EnquiryResponse partiallyPaid = createResponse(2L, "Priya Singh", EnquiryStatus.PARTIALLY_PAID);
 
-        when(enquiryService.findDocumentPending()).thenReturn(List.of(feesPaid, partiallyPaid));
+        when(enquiryService.findDocumentPendingPage(any(), any(), any(), any(), any()))
+            .thenReturn(new PageImpl<>(List.of(feesPaid, partiallyPaid)));
 
         mockMvc.perform(get("/enquiries/document-pending"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(2))
-            .andExpect(jsonPath("$[0].status").value("FEES_PAID"))
-            .andExpect(jsonPath("$[1].status").value("PARTIALLY_PAID"));
+            .andExpect(jsonPath("$.content.length()").value(2))
+            .andExpect(jsonPath("$.content[0].status").value("FEES_PAID"))
+            .andExpect(jsonPath("$.content[1].status").value("PARTIALLY_PAID"));
 
-        verify(enquiryService).findDocumentPending();
+        verify(enquiryService).findDocumentPendingPage(any(), any(), any(), any(), any());
     }
 
     @Test
     void shouldFindAdmissionPending() throws Exception {
         EnquiryResponse docsVerified = createResponse(1L, "Ravi Kumar", EnquiryStatus.DOCUMENTS_VERIFIED);
 
-        when(enquiryService.findAdmissionPending()).thenReturn(List.of(docsVerified));
+        when(enquiryService.findAdmissionPendingPage(any(), any(), any(), any(), any()))
+            .thenReturn(new PageImpl<>(List.of(docsVerified)));
 
         mockMvc.perform(get("/enquiries/admission-pending"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].status").value("DOCUMENTS_VERIFIED"));
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].status").value("DOCUMENTS_VERIFIED"));
 
-        verify(enquiryService).findAdmissionPending();
+        verify(enquiryService).findAdmissionPendingPage(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -406,7 +425,9 @@ class EnquiryControllerTest {
             LocalDate.of(2024, 7, 1),
             PaymentMode.CASH,
             null,
-            "First instalment"
+            "First instalment",
+            null,
+            null
         );
 
         EnquiryPaymentResponse response = new EnquiryPaymentResponse(

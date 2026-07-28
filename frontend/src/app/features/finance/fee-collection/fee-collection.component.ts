@@ -30,6 +30,7 @@ import { transactionReferenceRequiredValidator } from '../../../shared/validator
 import { pastDateOnlyValidator } from '../../../shared/validators/date.validators';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
+import { PermissionService } from '../../../core/permissions/permission.service';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 export type FilterType   = 'ALL' | 'ENQUIRY' | 'STUDENT';
@@ -84,6 +85,7 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
   private readonly toast          = inject(ToastService);
   private readonly fb             = inject(FormBuilder);
   private readonly tourService    = inject(TourService);
+  private readonly permissionService = inject(PermissionService);
 
   @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator)
@@ -115,6 +117,8 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
   protected readonly saving           = signal(false);
   protected readonly denominationValid = signal(false);
   protected readonly receipt          = signal<ReceiptDisplayData | null>(null);
+  protected readonly advanceMode      = signal(false);
+  protected readonly canCollectAdvance = computed(() => this.permissionService.has('ENQUIRY_FEE_COLLECT_ADVANCE'));
 
   protected readonly searchTerm   = signal('');
   protected readonly filterType   = signal<FilterType>('ENQUIRY');
@@ -167,6 +171,7 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     paymentMode:          ['', Validators.required],
     transactionReference: ['', [transactionReferenceRequiredValidator('paymentMode')]],
     remarks:              [''],
+    allowExcess:          [false],
   });
 
   protected readonly semesterRows = computed<Array<{
@@ -216,10 +221,17 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
   // (e.g. next year's fee), even though they still count toward totalOutstanding above.
   protected readonly collectibleOutstanding = computed(() =>
     this.semesterRows().reduce((s, r) => s + (r.collectibleNow ? r.outstanding : 0), 0));
+  // Full remaining course fee (all installments, open or not) — the ceiling advance mode raises
+  // the cap to. Only meaningful for ENQUIRY entries; feeStatus() is null for STUDENT (which
+  // navigates away to its own page before this form is ever shown, see selectEntry()).
+  protected readonly fullCourseOutstanding = computed(() => {
+    const fs = this.feeStatus();
+    return fs ? this.normalizeMoney(fs.totalOutstanding) : this.collectibleOutstanding();
+  });
   protected readonly amountMax = computed<number | null>(() => {
     const rows = this.semesterRows();
     if (rows.length > 0) {
-      return this.collectibleOutstanding();
+      return this.advanceMode() ? this.fullCourseOutstanding() : this.collectibleOutstanding();
     }
     return null;
   });
@@ -246,6 +258,14 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     // Trigger validation update when payment mode changes
     this.form.get('paymentMode')?.valueChanges.subscribe(() => {
       this.form.get('transactionReference')?.updateValueAndValidity();
+      if (!this.isExcessEligibleMode() && this.form.get('allowExcess')?.value) {
+        this.form.get('allowExcess')?.setValue(false, { emitEvent: false });
+      }
+      this.updateAmountValidators();
+    });
+
+    this.form.get('allowExcess')?.valueChanges.subscribe(() => {
+      this.updateAmountValidators();
     });
   }
 
@@ -448,6 +468,7 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     this.studentSemesters.set([]);
     this.receipt.set(null);
     this.denominationValid.set(false);
+    this.advanceMode.set(false);
     this.form.reset();
     this.form.patchValue({ paymentDate: this.todayIsoDate });
 
@@ -494,12 +515,43 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     return this.form.get('paymentMode')?.value === 'CASH';
   }
 
+  protected toggleAdvanceMode(): void {
+    const next = !this.advanceMode();
+    this.advanceMode.set(next);
+    if (!next) this.form.get('allowExcess')?.setValue(false, { emitEvent: false });
+    this.updateAmountValidators();
+    const max = this.amountMax();
+    if (max !== null && max > 0) this.form.patchValue({ amount: max });
+  }
+
+  /** Excess (beyond the full course fee) is restricted to bank-rail modes, same as the
+   *  post-admission Advance Payment flow (FEE_COLLECT_EXCESS). */
+  protected isExcessEligibleMode(): boolean {
+    const mode = this.form.get('paymentMode')?.value;
+    return mode === 'DEMAND_DRAFT' || mode === 'BANK_TRANSFER';
+  }
+
+  protected showExcessOption(): boolean {
+    return this.advanceMode() && this.canCollectAdvance() && this.isExcessEligibleMode();
+  }
+
+  /** Rupees above the full course fee that will become a non-cancellable auto-refund. */
+  protected excessPreviewAmount(): number {
+    if (!this.form.get('allowExcess')?.value) return 0;
+    const max = this.fullCourseOutstanding();
+    const raw = this.form.get('amount')?.value;
+    if (raw === null || raw === '') return 0;
+    const n = Number(raw);
+    return !Number.isNaN(n) && n > max ? n - max : 0;
+  }
+
   protected backToList(): void {
     this.selectedEntry.set(null);
     this.feeStatus.set(null);
     this.studentSemesters.set([]);
     this.receipt.set(null);
     this.denominationValid.set(false);
+    this.advanceMode.set(false);
     this.form.reset();
     // Clear query param to update browser history correctly.
     void this.router.navigate([], { relativeTo: this.route, queryParams: {} });
@@ -530,6 +582,8 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
         paymentMode:          v.paymentMode,
         transactionReference: v.transactionReference || undefined,
         remarks:              v.remarks || undefined,
+        allowAdvance:         this.advanceMode() || undefined,
+        allowExcess:          (this.showExcessOption() && !!v.allowExcess) || undefined,
       };
       this.enquiryService.collectPayment(entry.id, req).subscribe({
         next: (res) => {
@@ -651,7 +705,8 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
 
     const validators = [Validators.required, Validators.min(1), this.wholeRupeeAmountValidator()];
     const max = this.amountMax();
-    if (max !== null) {
+    const excessAllowed = this.showExcessOption() && !!this.form.get('allowExcess')?.value;
+    if (max !== null && !excessAllowed) {
       validators.push(this.maxOutstandingValidator(max));
     }
 
