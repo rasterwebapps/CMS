@@ -8,6 +8,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cms.model.enums.CalendarEventType;
+import com.cms.model.enums.HolidayCategory;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -46,6 +47,12 @@ public class CalendarEvent {
     @Enumerated(EnumType.STRING)
     @Column(name = "event_type", nullable = false)
     private CalendarEventType eventType;
+
+    /** Only meaningful when eventType == HOLIDAY (government/local/institutional); null for
+     *  every other event type. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "holiday_category")
+    private HolidayCategory holidayCategory;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "academic_year_id", nullable = false)
@@ -108,6 +115,14 @@ public class CalendarEvent {
 
     public void setEventType(CalendarEventType eventType) {
         this.eventType = eventType;
+    }
+
+    public HolidayCategory getHolidayCategory() {
+        return holidayCategory;
+    }
+
+    public void setHolidayCategory(HolidayCategory holidayCategory) {
+        this.holidayCategory = holidayCategory;
     }
 
     public AcademicYear getAcademicYear() {

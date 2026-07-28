@@ -26,7 +26,7 @@
           </div>
           <div>
             <div class="entry-form-card__hdr-title">Period Information</div>
-            <div class="entry-form-card__hdr-sub">Name, start/end time, and display order</div>
+            <div class="entry-form-card__hdr-sub">Name, start time, duration, and display order</div>
           </div>
         </div>
 
@@ -70,20 +70,24 @@
               }
             </div>
 
-            <!-- End Time -->
+            <!-- Duration -->
             <div class="field-group">
-              <label for="prd-end" class="field-label">
-                End Time <span class="required-star">*</span>
+              <label for="prd-duration" class="field-label">
+                Duration (minutes) <span class="required-star">*</span>
               </label>
               <input
-                id="prd-end"
+                id="prd-duration"
                 class="field-input"
-                type="time"
-                formControlName="endTime"
-                [class.field-input--error]="form.get('endTime')?.invalid && form.get('endTime')?.touched"
+                type="number"
+                min="1"
+                formControlName="durationMinutes"
+                placeholder="e.g., 45"
+                [class.field-input--error]="form.get('durationMinutes')?.invalid && form.get('durationMinutes')?.touched"
               />
-              @if (form.get('endTime')?.invalid && form.get('endTime')?.touched) {
-                <p class="field-error">{{ getErrorMessage('endTime') }}</p>
+              @if (form.get('durationMinutes')?.invalid && form.get('durationMinutes')?.touched) {
+                <p class="field-error">{{ getErrorMessage('durationMinutes') }}</p>
+              } @else if (previewEnd()) {
+                <p class="field-hint">Ends at {{ previewEnd() }}</p>
               }
             </div>
 

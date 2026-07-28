@@ -24,6 +24,7 @@ import {
   CalendarEvent,
   CalendarEventRequest,
   CalendarEventType,
+  HolidayCategory,
   TermInstance,
   TermInstanceStatus,
   TermType,
@@ -141,6 +142,14 @@ export class AcademicCalendarComponent implements OnInit {
   protected readonly eventTypeLabels = EVENT_TYPE_LABELS;
   protected readonly eventTypeIcons = EVENT_TYPE_ICONS;
 
+  // ─── Holiday categories (only meaningful when eventType === 'HOLIDAY') ───
+  protected readonly holidayCategories: HolidayCategory[] = ['GOVERNMENT', 'LOCAL', 'INSTITUTIONAL'];
+  protected readonly holidayCategoryLabels: Record<HolidayCategory, string> = {
+    GOVERNMENT: 'Government',
+    LOCAL: 'Local',
+    INSTITUTIONAL: 'Institutional',
+  };
+
   // ─── Role helpers ───
   protected readonly canManage = computed(() => this.permissionService.has('ACADEMIC_YEAR_MANAGE'));
 
@@ -210,7 +219,12 @@ export class AcademicCalendarComponent implements OnInit {
     startDate: ['', Validators.required],
     endDate: ['', Validators.required],
     eventType: ['HOLIDAY' as CalendarEventType, Validators.required],
+    holidayCategory: [null as HolidayCategory | null],
   });
+
+  protected showHolidayCategoryField(): boolean {
+    return this.eventForm.get('eventType')?.value === 'HOLIDAY';
+  }
 
   private readonly MONTH_NAMES = Array.from({ length: 12 }, (_, i) =>
     new Intl.DateTimeFormat('en', { month: 'long' }).format(new Date(2000, i, 1)),
@@ -353,7 +367,7 @@ export class AcademicCalendarComponent implements OnInit {
     const ay = this.selectedAcademicYear();
     if (!ay) return;
     this.editingEvent.set(null);
-    this.eventForm.reset({ eventType: 'HOLIDAY' });
+    this.eventForm.reset({ eventType: 'HOLIDAY', holidayCategory: null });
     this.showEventDialog.set(true);
   }
 
@@ -365,6 +379,7 @@ export class AcademicCalendarComponent implements OnInit {
       startDate: event.startDate,
       endDate: event.endDate,
       eventType: event.eventType,
+      holidayCategory: event.holidayCategory,
     });
     this.showEventDialog.set(true);
   }
@@ -372,7 +387,7 @@ export class AcademicCalendarComponent implements OnInit {
   protected closeEventDialog(): void {
     this.showEventDialog.set(false);
     this.editingEvent.set(null);
-    this.eventForm.reset({ eventType: 'HOLIDAY' });
+    this.eventForm.reset({ eventType: 'HOLIDAY', holidayCategory: null });
   }
 
   protected saveEvent(): void {
@@ -391,6 +406,7 @@ export class AcademicCalendarComponent implements OnInit {
       endDate: val.endDate!,
       eventType: val.eventType as CalendarEventType,
       academicYearId: ay.id,
+      holidayCategory: val.eventType === 'HOLIDAY' ? (val.holidayCategory as HolidayCategory | null) : null,
     };
 
     this.eventSaving.set(true);

@@ -80,6 +80,7 @@ export interface AcademicYearRequest {
 }
 
 export type CalendarEventType = 'HOLIDAY' | 'EXAM' | 'CULTURAL' | 'SPORTS' | 'WORKSHOP' | 'OTHER';
+export type HolidayCategory = 'GOVERNMENT' | 'LOCAL' | 'INSTITUTIONAL';
 
 export interface CalendarEvent {
   id: number;
@@ -88,6 +89,7 @@ export interface CalendarEvent {
   startDate: string;
   endDate: string;
   eventType: CalendarEventType;
+  holidayCategory: HolidayCategory | null;
   academicYear: AcademicYear;
   createdAt: string;
   updatedAt: string;
@@ -100,6 +102,7 @@ export interface CalendarEventRequest {
   endDate: string;
   eventType: CalendarEventType;
   academicYearId: number;
+  holidayCategory?: HolidayCategory | null;
 }
 
 export type TermType = 'ODD' | 'EVEN';

@@ -12,6 +12,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.CalendarEvent;
 import com.cms.model.enums.CalendarEventType;
+import com.cms.model.enums.HolidayCategory;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.CalendarEventRepository;
 
@@ -31,6 +32,7 @@ public class CalendarEventService {
     @Transactional
     public CalendarEventResponse create(CalendarEventRequest request) {
         validateDateRange(request);
+        HolidayCategory holidayCategory = resolveHolidayCategory(request);
 
         AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
             .orElseThrow(() -> new ResourceNotFoundException(
@@ -42,6 +44,7 @@ public class CalendarEventService {
         event.setStartDate(request.startDate());
         event.setEndDate(request.endDate());
         event.setEventType(request.eventType());
+        event.setHolidayCategory(holidayCategory);
         event.setAcademicYear(academicYear);
 
         return toResponse(calendarEventRepository.save(event));
@@ -82,6 +85,7 @@ public class CalendarEventService {
                 "Calendar event not found with id: " + id));
 
         validateDateRange(request);
+        HolidayCategory holidayCategory = resolveHolidayCategory(request);
 
         AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
             .orElseThrow(() -> new ResourceNotFoundException(
@@ -92,6 +96,7 @@ public class CalendarEventService {
         event.setStartDate(request.startDate());
         event.setEndDate(request.endDate());
         event.setEventType(request.eventType());
+        event.setHolidayCategory(holidayCategory);
         event.setAcademicYear(academicYear);
 
         return toResponse(calendarEventRepository.save(event));
@@ -111,6 +116,14 @@ public class CalendarEventService {
         }
     }
 
+    /** Holiday category (government/local/institutional) is only a meaningful classification for
+     *  eventType == HOLIDAY — silently dropped for every other type so a non-holiday event can
+     *  never carry a stray category from a prior edit. Optional (not required) even for holidays,
+     *  since not every institution needs the classification. */
+    private HolidayCategory resolveHolidayCategory(CalendarEventRequest request) {
+        return request.eventType() == CalendarEventType.HOLIDAY ? request.holidayCategory() : null;
+    }
+
     private CalendarEventResponse toResponse(CalendarEvent event) {
         AcademicYear ay = event.getAcademicYear();
         AcademicYearResponse ayResponse = new AcademicYearResponse(
@@ -119,7 +132,7 @@ public class CalendarEventService {
 
         return new CalendarEventResponse(
             event.getId(), event.getTitle(), event.getDescription(),
-            event.getStartDate(), event.getEndDate(), event.getEventType(),
+            event.getStartDate(), event.getEndDate(), event.getEventType(), event.getHolidayCategory(),
             ayResponse, event.getCreatedAt(), event.getUpdatedAt());
     }
 }

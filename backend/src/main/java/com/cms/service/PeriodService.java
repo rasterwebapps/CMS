@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.time.LocalTime;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -34,11 +35,10 @@ public class PeriodService {
             throw new IllegalArgumentException(
                 "A period with the name '" + name + "' already exists");
         }
-        if (!request.endTime().isAfter(request.startTime())) {
-            throw new IllegalArgumentException("End time must be after start time");
-        }
 
-        Period period = new Period(name, request.startTime(), request.endTime(), request.periodOrder());
+        LocalTime endTime = computeEndTime(request.startTime(), request.durationMinutes());
+        Period period = new Period(name, request.startTime(), endTime, request.periodOrder());
+        period.setDurationMinutes(request.durationMinutes());
         if (request.isActive() != null) {
             period.setIsActive(request.isActive());
         }
@@ -80,13 +80,11 @@ public class PeriodService {
             throw new IllegalArgumentException(
                 "A period with the name '" + name + "' already exists");
         }
-        if (!request.endTime().isAfter(request.startTime())) {
-            throw new IllegalArgumentException("End time must be after start time");
-        }
 
         period.setName(name);
         period.setStartTime(request.startTime());
-        period.setEndTime(request.endTime());
+        period.setEndTime(computeEndTime(request.startTime(), request.durationMinutes()));
+        period.setDurationMinutes(request.durationMinutes());
         period.setPeriodOrder(request.periodOrder());
         if (request.isActive() != null) {
             period.setIsActive(request.isActive());
@@ -121,9 +119,21 @@ public class PeriodService {
             .orElseThrow(() -> new ResourceNotFoundException("Period not found with id: " + id));
     }
 
+    /** End time is derived from start time + duration rather than entered independently, so
+     *  there's a single source of truth for a period's span. A duration long enough to wrap past
+     *  midnight would silently produce an end time before the start time — reject that outright
+     *  rather than storing a nonsensical period. */
+    private static LocalTime computeEndTime(LocalTime startTime, int durationMinutes) {
+        LocalTime endTime = startTime.plusMinutes(durationMinutes);
+        if (!endTime.isAfter(startTime)) {
+            throw new IllegalArgumentException("Duration is too long — the period would cross midnight");
+        }
+        return endTime;
+    }
+
     private PeriodResponse toResponse(Period p) {
         return new PeriodResponse(p.getId(), p.getName(), p.getStartTime(), p.getEndTime(),
-            p.getPeriodOrder(), p.getIsActive(), p.getCreatedAt(), p.getUpdatedAt());
+            p.getDurationMinutes(), p.getPeriodOrder(), p.getIsActive(), p.getCreatedAt(), p.getUpdatedAt());
     }
 
     private static String trim(String s) {

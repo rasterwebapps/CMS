@@ -3,6 +3,7 @@ package com.cms.dto;
 import java.time.LocalDate;
 
 import com.cms.model.enums.CalendarEventType;
+import com.cms.model.enums.HolidayCategory;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -26,5 +27,13 @@ public record CalendarEventRequest(
     CalendarEventType eventType,
 
     @NotNull(message = "Academic year ID is required")
-    Long academicYearId
-) {}
+    Long academicYearId,
+
+    /** Required by service-layer validation when eventType == HOLIDAY; ignored otherwise. */
+    HolidayCategory holidayCategory
+) {
+    public CalendarEventRequest(String title, String description, LocalDate startDate, LocalDate endDate,
+                                 CalendarEventType eventType, Long academicYearId) {
+        this(title, description, startDate, endDate, eventType, academicYearId, null);
+    }
+}

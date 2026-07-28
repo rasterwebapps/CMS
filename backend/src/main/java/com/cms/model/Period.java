@@ -33,6 +33,9 @@ public class Period {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
+    @Column(name = "duration_minutes", nullable = false)
+    private Integer durationMinutes;
+
     @Column(name = "period_order")
     private Integer periodOrder;
 
@@ -87,6 +90,14 @@ public class Period {
 
     public void setEndTime(LocalTime endTime) {
         this.endTime = endTime;
+    }
+
+    public Integer getDurationMinutes() {
+        return durationMinutes;
+    }
+
+    public void setDurationMinutes(Integer durationMinutes) {
+        this.durationMinutes = durationMinutes;
     }
 
     public Integer getPeriodOrder() {

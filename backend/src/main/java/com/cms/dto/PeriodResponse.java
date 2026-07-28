@@ -8,6 +8,7 @@ public record PeriodResponse(
     String name,
     LocalTime startTime,
     LocalTime endTime,
+    Integer durationMinutes,
     Integer periodOrder,
     Boolean isActive,
     Instant createdAt,

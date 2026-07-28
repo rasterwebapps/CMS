@@ -48,10 +48,10 @@ export class PeriodFormComponent implements OnInit {
   private periodId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
-    name:        ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(255), noConsecutiveSpaces()]],
-    startTime:   ['', [Validators.required]],
-    endTime:     ['', [Validators.required]],
-    periodOrder: [null],
+    name:            ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(255), noConsecutiveSpaces()]],
+    startTime:       ['', [Validators.required]],
+    durationMinutes: [null, [Validators.required, Validators.min(1)]],
+    periodOrder:     [null],
   });
 
   constructor() {
@@ -60,7 +60,7 @@ export class PeriodFormComponent implements OnInit {
       .subscribe(v => {
         this.previewName.set((v.name ?? '').trim());
         this.previewStart.set(v.startTime ?? '');
-        this.previewEnd.set(v.endTime ?? '');
+        this.previewEnd.set(this.computeEndTime(v.startTime, v.durationMinutes));
       });
   }
 
@@ -90,16 +90,12 @@ export class PeriodFormComponent implements OnInit {
       scrollToFirstInvalid(this.form);
       return;
     }
-    if (this.form.value.endTime <= this.form.value.startTime) {
-      this.toast.error('End time must be after start time');
-      return;
-    }
 
     const request: PeriodRequest = {
-      name:        (this.form.value.name ?? '').trim(),
-      startTime:   `${this.form.value.startTime}:00`,
-      endTime:     `${this.form.value.endTime}:00`,
-      periodOrder: this.form.value.periodOrder ?? undefined,
+      name:            (this.form.value.name ?? '').trim(),
+      startTime:       `${this.form.value.startTime}:00`,
+      durationMinutes: this.form.value.durationMinutes,
+      periodOrder:     this.form.value.periodOrder ?? undefined,
     };
 
     this.saving.set(true);
@@ -121,11 +117,24 @@ export class PeriodFormComponent implements OnInit {
   }
 
   private static readonly FIELD_LABELS: Record<string, string> = {
-    name: 'Name', startTime: 'Start Time', endTime: 'End Time', periodOrder: 'Order',
+    name: 'Name', startTime: 'Start Time', durationMinutes: 'Duration', periodOrder: 'Order',
   };
 
   protected getErrorMessage(fieldName: string): string {
     return cmsFieldError(this.form.get(fieldName), PeriodFormComponent.FIELD_LABELS[fieldName] ?? fieldName);
+  }
+
+  /** HH:mm start + duration in minutes -> HH:mm end, for the live preview only (the backend is
+   *  the source of truth for the saved end time). Returns '' once duration wraps past midnight
+   *  rather than showing a misleading wrapped-around time. */
+  private computeEndTime(startTime: string | null, durationMinutes: number | null): string {
+    if (!startTime || !durationMinutes || durationMinutes <= 0) return '';
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const totalMinutes = hours * 60 + minutes + durationMinutes;
+    if (totalMinutes >= 24 * 60) return '';
+    const endHours = Math.floor(totalMinutes / 60);
+    const endMinutes = totalMinutes % 60;
+    return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
   }
 
   private loadPeriod(): void {
@@ -136,7 +145,7 @@ export class PeriodFormComponent implements OnInit {
         this.form.patchValue({
           name: p.name,
           startTime: p.startTime?.slice(0, 5) ?? '',
-          endTime: p.endTime?.slice(0, 5) ?? '',
+          durationMinutes: p.durationMinutes ?? null,
           periodOrder: p.periodOrder ?? null,
         });
         this.loading.set(false);

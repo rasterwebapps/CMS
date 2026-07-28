@@ -24,6 +24,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.CalendarEvent;
 import com.cms.model.enums.CalendarEventType;
+import com.cms.model.enums.HolidayCategory;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.CalendarEventRepository;
 
@@ -112,6 +113,40 @@ class CalendarEventServiceTest {
         assertThatThrownBy(() -> calendarEventService.create(request))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage("End date must not be before start date");
+    }
+
+    @Test
+    void shouldStoreHolidayCategoryForHolidayEvent() {
+        CalendarEventRequest request = new CalendarEventRequest(
+            "Independence Day", "National holiday", LocalDate.of(2024, 8, 15), LocalDate.of(2024, 8, 15),
+            CalendarEventType.HOLIDAY, 1L, HolidayCategory.GOVERNMENT);
+
+        CalendarEvent saved = buildEvent(1L, "Independence Day", CalendarEventType.HOLIDAY, academicYear);
+        saved.setHolidayCategory(HolidayCategory.GOVERNMENT);
+
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
+        when(calendarEventRepository.save(any(CalendarEvent.class))).thenReturn(saved);
+
+        CalendarEventResponse response = calendarEventService.create(request);
+
+        assertThat(response.holidayCategory()).isEqualTo(HolidayCategory.GOVERNMENT);
+    }
+
+    @Test
+    void shouldDropHolidayCategoryForNonHolidayEvent() {
+        // A category only makes sense for HOLIDAY events -- passing one for e.g. an EXAM event
+        // must be silently ignored rather than stored, so a later type-change to HOLIDAY doesn't
+        // resurrect a stale category from an unrelated event.
+        CalendarEventRequest request = new CalendarEventRequest(
+            "Mid-Term", null, LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
+            CalendarEventType.EXAM, 1L, HolidayCategory.LOCAL);
+
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
+        when(calendarEventRepository.save(any(CalendarEvent.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CalendarEventResponse response = calendarEventService.create(request);
+
+        assertThat(response.holidayCategory()).isNull();
     }
 
     // ─── FIND ALL ─────────────────────────────────────

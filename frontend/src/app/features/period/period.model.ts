@@ -13,6 +13,7 @@ export interface Period {
   name: string;
   startTime: string;
   endTime: string;
+  durationMinutes: number;
   periodOrder?: number;
   isActive: boolean;
   createdAt: string;
@@ -22,7 +23,7 @@ export interface Period {
 export interface PeriodRequest {
   name: string;
   startTime: string;
-  endTime: string;
+  durationMinutes: number;
   periodOrder?: number;
   isActive?: boolean;
 }

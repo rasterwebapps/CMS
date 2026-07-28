@@ -347,6 +347,20 @@
           </mat-form-field>
         </div>
 
+        @if (showHolidayCategoryField()) {
+          <div class="form-field">
+            <label class="form-field-label">Holiday Category</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-select formControlName="holidayCategory">
+                <mat-option [value]="null">Unspecified</mat-option>
+                @for (category of holidayCategories; track category) {
+                  <mat-option [value]="category">{{ holidayCategoryLabels[category] }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+        }
+
         <div class="form-field">
           <label class="form-field-label">Description</label>
           <mat-form-field appearance="outline" class="full-width">
