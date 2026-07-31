@@ -1,4 +1,4 @@
-export type WeekGridSessionType = 'THEORY' | 'LAB';
+export type WeekGridSessionType = 'THEORY' | 'LAB' | 'CLINICAL';
 export type WeekGridSessionStatus = 'DRAFT' | 'PUBLISHED';
 
 /** Session-type-neutral shape a week-grid cell renders — matches the backend's
@@ -9,8 +9,10 @@ export interface WeekGridSession {
   status: WeekGridSessionStatus;
   subjectName: string;
   subjectCode: string;
-  facultyName: string;
-  roomName: string;
+  /** Null for an unstaffed R3 Phase 4 skeleton row -- faculty/room are assigned later by the
+   *  R3 Phase 5 Staffing screen. */
+  facultyName: string | null;
+  roomName: string | null;
   batchName: string | null;
   dayOfWeek: string;
   startTime: string;
@@ -27,7 +29,6 @@ export interface WeekGridCandidateCell {
   startTime: string;
   endTime: string;
   periodId: number | null;
-  labSlotId: number | null;
   occupied: boolean;
   occupyingSessionId: number | null;
   occupyingSubjectName: string | null;

@@ -38,7 +38,11 @@
               <div class="session-type-toggle" role="radiogroup" aria-label="Session type">
                 <label class="session-type-option" [class.session-type-option--active]="form.get('sessionType')?.value === 'LAB'">
                   <input type="radio" formControlName="sessionType" value="LAB" />
-                  Lab / Clinical
+                  Lab
+                </label>
+                <label class="session-type-option" [class.session-type-option--active]="form.get('sessionType')?.value === 'CLINICAL'">
+                  <input type="radio" formControlName="sessionType" value="CLINICAL" />
+                  Clinical
                 </label>
                 <label class="session-type-option" [class.session-type-option--active]="form.get('sessionType')?.value === 'THEORY'">
                   <input type="radio" formControlName="sessionType" value="THEORY" />
@@ -60,6 +64,20 @@
                   </select>
                   @if (form.get('classroomId')?.invalid && form.get('classroomId')?.touched) {
                     <p class="field-error">Classroom is required</p>
+                  }
+                </div>
+              } @else if (isClinical()) {
+                <div class="field-group">
+                  <label for="ls-clinical-venue" class="field-label">Clinical Venue <span class="required-star">*</span></label>
+                  <select id="ls-clinical-venue" class="field-select" formControlName="clinicalVenueId"
+                    [class.field-select--error]="form.get('clinicalVenueId')?.invalid && form.get('clinicalVenueId')?.touched">
+                    <option [ngValue]="null" disabled>Select a clinical venue</option>
+                    @for (venue of clinicalVenues(); track venue.id) {
+                      <option [ngValue]="venue.id">{{ venue.name }}</option>
+                    }
+                  </select>
+                  @if (form.get('clinicalVenueId')?.invalid && form.get('clinicalVenueId')?.touched) {
+                    <p class="field-error">Clinical venue is required</p>
                   }
                 </div>
               } @else {
@@ -110,38 +128,35 @@
                 }
               </div>
 
-              @if (isTheory()) {
-                <div class="field-group">
-                  <label for="ls-period" class="field-label">Period <span class="required-star">*</span></label>
-                  <select id="ls-period" class="field-select" formControlName="periodId"
-                    [class.field-select--error]="form.get('periodId')?.invalid && form.get('periodId')?.touched">
-                    <option [ngValue]="null" disabled>Select a period</option>
-                    @for (period of periods(); track period.id) {
-                      <option [ngValue]="period.id">{{ period.name }} ({{ period.startTime }} - {{ period.endTime }})</option>
-                    }
-                  </select>
-                  @if (form.get('periodId')?.invalid && form.get('periodId')?.touched) {
-                    <p class="field-error">Period is required</p>
+              <div class="field-group">
+                <label for="ls-period" class="field-label">{{ slotFieldLabel() }} <span class="required-star">*</span></label>
+                <select id="ls-period" class="field-select" formControlName="periodId"
+                  [class.field-select--error]="form.get('periodId')?.invalid && form.get('periodId')?.touched">
+                  <option [ngValue]="null" disabled>Select a period</option>
+                  @for (period of periods(); track period.id) {
+                    <option [ngValue]="period.id">{{ period.name }} ({{ period.startTime }} - {{ period.endTime }})</option>
                   }
-                </div>
-              } @else {
-                <div class="field-group">
-                  <label for="ls-slot" class="field-label">Lab Slot <span class="required-star">*</span></label>
-                  <select id="ls-slot" class="field-select" formControlName="labSlotId"
-                    [class.field-select--error]="form.get('labSlotId')?.invalid && form.get('labSlotId')?.touched">
-                    <option [ngValue]="null" disabled>Select a slot</option>
-                    @for (slot of labSlots(); track slot.id) {
-                      <option [ngValue]="slot.id">{{ slot.name }} ({{ slot.startTime }} - {{ slot.endTime }})</option>
-                    }
-                  </select>
-                  @if (form.get('labSlotId')?.invalid && form.get('labSlotId')?.touched) {
-                    <p class="field-error">Lab slot is required</p>
-                  }
-                </div>
-              }
+                </select>
+                @if (form.get('periodId')?.invalid && form.get('periodId')?.touched) {
+                  <p class="field-error">{{ slotFieldLabel() }} is required</p>
+                }
+              </div>
             </div>
 
-            @if (!isTheory()) {
+            @if (isTheory()) {
+              <div class="field-group">
+                <label for="ls-theory-section" class="field-label">Section</label>
+                <select id="ls-theory-section" class="field-select" formControlName="batchId">
+                  <option [ngValue]="null">Whole cohort (no section split)</option>
+                  @for (batch of availableBatches(); track batch.id) {
+                    <option [ngValue]="batch.id">{{ batch.name }} ({{ batch.enrolledCount }}/{{ batch.capacity }})</option>
+                  }
+                </select>
+                <p class="field-hint">Leave as "Whole cohort" unless this Theory session only applies to one section.</p>
+              </div>
+            }
+
+            @if (isBatchScoped()) {
               @if (availableBatches().length > 0) {
                 <div class="field-group">
                   <label for="ls-batch-picker" class="field-label">Batch (from roster)</label>
@@ -219,7 +234,8 @@
           <div class="prev-name" [class.prev-name--empty]="!previewSubjectName()">
             {{ previewSubjectName() || 'Subject will appear here' }}
           </div>
-          @if (!isTheory() && previewBatch()) { <div class="prev-sub">Batch: {{ previewBatch() }}</div> }
+          @if (isBatchScoped() && previewBatch()) { <div class="prev-sub">Batch: {{ previewBatch() }}</div> }
+          @if (isTheory() && previewTheorySectionName()) { <div class="prev-sub">Section: {{ previewTheorySectionName() }}</div> }
           @if (previewFacultyName()) { <div class="prev-sub">Faculty: {{ previewFacultyName() }}</div> }
           <div class="prev-meta-row">
             @if (previewRoomName()) { <span class="prev-pill prev-pill--primary">{{ previewRoomName() }}</span> }

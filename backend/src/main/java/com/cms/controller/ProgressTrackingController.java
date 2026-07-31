@@ -17,8 +17,8 @@ import com.cms.dto.LogProgressRequest;
 import com.cms.dto.OfferingProgressResponse;
 import com.cms.dto.ProfileIdentity;
 import com.cms.dto.SessionOccurrenceDto;
-import com.cms.dto.SyllabusUnitDto;
 import com.cms.dto.TermProgressSummaryResponse;
+import com.cms.dto.UnitPickerOptionDto;
 import com.cms.service.ProfileService;
 import com.cms.service.ProgressTrackingService;
 
@@ -47,7 +47,7 @@ public class ProgressTrackingController {
 
     @GetMapping("/sessions/{classScheduleId}/units")
     @PreAuthorize("@perm.has('PROGRESS_LOG_CREATE')")
-    public ResponseEntity<List<SyllabusUnitDto>> getAvailableUnits(@PathVariable Long classScheduleId) {
+    public ResponseEntity<List<UnitPickerOptionDto>> getAvailableUnits(@PathVariable Long classScheduleId) {
         return ResponseEntity.ok(progressTrackingService.getAvailableUnits(classScheduleId));
     }
 

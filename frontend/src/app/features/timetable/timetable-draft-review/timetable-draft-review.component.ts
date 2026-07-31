@@ -227,7 +227,6 @@ export class TimetableDraftReviewComponent implements OnInit {
     this.timetableService.swapSession(this.selectedTermInstanceId, source.id, {
       dayOfWeek: cell.dayOfWeek,
       periodId: cell.periodId,
-      labSlotId: cell.labSlotId,
     }).subscribe({
       next: () => {
         this.toast.success(cell.occupied

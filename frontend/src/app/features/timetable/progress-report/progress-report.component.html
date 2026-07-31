@@ -61,9 +61,12 @@
                 } @else if (offeringDetail()) {
                   <ul class="unit-detail-list">
                     @for (unit of offeringDetail()!.units; track unit.unitId) {
-                      <li class="unit-detail-item" [class.unit-detail-item--covered]="unit.covered">
-                        <span class="unit-detail-item__status">{{ unit.covered ? '✓' : '—' }}</span>
+                      <li class="unit-detail-item" [class.unit-detail-item--covered]="unit.completed">
+                        <span class="unit-detail-item__status">{{ unit.completed ? '✓' : '—' }}</span>
                         <span class="unit-detail-item__title">Unit {{ unit.unitNumber }} — {{ unit.title }}</span>
+                        @if (unit.plannedHours) {
+                          <span class="unit-detail-item__hours">{{ unit.hoursLogged }}h / {{ unit.plannedHours }}h</span>
+                        }
                         @if (unit.coveredDates.length > 0) {
                           <span class="unit-detail-item__dates">{{ unit.coveredDates.join(', ') }}</span>
                         }

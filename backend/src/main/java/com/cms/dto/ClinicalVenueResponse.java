@@ -1,14 +1,12 @@
 package com.cms.dto;
 
 import java.time.Instant;
-import java.time.LocalTime;
 
-public record LabSlotResponse(
+public record ClinicalVenueResponse(
     Long id,
     String name,
-    LocalTime startTime,
-    LocalTime endTime,
-    Integer slotOrder,
+    String hospitalName,
+    String department,
     Boolean isActive,
     Instant createdAt,
     Instant updatedAt

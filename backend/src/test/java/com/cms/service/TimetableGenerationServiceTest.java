@@ -49,7 +49,6 @@ import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabAttendanceRepository;
 import com.cms.repository.LabRepository;
-import com.cms.repository.LabSlotRepository;
 import com.cms.repository.PeriodRepository;
 import com.cms.repository.TermInstanceRepository;
 
@@ -64,7 +63,6 @@ class TimetableGenerationServiceTest {
     @Mock private ClassroomRepository classroomRepository;
     @Mock private PeriodRepository periodRepository;
     @Mock private LabRepository labRepository;
-    @Mock private LabSlotRepository labSlotRepository;
     @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
     @Mock private LabAttendanceRepository labAttendanceRepository;
 
@@ -80,7 +78,7 @@ class TimetableGenerationServiceTest {
     void setUp() {
         service = new TimetableGenerationService(classScheduleRepository, courseOfferingRepository,
             termInstanceRepository, batchRepository, facultyRepository, classroomRepository,
-            periodRepository, labRepository, labSlotRepository, facultyAvailabilityRepository,
+            periodRepository, labRepository, facultyAvailabilityRepository,
             labAttendanceRepository);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
@@ -159,7 +157,6 @@ class TimetableGenerationServiceTest {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(Collections.emptyList());
         when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(classroom));
         when(labRepository.findAll()).thenReturn(Collections.emptyList());
         when(facultyRepository.findById(faculty.getId())).thenReturn(Optional.of(faculty));
@@ -183,7 +180,6 @@ class TimetableGenerationServiceTest {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(Collections.emptyList());
         when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(classroom));
         when(labRepository.findAll()).thenReturn(Collections.emptyList());
         when(facultyRepository.findById(faculty.getId())).thenReturn(Optional.of(faculty));
@@ -217,7 +213,6 @@ class TimetableGenerationServiceTest {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(Collections.emptyList());
         when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(classroom));
         when(labRepository.findAll()).thenReturn(Collections.emptyList());
         when(facultyRepository.findById(faculty.getId())).thenReturn(Optional.of(faculty));
@@ -240,7 +235,6 @@ class TimetableGenerationServiceTest {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(Collections.emptyList());
         when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(classroom));
         when(labRepository.findAll()).thenReturn(Collections.emptyList());
         when(facultyRepository.findById(faculty.getId())).thenReturn(Optional.of(faculty));
@@ -268,7 +262,6 @@ class TimetableGenerationServiceTest {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(shortPeriod));
-        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(Collections.emptyList());
         when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(classroom));
         when(labRepository.findAll()).thenReturn(Collections.emptyList());
         when(facultyRepository.findById(faculty.getId())).thenReturn(Optional.of(faculty));
@@ -283,19 +276,17 @@ class TimetableGenerationServiceTest {
 
     @Test
     void shouldAccountForLabSlotDurationLongerThanSixtyMinutes() {
-        // 100 lab/clinical CLOCK hours over the 27-week fixture term, placed via a 2-hour LabSlot.
-        // Old (buggy) 1-slot=1-hour math: ceil(100/27) = 4 weekly sessions. Correct: each slot
+        // 100 lab/clinical CLOCK hours over the 27-week fixture term, placed via a 2-hour period
+        // (Theory and Lab share the one Period pool since V331 merged LabSlot into it). Old
+        // (buggy) 1-slot=1-hour math: ceil(100/27) = 4 weekly sessions. Correct: each slot
         // delivers 2 clock-hours, so ceil((100*60/120)/27) = ceil(50/27) = 2 -- fewer sessions
         // needed, proving the longer slot is credited properly rather than undercounted.
         CourseOffering offering = offeringWithHours(100L, 0, 100, 0, faculty.getId());
         Batch batch = new Batch(offering, "Batch A", 20, termInstance);
         batch.setId(1L);
-        com.cms.model.LabSlot twoHourSlot = new com.cms.model.LabSlot();
-        twoHourSlot.setId(1L);
-        twoHourSlot.setName("Lab Slot 1");
-        twoHourSlot.setStartTime(LocalTime.of(9, 0));
-        twoHourSlot.setEndTime(LocalTime.of(11, 0));
-        twoHourSlot.setSlotOrder(1);
+        Period twoHourPeriod = new Period("Lab Slot 1", LocalTime.of(9, 0), LocalTime.of(11, 0), 1);
+        twoHourPeriod.setId(1L);
+        twoHourPeriod.setDurationMinutes(120);
         com.cms.model.Lab lab = new com.cms.model.Lab("Skills Lab", com.cms.model.enums.LabType.OTHER,
             null, "Main Block", "L1", 30, com.cms.model.enums.LabStatus.ACTIVE);
         lab.setId(1L);
@@ -303,8 +294,7 @@ class TimetableGenerationServiceTest {
         when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(false);
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
-        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(Collections.emptyList());
-        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(List.of(twoHourSlot));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(twoHourPeriod));
         when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(Collections.emptyList());
         when(labRepository.findAll()).thenReturn(List.of(lab));
         when(batchRepository.findByCourseOfferingId(offering.getId())).thenReturn(List.of(batch));
@@ -337,7 +327,6 @@ class TimetableGenerationServiceTest {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(p1, p2));
-        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(Collections.emptyList());
         when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(classroom));
         when(labRepository.findAll()).thenReturn(Collections.emptyList());
         when(facultyRepository.findById(faculty.getId())).thenReturn(Optional.of(faculty));
@@ -361,7 +350,6 @@ class TimetableGenerationServiceTest {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(Collections.emptyList());
         when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(classroom));
         when(labRepository.findAll()).thenReturn(Collections.emptyList());
 
@@ -382,7 +370,6 @@ class TimetableGenerationServiceTest {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()).thenReturn(Collections.emptyList());
         when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(classroom));
         when(labRepository.findAll()).thenReturn(Collections.emptyList());
 
@@ -419,9 +406,11 @@ class TimetableGenerationServiceTest {
         ClassSchedule draft1 = new ClassSchedule();
         draft1.setId(1L);
         draft1.setStatus(ClassScheduleStatus.DRAFT);
+        draft1.setFaculty(faculty);
         ClassSchedule draft2 = new ClassSchedule();
         draft2.setId(2L);
         draft2.setStatus(ClassScheduleStatus.DRAFT);
+        draft2.setFaculty(faculty);
 
         when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(draft1, draft2));
@@ -432,6 +421,28 @@ class TimetableGenerationServiceTest {
         assertThat(response.affectedCount()).isEqualTo(2);
         assertThat(draft1.getStatus()).isEqualTo(ClassScheduleStatus.PUBLISHED);
         assertThat(draft2.getStatus()).isEqualTo(ClassScheduleStatus.PUBLISHED);
+    }
+
+    @Test
+    void shouldBlockApproveWhenAnyDraftRowIsUnstaffed() {
+        // R3 Phase 5: an unstaffed skeleton cell (no faculty yet) must be rejected with a clear
+        // actionable error here, not left to fail as a raw chk_class_schedule_session_shape
+        // violation the moment its status flips to PUBLISHED.
+        ClassSchedule staffed = new ClassSchedule();
+        staffed.setId(1L);
+        staffed.setStatus(ClassScheduleStatus.DRAFT);
+        staffed.setFaculty(faculty);
+        ClassSchedule unstaffed = new ClassSchedule();
+        unstaffed.setId(2L);
+        unstaffed.setStatus(ClassScheduleStatus.DRAFT);
+
+        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(staffed, unstaffed));
+
+        assertThatThrownBy(() -> service.approve(10L))
+            .isInstanceOf(LifecycleConflictException.class);
+
+        verify(classScheduleRepository, never()).save(any());
     }
 
     @Test

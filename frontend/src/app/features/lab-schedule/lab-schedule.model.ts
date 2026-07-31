@@ -1,4 +1,4 @@
-export type ClassSessionType = 'THEORY' | 'LAB';
+export type ClassSessionType = 'THEORY' | 'LAB' | 'CLINICAL';
 export type ClassScheduleStatus = 'DRAFT' | 'PUBLISHED';
 
 export interface LabSchedule {
@@ -12,7 +12,6 @@ export interface LabSchedule {
   subjectCode: string;
   facultyId: number;
   facultyName: string;
-  labSlotId: number | null;
   periodId: number | null;
   slotName: string;
   startTime: string;
@@ -20,6 +19,7 @@ export interface LabSchedule {
   batchName: string | null;
   batchId: number | null;
   classroomId: number | null;
+  clinicalVenueId: number | null;
   roomName: string;
   courseOfferingId: number | null;
   dayOfWeek: string;
@@ -35,7 +35,6 @@ export interface LabScheduleRequest {
   labId?: number | null;
   subjectId: number;
   facultyId: number;
-  labSlotId?: number | null;
   batchName?: string | null;
   batchId?: number | null;
   dayOfWeek: string;
@@ -43,26 +42,8 @@ export interface LabScheduleRequest {
   isActive?: boolean;
   classroomId?: number | null;
   periodId?: number | null;
+  clinicalVenueId?: number | null;
   courseOfferingId?: number | null;
-}
-
-export interface LabSlot {
-  id: number;
-  name: string;
-  startTime: string;
-  endTime: string;
-  slotOrder: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface LabSlotRequest {
-  name: string;
-  startTime: string;
-  endTime: string;
-  slotOrder?: number;
-  isActive?: boolean;
 }
 
 export const DAYS_OF_WEEK = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];

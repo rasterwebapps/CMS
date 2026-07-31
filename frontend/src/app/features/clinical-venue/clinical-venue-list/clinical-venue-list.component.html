@@ -1,0 +1,156 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="dept-pg-title">Clinical <em>Venues</em></h1>
+      </div>
+      <p class="dept-pg-sub">Manage hospital wards/departments used for clinical posting scheduling</p>
+    </div>
+    <div>
+      <button class="btn-primary" routerLink="/clinical-venues/new" aria-label="Add new clinical venue">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Clinical Venue
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search by name, hospital, or department…"
+        type="text"
+        aria-label="Search clinical venues"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      }
+    </div>
+    <cms-view-toggle
+      [mode]="viewMode()"
+      storageKey="clinical-venue-view-mode"
+      (modeChange)="setViewMode($event)"
+    />
+  </div>
+
+  <!-- ── Loading ───────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="dept-loading-grid">
+      @for (n of [1,2,3,4,5,6]; track n) {
+        <div class="dept-card-skeleton"></div>
+      }
+    </div>
+  }
+
+  <!-- ── Card view ─────────────────────────────────────────────── -->
+  @else if (viewMode() === 'card') {
+    @if (dataSource.data.length === 0) {
+      <cms-empty-state
+        [icon]="searchValue() ? 'search_off' : 'local_hospital'"
+        [title]="searchValue() ? 'No clinical venues found' : 'No clinical venues yet'"
+        [subtitle]="searchValue() ? 'No clinical venues match your search.' : 'Add your first clinical venue to get started.'"
+        [actionLabel]="searchValue() ? 'Clear Search' : 'Add Clinical Venue'"
+        (actionClick)="handleEmptyAction()"
+      ></cms-empty-state>
+    } @else {
+      <div class="dept-grid">
+        @for (item of dataSource.data; track item.id; let i = $index) {
+          <div class="dept-card dept-card--accent" [class.dept-card--active]="item.isActive" [class.dept-card--inactive]="!item.isActive" [style.animation-delay]="(i * 0.05) + 's'">
+            <div class="dept-card__actions">
+              <cms-row-action-btn variant="warning" [iconOnly]="true" (clicked)="toggleVenueStatus(item)"
+                      [tooltip]="item.isActive ? ('Deactivate ' + item.name) : ('Activate ' + item.name)"
+                      ariaLabel="Toggle clinical venue status">
+                <cms-icon-toggle-status [active]="item.isActive" [size]="14" />
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="success" [iconOnly]="true" [tooltip]="'Edit ' + item.name" [ariaLabel]="'Edit ' + item.name" (clicked)="editVenue(item)">
+                <cms-icon-edit [size]="14" />
+              </cms-row-action-btn>
+            </div>
+            <div class="dept-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>
+            </div>
+            <div class="dept-card__name">{{ item.name }}</div>
+            <div class="dept-card__code">{{ item.hospitalName || '—' }}@if (item.department) { &middot; {{ item.department }} }</div>
+            <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
+          </div>
+        }
+      </div>
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[10, 25, 50]"
+        [pageSize]="25"
+        showFirstLastButtons
+      ></mat-paginator>
+    }
+  }
+
+  <!-- ── Table view ─────────────────────────────────────────────── -->
+  @else {
+    <div class="content-card mlp-table-card">
+      <div class="table-wrapper">
+      <table mat-table [dataSource]="dataSource" matSort
+             [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+             matSortDisableClear (matSortChange)="onSortChange($event)"
+             class="dept-table">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+          <td mat-cell *matCellDef="let row">{{ row.name }}</td>
+        </ng-container>
+        <ng-container matColumnDef="hospitalName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Hospital</th>
+          <td mat-cell *matCellDef="let row">{{ row.hospitalName || '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="department">
+          <th mat-header-cell *matHeaderCellDef>Department</th>
+          <td mat-cell *matCellDef="let row">{{ row.department || '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="isActive">
+          <th mat-header-cell *matHeaderCellDef class="cell-align-center">Status</th>
+          <td mat-cell *matCellDef="let row" class="cell-align-center">
+            <cms-status-badge [status]="row.isActive ? 'ACTIVE' : 'INACTIVE'" />
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+           <td mat-cell *matCellDef="let row">
+             <div class="row-actions">
+               <cms-row-action-btn variant="warning" [iconOnly]="true"
+                      (clicked)="toggleVenueStatus(row)"
+                      [tooltip]="row.isActive ? 'Deactivate' : 'Activate'"
+                      ariaLabel="Toggle clinical venue status">
+                <cms-icon-toggle-status [active]="row.isActive" [size]="14" />
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit" (clicked)="editVenue(row)">
+                <cms-icon-edit [size]="14" />
+              </cms-row-action-btn>
+             </div>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0; border:none;">
+            <cms-empty-state
+              icon="local_hospital"
+              [title]="searchValue() ? 'No clinical venues found' : 'No clinical venues yet'"
+              [subtitle]="searchValue() ? 'No clinical venues match your search.' : 'Add your first clinical venue to get started.'"
+              [actionLabel]="searchValue() ? 'Clear Search' : 'Add Clinical Venue'"
+              (actionClick)="handleEmptyAction()"
+            ></cms-empty-state>
+          </td>
+        </tr>
+      </table>
+      </div>
+      <mat-paginator [length]="totalElements" [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
+    </div>
+  }
+
+</div>

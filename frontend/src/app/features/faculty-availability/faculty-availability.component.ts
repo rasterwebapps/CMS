@@ -4,8 +4,6 @@ import { FacultyService } from '../faculty/faculty.service';
 import { Faculty } from '../faculty/faculty.model';
 import { PeriodService } from '../period/period.service';
 import { Period } from '../period/period.model';
-import { LabScheduleService } from '../lab-schedule/lab-schedule.service';
-import { LabSlot } from '../lab-schedule/lab-schedule.model';
 import { FacultyAvailabilityService } from './faculty-availability.service';
 import { FacultyAvailabilityBlock } from './faculty-availability.model';
 import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../shared/week-grid/week-grid.model';
@@ -29,14 +27,12 @@ interface AvailabilityRow {
 export class FacultyAvailabilityComponent implements OnInit {
   private readonly facultyService = inject(FacultyService);
   private readonly periodService = inject(PeriodService);
-  private readonly labScheduleService = inject(LabScheduleService);
   private readonly facultyAvailabilityService = inject(FacultyAvailabilityService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
 
   protected readonly faculties = signal<Faculty[]>([]);
   protected readonly periods = signal<Period[]>([]);
-  protected readonly labSlots = signal<LabSlot[]>([]);
   protected readonly blocks = signal<FacultyAvailabilityBlock[]>([]);
   protected readonly loading = signal(false);
   protected readonly toggling = signal<string | null>(null);
@@ -48,9 +44,6 @@ export class FacultyAvailabilityComponent implements OnInit {
 
   protected readonly periodRows = computed<AvailabilityRow[]>(() =>
     this.periods().map((p) => ({ key: `period-${p.id}`, label: p.name, startTime: p.startTime, endTime: p.endTime })));
-
-  protected readonly labSlotRows = computed<AvailabilityRow[]>(() =>
-    this.labSlots().map((s) => ({ key: `slot-${s.id}`, label: s.name, startTime: s.startTime, endTime: s.endTime })));
 
   protected canManage(): boolean {
     return this.permissionService.has('FACULTY_AVAILABILITY_MANAGE');
@@ -68,7 +61,6 @@ export class FacultyAvailabilityComponent implements OnInit {
       error: () => this.toast.error('Failed to load faculty list'),
     });
     this.periodService.getAll(true).subscribe({ next: (periods) => this.periods.set(periods) });
-    this.labScheduleService.getAllSlots().subscribe({ next: (slots) => this.labSlots.set(slots.filter((s) => s.isActive)) });
   }
 
   protected onFacultyChange(): void {

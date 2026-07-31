@@ -1,0 +1,156 @@
+<div class="mlp-page">
+
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="page-title">Timetable <em>Skeleton Builder</em></h1>
+      <p class="page-subtitle">Place Theory, Lab, and Clinical sessions into periods for one subject at a time — staff and rooms are assigned afterward</p>
+    </div>
+  </div>
+
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
+      @for (ay of academicYears(); track ay.id) {
+        <option [ngValue]="ay.id">{{ ay.name }}</option>
+      }
+    </select>
+    <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()"
+      [disabled]="termsLoading() || termInstances().length === 0" aria-label="Term">
+      @if (termInstances().length === 0) {
+        <option [ngValue]="null">No terms yet</option>
+      }
+      @for (term of termInstances(); track term.id) {
+        <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
+      }
+    </select>
+    <select class="mlp-filter-select" [(ngModel)]="selectedOfferingId" (ngModelChange)="onOfferingChange()"
+      [disabled]="offeringsLoading() || offerings().length === 0" aria-label="Subject">
+      @if (offerings().length === 0) {
+        <option [ngValue]="null">No subjects yet</option>
+      }
+      @for (o of offerings(); track o.id) {
+        <option [ngValue]="o.id">{{ o.subjectName }} ({{ o.subjectCode }})</option>
+      }
+    </select>
+  </div>
+
+  @if (skeletonLoading()) {
+    <div class="content-card">
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading skeleton"></mat-spinner>
+      </div>
+    </div>
+  } @else if (skeleton()) {
+
+    <div class="content-card skeleton-budget-card">
+      <h2 class="skeleton-budget-card__title">{{ skeleton()!.subjectName }} — {{ skeleton()!.termInstanceLabel }}</h2>
+      <div class="skeleton-budget-grid">
+        @for (b of skeleton()!.budgets; track (b.sessionType + '-' + b.batchId)) {
+          <div class="skeleton-budget-item">
+            <div class="skeleton-budget-item__label">
+              {{ b.sessionType }}
+              @if (b.batchName) { <span class="skeleton-budget-item__batch">({{ b.batchName }})</span> }
+              @if (!b.batchName && b.batchId === null && (b.sessionType === 'LAB' || b.sessionType === 'CLINICAL')) {
+                <span class="skeleton-budget-item__warn">no batches defined yet</span>
+              }
+            </div>
+            <div class="skeleton-budget-item__count">{{ b.placedSessionsPerWeek }} / {{ b.requiredSessionsPerWeek }} weekly sessions</div>
+            <div class="skeleton-budget-item__bar">
+              <div class="skeleton-budget-item__fill"
+                [class.skeleton-budget-item__fill--done]="b.placedSessionsPerWeek >= b.requiredSessionsPerWeek"
+                [style.width.%]="b.requiredSessionsPerWeek > 0 ? (b.placedSessionsPerWeek / b.requiredSessionsPerWeek * 100) : 0">
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="content-card mlp-table-card skeleton-grid-card">
+      <div class="table-wrapper">
+        <table class="skeleton-grid">
+          <thead>
+            <tr>
+              <th class="skeleton-grid__corner"></th>
+              @for (period of periods(); track period.id) {
+                <th class="skeleton-grid__period-hdr">{{ period.name }}<br><span class="skeleton-grid__period-time">{{ period.startTime }}–{{ period.endTime }}</span></th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (day of days; track day) {
+              <tr>
+                <td class="skeleton-grid__day-hdr">{{ dayLabels[day] }}</td>
+                @for (period of periods(); track period.id) {
+                  <td class="skeleton-grid__cell">
+                    @let cell = cellFor(day, period.id);
+                    <button type="button" class="skeleton-cell"
+                      [class.skeleton-cell--theory]="cell?.sessionType === 'THEORY'"
+                      [class.skeleton-cell--lab]="cell?.sessionType === 'LAB'"
+                      [class.skeleton-cell--clinical]="cell?.sessionType === 'CLINICAL'"
+                      [class.skeleton-cell--staffed]="cell?.isStaffed"
+                      [class.skeleton-cell--selected]="selectedCell()?.day === day && selectedCell()?.periodId === period.id"
+                      [disabled]="!canManage()"
+                      (click)="onCellClick(day, period.id)">
+                      @if (cell) {
+                        <span class="skeleton-cell__type">{{ cell.sessionType }}</span>
+                        @if (cell.batchName) { <span class="skeleton-cell__batch">{{ cell.batchName }}</span> }
+                        @if (cell.isStaffed) { <span class="skeleton-cell__staffed-tag">staffed</span> }
+                      } @else {
+                        <span class="skeleton-cell__empty">+</span>
+                      }
+                    </button>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    @if (selectedCell()) {
+      <div class="content-card skeleton-placement-panel">
+        <h3 class="skeleton-placement-panel__title">
+          Place a session — {{ dayLabels[selectedCell()!.day] }}, {{ selectedPeriod()?.name }}
+          ({{ selectedPeriod()?.startTime }}–{{ selectedPeriod()?.endTime }})
+        </h3>
+        <div class="skeleton-placement-panel__row">
+          <div class="session-type-toggle" role="radiogroup" aria-label="Session type">
+            <label class="session-type-option" [class.session-type-option--active]="selectedSessionType === 'THEORY'">
+              <input type="radio" name="skeletonSessionType" [(ngModel)]="selectedSessionType" value="THEORY" />
+              Theory
+            </label>
+            <label class="session-type-option" [class.session-type-option--active]="selectedSessionType === 'LAB'">
+              <input type="radio" name="skeletonSessionType" [(ngModel)]="selectedSessionType" value="LAB" />
+              Lab
+            </label>
+            <label class="session-type-option" [class.session-type-option--active]="selectedSessionType === 'CLINICAL'">
+              <input type="radio" name="skeletonSessionType" [(ngModel)]="selectedSessionType" value="CLINICAL" />
+              Clinical
+            </label>
+          </div>
+
+          <select class="mlp-filter-select" [(ngModel)]="selectedBatchId" aria-label="Batch">
+            <option [ngValue]="null">{{ needsBatch() ? 'Select a batch…' : 'Whole cohort (no section split)' }}</option>
+            @for (batch of skeleton()!.batches; track batch.id) {
+              <option [ngValue]="batch.id">{{ batch.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="skeleton-placement-panel__actions">
+          <button type="button" class="btn-secondary" (click)="cancelPlacement()">Cancel</button>
+          <button type="button" class="btn-primary" [disabled]="placing()" (click)="confirmPlacement()">
+            @if (placing()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+            Place
+          </button>
+        </div>
+      </div>
+    }
+
+  } @else {
+    <div class="content-card">
+      <p class="skeleton-empty-hint">Select a subject to build its skeleton.</p>
+    </div>
+  }
+
+</div>

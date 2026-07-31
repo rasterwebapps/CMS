@@ -24,24 +24,49 @@
       </div>
     } @else {
       <div class="field-group">
-        <label class="field-label">Units Covered</label>
-        <ul class="unit-checklist">
-          @for (unit of availableUnits(); track unit.id) {
-            <li class="unit-checkbox-row">
-              <label>
-                <input type="checkbox" [checked]="isSelected(unit.id)"
-                  (change)="toggleUnit(unit.id, $any($event.target).checked)" />
-                Unit {{ unit.unitNumber }} — {{ unit.title }}
-                <span class="unit-checkbox-row__type">{{ componentTypeLabels[unit.componentType] }}</span>
+        <label class="field-label">
+          Units Covered
+          <span class="field-hint">Period length: {{ data.periodHours }}h · logged this session: {{ totalHoursLogged() }}h</span>
+        </label>
+
+        @if (rows().length === 0) {
+          <p class="empty-hint empty-hint--compact">No unit progress logged for this session.</p>
+        }
+
+        <ul class="unit-row-list">
+          @for (row of rows(); track $index) {
+            <li class="unit-row">
+              <select class="field-input unit-row__select" [value]="row.unitId"
+                (change)="onRowUnitChange($index, $any($event.target).value)">
+                @for (unit of unitOptionsFor($index); track unit.id) {
+                  <option [value]="unit.id">{{ unitLabel(unit) }}</option>
+                }
+              </select>
+              <input type="number" class="field-input unit-row__hours" placeholder="Hours" min="0" step="0.25"
+                [value]="row.hoursCovered" (input)="onRowHoursChange($index, $any($event.target).value)" />
+              <label class="unit-row__complete">
+                <input type="checkbox" [checked]="row.markedComplete"
+                  (change)="onRowCompleteChange($index, $any($event.target).checked)" />
+                Complete
               </label>
+              <button type="button" mat-icon-button (click)="removeRow($index)" aria-label="Remove this unit row">
+                <mat-icon>close</mat-icon>
+              </button>
             </li>
           }
         </ul>
+
+        @if (canAddRow()) {
+          <button type="button" mat-stroked-button class="add-row-btn" (click)="addRow()">
+            <mat-icon>add</mat-icon> Add Unit
+          </button>
+        }
       </div>
 
       <div class="field-group">
         <label class="field-label">Remarks (optional)</label>
-        <textarea class="field-input" rows="2" [ngModel]="remarks()" (ngModelChange)="remarks.set($event)"></textarea>
+        <textarea class="field-input" rows="2" [ngModel]="remarks()" (ngModelChange)="remarks.set($event)"
+          placeholder="e.g. class ran short, rest of the period spent on Q&amp;A"></textarea>
       </div>
     }
   }

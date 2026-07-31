@@ -100,17 +100,23 @@ public class PersonalTimetableService {
         List<Batch> batches = batchRepository.findByTermInstanceIdAndStudentId(termInstanceId, studentId);
         List<Long> batchIds = batches.stream().map(Batch::getId).toList();
 
+        // Whole-cohort THEORY rows only here -- a THEORY row scoped to one section (R3 Phase 3,
+        // ClassSchedule.batch set) is picked up below via batchIds instead, same as LAB/CLINICAL,
+        // so a student never sees another section's Theory schedule for the same subject.
         List<ClassSchedule> theoryRows = courseOfferingIds.isEmpty() ? List.of()
             : classScheduleRepository.findByTermInstanceIdAndStatusAndCourseOfferingIdIn(
                 termInstanceId, ClassScheduleStatus.PUBLISHED, List.copyOf(courseOfferingIds))
-              .stream().filter(cs -> cs.getSessionType() == com.cms.model.enums.ClassSessionType.THEORY).toList();
+              .stream()
+              .filter(cs -> cs.getSessionType() == com.cms.model.enums.ClassSessionType.THEORY)
+              .filter(cs -> cs.getBatch() == null)
+              .toList();
 
-        List<ClassSchedule> labRows = batchIds.isEmpty() ? List.of()
+        List<ClassSchedule> batchScopedRows = batchIds.isEmpty() ? List.of()
             : classScheduleRepository.findByTermInstanceIdAndStatusAndBatchIdIn(
                 termInstanceId, ClassScheduleStatus.PUBLISHED, batchIds);
 
         List<ClassSchedule> merged = new ArrayList<>(theoryRows);
-        merged.addAll(labRows);
+        merged.addAll(batchScopedRows);
         return merged;
     }
 

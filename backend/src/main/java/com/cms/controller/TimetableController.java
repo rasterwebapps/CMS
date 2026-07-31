@@ -18,14 +18,17 @@ import com.cms.dto.ClassScheduleOccurrenceResponse;
 import com.cms.dto.ClassScheduleResponse;
 import com.cms.dto.MyTimetableResponse;
 import com.cms.dto.ProfileIdentity;
+import com.cms.dto.ResourceGridRowResponse;
 import com.cms.dto.SwapCandidateResponse;
 import com.cms.dto.SwapRequest;
 import com.cms.dto.TimetableActionResponse;
 import com.cms.dto.TimetableGenerationResponse;
 import com.cms.model.enums.ClassScheduleStatus;
+import com.cms.model.enums.DayOfWeek;
 import com.cms.service.ClassScheduleService;
 import com.cms.service.PersonalTimetableService;
 import com.cms.service.ProfileService;
+import com.cms.service.ResourceGridService;
 import com.cms.service.TimetableGenerationService;
 import com.cms.service.TimetableOccurrenceService;
 import com.cms.service.TimetableSwapService;
@@ -42,19 +45,38 @@ public class TimetableController {
     private final PersonalTimetableService personalTimetableService;
     private final ProfileService profileService;
     private final TimetableOccurrenceService timetableOccurrenceService;
+    private final ResourceGridService resourceGridService;
 
     public TimetableController(TimetableGenerationService timetableGenerationService,
                                 TimetableSwapService timetableSwapService,
                                 ClassScheduleService classScheduleService,
                                 PersonalTimetableService personalTimetableService,
                                 ProfileService profileService,
-                                TimetableOccurrenceService timetableOccurrenceService) {
+                                TimetableOccurrenceService timetableOccurrenceService,
+                                ResourceGridService resourceGridService) {
         this.timetableGenerationService = timetableGenerationService;
         this.timetableSwapService = timetableSwapService;
         this.classScheduleService = classScheduleService;
         this.personalTimetableService = personalTimetableService;
         this.profileService = profileService;
         this.timetableOccurrenceService = timetableOccurrenceService;
+        this.resourceGridService = resourceGridService;
+    }
+
+    @GetMapping("/resource-grid/faculty")
+    @PreAuthorize("@perm.has('TIMETABLE_FACULTY_GRID_VIEW')")
+    public ResponseEntity<List<ResourceGridRowResponse>> getFacultyResourceGrid(
+            @RequestParam Long termInstanceId, @RequestParam DayOfWeek dayOfWeek) {
+        return ResponseEntity.ok(
+            resourceGridService.getResourceGrid(ResourceGridService.ResourceType.FACULTY, termInstanceId, dayOfWeek));
+    }
+
+    @GetMapping("/resource-grid/classroom")
+    @PreAuthorize("@perm.has('TIMETABLE_CLASSROOM_GRID_VIEW')")
+    public ResponseEntity<List<ResourceGridRowResponse>> getClassroomResourceGrid(
+            @RequestParam Long termInstanceId, @RequestParam DayOfWeek dayOfWeek) {
+        return ResponseEntity.ok(
+            resourceGridService.getResourceGrid(ResourceGridService.ResourceType.CLASSROOM, termInstanceId, dayOfWeek));
     }
 
     @GetMapping("/me")

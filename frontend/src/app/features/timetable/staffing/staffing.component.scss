@@ -1,0 +1,90 @@
+// ─────────────────────────────────────────────────────────────
+// Staffing
+// ─────────────────────────────────────────────────────────────
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.staffing-empty-hint {
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-base);
+  padding: 20px;
+}
+
+.staffing-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.staffing-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+}
+
+.staffing-row__subject {
+  font-size: var(--cms-text-base);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+.staffing-row__code {
+  font-weight: 400;
+  color: var(--cms-text-muted);
+  font-family: var(--cms-font-mono);
+  font-size: var(--cms-text-xs);
+}
+
+.staffing-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-muted);
+  flex-wrap: wrap;
+}
+
+.staffing-row__type {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 6px;
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+
+  &--theory {
+    background: var(--cms-badge-blue-bg);
+    color: var(--cms-badge-blue-text);
+  }
+  &--lab {
+    background: rgba(var(--cms-primary-rgb), 0.10);
+    color: var(--cms-primary);
+  }
+  &--clinical {
+    background: var(--cms-badge-green-bg);
+    color: var(--cms-badge-green-text);
+  }
+}
+
+.staffing-row__assign {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  .field-select {
+    min-width: 180px;
+  }
+}

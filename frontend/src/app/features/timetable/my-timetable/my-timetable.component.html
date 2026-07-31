@@ -22,21 +22,56 @@
         <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
       }
     </select>
-    <label class="week-picker">
-      <span class="week-picker__label">Week of</span>
-      <input type="date" class="field-input" [(ngModel)]="weekStart" (ngModelChange)="onWeekStartChange()"
-        [min]="weekMin()" [max]="weekMax()" aria-label="Week start date" />
-    </label>
+
+    <div class="view-mode-toggle">
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'week'" (click)="setViewMode('week')">Week</button>
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'month'" (click)="setViewMode('month')">Month</button>
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'day'" (click)="setViewMode('day')">Day</button>
+    </div>
+
+    @if (viewMode() === 'week') {
+      <label class="week-picker">
+        <span class="week-picker__label">Week of</span>
+        <input type="date" class="field-input" [(ngModel)]="weekStart" (ngModelChange)="onWeekStartChange()"
+          [min]="weekMin()" [max]="weekMax()" aria-label="Week start date" />
+      </label>
+    }
+    @if (viewMode() === 'day') {
+      <label class="week-picker">
+        <span class="week-picker__label">Date</span>
+        <input type="date" class="field-input" [ngModel]="dayDate()" (ngModelChange)="onDayDateChange($event)"
+          [min]="weekMin()" [max]="weekMax()" aria-label="Day date" />
+      </label>
+    }
   </div>
 
   <div class="content-card">
-    @if (loading()) {
-      <div class="loading-container">
-        <mat-spinner diameter="36" aria-label="Loading timetable"></mat-spinner>
-      </div>
+    @if (viewMode() === 'week') {
+      @if (loading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="36" aria-label="Loading timetable"></mat-spinner>
+        </div>
+      } @else {
+        <cms-week-grid mode="personal" [sessions]="sessions()" [holidays]="holidays()" [weekStart]="weekStart"
+          (sessionClick)="openLogProgress($event)" />
+      }
+    } @else if (viewMode() === 'month') {
+      @if (occurrencesLoading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="36" aria-label="Loading month view"></mat-spinner>
+        </div>
+      } @else {
+        <cms-month-grid [year]="monthYear()" [month]="monthMonth()" [occurrences]="occurrences()"
+          (monthChange)="onMonthChange($event)" (dayClick)="onMonthDayClick($event)" />
+      }
     } @else {
-      <cms-week-grid mode="personal" [sessions]="sessions()" [holidays]="holidays()" [weekStart]="weekStart"
-        (sessionClick)="openLogProgress($event)" />
+      @if (occurrencesLoading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="36" aria-label="Loading day view"></mat-spinner>
+        </div>
+      } @else {
+        <cms-day-agenda [date]="dayDate()" [occurrences]="occurrences()" />
+      }
     }
   </div>
 

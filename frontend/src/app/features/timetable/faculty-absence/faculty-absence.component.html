@@ -1,0 +1,110 @@
+<div class="mlp-page">
+
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="page-title">Faculty <em>Absence</em></h1>
+      <p class="page-subtitle">Mark a faculty absent for a date and find an eligible substitute for their affected sessions</p>
+    </div>
+  </div>
+
+  <div class="content-card mark-absence-card">
+    <div class="field-row">
+      <div class="field-group">
+        <label class="field-label">Faculty</label>
+        <select class="field-input" [(ngModel)]="selectedFacultyId" aria-label="Faculty">
+          <option [ngValue]="null">Select faculty…</option>
+          @for (f of facultyList(); track f.id) {
+            <option [ngValue]="f.id">{{ f.fullName }} ({{ f.specialityName }})</option>
+          }
+        </select>
+      </div>
+      <div class="field-group field-group--narrow">
+        <label class="field-label">Date</label>
+        <input type="date" class="field-input" [(ngModel)]="absenceDate" aria-label="Absence date" />
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Reason (optional)</label>
+      <textarea class="field-input" rows="2" [(ngModel)]="reason"></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" mat-flat-button color="primary" [disabled]="!selectedFacultyId || marking()" (click)="markAbsent()">
+        @if (marking()) {
+          <mat-spinner diameter="16"></mat-spinner>
+        } @else {
+          Mark Absent
+        }
+      </button>
+    </div>
+  </div>
+
+  @if (currentAbsence()) {
+    <div class="content-card affected-sessions-card">
+      <h3 class="affected-sessions__title">
+        Affected sessions — {{ currentAbsence()!.facultyName }} on {{ currentAbsence()!.absenceDate }}
+      </h3>
+
+      @if (loadingSessions()) {
+        <div class="loading-container">
+          <mat-spinner diameter="32"></mat-spinner>
+        </div>
+      } @else if (affectedSessions().length === 0) {
+        <p class="empty-hint">No published sessions for this faculty on that day.</p>
+      } @else {
+        <ul class="session-list">
+          @for (session of affectedSessions(); track session.classScheduleId) {
+            <li class="session-item">
+              <div class="session-item__row">
+                <span class="session-item__time">{{ session.startTime }} – {{ session.endTime }}</span>
+                <span class="session-item__subject">{{ session.subjectName }}</span>
+                <span class="session-item__room">{{ session.roomName }}</span>
+                @if (session.batchName) {
+                  <span class="session-item__batch">{{ session.batchName }}</span>
+                }
+                @if (session.occurrenceStatus === 'SUBSTITUTED') {
+                  <span class="session-item__status session-item__status--substituted">
+                    Covered by {{ session.substituteFacultyName }}
+                  </span>
+                } @else {
+                  <button type="button" mat-stroked-button class="find-sub-btn"
+                    (click)="findSubstitute(session)">
+                    Find Substitute
+                  </button>
+                }
+              </div>
+
+              @if (findingCandidatesFor() === session.classScheduleId) {
+                <div class="candidate-panel">
+                  @if (loadingCandidates()) {
+                    <mat-spinner diameter="20"></mat-spinner>
+                  } @else if (candidates().length === 0) {
+                    <p class="empty-hint empty-hint--compact">No eligible substitute found for this slot.</p>
+                  } @else {
+                    <ul class="candidate-list">
+                      @for (candidate of candidates(); track candidate.facultyId) {
+                        <li>
+                          <button type="button" mat-stroked-button class="candidate-btn"
+                            [disabled]="applyingSubstituteFacultyId() === candidate.facultyId"
+                            (click)="applySubstitute(session.classScheduleId, candidate.facultyId)">
+                            @if (applyingSubstituteFacultyId() === candidate.facultyId) {
+                              <mat-spinner diameter="14"></mat-spinner>
+                            }
+                            {{ candidate.facultyName }}
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  }
+                  <button type="button" class="cancel-find-btn" (click)="cancelFindSubstitute()">Cancel</button>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+</div>

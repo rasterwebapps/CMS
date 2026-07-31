@@ -9,7 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LabScheduleService } from '../lab-schedule.service';
-import { ClassSessionType, DAYS_OF_WEEK, LabScheduleRequest, LabSlot } from '../lab-schedule.model';
+import { ClassSessionType, DAYS_OF_WEEK, LabScheduleRequest } from '../lab-schedule.model';
 import { environment } from '../../../../environments/environment';
 import { ToastService } from '../../../core/toast/toast.service';
 import { BatchService } from '../../batch/batch.service';
@@ -18,6 +18,8 @@ import { ClassroomService } from '../../classroom/classroom.service';
 import { Classroom } from '../../classroom/classroom.model';
 import { PeriodService } from '../../period/period.service';
 import { Period } from '../../period/period.model';
+import { ClinicalVenueService } from '../../clinical-venue/clinical-venue.service';
+import { ClinicalVenue } from '../../clinical-venue/clinical-venue.model';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
@@ -44,6 +46,7 @@ export class LabScheduleFormComponent implements OnInit {
   private readonly batchService = inject(BatchService);
   private readonly classroomService = inject(ClassroomService);
   private readonly periodService = inject(PeriodService);
+  private readonly clinicalVenueService = inject(ClinicalVenueService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -52,23 +55,32 @@ export class LabScheduleFormComponent implements OnInit {
   protected readonly labs = signal<{ id: number; name: string }[]>([]);
   protected readonly subjects = signal<{ id: number; name: string; code: string; specialityId: number | null; specialityName: string | null }[]>([]);
   protected readonly faculty = signal<{ id: number; name: string; specialityId: number | null }[]>([]);
-  protected readonly labSlots = signal<LabSlot[]>([]);
   protected readonly classrooms = signal<Classroom[]>([]);
   protected readonly periods = signal<Period[]>([]);
+  protected readonly clinicalVenues = signal<ClinicalVenue[]>([]);
   protected readonly termInstances = signal<{ id: number; termType: string; startDate: string; endDate: string; academicYearName: string }[]>([]);
   protected readonly daysOfWeek = DAYS_OF_WEEK;
   protected readonly availableBatches = signal<Batch[]>([]);
 
   protected readonly sessionType = signal<ClassSessionType>('LAB');
   protected readonly isTheory = computed(() => this.sessionType() === 'THEORY');
+  protected readonly isLab = computed(() => this.sessionType() === 'LAB');
+  protected readonly isClinical = computed(() => this.sessionType() === 'CLINICAL');
+  protected readonly isBatchScoped = computed(() => this.isLab() || this.isClinical());
+  protected readonly slotFieldLabel = computed(() => {
+    if (this.isTheory()) return 'Period';
+    if (this.isClinical()) return 'Clinical Slot';
+    return 'Lab Slot';
+  });
 
   // Preview signals
   protected readonly previewLabId       = signal<number | null>(null);
   protected readonly previewSubjectId   = signal<number | null>(null);
   protected readonly previewFacultyId   = signal<number | null>(null);
-  protected readonly previewSlotId      = signal<number | null>(null);
   protected readonly previewClassroomId = signal<number | null>(null);
+  protected readonly previewClinicalVenueId = signal<number | null>(null);
   protected readonly previewPeriodId    = signal<number | null>(null);
+  protected readonly previewBatchId     = signal<number | null>(null);
   protected readonly previewBatch       = signal('');
   protected readonly previewDay         = signal('');
   protected readonly previewTermId      = signal<number | null>(null);
@@ -84,16 +96,21 @@ export class LabScheduleFormComponent implements OnInit {
     return t ? `${t.academicYearName} ${t.termType}` : '';
   });
   protected readonly previewSlotLabel   = computed(() => {
-    if (this.isTheory()) {
-      const p = this.periods().find(x => x.id === this.previewPeriodId());
-      return p ? `${p.startTime}-${p.endTime}` : '';
-    }
-    const s = this.labSlots().find(x => x.id === this.previewSlotId());
-    return s ? `${s.startTime}-${s.endTime}` : '';
+    const p = this.periods().find(x => x.id === this.previewPeriodId());
+    return p ? `${p.startTime}-${p.endTime}` : '';
+  });
+  protected readonly previewClinicalVenueName = computed(() =>
+    this.clinicalVenues().find(v => v.id === this.previewClinicalVenueId())?.name ?? '');
+  protected readonly previewTheorySectionName = computed(() => {
+    if (!this.isTheory()) return '';
+    return this.availableBatches().find(b => b.id === this.previewBatchId())?.name ?? '';
   });
   protected readonly previewRoomName = computed(() => {
     if (this.isTheory()) {
       return this.classrooms().find(c => c.id === this.previewClassroomId())?.name ?? '';
+    }
+    if (this.isClinical()) {
+      return this.previewClinicalVenueName();
     }
     return this.previewLabName();
   });
@@ -130,14 +147,14 @@ export class LabScheduleFormComponent implements OnInit {
     labId: [null as number | null],
     subjectId: [null, Validators.required],
     facultyId: [null, Validators.required],
-    labSlotId: [null as number | null],
     batchName: [''],
     batchId: [null],
     dayOfWeek: ['', Validators.required],
     termInstanceId: [null, Validators.required],
     isActive: [true],
     classroomId: [null as number | null],
-    periodId: [null as number | null],
+    periodId: [null as number | null, Validators.required],
+    clinicalVenueId: [null as number | null],
     courseOfferingId: [null as number | null],
   });
 
@@ -152,9 +169,10 @@ export class LabScheduleFormComponent implements OnInit {
         this.previewSubjectId.set(v.subjectId ?? null);
         this.selectedSubjectId.set(v.subjectId ?? null);
         this.previewFacultyId.set(v.facultyId ?? null);
-        this.previewSlotId.set(v.labSlotId ?? null);
         this.previewClassroomId.set(v.classroomId ?? null);
+        this.previewClinicalVenueId.set(v.clinicalVenueId ?? null);
         this.previewPeriodId.set(v.periodId ?? null);
+        this.previewBatchId.set(v.batchId ?? null);
         this.previewBatch.set((v.batchName ?? '').trim());
         this.previewDay.set(v.dayOfWeek ?? '');
         this.previewTermId.set(v.termInstanceId ?? null);
@@ -179,29 +197,28 @@ export class LabScheduleFormComponent implements OnInit {
 
   private applySessionTypeValidators(type: ClassSessionType): void {
     const labId = this.form.get('labId');
-    const labSlotId = this.form.get('labSlotId');
     const batchName = this.form.get('batchName');
     const classroomId = this.form.get('classroomId');
-    const periodId = this.form.get('periodId');
+    const clinicalVenueId = this.form.get('clinicalVenueId');
+
+    labId?.clearValidators();
+    classroomId?.clearValidators();
+    clinicalVenueId?.clearValidators();
+    batchName?.clearValidators();
 
     if (type === 'THEORY') {
-      labId?.clearValidators();
-      labSlotId?.clearValidators();
-      batchName?.clearValidators();
       classroomId?.setValidators(Validators.required);
-      periodId?.setValidators(Validators.required);
+    } else if (type === 'CLINICAL') {
+      clinicalVenueId?.setValidators(Validators.required);
+      batchName?.setValidators([Validators.required, Validators.maxLength(100)]);
     } else {
       labId?.setValidators(Validators.required);
-      labSlotId?.setValidators(Validators.required);
       batchName?.setValidators([Validators.required, Validators.maxLength(100)]);
-      classroomId?.clearValidators();
-      periodId?.clearValidators();
     }
     labId?.updateValueAndValidity({ emitEvent: false });
-    labSlotId?.updateValueAndValidity({ emitEvent: false });
     batchName?.updateValueAndValidity({ emitEvent: false });
     classroomId?.updateValueAndValidity({ emitEvent: false });
-    periodId?.updateValueAndValidity({ emitEvent: false });
+    clinicalVenueId?.updateValueAndValidity({ emitEvent: false });
   }
 
   protected onBatchSelect(batchId: number | null): void {
@@ -228,10 +245,6 @@ export class LabScheduleFormComponent implements OnInit {
       next: (data) => this.faculty.set(data.map((f) => ({ id: f.id, name: f.fullName, specialityId: f.specialityId }))),
       error: () => { this.toast.error('Failed to load faculty'); },
     });
-    this.labScheduleService.getAllSlots().subscribe({
-      next: (data) => this.labSlots.set(data),
-      error: () => { this.toast.error('Failed to load lab slots'); },
-    });
     this.classroomService.getAll(true).subscribe({
       next: (data) => this.classrooms.set(data),
       error: () => { this.toast.error('Failed to load classrooms'); },
@@ -239,6 +252,10 @@ export class LabScheduleFormComponent implements OnInit {
     this.periodService.getAll(true).subscribe({
       next: (data) => this.periods.set(data),
       error: () => { this.toast.error('Failed to load periods'); },
+    });
+    this.clinicalVenueService.getAll(true).subscribe({
+      next: (data) => this.clinicalVenues.set(data),
+      error: () => { this.toast.error('Failed to load clinical venues'); },
     });
     this.http.get<{ id: number; termType: string; startDate: string; endDate: string; academicYear: { id: number; name: string } }[]>(
       `${environment.apiUrl}/term-instances`).subscribe({
@@ -266,7 +283,6 @@ export class LabScheduleFormComponent implements OnInit {
             labId: item.labId,
             subjectId: item.subjectId,
             facultyId: item.facultyId,
-            labSlotId: item.labSlotId,
             batchName: item.batchName ?? '',
             batchId: item.batchId,
             dayOfWeek: item.dayOfWeek,
@@ -274,6 +290,7 @@ export class LabScheduleFormComponent implements OnInit {
             isActive: item.isActive,
             classroomId: item.classroomId,
             periodId: item.periodId,
+            clinicalVenueId: item.clinicalVenueId,
             courseOfferingId: item.courseOfferingId,
           });
           this.applySessionTypeValidators(item.sessionType);
@@ -287,19 +304,22 @@ export class LabScheduleFormComponent implements OnInit {
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     const v = this.form.value;
+    const isBatchScoped = v.sessionType === 'LAB' || v.sessionType === 'CLINICAL';
     const request: LabScheduleRequest = {
       sessionType: v.sessionType,
       labId: v.sessionType === 'LAB' ? v.labId : null,
       subjectId: v.subjectId,
       facultyId: v.facultyId,
-      labSlotId: v.sessionType === 'LAB' ? v.labSlotId : null,
-      batchName: v.sessionType === 'LAB' ? (v.batchName ?? '').trim() : null,
-      batchId: v.sessionType === 'LAB' ? (v.batchId ?? null) : null,
+      batchName: isBatchScoped ? (v.batchName ?? '').trim() : null,
+      // THEORY may also carry an optional batchId (R3 Phase 3) to scope that subject's Theory
+      // schedule to one section instead of the whole cohort -- left null means "whole cohort".
+      batchId: v.batchId ?? null,
       dayOfWeek: v.dayOfWeek,
       termInstanceId: v.termInstanceId,
       isActive: v.isActive,
       classroomId: v.sessionType === 'THEORY' ? v.classroomId : null,
-      periodId: v.sessionType === 'THEORY' ? v.periodId : null,
+      periodId: v.periodId,
+      clinicalVenueId: v.sessionType === 'CLINICAL' ? v.clinicalVenueId : null,
       courseOfferingId: v.courseOfferingId ?? null,
     };
     this.saving.set(true);

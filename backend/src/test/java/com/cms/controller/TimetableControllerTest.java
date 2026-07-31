@@ -33,6 +33,7 @@ import com.cms.model.enums.DayOfWeek;
 import com.cms.service.ClassScheduleService;
 import com.cms.service.PersonalTimetableService;
 import com.cms.service.ProfileService;
+import com.cms.service.ResourceGridService;
 import com.cms.service.TimetableGenerationService;
 import com.cms.service.TimetableOccurrenceService;
 import com.cms.service.TimetableSwapService;
@@ -61,6 +62,9 @@ class TimetableControllerTest {
 
     @MockitoBean
     private TimetableOccurrenceService timetableOccurrenceService;
+
+    @MockitoBean
+    private ResourceGridService resourceGridService;
 
     @Test
     void shouldGenerateTimetable() throws Exception {
@@ -174,7 +178,7 @@ class TimetableControllerTest {
     @Test
     void shouldFindSwapCandidates() throws Exception {
         SwapCandidateResponse candidate = new SwapCandidateResponse(
-            DayOfWeek.TUESDAY, LocalTime.of(9, 0), LocalTime.of(10, 0), 2L, null, false, null, null);
+            DayOfWeek.TUESDAY, LocalTime.of(9, 0), LocalTime.of(10, 0), 2L, false, null, null);
         when(timetableSwapService.findCandidates(10L, 55L)).thenReturn(List.of(candidate));
 
         mockMvc.perform(get("/timetables/10/sessions/55/swap-candidates"))

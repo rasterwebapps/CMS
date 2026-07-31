@@ -12,7 +12,7 @@ public record LogProgressRequest(
     @NotNull(message = "Occurrence date is required")
     LocalDate occurrenceDate,
 
-    List<Long> unitIds,
+    List<UnitCoverageRequest> units,
 
     String remarks
 ) {}

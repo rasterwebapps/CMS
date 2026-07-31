@@ -18,14 +18,14 @@ public record ClassScheduleRequest(
     @NotNull(message = "Faculty ID is required")
     Long facultyId,
 
-    /** Required when sessionType = LAB. */
-    Long labSlotId,
-
-    /** Required when sessionType = LAB. */
+    /** Required when sessionType = LAB or CLINICAL. */
     String batchName,
 
-    /** Optional real Batch to back a LAB row (see additive-then-deprecate note on
-     *  ClassSchedule.batch) — when supplied, batchName should mirror the picked Batch's name. */
+    /** Optional real Batch to back a LAB/CLINICAL row's roster group (see additive-then-deprecate
+     *  note on ClassSchedule.batch) — when supplied, batchName should mirror the picked Batch's
+     *  name. Also usable on a THEORY row (R3 Phase 3) to scope that subject's Theory schedule to
+     *  one section instead of the whole cohort — left null there means "whole cohort", the only
+     *  behavior that existed before Phase 3. */
     Long batchId,
 
     @NotNull(message = "Day of week is required")
@@ -39,10 +39,13 @@ public record ClassScheduleRequest(
     /** Required when sessionType = THEORY. */
     Long classroomId,
 
-    /** Required when sessionType = THEORY. */
+    @NotNull(message = "Period is required")
     Long periodId,
 
+    /** Required when sessionType = CLINICAL. */
+    Long clinicalVenueId,
+
     /** Optional context linking this row back to a CourseOffering — required for THEORY rows
-     *  to resolve audience via CourseRegistration; optional for LAB rows. */
+     *  to resolve audience via CourseRegistration; optional for LAB/CLINICAL rows. */
     Long courseOfferingId
 ) {}

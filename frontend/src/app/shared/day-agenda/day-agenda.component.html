@@ -1,0 +1,25 @@
+<div class="day-agenda-wrap">
+  <h3 class="day-agenda__date">{{ date }}</h3>
+
+  @if (sortedOccurrences().length === 0) {
+    <cms-empty-state icon="calendar_today" title="Nothing scheduled" subtitle="No sessions on this date." />
+  } @else {
+    <ul class="day-agenda__list">
+      @for (occ of sortedOccurrences(); track occ.session.id) {
+        <li class="day-agenda__item"
+          [class.day-agenda__item--theory]="occ.session.sessionType === 'THEORY'"
+          [class.day-agenda__item--lab]="occ.session.sessionType === 'LAB'">
+          <div class="day-agenda__time">{{ occ.session.startTime }} – {{ occ.session.endTime }}</div>
+          <div class="day-agenda__body">
+            <span class="day-agenda__subject">{{ occ.session.subjectName }}</span>
+            <span class="day-agenda__room">{{ occ.session.roomName }}</span>
+            @if (occ.session.batchName) {
+              <span class="day-agenda__batch">{{ occ.session.batchName }}</span>
+            }
+            <span class="day-agenda__faculty">{{ occ.session.facultyName }}</span>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</div>

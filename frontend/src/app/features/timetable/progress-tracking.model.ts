@@ -1,33 +1,46 @@
 import { AttendanceComponentType } from '../curriculum/curriculum-version.model';
 
-export interface SyllabusUnitOption {
+/** One selectable unit in the Log Progress dialog, with its aggregate state across every session
+ *  logged so far (not just the date being edited) so the picker can default to the actual
+ *  current unit instead of a flat list with no sense of where things stand. */
+export interface UnitPickerOption {
   id: number;
   unitNumber: number;
   title: string;
   componentType: AttendanceComponentType;
   plannedHours: number | null;
+  hoursLoggedSoFar: number;
+  markedComplete: boolean;
 }
 
-export interface CoveredUnit {
-  id: number;
+export interface UnitCoverage {
+  unitId: number;
   unitNumber: number;
   title: string;
+  hoursCovered: number | null;
+  markedComplete: boolean;
 }
 
 export interface SessionOccurrence {
   id: number;
   classScheduleId: number;
   occurrenceDate: string;
-  coveredUnits: CoveredUnit[];
+  unitCoverages: UnitCoverage[];
   remarks: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
+export interface UnitCoverageEntry {
+  unitId: number;
+  hoursCovered: number | null;
+  markedComplete: boolean;
+}
+
 export interface LogProgressRequest {
   classScheduleId: number;
   occurrenceDate: string;
-  unitIds: number[];
+  units: UnitCoverageEntry[];
   remarks?: string | null;
 }
 
@@ -37,7 +50,8 @@ export interface UnitProgress {
   title: string;
   componentType: AttendanceComponentType;
   plannedHours: number | null;
-  covered: boolean;
+  hoursLogged: number;
+  completed: boolean;
   coveredDates: string[];
 }
 

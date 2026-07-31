@@ -14,10 +14,10 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Batch;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
+import com.cms.model.ClinicalVenue;
 import com.cms.model.CourseOffering;
 import com.cms.model.Faculty;
 import com.cms.model.Lab;
-import com.cms.model.LabSlot;
 import com.cms.model.Period;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
@@ -27,10 +27,10 @@ import com.cms.model.enums.DayOfWeek;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
+import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabRepository;
-import com.cms.repository.LabSlotRepository;
 import com.cms.repository.PeriodRepository;
 import com.cms.repository.SubjectRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -43,32 +43,32 @@ public class ClassScheduleService {
     private final LabRepository labRepository;
     private final SubjectRepository subjectRepository;
     private final FacultyRepository facultyRepository;
-    private final LabSlotRepository labSlotRepository;
     private final TermInstanceRepository termInstanceRepository;
     private final BatchRepository batchRepository;
     private final ClassroomRepository classroomRepository;
     private final PeriodRepository periodRepository;
+    private final ClinicalVenueRepository clinicalVenueRepository;
     private final CourseOfferingRepository courseOfferingRepository;
 
     public ClassScheduleService(ClassScheduleRepository classScheduleRepository,
                                LabRepository labRepository,
                                SubjectRepository subjectRepository,
                                FacultyRepository facultyRepository,
-                               LabSlotRepository labSlotRepository,
                                TermInstanceRepository termInstanceRepository,
                                BatchRepository batchRepository,
                                ClassroomRepository classroomRepository,
                                PeriodRepository periodRepository,
+                               ClinicalVenueRepository clinicalVenueRepository,
                                CourseOfferingRepository courseOfferingRepository) {
         this.classScheduleRepository = classScheduleRepository;
         this.labRepository = labRepository;
         this.subjectRepository = subjectRepository;
         this.facultyRepository = facultyRepository;
-        this.labSlotRepository = labSlotRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.batchRepository = batchRepository;
         this.classroomRepository = classroomRepository;
         this.periodRepository = periodRepository;
+        this.clinicalVenueRepository = clinicalVenueRepository;
         this.courseOfferingRepository = courseOfferingRepository;
     }
 
@@ -90,41 +90,53 @@ public class ClassScheduleService {
         TermInstance termInstance = termInstanceRepository.findById(request.termInstanceId())
             .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + request.termInstanceId()));
 
+        Period period = periodRepository.findById(request.periodId())
+            .orElseThrow(() -> new ResourceNotFoundException("Period not found with id: " + request.periodId()));
+
         cs.setSessionType(request.sessionType());
         cs.setSubject(subject);
         cs.setFaculty(faculty);
         cs.setDayOfWeek(request.dayOfWeek());
         cs.setTermInstance(termInstance);
         cs.setCourseOffering(resolveCourseOffering(request.courseOfferingId()));
+        cs.setPeriod(period);
 
         if (request.sessionType() == ClassSessionType.LAB) {
-            if (request.labId() == null || request.labSlotId() == null || request.batchName() == null || request.batchName().isBlank()) {
-                throw new IllegalArgumentException("Lab, lab slot, and batch name are required for a LAB session");
+            if (request.labId() == null || request.batchName() == null || request.batchName().isBlank()) {
+                throw new IllegalArgumentException("Lab and batch name are required for a LAB session");
             }
             Lab lab = labRepository.findById(request.labId())
                 .orElseThrow(() -> new ResourceNotFoundException("Lab not found with id: " + request.labId()));
-            LabSlot labSlot = labSlotRepository.findById(request.labSlotId())
-                .orElseThrow(() -> new ResourceNotFoundException("Lab slot not found with id: " + request.labSlotId()));
             cs.setLab(lab);
-            cs.setLabSlot(labSlot);
             cs.setBatchName(request.batchName());
             cs.setBatch(resolveBatch(request.batchId()));
             cs.setClassroom(null);
-            cs.setPeriod(null);
+            cs.setClinicalVenue(null);
+        } else if (request.sessionType() == ClassSessionType.CLINICAL) {
+            if (request.clinicalVenueId() == null || request.batchName() == null || request.batchName().isBlank()) {
+                throw new IllegalArgumentException("Clinical venue and batch name are required for a CLINICAL session");
+            }
+            ClinicalVenue venue = clinicalVenueRepository.findById(request.clinicalVenueId())
+                .orElseThrow(() -> new ResourceNotFoundException("Clinical venue not found with id: " + request.clinicalVenueId()));
+            cs.setClinicalVenue(venue);
+            cs.setBatchName(request.batchName());
+            cs.setBatch(resolveBatch(request.batchId()));
+            cs.setClassroom(null);
+            cs.setLab(null);
         } else {
-            if (request.classroomId() == null || request.periodId() == null) {
-                throw new IllegalArgumentException("Classroom and period are required for a THEORY session");
+            if (request.classroomId() == null) {
+                throw new IllegalArgumentException("Classroom is required for a THEORY session");
             }
             Classroom classroom = classroomRepository.findById(request.classroomId())
                 .orElseThrow(() -> new ResourceNotFoundException("Classroom not found with id: " + request.classroomId()));
-            Period period = periodRepository.findById(request.periodId())
-                .orElseThrow(() -> new ResourceNotFoundException("Period not found with id: " + request.periodId()));
             cs.setClassroom(classroom);
-            cs.setPeriod(period);
             cs.setLab(null);
-            cs.setLabSlot(null);
+            cs.setClinicalVenue(null);
             cs.setBatchName(null);
-            cs.setBatch(null);
+            // Optional section scoping (R3 Phase 3): a THEORY row may pick a Batch to split one
+            // subject's Theory schedule across sections, same as LAB/CLINICAL already do -- left
+            // null means "whole cohort", matching every pre-Phase-3 row's existing behavior.
+            cs.setBatch(resolveBatch(request.batchId()));
         }
     }
 
@@ -134,8 +146,10 @@ public class ClassScheduleService {
      * every subject is department-scoped) and grandfathered when the requested faculty is the
      * same one already on the row — this blocks new/changed mismatched assignments without
      * retroactively breaking rows saved before this rule existed on an otherwise-unrelated edit.
+     * Static + package-visible so {@link TimetableSkeletonService}'s R3 Phase 5 staffing pass
+     * reuses the exact same rule rather than a second copy that could drift.
      */
-    private void requireEligibleFaculty(Subject subject, Faculty faculty, Faculty previousFaculty) {
+    static void requireEligibleFaculty(Subject subject, Faculty faculty, Faculty previousFaculty) {
         if (subject.getSpeciality() == null) {
             return;
         }
@@ -216,19 +230,10 @@ public class ClassScheduleService {
     }
 
     public ScheduleConflictResponse checkConflicts(ClassScheduleRequest request, Long excludeId) {
-        LocalTime startTime;
-        LocalTime endTime;
-        if (request.sessionType() == ClassSessionType.LAB) {
-            LabSlot labSlot = labSlotRepository.findById(request.labSlotId())
-                .orElseThrow(() -> new ResourceNotFoundException("Lab slot not found with id: " + request.labSlotId()));
-            startTime = labSlot.getStartTime();
-            endTime = labSlot.getEndTime();
-        } else {
-            Period period = periodRepository.findById(request.periodId())
-                .orElseThrow(() -> new ResourceNotFoundException("Period not found with id: " + request.periodId()));
-            startTime = period.getStartTime();
-            endTime = period.getEndTime();
-        }
+        Period period = periodRepository.findById(request.periodId())
+            .orElseThrow(() -> new ResourceNotFoundException("Period not found with id: " + request.periodId()));
+        LocalTime startTime = period.getStartTime();
+        LocalTime endTime = period.getEndTime();
 
         List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
             request.dayOfWeek(), request.termInstanceId(), startTime, endTime,
@@ -239,9 +244,11 @@ public class ClassScheduleService {
         List<String> audienceConflicts = new ArrayList<>();
 
         for (ClassSchedule c : overlapping) {
-            boolean sameRoom = request.sessionType() == ClassSessionType.LAB
-                ? c.getSessionType() == ClassSessionType.LAB && sameId(c.getLab() != null ? c.getLab().getId() : null, request.labId())
-                : c.getSessionType() == ClassSessionType.THEORY && sameId(c.getClassroom() != null ? c.getClassroom().getId() : null, request.classroomId());
+            boolean sameRoom = c.getSessionType() == request.sessionType() && switch (request.sessionType()) {
+                case LAB -> sameId(c.getLab() != null ? c.getLab().getId() : null, request.labId());
+                case CLINICAL -> sameId(c.getClinicalVenue() != null ? c.getClinicalVenue().getId() : null, request.clinicalVenueId());
+                case THEORY -> sameId(c.getClassroom() != null ? c.getClassroom().getId() : null, request.classroomId());
+            };
             if (sameRoom) {
                 roomConflicts.add(String.format("Room is already scheduled for %s on %s",
                     c.getSubject().getName(), c.getDayOfWeek()));
@@ -252,10 +259,14 @@ public class ClassScheduleService {
                     c.getSubject().getName(), c.getDayOfWeek()));
             }
 
-            boolean sameAudience = request.sessionType() == ClassSessionType.LAB
-                ? c.getSessionType() == ClassSessionType.LAB && sameStr(c.getBatchName(), request.batchName())
-                : c.getSessionType() == ClassSessionType.THEORY && sameId(
-                    c.getCourseOffering() != null ? c.getCourseOffering().getId() : null, request.courseOfferingId());
+            // THEORY audience is batch-scoped when a section was picked (R3 Phase 3), falling
+            // back to the whole-cohort courseOffering comparison for un-sectioned rows.
+            boolean sameAudience = c.getSessionType() == request.sessionType() && switch (request.sessionType()) {
+                case LAB, CLINICAL -> sameStr(c.getBatchName(), request.batchName());
+                case THEORY -> request.batchId() != null
+                    ? sameId(c.getBatch() != null ? c.getBatch().getId() : null, request.batchId())
+                    : sameId(c.getCourseOffering() != null ? c.getCourseOffering().getId() : null, request.courseOfferingId());
+            };
             if (sameAudience) {
                 audienceConflicts.add(String.format("Audience is already scheduled for %s on %s",
                     c.getSubject().getName(), c.getDayOfWeek()));
@@ -302,10 +313,19 @@ public class ClassScheduleService {
         String label = ti.getAcademicYear().getName() + " " + ti.getTermType();
 
         boolean isLab = cs.getSessionType() == ClassSessionType.LAB;
-        String slotName = isLab ? (cs.getLabSlot() != null ? cs.getLabSlot().getName() : null) : (cs.getPeriod() != null ? cs.getPeriod().getName() : null);
-        LocalTime startTime = isLab ? (cs.getLabSlot() != null ? cs.getLabSlot().getStartTime() : null) : (cs.getPeriod() != null ? cs.getPeriod().getStartTime() : null);
-        LocalTime endTime = isLab ? (cs.getLabSlot() != null ? cs.getLabSlot().getEndTime() : null) : (cs.getPeriod() != null ? cs.getPeriod().getEndTime() : null);
-        String roomName = isLab ? (cs.getLab() != null ? cs.getLab().getName() : null) : (cs.getClassroom() != null ? cs.getClassroom().getName() : null);
+        String slotName = cs.getPeriod() != null ? cs.getPeriod().getName() : null;
+        LocalTime startTime = cs.getPeriod() != null ? cs.getPeriod().getStartTime() : null;
+        LocalTime endTime = cs.getPeriod() != null ? cs.getPeriod().getEndTime() : null;
+        String roomName = switch (cs.getSessionType()) {
+            case LAB -> cs.getLab() != null ? cs.getLab().getName() : null;
+            case CLINICAL -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getName() : null;
+            case THEORY -> cs.getClassroom() != null ? cs.getClassroom().getName() : null;
+        };
+        // LAB/CLINICAL always populate the free-text batchName; a THEORY row's optional section
+        // (R3 Phase 3) only ever sets the real Batch link, so fall back to its name for display.
+        String batchDisplayName = cs.getBatchName() != null
+            ? cs.getBatchName()
+            : (cs.getBatch() != null ? cs.getBatch().getName() : null);
 
         return new ClassScheduleResponse(
             cs.getId(),
@@ -316,17 +336,18 @@ public class ClassScheduleService {
             cs.getSubject().getId(),
             cs.getSubject().getName(),
             cs.getSubject().getCode(),
-            cs.getFaculty().getId(),
-            cs.getFaculty().getFirstName() + " " + cs.getFaculty().getLastName(),
-            cs.getLabSlot() != null ? cs.getLabSlot().getId() : null,
+            cs.getFaculty() != null ? cs.getFaculty().getId() : null,
+            // Null for an unstaffed R3 Phase 4 skeleton row (faculty assigned later by Phase 5).
+            cs.getFaculty() != null ? cs.getFaculty().getFirstName() + " " + cs.getFaculty().getLastName() : null,
             cs.getPeriod() != null ? cs.getPeriod().getId() : null,
             slotName,
             startTime,
             endTime,
-            cs.getBatchName(),
+            batchDisplayName,
             cs.getBatch() != null ? cs.getBatch().getId() : null,
             cs.getClassroom() != null ? cs.getClassroom().getId() : null,
-            roomName, // session-type-neutral: resolves to classroom or lab name regardless of type
+            cs.getClinicalVenue() != null ? cs.getClinicalVenue().getId() : null,
+            roomName, // session-type-neutral: resolves to classroom, lab, or clinical venue name
             cs.getCourseOffering() != null ? cs.getCourseOffering().getId() : null,
             cs.getDayOfWeek(),
             ti.getId(),

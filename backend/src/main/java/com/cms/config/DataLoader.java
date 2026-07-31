@@ -33,8 +33,8 @@ import com.cms.model.Lab;
 import com.cms.model.LabCurriculumMapping;
 import com.cms.model.LabInChargeAssignment;
 import com.cms.model.ClassSchedule;
-import com.cms.model.LabSlot;
 import com.cms.model.MaintenanceRequest;
+import com.cms.model.Period;
 import com.cms.model.Program;
 import com.cms.model.ReferralType;
 import com.cms.model.TermInstance;
@@ -92,7 +92,7 @@ import com.cms.repository.LabCurriculumMappingRepository;
 import com.cms.repository.LabInChargeAssignmentRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.ClassScheduleRepository;
-import com.cms.repository.LabSlotRepository;
+import com.cms.repository.PeriodRepository;
 import com.cms.repository.MaintenanceRequestRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.ReferralTypeRepository;
@@ -117,7 +117,7 @@ public class DataLoader implements CommandLineRunner {
     private final SubjectRepository subjectRepository;
     private final FacultyRepository facultyRepository;
     private final LabRepository labRepository;
-    private final LabSlotRepository labSlotRepository;
+    private final PeriodRepository periodRepository;
     private final LabInChargeAssignmentRepository labInChargeAssignmentRepository;
     private final StudentRepository studentRepository;
     private final AdmissionRepository admissionRepository;
@@ -148,7 +148,7 @@ public class DataLoader implements CommandLineRunner {
                       SubjectRepository subjectRepository,
                       FacultyRepository facultyRepository,
                       LabRepository labRepository,
-                      LabSlotRepository labSlotRepository,
+                      PeriodRepository periodRepository,
                       LabInChargeAssignmentRepository labInChargeAssignmentRepository,
                       StudentRepository studentRepository,
                       AdmissionRepository admissionRepository,
@@ -178,7 +178,7 @@ public class DataLoader implements CommandLineRunner {
         this.subjectRepository = subjectRepository;
         this.facultyRepository = facultyRepository;
         this.labRepository = labRepository;
-        this.labSlotRepository = labSlotRepository;
+        this.periodRepository = periodRepository;
         this.labInChargeAssignmentRepository = labInChargeAssignmentRepository;
         this.studentRepository = studentRepository;
         this.admissionRepository = admissionRepository;
@@ -293,11 +293,11 @@ public class DataLoader implements CommandLineRunner {
         Lab compLab   = labRepository.save(new Lab("Computer Lab",           LabType.COMPUTER, gnDept,  "Block C", "C-301", 40, LabStatus.ACTIVE));
         Lab chnLabObj = labRepository.save(new Lab("Community Health Lab",   LabType.OTHER,    chnDept, "Block D", "D-101", 20, LabStatus.ACTIVE));
 
-        // ── 10. Lab Slots ────────────────────────────────────────────────────
-        LabSlot slot1 = labSlotRepository.save(new LabSlot("Morning Slot 1",   LocalTime.of(8,  0), LocalTime.of(10, 0), 1, true));
-        LabSlot slot2 = labSlotRepository.save(new LabSlot("Morning Slot 2",   LocalTime.of(10, 0), LocalTime.of(12, 0), 2, true));
-        LabSlot slot3 = labSlotRepository.save(new LabSlot("Afternoon Slot 1", LocalTime.of(13, 0), LocalTime.of(15, 0), 3, true));
-        LabSlot slot4 = labSlotRepository.save(new LabSlot("Afternoon Slot 2", LocalTime.of(15, 0), LocalTime.of(17, 0), 4, true));
+        // ── 10. Periods (lab session slots) ─────────────────────────────────
+        Period slot1 = periodRepository.save(seedPeriod("Morning Slot 1",   LocalTime.of(8,  0), LocalTime.of(10, 0), 1));
+        Period slot2 = periodRepository.save(seedPeriod("Morning Slot 2",   LocalTime.of(10, 0), LocalTime.of(12, 0), 2));
+        Period slot3 = periodRepository.save(seedPeriod("Afternoon Slot 1", LocalTime.of(13, 0), LocalTime.of(15, 0), 3));
+        Period slot4 = periodRepository.save(seedPeriod("Afternoon Slot 2", LocalTime.of(15, 0), LocalTime.of(17, 0), 4));
 
         // ── 11. Lab Incharge Assignments ────────────────────────────────────
         labInChargeAssignmentRepository.save(new LabInChargeAssignment(nfLab2,  f7.getId(), "Suresh Babu",    LabInChargeRole.LAB_INCHARGE, LocalDate.of(2024, 6, 1)));
@@ -666,5 +666,11 @@ public class DataLoader implements CommandLineRunner {
         Enquiry e7 = new Enquiry("Arjun Verma",    "arjun.verma@email.com",    "9000000007", diplomaProgram, LocalDate.of(2025, 2, 10), walkIn,   EnquiryStatus.INTERESTED);
         e7.setCourse(gnmCourse); e7.setRemarks("Walk-in from Trichy. Very interested in GNM course.");
         enquiryRepository.save(e7);
+    }
+
+    private Period seedPeriod(String name, LocalTime startTime, LocalTime endTime, int periodOrder) {
+        Period period = new Period(name, startTime, endTime, periodOrder);
+        period.setDurationMinutes((int) java.time.Duration.between(startTime, endTime).toMinutes());
+        return period;
     }
 }

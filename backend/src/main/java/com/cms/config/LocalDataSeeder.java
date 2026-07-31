@@ -50,7 +50,7 @@ public class LocalDataSeeder {
             EnquiryRepository enquiryRepo,
             ReferralTypeRepository referralTypeRepo,
             ClassScheduleRepository labScheduleRepo,
-            LabSlotRepository labSlotRepo,
+            PeriodRepository periodRepo,
             ExperimentRepository experimentRepo,
             SystemConfigurationRepository sysConfigRepo,
             DesignationRepository designationRepo) {
@@ -299,12 +299,12 @@ public class LocalDataSeeder {
             log.info("✓ Created 10 attendance records");
 
             // ═══════════════════════════════════════════════════════════════
-            // 20. LAB SLOTS
+            // 20. PERIODS (lab session slots)
             // ═══════════════════════════════════════════════════════════════
-            LabSlot slot1 = labSlotRepo.save(createLabSlot("Morning Slot 1", LocalTime.of(9, 0), LocalTime.of(12, 0), 1));
-            LabSlot slot2 = labSlotRepo.save(createLabSlot("Morning Slot 2", LocalTime.of(10, 0), LocalTime.of(13, 0), 2));
-            LabSlot slot3 = labSlotRepo.save(createLabSlot("Afternoon Slot", LocalTime.of(14, 0), LocalTime.of(17, 0), 3));
-            log.info("✓ Created 3 lab slots");
+            Period slot1 = periodRepo.save(createPeriod("Morning Slot 1", LocalTime.of(9, 0), LocalTime.of(12, 0), 1));
+            Period slot2 = periodRepo.save(createPeriod("Morning Slot 2", LocalTime.of(10, 0), LocalTime.of(13, 0), 2));
+            Period slot3 = periodRepo.save(createPeriod("Afternoon Slot", LocalTime.of(14, 0), LocalTime.of(17, 0), 3));
+            log.info("✓ Created 3 periods");
 
             // ═══════════════════════════════════════════════════════════════
             // 21. LAB SCHEDULES
@@ -532,22 +532,23 @@ public class LocalDataSeeder {
         return a;
     }
 
-    private LabSlot createLabSlot(String name, LocalTime startTime, LocalTime endTime, int slotOrder) {
-        LabSlot ls = new LabSlot();
-        ls.setName(name);
-        ls.setStartTime(startTime);
-        ls.setEndTime(endTime);
-        ls.setSlotOrder(slotOrder);
-        ls.setIsActive(true);
-        return ls;
+    private Period createPeriod(String name, LocalTime startTime, LocalTime endTime, int periodOrder) {
+        Period p = new Period();
+        p.setName(name);
+        p.setStartTime(startTime);
+        p.setEndTime(endTime);
+        p.setDurationMinutes((int) java.time.Duration.between(startTime, endTime).toMinutes());
+        p.setPeriodOrder(periodOrder);
+        p.setIsActive(true);
+        return p;
     }
 
-    private ClassSchedule createClassSchedule(Lab lab, Subject subject, Faculty faculty, LabSlot labSlot, String batchName, DayOfWeek dayOfWeek, TermInstance termInstance) {
+    private ClassSchedule createClassSchedule(Lab lab, Subject subject, Faculty faculty, Period period, String batchName, DayOfWeek dayOfWeek, TermInstance termInstance) {
         ClassSchedule ls = new ClassSchedule();
         ls.setLab(lab);
         ls.setSubject(subject);
         ls.setFaculty(faculty);
-        ls.setLabSlot(labSlot);
+        ls.setPeriod(period);
         ls.setBatchName(batchName);
         ls.setDayOfWeek(dayOfWeek);
         ls.setTermInstance(termInstance);

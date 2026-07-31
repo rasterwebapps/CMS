@@ -5,8 +5,6 @@ import { environment } from '../../../environments/environment';
 import {
   LabSchedule,
   LabScheduleRequest,
-  LabSlot,
-  LabSlotRequest,
 } from './lab-schedule.model';
 
 @Injectable({
@@ -15,7 +13,6 @@ import {
 export class LabScheduleService {
   private readonly http = inject(HttpClient);
   private readonly scheduleUrl = `${environment.apiUrl}/lab-schedules`;
-  private readonly slotUrl = `${environment.apiUrl}/lab-slots`;
 
   getAll(): Observable<LabSchedule[]> {
     return this.http.get<LabSchedule[]>(this.scheduleUrl);
@@ -35,25 +32,5 @@ export class LabScheduleService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.scheduleUrl}/${id}`);
-  }
-
-  getAllSlots(): Observable<LabSlot[]> {
-    return this.http.get<LabSlot[]>(this.slotUrl);
-  }
-
-  getSlotById(id: number): Observable<LabSlot> {
-    return this.http.get<LabSlot>(`${this.slotUrl}/${id}`);
-  }
-
-  createSlot(request: LabSlotRequest): Observable<LabSlot> {
-    return this.http.post<LabSlot>(this.slotUrl, request);
-  }
-
-  updateSlot(id: number, request: LabSlotRequest): Observable<LabSlot> {
-    return this.http.put<LabSlot>(`${this.slotUrl}/${id}`, request);
-  }
-
-  deleteSlot(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.slotUrl}/${id}`);
   }
 }

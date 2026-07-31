@@ -1,0 +1,140 @@
+.mark-absence-card {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field-row {
+  display: flex;
+  gap: 12px;
+
+  .field-group {
+    flex: 1;
+  }
+
+  .field-group--narrow {
+    flex: 0 0 200px;
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.empty-hint {
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-base);
+  padding: 12px 0;
+
+  &--compact {
+    padding: 4px 0;
+  }
+}
+
+.affected-sessions__title {
+  font-size: var(--cms-text-md);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  margin: 0 0 12px;
+}
+
+.session-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.session-item {
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.session-item__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.session-item__time {
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+}
+
+.session-item__subject {
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  font-size: var(--cms-text-base);
+}
+
+.session-item__room,
+.session-item__batch {
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-muted);
+}
+
+.session-item__status {
+  margin-left: auto;
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+
+  &--substituted {
+    color: var(--cms-primary);
+  }
+}
+
+.find-sub-btn {
+  margin-left: auto;
+}
+
+.candidate-panel {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--cms-border-default);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.candidate-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.candidate-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cancel-find-btn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-xs);
+  cursor: pointer;
+  padding: 2px 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

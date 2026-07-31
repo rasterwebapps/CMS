@@ -106,9 +106,12 @@ export class CmsTypeBadgeComponent {
 
       // ── Session / class type ─────────────────────────────────────────────
       case 'LECTURE':
+      case 'THEORY':
         return 'cms-badge--soft-blue';
       case 'LAB':
         return 'cms-badge--soft-accent';
+      case 'CLINICAL':
+        return 'cms-badge--soft-green';
 
       // ── Fee quota ─────────────────────────────────────────────────────────
       case 'MANAGEMENT':

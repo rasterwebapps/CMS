@@ -1,0 +1,84 @@
+<div class="mlp-page">
+
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="page-title">Staff <em>Session Swap</em></h1>
+      <p class="page-subtitle">Trade which staff member teaches a session, for one date only — both sides must be mutually available</p>
+    </div>
+  </div>
+
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
+      @for (ay of academicYears(); track ay.id) {
+        <option [ngValue]="ay.id">{{ ay.name }}</option>
+      }
+    </select>
+    <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()"
+      [disabled]="termsLoading() || termInstances().length === 0" aria-label="Term">
+      @if (termInstances().length === 0) {
+        <option [ngValue]="null">No terms yet</option>
+      }
+      @for (term of termInstances(); track term.id) {
+        <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
+      }
+    </select>
+    <label class="day-picker">
+      <span class="day-picker__label">Date</span>
+      <input type="date" class="field-input" [(ngModel)]="date" (ngModelChange)="onDateChange()"
+        [min]="dateMin" [max]="dateMax" aria-label="Date" />
+    </label>
+  </div>
+
+  <div class="content-card">
+    @if (loading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading sessions"></mat-spinner>
+      </div>
+    } @else if (occurrences().length === 0) {
+      <cms-empty-state icon="event_busy" title="Nothing scheduled" subtitle="No published sessions for this date." />
+    } @else {
+      <ul class="session-list">
+        @for (occ of occurrences(); track occ.session.id) {
+          <li class="session-item">
+            <div class="session-item__row">
+              <span class="session-item__time">{{ occ.session.startTime }} – {{ occ.session.endTime }}</span>
+              <span class="session-item__subject">{{ occ.session.subjectName }}</span>
+              <span class="session-item__faculty">{{ occ.session.facultyName }}</span>
+              <span class="session-item__room">{{ occ.session.roomName }}</span>
+              <button type="button" mat-stroked-button class="swap-btn" (click)="findSwapPartners(occ.session.id)">
+                Swap
+              </button>
+            </div>
+
+            @if (swapSourceId() === occ.session.id) {
+              <div class="candidate-panel">
+                @if (loadingCandidates()) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                } @else if (candidates().length === 0) {
+                  <p class="empty-hint">No mutually available staff found for a swap on this date.</p>
+                } @else {
+                  <ul class="candidate-list">
+                    @for (candidate of candidates(); track candidate.classScheduleId) {
+                      <li>
+                        <button type="button" mat-stroked-button class="candidate-btn"
+                          [disabled]="applyingCandidateId() === candidate.classScheduleId"
+                          (click)="applySwap(candidate.classScheduleId)">
+                          @if (applyingCandidateId() === candidate.classScheduleId) {
+                            <mat-spinner diameter="14"></mat-spinner>
+                          }
+                          {{ candidate.facultyName }} — {{ candidate.subjectName }} ({{ candidate.startTime }}–{{ candidate.endTime }})
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+                <button type="button" class="cancel-swap-btn" (click)="cancelSwap()">Cancel</button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+</div>

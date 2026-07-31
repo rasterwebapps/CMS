@@ -1,0 +1,113 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/clinical-venues" aria-label="Back to clinical venues">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Clinical Venue</em></h1>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update the clinical venue details below.' : 'Fill in the details below to register a new clinical venue.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+
+      <!-- ── LEFT: Form Card ─────────────────────────────────── -->
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Clinical Venue Information</div>
+            <div class="entry-form-card__hdr-sub">Name, hospital, and department</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <!-- Name -->
+            <div class="field-group">
+              <label for="cv-name" class="field-label">
+                Venue Name <span class="required-star">*</span>
+              </label>
+              <input
+                id="cv-name"
+                class="field-input"
+                formControlName="name"
+                placeholder="e.g., Ward 3 - Government General Hospital"
+                autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+              />
+              @if (form.get('name')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">{{ getErrorMessage('name') }}</p>
+              }
+            </div>
+
+            <!-- Hospital Name -->
+            <div class="field-group">
+              <label for="cv-hospital" class="field-label">Hospital Name</label>
+              <input
+                id="cv-hospital"
+                class="field-input"
+                formControlName="hospitalName"
+                placeholder="e.g., Government General Hospital"
+                autocomplete="off"
+              />
+            </div>
+
+            <!-- Department -->
+            <div class="field-group">
+              <label for="cv-department" class="field-label">Department</label>
+              <input
+                id="cv-department"
+                class="field-input"
+                formControlName="department"
+                placeholder="e.g., Obstetrics & Gynaecology"
+                autocomplete="off"
+              />
+            </div>
+
+            <!-- Footer -->
+            <div class="entry-form-card__footer">
+              <a routerLink="/clinical-venues" class="btn-secondary">Cancel</a>
+              <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+                @if (saving()) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                }
+                {{ isEditMode() ? 'Update' : 'Save' }}
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+      <!-- ── RIGHT: Preview Card ─────────────────────────────── -->
+      <aside class="entry-form-side-panel">
+        <div class="dept-preview-card">
+          <div class="dept-preview-hdr">
+            <span class="dept-preview-label">Preview</span>
+          </div>
+          <div class="dept-preview-body">
+            <div class="dept-prev-name">{{ previewName() || 'Venue Name' }}</div>
+            @if (previewHospitalName() || previewDepartment()) {
+              <p class="dept-prev-desc">{{ previewHospitalName() }}@if (previewDepartment()) { &middot; {{ previewDepartment() }} }</p>
+            }
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  }
+
+</div>

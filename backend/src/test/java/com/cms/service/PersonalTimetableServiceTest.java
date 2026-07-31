@@ -136,6 +136,51 @@ class PersonalTimetableServiceTest {
     }
 
     @Test
+    void shouldExcludeSectionScopedTheoryRowForADifferentSection() {
+        // R3 Phase 3: a THEORY row scoped to a Batch (section) the student is NOT in must never
+        // appear via the whole-cohort courseOffering lookup, even though the student is
+        // registered for that same offering -- only their own section's batch-scoped rows
+        // (fetched separately, by batchIds) should ever surface.
+        ProfileIdentity identity = new ProfileIdentity("STUDENT", 7L, null, null, "A Student", null, null, null, null);
+
+        StudentTermEnrollment enrollment = new StudentTermEnrollment();
+        enrollment.setId(100L);
+        when(studentTermEnrollmentRepository.findByStudentIdAndTermInstanceId(7L, 10L)).thenReturn(Optional.of(enrollment));
+
+        CourseOffering offering = new CourseOffering();
+        offering.setId(200L);
+        CourseRegistration reg = new CourseRegistration();
+        reg.setId(300L);
+        reg.setCourseOffering(offering);
+        reg.setStatus(RegistrationStatus.REGISTERED);
+        when(courseRegistrationRepository.findByStudentTermEnrollmentId(100L)).thenReturn(List.of(reg));
+
+        Batch studentsOwnBatch = new Batch();
+        studentsOwnBatch.setId(400L);
+        when(batchRepository.findByTermInstanceIdAndStudentId(10L, 7L)).thenReturn(List.of(studentsOwnBatch));
+
+        Batch otherSectionBatch = new Batch();
+        otherSectionBatch.setId(999L);
+        ClassSchedule otherSectionTheoryRow = new ClassSchedule();
+        otherSectionTheoryRow.setSessionType(ClassSessionType.THEORY);
+        otherSectionTheoryRow.setBatch(otherSectionBatch);
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndCourseOfferingIdIn(10L, ClassScheduleStatus.PUBLISHED, List.of(200L)))
+            .thenReturn(List.of(otherSectionTheoryRow));
+
+        ClassSchedule ownSectionTheoryRow = new ClassSchedule();
+        ownSectionTheoryRow.setSessionType(ClassSessionType.THEORY);
+        ownSectionTheoryRow.setBatch(studentsOwnBatch);
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndBatchIdIn(10L, ClassScheduleStatus.PUBLISHED, List.of(400L)))
+            .thenReturn(List.of(ownSectionTheoryRow));
+
+        when(classScheduleService.toResponseList(anyList())).thenReturn(List.of());
+
+        service.findMyTimetable(identity, 10L, null);
+
+        org.mockito.Mockito.verify(classScheduleService).toResponseList(List.of(ownSectionTheoryRow));
+    }
+
+    @Test
     void shouldReturnHolidaysWhenWeekStartSupplied() {
         ProfileIdentity identity = new ProfileIdentity("FACULTY", 5L, null, null, "Dr. Faculty", null, null, null, null);
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(anyLong(), any(), anyLong()))

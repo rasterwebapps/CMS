@@ -1,0 +1,76 @@
+<div class="mlp-page">
+
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="page-title">Timetable <em>Staffing</em></h1>
+      <p class="page-subtitle">Assign faculty and a room to every session placed in the Skeleton Builder, before this term's draft can be approved</p>
+    </div>
+  </div>
+
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
+      @for (ay of academicYears(); track ay.id) {
+        <option [ngValue]="ay.id">{{ ay.name }}</option>
+      }
+    </select>
+    <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()"
+      [disabled]="termsLoading() || termInstances().length === 0" aria-label="Term">
+      @if (termInstances().length === 0) {
+        <option [ngValue]="null">No terms yet</option>
+      }
+      @for (term of termInstances(); track term.id) {
+        <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
+      }
+    </select>
+  </div>
+
+  @if (rowsLoading()) {
+    <div class="content-card">
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading unstaffed sessions"></mat-spinner>
+      </div>
+    </div>
+  } @else if (rows().length === 0) {
+    <div class="content-card staffing-empty-hint">
+      Nothing left to staff for this term — every placed session already has a faculty and room, or none have been placed yet in the Skeleton Builder.
+    </div>
+  } @else {
+    <ul class="staffing-list">
+      @for (row of rows(); track row.id) {
+        <li class="content-card staffing-row">
+          <div class="staffing-row__info">
+            <div class="staffing-row__subject">{{ row.subjectName }} <span class="staffing-row__code">({{ row.subjectCode }})</span></div>
+            <div class="staffing-row__meta">
+              <span class="staffing-row__type staffing-row__type--{{ row.sessionType.toLowerCase() }}">{{ row.sessionType }}</span>
+              <span>{{ dayLabels[row.dayOfWeek] }}</span>
+              <span>{{ row.slotName }} ({{ row.startTime }}–{{ row.endTime }})</span>
+              @if (row.batchName) { <span>Section: {{ row.batchName }}</span> }
+            </div>
+          </div>
+
+          <div class="staffing-row__assign">
+            <select class="field-select" [(ngModel)]="row.facultyId" [disabled]="!canManage() || row.saving" aria-label="Faculty">
+              <option [ngValue]="null" disabled>Select faculty</option>
+              @for (f of eligibleFacultyFor(row); track f.id) {
+                <option [ngValue]="f.id">{{ f.name }}</option>
+              }
+            </select>
+
+            <select class="field-select" [(ngModel)]="row.roomId" [disabled]="!canManage() || row.saving" [attr.aria-label]="roomLabel(row)">
+              <option [ngValue]="null" disabled>Select {{ roomLabel(row).toLowerCase() }}</option>
+              @for (r of roomOptionsFor(row); track r.id) {
+                <option [ngValue]="r.id">{{ r.name }}</option>
+              }
+            </select>
+
+            <button type="button" class="btn-primary" [disabled]="!canManage() || row.saving" (click)="assign(row)">
+              @if (row.saving) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+              Assign
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+</div>

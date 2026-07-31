@@ -180,6 +180,30 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'clinical-venues',
+    canActivate: withPermission('CLINICAL_VENUE_VIEW', 'CLINICAL_VENUE_MANAGE'),
+    loadComponent: () =>
+      import('./features/clinical-venue/clinical-venue-list/clinical-venue-list.component').then(
+        (m) => m.ClinicalVenueListComponent
+      ),
+  },
+  {
+    path: 'clinical-venues/new',
+    canActivate: withPermission('CLINICAL_VENUE_MANAGE'),
+    loadComponent: () =>
+      import('./features/clinical-venue/clinical-venue-form/clinical-venue-form.component').then(
+        (m) => m.ClinicalVenueFormComponent
+      ),
+  },
+  {
+    path: 'clinical-venues/:id/edit',
+    canActivate: withPermission('CLINICAL_VENUE_MANAGE'),
+    loadComponent: () =>
+      import('./features/clinical-venue/clinical-venue-form/clinical-venue-form.component').then(
+        (m) => m.ClinicalVenueFormComponent
+      ),
+  },
+  {
     path: 'periods',
     canActivate: withPermission('PERIOD_VIEW', 'PERIOD_MANAGE'),
     loadComponent: () =>
@@ -836,6 +860,22 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'timetable/skeleton-builder',
+    canActivate: withPermission('TIMETABLE_VIEW'),
+    loadComponent: () =>
+      import('./features/timetable/skeleton-builder/skeleton-builder.component').then(
+        (m) => m.SkeletonBuilderComponent
+      ),
+  },
+  {
+    path: 'timetable/staffing',
+    canActivate: withPermission('TIMETABLE_VIEW'),
+    loadComponent: () =>
+      import('./features/timetable/staffing/staffing.component').then(
+        (m) => m.StaffingComponent
+      ),
+  },
+  {
     path: 'timetable',
     canActivate: withPermission('TIMETABLE_VIEW'),
     loadComponent: () =>
@@ -849,6 +889,30 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/timetable/progress-report/progress-report.component').then(
         (m) => m.ProgressReportComponent
+      ),
+  },
+  {
+    path: 'timetable/resource-grid',
+    canActivate: withPermission('TIMETABLE_FACULTY_GRID_VIEW', 'TIMETABLE_CLASSROOM_GRID_VIEW'),
+    loadComponent: () =>
+      import('./features/timetable/resource-timetable-grid/resource-timetable-grid.component').then(
+        (m) => m.ResourceTimetableGridComponent
+      ),
+  },
+  {
+    path: 'faculty-absence',
+    canActivate: withPermission('FACULTY_ABSENCE_MARK', 'FACULTY_ABSENCE_SUBSTITUTE_APPLY'),
+    loadComponent: () =>
+      import('./features/timetable/faculty-absence/faculty-absence.component').then(
+        (m) => m.FacultyAbsenceComponent
+      ),
+  },
+  {
+    path: 'timetable/staff-swap',
+    canActivate: withPermission('TIMETABLE_STAFF_SWAP'),
+    loadComponent: () =>
+      import('./features/timetable/staff-session-swap/staff-session-swap.component').then(
+        (m) => m.StaffSessionSwapComponent
       ),
   },
   {

@@ -8,7 +8,7 @@ public record SessionOccurrenceDto(
     Long id,
     Long classScheduleId,
     LocalDate occurrenceDate,
-    List<CoveredUnitDto> coveredUnits,
+    List<UnitCoverageDto> unitCoverages,
     String remarks,
     Instant createdAt,
     Instant updatedAt

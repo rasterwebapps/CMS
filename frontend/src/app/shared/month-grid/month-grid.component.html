@@ -1,0 +1,36 @@
+<div class="month-grid-wrap">
+  <div class="month-grid-toolbar">
+    <button type="button" mat-icon-button (click)="previousMonth()" aria-label="Previous month">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <span class="month-grid-title">{{ grid().label }}</span>
+    <button type="button" mat-icon-button (click)="nextMonth()" aria-label="Next month">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+    <button type="button" mat-stroked-button class="today-btn" (click)="today()">Today</button>
+  </div>
+
+  <div class="month-grid">
+    @for (label of weekdayLabels; track label) {
+      <div class="month-grid__weekday-hdr">{{ label }}</div>
+    }
+    @for (cell of grid().days; track cell.iso) {
+      <button type="button" class="month-grid__day"
+        [class.month-grid__day--other-month]="!cell.isCurrentMonth"
+        [class.month-grid__day--today]="cell.isToday"
+        (click)="dayClick.emit(cell.iso)">
+        <span class="month-grid__day-num">{{ cell.dayNum }}</span>
+        @if (occurrencesFor(cell).length > 0) {
+          <div class="month-grid__day-sessions">
+            @for (occ of occurrencesFor(cell).slice(0, 2); track occ.session.id) {
+              <span class="month-grid__session-pill" [matTooltip]="occ.session.subjectName">{{ occ.session.subjectName }}</span>
+            }
+            @if (occurrencesFor(cell).length > 2) {
+              <span class="month-grid__session-more">+{{ occurrencesFor(cell).length - 2 }} more</span>
+            }
+          </div>
+        }
+      </button>
+    }
+  </div>
+</div>

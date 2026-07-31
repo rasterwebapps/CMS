@@ -1,0 +1,66 @@
+.day-agenda-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.day-agenda__date {
+  font-size: var(--cms-text-md);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  margin: 0;
+}
+
+.day-agenda__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.day-agenda__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+
+  &--theory {
+    border-left: 3px solid rgba(59, 130, 246, 0.6);
+  }
+
+  &--lab {
+    border-left: 3px solid rgba(16, 185, 129, 0.6);
+  }
+}
+
+.day-agenda__time {
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+  min-width: 92px;
+}
+
+.day-agenda__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.day-agenda__subject {
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  font-size: var(--cms-text-base);
+}
+
+.day-agenda__room,
+.day-agenda__batch,
+.day-agenda__faculty {
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-muted);
+}

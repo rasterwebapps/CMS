@@ -1,7 +1,6 @@
 package com.cms.model;
 
 import java.time.Instant;
-import java.time.LocalTime;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -16,9 +15,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "lab_slots")
+@Table(name = "clinical_venues")
 @EntityListeners(AuditingEntityListener.class)
-public class LabSlot {
+public class ClinicalVenue {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,17 +26,13 @@ public class LabSlot {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "start_time", nullable = false)
-    private LocalTime startTime;
+    @Column(name = "hospital_name")
+    private String hospitalName;
 
-    @Column(name = "end_time", nullable = false)
-    private LocalTime endTime;
+    private String department;
 
-    @Column(name = "slot_order")
-    private Integer slotOrder;
-
-    @Column(name = "is_active")
-    private Boolean isActive;
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -47,15 +42,13 @@ public class LabSlot {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public LabSlot() {
+    public ClinicalVenue() {
     }
 
-    public LabSlot(String name, LocalTime startTime, LocalTime endTime, Integer slotOrder, Boolean isActive) {
+    public ClinicalVenue(String name, String hospitalName, String department) {
         this.name = name;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.slotOrder = slotOrder;
-        this.isActive = isActive;
+        this.hospitalName = hospitalName;
+        this.department = department;
     }
 
     public Long getId() {
@@ -74,28 +67,20 @@ public class LabSlot {
         this.name = name;
     }
 
-    public LocalTime getStartTime() {
-        return startTime;
+    public String getHospitalName() {
+        return hospitalName;
     }
 
-    public void setStartTime(LocalTime startTime) {
-        this.startTime = startTime;
+    public void setHospitalName(String hospitalName) {
+        this.hospitalName = hospitalName;
     }
 
-    public LocalTime getEndTime() {
-        return endTime;
+    public String getDepartment() {
+        return department;
     }
 
-    public void setEndTime(LocalTime endTime) {
-        this.endTime = endTime;
-    }
-
-    public Integer getSlotOrder() {
-        return slotOrder;
-    }
-
-    public void setSlotOrder(Integer slotOrder) {
-        this.slotOrder = slotOrder;
+    public void setDepartment(String department) {
+        this.department = department;
     }
 
     public Boolean getIsActive() {

@@ -128,9 +128,25 @@
   border-color: rgba(16, 185, 129, 0.28);
 }
 
+.session-chip--clinical {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.28);
+}
+
 .session-chip--draft {
   border-style: dashed;
   opacity: 0.85;
+}
+
+// R3 Phase 4/6: a skeleton cell placed but not yet staffed (no faculty/room) -- a visible cue
+// so an admin browsing Draft Review can tell it still needs a trip to the Staffing screen.
+.session-chip--unstaffed {
+  border-style: dotted;
+
+  .session-chip__faculty {
+    color: var(--cms-badge-amber-text, #b45309);
+    font-weight: 600;
+  }
 }
 
 .session-chip--swap-source {

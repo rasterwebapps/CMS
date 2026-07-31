@@ -23,6 +23,20 @@
       }
     </select>
 
+    <div class="view-mode-toggle">
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'week'" (click)="setViewMode('week')">Week</button>
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'month'" (click)="setViewMode('month')">Month</button>
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'day'" (click)="setViewMode('day')">Day</button>
+    </div>
+
+    @if (viewMode() === 'day') {
+      <label class="day-picker">
+        <span class="day-picker__label">Date</span>
+        <input type="date" class="field-input" [ngModel]="dayDate()" (ngModelChange)="onDayDateChange($event)"
+          [min]="dayMin" [max]="dayMax" aria-label="Day date" />
+      </label>
+    }
+
     <select class="mlp-filter-select" [ngModel]="selectedFaculty()" (ngModelChange)="selectedFaculty.set($event)" aria-label="Faculty">
       <option [ngValue]="null">All Faculty</option>
       @for (name of facultyOptions(); track name) {
@@ -46,12 +60,31 @@
   </div>
 
   <div class="content-card">
-    @if (loading()) {
-      <div class="loading-container">
-        <mat-spinner diameter="36" aria-label="Loading timetable"></mat-spinner>
-      </div>
+    @if (viewMode() === 'week') {
+      @if (loading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="36" aria-label="Loading timetable"></mat-spinner>
+        </div>
+      } @else {
+        <cms-week-grid mode="browse" [sessions]="filteredSessions()" />
+      }
+    } @else if (viewMode() === 'month') {
+      @if (occurrencesLoading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="36" aria-label="Loading month view"></mat-spinner>
+        </div>
+      } @else {
+        <cms-month-grid [year]="monthYear()" [month]="monthMonth()" [occurrences]="filteredOccurrences()"
+          (monthChange)="onMonthChange($event)" (dayClick)="onMonthDayClick($event)" />
+      }
     } @else {
-      <cms-week-grid mode="browse" [sessions]="filteredSessions()" />
+      @if (occurrencesLoading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="36" aria-label="Loading day view"></mat-spinner>
+        </div>
+      } @else {
+        <cms-day-agenda [date]="dayDate()" [occurrences]="filteredOccurrences()" />
+      }
     }
   </div>
 

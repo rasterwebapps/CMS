@@ -9,7 +9,6 @@ public record SwapCandidateResponse(
     LocalTime startTime,
     LocalTime endTime,
     Long periodId,
-    Long labSlotId,
     boolean occupied,
     Long occupyingSessionId,
     String occupyingSubjectName

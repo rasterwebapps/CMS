@@ -2,24 +2,28 @@ package com.cms.model;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.cms.model.enums.OccurrenceStatus;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
@@ -54,11 +58,29 @@ public class SessionOccurrence {
     @Column(length = 1000)
     private String remarks;
 
-    @ManyToMany
-    @JoinTable(name = "session_occurrence_units",
-        joinColumns = @JoinColumn(name = "session_occurrence_id"),
-        inverseJoinColumns = @JoinColumn(name = "syllabus_unit_id"))
-    private Set<SyllabusUnit> coveredUnits = new LinkedHashSet<>();
+    @OneToMany(mappedBy = "sessionOccurrence", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SessionOccurrenceUnit> unitCoverages = new ArrayList<>();
+
+    /** Null unless a substitute was applied for this date -- the recurring ClassSchedule.faculty
+     *  is never mutated by the absence/substitution feature (Phase 6); this is the one-date-only
+     *  override instead. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "effective_faculty_id")
+    private Faculty effectiveFaculty;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "faculty_absence_id")
+    private FacultyAbsence facultyAbsence;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "occurrence_status", nullable = false, length = 20)
+    private OccurrenceStatus occurrenceStatus = OccurrenceStatus.HELD;
+
+    /** The other session's occurrence row when this one is one half of a Phase 7 staff-to-staff
+     *  swap (null otherwise, including for a Phase 6 absence-substitute, which has no partner). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "swap_partner_occurrence_id")
+    private SessionOccurrence swapPartnerOccurrence;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -116,12 +138,44 @@ public class SessionOccurrence {
         this.remarks = remarks;
     }
 
-    public Set<SyllabusUnit> getCoveredUnits() {
-        return coveredUnits;
+    public List<SessionOccurrenceUnit> getUnitCoverages() {
+        return unitCoverages;
     }
 
-    public void setCoveredUnits(Set<SyllabusUnit> coveredUnits) {
-        this.coveredUnits = coveredUnits;
+    public void setUnitCoverages(List<SessionOccurrenceUnit> unitCoverages) {
+        this.unitCoverages = unitCoverages;
+    }
+
+    public Faculty getEffectiveFaculty() {
+        return effectiveFaculty;
+    }
+
+    public void setEffectiveFaculty(Faculty effectiveFaculty) {
+        this.effectiveFaculty = effectiveFaculty;
+    }
+
+    public FacultyAbsence getFacultyAbsence() {
+        return facultyAbsence;
+    }
+
+    public void setFacultyAbsence(FacultyAbsence facultyAbsence) {
+        this.facultyAbsence = facultyAbsence;
+    }
+
+    public OccurrenceStatus getOccurrenceStatus() {
+        return occurrenceStatus;
+    }
+
+    public void setOccurrenceStatus(OccurrenceStatus occurrenceStatus) {
+        this.occurrenceStatus = occurrenceStatus;
+    }
+
+    public SessionOccurrence getSwapPartnerOccurrence() {
+        return swapPartnerOccurrence;
+    }
+
+    public void setSwapPartnerOccurrence(SessionOccurrence swapPartnerOccurrence) {
+        this.swapPartnerOccurrence = swapPartnerOccurrence;
     }
 
     public Instant getCreatedAt() {

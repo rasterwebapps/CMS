@@ -1136,7 +1136,7 @@ public class WidgetDataController {
             .filter(s -> Boolean.TRUE.equals(s.getIsActive()))
             .toList();
         List<String> slots = schedules.stream()
-            .map(s -> s.getLabSlot() != null ? clean(s.getLabSlot().getName(), "Slot") : "Slot")
+            .map(s -> s.getPeriod() != null ? clean(s.getPeriod().getName(), "Slot") : "Slot")
             .distinct()
             .sorted()
             .limit(8)
@@ -1145,7 +1145,7 @@ public class WidgetDataController {
         Map<String, Long> counts = new HashMap<>();
         for (ClassSchedule s : schedules) {
             String day = s.getDayOfWeek() != null ? s.getDayOfWeek().name().substring(0, 3) : "MON";
-            String slot = s.getLabSlot() != null ? clean(s.getLabSlot().getName(), "Slot") : "Slot";
+            String slot = s.getPeriod() != null ? clean(s.getPeriod().getName(), "Slot") : "Slot";
             counts.merge(day + "|" + slot, 1L, Long::sum);
         }
         long max = Math.max(1L, counts.values().stream().mapToLong(Long::longValue).max().orElse(1L));

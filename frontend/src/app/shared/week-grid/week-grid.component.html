@@ -69,15 +69,17 @@
                 class="session-chip"
                 [class.session-chip--theory]="session.sessionType === 'THEORY'"
                 [class.session-chip--lab]="session.sessionType === 'LAB'"
+                [class.session-chip--clinical]="session.sessionType === 'CLINICAL'"
                 [class.session-chip--draft]="session.status === 'DRAFT'"
+                [class.session-chip--unstaffed]="!session.facultyName"
                 [class.session-chip--swap-source]="swapMode && session.id === swapSourceSessionId"
                 (click)="onSessionClick(session, day, row, $event)">
                 <span class="session-chip__subject">{{ session.subjectName }}</span>
-                <span class="session-chip__room">{{ session.roomName }}</span>
+                <span class="session-chip__room">{{ session.roomName || 'No room yet' }}</span>
                 @if (session.batchName) {
                   <span class="session-chip__batch">{{ session.batchName }}</span>
                 }
-                <span class="session-chip__faculty">{{ session.facultyName }}</span>
+                <span class="session-chip__faculty">{{ session.facultyName || 'Unstaffed — needs staffing' }}</span>
               </button>
             }
           </div>

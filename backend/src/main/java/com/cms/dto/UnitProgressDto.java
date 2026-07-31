@@ -1,5 +1,6 @@
 package com.cms.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -11,6 +12,7 @@ public record UnitProgressDto(
     String title,
     AttendanceType componentType,
     Integer plannedHours,
-    boolean covered,
+    BigDecimal hoursLogged,
+    boolean completed,
     List<LocalDate> coveredDates
 ) {}

@@ -133,6 +133,12 @@
   text-align: center;
 }
 
+.unit-detail-item__hours {
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-muted);
+  white-space: nowrap;
+}
+
 .unit-detail-item__dates {
   margin-left: auto;
   font-size: var(--cms-text-xs);

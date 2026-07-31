@@ -34,6 +34,12 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
 
     List<ClassSchedule> findByTermInstanceIdAndStatus(Long termInstanceId, ClassScheduleStatus status);
 
+    List<ClassSchedule> findByTermInstanceIdAndStatusAndDayOfWeek(
+        Long termInstanceId, ClassScheduleStatus status, DayOfWeek dayOfWeek);
+
+    List<ClassSchedule> findByFacultyIdAndStatusAndDayOfWeek(
+        Long facultyId, ClassScheduleStatus status, DayOfWeek dayOfWeek);
+
     List<ClassSchedule> findByTermInstanceIdAndStatusAndFacultyId(
         Long termInstanceId, ClassScheduleStatus status, Long facultyId);
 
@@ -52,8 +58,9 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     void deleteByTermInstanceId(Long termInstanceId);
 
     /**
-     * Resolves each candidate row to a concrete (startTime, endTime) via its Period (THEORY) or
-     * LabSlot (LAB), and compares actual time-range overlap rather than slot-id equality — the
+     * Resolves each candidate row to a concrete (startTime, endTime) via its Period — both THEORY
+     * and LAB rows share the one Period master since V331 merged the formerly-separate LabSlot
+     * master into it — and compares actual time-range overlap rather than slot-id equality — the
      * old lab_schedules conflict queries only matched on dayOfWeek+labSlot.id, which (a) missed
      * true overlaps between different slots with the same wall-clock time and (b) had no
      * term_instance_id scoping at all, so a slot in a *different* term with the same day/slot-id
@@ -66,15 +73,8 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
           AND cs.isActive = true
           AND cs.status = :status
           AND cs.id <> COALESCE(:excludeId, -1)
-          AND (
-            (cs.sessionType = com.cms.model.enums.ClassSessionType.LAB
-               AND cs.labSlot IS NOT NULL
-               AND cs.labSlot.startTime < :endTime AND cs.labSlot.endTime > :startTime)
-            OR
-            (cs.sessionType = com.cms.model.enums.ClassSessionType.THEORY
-               AND cs.period IS NOT NULL
-               AND cs.period.startTime < :endTime AND cs.period.endTime > :startTime)
-          )
+          AND cs.period IS NOT NULL
+          AND cs.period.startTime < :endTime AND cs.period.endTime > :startTime
         """)
     List<ClassSchedule> findOverlapping(@Param("dayOfWeek") DayOfWeek dayOfWeek,
                                          @Param("termInstanceId") Long termInstanceId,

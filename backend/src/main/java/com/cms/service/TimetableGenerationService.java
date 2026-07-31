@@ -1,8 +1,6 @@
 package com.cms.service;
 
-import java.time.Duration;
 import java.time.LocalTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -27,7 +25,6 @@ import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Faculty;
 import com.cms.model.FacultyAvailability;
 import com.cms.model.Lab;
-import com.cms.model.LabSlot;
 import com.cms.model.Period;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
@@ -41,7 +38,6 @@ import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabAttendanceRepository;
 import com.cms.repository.LabRepository;
-import com.cms.repository.LabSlotRepository;
 import com.cms.repository.PeriodRepository;
 import com.cms.repository.TermInstanceRepository;
 
@@ -54,11 +50,12 @@ import com.cms.repository.TermInstanceRepository;
  * regeneration guard below); a DRAFT-only term has no PUBLISHED rows to conflict with in the first
  * place. {@link CurriculumSemesterCourse} hours are 60-minute CLOCK hours (INC/UGC convention —
  * a syllabus stating "160 hours" means 160 real hours of instruction, regardless of how long a
- * campus's periods are), so 1 Period/LabSlot is <b>not</b> 1 curriculum hour whenever a period runs
- * shorter or longer than 60 minutes — see {@link #sessionsPerWeek}. Lab and clinical hours are
- * summed into one LAB placement count (the schema discriminator is only THEORY/LAB) and placed via
- * LabSlot, matching how the schema already lumps them — a genuinely distinct shift-based clinical
- * model is a separate, larger change, not done here. Elective offerings are skipped, matching the
+ * campus's periods are), so 1 Period is <b>not</b> 1 curriculum hour whenever a period runs
+ * shorter or longer than 60 minutes — see {@link CurriculumHoursCalculator#sessionsPerWeek}. Theory and Lab placement draw
+ * from the same {@link Period} pool (the formerly-separate LabSlot master was merged into Period
+ * by V331). Lab and clinical hours are summed into one LAB placement count (the schema
+ * discriminator is only THEORY/LAB) — a genuinely distinct shift-based clinical model is a
+ * separate, larger change, not done here. Elective offerings are skipped, matching the
  * existing bulk course-registration generation precedent (CourseRegistrationServiceImpl) of leaving
  * electives for manual/individual assignment.
  *
@@ -91,7 +88,6 @@ public class TimetableGenerationService {
     private final ClassroomRepository classroomRepository;
     private final PeriodRepository periodRepository;
     private final LabRepository labRepository;
-    private final LabSlotRepository labSlotRepository;
     private final FacultyAvailabilityRepository facultyAvailabilityRepository;
     private final LabAttendanceRepository labAttendanceRepository;
 
@@ -103,7 +99,6 @@ public class TimetableGenerationService {
                                        ClassroomRepository classroomRepository,
                                        PeriodRepository periodRepository,
                                        LabRepository labRepository,
-                                       LabSlotRepository labSlotRepository,
                                        FacultyAvailabilityRepository facultyAvailabilityRepository,
                                        LabAttendanceRepository labAttendanceRepository) {
         this.classScheduleRepository = classScheduleRepository;
@@ -114,7 +109,6 @@ public class TimetableGenerationService {
         this.classroomRepository = classroomRepository;
         this.periodRepository = periodRepository;
         this.labRepository = labRepository;
-        this.labSlotRepository = labSlotRepository;
         this.facultyAvailabilityRepository = facultyAvailabilityRepository;
         this.labAttendanceRepository = labAttendanceRepository;
     }
@@ -145,7 +139,6 @@ public class TimetableGenerationService {
 
         List<CourseOffering> offerings = courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId);
         List<Period> periods = shuffledCopy(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc());
-        List<LabSlot> labSlots = shuffledCopy(labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc());
         List<Classroom> classrooms = shuffledCopy(classroomRepository.findByIsActiveTrueOrderByNameAsc());
         List<Lab> labs = shuffledCopy(labRepository.findAll());
         List<DayOfWeek> days = shuffledCopy(List.of(DayOfWeek.values()));
@@ -154,11 +147,9 @@ public class TimetableGenerationService {
         List<String> unplaceable = new ArrayList<>();
         Map<Long, List<FacultyAvailability>> availabilityByFaculty = new HashMap<>();
         int generatedCount = 0;
-        int weeksInTerm = weeksInTerm(termInstance);
-        double periodDurationMinutes = averageDurationMinutes(
+        int weeksInTerm = CurriculumHoursCalculator.weeksInTerm(termInstance);
+        double periodDurationMinutes = CurriculumHoursCalculator.averageDurationMinutes(
             periods.stream().map(Period::getDurationMinutes).toList());
-        double labSlotDurationMinutes = averageDurationMinutes(
-            labSlots.stream().map(s -> (int) Duration.between(s.getStartTime(), s.getEndTime()).toMinutes()).toList());
 
         for (CourseOffering offering : offerings) {
             CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
@@ -186,7 +177,7 @@ public class TimetableGenerationService {
 
             int theoryHours = csc.getTheoryHours() != null ? csc.getTheoryHours() : 0;
             if (theoryHours > 0) {
-                int sessionsPerWeek = sessionsPerWeek(theoryHours, weeksInTerm, periodDurationMinutes);
+                int sessionsPerWeek = CurriculumHoursCalculator.sessionsPerWeek(theoryHours, weeksInTerm, periodDurationMinutes);
                 int placed = placeTheory(offering, faculty, sessionsPerWeek, periods, classrooms, days,
                     availabilityBlocks, occupied, termInstance);
                 if (placed < sessionsPerWeek) {
@@ -200,14 +191,14 @@ public class TimetableGenerationService {
             int labClinicalHours = (csc.getLabHours() != null ? csc.getLabHours() : 0)
                 + (csc.getClinicalHours() != null ? csc.getClinicalHours() : 0);
             if (labClinicalHours > 0) {
-                int sessionsPerWeek = sessionsPerWeek(labClinicalHours, weeksInTerm, labSlotDurationMinutes);
+                int sessionsPerWeek = CurriculumHoursCalculator.sessionsPerWeek(labClinicalHours, weeksInTerm, periodDurationMinutes);
                 List<Batch> batches = batchRepository.findByCourseOfferingId(offering.getId());
                 if (batches.isEmpty()) {
                     unplaceable.add(subjectName + ": " + labClinicalHours
                         + " lab/clinical hours needed but no batches are defined for this offering");
                 } else {
                     for (Batch batch : batches) {
-                        int placed = placeLab(offering, faculty, batch, sessionsPerWeek, labSlots, labs, days,
+                        int placed = placeLab(offering, faculty, batch, sessionsPerWeek, periods, labs, days,
                             availabilityBlocks, occupied, termInstance);
                         if (placed < sessionsPerWeek) {
                             unplaceable.add(subjectName + " (" + batch.getName() + "): placed " + placed + "/" + sessionsPerWeek
@@ -272,23 +263,23 @@ public class TimetableGenerationService {
     }
 
     private int placeLab(CourseOffering offering, Faculty faculty, Batch batch, int sessionsPerWeek,
-                          List<LabSlot> labSlots, List<Lab> labs, List<DayOfWeek> days,
+                          List<Period> periods, List<Lab> labs, List<DayOfWeek> days,
                           List<FacultyAvailability> availabilityBlocks,
                           List<Occupied> occupied, TermInstance termInstance) {
         int placed = 0;
         Set<DayOfWeek> daysUsed = EnumSet.noneOf(DayOfWeek.class);
         for (int i = 0; i < sessionsPerWeek; i++) {
             boolean found = false;
-            for (LabSlot slot : labSlots) {
+            for (Period period : periods) {
                 if (found) break;
                 for (DayOfWeek day : days) {
                     if (found) break;
                     if (daysUsed.contains(day)) continue;
-                    if (!isFacultyAvailable(availabilityBlocks, day, slot.getStartTime(), slot.getEndTime())) continue;
+                    if (!isFacultyAvailable(availabilityBlocks, day, period.getStartTime(), period.getEndTime())) continue;
                     for (Lab lab : labs) {
                         String roomKey = "LAB:" + lab.getId();
                         String audienceKey = "LAB:" + batch.getId();
-                        if (!isFree(occupied, day, slot.getStartTime(), slot.getEndTime(), roomKey, faculty.getId(), audienceKey)) {
+                        if (!isFree(occupied, day, period.getStartTime(), period.getEndTime(), roomKey, faculty.getId(), audienceKey)) {
                             continue;
                         }
                         ClassSchedule cs = new ClassSchedule();
@@ -299,14 +290,14 @@ public class TimetableGenerationService {
                         cs.setDayOfWeek(day);
                         cs.setTermInstance(termInstance);
                         cs.setLab(lab);
-                        cs.setLabSlot(slot);
+                        cs.setPeriod(period);
                         cs.setBatch(batch);
                         cs.setBatchName(batch.getName());
                         cs.setCourseOffering(offering);
                         cs.setIsActive(true);
                         classScheduleRepository.save(cs);
 
-                        occupied.add(new Occupied(day, slot.getStartTime(), slot.getEndTime(), roomKey, faculty.getId(), audienceKey));
+                        occupied.add(new Occupied(day, period.getStartTime(), period.getEndTime(), roomKey, faculty.getId(), audienceKey));
                         daysUsed.add(day);
                         placed++;
                         found = true;
@@ -319,39 +310,6 @@ public class TimetableGenerationService {
             }
         }
         return placed;
-    }
-
-    /** Whole weeks spanned by the term, rounded up so a partial trailing week still counts as a
-     *  full placement opportunity; at least 1 to avoid a divide-by-zero for a same-day term. */
-    private static int weeksInTerm(TermInstance termInstance) {
-        long days = ChronoUnit.DAYS.between(termInstance.getStartDate(), termInstance.getEndDate()) + 1;
-        return (int) Math.max(1, Math.ceil(days / 7.0));
-    }
-
-    /** Total term hours are 60-minute CLOCK hours delivered by a recurring weekly slot (see class
-     *  javadoc) whose own duration may not be 60 minutes — a 50-minute period needs more weekly
-     *  occurrences than a 60-minute one to deliver the same clock-hours. Converts totalHours to
-     *  minutes, divides by the slot's actual duration to get total slots needed over the term,
-     *  then spreads that across the term's weeks — rounded up at each step so the term never falls
-     *  short of the required clock-hours. */
-    private static int sessionsPerWeek(int totalHours, int weeksInTerm, double slotDurationMinutes) {
-        if (totalHours <= 0) {
-            return 0;
-        }
-        double slotsNeededOverTerm = (totalHours * 60.0) / slotDurationMinutes;
-        return (int) Math.ceil(slotsNeededOverTerm / weeksInTerm);
-    }
-
-    /** One representative duration for a pool of periods/lab-slots (per the agreed v1 scope: a
-     *  single duration per placement type, not exact per-slot minute accumulation — correct today
-     *  since every period/lab-slot pool in this system is configured uniformly, and a reasonable
-     *  approximation if that ever changes). Falls back to 60 minutes for an empty pool, where the
-     *  value is moot anyway since nothing will be placed. */
-    private static double averageDurationMinutes(List<Integer> durationsMinutes) {
-        return durationsMinutes.stream()
-            .mapToInt(Integer::intValue)
-            .average()
-            .orElse(60.0);
     }
 
     private boolean isFree(List<Occupied> occupied, DayOfWeek day, LocalTime start, LocalTime end,
@@ -398,6 +356,16 @@ public class TimetableGenerationService {
         List<ClassSchedule> drafts = classScheduleRepository.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT);
         if (drafts.isEmpty()) {
             throw new ResourceNotFoundException("No draft timetable found for term instance id: " + termInstanceId);
+        }
+        // A R3 Phase 4 skeleton cell with no faculty yet would otherwise fail with a raw
+        // chk_class_schedule_session_shape violation the moment its status flips to PUBLISHED --
+        // catch it here first with a message that actually tells the admin what to go do (visit
+        // the Phase 5 Staffing screen) instead of a database error.
+        long unstaffedCount = drafts.stream().filter(cs -> cs.getFaculty() == null).count();
+        if (unstaffedCount > 0) {
+            throw new LifecycleConflictException(
+                unstaffedCount + " session(s) in this draft still need faculty/room assigned via the Staffing screen before it can be approved.",
+                "TIMETABLE_UNSTAFFED_CELLS", "TermInstance", termInstanceId, (int) unstaffedCount);
         }
         for (ClassSchedule cs : drafts) {
             cs.setStatus(ClassScheduleStatus.PUBLISHED);

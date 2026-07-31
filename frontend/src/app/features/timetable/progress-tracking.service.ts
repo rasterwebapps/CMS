@@ -6,7 +6,7 @@ import {
   LogProgressRequest,
   OfferingProgress,
   SessionOccurrence,
-  SyllabusUnitOption,
+  UnitPickerOption,
   TermProgressSummary,
 } from './progress-tracking.model';
 
@@ -15,8 +15,8 @@ export class ProgressTrackingService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/progress-tracking`;
 
-  getAvailableUnits(classScheduleId: number): Observable<SyllabusUnitOption[]> {
-    return this.http.get<SyllabusUnitOption[]>(`${this.baseUrl}/sessions/${classScheduleId}/units`);
+  getAvailableUnits(classScheduleId: number): Observable<UnitPickerOption[]> {
+    return this.http.get<UnitPickerOption[]>(`${this.baseUrl}/sessions/${classScheduleId}/units`);
   }
 
   getLoggableOccurrenceDates(classScheduleId: number, from: string): Observable<string[]> {

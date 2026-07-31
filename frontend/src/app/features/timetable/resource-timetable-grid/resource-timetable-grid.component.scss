@@ -1,0 +1,117 @@
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.view-mode-toggle {
+  display: flex;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.view-mode-toggle__btn {
+  padding: 6px 14px;
+  background: var(--cms-bg-card);
+  border: none;
+  border-right: 1px solid var(--cms-border-default);
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+  cursor: pointer;
+
+  &:last-child {
+    border-right: none;
+  }
+
+  &:hover {
+    background: var(--cms-bg-muted);
+  }
+
+  &--active {
+    background: var(--cms-primary);
+    color: #fff;
+  }
+}
+
+.resource-grid-card {
+  overflow-x: auto;
+}
+
+.resource-grid {
+  display: grid;
+  gap: 1px;
+  background: var(--cms-border-default);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 12px;
+  overflow: hidden;
+  min-width: max-content;
+}
+
+.resource-grid__corner,
+.resource-grid__col-hdr {
+  background: var(--cms-bg-muted);
+  padding: 10px 8px;
+  text-align: center;
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+}
+
+.resource-grid__row-label {
+  background: var(--cms-bg-muted);
+  padding: 8px;
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  min-height: 60px;
+}
+
+.resource-grid__cell {
+  background: var(--cms-bg-card);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 60px;
+  min-width: 140px;
+}
+
+.resource-grid__chip {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+
+  &--theory {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.28);
+  }
+
+  &--lab {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.28);
+  }
+}
+
+.resource-grid__chip-subject {
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  line-height: 1.25;
+}
+
+.resource-grid__chip-detail {
+  font-size: 0.625rem;
+  color: var(--cms-text-muted);
+  line-height: 1.2;
+}

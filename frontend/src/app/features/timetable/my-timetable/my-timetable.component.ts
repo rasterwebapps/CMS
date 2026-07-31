@@ -8,9 +8,23 @@ import { TimetableService } from '../timetable.service';
 import { ClassSchedule } from '../timetable.model';
 import { CmsWeekGridComponent } from '../../../shared/week-grid/week-grid.component';
 import { WeekGridHolidayInfo, WeekGridSession } from '../../../shared/week-grid/week-grid.model';
+import { CmsMonthGridComponent } from '../../../shared/month-grid/month-grid.component';
+import { CmsDayAgendaComponent } from '../../../shared/day-agenda/day-agenda.component';
+import { ClassScheduleOccurrence } from '../timetable.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { LogProgressDialogComponent } from '../log-progress-dialog/log-progress-dialog.component';
+
+export type TimetableViewMode = 'week' | 'month' | 'day';
+
+/** "HH:mm:ss" -> hours between two times, rounded to 2 decimals -- the "Log Progress" dialog's
+ *  default hours-covered suggestion for a fresh log (never enforced, just a starting point). */
+function periodHoursBetween(startTime: string, endTime: string): number {
+  const [sh, sm] = startTime.split(':').map(Number);
+  const [eh, em] = endTime.split(':').map(Number);
+  const minutes = (eh * 60 + em) - (sh * 60 + sm);
+  return Math.round((minutes / 60) * 100) / 100;
+}
 
 function mondayOf(date: Date): string {
   const d = new Date(date);
@@ -23,7 +37,7 @@ function mondayOf(date: Date): string {
 @Component({
   selector: 'app-my-timetable',
   standalone: true,
-  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule, CmsWeekGridComponent],
+  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule, CmsWeekGridComponent, CmsMonthGridComponent, CmsDayAgendaComponent],
   templateUrl: './my-timetable.component.html',
   styleUrl: './my-timetable.component.scss',
 })
@@ -46,6 +60,13 @@ export class MyTimetableComponent implements OnInit {
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
   protected weekStart: string = mondayOf(new Date());
+
+  protected readonly viewMode = signal<TimetableViewMode>('week');
+  protected readonly monthYear = signal(new Date().getFullYear());
+  protected readonly monthMonth = signal(new Date().getMonth());
+  protected readonly dayDate = signal(new Date().toISOString().slice(0, 10));
+  protected readonly occurrences = signal<ClassScheduleOccurrence[]>([]);
+  protected readonly occurrencesLoading = signal(false);
 
   /** The "Week of" picker must stay inside the selected term's own date range -- ClassSchedule
    *  has no calendar date (it's a weekly recurring template, see PersonalTimetableService), so
@@ -80,11 +101,18 @@ export class MyTimetableComponent implements OnInit {
     const term = this.selectedTerm();
     if (term) this.weekStart = this.defaultWeekStartFor(term);
     this.load();
+    this.refreshCurrentViewMode();
   }
 
   protected onWeekStartChange(): void {
     this.weekStart = this.clampToTerm(this.weekStart, this.selectedTerm());
     this.load();
+  }
+
+  private refreshCurrentViewMode(): void {
+    const mode = this.viewMode();
+    if (mode === 'month') this.loadMonthOccurrences(this.monthYear(), this.monthMonth());
+    else if (mode === 'day') this.loadDayOccurrences(this.dayDate());
   }
 
   /** Today's Monday if it falls inside the term, otherwise the nearest term boundary --
@@ -100,17 +128,61 @@ export class MyTimetableComponent implements OnInit {
     return date;
   }
 
+  protected setViewMode(mode: TimetableViewMode): void {
+    this.viewMode.set(mode);
+    if (mode === 'month') this.loadMonthOccurrences(this.monthYear(), this.monthMonth());
+    else if (mode === 'day') this.loadDayOccurrences(this.dayDate());
+  }
+
+  protected onMonthChange(change: { year: number; month: number }): void {
+    this.monthYear.set(change.year);
+    this.monthMonth.set(change.month);
+    this.loadMonthOccurrences(change.year, change.month);
+  }
+
+  protected onMonthDayClick(iso: string): void {
+    this.dayDate.set(iso);
+    this.viewMode.set('day');
+    this.loadDayOccurrences(iso);
+  }
+
+  protected onDayDateChange(iso: string): void {
+    this.dayDate.set(iso);
+    this.loadDayOccurrences(iso);
+  }
+
+  private loadMonthOccurrences(year: number, month: number): void {
+    if (!this.selectedTermInstanceId) return;
+    const from = new Date(year, month, 1).toISOString().slice(0, 10);
+    const to = new Date(year, month + 1, 0).toISOString().slice(0, 10);
+    this.occurrencesLoading.set(true);
+    this.timetableService.getOccurrences(this.selectedTermInstanceId, from, to, 'personal').subscribe({
+      next: (occs) => { this.occurrences.set(occs); this.occurrencesLoading.set(false); },
+      error: () => { this.toast.error('Failed to load month view'); this.occurrencesLoading.set(false); },
+    });
+  }
+
+  private loadDayOccurrences(iso: string): void {
+    if (!this.selectedTermInstanceId) return;
+    this.occurrencesLoading.set(true);
+    this.timetableService.getOccurrences(this.selectedTermInstanceId, iso, iso, 'personal').subscribe({
+      next: (occs) => { this.occurrences.set(occs); this.occurrencesLoading.set(false); },
+      error: () => { this.toast.error('Failed to load day view'); this.occurrencesLoading.set(false); },
+    });
+  }
+
   protected openLogProgress(session: WeekGridSession): void {
     if (!this.canLogProgress()) return;
     const term = this.termInstances().find((t) => t.id === this.selectedTermInstanceId);
     if (!term) return;
     this.dialog.open(LogProgressDialogComponent, {
-      width: '600px',
+      width: '640px',
       data: {
         classScheduleId: session.id,
         subjectName: session.subjectName,
         subjectCode: session.subjectCode,
         termStartDate: term.startDate,
+        periodHours: periodHoursBetween(session.startTime, session.endTime),
       },
     });
   }

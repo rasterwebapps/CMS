@@ -12,21 +12,24 @@ import com.cms.dto.SwapRequest;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.ClassSchedule;
-import com.cms.model.LabSlot;
 import com.cms.model.Period;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.FacultyAvailabilityRepository;
-import com.cms.repository.LabSlotRepository;
 import com.cms.repository.PeriodRepository;
 
 /**
- * Moves a DRAFT session to a different day/period (or day/labSlot), or — when the target slot is
- * already occupied by another DRAFT session in the same room — exchanges the two sessions'
- * day+slot. Room never changes; a candidate slot is only offered/accepted when the session's
- * existing classroom/lab is free at that day+time. Scoped to DRAFT sessions only — swapping a
+ * Moves a DRAFT session to a different day/period, or — when the target slot is already occupied
+ * by another DRAFT session in the same room — exchanges the two sessions' day+slot. Room never
+ * changes; a candidate slot is only offered/accepted when the session's existing classroom/lab is
+ * free at that day+time. THEORY, LAB, and CLINICAL rows all share the one Period master (V331
+ * merged the formerly-separate LabSlot master into it). Room/audience resolution in {@link
+ * #evaluateSlot} only branches THEORY vs non-THEORY (never reads {@code getClinicalVenue()}) —
+ * safe today only because {@link TimetableGenerationService}, the sole producer of DRAFT rows,
+ * never emits CLINICAL (see its class javadoc). Revisit this once R3 Phase 4's manual skeleton
+ * builder can place a genuine DRAFT CLINICAL row. Scoped to DRAFT sessions only — swapping a
  * PUBLISHED/live timetable isn't supported by this feature (see TimetableDraftReviewComponent,
  * the only consumer).
  */
@@ -37,16 +40,13 @@ public class TimetableSwapService {
     private final ClassScheduleRepository classScheduleRepository;
     private final FacultyAvailabilityRepository facultyAvailabilityRepository;
     private final PeriodRepository periodRepository;
-    private final LabSlotRepository labSlotRepository;
 
     public TimetableSwapService(ClassScheduleRepository classScheduleRepository,
                                  FacultyAvailabilityRepository facultyAvailabilityRepository,
-                                 PeriodRepository periodRepository,
-                                 LabSlotRepository labSlotRepository) {
+                                 PeriodRepository periodRepository) {
         this.classScheduleRepository = classScheduleRepository;
         this.facultyAvailabilityRepository = facultyAvailabilityRepository;
         this.periodRepository = periodRepository;
-        this.labSlotRepository = labSlotRepository;
     }
 
     /** Whether a (day,start,end) slot works for `moving` — availability-clean and, if occupied,
@@ -57,37 +57,26 @@ public class TimetableSwapService {
 
     public List<SwapCandidateResponse> findCandidates(Long termInstanceId, Long sessionId) {
         ClassSchedule source = requireDraftSession(termInstanceId, sessionId);
-        boolean isTheory = source.getSessionType() == ClassSessionType.THEORY;
+        Long sourcePeriodId = source.getPeriod().getId();
         List<SwapCandidateResponse> candidates = new ArrayList<>();
 
-        if (isTheory) {
-            Long sourcePeriodId = source.getPeriod().getId();
-            for (Period period : periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()) {
-                for (DayOfWeek day : DayOfWeek.values()) {
-                    if (day == source.getDayOfWeek() && period.getId().equals(sourcePeriodId)) continue;
-                    addIfCandidate(candidates, source, day, period.getStartTime(), period.getEndTime(), period.getId(), null);
-                }
-            }
-        } else {
-            Long sourceSlotId = source.getLabSlot().getId();
-            for (LabSlot slot : labSlotRepository.findByIsActiveTrueOrderBySlotOrderAsc()) {
-                for (DayOfWeek day : DayOfWeek.values()) {
-                    if (day == source.getDayOfWeek() && slot.getId().equals(sourceSlotId)) continue;
-                    addIfCandidate(candidates, source, day, slot.getStartTime(), slot.getEndTime(), null, slot.getId());
-                }
+        for (Period period : periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()) {
+            for (DayOfWeek day : DayOfWeek.values()) {
+                if (day == source.getDayOfWeek() && period.getId().equals(sourcePeriodId)) continue;
+                addIfCandidate(candidates, source, day, period.getStartTime(), period.getEndTime(), period.getId());
             }
         }
         return candidates;
     }
 
     private void addIfCandidate(List<SwapCandidateResponse> out, ClassSchedule source, DayOfWeek day,
-                                 LocalTime start, LocalTime end, Long periodId, Long labSlotId) {
+                                 LocalTime start, LocalTime end, Long periodId) {
         SlotEvaluation eval = evaluateSlot(source, day, start, end, null);
         if (!eval.valid()) {
             return;
         }
         if (eval.occupant() == null) {
-            out.add(new SwapCandidateResponse(day, start, end, periodId, labSlotId, false, null, null));
+            out.add(new SwapCandidateResponse(day, start, end, periodId, false, null, null));
             return;
         }
         // A swap partner exists here — also confirm the reverse move (partner -> source's original
@@ -95,41 +84,20 @@ public class TimetableSwapService {
         if (!evaluateReverse(source, eval.occupant()).valid()) {
             return;
         }
-        out.add(new SwapCandidateResponse(day, start, end, periodId, labSlotId, true,
+        out.add(new SwapCandidateResponse(day, start, end, periodId, true,
             eval.occupant().getId(), eval.occupant().getSubject().getName()));
     }
 
     @Transactional
     public void swap(Long termInstanceId, Long sessionId, SwapRequest request) {
         ClassSchedule source = requireDraftSession(termInstanceId, sessionId);
-        boolean isTheory = source.getSessionType() == ClassSessionType.THEORY;
 
-        Period targetPeriod = null;
-        LabSlot targetLabSlot = null;
-        LocalTime start;
-        LocalTime end;
-        if (isTheory) {
-            if (request.periodId() == null) {
-                throw new IllegalArgumentException("periodId is required to swap a THEORY session");
-            }
-            targetPeriod = periodRepository.findById(request.periodId())
-                .orElseThrow(() -> new ResourceNotFoundException("Period not found with id: " + request.periodId()));
-            start = targetPeriod.getStartTime();
-            end = targetPeriod.getEndTime();
-            if (request.dayOfWeek() == source.getDayOfWeek() && targetPeriod.getId().equals(source.getPeriod().getId())) {
-                throw new IllegalArgumentException("Target slot is the same as the session's current slot");
-            }
-        } else {
-            if (request.labSlotId() == null) {
-                throw new IllegalArgumentException("labSlotId is required to swap a LAB session");
-            }
-            targetLabSlot = labSlotRepository.findById(request.labSlotId())
-                .orElseThrow(() -> new ResourceNotFoundException("Lab slot not found with id: " + request.labSlotId()));
-            start = targetLabSlot.getStartTime();
-            end = targetLabSlot.getEndTime();
-            if (request.dayOfWeek() == source.getDayOfWeek() && targetLabSlot.getId().equals(source.getLabSlot().getId())) {
-                throw new IllegalArgumentException("Target slot is the same as the session's current slot");
-            }
+        Period targetPeriod = periodRepository.findById(request.periodId())
+            .orElseThrow(() -> new ResourceNotFoundException("Period not found with id: " + request.periodId()));
+        LocalTime start = targetPeriod.getStartTime();
+        LocalTime end = targetPeriod.getEndTime();
+        if (request.dayOfWeek() == source.getDayOfWeek() && targetPeriod.getId().equals(source.getPeriod().getId())) {
+            throw new IllegalArgumentException("Target slot is the same as the session's current slot");
         }
 
         // Never trust a stale candidate list — re-evaluate from scratch.
@@ -143,22 +111,13 @@ public class TimetableSwapService {
             if (!evaluateReverse(source, occupant).valid()) {
                 throw slotUnavailable(sessionId);
             }
-            DayOfWeek sourceDay = source.getDayOfWeek();
-            occupant.setDayOfWeek(sourceDay);
-            if (isTheory) {
-                occupant.setPeriod(source.getPeriod());
-            } else {
-                occupant.setLabSlot(source.getLabSlot());
-            }
+            occupant.setDayOfWeek(source.getDayOfWeek());
+            occupant.setPeriod(source.getPeriod());
             classScheduleRepository.save(occupant);
         }
 
         source.setDayOfWeek(request.dayOfWeek());
-        if (isTheory) {
-            source.setPeriod(targetPeriod);
-        } else {
-            source.setLabSlot(targetLabSlot);
-        }
+        source.setPeriod(targetPeriod);
         classScheduleRepository.save(source);
     }
 
@@ -166,10 +125,8 @@ public class TimetableSwapService {
      *  conflicts, once `source` has vacated it — required before offering/accepting a two-way
      *  swap, not just a move into an empty slot. */
     private SlotEvaluation evaluateReverse(ClassSchedule source, ClassSchedule occupant) {
-        boolean isTheory = source.getSessionType() == ClassSessionType.THEORY;
-        LocalTime sourceStart = isTheory ? source.getPeriod().getStartTime() : source.getLabSlot().getStartTime();
-        LocalTime sourceEnd = isTheory ? source.getPeriod().getEndTime() : source.getLabSlot().getEndTime();
-        return evaluateSlot(occupant, source.getDayOfWeek(), sourceStart, sourceEnd, source.getId());
+        return evaluateSlot(occupant, source.getDayOfWeek(),
+            source.getPeriod().getStartTime(), source.getPeriod().getEndTime(), source.getId());
     }
 
     /** @param alsoExcludeId an additional row (besides `moving` itself, always excluded) to leave
@@ -177,8 +134,10 @@ public class TimetableSwapService {
      *                       session vacating the slot must not count as a blocker. */
     private SlotEvaluation evaluateSlot(ClassSchedule moving, DayOfWeek day, LocalTime start, LocalTime end,
                                          Long alsoExcludeId) {
-        Long facultyId = moving.getFaculty().getId();
-        if (!facultyAvailabilityRepository.findOverlapping(facultyId, day, start, end).isEmpty()) {
+        // Null for an unstaffed R3 Phase 4 skeleton row -- nothing to check faculty-availability
+        // or faculty-conflict against yet, so both checks below become no-ops for it.
+        Long facultyId = moving.getFaculty() != null ? moving.getFaculty().getId() : null;
+        if (facultyId != null && !facultyAvailabilityRepository.findOverlapping(facultyId, day, start, end).isEmpty()) {
             return SlotEvaluation.BLOCKED;
         }
 
@@ -192,9 +151,7 @@ public class TimetableSwapService {
         Long roomId = isTheory
             ? (moving.getClassroom() != null ? moving.getClassroom().getId() : null)
             : (moving.getLab() != null ? moving.getLab().getId() : null);
-        Long audienceId = isTheory
-            ? (moving.getCourseOffering() != null ? moving.getCourseOffering().getId() : null)
-            : (moving.getBatch() != null ? moving.getBatch().getId() : null);
+        Long audienceId = resolveAudienceId(moving);
 
         ClassSchedule roomOccupant = null;
         for (ClassSchedule cs : overlapping) {
@@ -209,17 +166,25 @@ public class TimetableSwapService {
                 roomOccupant = cs;
                 continue;
             }
-            if (cs.getFaculty().getId().equals(facultyId)) {
+            if (facultyId != null && cs.getFaculty() != null && cs.getFaculty().getId().equals(facultyId)) {
                 return SlotEvaluation.BLOCKED;
             }
-            Long csAudienceId = isTheory
-                ? (cs.getCourseOffering() != null ? cs.getCourseOffering().getId() : null)
-                : (cs.getBatch() != null ? cs.getBatch().getId() : null);
+            Long csAudienceId = resolveAudienceId(cs);
             if (sameSessionType && audienceId != null && audienceId.equals(csAudienceId)) {
                 return SlotEvaluation.BLOCKED;
             }
         }
         return new SlotEvaluation(true, roomOccupant);
+    }
+
+    /** THEORY audience is batch-scoped when a section was picked (R3 Phase 3), falling back to
+     *  the whole-cohort courseOffering for un-sectioned rows; LAB/CLINICAL are always batch-scoped. */
+    private Long resolveAudienceId(ClassSchedule cs) {
+        if (cs.getSessionType() == ClassSessionType.THEORY) {
+            return cs.getBatch() != null ? cs.getBatch().getId()
+                : (cs.getCourseOffering() != null ? cs.getCourseOffering().getId() : null);
+        }
+        return cs.getBatch() != null ? cs.getBatch().getId() : null;
     }
 
     private ClassSchedule requireDraftSession(Long termInstanceId, Long sessionId) {

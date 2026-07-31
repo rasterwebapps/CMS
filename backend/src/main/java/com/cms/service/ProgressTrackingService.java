@@ -1,24 +1,24 @@
 package com.cms.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.cms.dto.CoveredUnitDto;
 import com.cms.dto.LogProgressRequest;
 import com.cms.dto.OfferingProgressResponse;
 import com.cms.dto.SessionOccurrenceDto;
 import com.cms.dto.SubjectProgressSummaryDto;
-import com.cms.dto.SyllabusUnitDto;
 import com.cms.dto.TermProgressSummaryResponse;
+import com.cms.dto.UnitCoverageDto;
+import com.cms.dto.UnitCoverageRequest;
+import com.cms.dto.UnitPickerOptionDto;
 import com.cms.dto.UnitProgressDto;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.ClassSchedule;
@@ -26,7 +26,9 @@ import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Faculty;
 import com.cms.model.SessionOccurrence;
+import com.cms.model.SessionOccurrenceUnit;
 import com.cms.model.SyllabusUnit;
+import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.FacultyRepository;
@@ -34,11 +36,15 @@ import com.cms.repository.SessionOccurrenceRepository;
 import com.cms.repository.SyllabusUnitRepository;
 
 /**
- * Portion-completion progress tracking (Timetable planner Round 2, Phase 3) — records which
- * {@link SyllabusUnit}s were covered in a specific dated firing of a recurring {@link
- * ClassSchedule} row, via {@link SessionOccurrence}. Progress naturally comes out per-offering
- * (not per-curriculum) even though units are shared across every offering of a subject, because
- * occurrences key off {@code ClassSchedule}, which already carries {@code courseOffering}.
+ * Portion-completion progress tracking (Timetable planner Round 2, Phase 3) — records how much of
+ * each {@link SyllabusUnit} was actually covered in a specific dated firing of a recurring {@link
+ * ClassSchedule} row, via {@link SessionOccurrence}/{@link SessionOccurrenceUnit}. Hours-covered is
+ * a faculty-entered record of real time spent, never assumed to equal the period's length; a unit
+ * is "complete" only once a faculty deliberately says so, never inferred from hours crossing the
+ * unit's plannedHours (a unit can genuinely finish early or run long). Progress naturally comes
+ * out per-offering (not per-curriculum) even though units are shared across every offering of a
+ * subject, because occurrences key off {@code ClassSchedule}, which already carries {@code
+ * courseOffering}.
  */
 @Service
 @Transactional(readOnly = true)
@@ -70,6 +76,11 @@ public class ProgressTrackingService {
         ClassSchedule schedule = classScheduleRepository.findById(request.classScheduleId())
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Class schedule not found with id: " + request.classScheduleId()));
+        // R3 Phase 6: an unstaffed skeleton cell (R3 Phase 4) or any other DRAFT row was never
+        // actually held, so there's nothing real to log progress against.
+        if (schedule.getStatus() != ClassScheduleStatus.PUBLISHED) {
+            throw new IllegalArgumentException("Progress can only be logged against a published, live session");
+        }
 
         LocalDate date = request.occurrenceDate();
         if (date.isAfter(LocalDate.now())) {
@@ -85,21 +96,30 @@ public class ProgressTrackingService {
             .findByClassScheduleIdAndOccurrenceDate(request.classScheduleId(), date)
             .orElseGet(() -> new SessionOccurrence(schedule, date));
 
-        List<Long> unitIds = request.unitIds() != null ? request.unitIds() : List.of();
-        Set<SyllabusUnit> units = new LinkedHashSet<>(syllabusUnitRepository.findAllById(unitIds));
-        if (units.size() != unitIds.size()) {
-            throw new IllegalArgumentException("One or more syllabus units were not found");
-        }
+        List<UnitCoverageRequest> units = request.units() != null ? request.units() : List.of();
         CurriculumSemesterCourse csc = schedule.getCourseOffering() != null
             ? schedule.getCourseOffering().getCurriculumSemesterCourse() : null;
-        for (SyllabusUnit unit : units) {
+
+        List<SessionOccurrenceUnit> newCoverages = new ArrayList<>();
+        for (UnitCoverageRequest unitRequest : units) {
+            SyllabusUnit unit = syllabusUnitRepository.findById(unitRequest.unitId())
+                .orElseThrow(() -> new IllegalArgumentException("Syllabus unit not found with id: " + unitRequest.unitId()));
             if (csc == null || !unit.getCurriculumSemesterCourse().getId().equals(csc.getId())) {
                 throw new IllegalArgumentException(
                     "Unit " + unit.getUnitNumber() + " does not belong to this session's subject");
             }
+            if (unitRequest.hoursCovered() != null && unitRequest.hoursCovered().signum() < 0) {
+                throw new IllegalArgumentException("Hours covered cannot be negative");
+            }
+            newCoverages.add(new SessionOccurrenceUnit(occurrence, unit,
+                unitRequest.hoursCovered(), unitRequest.markedComplete()));
         }
 
-        occurrence.setCoveredUnits(units);
+        // Mutate the existing managed collection in place (never reassign it) so Hibernate's
+        // orphanRemoval actually deletes rows dropped from a previous save of this same occurrence.
+        occurrence.getUnitCoverages().clear();
+        occurrence.getUnitCoverages().addAll(newCoverages);
+
         occurrence.setRemarks(request.remarks());
         if (recordedByFacultyId != null) {
             Faculty faculty = facultyRepository.findById(recordedByFacultyId).orElse(null);
@@ -108,21 +128,27 @@ public class ProgressTrackingService {
         return toDto(sessionOccurrenceRepository.save(occurrence));
     }
 
-    /** Units the "Log Progress" dialog should offer for a session, resolved from that session's
-     *  own subject rather than requiring the frontend to already know its curriculumTermCourseId. */
-    public List<SyllabusUnitDto> getAvailableUnits(Long classScheduleId) {
+    /** Units the "Log Progress" dialog should offer for a session, with each unit's aggregate
+     *  state across every date logged so far (not just the date being edited) so the picker can
+     *  default to the actual current unit instead of a flat, stateless list of all units. */
+    public List<UnitPickerOptionDto> getAvailableUnits(Long classScheduleId) {
         ClassSchedule schedule = classScheduleRepository.findById(classScheduleId)
             .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + classScheduleId));
-        CurriculumSemesterCourse csc = schedule.getCourseOffering() != null
-            ? schedule.getCourseOffering().getCurriculumSemesterCourse() : null;
+        CourseOffering offering = schedule.getCourseOffering();
+        CurriculumSemesterCourse csc = offering != null ? offering.getCurriculumSemesterCourse() : null;
         if (csc == null) {
             return List.of();
         }
-        return syllabusUnitRepository.findByCurriculumSemesterCourseIdOrderBySortOrderAscUnitNumberAsc(csc.getId())
-            .stream()
-            .map(u -> new SyllabusUnitDto(u.getId(), csc.getId(), u.getUnitNumber(), u.getTitle(),
-                u.getComponentType(), u.getPlannedHours(), u.getDescription(), u.getSortOrder(),
-                u.getIsActive(), u.getCreatedAt(), u.getUpdatedAt()))
+        List<SyllabusUnit> units = syllabusUnitRepository
+            .findByCurriculumSemesterCourseIdOrderBySortOrderAscUnitNumberAsc(csc.getId());
+        Map<Long, UnitAggregate> aggregates = aggregateByUnit(offering.getId());
+
+        return units.stream()
+            .map(unit -> {
+                UnitAggregate agg = aggregates.getOrDefault(unit.getId(), UnitAggregate.EMPTY);
+                return new UnitPickerOptionDto(unit.getId(), unit.getUnitNumber(), unit.getTitle(),
+                    unit.getComponentType(), unit.getPlannedHours(), agg.hoursLogged(), agg.completed());
+            })
             .toList();
     }
 
@@ -149,22 +175,17 @@ public class ProgressTrackingService {
             ? syllabusUnitRepository.findByCurriculumSemesterCourseIdOrderBySortOrderAscUnitNumberAsc(csc.getId())
             : List.of();
 
-        Map<Long, List<LocalDate>> coveredDatesByUnit = new HashMap<>();
-        for (SessionOccurrence occurrence : sessionOccurrenceRepository.findByClassSchedule_CourseOffering_Id(courseOfferingId)) {
-            for (SyllabusUnit unit : occurrence.getCoveredUnits()) {
-                coveredDatesByUnit.computeIfAbsent(unit.getId(), k -> new ArrayList<>()).add(occurrence.getOccurrenceDate());
-            }
-        }
+        Map<Long, UnitAggregate> aggregates = aggregateByUnit(courseOfferingId);
 
         List<UnitProgressDto> unitProgress = units.stream()
             .map(unit -> {
-                List<LocalDate> dates = coveredDatesByUnit.getOrDefault(unit.getId(), List.of());
+                UnitAggregate agg = aggregates.getOrDefault(unit.getId(), UnitAggregate.EMPTY);
                 return new UnitProgressDto(unit.getId(), unit.getUnitNumber(), unit.getTitle(),
-                    unit.getComponentType(), unit.getPlannedHours(), !dates.isEmpty(), dates);
+                    unit.getComponentType(), unit.getPlannedHours(), agg.hoursLogged(), agg.completed(), agg.dates());
             })
             .toList();
 
-        int coveredCount = (int) unitProgress.stream().filter(UnitProgressDto::covered).count();
+        int coveredCount = (int) unitProgress.stream().filter(UnitProgressDto::completed).count();
         double percent = units.isEmpty() ? 0.0 : (coveredCount * 100.0) / units.size();
 
         return new OfferingProgressResponse(courseOfferingId, offering.getSubject().getName(),
@@ -196,12 +217,42 @@ public class ProgressTrackingService {
         return new TermProgressSummaryResponse(termInstanceId, subjects, overallPercent);
     }
 
+    /** Sums hoursCovered and ORs markedComplete for one unit across every session occurrence
+     *  logged for a course offering -- a unit is "complete" the instant any occurrence marks it
+     *  so, regardless of how that compares to its plannedHours. */
+    private Map<Long, UnitAggregate> aggregateByUnit(Long courseOfferingId) {
+        Map<Long, UnitAggregate> aggregates = new HashMap<>();
+        for (SessionOccurrence occurrence : sessionOccurrenceRepository.findByClassSchedule_CourseOffering_Id(courseOfferingId)) {
+            for (SessionOccurrenceUnit coverage : occurrence.getUnitCoverages()) {
+                Long unitId = coverage.getSyllabusUnit().getId();
+                aggregates.merge(unitId,
+                    new UnitAggregate(
+                        coverage.getHoursCovered() != null ? coverage.getHoursCovered() : BigDecimal.ZERO,
+                        Boolean.TRUE.equals(coverage.getMarkedComplete()),
+                        new ArrayList<>(List.of(occurrence.getOccurrenceDate()))),
+                    UnitAggregate::merge);
+            }
+        }
+        return aggregates;
+    }
+
+    private record UnitAggregate(BigDecimal hoursLogged, boolean completed, List<LocalDate> dates) {
+        static final UnitAggregate EMPTY = new UnitAggregate(BigDecimal.ZERO, false, List.of());
+
+        static UnitAggregate merge(UnitAggregate a, UnitAggregate b) {
+            List<LocalDate> mergedDates = new ArrayList<>(a.dates());
+            mergedDates.addAll(b.dates());
+            return new UnitAggregate(a.hoursLogged().add(b.hoursLogged()), a.completed() || b.completed(), mergedDates);
+        }
+    }
+
     private SessionOccurrenceDto toDto(SessionOccurrence occurrence) {
-        List<CoveredUnitDto> covered = occurrence.getCoveredUnits().stream()
-            .map(u -> new CoveredUnitDto(u.getId(), u.getUnitNumber(), u.getTitle()))
+        List<UnitCoverageDto> coverages = occurrence.getUnitCoverages().stream()
+            .map(c -> new UnitCoverageDto(c.getSyllabusUnit().getId(), c.getSyllabusUnit().getUnitNumber(),
+                c.getSyllabusUnit().getTitle(), c.getHoursCovered(), Boolean.TRUE.equals(c.getMarkedComplete())))
             .toList();
         return new SessionOccurrenceDto(occurrence.getId(), occurrence.getClassSchedule().getId(),
-            occurrence.getOccurrenceDate(), covered, occurrence.getRemarks(),
+            occurrence.getOccurrenceDate(), coverages, occurrence.getRemarks(),
             occurrence.getCreatedAt(), occurrence.getUpdatedAt());
     }
 }

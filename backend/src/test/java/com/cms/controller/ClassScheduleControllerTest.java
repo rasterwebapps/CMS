@@ -51,8 +51,8 @@ class ClassScheduleControllerTest {
 
     private ClassScheduleRequest labRequest(String batchName, DayOfWeek dayOfWeek) {
         return new ClassScheduleRequest(
-            ClassSessionType.LAB, 1L, 1L, 1L, 1L, batchName, null,
-            dayOfWeek, 1L, true, null, null, null
+            ClassSessionType.LAB, 1L, 1L, 1L, batchName, null,
+            dayOfWeek, 1L, true, null, 1L, null, null
         );
     }
 
@@ -226,9 +226,9 @@ class ClassScheduleControllerTest {
         return new ClassScheduleResponse(
             id, ClassSessionType.LAB, ClassScheduleStatus.PUBLISHED,
             1L, "Lab 1", 1L, "Data Structures Lab", "CS201L",
-            1L, "John Doe", 1L, null, "Slot 1",
+            1L, "John Doe", 1L, "Slot 1",
             LocalTime.of(9, 0), LocalTime.of(10, 30),
-            batchName, null, null, "Lab 1", null,
+            batchName, null, null, null, "Lab 1", null,
             dayOfWeek, 1L, "Odd Semester 2024",
             true, now, now
         );

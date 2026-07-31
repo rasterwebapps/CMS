@@ -3,3 +3,51 @@
   justify-content: center;
   padding: 48px;
 }
+
+.view-mode-toggle {
+  display: flex;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.view-mode-toggle__btn {
+  padding: 6px 14px;
+  background: var(--cms-bg-card);
+  border: none;
+  border-right: 1px solid var(--cms-border-default);
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+  cursor: pointer;
+
+  &:last-child {
+    border-right: none;
+  }
+
+  &:hover {
+    background: var(--cms-bg-muted);
+  }
+
+  &--active {
+    background: var(--cms-primary);
+    color: #fff;
+  }
+}
+
+.day-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.day-picker__label {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+}
+
+.day-picker .field-input {
+  padding: 8px 10px;
+  height: auto;
+}

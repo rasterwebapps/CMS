@@ -1,0 +1,112 @@
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.day-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.day-picker__label {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+}
+
+.day-picker .field-input {
+  padding: 8px 10px;
+  height: auto;
+}
+
+.empty-hint {
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-base);
+  padding: 8px 0;
+}
+
+.session-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.session-item {
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.session-item__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.session-item__time {
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+}
+
+.session-item__subject {
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  font-size: var(--cms-text-base);
+}
+
+.session-item__faculty,
+.session-item__room {
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-muted);
+}
+
+.swap-btn {
+  margin-left: auto;
+}
+
+.candidate-panel {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--cms-border-default);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.candidate-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.candidate-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-align: left;
+}
+
+.cancel-swap-btn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-xs);
+  cursor: pointer;
+  padding: 2px 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

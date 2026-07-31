@@ -5,14 +5,18 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
 import { TimetableService } from '../timetable.service';
-import { ClassSchedule } from '../timetable.model';
+import { ClassSchedule, ClassScheduleOccurrence } from '../timetable.model';
 import { CmsWeekGridComponent } from '../../../shared/week-grid/week-grid.component';
+import { CmsMonthGridComponent } from '../../../shared/month-grid/month-grid.component';
+import { CmsDayAgendaComponent } from '../../../shared/day-agenda/day-agenda.component';
 import { ToastService } from '../../../core/toast/toast.service';
+
+export type TimetableViewMode = 'week' | 'month' | 'day';
 
 @Component({
   selector: 'app-timetable-view',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, CmsWeekGridComponent],
+  imports: [FormsModule, MatProgressSpinnerModule, CmsWeekGridComponent, CmsMonthGridComponent, CmsDayAgendaComponent],
   templateUrl: './timetable-view.component.html',
   styleUrl: './timetable-view.component.scss',
 })
@@ -30,6 +34,16 @@ export class TimetableViewComponent implements OnInit {
 
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
+
+  protected readonly selectedTerm = computed(() =>
+    this.termInstances().find((t) => t.id === this.selectedTermInstanceId) ?? null);
+
+  protected readonly viewMode = signal<TimetableViewMode>('week');
+  protected readonly monthYear = signal(new Date().getFullYear());
+  protected readonly monthMonth = signal(new Date().getMonth());
+  protected readonly dayDate = signal(new Date().toISOString().slice(0, 10));
+  protected readonly occurrences = signal<ClassScheduleOccurrence[]>([]);
+  protected readonly occurrencesLoading = signal(false);
 
   protected readonly selectedFaculty = signal<string | null>(null);
   protected readonly selectedRoom = signal<string | null>(null);
@@ -55,6 +69,18 @@ export class TimetableViewComponent implements OnInit {
       (!faculty || s.facultyName === faculty) &&
       (!room || s.roomName === room) &&
       (!batch || s.batchName === batch));
+  });
+
+  /** Same Faculty/Room/Batch filters applied to the date-exploded occurrences behind Month/Day
+   *  view, so switching view modes doesn't silently drop an active filter. */
+  protected readonly filteredOccurrences = computed(() => {
+    const faculty = this.selectedFaculty();
+    const room = this.selectedRoom();
+    const batch = this.selectedBatch();
+    return this.occurrences().filter((o) =>
+      (!faculty || o.session.facultyName === faculty) &&
+      (!room || o.session.roomName === room) &&
+      (!batch || o.session.batchName === batch));
   });
 
   ngOnInit(): void {
@@ -84,8 +110,89 @@ export class TimetableViewComponent implements OnInit {
   }
 
   protected onTermChange(): void {
-    if (this.selectedTermInstanceId) this.loadPublished(this.selectedTermInstanceId);
-    else this.sessions.set([]);
+    if (this.selectedTermInstanceId) {
+      this.loadPublished(this.selectedTermInstanceId);
+      this.resetMonthDayDefaults();
+      this.refreshCurrentViewMode();
+    } else {
+      this.sessions.set([]);
+    }
+  }
+
+  protected setViewMode(mode: TimetableViewMode): void {
+    this.viewMode.set(mode);
+    if (mode === 'month') this.loadMonthOccurrences(this.monthYear(), this.monthMonth());
+    else if (mode === 'day') this.loadDayOccurrences(this.dayDate());
+  }
+
+  protected onMonthChange(change: { year: number; month: number }): void {
+    this.monthYear.set(change.year);
+    this.monthMonth.set(change.month);
+    this.loadMonthOccurrences(change.year, change.month);
+  }
+
+  protected onMonthDayClick(iso: string): void {
+    this.dayDate.set(iso);
+    this.viewMode.set('day');
+    this.loadDayOccurrences(iso);
+  }
+
+  protected onDayDateChange(iso: string): void {
+    const clamped = this.clampToTerm(iso, this.selectedTerm());
+    this.dayDate.set(clamped);
+    this.loadDayOccurrences(clamped);
+  }
+
+  protected get dayMin(): string | null {
+    return this.selectedTerm()?.startDate ?? null;
+  }
+
+  protected get dayMax(): string | null {
+    return this.selectedTerm()?.endDate ?? null;
+  }
+
+  private refreshCurrentViewMode(): void {
+    const mode = this.viewMode();
+    if (mode === 'month') this.loadMonthOccurrences(this.monthYear(), this.monthMonth());
+    else if (mode === 'day') this.loadDayOccurrences(this.dayDate());
+  }
+
+  private resetMonthDayDefaults(): void {
+    const term = this.selectedTerm();
+    if (!term) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const clamped = this.clampToTerm(today, term);
+    this.dayDate.set(clamped);
+    const [y, m] = clamped.split('-').map(Number);
+    this.monthYear.set(y);
+    this.monthMonth.set(m - 1);
+  }
+
+  private clampToTerm(date: string, term: TermInstance | null): string {
+    if (!term) return date;
+    if (date < term.startDate) return term.startDate;
+    if (date > term.endDate) return term.endDate;
+    return date;
+  }
+
+  private loadMonthOccurrences(year: number, month: number): void {
+    if (!this.selectedTermInstanceId) return;
+    const from = new Date(year, month, 1).toISOString().slice(0, 10);
+    const to = new Date(year, month + 1, 0).toISOString().slice(0, 10);
+    this.occurrencesLoading.set(true);
+    this.timetableService.getOccurrences(this.selectedTermInstanceId, from, to, 'browse').subscribe({
+      next: (occs) => { this.occurrences.set(occs); this.occurrencesLoading.set(false); },
+      error: () => { this.toast.error('Failed to load month view'); this.occurrencesLoading.set(false); },
+    });
+  }
+
+  private loadDayOccurrences(iso: string): void {
+    if (!this.selectedTermInstanceId) return;
+    this.occurrencesLoading.set(true);
+    this.timetableService.getOccurrences(this.selectedTermInstanceId, iso, iso, 'browse').subscribe({
+      next: (occs) => { this.occurrences.set(occs); this.occurrencesLoading.set(false); },
+      error: () => { this.toast.error('Failed to load day view'); this.occurrencesLoading.set(false); },
+    });
   }
 
   private loadTermInstances(academicYearId: number, preselectTermInstanceId?: number): void {
@@ -98,8 +205,13 @@ export class TimetableViewComponent implements OnInit {
           ? preselectTermInstanceId
           : terms[0]?.id ?? null;
         this.selectedTermInstanceId = preselect;
-        if (preselect) this.loadPublished(preselect);
-        else this.sessions.set([]);
+        if (preselect) {
+          this.loadPublished(preselect);
+          this.resetMonthDayDefaults();
+          this.refreshCurrentViewMode();
+        } else {
+          this.sessions.set([]);
+        }
       },
       error: () => { this.toast.error('Failed to load term instances'); this.termsLoading.set(false); },
     });
