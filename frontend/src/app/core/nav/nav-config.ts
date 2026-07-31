@@ -118,16 +118,36 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Library Settings', icon: 'settings',           route: '/library/settings',       permissions: ['LIBRARY_SETTINGS_EDIT', 'LIBRARY_SETTINGS_MANAGE'] },
     ],
   },
-  // 7. Infrastructure
+  // 7. Core Infrastructure — building/room hierarchy shared across Hostel, and future Stores/Library location features
   {
-    label: 'Infrastructure',
+    label: 'Core Infrastructure',
+    icon: 'location_city',
+    items: [
+      { label: 'Campus Infrastructure',   icon: 'apartment',    route: '/campus-infrastructure',   permissions: ['CAMPUS_INFRASTRUCTURE_VIEW', 'CAMPUS_INFRASTRUCTURE_MANAGE', 'HOSTEL_ROOM_VIEW', 'HOSTEL_ROOM_MANAGE'] },
+      { label: 'Room Purpose Categories', icon: 'category',     route: '/room-purpose-categories', permissions: ['ROOM_PURPOSE_CATEGORY_VIEW', 'ROOM_PURPOSE_CATEGORY_MANAGE'] },
+      { label: 'Room Sub-Types',          icon: 'meeting_room', route: '/room-sub-types',          permissions: ['ROOM_SUB_TYPE_VIEW', 'ROOM_SUB_TYPE_MANAGE'] },
+    ],
+  },
+  // 8. Inventory Management — physical asset/equipment tracking
+  {
+    label: 'Inventory Management',
     icon: 'construction',
     items: [
       { label: 'Inventory',   icon: 'inventory_2', route: '/inventory',   permissions: ['INVENTORY_VIEW', 'INVENTORY_CREATE', 'INVENTORY_EDIT', 'INVENTORY_DELETE', 'INVENTORY_EXPORT', 'INVENTORY_MANAGE'] },
       { label: 'Maintenance', icon: 'build',       route: '/maintenance', permissions: ['MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_EDIT', 'MAINTENANCE_DELETE', 'MAINTENANCE_EXPORT', 'MAINTENANCE_MANAGE'] },
     ],
   },
-  // 8. Reports & Analytics
+  // 9. Hostel Management — hostel-only operational screens (building/room masters live under Core Infrastructure)
+  {
+    label: 'Hostel Management',
+    icon: 'bed',
+    items: [
+      { label: 'Hostel Room Types', icon: 'bed',      route: '/hostel-room-types', permissions: ['HOSTEL_ROOM_TYPE_VIEW', 'HOSTEL_ROOM_TYPE_MANAGE'] },
+      { label: 'Room Preferences',  icon: 'star',     route: '/room-preferences',  permissions: ['HOSTEL_ROOM_PREFERENCE_VIEW', 'HOSTEL_ROOM_PREFERENCE_MANAGE'] },
+      { label: 'Room Allocation',   icon: 'king_bed', route: '/room-allocations',  permissions: ['HOSTEL_ROOM_ALLOCATION_VIEW', 'HOSTEL_ROOM_ALLOCATION_MANAGE'] },
+    ],
+  },
+  // 10. Reports & Analytics
   {
     label: 'Reports & Analytics',
     icon: 'analytics',
@@ -136,7 +156,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Fee Reports',     icon: 'request_quote', route: '/fee-reports', permissions: ['FEE_REPORT_VIEW', 'FEE_REPORT_EXPORT'] },
     ],
   },
-  // 9. Preferences
+  // 11. Preferences
   {
     label: 'Preferences',
     icon: 'tune',
@@ -168,20 +188,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Subjects',           icon: 'menu_book',         route: '/subjects',                permissions: ['SUBJECT_VIEW', 'SUBJECT_MANAGE'] },
     ],
   },
-  // 9a. Hostel
-  {
-    label: 'Hostel',
-    icon: 'bed',
-    items: [
-      { label: 'Campus Infrastructure', icon: 'apartment',   route: '/campus-infrastructure',   permissions: ['CAMPUS_INFRASTRUCTURE_VIEW', 'CAMPUS_INFRASTRUCTURE_MANAGE', 'HOSTEL_ROOM_VIEW', 'HOSTEL_ROOM_MANAGE'] },
-      { label: 'Room Purpose Categories', icon: 'category',  route: '/room-purpose-categories', permissions: ['ROOM_PURPOSE_CATEGORY_VIEW', 'ROOM_PURPOSE_CATEGORY_MANAGE'] },
-      { label: 'Room Sub-Types',        icon: 'meeting_room', route: '/room-sub-types',          permissions: ['ROOM_SUB_TYPE_VIEW', 'ROOM_SUB_TYPE_MANAGE'] },
-      { label: 'Hostel Room Types',     icon: 'bed',          route: '/hostel-room-types',       permissions: ['HOSTEL_ROOM_TYPE_VIEW', 'HOSTEL_ROOM_TYPE_MANAGE'] },
-      { label: 'Room Preferences',      icon: 'star',         route: '/room-preferences',        permissions: ['HOSTEL_ROOM_PREFERENCE_VIEW', 'HOSTEL_ROOM_PREFERENCE_MANAGE'] },
-      { label: 'Room Allocation',       icon: 'king_bed',     route: '/room-allocations',        permissions: ['HOSTEL_ROOM_ALLOCATION_VIEW', 'HOSTEL_ROOM_ALLOCATION_MANAGE'] },
-    ],
-  },
-  // 10. User Management
+  // 12. User Management
   {
     label: 'User Management',
     icon: 'manage_accounts',
