@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CampusInfrastructureService } from '../campus-infrastructure.service';
@@ -17,6 +17,7 @@ import { PermissionService } from '../../../../core/permissions/permission.servi
   standalone: true,
   imports: [
     RouterLink,
+    RouterLinkActive,
     MatDialogModule,
     MatTooltipModule,
     CmsEmptyStateComponent,

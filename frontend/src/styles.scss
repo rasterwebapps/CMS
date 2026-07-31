@@ -4883,6 +4883,24 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
   background-repeat: no-repeat !important;
 }
 
+// ── Small uppercase "which level am I looking at" eyebrow label — a pill/chip tinted with a
+// lighter variant of the theme's own primary color, so it reads as a labeled badge rather than
+// plain caption text. `inline-block` (not `block`) so the pill hugs just the label text instead of
+// stretching full-width. ──
+.cms-level-heading {
+  display: inline-block;
+  margin: 0 0 10px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cms-primary) 14%, transparent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cms-primary);
+  text-decoration: none;
+}
+
 // ── Segmented view-mode control ───────────────────────────────
 .mlp-seg {
   display: flex;

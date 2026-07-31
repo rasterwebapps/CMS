@@ -1,0 +1,162 @@
+:host {
+  display: block;
+}
+
+// Frames this level's whole set of items inside one bordered panel — this is a top-down/plan view
+// (looking straight down at a Floor's Zones, or a Branch's/Zone's own children), not an elevation
+// like the Skyline diagram, so the enclosing shape reads as the boundary of the thing being looked
+// down into rather than a building silhouette. Matches `.skyline-stage`'s own background/border/
+// radius recipe so every level of the drilldown sits in the same "framed panel" language.
+.level-stage {
+  // Containing block for the heading tab below, pinned to this element's own inner top edge via
+  // `position: absolute` (see `.cms-level-heading`, same treatment as `.skyline-stage`'s own).
+  position: relative;
+  // Top widened to 52px (24px base + ~28px clearance) so the heading tab — absolutely positioned,
+  // no longer pushing the grid down the way an in-flow heading would — has a visible gap above the
+  // cards instead of overlapping them.
+  padding: 52px 24px 24px;
+  box-sizing: border-box;
+  min-height: 100%;
+  border-radius: 16px;
+  background: var(--cms-bg-shell);
+  border: 1px solid var(--cms-border-default);
+}
+
+// Overrides the global `.cms-level-heading` pill (styles.scss) — same treatment as
+// `.skyline-stage`'s own override (see that component's SCSS for the full reasoning): a roof-shaped
+// tab pinned to this stage's own inner top edge, centered, staying entirely inside the card's bounds
+// rather than floating above it.
+.cms-level-heading {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 1;
+  margin: 0;
+  padding: 7px 22px 10px;
+  border-radius: 0;
+  clip-path: polygon(0 0, 100% 0, 91% 100%, 9% 100%);
+  transform: translateX(-50%);
+}
+
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 16px;
+}
+
+// Background/shadow/top-accent-bar/dark-mode-glass come from the global `.content-card` class
+// (styles.scss) — `border` and `:hover` below are overridden locally (same-specificity local class
+// beats the global one, per Angular's per-component `[_ngcontent]` attribute) because
+// `.content-card`'s own border is only a 10%-primary tint, too faint against `.level-stage`'s own
+// backdrop to read as "each item is its own bounded box" the way a Zone on a real floor plan is.
+.level-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 140px;
+  padding: 20px 14px;
+  color: var(--cms-text-primary);
+  cursor: pointer;
+  text-align: center;
+  font: inherit;
+  border: 1.5px solid color-mix(in srgb, var(--cms-primary) 45%, var(--cms-border-default));
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+
+  &:has(.level-card__badge) {
+    padding-top: 26px;
+  }
+
+  &:hover {
+    border-color: var(--cms-primary);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cms-primary);
+    outline-offset: 2px;
+  }
+
+  &--inactive {
+    opacity: 0.65;
+  }
+}
+
+.level-card__icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  color: var(--cms-primary);
+}
+
+.level-card__title {
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.level-card__subtitle {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--cms-text-secondary);
+}
+
+// Left corner (not right) — `.level-card__edit` owns the right corner now, kept consistent with
+// `.building__edit` and `.floor-row__edit` (Skyline's own edit pencils, both top/right) rather than
+// each screen picking its own side.
+.level-card__badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+}
+
+// Always visible (not hover-gated — this screen is also used on touch devices with no hover), but
+// subtle at rest so it doesn't compete with the card's own icon/title. Top-right corner — the same
+// location `.building__edit` (Skyline's Block roof) and `.floor-row__edit` (Skyline's per-Floor row)
+// both use, so every edit pencil in this drilldown sits in one common place instead of some screens
+// having it on the left and others on the right.
+.level-card__edit {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: var(--cms-bg-shell);
+  color: var(--cms-text-secondary);
+  opacity: 0.7;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+    background: var(--cms-primary);
+    color: #fff;
+  }
+}
+
+.level-card:hover .level-card__edit {
+  opacity: 1;
+}
+
+.level-grid__loading,
+.level-grid__empty {
+  padding: 24px 4px;
+  font-size: 13px;
+  color: var(--cms-text-secondary);
+}

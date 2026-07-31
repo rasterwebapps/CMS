@@ -1,0 +1,122 @@
+@if (loading()) {
+  <div class="skyline__loading">Loading skyline…</div>
+} @else if (blocks().length === 0) {
+  <p class="skyline__empty">{{ emptyLabel() }}</p>
+} @else {
+  <div class="skyline-stage" [style.padding-bottom.px]="stageBottomPadding()" [style.--density]="densityScale()">
+  @if (heading()) {
+    <span class="cms-level-heading">{{ heading() }}</span>
+  }
+  <div
+    class="skyline"
+    [class.skyline--zoomed]="isSingleBlock()"
+    cdkDropList
+    cdkDropListOrientation="horizontal"
+    (cdkDropListDropped)="onBlockDrop($event)"
+  >
+    @for (sb of localBlocks(); track sb.block.id; let i = $index) {
+      <div
+        class="building-slot"
+        [ngClass]="gradientFor().get(sb.block.id)"
+        cdkDrag
+        [cdkDragDisabled]="!canManage()"
+        cdkDragBoundary=".skyline"
+        (click)="blockSelected.emit(sb)"
+      >
+        <div
+          class="building__label"
+          [class.building__label--no-edit]="floorsClickable()"
+          role="button"
+          tabindex="0"
+          (click)="blockSelected.emit(sb)"
+          (keydown.enter)="blockSelected.emit(sb)"
+        >
+          @if (!floorsClickable()) {
+            <button type="button" class="building__edit" title="Edit" (click)="onEditClick($event, sb)">
+              <mat-icon>edit</mat-icon>
+            </button>
+          }
+          <mat-icon>apartment</mat-icon>
+          <span>{{ sb.block.name }}</span>
+        </div>
+
+        <div
+          class="content-card building anim-rise {{ staggerClass(i) }}"
+          [class.building--selected]="sb.block.id === selectedBlockId()"
+        >
+          <div class="building__floors">
+            @if (sb.floors.length === 0) {
+              <div class="building__empty">No floors yet</div>
+            }
+            @for (sf of aboveGround(sb); track sf.floor.id) {
+              <div
+                class="floor-row"
+                [class.floor-row--clickable]="floorsClickable()"
+                [class.floor-row--selected]="sf.floor.id === selectedFloorId()"
+                role="button"
+                tabindex="0"
+                (click)="onFloorRowClick($event, sb, sf)"
+                (keydown.enter)="onFloorRowClick($event, sb, sf)"
+              >
+                @if (floorsClickable()) {
+                  <button type="button" class="floor-row__edit" title="Edit" (click)="onFloorEditClick($event, sb, sf)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                }
+                <span class="floor-row__label">{{ sf.floor.name }}</span>
+                <div class="floor-row__windows">
+                  <span class="window"></span>
+                  @if (isGroundFloor(sb, sf)) {
+                    <span class="door-wrap">
+                      <span class="window window--door"></span>
+                      <span class="door-steps">
+                        <span class="step"></span>
+                        <span class="step"></span>
+                      </span>
+                    </span>
+                  } @else {
+                    <span class="window"></span>
+                  }
+                  <span class="window"></span>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="building__below">
+          @if (belowGround(sb).length > 0) {
+            <div class="building__basement">
+              @for (sf of belowGround(sb); track sf.floor.id) {
+                <div
+                  class="floor-row floor-row--basement"
+                  [class.floor-row--clickable]="floorsClickable()"
+                  [class.floor-row--selected]="sf.floor.id === selectedFloorId()"
+                  role="button"
+                  tabindex="0"
+                  (click)="onFloorRowClick($event, sb, sf)"
+                  (keydown.enter)="onFloorRowClick($event, sb, sf)"
+                >
+                  @if (floorsClickable()) {
+                    <button type="button" class="floor-row__edit" title="Edit" (click)="onFloorEditClick($event, sb, sf)">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                  }
+                  <span class="floor-row__label">{{ sf.floor.name }}</span>
+                  <div class="floor-row__vents">
+                    <span class="underground-hatch"></span>
+                    <span class="underground-hatch"></span>
+                    <span class="underground-hatch"></span>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+          <div class="building__caption">{{ buildingCaption(sb) }}</div>
+        </div>
+      </div>
+    }
+    <div class="skyline__ground"></div>
+  </div>
+  </div>
+}

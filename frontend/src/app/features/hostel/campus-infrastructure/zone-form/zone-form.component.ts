@@ -163,7 +163,7 @@ export class ZoneFormComponent implements OnInit {
       next: () => {
         this.toast.success(this.isEditMode() ? 'Zone updated successfully' : 'Zone created successfully');
         this.saving.set(false);
-        void this.router.navigate(['/campus-infrastructure']);
+        void this.router.navigate(['/campus-infrastructure/table']);
       },
       error: (err) => {
         this.toast.error(err?.error?.message ?? (this.isEditMode() ? 'Failed to update zone' : 'Failed to create zone'));
@@ -203,7 +203,7 @@ export class ZoneFormComponent implements OnInit {
       },
       error: () => {
         this.toast.error('Failed to load zone');
-        void this.router.navigate(['/campus-infrastructure']);
+        void this.router.navigate(['/campus-infrastructure/table']);
       },
     });
   }

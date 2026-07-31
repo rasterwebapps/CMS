@@ -50,6 +50,7 @@ export class FloorFormComponent implements OnInit {
     floorNumber:       [null, [Validators.required]],
     isHostel:          [false],
     genderRestriction: [null as GenderRestriction | null],
+    isBasement:        [false],
     blockId:           [null as number | null, [Validators.required]],
   });
 
@@ -121,6 +122,7 @@ export class FloorFormComponent implements OnInit {
       floorNumber:       this.form.value.floorNumber,
       isHostel:          !!this.form.value.isHostel,
       genderRestriction: this.form.value.genderRestriction ?? null,
+      isBasement:        !!this.form.value.isBasement,
       blockId,
     };
 
@@ -133,7 +135,7 @@ export class FloorFormComponent implements OnInit {
       next: () => {
         this.toast.success(this.isEditMode() ? 'Floor updated successfully' : 'Floor created successfully');
         this.saving.set(false);
-        void this.router.navigate(['/campus-infrastructure']);
+        void this.router.navigate(['/campus-infrastructure/table']);
       },
       error: (err) => {
         this.toast.error(err?.error?.message ?? (this.isEditMode() ? 'Failed to update floor' : 'Failed to create floor'));
@@ -149,7 +151,7 @@ export class FloorFormComponent implements OnInit {
       next: (f) => {
         this.form.patchValue({
           name: f.name, floorNumber: f.floorNumber, isHostel: f.isHostel,
-          genderRestriction: f.genderRestriction, blockId: f.blockId,
+          genderRestriction: f.genderRestriction, isBasement: f.isBasement, blockId: f.blockId,
         });
         this.service.getBlockById(f.blockId).subscribe({
           next: (blk) => {
@@ -167,7 +169,7 @@ export class FloorFormComponent implements OnInit {
       },
       error: () => {
         this.toast.error('Failed to load floor');
-        void this.router.navigate(['/campus-infrastructure']);
+        void this.router.navigate(['/campus-infrastructure/table']);
       },
     });
   }

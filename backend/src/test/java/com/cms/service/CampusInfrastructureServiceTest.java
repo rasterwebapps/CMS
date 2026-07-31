@@ -157,6 +157,40 @@ class CampusInfrastructureServiceTest {
     }
 
     @Test
+    void shouldCascadeDefaultFloorZoneAndRoomWhenCreatingBlock() {
+        Branch br = branch(1L, organization(1L, "Org", "ORG"), "SKSCON Campus", "SKSCON");
+        BlockRequest request = new BlockRequest("Hostel Block A", "HOSTEL_A", null, true, GenderRestriction.GIRLS, true, 1L);
+        Block savedBlock = block(1L, br, "Hostel Block A", "HOSTEL_A");
+        Floor savedFloor = floor(100L, savedBlock, "Ground Floor", 0);
+        Zone savedZone = zone(200L, savedFloor, "Main Zone", null, null);
+
+        when(branchRepository.findById(1L)).thenReturn(Optional.of(br));
+        when(blockRepository.existsByBranchIdAndNameIgnoreCase(1L, "Hostel Block A")).thenReturn(false);
+        when(blockRepository.existsByBranchIdAndCodeIgnoreCase(1L, "HOSTEL_A")).thenReturn(false);
+        when(blockRepository.save(any(Block.class))).thenReturn(savedBlock);
+        when(floorRepository.save(any(Floor.class))).thenReturn(savedFloor);
+        when(zoneRepository.save(any(Zone.class))).thenReturn(savedZone);
+
+        service.createBlock(request);
+
+        ArgumentCaptor<Floor> floorCaptor = ArgumentCaptor.forClass(Floor.class);
+        verify(floorRepository).save(floorCaptor.capture());
+        assertThat(floorCaptor.getValue().getName()).isEqualTo("Ground Floor");
+        assertThat(floorCaptor.getValue().getFloorNumber()).isEqualTo(0);
+        assertThat(floorCaptor.getValue().getBlock()).isEqualTo(savedBlock);
+
+        ArgumentCaptor<Zone> zoneCaptor = ArgumentCaptor.forClass(Zone.class);
+        verify(zoneRepository).save(zoneCaptor.capture());
+        assertThat(zoneCaptor.getValue().getName()).isEqualTo("Main Zone");
+        assertThat(zoneCaptor.getValue().getFloor()).isEqualTo(savedFloor);
+
+        ArgumentCaptor<Room> roomCaptor = ArgumentCaptor.forClass(Room.class);
+        verify(roomRepository).save(roomCaptor.capture());
+        assertThat(roomCaptor.getValue().getRoomNumber()).isEqualTo("Main");
+        assertThat(roomCaptor.getValue().getZone()).isEqualTo(savedZone);
+    }
+
+    @Test
     void shouldThrowWhenDuplicateBlockNameInBranch() {
         Branch br = branch(1L, organization(1L, "Org", "ORG"), "SKSCON Campus", "SKSCON");
         BlockRequest request = new BlockRequest("Hostel Block A", "HOSTEL_A2", null, null, null, null, 1L);
@@ -186,7 +220,7 @@ class CampusInfrastructureServiceTest {
         when(blockRepository.save(any(Block.class))).thenReturn(block);
         when(floorRepository.findByBlockIdOrderByFloorNumberAsc(1L)).thenReturn(List.of(childFloor));
         when(floorRepository.save(any(Floor.class))).thenReturn(childFloor);
-        when(zoneRepository.findByFloorIdOrderByNameAsc(10L)).thenReturn(List.of(childZone));
+        when(zoneRepository.findByFloorIdOrderByOrderIndexAsc(10L)).thenReturn(List.of(childZone));
         when(zoneRepository.save(any(Zone.class))).thenReturn(childZone);
 
         service.updateBlock(1L, request);
@@ -207,7 +241,7 @@ class CampusInfrastructureServiceTest {
         Branch br = branch(1L, organization(1L, "Org", "ORG"), "SKSCON Campus", "SKSCON");
         Block block = block(1L, br, "Hostel Block A", "HOSTEL_A");
         Floor floor = floor(10L, block, "Ground Floor", 0);
-        FloorRequest request = new FloorRequest("Ground Floor", 0, true, GenderRestriction.GIRLS, true, 1L);
+        FloorRequest request = new FloorRequest("Ground Floor", 0, true, GenderRestriction.GIRLS, null, true, 1L);
         Zone childZone = zone(20L, floor, "Wing A", null, null);
 
         when(floorRepository.findById(10L)).thenReturn(Optional.of(floor));
@@ -215,7 +249,7 @@ class CampusInfrastructureServiceTest {
         when(floorRepository.existsByBlockIdAndNameIgnoreCaseAndIdNot(1L, "Ground Floor", 10L)).thenReturn(false);
         when(floorRepository.existsByBlockIdAndFloorNumberAndIdNot(1L, 0, 10L)).thenReturn(false);
         when(floorRepository.save(any(Floor.class))).thenReturn(floor);
-        when(zoneRepository.findByFloorIdOrderByNameAsc(10L)).thenReturn(List.of(childZone));
+        when(zoneRepository.findByFloorIdOrderByOrderIndexAsc(10L)).thenReturn(List.of(childZone));
         when(zoneRepository.save(any(Zone.class))).thenReturn(childZone);
 
         service.updateFloor(10L, request);
@@ -233,7 +267,7 @@ class CampusInfrastructureServiceTest {
     void shouldCreateFloorUnderBlock() {
         Branch br = branch(1L, organization(1L, "Org", "ORG"), "SKSCON Campus", "SKSCON");
         Block block = block(1L, br, "Hostel Block A", "HOSTEL_A");
-        FloorRequest request = new FloorRequest("Ground Floor", 0, true, GenderRestriction.GIRLS, true, 1L);
+        FloorRequest request = new FloorRequest("Ground Floor", 0, true, GenderRestriction.GIRLS, null, true, 1L);
         Floor saved = floor(1L, block, "Ground Floor", 0);
 
         when(blockRepository.findById(1L)).thenReturn(Optional.of(block));
@@ -252,7 +286,7 @@ class CampusInfrastructureServiceTest {
     void shouldThrowWhenFloorNumberDuplicateInBlock() {
         Branch br = branch(1L, organization(1L, "Org", "ORG"), "SKSCON Campus", "SKSCON");
         Block block = block(1L, br, "Hostel Block A", "HOSTEL_A");
-        FloorRequest request = new FloorRequest("1st Floor", 0, null, null, null, 1L);
+        FloorRequest request = new FloorRequest("1st Floor", 0, null, null, null, null, 1L);
 
         when(blockRepository.findById(1L)).thenReturn(Optional.of(block));
         when(floorRepository.existsByBlockIdAndNameIgnoreCase(1L, "1st Floor")).thenReturn(false);
@@ -267,7 +301,7 @@ class CampusInfrastructureServiceTest {
 
     @Test
     void shouldThrowWhenCreatingFloorWithoutBlock() {
-        FloorRequest request = new FloorRequest("Ground Floor", 0, null, null, null, null);
+        FloorRequest request = new FloorRequest("Ground Floor", 0, null, null, null, null, null);
 
         assertThatThrownBy(() -> service.createFloor(request))
             .isInstanceOf(IllegalArgumentException.class)

@@ -7,8 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.cms.model.Zone;
 
 public interface ZoneRepository extends JpaRepository<Zone, Long> {
-    List<Zone> findByFloorIdOrderByNameAsc(Long floorId);
-    List<Zone> findByFloorIdAndIsActiveTrueOrderByNameAsc(Long floorId);
+    List<Zone> findByFloorIdOrderByOrderIndexAsc(Long floorId);
+    List<Zone> findByFloorIdAndIsActiveTrueOrderByOrderIndexAsc(Long floorId);
     List<Zone> findByIsActiveTrueOrderByNameAsc();
 
     boolean existsByFloorIdAndNameIgnoreCase(Long floorId, String name);

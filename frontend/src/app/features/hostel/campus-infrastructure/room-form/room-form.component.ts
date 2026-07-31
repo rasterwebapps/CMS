@@ -207,7 +207,7 @@ export class RoomFormComponent implements OnInit {
     const done = () => {
       this.toast.success(this.isEditMode() ? 'Room updated successfully' : 'Room created successfully');
       this.saving.set(false);
-      void this.router.navigate(['/campus-infrastructure']);
+      void this.router.navigate(['/campus-infrastructure/table']);
     };
     const fail = (err: unknown) => {
       const message = (err as { error?: { message?: string } })?.error?.message ?? 'Room saved, but the hostel-room designation failed to update';
@@ -264,7 +264,7 @@ export class RoomFormComponent implements OnInit {
       },
       error: () => {
         this.toast.error('Failed to load room');
-        void this.router.navigate(['/campus-infrastructure']);
+        void this.router.navigate(['/campus-infrastructure/table']);
       },
     });
   }

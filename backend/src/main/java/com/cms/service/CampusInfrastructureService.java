@@ -1,6 +1,13 @@
 package com.cms.service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.ToIntFunction;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +24,7 @@ import com.cms.dto.HostelRoomRequest;
 import com.cms.dto.HostelRoomResponse;
 import com.cms.dto.OrganizationRequest;
 import com.cms.dto.OrganizationResponse;
+import com.cms.dto.ReorderRequest;
 import com.cms.dto.RoomRequest;
 import com.cms.dto.RoomResponse;
 import com.cms.dto.ZoneRequest;
@@ -49,6 +57,14 @@ public class CampusInfrastructureService {
      *  Stores/inventory attachment can always target a room_id uniformly, even for undivided
      *  spaces (e.g. a lab spanning a whole zone with no internal partitions). */
     private static final String DEFAULT_ROOM_NUMBER = "Main";
+
+    /** Every Floor always has >=1 Zone, and every Block always has >=1 Floor — same rationale as
+     *  DEFAULT_ROOM_NUMBER above: the Campus Setup builder screen assumes a Block/Floor is never
+     *  structurally empty, so it can always render at least one Floor/Zone/Room without the admin
+     *  having to add one manually for the common single-floor, single-zone building. */
+    private static final String DEFAULT_FLOOR_NAME = "Ground Floor";
+    private static final int DEFAULT_FLOOR_NUMBER = 0;
+    private static final String DEFAULT_ZONE_NAME = "Main Zone";
 
     private final OrganizationRepository organizationRepository;
     private final BranchRepository branchRepository;
@@ -227,12 +243,12 @@ public class CampusInfrastructureService {
 
     public List<BlockResponse> findBlocksByBranch(Long branchId) {
         fetchBranch(branchId);
-        return blockRepository.findByBranchIdOrderByNameAsc(branchId).stream().map(this::toBlockResponse).toList();
+        return blockRepository.findByBranchIdOrderByOrderIndexAsc(branchId).stream().map(this::toBlockResponse).toList();
     }
 
     public List<BlockResponse> findActiveBlocksByBranch(Long branchId) {
         fetchBranch(branchId);
-        return blockRepository.findByBranchIdAndIsActiveTrueOrderByNameAsc(branchId).stream().map(this::toBlockResponse).toList();
+        return blockRepository.findByBranchIdAndIsActiveTrueOrderByOrderIndexAsc(branchId).stream().map(this::toBlockResponse).toList();
     }
 
     public BlockResponse findBlockById(Long id) {
@@ -253,8 +269,22 @@ public class CampusInfrastructureService {
         Block block = new Block(branch, name, code.toUpperCase(), trim(request.description()));
         block.setIsHostel(Boolean.TRUE.equals(request.isHostel()));
         block.setGenderRestriction(request.genderRestriction());
+        block.setOrderIndex(nextOrderIndex(blockRepository.findByBranchIdOrderByOrderIndexAsc(branch.getId()), Block::getOrderIndex));
         if (request.isActive() != null) block.setIsActive(request.isActive());
-        return toBlockResponse(blockRepository.save(block));
+        Block saved = blockRepository.save(block);
+        createDefaultFloor(saved);
+        return toBlockResponse(saved);
+    }
+
+    /** Reorders the Blocks in a Branch to match `orderedIds` — must be exactly the set of Block ids
+     *  currently in that Branch, just in the desired sequence (drag-to-reorder in Campus Setup's
+     *  skyline view never moves a Block to a different Branch, only reorders siblings). */
+    @Transactional
+    public void reorderBlocks(Long branchId, ReorderRequest request) {
+        fetchBranch(branchId);
+        List<Block> blocks = blockRepository.findByBranchIdOrderByOrderIndexAsc(branchId);
+        applyOrder(blocks, Block::getId, Block::setOrderIndex, request.orderedIds(), blockRepository::save,
+            "Reorder list must contain exactly the blocks currently in this branch");
     }
 
     @Transactional
@@ -329,8 +359,11 @@ public class CampusInfrastructureService {
         Floor floor = new Floor(block, name, request.floorNumber());
         floor.setIsHostel(Boolean.TRUE.equals(request.isHostel()));
         floor.setGenderRestriction(request.genderRestriction());
+        floor.setIsBasement(Boolean.TRUE.equals(request.isBasement()));
         if (request.isActive() != null) floor.setIsActive(request.isActive());
-        return toFloorResponse(floorRepository.save(floor));
+        Floor saved = floorRepository.save(floor);
+        createDefaultZone(saved);
+        return toFloorResponse(saved);
     }
 
     @Transactional
@@ -352,6 +385,7 @@ public class CampusInfrastructureService {
         floor.setFloorNumber(request.floorNumber());
         floor.setIsHostel(Boolean.TRUE.equals(request.isHostel()));
         floor.setGenderRestriction(request.genderRestriction());
+        floor.setIsBasement(Boolean.TRUE.equals(request.isBasement()));
         if (request.isActive() != null) floor.setIsActive(request.isActive());
         Floor saved = floorRepository.save(floor);
         cascadeFloorToChildren(saved);
@@ -378,12 +412,12 @@ public class CampusInfrastructureService {
 
     public List<ZoneResponse> findZonesByFloor(Long floorId) {
         fetchFloor(floorId);
-        return zoneRepository.findByFloorIdOrderByNameAsc(floorId).stream().map(this::toZoneResponse).toList();
+        return zoneRepository.findByFloorIdOrderByOrderIndexAsc(floorId).stream().map(this::toZoneResponse).toList();
     }
 
     public List<ZoneResponse> findActiveZonesByFloor(Long floorId) {
         fetchFloor(floorId);
-        return zoneRepository.findByFloorIdAndIsActiveTrueOrderByNameAsc(floorId).stream().map(this::toZoneResponse).toList();
+        return zoneRepository.findByFloorIdAndIsActiveTrueOrderByOrderIndexAsc(floorId).stream().map(this::toZoneResponse).toList();
     }
 
     /** Flat, campus-wide list of active zones — for pickers (e.g. Room Preference) that need a
@@ -410,10 +444,22 @@ public class CampusInfrastructureService {
         Faculty warden = resolveWarden(request.wardenId());
         Zone zone = new Zone(floor, name, request.genderRestriction(), warden);
         zone.setIsHostel(Boolean.TRUE.equals(request.isHostel()));
+        zone.setOrderIndex(nextOrderIndex(zoneRepository.findByFloorIdOrderByOrderIndexAsc(floor.getId()), Zone::getOrderIndex));
         if (request.isActive() != null) zone.setIsActive(request.isActive());
         Zone saved = zoneRepository.save(zone);
-        roomRepository.save(new Room(saved, DEFAULT_ROOM_NUMBER, null, "Auto-created default room"));
+        createDefaultRoom(saved);
         return toZoneResponse(saved);
+    }
+
+    /** Reorders the Zones on a Floor to match `orderedIds` — must be exactly the set of Zone ids
+     *  currently on that Floor, just in the desired sequence (drag-to-reorder in Campus Setup's
+     *  skyline view never moves a Zone to a different Floor, only reorders siblings). */
+    @Transactional
+    public void reorderZones(Long floorId, ReorderRequest request) {
+        fetchFloor(floorId);
+        List<Zone> zones = zoneRepository.findByFloorIdOrderByOrderIndexAsc(floorId);
+        applyOrder(zones, Zone::getId, Zone::setOrderIndex, request.orderedIds(), zoneRepository::save,
+            "Reorder list must contain exactly the zones currently on this floor");
     }
 
     @Transactional
@@ -453,12 +499,12 @@ public class CampusInfrastructureService {
 
     public List<RoomResponse> findRoomsByZone(Long zoneId) {
         fetchZone(zoneId);
-        return roomRepository.findByZoneIdOrderByRoomNumberAsc(zoneId).stream().map(this::toRoomResponse).toList();
+        return roomRepository.findByZoneIdOrderByOrderIndexAsc(zoneId).stream().map(this::toRoomResponse).toList();
     }
 
     public List<RoomResponse> findActiveRoomsByZone(Long zoneId) {
         fetchZone(zoneId);
-        return roomRepository.findByZoneIdAndIsActiveTrueOrderByRoomNumberAsc(zoneId).stream().map(this::toRoomResponse).toList();
+        return roomRepository.findByZoneIdAndIsActiveTrueOrderByOrderIndexAsc(zoneId).stream().map(this::toRoomResponse).toList();
     }
 
     public RoomResponse findRoomById(Long id) {
@@ -473,8 +519,20 @@ public class CampusInfrastructureService {
             throw new IllegalArgumentException("Room '" + roomNumber + "' already exists in this zone");
         }
         Room room = new Room(zone, roomNumber, request.capacity(), trim(request.description()));
+        room.setOrderIndex(nextOrderIndex(roomRepository.findByZoneIdOrderByOrderIndexAsc(zone.getId()), Room::getOrderIndex));
         if (request.isActive() != null) room.setIsActive(request.isActive());
         return toRoomResponse(roomRepository.save(room));
+    }
+
+    /** Reorders the Rooms in a Zone to match `orderedIds` — must be exactly the set of Room ids
+     *  currently in that Zone, just in the desired sequence (drag-to-reorder in Campus Setup's
+     *  skyline view never moves a Room to a different Zone, only reorders siblings). */
+    @Transactional
+    public void reorderRooms(Long zoneId, ReorderRequest request) {
+        fetchZone(zoneId);
+        List<Room> rooms = roomRepository.findByZoneIdOrderByOrderIndexAsc(zoneId);
+        applyOrder(rooms, Room::getId, Room::setOrderIndex, request.orderedIds(), roomRepository::save,
+            "Reorder list must contain exactly the rooms currently in this zone");
     }
 
     @Transactional
@@ -542,6 +600,28 @@ public class CampusInfrastructureService {
         hostelRoomRepository.delete(hostelRoom);
     }
 
+    // ─── Default structural cascade ──────────────────────────────────────────
+    // A Block/Floor is never left structurally empty: creating a Block auto-creates one default
+    // Floor, which auto-creates one default Zone, which auto-creates one default Room — so the
+    // common case (a simple building with one floor, one zone, one room) needs no extra steps, and
+    // the Campus Setup builder can always render at least one Floor/Zone/Room per Block/Floor/Zone.
+
+    private void createDefaultFloor(Block block) {
+        Floor floor = new Floor(block, DEFAULT_FLOOR_NAME, DEFAULT_FLOOR_NUMBER);
+        Floor saved = floorRepository.save(floor);
+        createDefaultZone(saved);
+    }
+
+    private void createDefaultZone(Floor floor) {
+        Zone zone = new Zone(floor, DEFAULT_ZONE_NAME, null, null);
+        Zone saved = zoneRepository.save(zone);
+        createDefaultRoom(saved);
+    }
+
+    private void createDefaultRoom(Zone zone) {
+        roomRepository.save(new Room(zone, DEFAULT_ROOM_NUMBER, null, "Auto-created default room"));
+    }
+
     // ─── Hostel/gender cascade ───────────────────────────────────────────────
     // "Admin can choose at block or floor or zone, and the child under that also gets marked as
     // boys/girls respectively" — setting isHostel/genderRestriction on a Block or Floor overwrites
@@ -559,7 +639,7 @@ public class CampusInfrastructureService {
     }
 
     private void cascadeFloorToChildren(Floor floor) {
-        for (Zone zone : zoneRepository.findByFloorIdOrderByNameAsc(floor.getId())) {
+        for (Zone zone : zoneRepository.findByFloorIdOrderByOrderIndexAsc(floor.getId())) {
             zone.setIsHostel(floor.getIsHostel());
             zone.setGenderRestriction(floor.getGenderRestriction());
             zoneRepository.save(zone);
@@ -607,6 +687,31 @@ public class CampusInfrastructureService {
         if (wardenId == null) return null;
         return facultyRepository.findById(wardenId)
             .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + wardenId));
+    }
+
+    /** Next append-at-end order index for a new sibling — one past the current max, not the list
+     *  size, so it never collides with an existing index left non-contiguous by a prior delete. */
+    private static <T> int nextOrderIndex(List<T> existing, ToIntFunction<T> orderIndexFn) {
+        return existing.stream().mapToInt(orderIndexFn).max().orElse(-1) + 1;
+    }
+
+    /** Rewrites every item's order index to match its position in `orderedIds`, which must name
+     *  exactly the ids in `current` (no partial list, no foreign id, no duplicates) — this is what
+     *  keeps drag-to-reorder from silently moving a sibling out from under its actual parent. */
+    private static <T> void applyOrder(List<T> current, Function<T, Long> idFn, BiConsumer<T, Integer> orderIndexSetter,
+                                        List<Long> orderedIds, Consumer<T> saver, String errorMessage) {
+        if (orderedIds == null || orderedIds.size() != current.size() || new HashSet<>(orderedIds).size() != orderedIds.size()) {
+            throw new IllegalArgumentException(errorMessage);
+        }
+        Map<Long, T> byId = current.stream().collect(Collectors.toMap(idFn, item -> item));
+        if (!byId.keySet().containsAll(orderedIds)) {
+            throw new IllegalArgumentException(errorMessage);
+        }
+        for (int i = 0; i < orderedIds.size(); i++) {
+            T item = byId.get(orderedIds.get(i));
+            orderIndexSetter.accept(item, i);
+            saver.accept(item);
+        }
     }
 
     private Organization fetchOrganization(Long id) {
@@ -662,7 +767,7 @@ public class CampusInfrastructureService {
     private FloorResponse toFloorResponse(Floor f) {
         Block b = f.getBlock();
         return new FloorResponse(f.getId(), f.getName(), f.getFloorNumber(),
-            f.getIsHostel(), f.getGenderRestriction(), f.getIsActive(),
+            f.getIsHostel(), f.getGenderRestriction(), f.getIsBasement(), f.getIsActive(),
             f.getCreatedAt(), f.getUpdatedAt(),
             b != null ? b.getId() : null, b != null ? b.getName() : null);
     }

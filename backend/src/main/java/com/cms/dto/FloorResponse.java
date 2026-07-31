@@ -10,6 +10,7 @@ public record FloorResponse(
     Integer floorNumber,
     Boolean isHostel,
     GenderRestriction genderRestriction,
+    Boolean isBasement,
     Boolean isActive,
     Instant createdAt,
     Instant updatedAt,

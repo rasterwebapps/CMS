@@ -23,7 +23,10 @@ import jakarta.persistence.Table;
 
 /**
  * Campus Infrastructure hierarchy, level 2 — belongs to exactly one {@link Block}.
- * {@code floorNumber} drives display ordering (Ground = 0, 1st = 1, ...). {@code isHostel}/
+ * {@code floorNumber} drives display ordering (Ground = 0, 1st = 1, ...) — it is *not* what decides
+ * whether the Campus Setup skyline diagram draws this floor above or below the ground line;
+ * {@code isBasement} is the explicit flag for that, since ordering and physical position aren't
+ * always the same thing an admin has numbered consistently. {@code isHostel}/
  * {@code genderRestriction} let an admin mark this floor as hostel space with a gender — setting
  * either cascades the same value down to every {@link Zone} underneath.
  */
@@ -52,6 +55,9 @@ public class Floor {
     @Enumerated(EnumType.STRING)
     @Column(name = "gender_restriction", length = 20)
     private GenderRestriction genderRestriction;
+
+    @Column(name = "is_basement", nullable = false)
+    private Boolean isBasement = false;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -89,6 +95,9 @@ public class Floor {
 
     public GenderRestriction getGenderRestriction() { return genderRestriction; }
     public void setGenderRestriction(GenderRestriction genderRestriction) { this.genderRestriction = genderRestriction; }
+
+    public Boolean getIsBasement() { return isBasement; }
+    public void setIsBasement(Boolean isBasement) { this.isBasement = isBasement; }
 
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }

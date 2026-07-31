@@ -1,0 +1,355 @@
+<div class="side-panel">
+  <!-- ── Properties: only for the entity currently being edited via a card's edit pencil, or Room
+       (a leaf — selecting one already means viewing its properties, nothing to drill into). Add-child
+       forms below are driven independently by the drill position, not by this. ── -->
+  @if (editingBranch(); as b) {
+    <div class="panel-section">
+      <div class="panel-title-row">
+        <span class="panel-title">Branch</span>
+        <cms-status-badge [status]="b.isActive ? 'ACTIVE' : 'INACTIVE'" />
+      </div>
+
+      <div class="form-group">
+        <label for="csp-be-name">Name</label>
+        <input id="csp-be-name" type="text" [disabled]="!canManage()" [ngModel]="branchEdit().name" (ngModelChange)="branchEdit.set({ ...branchEdit(), name: $event })" />
+      </div>
+      <div class="form-group">
+        <label for="csp-be-code">Code</label>
+        <input id="csp-be-code" type="text" [disabled]="!canManage()" [ngModel]="branchEdit().code" (ngModelChange)="branchEdit.set({ ...branchEdit(), code: $event })" />
+      </div>
+      <div class="form-group">
+        <label for="csp-be-desc">Description</label>
+        <input id="csp-be-desc" type="text" [disabled]="!canManage()" [ngModel]="branchEdit().description" (ngModelChange)="branchEdit.set({ ...branchEdit(), description: $event })" />
+      </div>
+
+      @if (canManage()) {
+        <div class="panel-btn-row">
+          <button type="button" [disabled]="!branchEdit().name.trim() || !branchEdit().code.trim() || branchSaving()" (click)="saveBranch()">
+            {{ branchSaving() ? 'Saving…' : 'Save' }}
+          </button>
+          <button type="button" class="btn-outline" (click)="toggleActive('branch')">{{ b.isActive ? 'Deactivate' : 'Activate' }}</button>
+        </div>
+      }
+    </div>
+  } @else if (editingBlock(); as bl) {
+    <div class="panel-section">
+      <div class="panel-title-row">
+        <span class="panel-title">Block</span>
+        <cms-status-badge [status]="bl.isActive ? 'ACTIVE' : 'INACTIVE'" />
+      </div>
+
+      <div class="form-group">
+        <label for="csp-ble-name">Name</label>
+        <input id="csp-ble-name" type="text" [disabled]="!canManage()" [ngModel]="blockEdit().name" (ngModelChange)="blockEdit.set({ ...blockEdit(), name: $event })" />
+      </div>
+      <div class="form-group">
+        <label for="csp-ble-code">Code</label>
+        <input id="csp-ble-code" type="text" [disabled]="!canManage()" [ngModel]="blockEdit().code" (ngModelChange)="blockEdit.set({ ...blockEdit(), code: $event })" />
+      </div>
+      <div class="form-group">
+        <label for="csp-ble-desc">Description</label>
+        <input id="csp-ble-desc" type="text" [disabled]="!canManage()" [ngModel]="blockEdit().description" (ngModelChange)="blockEdit.set({ ...blockEdit(), description: $event })" />
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" [disabled]="!canManage()" [ngModel]="blockEdit().isHostel" (ngModelChange)="blockEdit.set({ ...blockEdit(), isHostel: $event })" />
+        Entitle this Block for Hostel
+      </label>
+      @if (blockEdit().isHostel) {
+        <div class="form-group">
+          <label for="csp-ble-gender">Gender restriction</label>
+          <select id="csp-ble-gender" [disabled]="!canManage()" [ngModel]="blockEdit().genderRestriction" (ngModelChange)="blockEdit.set({ ...blockEdit(), genderRestriction: $event })">
+            <option [ngValue]="null">— None —</option>
+            <option value="BOYS">Boys</option>
+            <option value="GIRLS">Girls</option>
+          </select>
+        </div>
+      }
+
+      @if (canManage()) {
+        <div class="panel-btn-row">
+          <button type="button" [disabled]="!blockEdit().name.trim() || !blockEdit().code.trim() || blockSaving()" (click)="saveBlock()">
+            {{ blockSaving() ? 'Saving…' : 'Save' }}
+          </button>
+          <button type="button" class="btn-outline" (click)="toggleActive('block')">{{ bl.isActive ? 'Deactivate' : 'Activate' }}</button>
+        </div>
+      }
+    </div>
+  } @else if (editingFloor(); as fl) {
+    <div class="panel-section">
+      <div class="panel-title-row">
+        <span class="panel-title">Floor</span>
+        <cms-status-badge [status]="fl.isActive ? 'ACTIVE' : 'INACTIVE'" />
+      </div>
+
+      <div class="form-group">
+        <label for="csp-fle-name">Name</label>
+        <input id="csp-fle-name" type="text" [disabled]="!canManage()" [ngModel]="floorEdit().name" (ngModelChange)="floorEdit.set({ ...floorEdit(), name: $event })" />
+      </div>
+      <div class="form-group">
+        <label for="csp-fle-num">Floor number</label>
+        <input id="csp-fle-num" type="number" [disabled]="!canManage()" [ngModel]="floorEdit().floorNumber" (ngModelChange)="floorEdit.set({ ...floorEdit(), floorNumber: $event })" />
+      </div>
+      <div class="form-group">
+        <label for="csp-fle-level">Position in Skyline</label>
+        <select id="csp-fle-level" [disabled]="!canManage()" [ngModel]="floorEdit().isBasement" (ngModelChange)="floorEdit.set({ ...floorEdit(), isBasement: $event })">
+          <option [ngValue]="false">Skyline (above ground)</option>
+          <option [ngValue]="true">Earthline (basement)</option>
+        </select>
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" [disabled]="!canManage()" [ngModel]="floorEdit().isHostel" (ngModelChange)="floorEdit.set({ ...floorEdit(), isHostel: $event })" />
+        Entitle this Floor for Hostel
+      </label>
+      @if (floorEdit().isHostel) {
+        <div class="form-group">
+          <label for="csp-fle-gender">Gender restriction</label>
+          <select id="csp-fle-gender" [disabled]="!canManage()" [ngModel]="floorEdit().genderRestriction" (ngModelChange)="floorEdit.set({ ...floorEdit(), genderRestriction: $event })">
+            <option [ngValue]="null">— None —</option>
+            <option value="BOYS">Boys</option>
+            <option value="GIRLS">Girls</option>
+          </select>
+        </div>
+      }
+
+      @if (canManage()) {
+        <div class="panel-btn-row">
+          <button type="button" [disabled]="!floorEdit().name.trim() || floorSaving()" (click)="saveFloor()">
+            {{ floorSaving() ? 'Saving…' : 'Save' }}
+          </button>
+          <button type="button" class="btn-outline" (click)="toggleActive('floor')">{{ fl.isActive ? 'Deactivate' : 'Activate' }}</button>
+        </div>
+      }
+    </div>
+  } @else if (editingZone(); as z) {
+    <div class="panel-section">
+      <div class="panel-title-row">
+        <span class="panel-title">Zone</span>
+        <cms-status-badge [status]="z.isActive ? 'ACTIVE' : 'INACTIVE'" />
+      </div>
+
+      <div class="form-group">
+        <label for="csp-ze-name">Name</label>
+        <input id="csp-ze-name" type="text" [disabled]="!canManage()" [ngModel]="zoneEdit().name" (ngModelChange)="zoneEdit.set({ ...zoneEdit(), name: $event })" />
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" [disabled]="!canManage()" [ngModel]="zoneEdit().isHostel" (ngModelChange)="zoneEdit.set({ ...zoneEdit(), isHostel: $event })" />
+        Entitle this Zone for Hostel
+      </label>
+      @if (zoneEdit().isHostel) {
+        <div class="form-group">
+          <label for="csp-ze-gender">Gender restriction</label>
+          <select id="csp-ze-gender" [disabled]="!canManage()" [ngModel]="zoneEdit().genderRestriction" (ngModelChange)="zoneEdit.set({ ...zoneEdit(), genderRestriction: $event })">
+            <option [ngValue]="null">— None —</option>
+            <option value="BOYS">Boys</option>
+            <option value="GIRLS">Girls</option>
+          </select>
+        </div>
+      }
+      @if (z.wardenName) {
+        <p class="panel-note">Warden: {{ z.wardenName }} — manage on the full Zone edit page.</p>
+      }
+
+      @if (canManage()) {
+        <div class="panel-btn-row">
+          <button type="button" [disabled]="!zoneEdit().name.trim() || zoneSaving()" (click)="saveZone()">
+            {{ zoneSaving() ? 'Saving…' : 'Save' }}
+          </button>
+          <button type="button" class="btn-outline" (click)="toggleActive('zone')">{{ z.isActive ? 'Deactivate' : 'Activate' }}</button>
+        </div>
+      }
+    </div>
+  } @else if (room(); as r) {
+    <div class="panel-section">
+      <div class="panel-title-row">
+        <span class="panel-title">Room</span>
+        <cms-status-badge [status]="r.isActive ? 'ACTIVE' : 'INACTIVE'" />
+      </div>
+
+      <div class="form-group">
+        <label for="csp-re-num">Room number</label>
+        <input id="csp-re-num" type="text" [disabled]="!canManage()" [ngModel]="roomEdit().roomNumber" (ngModelChange)="roomEdit.set({ ...roomEdit(), roomNumber: $event })" />
+      </div>
+      <div class="form-group">
+        <label for="csp-re-cap">Capacity</label>
+        <input id="csp-re-cap" type="number" min="1" [disabled]="!canManage()" [ngModel]="roomEdit().capacity" (ngModelChange)="roomEdit.set({ ...roomEdit(), capacity: $event })" />
+      </div>
+      <div class="form-group">
+        <label for="csp-re-desc">Description</label>
+        <input id="csp-re-desc" type="text" [disabled]="!canManage()" [ngModel]="roomEdit().description" (ngModelChange)="roomEdit.set({ ...roomEdit(), description: $event })" />
+      </div>
+
+      @if (canManage()) {
+        <div class="panel-btn-row">
+          <button type="button" [disabled]="!roomEdit().roomNumber.trim() || roomSaving()" (click)="saveRoom()">
+            {{ roomSaving() ? 'Saving…' : 'Save' }}
+          </button>
+          <button type="button" class="btn-outline" (click)="toggleActive('room')">{{ r.isActive ? 'Deactivate' : 'Activate' }}</button>
+        </div>
+      }
+    </div>
+
+    <p class="panel-hint">This is the last level — to add another Room, go back to this Room's Zone.</p>
+
+    <div class="panel-section">
+      <div class="panel-title">Hostel Room Type</div>
+      @if (r.hostelRoomId) {
+        <p class="panel-note">Currently assigned: <strong>{{ r.hostelRoomTypeName }}</strong></p>
+      } @else {
+        <p class="panel-note">Not linked to a hostel room type.</p>
+      }
+
+      @if (canManage()) {
+        <div class="form-group">
+          <label for="csp-room-type">Room type</label>
+          <select id="csp-room-type" [ngModel]="roomHostelTypeId()" (ngModelChange)="roomHostelTypeId.set($event)">
+            <option [ngValue]="null">— Choose room type —</option>
+            @for (rt of roomTypes(); track rt.id) {
+              <option [ngValue]="rt.id">{{ rt.name }} ({{ rt.sharingCapacity }} sharing{{ rt.isAc ? ', AC' : '' }})</option>
+            }
+          </select>
+        </div>
+        <div class="panel-btn-row">
+          <button type="button" [disabled]="!roomHostelTypeId() || hostelAssigning()" (click)="assignHostelType()">
+            {{ hostelAssigning() ? 'Saving…' : (r.hostelRoomId ? 'Change Assignment' : 'Assign') }}
+          </button>
+          @if (r.hostelRoomId) {
+            <button type="button" class="btn-outline" [disabled]="hostelAssigning()" (click)="unassignHostelType()">Remove</button>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- ── Add-child form: driven by the drill position, shown whenever nothing is being edited. ── -->
+    @switch (level()) {
+      @case ('none') {
+        @if (canManage()) {
+          <div class="panel-section">
+            <div class="panel-title">Add Branch</div>
+            <div class="form-group">
+              <label for="csp-branch-name">Branch name</label>
+              <input id="csp-branch-name" type="text" placeholder="Branch name" [ngModel]="addBranchForm().name" (ngModelChange)="addBranchForm.set({ ...addBranchForm(), name: $event })" />
+            </div>
+            <div class="form-group">
+              <input type="text" placeholder="Code (auto-suggested)" [ngModel]="addBranchForm().code" (ngModelChange)="addBranchForm.set({ ...addBranchForm(), code: $event })" />
+            </div>
+            @if (addBranchForm().error) {
+              <p class="panel-error">{{ addBranchForm().error }}</p>
+            }
+            <button type="button" [disabled]="!addBranchForm().name.trim() || addBranchForm().submitting" (click)="submitAddBranch()">
+              {{ addBranchForm().submitting ? 'Adding…' : '+ Add Branch' }}
+            </button>
+          </div>
+        } @else {
+          <p class="panel-hint">Select a branch to see its details.</p>
+        }
+      }
+
+      @case ('branch') {
+        @if (canManage()) {
+          <div class="panel-section">
+            <div class="panel-title">Add Block</div>
+            <div class="form-group">
+              <label for="csp-block-name">Block name</label>
+              <input id="csp-block-name" type="text" placeholder="Block name" [ngModel]="addBlockForm().name" (ngModelChange)="addBlockForm.set({ ...addBlockForm(), name: $event })" />
+            </div>
+            <div class="form-group">
+              <input type="text" placeholder="Code (auto-suggested)" [ngModel]="addBlockForm().code" (ngModelChange)="addBlockForm.set({ ...addBlockForm(), code: $event })" />
+            </div>
+            @if (addBlockForm().error) {
+              <p class="panel-error">{{ addBlockForm().error }}</p>
+            }
+            <button type="button" [disabled]="!addBlockForm().name.trim() || addBlockForm().submitting" (click)="submitAddBlock()">
+              {{ addBlockForm().submitting ? 'Adding…' : '+ Add Block' }}
+            </button>
+          </div>
+        }
+      }
+
+      @case ('block') {
+        @if (canManage()) {
+          <div class="panel-section">
+            <div class="panel-title">Add Floor</div>
+            <div class="form-group">
+              <label for="csp-floor-name">Floor name</label>
+              <input id="csp-floor-name" type="text" placeholder="Floor name (e.g. Floor 3)" [ngModel]="addFloorForm().name" (ngModelChange)="addFloorForm.set({ ...addFloorForm(), name: $event })" (keydown.enter)="submitAddFloor()" />
+            </div>
+            <div class="form-group">
+              <label for="csp-add-floor-num">Floor number</label>
+              <input id="csp-add-floor-num" type="number" [ngModel]="addFloorForm().floorNumber" (ngModelChange)="addFloorForm.set({ ...addFloorForm(), floorNumber: $event })" />
+            </div>
+            <div class="form-group">
+              <label for="csp-add-floor-level">Position in Skyline</label>
+              <select id="csp-add-floor-level" [ngModel]="addFloorForm().isBasement" (ngModelChange)="addFloorForm.set({ ...addFloorForm(), isBasement: $event })">
+                <option [ngValue]="false">Skyline (above ground)</option>
+                <option [ngValue]="true">Earthline (basement)</option>
+              </select>
+            </div>
+            <label class="checkbox-row">
+              <input type="checkbox" [ngModel]="addFloorForm().isHostel" (ngModelChange)="addFloorForm.set({ ...addFloorForm(), isHostel: $event })" />
+              Entitle this Floor for Hostel
+            </label>
+            @if (addFloorForm().isHostel) {
+              <div class="form-group">
+                <label for="csp-add-floor-gender">Gender restriction</label>
+                <select id="csp-add-floor-gender" [ngModel]="addFloorForm().genderRestriction" (ngModelChange)="addFloorForm.set({ ...addFloorForm(), genderRestriction: $event })">
+                  <option [ngValue]="null">— None —</option>
+                  <option value="BOYS">Boys</option>
+                  <option value="GIRLS">Girls</option>
+                </select>
+              </div>
+            }
+            @if (addFloorForm().error) {
+              <p class="panel-error">{{ addFloorForm().error }}</p>
+            }
+            <button type="button" [disabled]="!addFloorForm().name.trim() || addFloorForm().submitting" (click)="submitAddFloor()">
+              {{ addFloorForm().submitting ? 'Adding…' : '+ Add Floor' }}
+            </button>
+          </div>
+        }
+      }
+
+      @case ('floor') {
+        <p class="panel-hint">To add another Floor, go back to this Floor's Block.</p>
+
+        @if (canManage()) {
+          <div class="panel-section">
+            <div class="panel-title">Add Zone</div>
+            <div class="form-group">
+              <label for="csp-zone-name">Zone name</label>
+              <input id="csp-zone-name" type="text" placeholder="Zone name" [ngModel]="addZoneForm().name" (ngModelChange)="addZoneForm.set({ ...addZoneForm(), name: $event })" (keydown.enter)="submitAddZone()" />
+            </div>
+            @if (addZoneForm().error) {
+              <p class="panel-error">{{ addZoneForm().error }}</p>
+            }
+            <button type="button" [disabled]="!addZoneForm().name.trim() || addZoneForm().submitting" (click)="submitAddZone()">
+              {{ addZoneForm().submitting ? 'Adding…' : '+ Add Zone' }}
+            </button>
+          </div>
+        }
+      }
+
+      @case ('zone') {
+        <p class="panel-hint">To add another Zone, go back to this Zone's Floor.</p>
+
+        @if (canManage()) {
+          <div class="panel-section">
+            <div class="panel-title">Add Room</div>
+            <div class="form-group">
+              <label for="csp-room-name">Room number</label>
+              <input id="csp-room-name" type="text" placeholder="Room number" [ngModel]="addRoomForm().name" (ngModelChange)="addRoomForm.set({ ...addRoomForm(), name: $event })" />
+            </div>
+            <div class="form-group">
+              <input type="number" min="1" placeholder="Capacity (optional)" [ngModel]="addRoomForm().capacity" (ngModelChange)="addRoomForm.set({ ...addRoomForm(), capacity: $event })" />
+            </div>
+            @if (addRoomForm().error) {
+              <p class="panel-error">{{ addRoomForm().error }}</p>
+            }
+            <button type="button" [disabled]="!addRoomForm().name.trim() || addRoomForm().submitting" (click)="submitAddRoom()">
+              {{ addRoomForm().submitting ? 'Adding…' : '+ Add Room' }}
+            </button>
+          </div>
+        }
+      }
+    }
+  }
+</div>

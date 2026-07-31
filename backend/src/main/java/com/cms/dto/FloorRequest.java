@@ -21,6 +21,10 @@ public record FloorRequest(
     /** Null means unrestricted/mixed. */
     GenderRestriction genderRestriction,
 
+    /** Explicit skyline (false, above ground) vs earthline (true, basement) marker for the Campus
+     *  Setup diagram — independent of {@code floorNumber}'s ordering role. */
+    Boolean isBasement,
+
     Boolean isActive,
 
     /** Baked in from the path on nested creation (POST /blocks/{blockId}/floors); used to

@@ -28,6 +28,7 @@ import com.cms.dto.HostelRoomRequest;
 import com.cms.dto.HostelRoomResponse;
 import com.cms.dto.OrganizationRequest;
 import com.cms.dto.OrganizationResponse;
+import com.cms.dto.ReorderRequest;
 import com.cms.dto.RoomRequest;
 import com.cms.dto.RoomResponse;
 import com.cms.dto.ZoneRequest;
@@ -192,6 +193,13 @@ public class CampusInfrastructureController {
         return ResponseEntity.ok(service.updateBlockStatus(id, request));
     }
 
+    @PutMapping("/branches/{branchId}/blocks/reorder")
+    @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_MANAGE')")
+    public ResponseEntity<Void> reorderBlocks(@PathVariable Long branchId, @Valid @RequestBody ReorderRequest request) {
+        service.reorderBlocks(branchId, request);
+        return ResponseEntity.noContent().build();
+    }
+
     // ─── Floors ──────────────────────────────────────────────────────────────
 
     @GetMapping("/blocks/{blockId}/floors")
@@ -206,7 +214,7 @@ public class CampusInfrastructureController {
     @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_MANAGE')")
     public ResponseEntity<FloorResponse> createFloor(@PathVariable Long blockId, @Valid @RequestBody FloorRequest request) {
         FloorRequest withBlock = new FloorRequest(request.name(), request.floorNumber(),
-            request.isHostel(), request.genderRestriction(), request.isActive(), blockId);
+            request.isHostel(), request.genderRestriction(), request.isBasement(), request.isActive(), blockId);
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createFloor(withBlock));
     }
 
@@ -286,6 +294,13 @@ public class CampusInfrastructureController {
         return ResponseEntity.ok(service.updateZoneStatus(id, request));
     }
 
+    @PutMapping("/floors/{floorId}/zones/reorder")
+    @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_MANAGE')")
+    public ResponseEntity<Void> reorderZones(@PathVariable Long floorId, @Valid @RequestBody ReorderRequest request) {
+        service.reorderZones(floorId, request);
+        return ResponseEntity.noContent().build();
+    }
+
     // ─── Rooms ───────────────────────────────────────────────────────────────
 
     @GetMapping("/zones/{zoneId}/rooms")
@@ -327,6 +342,13 @@ public class CampusInfrastructureController {
     public ResponseEntity<ActiveStatusUpdateResponse> updateRoomStatus(
             @PathVariable Long id, @Valid @RequestBody ActiveStatusUpdateRequest request) {
         return ResponseEntity.ok(service.updateRoomStatus(id, request));
+    }
+
+    @PutMapping("/zones/{zoneId}/rooms/reorder")
+    @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_MANAGE')")
+    public ResponseEntity<Void> reorderRooms(@PathVariable Long zoneId, @Valid @RequestBody ReorderRequest request) {
+        service.reorderRooms(zoneId, request);
+        return ResponseEntity.noContent().build();
     }
 
     // ─── Hostel Room attachment (distinct permission — hostel-domain action) ─

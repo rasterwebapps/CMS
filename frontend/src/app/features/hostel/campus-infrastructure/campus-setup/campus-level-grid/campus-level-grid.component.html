@@ -1,0 +1,35 @@
+@if (loading()) {
+  <div class="level-grid__loading">Loading…</div>
+} @else if (items().length === 0) {
+  <p class="level-grid__empty">{{ emptyLabel() }}</p>
+} @else {
+  <div class="level-stage">
+    @if (heading()) {
+      <span class="cms-level-heading">{{ heading() }}</span>
+    }
+    <div class="level-grid">
+      @for (item of items(); track item.id) {
+        <div
+          class="content-card level-card"
+          [class.level-card--inactive]="!item.isActive"
+          role="button"
+          tabindex="0"
+          (click)="select.emit(item.id)"
+          (keydown.enter)="select.emit(item.id)"
+        >
+          <button type="button" class="level-card__edit" title="Edit" (click)="onEditClick($event, item.id)">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <mat-icon class="level-card__icon">{{ item.icon }}</mat-icon>
+          <span class="level-card__title">{{ item.title }}</span>
+          @if (item.subtitle) {
+            <span class="level-card__subtitle">{{ item.subtitle }}</span>
+          }
+          @if (!item.isActive) {
+            <cms-status-badge class="level-card__badge" status="INACTIVE" />
+          }
+        </div>
+      }
+    </div>
+  </div>
+}

@@ -1,0 +1,184 @@
+// Now sits in the 16px structural gap next to the viewport (`.campus-setup__main`) rather than
+// flush against it — reads as its own card, so it gets a full border/radius/shadow instead of just
+// a hairline `border-left`.
+:host {
+  display: block;
+  width: 320px;
+  flex-shrink: 0;
+  height: 100%;
+  overflow-y: auto;
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-lg, 14px);
+  background: var(--cms-bg-card);
+  box-shadow: var(--cms-shadow-sm);
+}
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+// A quieter, static cousin of the global `.content-card` recipe (tinted border + soft shadow) —
+// no hover-lift here since these are form containers, not clickable tiles, and several stack in a
+// column at once so the effect stays subtle rather than each one competing for attention.
+.panel-section {
+  background: color-mix(in srgb, var(--cms-primary) 3%, var(--cms-bg-shell));
+  border: 1px solid color-mix(in srgb, var(--cms-primary) 12%, var(--cms-border-default));
+  border-radius: var(--cms-radius-md, 10px);
+  padding: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 14px color-mix(in srgb, var(--cms-primary) 6%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  .panel-section {
+    background: color-mix(in srgb, var(--cms-primary) 5%, var(--cms-bg-shell));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+:root[data-theme='dark'] .panel-section {
+  background: color-mix(in srgb, var(--cms-primary) 5%, var(--cms-bg-shell));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.panel-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cms-primary);
+  margin: 0 0 10px;
+}
+
+.panel-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+
+  .panel-title {
+    margin: 0;
+  }
+}
+
+.panel-hint {
+  margin: -6px 0 0;
+  font-size: 11px;
+  color: var(--cms-text-secondary);
+  font-style: italic;
+}
+
+.panel-note {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--cms-text-secondary);
+  line-height: 1.5;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+
+  input[type='checkbox'] {
+    width: 15px;
+    height: 15px;
+    padding: 0;
+    accent-color: var(--cms-primary);
+  }
+}
+
+.panel-btn-row {
+  display: flex;
+  gap: 8px;
+
+  button {
+    flex: 1;
+  }
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--cms-text-primary);
+  border: 1px solid var(--cms-border-default);
+
+  &:hover:not(:disabled) {
+    border-color: var(--cms-primary);
+    color: var(--cms-primary);
+    opacity: 1;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+
+  &:last-of-type {
+    margin-bottom: 12px;
+  }
+}
+
+label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+}
+
+input,
+select {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  color: var(--cms-text-primary);
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-family: inherit;
+
+  &:focus {
+    outline: none;
+    border-color: var(--cms-primary);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+button {
+  width: 100%;
+  background: var(--cms-gradient-brand);
+  color: #fff;
+  border: none;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--cms-transition, opacity 0.2s ease);
+
+  &:hover:not(:disabled) {
+    opacity: 0.92;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.panel-error {
+  margin: 0 0 8px;
+  font-size: 11.5px;
+  color: #ef4444;
+}

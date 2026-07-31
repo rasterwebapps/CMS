@@ -1,0 +1,620 @@
+// `height: 100%` is what lets `.skyline-stage` below fill the available panel height (see that
+// rule) — without it, this host element sizes to its own content and there's nothing for a
+// percentage-height child to resolve against, `min-height: 100%` on `.skyline-stage` would compute
+// against nothing and do nothing.
+:host {
+  display: block;
+  height: 100%;
+}
+
+// Plain, light stage — no gradient wash, no glass. The reference is a flat, clean canvas.
+.skyline-stage {
+  // Containing block for the heading tab below, pinned to this element's own inner top edge via
+  // `position: absolute`.
+  position: relative;
+  // Bottom padding is set inline by the component (`stageBottomPadding`, computed in TS to the
+  // pixel from the actual deepest basement among all rendered Blocks) — the basement + caption hang
+  // below the buildings via absolute positioning (so every building's ground floor aligns to the
+  // same line regardless of whether it has a basement — see `.building-slot`) and don't contribute
+  // to this container's own auto-height, so a flat guessed value here clipped/overlapped a Block
+  // with more basement floors than the guess accounted for. A CSS `var()`/`calc()` version of this
+  // same idea was tried first and still came out short — doing the arithmetic in TS instead removes
+  // any doubt about how the browser evaluates `min()`/`calc()` against a custom property. This
+  // `28px 28px 28px` is just the fallback/default before that inline override applies. Top is
+  // widened to 56px (28px base + ~28px clearance) so the heading tab below — absolutely positioned,
+  // pinned to this element's own top edge, so it no longer pushes the buildings down the way an
+  // in-flow heading would — has room to sit above the buildings with a visible gap instead of
+  // overlapping them.
+  padding: 56px 28px 28px;
+  // `min-height: 100%` (not `height`) — fills the whole `.campus-setup__viewport` panel when a
+  // Branch's content is short (the actual ask: "the background card should extend till the
+  // bottom," meaning the panel's own bottom, not just past its content), but still grows taller
+  // than that when a deep Block's reserved `padding-bottom` needs more room than the panel offers —
+  // `height: 100%` would have clamped it back down and reintroduced the overlap this was already
+  // fixed for once. `box-sizing: border-box` so the 100% includes this element's own padding/border
+  // instead of adding on top of it.
+  min-height: 100%;
+  box-sizing: border-box;
+  border-radius: 16px;
+  background: var(--cms-bg-shell);
+  border: 1px solid var(--cms-border-default);
+}
+
+// Overrides the global `.cms-level-heading` pill (styles.scss) specifically for this component —
+// same-specificity local class wins over the global one here, same mechanism already used for
+// `.building`'s border overriding `.content-card`'s (see that rule's own comment). Turns it from a
+// plain inline chip into a roof-shaped tab pinned to the stage's own inner top edge, centered — an
+// echo of each building's own roof-shaped name label (`.building__label`) one level up, at the
+// scale of the whole stage rather than one building. "Inverted" relative to that roof: a building's
+// roof narrows going *up* and sits *above* the wall it labels; this tab instead widens going up
+// (flush with the border) and narrows going *down* into the card, staying entirely inside the
+// stage's own box rather than floating above it — `top: 0` (not `bottom: 100%`, tried first) keeps
+// the whole tab inside `.skyline-stage`'s own bounds, which also sidesteps `.campus-setup__viewport`
+// (the scroll ancestor, `overflow: auto`) clipping anything that pokes out past this element's edge.
+.cms-level-heading {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 1;
+  margin: 0;
+  padding: 7px 22px 10px;
+  border-radius: 0;
+  clip-path: polygon(0 0, 100% 0, 91% 100%, 9% 100%);
+  transform: translateX(-50%);
+}
+
+// Single row, never wraps — `densityScale`/`--density` (set by the component on `.skyline-stage`,
+// inherited here) is what makes room for more Blocks instead, shrinking every building/floor-row/
+// window dimension together down to a floor rather than letting them wrap to a second row.
+// Deliberately NOT `overflow-x: auto` here (was tried as a safety net for whatever count the
+// density floor can't absorb, and broke everything) — CSS forces *both* axes to a non-visible
+// value once either one is: `overflow-x: auto` alone silently made `overflow-y` compute to `auto`
+// too, which clipped/scrolled `.building__below`'s basement+caption instead of letting it spill
+// downward into `.skyline-stage`'s reserved padding-bottom the way it needs to (see that rule's own
+// comment) — a bug affecting every Branch with a basement, not just the extreme-Block-count edge
+// case the safety net was for. No horizontal-scroll safety net at all is the safer trade-off; an
+// extreme Block count just overflows visibly past the card at the density floor instead.
+.skyline {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: calc(24px * var(--density, 1));
+  flex-wrap: nowrap;
+}
+
+// Zoomed single-Block view (`isSingleBlock`, set by the component) — `.skyline` otherwise fills
+// `.skyline-stage`'s full width as a block-level flex container even though its content (one
+// building) is far narrower, which is what stretched `.skyline__ground` (`left:0;right:0` relative
+// to this element) all the way across the empty rest of the panel. `width: fit-content` shrinks
+// this box down to just its content, and the negative left/right below then extends the ground
+// line a little past the building on both sides instead of clear across the screen.
+.skyline--zoomed {
+  width: fit-content;
+  // Centers the one building within `.skyline-stage`'s own width now that this box is no longer
+  // full-bleed — a block-level box (flex containers are block-outside by default) with a
+  // `fit-content` width centers via plain auto margins same as any other block box would.
+  margin: 0 auto;
+
+  // `in` (CSS's physical inch unit, ~96px) rather than a pixel guess — asked for literally "at
+  // least two inches on each side."
+  .skyline__ground {
+    left: -2in;
+    right: -2in;
+  }
+
+  // The 20px sliver (`.building-slot:first-child`, below) exists so a *row* of buildings doesn't
+  // start flush at the ground line's own left edge — here the ground line already extends
+  // symmetrically past both sides on its own, so keeping that extra left-only margin would throw
+  // off the centering by nudging just the building (not the ground line under it) off-center.
+  .building-slot:first-child {
+    margin-left: 0;
+  }
+}
+
+// The horizon the buildings sit on — neutral, not theme-colored. Pinned to `.skyline`'s own bottom
+// edge, which (thanks to `align-items: flex-end`) is exactly where every building's ground floor
+// already sits, so no per-building math is needed to line it up. Deliberately behind the buildings
+// (`z-index: 0` vs. `.building-slot`'s `1`) rather than cleared below them with a gap: a Block with
+// a basement sits flush on this line (see `.building__below`) and its opaque background simply
+// paints over the reference line where it exists — a Block with no basement just rests visibly on
+// it. This is purely a "here's ground level" marker now, not a structural spacer.
+.skyline__ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--cms-text-secondary);
+  opacity: 0.5;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.skyline__loading,
+.skyline__empty {
+  padding: 24px 4px;
+  font-size: 13px;
+  color: var(--cms-text-secondary);
+}
+
+// ── Building (Block) ────────────────────────────────────────
+// Uses the app's global `.content-card` class (see the template) for the theme's actual house
+// glassmorphism recipe — tinted background/border, layered soft shadow, a top gradient accent bar,
+// full dark-mode handling via `content-card-dark` — instead of hand-rolling a parallel glass recipe
+// here that would need separately verifying in both themes. `content-card`'s own `overflow: hidden`
+// is safe now (it wasn't when this had `overflow: visible` for the roof to overhang past it — the
+// roof, `.building__label`, is a sibling under `.building-slot` now, not a child of this element,
+// so nothing here needs to let anything spill past its own edges anymore). Local rules below still
+// win over `content-card`'s global ones where they overlap (background/border/border-radius) —
+// Angular's per-component `[_ngcontent]` attribute gives a same-specificity local class priority
+// over the global one, the same mechanism already used for `campus-level-grid`'s cards.
+// Top corners only — the bottom stays a straight edge so the tower connects directly to its
+// basement (`.building__basement`, itself square on top) with no curve/gap at the seam, and rests
+// flush on `.skyline__ground` when there's no basement at all.
+// `margin-top: 36px` (not `padding-top`) makes room for the roof above without this box's own
+// border/background extending into that space — see `.building__label`'s comment for why padding
+// was wrong here. This also moved `.building__label` to a sibling of `.building` under
+// `.building-slot` rather than a child of it — it no longer needs to be inside a box it visually
+// sits *above*, and `.building-slot` (already `position: relative`) is what its `top: 0` now
+// resolves against instead, at the exact same on-screen position as before. `.building` itself
+// dropped `position: relative` — nothing inside it needs a containing block anymore.
+.building {
+  display: flex;
+  flex-direction: column;
+  min-width: calc(190px * var(--density, 1));
+  max-width: calc(260px * var(--density, 1));
+  margin-top: calc(36px * var(--density, 1));
+  border-radius: 0;
+  background: color-mix(in srgb, var(--block-color) 14%, var(--cms-bg-card));
+  border: 1.5px solid color-mix(in srgb, var(--block-color) 45%, var(--cms-border-default));
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+
+  &--selected {
+    box-shadow: 0 0 0 3px var(--cms-primary);
+  }
+}
+
+// One consistent, mild/light tint of the theme's own primary color (`--cms-primary`, dynamically
+// set per tenant by ThemeService — see styles.scss) for every building, instead of a distinct hue
+// per block or the full-strength primary — reads as one calm, on-brand surface, and automatically
+// follows whatever color a given college's theme actually is rather than a hardcoded hex. Kept at
+// 75% (not lighter) mainly for the roof label's sake — it carries white text/icons directly on
+// this color (`.building__label::before`), and going much lighter than this risks poor contrast.
+.building--primary { --block-color: color-mix(in srgb, var(--cms-primary) 75%, white); }
+
+// The roof cap — deliberately wider than the walls below it, so it reads as an overhanging eave
+// rather than just a colored header bar flush with the card. `position: absolute` (not a normal
+// flex child with negative margins — that was tried first and caused a real bug: a negative-margin
+// flex child still feeds into its *parent's* intrinsic width calculation, so every roof quietly
+// widened its own `.building`/`.building-slot` too, and adjacent buildings' roofs ended up
+// overlapping the next building over). Absolute positioning removes it from flow entirely, so its
+// extra width can never leak into any sizing calculation — `width: calc(100% + 14px)` resolves
+// against `.building-slot`'s own padding-box width (the nearest positioned ancestor — this element
+// is now a sibling of `.building`, not nested inside it, see `.building`'s own comment) and is
+// centered via `left: 50%; transform: translateX(-50%)`, giving an exact, side-effect-free 7px
+// overhang per side. `.building`'s own `margin-top: 36px` reserves the vertical space this takes.
+// The angled/roof shape lives on a `::before` behind the real content instead of being clip-path'd
+// directly onto `.building__label` itself — clipping the label would also clip whichever real
+// content (the edit button in particular, pinned near the right edge) happens to fall in the
+// narrowed top corners of the trapezoid, silently cropping a clickable control. Painting the shape
+// as a backing layer keeps the icon/text/edit button always fully intact regardless of the angle.
+// `z-index: 0` (paired with `position`) is what actually makes that layering work — without an
+// explicit z-index, neither this element nor `.building` establishes its own stacking context, so
+// `::before` (positioned) and `.building__edit` (also positioned) both get promoted straight into
+// `.building-slot`'s shared stacking context, painting *above* the plain in-flow `mat-icon`/`span`
+// regardless of DOM order — that's what made the block name and icon disappear entirely behind the
+// opaque roof fill. Establishing a local stacking context here contains that ordering to just this
+// element's own children, where `::before`'s `z-index: -1` can correctly put it at the back.
+.building__label {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% + (14px * var(--density, 1)));
+  height: calc(36px * var(--density, 1));
+  box-sizing: border-box;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 46px 0 12px;
+  border: none;
+  color: #fff;
+  // `max()`, not a plain `calc()` scale — text has a legibility floor the graphics don't; at
+  // `densityScale`'s own minimum (0.6) a straight scale would put this under 8px.
+  font-size: max(10px, calc(12px * var(--density, 1)));
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  text-align: center;
+  transition: filter 0.15s ease, transform 0.15s ease;
+
+  // The roof shape itself — a shallow trapezoid (full width at the bottom/eave, narrower at the
+  // top/ridge) so it reads as a sloped roof silhouette instead of a rounded bar. Bottom edge is a
+  // flat, unrounded line (no `border-radius`) so it sits flush against `.building`'s own flat top
+  // edge with zero curve anywhere along the seam — any rounding there, even a small one, reads as a
+  // gap between the roof and the wall rather than the two sitting directly on each other. No box-
+  // shadow of its own either (removed) — with `.building` now carrying the global `.content-card`
+  // shadow (a soft layered shadow around the *whole* card, bleeding slightly upward past its own
+  // top edge same as any box-shadow does), the roof's own separate downward shadow stacked right on
+  // top of that at the exact seam and read as a shadowed gap between the two, even though
+  // structurally they're flush. No `overflow: hidden` on the parent either (removed) — it was
+  // clipping this shape's own box-shadow back when it had one; text truncation still works via the
+  // inner `span`'s own `overflow: hidden`, which is what actually drives ellipsis on a flex child.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    clip-path: polygon(9% 0, 91% 0, 100% 100%, 0 100%);
+    background: var(--block-color);
+  }
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: #fff;
+  }
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // No edit pencil to reserve room for in the zoomed single-Block "Floors" view (Blocks are edited
+  // from the "Blocks" view instead — see `.building__edit` below and the template's
+  // `@if (!floorsClickable())`) — the asymmetric right padding above exists only to keep the
+  // icon/text from sitting under that button, so without it the label would visibly sit off-center
+  // (shifted left) inside the roof shape.
+  &--no-edit {
+    padding: 0 12px;
+  }
+}
+
+// Always visible (not hover-gated — this screen is also used on touch devices with no hover), but
+// subtle at rest so it doesn't compete with the block name. `right: 22px` (not flush at the edge)
+// is deliberate: the roof's clip-path (see `.building__label::before`) narrows by 9% of the roof's
+// own width at the very top, which for this element's width range works out to ~15-20px cut away
+// on each side — at 6px from the edge this button sat past that boundary, in the angled shape's
+// transparent notch, i.e. visibly floating outside the roof instead of sitting on it.
+.building__edit {
+  position: absolute;
+  top: 50%;
+  right: 22px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  opacity: 0.85;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease;
+
+  mat-icon {
+    font-size: 13px;
+    width: 13px;
+    height: 13px;
+    color: #fff;
+  }
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.32);
+  }
+}
+
+.building__floors {
+  display: flex;
+  flex-direction: column;
+}
+
+.building__empty {
+  padding: 12px;
+  color: var(--cms-text-secondary);
+  font-size: 11.5px;
+  text-align: center;
+}
+
+// ── Floor row — just a label + a row of windows, no box around it. Floors are told apart by
+// spacing and the label, matching the reference exactly (no per-floor border/tint). Fixed `height`
+// (not `min-height`) so every row — skyline windows, basement vents, or the ground floor's taller
+// door+steps — is exactly the same height regardless of its own content; sized to the tallest case
+// (the door) with a small buffer, so shorter content (a plain window/vent) just leaves quiet empty
+// space below it rather than stretching. Bottom padding trimmed to 4px (from 12px) so the ground
+// floor's door-steps land right at the row's own bottom edge — i.e. the actual ground boundary —
+// instead of floating above it.
+.floor-row {
+  // Containing block for `.floor-row__edit` below.
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(8px * var(--density, 1));
+  width: 100%;
+  height: calc(76px * var(--density, 1));
+  border: none;
+  // Tinted with `--block-color` (not the plain neutral `--cms-border-default` this used to be) —
+  // now that `.building`'s own background is a light `--block-color` tint too (see that rule), a
+  // plain neutral divider had too little contrast against it to read as a separator between
+  // stacked floor rows. Matches `.building__basement .floor-row`'s own tinted divider below.
+  border-top: 1px solid color-mix(in srgb, var(--block-color) 35%, var(--cms-border-default));
+  background: transparent;
+  padding: calc(10px * var(--density, 1)) calc(10px * var(--density, 1)) calc(4px * var(--density, 1));
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s ease;
+
+  &:first-child {
+    border-top: none;
+  }
+
+  // Per-row hover tint only where a row opens *that specific* floor (`floorsClickable`, the zoomed
+  // single-Block "Floors" view) — there, `.building-slot:hover`'s whole-block lift (below) doesn't
+  // tell you which floor you're about to open, so each row needs its own cue. In the multi-Block
+  // "Blocks" view a row's own click is a no-op that just bubbles up to select the block (see the
+  // template), so it keeps relying on the whole-block hover instead — no `--clickable` class there.
+  // 24% (not a lighter mix) is deliberate: an above-ground row already sits on `.building`'s own
+  // 14%-tinted background, and a basement row's hatched windows already carry `--block-color` at
+  // full strength, so a subtler hover tint read as barely different from the resting floor color in
+  // both places — this needs to be visibly darker than either backdrop to register as a distinct
+  // hover state, not just a lighter version of the same tint already-close-by.
+  &--clickable:hover {
+    background: color-mix(in srgb, var(--block-color) 24%, transparent);
+  }
+
+  &--selected {
+    background: color-mix(in srgb, var(--block-color) 14%, transparent);
+    box-shadow: inset 0 0 0 1.5px var(--cms-primary);
+  }
+}
+
+// Only rendered where a row is individually editable (`floorsClickable`, the zoomed single-Block
+// "Floors" view — see the template) — before this existed, the only edit affordance visible while
+// looking at a Block's Floors was the Block's own `.building__edit` pencil on the roof, so editing
+// "from Floors view" always edited the Block instead of the Floor being looked at. Light circular
+// treatment (not `.building__edit`'s dark-on-roof one) since a floor row sits on the building's
+// already-tinted *light* background here, not a colored roof — same idiom as `.level-card__edit`.
+.floor-row__edit {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: var(--cms-bg-card);
+  color: var(--cms-text-secondary);
+  opacity: 0.75;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+
+  mat-icon {
+    font-size: 11px;
+    width: 11px;
+    height: 11px;
+  }
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+    background: var(--cms-primary);
+    color: #fff;
+  }
+}
+
+.floor-row__label {
+  font-size: max(9px, calc(10px * var(--density, 1)));
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cms-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// `align-items: flex-start` (not center) is what keeps the door's own top level with the plain
+// windows' tops — the door-wrap is taller than a plain window (it has steps stacked below it), so
+// centering it would push its top *above* the windows' top instead of matching it.
+.floor-row__windows,
+.floor-row__vents {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+}
+
+// The door is taller than a plain window (real entrances are) — `.floor-row__windows`'s own
+// `align-items: flex-start` (not center) is what keeps their *tops* level despite the height
+// difference; the door's extra height (plus its steps below) extends downward instead of throwing
+// off that shared top line.
+.window {
+  width: calc(20px * var(--density, 1));
+  height: calc(20px * var(--density, 1));
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--block-color) 10%, #eaf4ff);
+  border: 1.5px solid var(--block-color);
+
+  &--door {
+    height: calc(26px * var(--density, 1));
+    background: var(--block-color);
+  }
+}
+
+// Entrance steps — ground floor's door only, two short bars right under it.
+.door-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.door-steps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.step {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--block-color);
+  opacity: 0.5;
+
+  &:nth-child(1) {
+    width: 22px;
+  }
+
+  &:nth-child(2) {
+    width: 28px;
+  }
+}
+
+// Underground/basement windows read as a hatched grate rather than a plain glass pane — matches
+// how real below-grade window wells are usually barred/grated, and visually tells a basement floor
+// row apart from an above-ground one at a glance, not just by its position below the ground line.
+.underground-hatch {
+  width: calc(18px * var(--density, 1));
+  height: calc(18px * var(--density, 1));
+  border: 1.5px solid var(--block-color);
+  border-radius: 3px;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    var(--block-color) 2px,
+    var(--block-color) 4px
+  );
+}
+
+// ── Ground line + basement, hanging below the tower without disturbing its own box ─────────────
+// `.building-slot` is the actual flex item in `.skyline`, so every slot's `.building` tower bottom
+// aligns to the same baseline (`align-items: flex-end`) regardless of whether this particular
+// building has a basement — the basement/caption block is positioned relative to the *slot*, not
+// the tower, so it hangs below that shared line instead of stretching the tower's own box.
+.building-slot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+
+  // A sliver of visible ground before the very first building, instead of it starting flush at
+  // `.skyline__ground`'s own left edge — reads more like a horizon than a wall.
+  &:first-child {
+    margin-left: 20px;
+  }
+
+  // Hovering anywhere on the block — tower or basement — lifts both together as one graphic,
+  // instead of only the tower reacting while the basement (a separate absolutely-positioned sibling,
+  // see `.building__below` below) stays put and visually detaches from it.
+  &:hover .building {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  &:hover .building__below {
+    transform: translateY(-2px);
+  }
+
+  // Roof brightens *and* lifts along with the rest of the block, instead of only reacting when the
+  // mouse is precisely over the pill itself (or, brightness-only, staying visually planted while
+  // the wall lifted out from under it — that mismatch was the bug: the wall moving away from a
+  // static roof read as the two coming apart on hover instead of as one card lifting together).
+  // `translateX(-50%)` must stay first in this list — it's what keeps the roof horizontally
+  // centered (see the base rule above); replacing rather than appending to it would snap the roof
+  // to the left edge the moment this rule applies.
+  &:hover .building__label {
+    filter: brightness(1.08);
+    transform: translateX(-50%) translateY(-2px);
+  }
+
+  // The basement's border is a muted 45%-mix at rest (see `.building__basement`) — bringing it up
+  // to the tower's own full-strength `--block-color` on hover is what makes the two panels read as
+  // one continuously-outlined card, instead of the tower alone looking "selected."
+  &:hover .building__basement {
+    border-color: var(--block-color);
+  }
+
+  // Selection ring extends to the basement too, so a selected block reads as one highlighted unit.
+  &:has(.building--selected) .building__basement {
+    box-shadow: 0 0 0 3px var(--cms-primary);
+  }
+
+  // Drag-to-reorder (view-only users get `cdkDragDisabled`, so this only ever shows as grabbable
+  // for someone who can actually act on it). CDK's own default preview/placeholder are unstyled —
+  // these are the minimum to read as "picked up" / "will land here" rather than a raw ghost box.
+  &:not(.cdk-drag-disabled) .building__label {
+    cursor: grab;
+  }
+
+  &.cdk-drag-preview {
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+    z-index: 10;
+  }
+
+  &.cdk-drag-placeholder {
+    opacity: 0.3;
+  }
+}
+
+.skyline.cdk-drop-list-dragging .building-slot:not(.cdk-drag-placeholder) {
+  transition: transform 0.2s ease;
+}
+
+// Flush against the tower's now-square bottom edge — `top: 100%`, no gap — so the basement reads
+// as a direct continuation of the same building, not a separate floating panel. `.skyline__ground`
+// (pinned to `.skyline`'s bottom edge, i.e. this exact same boundary) simply paints behind this
+// panel's opaque background wherever a basement exists, rather than needing manual clearance.
+.building__below {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: transform 0.2s ease;
+}
+
+// A light, muted panel below grade — not dark/earthy, matching the reference's pale recessed box.
+// Border rests at a muted 45%-mix of the block color (matches the reference's quieter basement
+// look); hovering the block (`.building-slot:hover` below) brings it up to the tower's own
+// full-strength border color, so the two panels read as one continuously-outlined unit.
+.building__basement {
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
+  background: var(--cms-bg-shell);
+  border: 2px solid color-mix(in srgb, var(--block-color) 45%, var(--cms-border-default));
+  border-top: none;
+  transition: border-color 0.2s ease;
+
+  .floor-row {
+    border-top-color: color-mix(in srgb, var(--block-color) 30%, var(--cms-border-default));
+  }
+}
+
+.building__caption {
+  font-size: max(9px, calc(10.5px * var(--density, 1)));
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+  text-align: center;
+  line-height: 1.4;
+}

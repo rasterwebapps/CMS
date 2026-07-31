@@ -89,6 +89,15 @@
             </div>
 
             <div class="field-group">
+              <label for="flr-level" class="field-label">Position in Skyline</label>
+              <select id="flr-level" class="field-select" formControlName="isBasement">
+                <option [ngValue]="false">Skyline (above ground)</option>
+                <option [ngValue]="true">Earthline (basement)</option>
+              </select>
+              <p class="field-hint">Decides which side of the ground line this floor draws on in the Campus Setup skyline view — independent of Floor Number, which is only ordering.</p>
+            </div>
+
+            <div class="field-group">
               <mat-checkbox formControlName="isHostel">Hostel space</mat-checkbox>
               <p class="field-hint">Marks this floor as hostel accommodation. Setting this (and a gender below) cascades down to every zone on this floor.</p>
             </div>

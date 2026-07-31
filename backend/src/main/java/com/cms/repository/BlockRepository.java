@@ -7,8 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.cms.model.Block;
 
 public interface BlockRepository extends JpaRepository<Block, Long> {
-    List<Block> findByBranchIdOrderByNameAsc(Long branchId);
-    List<Block> findByBranchIdAndIsActiveTrueOrderByNameAsc(Long branchId);
+    List<Block> findByBranchIdOrderByOrderIndexAsc(Long branchId);
+    List<Block> findByBranchIdAndIsActiveTrueOrderByOrderIndexAsc(Long branchId);
 
     boolean existsByBranchIdAndNameIgnoreCase(Long branchId, String name);
     boolean existsByBranchIdAndNameIgnoreCaseAndIdNot(Long branchId, String name, Long id);

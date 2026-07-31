@@ -69,6 +69,9 @@ export interface Floor {
   floorNumber: number;
   isHostel: boolean;
   genderRestriction: GenderRestriction | null;
+  /** Explicit skyline (false, above ground) vs earthline (true, basement) marker for the Campus
+   *  Setup diagram — independent of floorNumber's ordering role. */
+  isBasement: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -81,6 +84,7 @@ export interface FloorRequest {
   floorNumber: number;
   isHostel?: boolean;
   genderRestriction?: GenderRestriction | null;
+  isBasement?: boolean;
   isActive?: boolean;
   blockId?: number | null;
 }

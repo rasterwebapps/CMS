@@ -119,7 +119,7 @@ export class OrganizationFormComponent implements OnInit {
       next: () => {
         this.toast.success(this.isEditMode() ? 'Organization updated successfully' : 'Organization created successfully');
         this.saving.set(false);
-        void this.router.navigate(['/campus-infrastructure']);
+        void this.router.navigate(['/campus-infrastructure/table']);
       },
       error: (err) => {
         this.toast.error(err?.error?.message ?? (this.isEditMode() ? 'Failed to update organization' : 'Failed to create organization'));
@@ -146,7 +146,7 @@ export class OrganizationFormComponent implements OnInit {
       },
       error: () => {
         this.toast.error('Failed to load organization');
-        void this.router.navigate(['/campus-infrastructure']);
+        void this.router.navigate(['/campus-infrastructure/table']);
       },
     });
   }

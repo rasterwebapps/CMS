@@ -114,6 +114,13 @@ export class CampusInfrastructureService {
     return this.http.patch<CampusInfraStatusUpdateResponse>(`${this.baseUrl}/blocks/${id}/status`, request);
   }
 
+  /** Persists a new display order for every Block in a Branch — `orderedIds` must be exactly the
+   *  Block ids currently in that Branch, in the desired sequence. Never reparents a Block to a
+   *  different Branch; drag-to-reorder in the Skyline view only ever reorders siblings. */
+  reorderBlocks(branchId: number, orderedIds: number[]): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/branches/${branchId}/blocks/reorder`, { orderedIds });
+  }
+
   // ─── Floors ──────────────────────────────────────────────────────────────
 
   getFloorsByBlock(blockId: number, activeOnly = false): Observable<Floor[]> {
@@ -172,6 +179,13 @@ export class CampusInfrastructureService {
     return this.http.patch<CampusInfraStatusUpdateResponse>(`${this.baseUrl}/zones/${id}/status`, request);
   }
 
+  /** Persists a new display order for every Zone on a Floor — `orderedIds` must be exactly the
+   *  Zone ids currently on that Floor, in the desired sequence. Never reparents a Zone to a
+   *  different Floor; drag-to-reorder in the Skyline view only ever reorders siblings. */
+  reorderZones(floorId: number, orderedIds: number[]): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/floors/${floorId}/zones/reorder`, { orderedIds });
+  }
+
   // ─── Rooms ───────────────────────────────────────────────────────────────
 
   getRoomsByZone(zoneId: number, activeOnly = false): Observable<Room[]> {
@@ -196,6 +210,13 @@ export class CampusInfrastructureService {
 
   updateRoomStatus(id: number, request: CampusInfraStatusUpdateRequest): Observable<CampusInfraStatusUpdateResponse> {
     return this.http.patch<CampusInfraStatusUpdateResponse>(`${this.baseUrl}/rooms/${id}/status`, request);
+  }
+
+  /** Persists a new display order for every Room in a Zone — `orderedIds` must be exactly the
+   *  Room ids currently in that Zone, in the desired sequence. Never reparents a Room to a
+   *  different Zone; drag-to-reorder in the Skyline view only ever reorders siblings. */
+  reorderRooms(zoneId: number, orderedIds: number[]): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/zones/${zoneId}/rooms/reorder`, { orderedIds });
   }
 
   // ─── Hostel Room attachment ──────────────────────────────────────────────

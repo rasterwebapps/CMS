@@ -7,8 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.cms.model.Room;
 
 public interface RoomRepository extends JpaRepository<Room, Long> {
-    List<Room> findByZoneIdOrderByRoomNumberAsc(Long zoneId);
-    List<Room> findByZoneIdAndIsActiveTrueOrderByRoomNumberAsc(Long zoneId);
+    List<Room> findByZoneIdOrderByOrderIndexAsc(Long zoneId);
+    List<Room> findByZoneIdAndIsActiveTrueOrderByOrderIndexAsc(Long zoneId);
 
     boolean existsByZoneIdAndRoomNumberIgnoreCase(Long zoneId, String roomNumber);
     boolean existsByZoneIdAndRoomNumberIgnoreCaseAndIdNot(Long zoneId, String roomNumber, Long id);

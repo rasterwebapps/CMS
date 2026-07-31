@@ -79,6 +79,14 @@ export const routes: Routes = [
     path: 'campus-infrastructure',
     canActivate: withPermission('CAMPUS_INFRASTRUCTURE_VIEW', 'CAMPUS_INFRASTRUCTURE_MANAGE'),
     loadComponent: () =>
+      import('./features/hostel/campus-infrastructure/campus-setup/campus-setup.component').then(
+        (m) => m.CampusSetupComponent
+      ),
+  },
+  {
+    path: 'campus-infrastructure/table',
+    canActivate: withPermission('CAMPUS_INFRASTRUCTURE_VIEW', 'CAMPUS_INFRASTRUCTURE_MANAGE'),
+    loadComponent: () =>
       import('./features/hostel/campus-infrastructure/campus-infrastructure-list/campus-infrastructure-list.component').then(
         (m) => m.CampusInfrastructureListComponent
       ),
