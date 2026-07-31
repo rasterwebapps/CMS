@@ -177,6 +177,24 @@
         <label for="csp-re-desc">Description</label>
         <input id="csp-re-desc" type="text" [disabled]="!canManage()" [ngModel]="roomEdit().description" (ngModelChange)="roomEdit.set({ ...roomEdit(), description: $event })" />
       </div>
+      <div class="form-group">
+        <label for="csp-re-purpose">Purpose category</label>
+        <select id="csp-re-purpose" [disabled]="!canManage()" [ngModel]="roomEdit().purposeCategoryId" (ngModelChange)="onRoomPurposeCategoryChange($event)">
+          <option [ngValue]="null">Unclassified</option>
+          @for (c of purposeCategories(); track c.id) {
+            <option [ngValue]="c.id">{{ c.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="csp-re-subtype">Sub-type</label>
+        <select id="csp-re-subtype" [disabled]="!canManage() || !roomEdit().purposeCategoryId" [ngModel]="roomEdit().subTypeId" (ngModelChange)="roomEdit.set({ ...roomEdit(), subTypeId: $event })">
+          <option [ngValue]="null">{{ roomEdit().purposeCategoryId ? 'Unspecified' : 'Select a purpose category first' }}</option>
+          @for (s of subTypes(); track s.id) {
+            <option [ngValue]="s.id">{{ s.name }}</option>
+          }
+        </select>
+      </div>
 
       @if (canManage()) {
         <div class="panel-btn-row">
@@ -195,7 +213,7 @@
       @if (r.hostelRoomId) {
         <p class="panel-note">Currently assigned: <strong>{{ r.hostelRoomTypeName }}</strong></p>
       } @else {
-        <p class="panel-note">Not linked to a hostel room type.</p>
+        <p class="panel-note">Not linked to a hostel room type. Requires a Residential purpose category.</p>
       }
 
       @if (canManage()) {

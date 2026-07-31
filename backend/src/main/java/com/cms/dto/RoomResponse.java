@@ -15,5 +15,10 @@ public record RoomResponse(
     /** Non-null when this room has been designated a hostel room (see HostelRoomResponse). */
     Long hostelRoomId,
     Long hostelRoomTypeId,
-    String hostelRoomTypeName
+    String hostelRoomTypeName,
+
+    Long purposeCategoryId,
+    String purposeCategoryName,
+    Long subTypeId,
+    String subTypeName
 ) {}

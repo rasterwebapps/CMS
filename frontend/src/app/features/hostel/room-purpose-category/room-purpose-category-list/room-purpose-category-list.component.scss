@@ -1,0 +1,159 @@
+// ─────────────────────────────────────────────────────────────
+// Room Purpose Category List Page
+// ─────────────────────────────────────────────────────────────
+
+// ── Page Header text ─────────────────────────────────────────
+.rpc-pg-title {
+  margin: 0 0 2px;
+  font-family: var(--cms-font-display);
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+
+  em {
+    font-style: italic;
+    color: var(--cms-primary);
+  }
+}
+
+.rpc-pg-sub {
+  margin: 0 0 6px;
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+// ── Card Grid ─────────────────────────────────────────────────
+.rpc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(256px, 1fr));
+  gap: 16px;
+}
+
+// ── Category Card ─────────────────────────────────────────────
+.rpc-card {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: 16px;
+  padding: 22px;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  animation: cms-rise-up 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  &--active::before   { background: var(--cms-success); }
+  &--inactive::before { background: var(--cms-text-muted); }
+
+  &:hover {
+    transform: translateY(-4px);
+    border-color: rgba(var(--cms-primary-rgb), 0.25);
+    box-shadow: 0 8px 28px -8px rgba(var(--cms-primary-rgb), 0.20);
+
+    .rpc-card__actions {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}
+
+.rpc-card__actions {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.rpc-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  color: var(--cms-primary);
+  flex-shrink: 0;
+
+  svg { width: 20px; height: 20px; }
+}
+
+.rpc-card__code {
+  display: block;
+  font-family: var(--cms-font-mono);
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--cms-text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.rpc-card__name {
+  font-size: var(--cms-text-md);
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.rpc-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.rpc-card__desc {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-muted);
+  margin: 10px 0 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// ── Loading skeleton grid ─────────────────────────────────────
+.rpc-loading-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(256px, 1fr));
+  gap: 16px;
+}
+
+.rpc-card-skeleton {
+  height: 148px;
+  border-radius: 16px;
+  background: linear-gradient(
+    90deg,
+    var(--cms-bg-muted) 25%,
+    var(--cms-border-default) 50%,
+    var(--cms-bg-muted) 75%
+  );
+  background-size: 400px 100%;
+  animation: rpc-shimmer 1.4s infinite linear;
+}
+
+@keyframes rpc-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}

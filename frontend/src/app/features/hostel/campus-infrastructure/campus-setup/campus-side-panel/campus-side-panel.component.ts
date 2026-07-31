@@ -5,6 +5,10 @@ import { CampusInfrastructureService } from '../../campus-infrastructure.service
 import { Block, Branch, Floor, GenderRestriction, Room, Zone } from '../../campus-infrastructure.model';
 import { HostelRoomTypeService } from '../../../hostel-room-type/hostel-room-type.service';
 import { HostelRoomType } from '../../../hostel-room-type/hostel-room-type.model';
+import { RoomPurposeCategoryService } from '../../../room-purpose-category/room-purpose-category.service';
+import { RoomPurposeCategory } from '../../../room-purpose-category/room-purpose-category.model';
+import { RoomSubTypeService } from '../../../room-sub-type/room-sub-type.service';
+import { RoomSubType } from '../../../room-sub-type/room-sub-type.model';
 import { CmsStatusBadgeComponent } from '../../../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../../../core/toast/toast.service';
 
@@ -53,6 +57,8 @@ const codeSuggestionFrom = (name: string): string =>
 export class CampusSidePanelComponent {
   private readonly service = inject(CampusInfrastructureService);
   private readonly roomTypeService = inject(HostelRoomTypeService);
+  private readonly categoryService = inject(RoomPurposeCategoryService);
+  private readonly subTypeService = inject(RoomSubTypeService);
   private readonly toast = inject(ToastService);
 
   readonly canManage = input(false);
@@ -90,13 +96,18 @@ export class CampusSidePanelComponent {
   });
 
   protected readonly roomTypes = signal<HostelRoomType[]>([]);
+  protected readonly purposeCategories = signal<RoomPurposeCategory[]>([]);
+  protected readonly subTypes = signal<RoomSubType[]>([]);
 
   // ── Edit-in-place field state, one per level ────────────────────────────
   protected readonly branchEdit = signal({ name: '', code: '', description: '' });
   protected readonly blockEdit = signal({ name: '', code: '', description: '', isHostel: false, genderRestriction: null as GenderRestriction | null });
   protected readonly floorEdit = signal({ name: '', floorNumber: 0, isHostel: false, genderRestriction: null as GenderRestriction | null, isBasement: false });
   protected readonly zoneEdit = signal({ name: '', isHostel: false, genderRestriction: null as GenderRestriction | null });
-  protected readonly roomEdit = signal({ roomNumber: '', capacity: '' as number | string, description: '' });
+  protected readonly roomEdit = signal({
+    roomNumber: '', capacity: '' as number | string, description: '',
+    purposeCategoryId: null as number | null, subTypeId: null as number | null,
+  });
   protected readonly roomHostelTypeId = signal<number | null>(null);
 
   protected readonly branchSaving = signal(false);
@@ -119,6 +130,7 @@ export class CampusSidePanelComponent {
 
   constructor() {
     this.roomTypeService.getAll(true).subscribe({ next: (types) => this.roomTypes.set(types) });
+    this.categoryService.getAll(true).subscribe({ next: (categories) => this.purposeCategories.set(categories) });
 
     // ── Add-child forms reset off the *drill position* inputs — unaffected by the editing split
     // below, since "which entity's children am I adding to" is about where you've navigated, not
@@ -168,9 +180,27 @@ export class CampusSidePanelComponent {
     });
     effect(() => {
       const r = this.room();
-      this.roomEdit.set(r ? { roomNumber: r.roomNumber, capacity: r.capacity ?? '', description: r.description ?? '' } : { roomNumber: '', capacity: '', description: '' });
+      this.roomEdit.set(
+        r
+          ? { roomNumber: r.roomNumber, capacity: r.capacity ?? '', description: r.description ?? '', purposeCategoryId: r.purposeCategoryId, subTypeId: r.subTypeId }
+          : { roomNumber: '', capacity: '', description: '', purposeCategoryId: null, subTypeId: null }
+      );
       this.roomHostelTypeId.set(r?.hostelRoomTypeId ?? null);
+      this.subTypes.set([]);
+      if (r?.purposeCategoryId) this.loadSubTypesForCategory(r.purposeCategoryId);
     });
+  }
+
+  /** User picked a different Purpose Category in the Room panel — reload its Sub-Type options and
+   *  clear the current sub-type selection (it belonged to the previous category). */
+  protected onRoomPurposeCategoryChange(purposeCategoryId: number | null): void {
+    this.roomEdit.set({ ...this.roomEdit(), purposeCategoryId, subTypeId: null });
+    this.subTypes.set([]);
+    if (purposeCategoryId) this.loadSubTypesForCategory(purposeCategoryId);
+  }
+
+  private loadSubTypesForCategory(purposeCategoryId: number): void {
+    this.subTypeService.getAll(purposeCategoryId, true).subscribe({ next: (s) => this.subTypes.set(s) });
   }
 
   // ── Save current entity's fields ────────────────────────────────────────
@@ -284,7 +314,11 @@ export class CampusSidePanelComponent {
     const capacity = f.capacity === '' ? null : Number(f.capacity);
     this.roomSaving.set(true);
     this.service
-      .updateRoom(r.id, { roomNumber: f.roomNumber.trim(), capacity, description: f.description.trim() || undefined, isActive: r.isActive, zoneId: r.zoneId })
+      .updateRoom(r.id, {
+        roomNumber: f.roomNumber.trim(), capacity, description: f.description.trim() || undefined,
+        isActive: r.isActive, zoneId: r.zoneId,
+        purposeCategoryId: f.purposeCategoryId, subTypeId: f.subTypeId,
+      })
       .subscribe({
         next: () => {
           this.roomSaving.set(false);

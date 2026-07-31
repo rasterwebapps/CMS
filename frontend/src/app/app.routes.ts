@@ -60,6 +60,54 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'room-purpose-categories',
+    canActivate: withPermission('ROOM_PURPOSE_CATEGORY_VIEW', 'ROOM_PURPOSE_CATEGORY_MANAGE'),
+    loadComponent: () =>
+      import('./features/hostel/room-purpose-category/room-purpose-category-list/room-purpose-category-list.component').then(
+        (m) => m.RoomPurposeCategoryListComponent
+      ),
+  },
+  {
+    path: 'room-purpose-categories/new',
+    canActivate: withPermission('ROOM_PURPOSE_CATEGORY_MANAGE'),
+    loadComponent: () =>
+      import('./features/hostel/room-purpose-category/room-purpose-category-form/room-purpose-category-form.component').then(
+        (m) => m.RoomPurposeCategoryFormComponent
+      ),
+  },
+  {
+    path: 'room-purpose-categories/:id/edit',
+    canActivate: withPermission('ROOM_PURPOSE_CATEGORY_MANAGE'),
+    loadComponent: () =>
+      import('./features/hostel/room-purpose-category/room-purpose-category-form/room-purpose-category-form.component').then(
+        (m) => m.RoomPurposeCategoryFormComponent
+      ),
+  },
+  {
+    path: 'room-sub-types',
+    canActivate: withPermission('ROOM_SUB_TYPE_VIEW', 'ROOM_SUB_TYPE_MANAGE'),
+    loadComponent: () =>
+      import('./features/hostel/room-sub-type/room-sub-type-list/room-sub-type-list.component').then(
+        (m) => m.RoomSubTypeListComponent
+      ),
+  },
+  {
+    path: 'room-sub-types/new',
+    canActivate: withPermission('ROOM_SUB_TYPE_MANAGE'),
+    loadComponent: () =>
+      import('./features/hostel/room-sub-type/room-sub-type-form/room-sub-type-form.component').then(
+        (m) => m.RoomSubTypeFormComponent
+      ),
+  },
+  {
+    path: 'room-sub-types/:id/edit',
+    canActivate: withPermission('ROOM_SUB_TYPE_MANAGE'),
+    loadComponent: () =>
+      import('./features/hostel/room-sub-type/room-sub-type-form/room-sub-type-form.component').then(
+        (m) => m.RoomSubTypeFormComponent
+      ),
+  },
+  {
     path: 'room-preferences',
     canActivate: withPermission('HOSTEL_ROOM_PREFERENCE_VIEW', 'HOSTEL_ROOM_PREFERENCE_MANAGE'),
     loadComponent: () =>

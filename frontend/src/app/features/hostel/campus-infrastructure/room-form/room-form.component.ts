@@ -10,6 +10,10 @@ import { CampusInfrastructureService } from '../campus-infrastructure.service';
 import { Block, Floor, Organization, Zone, RoomRequest } from '../campus-infrastructure.model';
 import { HostelRoomTypeService } from '../../hostel-room-type/hostel-room-type.service';
 import { HostelRoomType } from '../../hostel-room-type/hostel-room-type.model';
+import { RoomPurposeCategoryService } from '../../room-purpose-category/room-purpose-category.service';
+import { RoomPurposeCategory } from '../../room-purpose-category/room-purpose-category.model';
+import { RoomSubTypeService } from '../../room-sub-type/room-sub-type.service';
+import { RoomSubType } from '../../room-sub-type/room-sub-type.model';
 import { ToastService } from '../../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../../shared/utils/scroll-to-invalid';
 
@@ -29,6 +33,8 @@ export class RoomFormComponent implements OnInit {
   private readonly router          = inject(Router);
   private readonly service         = inject(CampusInfrastructureService);
   private readonly roomTypeService = inject(HostelRoomTypeService);
+  private readonly categoryService = inject(RoomPurposeCategoryService);
+  private readonly subTypeService  = inject(RoomSubTypeService);
   private readonly toast           = inject(ToastService);
 
   protected readonly loading    = signal(false);
@@ -42,6 +48,8 @@ export class RoomFormComponent implements OnInit {
   protected readonly floors        = signal<Floor[]>([]);
   protected readonly zones         = signal<Zone[]>([]);
   protected readonly roomTypes     = signal<HostelRoomType[]>([]);
+  protected readonly purposeCategories = signal<RoomPurposeCategory[]>([]);
+  protected readonly subTypes          = signal<RoomSubType[]>([]);
 
   protected selectedOrganizationId: number | null = null;
   protected selectedBranchId: number | null = null;
@@ -51,9 +59,11 @@ export class RoomFormComponent implements OnInit {
   protected readonly previewRoomNumber = signal('');
   protected readonly previewCapacity   = signal<number | null>(null);
   protected readonly previewIsHostel   = signal(false);
+  protected readonly previewPurposeCategoryName = signal('');
 
   private roomId: number | null = null;
   private existingHostelRoomId: number | null = null;
+  private loadingExistingRoom = false;
 
   protected readonly form: FormGroup = this.fb.group({
     roomNumber:  ['', [Validators.required, Validators.maxLength(50)]],
@@ -62,16 +72,28 @@ export class RoomFormComponent implements OnInit {
     zoneId:      [null as number | null, [Validators.required]],
     isHostelRoom: [false],
     roomTypeId:  [null as number | null],
+    purposeCategoryId: [null as number | null],
+    subTypeId:         [null as number | null],
   });
 
   ngOnInit(): void {
     this.service.getOrganizations(false).subscribe({ next: (o) => this.organizations.set(o) });
     this.roomTypeService.getAll(true).subscribe({ next: (rt) => this.roomTypes.set(rt) });
+    this.categoryService.getAll(true).subscribe({ next: (c) => this.purposeCategories.set(c) });
 
     this.form.valueChanges.subscribe(v => {
       this.previewRoomNumber.set((v.roomNumber ?? '').trim());
       this.previewCapacity.set(v.capacity ?? null);
       this.previewIsHostel.set(!!v.isHostelRoom);
+      const category = this.purposeCategories().find(c => c.id === v.purposeCategoryId);
+      this.previewPurposeCategoryName.set(category?.name ?? '');
+    });
+
+    this.form.get('purposeCategoryId')?.valueChanges.subscribe((categoryId: number | null) => {
+      if (this.loadingExistingRoom) return; // preserve the room's existing subType while patching in loadRoom
+      this.subTypes.set([]);
+      this.form.patchValue({ subTypeId: null }, { emitEvent: false });
+      if (categoryId) this.loadSubTypesForCategory(categoryId);
     });
 
     this.form.get('isHostelRoom')?.valueChanges.subscribe((checked: boolean) => {
@@ -175,6 +197,10 @@ export class RoomFormComponent implements OnInit {
     this.service.getZonesByFloor(floorId).subscribe({ next: (z) => this.zones.set(z) });
   }
 
+  private loadSubTypesForCategory(purposeCategoryId: number): void {
+    this.subTypeService.getAll(purposeCategoryId, true).subscribe({ next: (s) => this.subTypes.set(s) });
+  }
+
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
 
@@ -184,6 +210,8 @@ export class RoomFormComponent implements OnInit {
       capacity:    this.form.value.capacity ?? null,
       description: this.form.value.description?.trim() || undefined,
       zoneId,
+      purposeCategoryId: this.form.value.purposeCategoryId ?? null,
+      subTypeId:         this.form.value.subTypeId ?? null,
     };
 
     this.saving.set(true);
@@ -229,12 +257,17 @@ export class RoomFormComponent implements OnInit {
     this.loading.set(true);
     this.service.getRoomById(this.roomId).subscribe({
       next: (r) => {
+        this.loadingExistingRoom = true;
         this.form.patchValue({
           roomNumber: r.roomNumber, capacity: r.capacity, description: r.description || '',
           zoneId: r.zoneId,
           isHostelRoom: !!r.hostelRoomId,
           roomTypeId: r.hostelRoomTypeId,
+          purposeCategoryId: r.purposeCategoryId,
+          subTypeId: r.subTypeId,
         });
+        if (r.purposeCategoryId) this.loadSubTypesForCategory(r.purposeCategoryId);
+        this.loadingExistingRoom = false;
         this.existingHostelRoomId = r.hostelRoomId;
         this.service.getZoneById(r.zoneId).subscribe({
           next: (z) => {

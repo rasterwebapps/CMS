@@ -43,6 +43,18 @@ public class Room {
     @Column
     private Integer capacity;
 
+    /** Room Purpose Classification tier 1 — nullable since existing rooms predate this field.
+     *  The authoritative "what is this room for" flag; see {@link RoomPurposeCategory#getIsResidential()}
+     *  for the gate checked before this Room can be designated a {@link HostelRoom}. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "purpose_category_id")
+    private RoomPurposeCategory purposeCategory;
+
+    /** Room Purpose Classification tier 2 — must belong to {@link #purposeCategory} when set. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sub_type_id")
+    private RoomSubType subType;
+
     @Column(length = 500)
     private String description;
 
@@ -82,6 +94,12 @@ public class Room {
 
     public Integer getCapacity() { return capacity; }
     public void setCapacity(Integer capacity) { this.capacity = capacity; }
+
+    public RoomPurposeCategory getPurposeCategory() { return purposeCategory; }
+    public void setPurposeCategory(RoomPurposeCategory purposeCategory) { this.purposeCategory = purposeCategory; }
+
+    public RoomSubType getSubType() { return subType; }
+    public void setSubType(RoomSubType subType) { this.subType = subType; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }

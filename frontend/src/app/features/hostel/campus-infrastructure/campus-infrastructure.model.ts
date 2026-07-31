@@ -125,6 +125,10 @@ export interface Room {
   hostelRoomId: number | null;
   hostelRoomTypeId: number | null;
   hostelRoomTypeName: string | null;
+  purposeCategoryId: number | null;
+  purposeCategoryName: string | null;
+  subTypeId: number | null;
+  subTypeName: string | null;
 }
 
 export interface RoomRequest {
@@ -133,6 +137,8 @@ export interface RoomRequest {
   description?: string;
   isActive?: boolean;
   zoneId?: number | null;
+  purposeCategoryId?: number | null;
+  subTypeId?: number | null;
 }
 
 export interface HostelRoom {

@@ -38,6 +38,8 @@ import com.cms.model.HostelRoom;
 import com.cms.model.HostelRoomType;
 import com.cms.model.Organization;
 import com.cms.model.Room;
+import com.cms.model.RoomPurposeCategory;
+import com.cms.model.RoomSubType;
 import com.cms.model.Zone;
 import com.cms.repository.BlockRepository;
 import com.cms.repository.BranchRepository;
@@ -46,7 +48,9 @@ import com.cms.repository.FloorRepository;
 import com.cms.repository.HostelRoomRepository;
 import com.cms.repository.HostelRoomTypeRepository;
 import com.cms.repository.OrganizationRepository;
+import com.cms.repository.RoomPurposeCategoryRepository;
 import com.cms.repository.RoomRepository;
+import com.cms.repository.RoomSubTypeRepository;
 import com.cms.repository.ZoneRepository;
 
 @Service
@@ -75,6 +79,8 @@ public class CampusInfrastructureService {
     private final HostelRoomRepository hostelRoomRepository;
     private final FacultyRepository facultyRepository;
     private final HostelRoomTypeRepository hostelRoomTypeRepository;
+    private final RoomPurposeCategoryRepository roomPurposeCategoryRepository;
+    private final RoomSubTypeRepository roomSubTypeRepository;
 
     public CampusInfrastructureService(OrganizationRepository organizationRepository,
                                         BranchRepository branchRepository,
@@ -84,7 +90,9 @@ public class CampusInfrastructureService {
                                         RoomRepository roomRepository,
                                         HostelRoomRepository hostelRoomRepository,
                                         FacultyRepository facultyRepository,
-                                        HostelRoomTypeRepository hostelRoomTypeRepository) {
+                                        HostelRoomTypeRepository hostelRoomTypeRepository,
+                                        RoomPurposeCategoryRepository roomPurposeCategoryRepository,
+                                        RoomSubTypeRepository roomSubTypeRepository) {
         this.organizationRepository = organizationRepository;
         this.branchRepository = branchRepository;
         this.blockRepository = blockRepository;
@@ -94,6 +102,8 @@ public class CampusInfrastructureService {
         this.hostelRoomRepository = hostelRoomRepository;
         this.facultyRepository = facultyRepository;
         this.hostelRoomTypeRepository = hostelRoomTypeRepository;
+        this.roomPurposeCategoryRepository = roomPurposeCategoryRepository;
+        this.roomSubTypeRepository = roomSubTypeRepository;
     }
 
     // ─── Organizations ───────────────────────────────────────────────────────
@@ -521,6 +531,7 @@ public class CampusInfrastructureService {
         Room room = new Room(zone, roomNumber, request.capacity(), trim(request.description()));
         room.setOrderIndex(nextOrderIndex(roomRepository.findByZoneIdOrderByOrderIndexAsc(zone.getId()), Room::getOrderIndex));
         if (request.isActive() != null) room.setIsActive(request.isActive());
+        applyPurposeClassification(room, request.purposeCategoryId(), request.subTypeId());
         return toRoomResponse(roomRepository.save(room));
     }
 
@@ -548,7 +559,35 @@ public class CampusInfrastructureService {
         room.setCapacity(request.capacity());
         room.setDescription(trim(request.description()));
         if (request.isActive() != null) room.setIsActive(request.isActive());
+        applyPurposeClassification(room, request.purposeCategoryId(), request.subTypeId());
         return toRoomResponse(roomRepository.save(room));
+    }
+
+    /** Sets/clears Room Purpose Classification, validating the sub-type (if given) actually belongs
+     *  to the given category — both tiers are optional so unclassified rooms remain valid. */
+    private void applyPurposeClassification(Room room, Long purposeCategoryId, Long subTypeId) {
+        if (purposeCategoryId == null) {
+            if (subTypeId != null) {
+                throw new IllegalArgumentException("A purpose category is required when a sub-type is set");
+            }
+            room.setPurposeCategory(null);
+            room.setSubType(null);
+            return;
+        }
+        RoomPurposeCategory category = roomPurposeCategoryRepository.findById(purposeCategoryId)
+            .orElseThrow(() -> new ResourceNotFoundException("Room purpose category not found with id: " + purposeCategoryId));
+        room.setPurposeCategory(category);
+
+        if (subTypeId == null) {
+            room.setSubType(null);
+            return;
+        }
+        RoomSubType subType = roomSubTypeRepository.findById(subTypeId)
+            .orElseThrow(() -> new ResourceNotFoundException("Room sub-type not found with id: " + subTypeId));
+        if (!subType.getPurposeCategory().getId().equals(category.getId())) {
+            throw new IllegalArgumentException("Sub-type '" + subType.getName() + "' does not belong to the selected purpose category");
+        }
+        room.setSubType(subType);
     }
 
     @Transactional
@@ -579,6 +618,10 @@ public class CampusInfrastructureService {
     @Transactional
     public HostelRoomResponse assignHostelRoom(Long roomId, HostelRoomRequest request) {
         Room room = fetchRoom(roomId);
+        if (room.getPurposeCategory() == null || !Boolean.TRUE.equals(room.getPurposeCategory().getIsResidential())) {
+            throw new IllegalArgumentException(
+                "Room must be classified under a Residential purpose category before it can be designated a hostel room");
+        }
         HostelRoomType roomType = hostelRoomTypeRepository.findById(request.roomTypeId())
             .orElseThrow(() -> new ResourceNotFoundException("Hostel room type not found with id: " + request.roomTypeId()));
 
@@ -784,12 +827,16 @@ public class CampusInfrastructureService {
     private RoomResponse toRoomResponse(Room r) {
         Zone z = r.getZone();
         HostelRoom hostelRoom = hostelRoomRepository.findByRoomId(r.getId()).orElse(null);
+        RoomPurposeCategory category = r.getPurposeCategory();
+        RoomSubType subType = r.getSubType();
         return new RoomResponse(r.getId(), r.getRoomNumber(), r.getCapacity(), r.getDescription(),
             r.getIsActive(), r.getCreatedAt(), r.getUpdatedAt(),
             z != null ? z.getId() : null, z != null ? z.getName() : null,
             hostelRoom != null ? hostelRoom.getId() : null,
             hostelRoom != null ? hostelRoom.getRoomType().getId() : null,
-            hostelRoom != null ? hostelRoom.getRoomType().getName() : null);
+            hostelRoom != null ? hostelRoom.getRoomType().getName() : null,
+            category != null ? category.getId() : null, category != null ? category.getName() : null,
+            subType != null ? subType.getId() : null, subType != null ? subType.getName() : null);
     }
 
     private HostelRoomResponse toHostelRoomResponse(HostelRoom hr) {

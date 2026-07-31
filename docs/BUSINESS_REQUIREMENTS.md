@@ -2815,4 +2815,44 @@ This is also the **first shipped slice of BR-28**'s notification-sending backend
 
 ---
 
+## BR-54: Room Purpose Classification (2-Tier Category + Sub-Type)
+
+### Business Rule
+
+The Campus Infrastructure hierarchy (Organization→Branch→Block→Floor→Zone→Room→HostelRoom) had no notion of *what a Room is for* — the only classification anywhere was a binary `isHostel` + `genderRestriction` pair cascading Block→Floor→Zone, confirmed (during scoping) to be purely informational: assigning a `HostelRoomType` to a Room never actually checked it, and gender was only a client-side display filter, never enforced server-side.
+
+This BR adds a standard 2-tier ERP room taxonomy, stored per-Room, so any module can query "rooms of a given purpose" instead of relying on that cascade:
+
+- **Tier 1 — Purpose Category** (`room_purpose_categories`): a small, stable master (Academic, Residential, Administrative & Staff, Knowledge & Resource, Dining & Refreshment, Hygiene & Utility, Sports & Recreation, seeded as starter data). Carries an explicit `isResidential` flag — a real column, not a hardcoded `code` string match — so the hostel-eligibility check survives an admin renaming the category.
+- **Tier 2 — Sub-Type** (`room_sub_types`): an extensible master scoped to exactly one Purpose Category (Classroom, Student Bedroom, Staff Room, etc.), following the existing parent-scoped-uniqueness pattern used by Library Rack.
+- Both fields live on `Room` itself (`purposeCategoryId`/`subTypeId`, both nullable) — Room-level classification is the source of truth, not a value inherited from Block/Floor/Zone. Existing Block/Floor/Zone `isHostel`/`genderRestriction` fields and their cascade are **unchanged** — left as an independent, vestigial flag rather than removed, since nothing forced touching already-shipped production UI/data for this pass.
+- **The one real behavior change:** `assignHostelRoom` now requires the target Room's Purpose Category to have `isResidential = true`, closing a gap where any room in any zone could previously be turned into a hostel room with no gate at all.
+- Existing rooms that already had a `HostelRoom` attached before this migration are auto-backfilled to the Residential category (sub-type left unset for the admin to refine).
+
+### Scope
+
+- `RoomPurposeCategory`/`RoomSubType` entities + full master CRUD (repository/service/controller/DTOs), mirroring `HostelRoomType` (flat master) and `LibraryRack` (parent-scoped master) exactly.
+- `Room.purposeCategory`/`Room.subType` (nullable `ManyToOne`), surfaced in `RoomRequest`/`RoomResponse`.
+- `CampusInfrastructureService.assignHostelRoom()` — new Residential-category gate.
+- Frontend: `features/hostel/room-purpose-category/` and `features/hostel/room-sub-type/` (list + form pages), Purpose Category/Sub-Type dropdowns added to the Room form and the Campus Setup visual builder's inline Room editor (`campus-side-panel`), added to the Hostel nav group.
+
+### Permissions
+
+- `ROOM_PURPOSE_CATEGORY_VIEW`/`MANAGE`, `ROOM_SUB_TYPE_VIEW`/`MANAGE` — new, dedicated per the operation-wise permission mapping rule.
+
+### Migration Notes
+
+- V341 — creates `room_purpose_categories` + `room_sub_types`.
+- V342 — permissions for both masters.
+- V343 — seeds the 7 starter categories + representative sub-types per category.
+- V344 — adds nullable `purpose_category_id`/`sub_type_id` to `rooms`; backfills existing hostel-linked rooms to Residential.
+
+### Explicitly Out of Scope
+
+- **No new "vacant rooms" query/endpoint.** The existing Hostel allocation dashboard already only ever lists actual `HostelRoom`s (never non-hostel locations), so that specific need was already met independent of this taxonomy. A reusable "vacant/available rooms of purpose X" picker for other modules (Academic timetable room picker, Library room picker, etc.) is real future work, not built here.
+- **No new server-side gender-matching enforcement** at allocation time — confirmed still display-only in both the allocation dashboard and the room-preference picker; unchanged by this BR.
+- **No changes to the separate legacy `Classroom` entity** (its own free-text `building` field) — its noted future migration onto the Room hierarchy is unrelated to this BR.
+
+---
+
 > **⚠️ Documentation Policy:** Any changes to business rules, workflows, status transitions, fee logic, or operational processes described in this document must be reflected here **before** the corresponding code change is merged. This document, along with the milestone trackers and manual test cases, must always remain in sync with the implementation.

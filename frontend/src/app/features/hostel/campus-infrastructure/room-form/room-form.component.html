@@ -110,9 +110,32 @@
               <textarea id="rm-desc" class="field-textarea" formControlName="description" placeholder="Optional description" rows="3"></textarea>
             </div>
 
+            <div class="field-row">
+              <div class="field-group">
+                <label for="rm-purpose-category" class="field-label">Purpose Category</label>
+                <select id="rm-purpose-category" class="field-select" formControlName="purposeCategoryId">
+                  <option [ngValue]="null">Unclassified</option>
+                  @for (c of purposeCategories(); track c.id) {
+                    <option [ngValue]="c.id">{{ c.name }}</option>
+                  }
+                </select>
+                <p class="field-hint">What this room is primarily used for — required before it can be designated a hostel room.</p>
+              </div>
+
+              <div class="field-group">
+                <label for="rm-sub-type" class="field-label">Sub-Type</label>
+                <select id="rm-sub-type" class="field-select" formControlName="subTypeId" [disabled]="!form.get('purposeCategoryId')?.value">
+                  <option [ngValue]="null">{{ form.get('purposeCategoryId')?.value ? 'Unspecified' : 'Select a purpose category first' }}</option>
+                  @for (s of subTypes(); track s.id) {
+                    <option [ngValue]="s.id">{{ s.name }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
             <div class="field-group">
               <mat-checkbox formControlName="isHostelRoom">Designate as hostel room</mat-checkbox>
-              <p class="field-hint">Pairs this room with a room type for hostel allocation and fee purposes.</p>
+              <p class="field-hint">Pairs this room with a room type for hostel allocation and fee purposes. Requires a Residential purpose category.</p>
             </div>
 
             @if (form.get('isHostelRoom')?.value) {
@@ -150,6 +173,7 @@
           </div>
           <div class="prev-meta-row">
             @if (previewCapacity()) { <span class="prev-pill">{{ previewCapacity() }} capacity</span> }
+            @if (previewPurposeCategoryName()) { <span class="prev-pill">{{ previewPurposeCategoryName() }}</span> }
             @if (previewIsHostel()) { <span class="prev-pill prev-pill--primary">Hostel room</span> }
           </div>
         </cms-preview-card>

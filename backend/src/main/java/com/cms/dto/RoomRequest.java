@@ -19,5 +19,11 @@ public record RoomRequest(
 
     /** Baked in from the path on nested creation (POST /zones/{zoneId}/rooms); used to
      *  re-parent an existing room to a different zone on update. */
-    Long zoneId
+    Long zoneId,
+
+    /** Room Purpose Classification — both optional so existing room-creation flows keep working
+     *  unclassified; subTypeId must belong to purposeCategoryId when both are set. */
+    Long purposeCategoryId,
+
+    Long subTypeId
 ) {}

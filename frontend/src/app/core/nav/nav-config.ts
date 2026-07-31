@@ -174,7 +174,9 @@ export const NAV_ENTRIES: NavEntry[] = [
     icon: 'bed',
     items: [
       { label: 'Campus Infrastructure', icon: 'apartment',   route: '/campus-infrastructure',   permissions: ['CAMPUS_INFRASTRUCTURE_VIEW', 'CAMPUS_INFRASTRUCTURE_MANAGE', 'HOSTEL_ROOM_VIEW', 'HOSTEL_ROOM_MANAGE'] },
-      { label: 'Hostel Room Types',     icon: 'meeting_room', route: '/hostel-room-types',       permissions: ['HOSTEL_ROOM_TYPE_VIEW', 'HOSTEL_ROOM_TYPE_MANAGE'] },
+      { label: 'Room Purpose Categories', icon: 'category',  route: '/room-purpose-categories', permissions: ['ROOM_PURPOSE_CATEGORY_VIEW', 'ROOM_PURPOSE_CATEGORY_MANAGE'] },
+      { label: 'Room Sub-Types',        icon: 'meeting_room', route: '/room-sub-types',          permissions: ['ROOM_SUB_TYPE_VIEW', 'ROOM_SUB_TYPE_MANAGE'] },
+      { label: 'Hostel Room Types',     icon: 'bed',          route: '/hostel-room-types',       permissions: ['HOSTEL_ROOM_TYPE_VIEW', 'HOSTEL_ROOM_TYPE_MANAGE'] },
       { label: 'Room Preferences',      icon: 'star',         route: '/room-preferences',        permissions: ['HOSTEL_ROOM_PREFERENCE_VIEW', 'HOSTEL_ROOM_PREFERENCE_MANAGE'] },
       { label: 'Room Allocation',       icon: 'king_bed',     route: '/room-allocations',        permissions: ['HOSTEL_ROOM_ALLOCATION_VIEW', 'HOSTEL_ROOM_ALLOCATION_MANAGE'] },
     ],

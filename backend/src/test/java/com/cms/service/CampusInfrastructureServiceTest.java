@@ -42,6 +42,7 @@ import com.cms.model.HostelRoom;
 import com.cms.model.HostelRoomType;
 import com.cms.model.Organization;
 import com.cms.model.Room;
+import com.cms.model.RoomPurposeCategory;
 import com.cms.model.Zone;
 import com.cms.model.enums.GenderRestriction;
 import com.cms.repository.BlockRepository;
@@ -51,7 +52,9 @@ import com.cms.repository.FloorRepository;
 import com.cms.repository.HostelRoomRepository;
 import com.cms.repository.HostelRoomTypeRepository;
 import com.cms.repository.OrganizationRepository;
+import com.cms.repository.RoomPurposeCategoryRepository;
 import com.cms.repository.RoomRepository;
+import com.cms.repository.RoomSubTypeRepository;
 import com.cms.repository.ZoneRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -66,13 +69,16 @@ class CampusInfrastructureServiceTest {
     @Mock private HostelRoomRepository hostelRoomRepository;
     @Mock private FacultyRepository facultyRepository;
     @Mock private HostelRoomTypeRepository hostelRoomTypeRepository;
+    @Mock private RoomPurposeCategoryRepository roomPurposeCategoryRepository;
+    @Mock private RoomSubTypeRepository roomSubTypeRepository;
 
     private CampusInfrastructureService service;
 
     @BeforeEach
     void setUp() {
         service = new CampusInfrastructureService(organizationRepository, branchRepository, blockRepository,
-            floorRepository, zoneRepository, roomRepository, hostelRoomRepository, facultyRepository, hostelRoomTypeRepository);
+            floorRepository, zoneRepository, roomRepository, hostelRoomRepository, facultyRepository, hostelRoomTypeRepository,
+            roomPurposeCategoryRepository, roomSubTypeRepository);
     }
 
     // ─── Organizations ───────────────────────────────────────────────────────
@@ -344,7 +350,7 @@ class CampusInfrastructureServiceTest {
         Block block = block(1L, br, "Hostel Block A", "HOSTEL_A");
         Floor floor = floor(1L, block, "Ground Floor", 0);
         Zone zone = zone(1L, floor, "Girls Wing", GenderRestriction.GIRLS, null);
-        RoomRequest request = new RoomRequest("G-101", 2, null, true, 1L);
+        RoomRequest request = new RoomRequest("G-101", 2, null, true, 1L, null, null);
         Room saved = room(1L, zone, "G-101", 2);
 
         when(zoneRepository.findById(1L)).thenReturn(Optional.of(zone));
@@ -363,7 +369,7 @@ class CampusInfrastructureServiceTest {
     void shouldThrowWhenRoomNumberDuplicateInZone() {
         Branch br = branch(1L, organization(1L, "Org", "ORG"), "SKSCON Campus", "SKSCON");
         Zone zone = zone(1L, floor(1L, block(1L, br, "B", "B"), "F", 0), "Z", null, null);
-        RoomRequest request = new RoomRequest("G-101", null, null, null, 1L);
+        RoomRequest request = new RoomRequest("G-101", null, null, null, 1L, null, null);
 
         when(zoneRepository.findById(1L)).thenReturn(Optional.of(zone));
         when(roomRepository.existsByZoneIdAndRoomNumberIgnoreCase(1L, "G-101")).thenReturn(true);
@@ -381,6 +387,9 @@ class CampusInfrastructureServiceTest {
     void shouldAssignHostelRoomToRoom() {
         Branch br = branch(1L, organization(1L, "Org", "ORG"), "SKSCON Campus", "SKSCON");
         Room room = room(1L, zone(1L, floor(1L, block(1L, br, "B", "B"), "F", 0), "Z", null, null), "G-101", 2);
+        RoomPurposeCategory residential = new RoomPurposeCategory("Residential (Hostel)", "RESIDENTIAL", true, null);
+        residential.setId(1L);
+        room.setPurposeCategory(residential);
         HostelRoomType roomType = new HostelRoomType("AC Double", "AC_DOUBLE", 2, true, new BigDecimal("45000.00"), null);
         roomType.setId(1L);
         HostelRoomRequest request = new HostelRoomRequest(1L, true);
@@ -397,6 +406,24 @@ class CampusInfrastructureServiceTest {
         assertThat(response.roomId()).isEqualTo(1L);
         assertThat(response.roomTypeName()).isEqualTo("AC Double");
         assertThat(response.sharingCapacity()).isEqualTo(2);
+    }
+
+    @Test
+    void shouldThrowWhenAssigningHostelRoomToNonResidentialRoom() {
+        Branch br = branch(1L, organization(1L, "Org", "ORG"), "SKSCON Campus", "SKSCON");
+        Room room = room(1L, zone(1L, floor(1L, block(1L, br, "B", "B"), "F", 0), "Z", null, null), "G-101", 2);
+        RoomPurposeCategory academic = new RoomPurposeCategory("Academic", "ACADEMIC", false, null);
+        academic.setId(2L);
+        room.setPurposeCategory(academic);
+        HostelRoomRequest request = new HostelRoomRequest(1L, true);
+
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+
+        assertThatThrownBy(() -> service.assignHostelRoom(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Residential");
+
+        verify(hostelRoomRepository, never()).save(any());
     }
 
     @Test

@@ -314,7 +314,8 @@ public class CampusInfrastructureController {
     @PostMapping("/zones/{zoneId}/rooms")
     @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_MANAGE')")
     public ResponseEntity<RoomResponse> createRoom(@PathVariable Long zoneId, @Valid @RequestBody RoomRequest request) {
-        RoomRequest withZone = new RoomRequest(request.roomNumber(), request.capacity(), request.description(), request.isActive(), zoneId);
+        RoomRequest withZone = new RoomRequest(request.roomNumber(), request.capacity(), request.description(), request.isActive(), zoneId,
+            request.purposeCategoryId(), request.subTypeId());
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createRoom(withZone));
     }
 
