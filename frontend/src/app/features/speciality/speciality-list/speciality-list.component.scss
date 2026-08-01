@@ -59,13 +59,6 @@
   flex-wrap: wrap;
 }
 
-// ── Card Grid ─────────────────────────────────────────────────
-.dept-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(256px, 1fr));
-  gap: 16px;
-}
-
 // ── Speciality Card ───────────────────────────────────────────
 .dept-card {
   background: var(--cms-bg-card);
@@ -74,6 +67,10 @@
   padding: 22px;
   position: relative;
   overflow: hidden;
+  // overflow:hidden zeroes the grid item's automatic min-height; without an
+  // explicit non-auto min-height, rows in .mlp-cards-grid can compress below
+  // this card's real content height instead of the grid scrolling.
+  min-height: min-content;
   cursor: default;
   transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
   animation: cms-rise-up 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
@@ -282,8 +279,8 @@
   100% { background-position: 400px 0; }
 }
 
-// NOTE: #tour-dept-content is the id on the CARD-view grid (.dept-grid), not a table
+// NOTE: #tour-dept-content is the id on the CARD-view grid (.mlp-cards-grid), not a table
 // wrapper — it must not carry a display override. An id-selector flex override here
-// previously beat .dept-grid's `display: grid` (ID > class specificity), collapsing the
+// previously beat the grid's `display: grid` (ID > class specificity), collapsing the
 // card view to one full-width card per row. Table view here needs no such wrapper: its
 // .content-card.mlp-table-card is already a direct .mlp-page child.

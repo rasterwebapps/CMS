@@ -24,13 +24,6 @@
   color: var(--cms-text-muted);
 }
 
-// ── Card Grid ─────────────────────────────────────────────────
-.hrt-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(256px, 1fr));
-  gap: 16px;
-}
-
 // ── Room Type Card ────────────────────────────────────────────
 .hrt-card {
   background: var(--cms-bg-card);
@@ -39,6 +32,10 @@
   padding: 22px;
   position: relative;
   overflow: hidden;
+  // overflow:hidden zeroes the grid item's automatic min-height; without an
+  // explicit non-auto min-height, rows in .mlp-cards-grid can compress below
+  // this card's real content height instead of the grid scrolling.
+  min-height: min-content;
   cursor: default;
   transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
   animation: cms-rise-up 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;

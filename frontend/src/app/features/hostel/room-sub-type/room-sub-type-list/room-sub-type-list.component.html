@@ -67,7 +67,7 @@
         (actionClick)="handleEmptyAction()"
       ></cms-empty-state>
     } @else {
-      <div class="rst-grid">
+      <div class="mlp-cards-grid">
         @for (item of dataSource.data; track item.id; let i = $index) {
           <div class="rst-card" [class.rst-card--active]="item.isActive" [class.rst-card--inactive]="!item.isActive" [style.animation-delay]="(i * 0.05) + 's'">
             <div class="rst-card__actions">

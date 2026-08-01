@@ -61,7 +61,7 @@
         (actionClick)="handleEmptyAction()"
       ></cms-empty-state>
     } @else {
-      <div class="dept-grid">
+      <div class="mlp-cards-grid">
         @for (item of dataSource.data; track item.id; let i = $index) {
           <div class="dept-card dept-card--accent" [class.dept-card--active]="item.isActive" [class.dept-card--inactive]="!item.isActive" [style.animation-delay]="(i * 0.05) + 's'">
             <div class="dept-card__actions">
