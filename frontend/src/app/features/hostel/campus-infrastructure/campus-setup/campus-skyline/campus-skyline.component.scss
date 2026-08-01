@@ -38,6 +38,15 @@
   border-radius: 16px;
   background: var(--cms-bg-shell);
   border: 1px solid var(--cms-border-default);
+  // Centers `.skyline` vertically when the row is shorter than this now-full-height stage.
+  // `flex-direction: column` puts `justify-content` on the vertical axis; `align-items` is left at
+  // its `stretch` default (not `center`) so `.skyline` keeps spanning the stage's full width —
+  // `.skyline__ground`'s `left: 0; right: 0;` needs that, and `.skyline` centers its own row content
+  // internally instead (see that rule's own `justify-content`). `.cms-level-heading` is unaffected —
+  // it's `position: absolute`, already out of flow.
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 // Overrides the global `.cms-level-heading` pill (styles.scss) specifically for this component —
@@ -78,6 +87,7 @@
   position: relative;
   display: flex;
   align-items: flex-end;
+  justify-content: center;
   gap: calc(24px * var(--density, 1));
   flex-wrap: nowrap;
 }
@@ -100,14 +110,6 @@
   .skyline__ground {
     left: -2in;
     right: -2in;
-  }
-
-  // The 20px sliver (`.building-slot:first-child`, below) exists so a *row* of buildings doesn't
-  // start flush at the ground line's own left edge — here the ground line already extends
-  // symmetrically past both sides on its own, so keeping that extra left-only margin would throw
-  // off the centering by nudging just the building (not the ground line under it) off-center.
-  .building-slot:first-child {
-    margin-left: 0;
   }
 }
 
@@ -514,12 +516,6 @@
   z-index: 1;
   display: flex;
   flex-direction: column;
-
-  // A sliver of visible ground before the very first building, instead of it starting flush at
-  // `.skyline__ground`'s own left edge — reads more like a horizon than a wall.
-  &:first-child {
-    margin-left: 20px;
-  }
 
   // Hovering anywhere on the block — tower or basement — lifts both together as one graphic,
   // instead of only the tower reacting while the basement (a separate absolutely-positioned sibling,

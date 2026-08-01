@@ -5,7 +5,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
 import { CampusInfrastructureService } from '../campus-infrastructure.service';
 import { Block, Branch, Floor, HostelRoom, Organization, Room, Zone } from '../campus-infrastructure.model';
-import { CampusLevelGridComponent, CampusLevelGridItem } from './campus-level-grid/campus-level-grid.component';
+import { CampusLevelGridBadge, CampusLevelGridComponent, CampusLevelGridItem } from './campus-level-grid/campus-level-grid.component';
 import { CampusPanelLevel, CampusSidePanelComponent } from './campus-side-panel/campus-side-panel.component';
 import { CampusSkylineComponent, SkylineBlock, SkylineFloor, SkylineZone } from './campus-skyline/campus-skyline.component';
 import { CmsStatusBadgeComponent } from '../../../../shared/status-badge/status-badge.component';
@@ -153,25 +153,39 @@ export class CampusSetupComponent implements OnInit {
     const q = this.normalizedQuery();
     return this.zones()
       .filter((z) => !q || z.name.toLowerCase().includes(q))
-      .map((z) => ({
-        id: z.id,
-        title: z.name,
-        subtitle: z.wardenName ? `Warden: ${z.wardenName}` : z.isHostel ? 'Hostel zone' : '',
-        icon: 'grid_view',
-        isActive: z.isActive,
-      }));
+      .map((z) => {
+        const badges: CampusLevelGridBadge[] = [];
+        if (z.isHostel) badges.push({ label: 'Hostel', tone: 'hostel' });
+        if (z.genderRestriction === 'BOYS') badges.push({ label: 'Boys', tone: 'boys' });
+        if (z.genderRestriction === 'GIRLS') badges.push({ label: 'Girls', tone: 'girls' });
+        return {
+          id: z.id,
+          title: z.name,
+          subtitle: z.wardenName ? `Warden: ${z.wardenName}` : '',
+          icon: 'grid_view',
+          isActive: z.isActive,
+          badges,
+        };
+      });
   });
   protected readonly roomItems = computed<CampusLevelGridItem[]>(() => {
     const q = this.normalizedQuery();
     return this.rooms()
       .filter((r) => !q || r.roomNumber.toLowerCase().includes(q))
-      .map((r) => ({
-        id: r.id,
-        title: r.roomNumber,
-        subtitle: r.hostelRoomTypeName ?? (r.capacity ? `${r.capacity} capacity` : ''),
-        icon: 'meeting_room',
-        isActive: r.isActive,
-      }));
+      .map((r) => {
+        const badges: CampusLevelGridBadge[] = [];
+        if (r.hostelRoomTypeName) badges.push({ label: r.hostelRoomTypeName, tone: 'hostel' });
+        const subtitle = [r.purposeCategoryName, r.subTypeName].filter(Boolean).join(' · ');
+        return {
+          id: r.id,
+          title: r.roomNumber,
+          subtitle,
+          icon: 'meeting_room',
+          isActive: r.isActive,
+          badges,
+          stat: r.capacity ? `${r.capacity} cap` : undefined,
+        };
+      });
   });
 
   /** Skyline shows the whole branch tree at once, so search has to filter it as a tree, not a

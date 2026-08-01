@@ -1,5 +1,9 @@
+// `height: 100%` is what lets `.level-stage` below fill the available panel height via its own
+// `min-height: 100%` — without it, this host sizes to its own content and there's nothing for a
+// percentage-height child to resolve against (same fix already applied to `.skyline-stage`'s host).
 :host {
   display: block;
+  height: 100%;
 }
 
 // Frames this level's whole set of items inside one bordered panel — this is a top-down/plan view
@@ -20,6 +24,14 @@
   border-radius: 16px;
   background: var(--cms-bg-shell);
   border: 1px solid var(--cms-border-default);
+  // Centers `.level-grid` vertically when the cards don't fill this now-full-height stage.
+  // `align-items` is left at its `stretch` default so `.level-grid` keeps spanning the stage's full
+  // width — `auto-fill` needs that definite width to compute how many columns fit; the cards center
+  // horizontally within that full-width grid instead (see `.level-grid`'s own `justify-content`).
+  // `.cms-level-heading` is unaffected — it's `position: absolute`, already out of flow.
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 // Overrides the global `.cms-level-heading` pill (styles.scss) — same treatment as
@@ -40,38 +52,71 @@
 
 .level-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 16px;
+  // Capped at 200px (not `1fr`) so columns settle to their natural size instead of stretching to
+  // fill the stage's full width — `1fr` tracks always consume all remaining space even with only
+  // one or two cards, leaving nothing for `justify-content` below to center against.
+  // `auto-fit` (not `auto-fill`) — `auto-fill` still reserves as many empty trailing columns as fit
+  // the stage's width regardless of actual card count, so `justify-content: center` was centering
+  // that whole (mostly-empty) track block, leaving the real cards sitting at its left edge instead
+  // of actually centered. `auto-fit` collapses those empty tracks to zero width, so centering only
+  // ever applies to the tracks that hold real cards.
+  grid-template-columns: repeat(auto-fit, minmax(190px, 228px));
+  justify-content: center;
+  gap: 18px;
 }
 
 // Background/shadow/top-accent-bar/dark-mode-glass come from the global `.content-card` class
-// (styles.scss) — `border` and `:hover` below are overridden locally (same-specificity local class
-// beats the global one, per Angular's per-component `[_ngcontent]` attribute) because
-// `.content-card`'s own border is only a 10%-primary tint, too faint against `.level-stage`'s own
-// backdrop to read as "each item is its own bounded box" the way a Zone on a real floor plan is.
-.level-card {
+// (styles.scss) — `border` and `:hover` below are overridden locally because `.content-card`'s own
+// border is only a 10%-primary tint, too faint against `.level-stage`'s own backdrop to read as
+// "each item is its own bounded box" the way a Zone on a real floor plan is.
+// Selector is doubled (`.level-card.level-card`, not plain `.level-card`) because dark mode isn't a
+// same-specificity race: `html.dark-theme .content-card:hover` (styles.scss's `content-card-dark`
+// mixin) carries an extra `html` type selector, which outranks a plain local `.level-card:hover` +
+// Angular's `[_ngcontent]` attribute once the class/attribute/pseudo-class column ties — the generic
+// dark glass hover was winning over this component's own color in dark mode. Doubling the class adds
+// one more class-column point, putting the local rule ahead outright in every theme.
+.level-card.level-card {
+  position: relative;
+  // Establishes a real stacking context (position + a non-auto z-index) so `.level-card__watermark`'s
+  // own negative z-index stays contained within this card — painted above this card's own background
+  // but behind its title/subtitle/badges — instead of escaping to compete with sibling cards' stacking
+  // order in the grid.
+  z-index: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 140px;
-  padding: 20px 14px;
+  min-height: 176px;
+  padding: 22px 16px;
+  overflow: hidden;
   color: var(--cms-text-primary);
   cursor: pointer;
   text-align: center;
   font: inherit;
   border: 1.5px solid color-mix(in srgb, var(--cms-primary) 45%, var(--cms-border-default));
-  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  transition: background 0.15s ease, box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 
   &:has(.level-card__badge) {
     padding-top: 26px;
   }
 
+  // Matches `.floor-row--clickable:hover`'s own per-row tint (Skyline) — 24% strength there too.
+  // Mixed into `--cms-bg-card` (not `transparent`) because this card is an opaque surface sitting
+  // directly on `.level-stage`'s backdrop, unlike a floor row which sits transparently on its
+  // block's own already-tinted background — mixing toward `transparent` here would make the card
+  // itself look like it's punching a hole through to the stage behind it instead of just tinting.
   &:hover {
+    background: color-mix(in srgb, var(--cms-primary) 24%, var(--cms-bg-card));
     border-color: var(--cms-primary);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
     transform: translateY(-2px);
+  }
+
+  // Matches `.building-slot:hover .building__label`'s own brightness bump (Skyline) — the border
+  // shift alone left the icon looking static/unreactive next to it.
+  &:hover .level-card__icon {
+    filter: brightness(1.15);
   }
 
   &:focus-visible {
@@ -85,14 +130,31 @@
 }
 
 .level-card__icon {
-  font-size: 28px;
-  width: 28px;
-  height: 28px;
+  font-size: 34px;
+  width: 34px;
+  height: 34px;
   color: var(--cms-primary);
 }
 
+// A big, low-opacity duplicate of the card's own icon tucked in the corner — real content (the same
+// icon the card already shows, not invented decoration), just oversized as a texture. `z-index: -1`
+// keeps it behind the title/subtitle/badges but still above this card's own background (see
+// `.level-card`'s own stacking-context comment for why that needs an explicit local z-index).
+.level-card__watermark {
+  position: absolute;
+  z-index: -1;
+  right: -10px;
+  bottom: -14px;
+  font-size: 84px;
+  width: 84px;
+  height: 84px;
+  color: var(--cms-primary);
+  opacity: 0.07;
+  pointer-events: none;
+}
+
 .level-card__title {
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 700;
   line-height: 1.3;
   word-break: break-word;
@@ -102,6 +164,44 @@
   font-size: 11.5px;
   font-weight: 500;
   color: var(--cms-text-secondary);
+}
+
+// A single highlighted fact (e.g. capacity) — an outlined pill so it reads as a stat, distinct from
+// `.level-card__subtitle`'s plain descriptive text and from `.level-card__chip`'s filled tone tags.
+.level-card__stat {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--cms-primary) 30%, transparent);
+  color: var(--cms-primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.level-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+// Same tone/color recipe as `.ci-hostel-chip`/`.ci-gender-chip` (campus-infrastructure-list's Table
+// view) — same real facts (hostel status, gender restriction), so they should read as the same tag
+// language across both views instead of a different palette per screen.
+.level-card__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+
+  &--hostel { background: rgba(var(--cms-primary-rgb), 0.10); color: var(--cms-primary); }
+  &--boys   { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+  &--girls  { background: rgba(236, 72, 153, 0.12); color: #db2777; }
 }
 
 // Left corner (not right) — `.level-card__edit` owns the right corner now, kept consistent with

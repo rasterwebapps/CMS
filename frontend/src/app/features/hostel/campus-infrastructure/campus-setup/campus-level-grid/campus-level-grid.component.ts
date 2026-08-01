@@ -2,12 +2,23 @@ import { Component, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { CmsStatusBadgeComponent } from '../../../../../shared/status-badge/status-badge.component';
 
+/** Small colored tag for a real, already-loaded fact (hostel status, gender restriction) — not
+ *  decoration, only ever populated from a field that genuinely exists on the underlying entity. */
+export interface CampusLevelGridBadge {
+  label: string;
+  tone: 'hostel' | 'boys' | 'girls';
+}
+
 export interface CampusLevelGridItem {
   id: number;
   title: string;
   subtitle: string;
   icon: string;
   isActive: boolean;
+  /** A single highlighted fact, e.g. capacity — distinct from `subtitle` so it can read as a stat
+   *  rather than blend into the descriptive line. */
+  stat?: string;
+  badges?: CampusLevelGridBadge[];
 }
 
 /**
