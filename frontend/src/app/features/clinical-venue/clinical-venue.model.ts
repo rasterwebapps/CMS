@@ -13,6 +13,7 @@ export interface ClinicalVenue {
   name: string;
   hospitalName?: string;
   department?: string;
+  capacity?: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -22,6 +23,7 @@ export interface ClinicalVenueRequest {
   name: string;
   hospitalName?: string;
   department?: string;
+  capacity?: number;
   isActive?: boolean;
 }
 

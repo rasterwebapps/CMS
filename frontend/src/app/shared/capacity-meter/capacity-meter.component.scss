@@ -1,0 +1,30 @@
+.cms-capacity-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cms-capacity-meter__bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--cms-bg-muted);
+  overflow: hidden;
+}
+
+.cms-capacity-meter__fill {
+  height: 100%;
+  background: var(--cms-gradient-emerald);
+  border-radius: 3px;
+
+  .cms-capacity-meter--full & {
+    background: var(--cms-gradient-rose);
+  }
+}
+
+.cms-capacity-meter__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+}

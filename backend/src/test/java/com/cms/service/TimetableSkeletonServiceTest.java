@@ -26,6 +26,7 @@ import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Batch;
+import com.cms.model.BlockedPeriod;
 import com.cms.model.ClassSchedule;
 import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
@@ -33,12 +34,14 @@ import com.cms.model.Faculty;
 import com.cms.model.Period;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.BlockType;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.BatchRepository;
+import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.PeriodRepository;
@@ -51,6 +54,7 @@ class TimetableSkeletonServiceTest {
     @Mock private PeriodRepository periodRepository;
     @Mock private BatchRepository batchRepository;
     @Mock private BatchService batchService;
+    @Mock private BlockedPeriodRepository blockedPeriodRepository;
 
     private TimetableSkeletonService service;
 
@@ -62,7 +66,7 @@ class TimetableSkeletonServiceTest {
     @BeforeEach
     void setUp() {
         service = new TimetableSkeletonService(courseOfferingRepository, classScheduleRepository,
-            periodRepository, batchRepository, batchService);
+            periodRepository, batchRepository, batchService, blockedPeriodRepository);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);
@@ -250,6 +254,28 @@ class TimetableSkeletonServiceTest {
 
         assertThatThrownBy(() -> service.placeCell(request))
             .isInstanceOf(LifecycleConflictException.class);
+    }
+
+    @Test
+    void shouldRejectPlacementAtARecurringBlockedPeriod() {
+        BlockedPeriod block = new BlockedPeriod();
+        block.setBlockType(BlockType.RECURRING);
+        block.setDayOfWeek(DayOfWeek.MONDAY);
+        block.setRangeStartDate(LocalDate.of(2024, 6, 1));
+        block.setRangeEndDate(LocalDate.of(2024, 11, 30));
+        block.setReason("Staff meeting");
+
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(blockedPeriodRepository.findOverlappingRecurringBlocks(
+            DayOfWeek.MONDAY, 1L, termInstance.getStartDate(), termInstance.getEndDate()))
+            .thenReturn(List.of(block));
+
+        assertThatThrownBy(() -> service.placeCell(request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("Staff meeting");
     }
 
     @Test

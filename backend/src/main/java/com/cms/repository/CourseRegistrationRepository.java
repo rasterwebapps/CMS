@@ -22,6 +22,8 @@ public interface CourseRegistrationRepository extends JpaRepository<CourseRegist
 
     List<CourseRegistration> findByCourseOfferingIdAndStatus(Long offeringId, RegistrationStatus status);
 
+    long countByCourseOfferingIdAndStatus(Long offeringId, RegistrationStatus status);
+
     @Query("SELECT cr FROM CourseRegistration cr " +
            "WHERE cr.studentTermEnrollment.student.id = :studentId " +
            "AND cr.courseOffering.subject.id = :subjectId " +

@@ -51,6 +51,7 @@ export class ClinicalVenueFormComponent implements OnInit {
     name:         ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(255), noConsecutiveSpaces()]],
     hospitalName: ['', [Validators.maxLength(255)]],
     department:   ['', [Validators.maxLength(255)]],
+    capacity:     [null, [Validators.min(1)]],
   });
 
   constructor() {
@@ -94,6 +95,7 @@ export class ClinicalVenueFormComponent implements OnInit {
       name:         (this.form.value.name ?? '').trim(),
       hospitalName: this.form.value.hospitalName?.trim() || undefined,
       department:   this.form.value.department?.trim() || undefined,
+      capacity:     this.form.value.capacity ?? undefined,
     };
 
     this.saving.set(true);
@@ -115,7 +117,7 @@ export class ClinicalVenueFormComponent implements OnInit {
   }
 
   private static readonly FIELD_LABELS: Record<string, string> = {
-    name: 'Name', hospitalName: 'Hospital Name', department: 'Department',
+    name: 'Name', hospitalName: 'Hospital Name', department: 'Department', capacity: 'Capacity',
   };
 
   protected getErrorMessage(fieldName: string): string {
@@ -127,7 +129,12 @@ export class ClinicalVenueFormComponent implements OnInit {
     this.loading.set(true);
     this.clinicalVenueService.getById(this.venueId).subscribe({
       next: (v) => {
-        this.form.patchValue({ name: v.name, hospitalName: v.hospitalName || '', department: v.department || '' });
+        this.form.patchValue({
+          name: v.name,
+          hospitalName: v.hospitalName || '',
+          department: v.department || '',
+          capacity: v.capacity ?? null,
+        });
         this.loading.set(false);
       },
       error: () => {

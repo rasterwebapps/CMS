@@ -1,10 +1,12 @@
 package com.cms.service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.BatchAutoCreateRequest;
 import com.cms.dto.BatchDto;
 import com.cms.dto.BatchRequest;
 import com.cms.dto.BatchStudentDto;
@@ -69,6 +71,28 @@ public class BatchService {
         applyCoordinator(batch, request.coordinatorFacultyId());
 
         return toDto(batchRepository.save(batch));
+    }
+
+    /** Creates up to {@code count} empty batches ("Batch 1".."Batch N") under an offering in one
+     *  action, sized from the Capacity Planner's recommendation. Skips any name that already
+     *  exists rather than erroring, so re-running the action after partially creating batches is
+     *  safe. Student assignment to a batch stays the existing manual roster flow. */
+    @Transactional
+    public List<BatchDto> autoCreateBatches(BatchAutoCreateRequest request) {
+        CourseOffering offering = courseOfferingRepository.findById(request.courseOfferingId())
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Course offering not found with id: " + request.courseOfferingId()));
+
+        List<BatchDto> created = new ArrayList<>();
+        for (int i = 1; i <= request.count(); i++) {
+            String name = "Batch " + i;
+            if (batchRepository.existsByCourseOfferingIdAndName(offering.getId(), name)) {
+                continue;
+            }
+            Batch batch = new Batch(offering, name, request.capacity(), offering.getTermInstance());
+            created.add(toDto(batchRepository.save(batch)));
+        }
+        return created;
     }
 
     @Transactional

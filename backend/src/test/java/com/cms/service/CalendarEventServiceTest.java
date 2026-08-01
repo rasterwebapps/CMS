@@ -110,9 +110,27 @@ class CalendarEventServiceTest {
             "Event", null, LocalDate.of(2024, 10, 5), LocalDate.of(2024, 10, 1),
             CalendarEventType.OTHER, 1L);
 
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
+
         assertThatThrownBy(() -> calendarEventService.create(request))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage("End date must not be before start date");
+    }
+
+    @Test
+    void shouldThrowWhenEventDatesFallOutsideAcademicYear() {
+        // academicYear spans 2024-08-01 to 2025-05-31 (see setUp) -- this event starts before it.
+        CalendarEventRequest request = new CalendarEventRequest(
+            "Too Early", null, LocalDate.of(2024, 7, 1), LocalDate.of(2024, 7, 2),
+            CalendarEventType.HOLIDAY, 1L);
+
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
+
+        assertThatThrownBy(() -> calendarEventService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("must fall within the academic year's dates");
+
+        verify(calendarEventRepository, never()).save(any());
     }
 
     @Test
@@ -287,6 +305,7 @@ class CalendarEventServiceTest {
             CalendarEventType.HOLIDAY, 1L);
 
         when(calendarEventRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
 
         assertThatThrownBy(() -> calendarEventService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)

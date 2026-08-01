@@ -1,0 +1,191 @@
+<div class="mlp-page">
+
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="page-title">Timetable <em>Capacity Planner</em></h1>
+      <p class="page-subtitle">Work out how many classrooms, lab batches, and instructors a cohort actually needs before building its timetable</p>
+    </div>
+  </div>
+
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
+      @for (ay of academicYears(); track ay.id) {
+        <option [ngValue]="ay.id">{{ ay.name }}</option>
+      }
+    </select>
+    <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()"
+      [disabled]="termInstances().length === 0" aria-label="Term">
+      @if (termInstances().length === 0) {
+        <option [ngValue]="null">No terms yet</option>
+      }
+      @for (term of termInstances(); track term.id) {
+        <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
+      }
+    </select>
+    <select class="mlp-filter-select" [(ngModel)]="selectedCohortId" (ngModelChange)="onCohortChange()"
+      [disabled]="cohorts().length === 0" aria-label="Cohort">
+      @if (cohorts().length === 0) {
+        <option [ngValue]="null">No cohorts yet</option>
+      }
+      @for (c of cohorts(); track c.id) {
+        <option [ngValue]="c.id">{{ c.displayName }}</option>
+      }
+    </select>
+    <input class="cap-batch-size-input" type="number" min="1" placeholder="Target batch size (default 30)"
+      [(ngModel)]="targetBatchSize" aria-label="Target batch size" />
+    <button type="button" class="btn-primary" [disabled]="loading() || !selectedTermInstanceId || !selectedCohortId" (click)="loadPlan()">
+      @if (loading()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+      Calculate
+    </button>
+  </div>
+
+  @if (plan(); as p) {
+
+    <div class="content-card cap-summary-card">
+      <h2 class="cap-summary-card__title">{{ p.cohortLabel }} — {{ p.termLabel }}</h2>
+      <p class="cap-summary-card__strength">{{ p.cohortStrength }} students currently enrolled this term</p>
+    </div>
+
+    <div class="content-card cap-summary-card">
+      <h3 class="cap-sizing-card__title">Term Capacity — Supply vs. Demand</h3>
+      <p class="cap-batch-action-card__hint">{{ p.workingDaysInTerm }} working days this term (Sundays and any Holiday/Exam calendar day excluded) × available periods = {{ p.totalWorkingPeriodHours | number:'1.0-1' }} teaching hours available.</p>
+      <div class="cap-buffer-row">
+        <div class="cap-buffer-stat">
+          <span class="cap-buffer-stat__label">Available</span>
+          <span class="cap-buffer-stat__value">{{ p.totalWorkingPeriodHours | number:'1.0-1' }} hrs</span>
+        </div>
+        <div class="cap-buffer-stat">
+          <span class="cap-buffer-stat__label">Blocked</span>
+          <span class="cap-buffer-stat__value">{{ p.blockedHours | number:'1.0-1' }} hrs</span>
+        </div>
+        <div class="cap-buffer-stat">
+          <span class="cap-buffer-stat__label">Curriculum needs</span>
+          <span class="cap-buffer-stat__value">{{ p.curriculumHoursRequired }} hrs</span>
+        </div>
+        <div class="cap-buffer-stat">
+          <span class="cap-buffer-stat__label">Buffer</span>
+          <span class="cap-buffer-stat__value" [class.cap-buffer-stat__value--warn]="p.bufferHours < 0">{{ p.bufferHours | number:'1.0-1' }} hrs</span>
+        </div>
+      </div>
+      @if (p.bufferHours < 0) {
+        <p class="cap-sizing-card__warn">The curriculum needs more hours than this term's calendar has available — the timetable will not fit without extending the term or trimming holidays/exam days.</p>
+      }
+    </div>
+
+    <div class="cap-sizing-grid">
+
+      <div class="content-card cap-sizing-card">
+        <h3 class="cap-sizing-card__title">Theory</h3>
+        @if (p.theoryFits) {
+          <p class="cap-sizing-card__ok">Fits in {{ p.fittingClassrooms.length }} classroom(s):</p>
+          <ul class="cap-venue-list">
+            @for (c of p.fittingClassrooms; track c.id) {
+              <li>{{ c.name }} <span class="cap-venue-list__cap">(cap {{ c.capacity }})</span></li>
+            }
+          </ul>
+        } @else {
+          <p class="cap-sizing-card__warn">{{ p.theoryShortfallMessage }}</p>
+        }
+      </div>
+
+      <div class="content-card cap-sizing-card">
+        <h3 class="cap-sizing-card__title">Lab</h3>
+        <p class="cap-sizing-card__ok">{{ p.labBatchesNeeded }} batch(es) of ~{{ p.targetBatchSize }} needed</p>
+        <ul class="cap-venue-list">
+          @for (l of p.fittingLabs; track l.id) {
+            <li>{{ l.name }} <span class="cap-venue-list__cap">(cap {{ l.capacity }})</span></li>
+          }
+          @empty {
+            <li class="cap-venue-list__none">No lab currently seats {{ p.targetBatchSize }} students at once.</li>
+          }
+        </ul>
+      </div>
+
+      <div class="content-card cap-sizing-card">
+        <h3 class="cap-sizing-card__title">Clinical</h3>
+        <p class="cap-sizing-card__ok">{{ p.clinicalBatchesNeeded }} batch(es) of ~{{ p.targetBatchSize }} needed</p>
+        <ul class="cap-venue-list">
+          @for (v of p.fittingClinicalVenues; track v.id) {
+            <li>{{ v.name }} <span class="cap-venue-list__cap">(cap {{ v.capacity }})</span></li>
+          }
+          @empty {
+            <li class="cap-venue-list__none">No clinical venue currently seats {{ p.targetBatchSize }} students at once.</li>
+          }
+        </ul>
+      </div>
+
+    </div>
+
+    @if (canCreateBatches() && p.labBatchesNeeded > 0) {
+      <div class="content-card cap-batch-action-card">
+        <h3 class="cap-sizing-card__title">Create Suggested Batches</h3>
+        <p class="cap-batch-action-card__hint">Creates {{ p.labBatchesNeeded }} empty batch(es) of capacity {{ p.targetBatchSize }} under a subject offering — students are still assigned to a batch the usual way afterward.</p>
+        <div class="cap-batch-action-card__row">
+          <select class="mlp-filter-select" [(ngModel)]="selectedOfferingId" [disabled]="offerings().length === 0" aria-label="Subject offering">
+            @if (offerings().length === 0) {
+              <option [ngValue]="null">No subjects yet</option>
+            }
+            @for (o of offerings(); track o.id) {
+              <option [ngValue]="o.id">{{ o.subjectName }} ({{ o.subjectCode }})</option>
+            }
+          </select>
+          <button type="button" class="btn-secondary" [disabled]="creatingBatches() || !selectedOfferingId" (click)="createSuggestedBatches()">
+            @if (creatingBatches()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+            Create {{ p.labBatchesNeeded }} Batch(es)
+          </button>
+        </div>
+      </div>
+    }
+
+    <div class="content-card cap-utilization-card">
+      <h3 class="cap-sizing-card__title">Venue Utilization This Term</h3>
+      <p class="cap-batch-action-card__hint">Occupied vs total weekly slots, across every cohort already scheduled this term — not just this one.</p>
+      <div class="cap-utilization-grid">
+        <div class="cap-utilization-col">
+          <h4 class="cap-utilization-col__title">Classrooms</h4>
+          @for (u of p.classroomUtilization; track u.id) {
+            <div class="cap-utilization-row">
+              <span class="cap-utilization-row__name">{{ u.name }}</span>
+              <cms-capacity-meter [occupied]="u.occupiedSlots" [capacity]="u.totalSlots"></cms-capacity-meter>
+            </div>
+          }
+        </div>
+        <div class="cap-utilization-col">
+          <h4 class="cap-utilization-col__title">Labs</h4>
+          @for (u of p.labUtilization; track u.id) {
+            <div class="cap-utilization-row">
+              <span class="cap-utilization-row__name">{{ u.name }}</span>
+              <cms-capacity-meter [occupied]="u.occupiedSlots" [capacity]="u.totalSlots"></cms-capacity-meter>
+            </div>
+          }
+        </div>
+        <div class="cap-utilization-col">
+          <h4 class="cap-utilization-col__title">Clinical Venues</h4>
+          @for (u of p.clinicalVenueUtilization; track u.id) {
+            <div class="cap-utilization-row">
+              <span class="cap-utilization-row__name">{{ u.name }}</span>
+              <cms-capacity-meter [occupied]="u.occupiedSlots" [capacity]="u.totalSlots"></cms-capacity-meter>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+  } @else if (!loading()) {
+    <div class="content-card">
+      <p class="skeleton-empty-hint">Select a term and cohort, then Calculate to see a sizing report.</p>
+    </div>
+  }
+
+  <div class="content-card cap-guide-card">
+    <h3 class="cap-sizing-card__title">How to plan this term's timetable</h3>
+    <ol class="cap-guide-list">
+      <li>Pick the term and cohort above, and Calculate — this shows how many students need Theory/Lab/Clinical seats.</li>
+      <li>Check the Theory card: if no single classroom fits the whole cohort, plan to split it into sections before building the skeleton.</li>
+      <li>Check the Lab/Clinical batch counts, adjusting target batch size if needed, then use Create Suggested Batches once you know which subject offering they belong to.</li>
+      <li>Open <a routerLink="/timetable/skeleton-builder">Skeleton Builder</a> to place Theory/Lab/Clinical sessions into periods for each subject.</li>
+      <li>Open <a routerLink="/timetable/staffing">Staffing</a> to assign faculty and rooms — capacity is checked automatically, and an over-capacity room/lab/clinical venue will be blocked.</li>
+    </ol>
+  </div>
+
+</div>

@@ -1,6 +1,7 @@
 package com.cms.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public record ClinicalVenueRequest(
@@ -14,6 +15,9 @@ public record ClinicalVenueRequest(
 
     @Size(max = 255, message = "Department must not exceed 255 characters")
     String department,
+
+    @Positive(message = "Capacity must be greater than zero")
+    Integer capacity,
 
     Boolean isActive
 ) {}

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { Batch, BatchRequest, BatchStudent } from './batch.model';
+import { Batch, BatchAutoCreateRequest, BatchRequest, BatchStudent } from './batch.model';
 
 @Injectable({ providedIn: 'root' })
 export class BatchService {
@@ -23,6 +23,10 @@ export class BatchService {
 
   create(request: BatchRequest): Observable<Batch> {
     return this.http.post<Batch>(this.baseUrl, request);
+  }
+
+  autoCreate(request: BatchAutoCreateRequest): Observable<Batch[]> {
+    return this.http.post<Batch[]>(`${this.baseUrl}/auto-create`, request);
   }
 
   update(id: number, request: BatchRequest): Observable<Batch> {

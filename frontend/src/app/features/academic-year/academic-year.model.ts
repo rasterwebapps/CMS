@@ -105,6 +105,33 @@ export interface CalendarEventRequest {
   holidayCategory?: HolidayCategory | null;
 }
 
+export type BlockType = 'ONE_OFF' | 'RECURRING';
+export type AppDayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY';
+
+export interface BlockedPeriod {
+  id: number;
+  periodId: number;
+  periodName: string;
+  blockType: BlockType;
+  specificDate: string | null;
+  dayOfWeek: AppDayOfWeek | null;
+  rangeStartDate: string | null;
+  rangeEndDate: string | null;
+  reason: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BlockedPeriodRequest {
+  periodId: number;
+  blockType: BlockType;
+  specificDate?: string | null;
+  dayOfWeek?: AppDayOfWeek | null;
+  rangeStartDate?: string | null;
+  rangeEndDate?: string | null;
+  reason: string;
+}
+
 export type TermType = 'ODD' | 'EVEN';
 export type TermInstanceStatus = 'PLANNED' | 'OPEN' | 'LOCKED';
 export type LateFeeType = 'FLAT' | 'PER_DAY';

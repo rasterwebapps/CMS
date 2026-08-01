@@ -35,7 +35,8 @@ public class ClinicalVenueService {
                 "A clinical venue with the name '" + name + "' already exists");
         }
 
-        ClinicalVenue venue = new ClinicalVenue(name, trim(request.hospitalName()), trim(request.department()));
+        ClinicalVenue venue = new ClinicalVenue(name, trim(request.hospitalName()), trim(request.department()),
+            request.capacity());
         if (request.isActive() != null) {
             venue.setIsActive(request.isActive());
         }
@@ -85,6 +86,7 @@ public class ClinicalVenueService {
         venue.setName(name);
         venue.setHospitalName(trim(request.hospitalName()));
         venue.setDepartment(trim(request.department()));
+        venue.setCapacity(request.capacity());
         if (request.isActive() != null) {
             venue.setIsActive(request.isActive());
         }
@@ -120,7 +122,7 @@ public class ClinicalVenueService {
 
     private ClinicalVenueResponse toResponse(ClinicalVenue v) {
         return new ClinicalVenueResponse(v.getId(), v.getName(), v.getHospitalName(), v.getDepartment(),
-            v.getIsActive(), v.getCreatedAt(), v.getUpdatedAt());
+            v.getCapacity(), v.getIsActive(), v.getCreatedAt(), v.getUpdatedAt());
     }
 
     private static String trim(String s) {

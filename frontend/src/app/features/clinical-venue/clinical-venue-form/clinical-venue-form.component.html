@@ -26,7 +26,7 @@
           </div>
           <div>
             <div class="entry-form-card__hdr-title">Clinical Venue Information</div>
-            <div class="entry-form-card__hdr-sub">Name, hospital, and department</div>
+            <div class="entry-form-card__hdr-sub">Name, hospital, department, and capacity</div>
           </div>
         </div>
 
@@ -75,6 +75,22 @@
                 placeholder="e.g., Obstetrics & Gynaecology"
                 autocomplete="off"
               />
+            </div>
+
+            <!-- Capacity -->
+            <div class="field-group">
+              <label for="cv-capacity" class="field-label">Capacity</label>
+              <input
+                id="cv-capacity"
+                class="field-input"
+                type="number"
+                min="1"
+                formControlName="capacity"
+                placeholder="e.g., 20"
+              />
+              @if (form.get('capacity')?.invalid && form.get('capacity')?.touched) {
+                <p class="field-error">{{ getErrorMessage('capacity') }}</p>
+              }
             </div>
 
             <!-- Footer -->

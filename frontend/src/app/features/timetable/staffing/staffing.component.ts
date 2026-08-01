@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
@@ -24,7 +25,7 @@ interface StaffingRow extends UnstaffedCell {
 @Component({
   selector: 'app-staffing',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule],
+  imports: [FormsModule, RouterLink, MatProgressSpinnerModule],
   templateUrl: './staffing.component.html',
   styleUrl: './staffing.component.scss',
 })
@@ -43,8 +44,14 @@ export class StaffingComponent implements OnInit {
 
   protected readonly faculty = signal<{ id: number; name: string; specialityId: number | null }[]>([]);
   protected readonly classrooms = signal<Classroom[]>([]);
-  protected readonly labs = signal<{ id: number; name: string }[]>([]);
+  protected readonly labs = signal<{ id: number; name: string; capacity: number | null }[]>([]);
   protected readonly clinicalVenues = signal<ClinicalVenue[]>([]);
+
+  /** Non-binding faculty-reuse tally, keyed by subjectCode|dayOfWeek|facultyId — incremented as
+   *  assignments succeed in this session, used only to rank/hint the faculty dropdown toward
+   *  reusing an instructor already teaching this subject that day, minimizing headcount. Never
+   *  restricts the option list. */
+  protected readonly facultyReuseCounts = signal<Map<string, number>>(new Map());
 
   protected readonly termsLoading = signal(false);
   protected readonly rowsLoading = signal(false);
@@ -67,7 +74,7 @@ export class StaffingComponent implements OnInit {
       next: (data) => this.classrooms.set(data),
       error: () => this.toast.error('Failed to load classrooms'),
     });
-    this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/labs`).subscribe({
+    this.http.get<{ id: number; name: string; capacity: number | null }[]>(`${environment.apiUrl}/labs`).subscribe({
       next: (data) => this.labs.set(data),
       error: () => this.toast.error('Failed to load labs'),
     });
@@ -101,8 +108,24 @@ export class StaffingComponent implements OnInit {
   }
 
   protected eligibleFacultyFor(row: StaffingRow): { id: number; name: string; specialityId: number | null }[] {
-    if (!row.subjectSpecialityId) return this.faculty();
-    return this.faculty().filter((f) => f.specialityId === row.subjectSpecialityId);
+    const base = !row.subjectSpecialityId ? this.faculty()
+      : this.faculty().filter((f) => f.specialityId === row.subjectSpecialityId);
+    const counts = this.facultyReuseCounts();
+    return [...base].sort((a, b) =>
+      (counts.get(this.reuseKey(row, b.id)) ?? 0) - (counts.get(this.reuseKey(row, a.id)) ?? 0));
+  }
+
+  /** Appends a non-binding hint when this faculty is already teaching the same subject on the
+   *  same day elsewhere in this staffing session — reusing them keeps total instructor headcount
+   *  down instead of spreading the same subject across more staff than necessary. */
+  protected facultyOptionLabel(row: StaffingRow, f: { name: string; id: number }): string {
+    const count = this.facultyReuseCounts().get(this.reuseKey(row, f.id)) ?? 0;
+    if (count === 0) return f.name;
+    return `${f.name} — already teaching ${count} session${count > 1 ? 's' : ''} today`;
+  }
+
+  private reuseKey(row: StaffingRow, facultyId: number): string {
+    return `${row.subjectCode}|${row.dayOfWeek}|${facultyId}`;
   }
 
   protected roomLabel(row: StaffingRow): string {
@@ -111,10 +134,31 @@ export class StaffingComponent implements OnInit {
     return 'Clinical Venue';
   }
 
-  protected roomOptionsFor(row: StaffingRow): { id: number; name: string }[] {
-    if (row.sessionType === 'THEORY') return this.classrooms();
-    if (row.sessionType === 'LAB') return this.labs();
-    return this.clinicalVenues();
+  /** Best-fit-first: venues that seat this session's required strength sort first (tightest fit
+   *  first), then venues with unknown capacity, then undersized venues (closest to fitting first)
+   *  — never removed from the list, just ranked, since the backend hard-blocks an actual
+   *  over-capacity save regardless of what's shown here. */
+  protected roomOptionsFor(row: StaffingRow): { id: number; name: string; capacity: number | null }[] {
+    const base: { id: number; name: string; capacity: number | null }[] =
+      row.sessionType === 'THEORY' ? this.classrooms().map((c) => ({ id: c.id, name: c.name, capacity: c.capacity ?? null }))
+      : row.sessionType === 'LAB' ? this.labs()
+      : this.clinicalVenues().map((v) => ({ id: v.id, name: v.name, capacity: v.capacity ?? null }));
+
+    const required = row.requiredStrength;
+    if (required == null) return base;
+
+    const fits = base.filter((o) => o.capacity != null && o.capacity >= required)
+      .sort((a, b) => a.capacity! - b.capacity!);
+    const unknown = base.filter((o) => o.capacity == null);
+    const tooSmall = base.filter((o) => o.capacity != null && o.capacity < required)
+      .sort((a, b) => b.capacity! - a.capacity!);
+    return [...fits, ...unknown, ...tooSmall];
+  }
+
+  protected roomOptionLabel(row: StaffingRow, o: { name: string; capacity: number | null }): string {
+    if (o.capacity == null) return o.name;
+    const tooSmall = row.requiredStrength != null && o.capacity < row.requiredStrength;
+    return tooSmall ? `${o.name} (Cap ${o.capacity} — too small)` : `${o.name} (Cap ${o.capacity})`;
   }
 
   protected assign(row: StaffingRow): void {
@@ -130,6 +174,12 @@ export class StaffingComponent implements OnInit {
     }).subscribe({
       next: () => {
         this.toast.success(`Staffed ${row.subjectName}`);
+        const key = this.reuseKey(row, row.facultyId!);
+        this.facultyReuseCounts.update((m) => {
+          const next = new Map(m);
+          next.set(key, (next.get(key) ?? 0) + 1);
+          return next;
+        });
         this.rows.update((list) => list.filter((r) => r.id !== row.id));
       },
       error: (err) => {

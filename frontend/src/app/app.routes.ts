@@ -932,6 +932,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'timetable/capacity-planner',
+    canActivate: withPermission('TIMETABLE_CAPACITY_PLANNER_VIEW'),
+    loadComponent: () =>
+      import('./features/timetable/capacity-planner/capacity-planner.component').then(
+        (m) => m.CapacityPlannerComponent
+      ),
+  },
+  {
     path: 'timetable',
     canActivate: withPermission('TIMETABLE_VIEW'),
     loadComponent: () =>

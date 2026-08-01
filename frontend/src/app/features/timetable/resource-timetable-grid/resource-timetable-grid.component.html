@@ -3,7 +3,7 @@
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
       <h1 class="page-title">Resource <em>Timetable</em></h1>
-      <p class="page-subtitle">See every faculty member's or every room's schedule for one day at once</p>
+      <p class="page-subtitle">See every faculty member's schedule, or every classroom/lab/clinical venue's schedule, for one day at once</p>
     </div>
   </div>
 
@@ -26,7 +26,7 @@
     @if (canViewFaculty() && canViewClassroom()) {
       <div class="view-mode-toggle">
         <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="resourceType() === 'FACULTY'" (click)="setResourceType('FACULTY')">Faculty</button>
-        <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="resourceType() === 'CLASSROOM'" (click)="setResourceType('CLASSROOM')">Classroom</button>
+        <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="resourceType() === 'CLASSROOM'" (click)="setResourceType('CLASSROOM')">Classroom / Lab / Clinical</button>
       </div>
     }
 
@@ -58,7 +58,8 @@
               @for (cell of cellsFor(row, col); track cell.sessionId) {
                 <div class="resource-grid__chip"
                   [class.resource-grid__chip--theory]="cell.sessionType === 'THEORY'"
-                  [class.resource-grid__chip--lab]="cell.sessionType === 'LAB'">
+                  [class.resource-grid__chip--lab]="cell.sessionType === 'LAB'"
+                  [class.resource-grid__chip--clinical]="cell.sessionType === 'CLINICAL'">
                   <span class="resource-grid__chip-subject">{{ cell.subjectName }}</span>
                   <span class="resource-grid__chip-detail">{{ resourceType() === 'FACULTY' ? cell.roomName : cell.facultyName }}</span>
                   @if (cell.batchName) {

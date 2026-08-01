@@ -55,12 +55,7 @@
             }
           </div>
 
-          <div class="rad-occupancy">
-            <div class="rad-occupancy__bar">
-              <div class="rad-occupancy__fill" [style.width.%]="occupancyPercent(room)"></div>
-            </div>
-            <span class="rad-occupancy__label">{{ room.occupiedCount }} / {{ room.sharingCapacity }}</span>
-          </div>
+          <cms-capacity-meter [occupied]="room.occupiedCount" [capacity]="room.sharingCapacity"></cms-capacity-meter>
 
           @if (room.occupants.length > 0) {
             <ul class="rad-occupants">

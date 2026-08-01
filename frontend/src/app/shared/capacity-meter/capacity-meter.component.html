@@ -1,0 +1,6 @@
+<div class="cms-capacity-meter" [class.cms-capacity-meter--full]="isFull()">
+  <div class="cms-capacity-meter__bar">
+    <div class="cms-capacity-meter__fill" [style.width.%]="percent()"></div>
+  </div>
+  <span class="cms-capacity-meter__label">{{ displayLabel() }}</span>
+</div>

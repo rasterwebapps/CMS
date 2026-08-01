@@ -31,12 +31,11 @@ public class CalendarEventService {
 
     @Transactional
     public CalendarEventResponse create(CalendarEventRequest request) {
-        validateDateRange(request);
-        HolidayCategory holidayCategory = resolveHolidayCategory(request);
-
         AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Academic year not found with id: " + request.academicYearId()));
+        validateDateRange(request, academicYear);
+        HolidayCategory holidayCategory = resolveHolidayCategory(request);
 
         CalendarEvent event = new CalendarEvent();
         event.setTitle(request.title());
@@ -84,12 +83,11 @@ public class CalendarEventService {
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Calendar event not found with id: " + id));
 
-        validateDateRange(request);
-        HolidayCategory holidayCategory = resolveHolidayCategory(request);
-
         AcademicYear academicYear = academicYearRepository.findById(request.academicYearId())
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Academic year not found with id: " + request.academicYearId()));
+        validateDateRange(request, academicYear);
+        HolidayCategory holidayCategory = resolveHolidayCategory(request);
 
         event.setTitle(request.title());
         event.setDescription(request.description());
@@ -110,9 +108,19 @@ public class CalendarEventService {
         calendarEventRepository.deleteById(id);
     }
 
-    private void validateDateRange(CalendarEventRequest request) {
+    /** Mirrors the containment check {@code TermInstanceService.assertTermWithinAcademicYear}
+     *  already enforces for terms -- an event dated outside its own linked Academic Year was
+     *  previously accepted silently, which is exactly the class of bug that produced
+     *  inconsistent term/calendar data before this was caught. */
+    private void validateDateRange(CalendarEventRequest request, AcademicYear academicYear) {
         if (request.endDate().isBefore(request.startDate())) {
             throw new IllegalArgumentException("End date must not be before start date");
+        }
+        if (request.startDate().isBefore(academicYear.getStartDate())
+                || request.endDate().isAfter(academicYear.getEndDate())) {
+            throw new IllegalArgumentException(
+                "Event dates must fall within the academic year's dates (" +
+                    academicYear.getStartDate() + " to " + academicYear.getEndDate() + ")");
         }
     }
 

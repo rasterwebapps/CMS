@@ -17,12 +17,13 @@ import { Student } from '../../../student/student.model';
 import { CmsFlyoutPanelComponent } from '../../../../shared/flyout-panel/flyout-panel.component';
 import { ConfirmDialogComponent } from '../../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../../shared/empty-state/empty-state.component';
+import { CmsCapacityMeterComponent } from '../../../../shared/capacity-meter/capacity-meter.component';
 import { ToastService } from '../../../../core/toast/toast.service';
 
 @Component({
   selector: 'app-room-allocation-dashboard',
   standalone: true,
-  imports: [FormsModule, MatIconModule, MatButtonModule, MatProgressSpinnerModule, CmsFlyoutPanelComponent, CmsEmptyStateComponent],
+  imports: [FormsModule, MatIconModule, MatButtonModule, MatProgressSpinnerModule, CmsFlyoutPanelComponent, CmsEmptyStateComponent, CmsCapacityMeterComponent],
   templateUrl: './room-allocation-dashboard.component.html',
   styleUrl: './room-allocation-dashboard.component.scss',
 })
@@ -167,8 +168,4 @@ export class RoomAllocationDashboardComponent implements OnInit {
     });
   }
 
-  protected occupancyPercent(room: HostelRoomOccupancy): number {
-    if (!room.sharingCapacity) return 0;
-    return Math.round((room.occupiedCount / room.sharingCapacity) * 100);
-  }
 }

@@ -36,9 +36,11 @@ import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
+import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.ClinicalVenueRepository;
+import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabRepository;
 
@@ -50,6 +52,8 @@ class TimetableStaffingServiceTest {
     @Mock private ClassroomRepository classroomRepository;
     @Mock private LabRepository labRepository;
     @Mock private ClinicalVenueRepository clinicalVenueRepository;
+    @Mock private BatchRepository batchRepository;
+    @Mock private CourseRegistrationRepository courseRegistrationRepository;
 
     private TimetableStaffingService service;
 
@@ -64,7 +68,7 @@ class TimetableStaffingServiceTest {
     @BeforeEach
     void setUp() {
         service = new TimetableStaffingService(classScheduleRepository, facultyRepository,
-            classroomRepository, labRepository, clinicalVenueRepository);
+            classroomRepository, labRepository, clinicalVenueRepository, batchRepository, courseRegistrationRepository);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);
@@ -212,6 +216,47 @@ class TimetableStaffingServiceTest {
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
             .isInstanceOf(LifecycleConflictException.class);
+    }
+
+    @Test
+    void shouldRejectWhenClassroomCapacityIsBelowRegisteredStrength() {
+        com.cms.model.CourseOffering offering = new com.cms.model.CourseOffering();
+        offering.setId(50L);
+        cell.setCourseOffering(offering);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L, null, null);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(courseRegistrationRepository.countByCourseOfferingIdAndStatus(50L, com.cms.model.enums.RegistrationStatus.REGISTERED))
+            .thenReturn(75L);
+
+        assertThatThrownBy(() -> service.staffCell(100L, request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("seats 60");
+    }
+
+    @Test
+    void shouldAllowStaffingWhenRegisteredStrengthFitsClassroomCapacity() {
+        com.cms.model.CourseOffering offering = new com.cms.model.CourseOffering();
+        offering.setId(50L);
+        cell.setCourseOffering(offering);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L, null, null);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(courseRegistrationRepository.countByCourseOfferingIdAndStatus(50L, com.cms.model.enums.RegistrationStatus.REGISTERED))
+            .thenReturn(45L);
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.staffCell(100L, request);
+
+        assertThat(cell.getClassroom()).isEqualTo(classroom);
     }
 
     @Test

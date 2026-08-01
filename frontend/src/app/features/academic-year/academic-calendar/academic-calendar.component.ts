@@ -7,29 +7,26 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { forkJoin } from 'rxjs';
 import { AcademicYearService } from '../academic-year.service';
+import { BlockedPeriodService } from '../blocked-period.service';
+import { PeriodService } from '../../period/period.service';
+import { Period } from '../../period/period.model';
 import {
   AcademicYear,
+  BlockedPeriod,
   CalendarEvent,
-  CalendarEventRequest,
   CalendarEventType,
   HolidayCategory,
   TermInstance,
-  TermInstanceStatus,
   TermType,
 } from '../academic-year.model';
-import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { PrintService } from '../../../core/print/print.service';
@@ -40,9 +37,16 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { ACADEMIC_CALENDAR_TOUR } from '../../../shared/tour/tours/academic-calendar.tours';
-import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { formatBlockSummary } from './blocked-period-summary.util';
+import {
+  DAY_OF_WEEK_LABELS,
+  EVENT_TYPE_BADGE_CLASS,
+  EVENT_TYPE_ICONS,
+  EVENT_TYPE_LABELS,
+} from './calendar-display.constants';
+import { DayDetailFlyoutComponent, DayDetailSection } from './day-detail-flyout/day-detail-flyout.component';
 
-export type CalendarViewMode = 'timeline' | 'grid';
+export type CalendarViewMode = 'timeline' | 'grid' | 'blocked-periods';
 
 interface MonthGrid {
   year: number;
@@ -61,52 +65,30 @@ interface DayCell {
   isToday: boolean;
 }
 
-const EVENT_TYPE_LABELS: Record<CalendarEventType, string> = {
-  HOLIDAY: 'Holiday',
-  EXAM: 'Exam',
-  CULTURAL: 'Cultural',
-  SPORTS: 'Sports',
-  WORKSHOP: 'Workshop',
-  OTHER: 'Other',
-};
-
-const EVENT_TYPE_ICONS: Record<CalendarEventType, string> = {
-  HOLIDAY: 'beach_access',
-  EXAM: 'quiz',
-  CULTURAL: 'theater_comedy',
-  SPORTS: 'sports_soccer',
-  WORKSHOP: 'handyman',
-  OTHER: 'event',
-};
-
 @Component({
   selector: 'app-academic-calendar',
   standalone: true,
   imports: [
     AppDatePipe,
-    FormsModule,
-    ReactiveFormsModule,
     RouterLink,
     MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    MatSelectModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatMenuModule,
     MatTooltipModule,
-    PageHeaderComponent,
     CmsEmptyStateComponent,
     CmsTourButtonComponent,
     CmsStatusBadgeComponent,
+    DayDetailFlyoutComponent,
   ],
   templateUrl: './academic-calendar.component.html',
   styleUrl: './academic-calendar.component.scss',
 })
 export class AcademicCalendarComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
+  private readonly blockedPeriodService = inject(BlockedPeriodService);
+  private readonly periodService = inject(PeriodService);
   private readonly toast = inject(ToastService);
-  private readonly fb = inject(FormBuilder);
   private readonly printService = inject(PrintService);
   private readonly csvExporter = inject(CsvExporterService);
   protected readonly permissionService = inject(PermissionService);
@@ -126,14 +108,17 @@ export class AcademicCalendarComponent implements OnInit {
   protected readonly selectedAcademicYear = signal<AcademicYear | null>(null);
   protected readonly termInstances = signal<TermInstance[]>([]);
   protected readonly events = signal<CalendarEvent[]>([]);
+  protected readonly blockedPeriods = signal<BlockedPeriod[]>([]);
+  protected readonly periods = signal<Period[]>([]);
 
   // ─── View mode ───
   protected readonly viewMode = signal<CalendarViewMode>('timeline');
 
-  // ─── Event dialog state ───
-  protected readonly showEventDialog = signal(false);
-  protected readonly editingEvent = signal<CalendarEvent | null>(null);
-  protected readonly eventSaving = signal(false);
+  // ─── Day-detail flyout state ───
+  protected readonly dayDetailTarget = signal<Date | null>(null);
+  protected readonly dayDetailFocusEventId = signal<number | null>(null);
+  protected readonly dayDetailFocusBlockId = signal<number | null>(null);
+  protected readonly dayDetailSection = signal<DayDetailSection | null>(null);
 
   // ─── Event types for template ───
   protected readonly eventTypes: CalendarEventType[] = [
@@ -152,6 +137,9 @@ export class AcademicCalendarComponent implements OnInit {
 
   // ─── Role helpers ───
   protected readonly canManage = computed(() => this.permissionService.has('ACADEMIC_YEAR_MANAGE'));
+  protected readonly canManageBlocks = computed(() => this.permissionService.has('BLOCKED_PERIOD_MANAGE'));
+
+  protected readonly dayOfWeekLabels = DAY_OF_WEEK_LABELS;
 
   // ─── Stats ───
   protected readonly stats = computed(() => {
@@ -175,17 +163,34 @@ export class AcademicCalendarComponent implements OnInit {
       return today >= start && today <= end;
     });
 
-    const daysRemaining = currentTerm
-      ? Math.max(
-          0,
-          Math.round((new Date(currentTerm.endDate).getTime() - today.getTime()) / AcademicCalendarComponent.MS_PER_DAY),
-        )
-      : null;
+    // No term ongoing right now -- rather than a bare, unexplained dash, say something concrete:
+    // how long until the next term starts, or that there's nothing scheduled at all.
+    let daysValue: number | string;
+    let daysLabel: string;
+    if (currentTerm) {
+      daysValue = Math.max(
+        0,
+        Math.round((new Date(currentTerm.endDate).getTime() - today.getTime()) / AcademicCalendarComponent.MS_PER_DAY),
+      );
+      daysLabel = 'Days Left in Term';
+    } else {
+      const nextTerm = terms
+        .filter((t) => new Date(t.startDate) > today)
+        .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0];
+      if (nextTerm) {
+        daysValue = Math.round((new Date(nextTerm.startDate).getTime() - today.getTime()) / AcademicCalendarComponent.MS_PER_DAY);
+        daysLabel = 'Days Until Next Term';
+      } else {
+        daysValue = '—';
+        daysLabel = 'No Active Term';
+      }
+    }
 
     return {
       totalWeeks,
       termCount: terms.length,
-      daysRemaining,
+      daysValue,
+      daysLabel,
       eventCount: evts.length,
     };
   });
@@ -212,18 +217,8 @@ export class AcademicCalendarComponent implements OnInit {
     return this.buildMonthGrids(ay, this.termInstances(), this.events());
   });
 
-  // ─── Event form ───
-  protected readonly eventForm = this.fb.group({
-    title: ['', [Validators.required, Validators.maxLength(255)]],
-    description: [''],
-    startDate: ['', Validators.required],
-    endDate: ['', Validators.required],
-    eventType: ['HOLIDAY' as CalendarEventType, Validators.required],
-    holidayCategory: [null as HolidayCategory | null],
-  });
-
-  protected showHolidayCategoryField(): boolean {
-    return this.eventForm.get('eventType')?.value === 'HOLIDAY';
+  protected blockSummary(block: BlockedPeriod): string {
+    return formatBlockSummary(block, this.dayOfWeekLabels);
   }
 
   private readonly MONTH_NAMES = Array.from({ length: 12 }, (_, i) =>
@@ -233,6 +228,11 @@ export class AcademicCalendarComponent implements OnInit {
   ngOnInit(): void {
     this.tourService.register('academic-calendar', ACADEMIC_CALENDAR_TOUR);
     this.loadAll();
+    this.periodService.getAll(true).subscribe({
+      next: (data) => this.periods.set(data),
+      error: () => this.toast.error('Failed to load periods'),
+    });
+    this.reloadBlockedPeriods();
   }
 
   // ─── Load helpers ───
@@ -324,10 +324,13 @@ export class AcademicCalendarComponent implements OnInit {
     return `${this.termTypeLabel(term.termType)} Term`;
   }
 
+  /** Purely calendar-derived (today vs. this term's real dates) — used for the timeline
+   *  marker/highlighting/progress label and month-grid day coloring, which are all visualizations
+   *  of the calendar itself. Deliberately does NOT consult `term.status` (the admin-set workflow
+   *  state: PLANNED/OPEN/LOCKED) — that field is now shown honestly on its own via the status
+   *  badge (`term.status` passed directly) plus `adminStatusMismatch`, instead of being silently
+   *  blended into this date-based read the way it used to be. */
   protected getTermStatus(term: TermInstance): 'UPCOMING' | 'ONGOING' | 'COMPLETED' {
-    const byStatus = this.mapTermStatus(term.status);
-    if (byStatus) return byStatus;
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const start = new Date(term.startDate);
@@ -335,6 +338,31 @@ export class AcademicCalendarComponent implements OnInit {
     if (today < start) return 'UPCOMING';
     if (today > end) return 'COMPLETED';
     return 'ONGOING';
+  }
+
+  /** Non-null (a plain-language explanation) when the admin-set term.status visibly disagrees
+   *  with what today's date vs. the term's real dates would suggest -- e.g. a term marked LOCKED
+   *  that hasn't even started yet. Surfaced as a warning next to the status badge rather than
+   *  left as a silent, confusing contradiction between the badge and the progress bar beside it. */
+  protected adminStatusMismatch(term: TermInstance): string | null {
+    const calendarStatus = this.getTermStatus(term);
+    if (term.status === 'LOCKED' && calendarStatus === 'UPCOMING') {
+      return `Marked Locked, but doesn't start until ${this.formatDisplayDate(term.startDate)}`;
+    }
+    if (term.status === 'PLANNED' && calendarStatus === 'COMPLETED') {
+      return `Marked Planned, but already ended on ${this.formatDisplayDate(term.endDate)}`;
+    }
+    if (term.status === 'PLANNED' && calendarStatus === 'ONGOING') {
+      return `Marked Planned, but is currently within its dates`;
+    }
+    return null;
+  }
+
+  /** ISO 'YYYY-MM-DD' -> 'DD-MM-YYYY', matching this page's own date display convention
+   *  (`appDate` pipe) -- used for plain-string tooltip text where a pipe can't be applied. */
+  private formatDisplayDate(iso: string): string {
+    const [y, m, d] = iso.split('-');
+    return `${d}-${m}-${y}`;
   }
 
   protected termTypeLabel(type: TermType): string {
@@ -346,8 +374,13 @@ export class AcademicCalendarComponent implements OnInit {
     return this.events().filter((event) => event.startDate <= term.endDate && event.endDate >= term.startDate);
   }
 
+  /** Events not already shown under any term card above — the inverse of getEventsForTerm's
+   *  overlap check. Without this, an event overlapping any term (the common case) would appear
+   *  twice on the page: once under its term, once again here. */
   protected getYearLevelEvents(): CalendarEvent[] {
-    return this.events();
+    const terms = this.termInstances();
+    return this.events().filter((event) =>
+      !terms.some((term) => event.startDate <= term.endDate && event.endDate >= term.startDate));
   }
 
   protected eventDotTitle(evt: CalendarEvent): string {
@@ -355,84 +388,58 @@ export class AcademicCalendarComponent implements OnInit {
   }
 
   protected eventTypeBadgeClass(type: CalendarEventType): string {
-    const map: Record<CalendarEventType, string> = {
-      HOLIDAY: 'cms-badge--amber',
-      EXAM: 'cms-badge--red',
-      CULTURAL: 'cms-badge--violet',
-      SPORTS: 'cms-badge--cyan',
-      WORKSHOP: 'cms-badge--blue',
-      OTHER: 'cms-badge--gray',
-    };
-    return map[type] ?? 'cms-badge--gray';
+    return EVENT_TYPE_BADGE_CLASS[type] ?? 'cms-badge--gray';
   }
 
-  // ─── Event CRUD ───
+  // ─── Day-detail flyout wiring ───
+  /** Month Grid day-cell click. */
+  protected openDayDetail(date: Date): void {
+    this.dayDetailTarget.set(date);
+    this.dayDetailFocusEventId.set(null);
+    this.dayDetailFocusBlockId.set(null);
+    this.dayDetailSection.set(null);
+  }
+
   protected openAddEvent(): void {
-    const ay = this.selectedAcademicYear();
-    if (!ay) return;
-    this.editingEvent.set(null);
-    this.eventForm.reset({ eventType: 'HOLIDAY', holidayCategory: null });
-    this.showEventDialog.set(true);
+    if (!this.selectedAcademicYear()) return;
+    this.dayDetailTarget.set(new Date());
+    this.dayDetailFocusEventId.set(null);
+    this.dayDetailFocusBlockId.set(null);
+    this.dayDetailSection.set('EVENTS');
   }
 
   protected openEditEvent(event: CalendarEvent): void {
-    this.editingEvent.set(event);
-    this.eventForm.patchValue({
-      title: event.title,
-      description: event.description ?? '',
-      startDate: event.startDate,
-      endDate: event.endDate,
-      eventType: event.eventType,
-      holidayCategory: event.holidayCategory,
-    });
-    this.showEventDialog.set(true);
+    this.dayDetailTarget.set(new Date(`${event.startDate}T00:00:00`));
+    this.dayDetailFocusEventId.set(event.id);
+    this.dayDetailFocusBlockId.set(null);
+    this.dayDetailSection.set('EVENTS');
   }
 
-  protected closeEventDialog(): void {
-    this.showEventDialog.set(false);
-    this.editingEvent.set(null);
-    this.eventForm.reset({ eventType: 'HOLIDAY', holidayCategory: null });
+  protected openAddBlock(): void {
+    this.dayDetailTarget.set(new Date());
+    this.dayDetailFocusEventId.set(null);
+    this.dayDetailFocusBlockId.set(null);
+    this.dayDetailSection.set('BLOCKS');
   }
 
-  protected saveEvent(): void {
-    if (this.eventForm.invalid) {
-      scrollToFirstInvalid(this.eventForm);
-      return;
-    }
-    const ay = this.selectedAcademicYear();
-    if (!ay) return;
-
-    const val = this.eventForm.getRawValue();
-    const req: CalendarEventRequest = {
-      title: val.title!,
-      description: val.description ?? undefined,
-      startDate: val.startDate!,
-      endDate: val.endDate!,
-      eventType: val.eventType as CalendarEventType,
-      academicYearId: ay.id,
-      holidayCategory: val.eventType === 'HOLIDAY' ? (val.holidayCategory as HolidayCategory | null) : null,
-    };
-
-    this.eventSaving.set(true);
-    const editing = this.editingEvent();
-    const call$ = editing
-      ? this.academicYearService.updateCalendarEvent(editing.id, req)
-      : this.academicYearService.createCalendarEvent(req);
-
-    call$.subscribe({
-      next: () => {
-        this.toast.success(editing ? 'Event updated' : 'Event created');
-        this.closeEventDialog();
-        this.eventSaving.set(false);
-        this.reloadEvents();
-      },
-      error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to save event');
-        this.eventSaving.set(false);
-      },
-    });
+  protected openEditBlock(block: BlockedPeriod): void {
+    const anchor = block.blockType === 'ONE_OFF' ? block.specificDate! : block.rangeStartDate!;
+    this.dayDetailTarget.set(new Date(`${anchor}T00:00:00`));
+    this.dayDetailFocusEventId.set(null);
+    this.dayDetailFocusBlockId.set(block.id);
+    this.dayDetailSection.set('BLOCKS');
   }
 
+  protected closeDayDetail(): void {
+    this.dayDetailTarget.set(null);
+  }
+
+  protected onDayDetailDataChanged(): void {
+    this.reloadEvents();
+    this.reloadBlockedPeriods();
+  }
+
+  // ─── Event CRUD (delete only -- add/edit lives in the day-detail flyout) ───
   protected deleteEvent(event: CalendarEvent): void {
     if (!confirm(`Delete "${event.title}"?`)) return;
     this.academicYearService.deleteCalendarEvent(event.id).subscribe({
@@ -449,6 +456,25 @@ export class AcademicCalendarComponent implements OnInit {
     if (!ay) return;
     this.academicYearService.getCalendarEventsByAcademicYear(ay.id).subscribe({
       next: (evts) => this.events.set(evts),
+    });
+  }
+
+  // ─── Blocked period CRUD (delete only -- add/edit lives in the day-detail flyout) ───
+  protected deleteBlock(block: BlockedPeriod): void {
+    if (!confirm(`Delete this block ("${block.reason}")?`)) return;
+    this.blockedPeriodService.delete(block.id).subscribe({
+      next: () => {
+        this.toast.success('Blocked period deleted');
+        this.reloadBlockedPeriods();
+      },
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete blocked period'),
+    });
+  }
+
+  private reloadBlockedPeriods(): void {
+    this.blockedPeriodService.getAll().subscribe({
+      next: (data) => this.blockedPeriods.set(data),
+      error: () => this.toast.error('Failed to load blocked periods'),
     });
   }
 
@@ -546,15 +572,6 @@ export class AcademicCalendarComponent implements OnInit {
       events: dayEvents,
       isToday: date.getTime() === today.getTime(),
     };
-  }
-
-  private mapTermStatus(status: TermInstanceStatus): 'UPCOMING' | 'ONGOING' | 'COMPLETED' | null {
-    switch (status) {
-      case 'PLANNED': return 'UPCOMING';
-      case 'OPEN': return 'ONGOING';
-      case 'LOCKED': return 'COMPLETED';
-      default: return null;
-    }
   }
 
   private toIso(d: Date): string {

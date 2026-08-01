@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
@@ -16,7 +17,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 @Component({
   selector: 'app-skeleton-builder',
   standalone: true,
-  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule],
+  imports: [FormsModule, RouterLink, MatDialogModule, MatProgressSpinnerModule],
   templateUrl: './skeleton-builder.component.html',
   styleUrl: './skeleton-builder.component.scss',
 })

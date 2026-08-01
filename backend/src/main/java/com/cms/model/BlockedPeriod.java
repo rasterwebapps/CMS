@@ -1,0 +1,156 @@
+package com.cms.model;
+
+import java.time.Instant;
+import java.time.LocalDate;
+
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import com.cms.model.enums.BlockType;
+import com.cms.model.enums.DayOfWeek;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+
+/** A period declared unavailable, either for one specific date ({@code ONE_OFF}) or for every
+ *  occurrence of a day-of-week within an explicit date range ({@code RECURRING}). Institution-wide
+ *  and period-scoped, not tied to a single AcademicYear/TermInstance -- a recurring block is its
+ *  own standalone rule that may or may not overlap any given term. Only {@code RECURRING} blocks
+ *  are enforced as a hard placement conflict in {@link com.cms.service.TimetableSkeletonService};
+ *  {@code ONE_OFF} blocks only affect Capacity Planner buffer-hours math and calendar display,
+ *  since a one-off date doesn't map to Skeleton Builder's recurring weekly-template placement. */
+@Entity
+@Table(name = "blocked_periods")
+@EntityListeners(AuditingEntityListener.class)
+public class BlockedPeriod {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "period_id", nullable = false)
+    private Period period;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "block_type", nullable = false)
+    private BlockType blockType;
+
+    @Column(name = "specific_date")
+    private LocalDate specificDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "day_of_week")
+    private DayOfWeek dayOfWeek;
+
+    @Column(name = "range_start_date")
+    private LocalDate rangeStartDate;
+
+    @Column(name = "range_end_date")
+    private LocalDate rangeEndDate;
+
+    @Column(nullable = false)
+    private String reason;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    public BlockedPeriod() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Period getPeriod() {
+        return period;
+    }
+
+    public void setPeriod(Period period) {
+        this.period = period;
+    }
+
+    public BlockType getBlockType() {
+        return blockType;
+    }
+
+    public void setBlockType(BlockType blockType) {
+        this.blockType = blockType;
+    }
+
+    public LocalDate getSpecificDate() {
+        return specificDate;
+    }
+
+    public void setSpecificDate(LocalDate specificDate) {
+        this.specificDate = specificDate;
+    }
+
+    public DayOfWeek getDayOfWeek() {
+        return dayOfWeek;
+    }
+
+    public void setDayOfWeek(DayOfWeek dayOfWeek) {
+        this.dayOfWeek = dayOfWeek;
+    }
+
+    public LocalDate getRangeStartDate() {
+        return rangeStartDate;
+    }
+
+    public void setRangeStartDate(LocalDate rangeStartDate) {
+        this.rangeStartDate = rangeStartDate;
+    }
+
+    public LocalDate getRangeEndDate() {
+        return rangeEndDate;
+    }
+
+    public void setRangeEndDate(LocalDate rangeEndDate) {
+        this.rangeEndDate = rangeEndDate;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+}

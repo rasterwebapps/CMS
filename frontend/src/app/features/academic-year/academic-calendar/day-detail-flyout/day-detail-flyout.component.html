@@ -1,0 +1,262 @@
+<cms-flyout-panel width="520px" ariaLabel="Day detail" (closed)="close()">
+  <div flyoutHeader class="ddf-header">
+    <mat-form-field appearance="outline" class="ddf-date-field">
+      <input matInput type="date" [ngModel]="selectedDateIso()" (ngModelChange)="onDateChange($event)"
+        [min]="academicYear().startDate" [max]="academicYear().endDate" />
+    </mat-form-field>
+    <span class="ddf-date-label">{{ selectedDateLabel() }}</span>
+  </div>
+
+  <div flyoutBody class="ddf-body">
+    <!-- ─────────── Events on this date ─────────── -->
+    <section class="ddf-section">
+      <div class="events-subtitle-row">
+        <h4 class="events-subtitle">Events on this date</h4>
+        @if (canManageEvents() && eventFormMode() === 'CLOSED') {
+          <button class="btn-secondary" type="button" (click)="openAddEventForm()">
+            <mat-icon>add</mat-icon> Add Event
+          </button>
+        }
+      </div>
+
+      @if (eventFormMode() === 'CLOSED') {
+        @if (eventsOnDate().length === 0) {
+          <p class="ddf-empty-hint">No events on this date.</p>
+        } @else {
+          @for (evt of eventsOnDate(); track evt.id) {
+            <div class="ddf-row">
+              <mat-icon class="ddf-row-icon">{{ eventTypeIcons[evt.eventType] }}</mat-icon>
+              <span class="ddf-row-title">{{ evt.title }}</span>
+              <span class="cms-badge {{ eventTypeBadgeClass(evt.eventType) }}">{{ eventTypeLabels[evt.eventType] }}</span>
+              @if (evt.holidayCategory) {
+                <span class="ddf-row-tag">{{ holidayCategoryLabels[evt.holidayCategory] }}</span>
+              }
+              @if (canManageEvents()) {
+                <button class="btn-icon-action" type="button" (click)="openEditEventForm(evt)" matTooltip="Edit">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button class="btn-icon-action danger" type="button" (click)="deleteEvent(evt)" matTooltip="Delete">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              }
+            </div>
+          }
+        }
+      } @else {
+        <form [formGroup]="eventForm" class="ddf-inline-form" (ngSubmit)="saveEvent()">
+          <div class="form-field">
+            <label class="form-field-label">Title <span class="required-star">*</span></label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput formControlName="title" placeholder="e.g. Diwali Holiday" />
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-field-label">Start Date <span class="required-star">*</span></label>
+              <mat-form-field appearance="outline" class="full-width">
+                <input matInput type="date" formControlName="startDate"
+                  [min]="academicYear().startDate" [max]="academicYear().endDate" />
+              </mat-form-field>
+            </div>
+            <div class="form-field">
+              <label class="form-field-label">End Date <span class="required-star">*</span></label>
+              <mat-form-field appearance="outline" class="full-width">
+                <input matInput type="date" formControlName="endDate"
+                  [min]="academicYear().startDate" [max]="academicYear().endDate" />
+              </mat-form-field>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-field-label">Event Type <span class="required-star">*</span></label>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-select formControlName="eventType">
+                @for (type of eventTypes; track type) {
+                  <mat-option [value]="type">{{ eventTypeLabels[type] }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          @if (showHolidayCategoryField()) {
+            <div class="form-field">
+              <label class="form-field-label">Holiday Category</label>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-select formControlName="holidayCategory">
+                  <mat-option [value]="null">Unspecified</mat-option>
+                  @for (category of holidayCategories; track category) {
+                    <mat-option [value]="category">{{ holidayCategoryLabels[category] }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+          }
+
+          <div class="form-field">
+            <label class="form-field-label">Description</label>
+            <mat-form-field appearance="outline" class="full-width">
+              <textarea matInput formControlName="description" rows="2" placeholder="Optional details"></textarea>
+            </mat-form-field>
+          </div>
+        </form>
+      }
+    </section>
+
+    <!-- ─────────── Block periods on this date ─────────── -->
+    <section class="ddf-section">
+      <div class="events-subtitle-row">
+        <h4 class="events-subtitle">Block periods on this date</h4>
+        @if (canManageBlocks() && !blockFormOpen()) {
+          <button class="btn-secondary" type="button" (click)="openBlockSection()">
+            <mat-icon>block</mat-icon> Block Periods
+          </button>
+        }
+      </div>
+
+      @if (blocksOnDate().length > 0) {
+        <div class="ddf-already-blocked">
+          @for (block of blocksOnDate(); track block.id) {
+            <div class="ddf-row">
+              <mat-icon class="ddf-row-icon">{{ block.blockType === 'RECURRING' ? 'event_repeat' : 'event_busy' }}</mat-icon>
+              <span class="ddf-row-title">{{ block.reason }}</span>
+              <span class="ddf-row-summary">{{ formatBlockSummary(block) }}</span>
+              @if (canManageBlocks()) {
+                <button class="btn-icon-action" type="button" (click)="openEditBlockForm(block)" matTooltip="Edit">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button class="btn-icon-action danger" type="button" (click)="deleteBlock(block)" matTooltip="Delete">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      } @else if (!blockFormOpen()) {
+        <p class="ddf-empty-hint">No periods blocked on this date.</p>
+      }
+
+      @if (blockFormOpen()) {
+        @if (blockStep() === 'FORM') {
+          <div class="ddf-block-form">
+            <div class="ddf-period-grid">
+              @for (p of periods(); track p.id) {
+                <button type="button" class="ddf-period-chip"
+                  [class.ddf-period-chip--selected]="selectedPeriodIds().has(p.id)"
+                  [class.ddf-period-chip--blocked]="blockedPeriodIdsOnDate().has(p.id)"
+                  (click)="togglePeriod(p.id)">
+                  <span class="ddf-period-chip__name">{{ p.name }}</span>
+                  <span class="ddf-period-chip__time">{{ p.startTime }}–{{ p.endTime }}</span>
+                  @if (blockedPeriodIdsOnDate().has(p.id)) {
+                    <span class="ddf-period-chip__tag">Blocked</span>
+                  }
+                </button>
+              }
+            </div>
+
+            <button type="button" class="btn-secondary ddf-whole-day-btn" (click)="toggleWholeDay()">
+              <mat-icon>select_all</mat-icon> Whole Day
+            </button>
+
+            <div class="ddf-block-type-toggle" role="radiogroup" aria-label="Block type">
+              <label class="ddf-block-type-option" [class.ddf-block-type-option--selected]="blockType() === 'ONE_OFF'">
+                <input type="radio" name="blockType" value="ONE_OFF"
+                  [checked]="blockType() === 'ONE_OFF'" (change)="blockType.set('ONE_OFF')" />
+                One-off — just this date
+              </label>
+              <label class="ddf-block-type-option" [class.ddf-block-type-option--selected]="blockType() === 'RECURRING'">
+                <input type="radio" name="blockType" value="RECURRING"
+                  [checked]="blockType() === 'RECURRING'" (change)="blockType.set('RECURRING')" />
+                <mat-icon class="ddf-repeat-icon">alarm</mat-icon> Repeats — like an alarm
+              </label>
+            </div>
+
+            @if (blockType() === 'RECURRING') {
+              <div class="ddf-repeat-panel">
+                <div class="ddf-weekday-chips">
+                  @for (d of daysOfWeek; track d) {
+                    <button type="button" class="ddf-weekday-chip"
+                      [class.ddf-weekday-chip--selected]="repeatWeekdays().has(d)"
+                      (click)="toggleRepeatWeekday(d)">
+                      {{ dayOfWeekLabels[d].slice(0, 3) }}
+                    </button>
+                  }
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label class="form-field-label">Starts on</label>
+                    <mat-form-field appearance="outline" class="full-width">
+                      <input matInput type="date" [ngModel]="repeatStartDate()" (ngModelChange)="repeatStartDate.set($event)" />
+                    </mat-form-field>
+                  </div>
+                  <div class="form-field">
+                    <label class="form-field-label">Ends on <span class="required-star">*</span></label>
+                    <mat-form-field appearance="outline" class="full-width">
+                      <input matInput type="date" [ngModel]="repeatEndDate()" (ngModelChange)="repeatEndDate.set($event)" />
+                    </mat-form-field>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <div class="form-field">
+              <label class="form-field-label">Reason <span class="required-star">*</span></label>
+              <mat-form-field appearance="outline" class="full-width">
+                <input matInput [ngModel]="blockReason()" (ngModelChange)="blockReason.set($event)" placeholder="e.g. Staff meeting" />
+              </mat-form-field>
+            </div>
+
+            @if (!editingBlockId() && blockRequestCount() > 0) {
+              <p class="ddf-row-count-preview">
+                This will create {{ blockRequestCount() }} blocked-period row{{ blockRequestCount() !== 1 ? 's' : '' }}
+                @if (blockType() === 'RECURRING') {
+                  ({{ selectedPeriodIds().size }} period{{ selectedPeriodIds().size !== 1 ? 's' : '' }} × {{ repeatWeekdays().size }} weekday{{ repeatWeekdays().size !== 1 ? 's' : '' }})
+                }
+              </p>
+            }
+          </div>
+        } @else {
+          <div class="ddf-block-result">
+            @if (blockResult(); as r) {
+              @if (r.succeeded > 0) {
+                <div class="result-row result-row--success">
+                  <mat-icon>check_circle</mat-icon>
+                  <span>{{ r.succeeded }} block{{ r.succeeded !== 1 ? 's' : '' }} created successfully.</span>
+                </div>
+              }
+              @if (r.failed.length > 0) {
+                <div class="result-row result-row--failed">
+                  <mat-icon>error</mat-icon>
+                  <span>{{ r.failed.length }} block{{ r.failed.length !== 1 ? 's' : '' }} could not be created:</span>
+                </div>
+                <ul class="failure-list">
+                  @for (f of r.failed; track $index) {
+                    <li>
+                      {{ periodName(f.req.periodId) }}@if (f.req.dayOfWeek) { · {{ dayOfWeekLabels[f.req.dayOfWeek] }} } — {{ f.reason }}
+                    </li>
+                  }
+                </ul>
+              }
+            }
+          </div>
+        }
+      }
+    </section>
+  </div>
+
+  <div flyoutFooter>
+    @if (eventFormMode() !== 'CLOSED') {
+      <button mat-button type="button" (click)="cancelEventForm()">Cancel</button>
+      <button mat-flat-button color="primary" type="button" [disabled]="eventSaving()" (click)="saveEvent()">
+        @if (eventSaving()) { <mat-spinner diameter="16" /> } @else { {{ editingEventId() ? 'Update' : 'Create' }} Event }
+      </button>
+    } @else if (blockFormOpen() && blockStep() === 'FORM') {
+      <button mat-button type="button" (click)="cancelBlockForm()">Cancel</button>
+      <button mat-flat-button color="primary" type="button" [disabled]="blockSaving()" (click)="submitBlock()">
+        @if (blockSaving()) { <mat-spinner diameter="16" /> } @else { {{ editingBlockId() ? 'Update Block' : 'Block Periods' }} }
+      </button>
+    } @else if (blockFormOpen() && blockStep() === 'RESULT') {
+      <button mat-flat-button color="primary" type="button" (click)="finishBlockResult()">Done</button>
+    }
+  </div>
+</cms-flyout-panel>

@@ -1,27 +1,13 @@
-// ─── Header Actions ────────────────────────────────
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.year-select {
-  font-family: var(--cms-font-ui);
-  font-size: var(--cms-text-base);
-  font-weight: 600;
-  padding: 6px 12px;
-  border-radius: var(--cms-radius-md);
-  border: 1.5px solid var(--cms-border-default);
-  background: var(--cms-bg-card);
-  color: var(--cms-text-primary);
-  cursor: pointer;
-  outline: none;
-  transition: border-color 0.15s;
-
-  &:focus {
-    border-color: var(--cms-primary);
-  }
+// ─── Local category colors ─────────────────────────
+// No shared --cms-* tokens exist for these ad-hoc event-type/term-status categories (violet/cyan/
+// blue for the CULTURAL/SPORTS/WORKSHOP event-dot legend; amber/teal for term upcoming/completed
+// highlighting) — defined once here instead of repeating raw hex/rgba at each usage site.
+:host {
+  --cal-violet: #8b5cf6;
+  --cal-cyan: #06b6d4;
+  --cal-blue: #3b82f6;
+  --cal-amber-rgb: 251, 191, 36;
+  --cal-teal-rgb: 14, 116, 144;
 }
 
 // ─── Loading ──────────────────────────────────────
@@ -50,49 +36,99 @@
   margin-bottom: 16px;
 }
 
-// ─── Stats Strip ──────────────────────────────────
-.stats-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
+// ─── Overview Bar (academic year + stats, one row) ─
+// height is a HARD fixed value, not derived from padding/content/flex at all -- that's
+// deliberate: a height computed from padding+content can still shift with font rendering,
+// icon-font load timing, or flex-wrap edge cases, which is exactly what made this row's height
+// inconsistent across views before. Fixing it as an explicit px value makes that structurally
+// impossible instead of just unlikely. flex-wrap stays off above the mobile breakpoint so the
+// 5 items never spill onto a second line and fight the fixed height.
+$overview-bar-height: 64px;
 
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
+.overview-bar {
+  // .content-card (styles.scss) sets `flex: 1` (flex-basis: 0%) on every card so it
+  // stretches to fill .mlp-page's column-flex free space. flex-basis != auto makes the
+  // browser ignore `height` entirely for sizing, so without this override the bar's real
+  // height silently tracked how tall the *other* view's content was, not this element's
+  // own height — pin it to a fixed flex-basis so it stops competing for free space.
+  flex: 0 0 $overview-bar-height;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  height: $overview-bar-height;
+
+  @media (max-width: 900px) {
+    flex: 0 0 auto;
+    flex-direction: column;
+    flex-wrap: wrap;
+    height: auto;
   }
 }
 
-.stat-card {
-  background: var(--cms-bg-card);
-  border: 1.5px solid var(--cms-border-default);
-  border-radius: var(--cms-radius-lg);
-  padding: 16px 20px;
+.overview-item {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  height: $overview-bar-height;
+  box-sizing: border-box;
+  min-width: 0;
+
+  &:not(:last-child) {
+    border-right: 1px solid var(--cms-border-default);
+  }
+
+  @media (max-width: 900px) {
+    height: 56px;
+
+    &:not(:last-child) {
+      border-right: none;
+      border-bottom: 1px solid var(--cms-border-default);
+    }
+  }
+}
+
+// Same tinted-primary icon badge used on master list cards (e.g. .dept-card__icon)
+// -- one consistent treatment across all 5 sections instead of a one-off style per
+// item, per colored icon accent already established elsewhere in the app.
+.overview-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--cms-primary-rgb), 0.10);
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.18);
+  color: var(--cms-primary);
+  font-size: 1.15rem;
+}
+
+.overview-stat-text {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  box-shadow: var(--cms-shadow-sm);
-
-  &.c-accent  { border-left: 4px solid var(--cms-primary); }
-  &.c-green   { border-left: 4px solid var(--cms-success); }
-  &.c-amber   { border-left: 4px solid var(--cms-warning); }
-  &.c-purple  { border-left: 4px solid #8b5cf6; }
+  gap: 1px;
+  min-width: 0;
 }
 
-.stat-value {
-  font-size: var(--cms-text-2xl);
-  font-weight: 800;
+.stat-value, .current-year-title {
+  font-size: var(--cms-text-lg);
+  font-weight: 700;
   color: var(--cms-text-primary);
-  line-height: 1;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stat-label {
-  font-size: var(--cms-text-sm);
+  font-size: var(--cms-text-xs);
   color: var(--cms-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 // ─── Upcoming Banner ──────────────────────────────
@@ -106,7 +142,6 @@
   border: 1.5px solid rgba(var(--cms-primary-rgb), 0.2);
   border-radius: var(--cms-radius-lg);
   padding: 16px 20px;
-  margin-bottom: 20px;
 }
 
 .upcoming-icon {
@@ -148,55 +183,7 @@
   .ue-date  { color: var(--cms-text-muted); white-space: nowrap; }
 }
 
-// ─── Current Year Card ────────────────────────────
-.current-year-card { margin-bottom: 20px; }
-
-.current-year-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.year-icon-wrap {
-  background: var(--cms-primary);
-  color: var(--cms-text-on-gradient);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-}
-
-.current-year-title {
-  margin: 0 0 4px;
-  font-size: var(--cms-text-lg);
-  font-weight: 800;
-}
-
-.current-year-dates {
-  margin: 0;
-  color: var(--cms-text-muted);
-  font-size: var(--cms-text-base);
-}
-
-// ─── View Bar ─────────────────────────────────────
-.view-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.section-title {
-  font-size: var(--cms-text-lg);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin: 0;
-}
-
+// ─── View Toggle ──────────────────────────────────
 .view-toggle {
   display: flex;
   border: 1.5px solid var(--cms-border-default);
@@ -222,35 +209,55 @@
 
     &--active {
       background: var(--cms-primary);
-      color: #fff;
+      color: var(--cms-text-on-gradient);
     }
   }
 }
 
-// ─── Timeline ─────────────────────────────────────
-.semester-timeline {
-  display: flex;
-  flex-direction: column;
+// ─── Term comparison (merged Odd/Even card) ────────
+.term-comparison-card { padding: 20px; }
+
+.term-comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
 }
 
-.timeline-item {
-  display: flex;
-  gap: 16px;
-
-  &.is-current .semester-card { border-color: var(--cms-primary); border-width: 2px; }
-}
-
-.timeline-marker {
+.term-col {
   display: flex;
   flex-direction: column;
+
+  &:not(:last-child) {
+    border-right: 1px solid var(--cms-border-default);
+    padding-right: 24px;
+
+    @media (max-width: 768px) {
+      border-right: none;
+      border-bottom: 1px solid var(--cms-border-default);
+      padding-right: 0;
+      padding-bottom: 20px;
+    }
+  }
+
+  &.is-current .semester-name { color: var(--cms-primary); }
+}
+
+.term-col-header {
+  display: flex;
   align-items: center;
-  width: 40px;
-  flex-shrink: 0;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-.marker-dot {
-  width: 40px;
-  height: 40px;
+.term-col-icon {
+  font-size: 1rem;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -258,40 +265,17 @@
   background: var(--cms-bg-muted);
   color: var(--cms-text-muted);
 
-  &.completed {
-    background: var(--cms-badge-cyan-bg);
-    color: #fff;
-  }
-  &.ongoing {
+  .term-col.is-current & {
     background: var(--cms-primary);
-    color: #fff;
+    color: var(--cms-text-on-gradient);
   }
-  &.upcoming {
-    background: var(--cms-bg-muted);
-    color: var(--cms-text-muted);
-  }
-
-  mat-icon { font-size: 1.25rem; width: 20px; height: 20px; }
 }
 
-.marker-line {
-  width: 2px;
-  flex: 1;
-  min-height: 24px;
-  background: var(--cms-border-default);
-}
-
-.semester-card {
-  flex: 1;
-  margin-bottom: 16px;
-  max-width: 680px;
-}
-
-.semester-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 12px;
+.no-events-hint {
+  margin: 0;
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-sm);
+  font-style: italic;
 }
 
 .semester-name {
@@ -350,7 +334,20 @@
   color: var(--cms-text-muted);
 }
 
-.semester-status { margin-bottom: 8px; }
+.semester-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.status-mismatch-icon {
+  color: var(--cms-warning);
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  cursor: help;
+}
 
 // ─── Events in semester card ──────────────────────
 .semester-events {
@@ -366,6 +363,18 @@
   letter-spacing: 0.06em;
   color: var(--cms-text-muted);
   font-weight: 700;
+}
+
+.events-subtitle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+
+  .events-subtitle {
+    margin-bottom: 0;
+  }
 }
 
 .event-row {
@@ -399,8 +408,6 @@
   color: var(--cms-danger);
   background: var(--cms-danger-light);
 }
-
-.unassigned-events-card { margin-top: 8px; }
 
 // ─── Month Grid ───────────────────────────────────
 .month-grid-container {
@@ -449,9 +456,14 @@
   transition: background 0.1s;
 
   &.other-month { opacity: 0.25; pointer-events: none; }
+  &.clickable {
+    cursor: pointer;
+    &:hover { background: rgba(var(--cms-primary-rgb), 0.12); }
+    &:focus-visible { outline: 2px solid var(--cms-primary); outline-offset: -2px; }
+  }
   &.today .day-num {
     background: var(--cms-primary);
-    color: #fff;
+    color: var(--cms-text-on-gradient);
     border-radius: 50%;
     width: 22px;
     height: 22px;
@@ -460,9 +472,9 @@
     justify-content: center;
   }
 
-  &.sem-upcoming { background: rgba(251, 191, 36, 0.08); }
+  &.sem-upcoming { background: rgba(var(--cal-amber-rgb), 0.08); }
   &.sem-ongoing  { background: rgba(var(--cms-primary-rgb), 0.08); }
-  &.sem-completed { background: rgba(14, 116, 144, 0.08); }
+  &.sem-completed { background: rgba(var(--cal-teal-rgb), 0.08); }
 }
 
 .day-num {
@@ -484,9 +496,9 @@
 
   &.dot-holiday  { background: var(--cms-warning); }
   &.dot-exam     { background: var(--cms-danger); }
-  &.dot-cultural { background: #8b5cf6; }
-  &.dot-sports   { background: #06b6d4; }
-  &.dot-workshop { background: #3b82f6; }
+  &.dot-cultural { background: var(--cal-violet); }
+  &.dot-sports   { background: var(--cal-cyan); }
+  &.dot-workshop { background: var(--cal-blue); }
   &.dot-other    { background: var(--cms-text-muted); }
 }
 
@@ -511,67 +523,26 @@
   border-radius: 2px;
 
   &.sem-ongoing  { background: rgba(var(--cms-primary-rgb), 0.25); border: 1px solid rgba(var(--cms-primary-rgb), 0.4); }
-  &.sem-upcoming { background: rgba(251, 191, 36, 0.25); border: 1px solid rgba(251, 191, 36, 0.5); }
-  &.sem-completed { background: rgba(14, 116, 144, 0.25); border: 1px solid rgba(14, 116, 144, 0.4); }
+  &.sem-upcoming { background: rgba(var(--cal-amber-rgb), 0.25); border: 1px solid rgba(var(--cal-amber-rgb), 0.5); }
+  &.sem-completed { background: rgba(var(--cal-teal-rgb), 0.25); border: 1px solid rgba(var(--cal-teal-rgb), 0.4); }
 }
-
-.dot-legend-card { margin-top: 16px; }
 
 .dot-legend-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
   font-size: var(--cms-text-base);
   color: var(--cms-text-muted);
+
+  // The shared .dot class is 5px, sized for an unobtrusive day-cell marker in the month grid --
+  // far too small to read as an actual color swatch here, where it's the only thing identifying
+  // each event type. Bumped up and given a ring so it reads clearly in both themes.
+  .dot {
+    width: 10px;
+    height: 10px;
+    box-shadow: 0 0 0 1px var(--cms-border-default);
+  }
 }
 
-// ─── Dialog ───────────────────────────────────────
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-
-.dialog-panel {
-  background: var(--cms-bg-card);
-  border-radius: var(--cms-radius-xl);
-  box-shadow: var(--cms-shadow-xl);
-  width: 100%;
-  max-width: 560px;
-  max-height: 90vh;
-  overflow-y: auto;
-  animation: cms-rise 0.2s var(--cms-ease-out);
-}
-
-.dialog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px 0;
-
-  h3 { margin: 0; font-size: var(--cms-text-lg); font-weight: 700; }
-}
-
-.dialog-body { padding: 20px 24px; }
-
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding-top: 8px;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-
-  @media (max-width: 480px) { grid-template-columns: 1fr; }
-}
-
-.full-width { width: 100%; }
+// Dialog/form-row/full-width classes formerly here were only used by the old Add Event /
+// Add Block popup dialogs, both replaced by the day-detail flyout (day-detail-flyout/).

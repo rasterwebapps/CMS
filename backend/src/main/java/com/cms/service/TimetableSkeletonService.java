@@ -15,6 +15,7 @@ import com.cms.dto.SkeletonSubjectBudget;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Batch;
+import com.cms.model.BlockedPeriod;
 import com.cms.model.ClassSchedule;
 import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
@@ -22,7 +23,9 @@ import com.cms.model.Period;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
+import com.cms.model.enums.DayOfWeek;
 import com.cms.repository.BatchRepository;
+import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.PeriodRepository;
@@ -52,17 +55,20 @@ public class TimetableSkeletonService {
     private final PeriodRepository periodRepository;
     private final BatchRepository batchRepository;
     private final BatchService batchService;
+    private final BlockedPeriodRepository blockedPeriodRepository;
 
     public TimetableSkeletonService(CourseOfferingRepository courseOfferingRepository,
                                      ClassScheduleRepository classScheduleRepository,
                                      PeriodRepository periodRepository,
                                      BatchRepository batchRepository,
-                                     BatchService batchService) {
+                                     BatchService batchService,
+                                     BlockedPeriodRepository blockedPeriodRepository) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.periodRepository = periodRepository;
         this.batchRepository = batchRepository;
         this.batchService = batchService;
+        this.blockedPeriodRepository = blockedPeriodRepository;
     }
 
     public SkeletonBuilderResponse getSkeleton(Long courseOfferingId) {
@@ -136,6 +142,21 @@ public class TimetableSkeletonService {
         return rows;
     }
 
+    /** Hard-blocks placing a session at a day+period covered by a RECURRING blocked-period rule
+     *  whose date range overlaps this offering's term at all -- deliberately coarse, since a
+     *  recurring weekly-template placement can't represent "blocked some weeks, not others."
+     *  ONE_OFF blocks never reach this check -- they only affect Capacity Planner buffer-hours
+     *  math and calendar display, not placement. */
+    private void requireNotBlocked(DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
+        List<BlockedPeriod> conflicts = blockedPeriodRepository.findOverlappingRecurringBlocks(
+            dayOfWeek, period.getId(), termInstance.getStartDate(), termInstance.getEndDate());
+        if (!conflicts.isEmpty()) {
+            throw new LifecycleConflictException(
+                "This day and period is blocked: " + conflicts.get(0).getReason(),
+                "SKELETON_CELL_PERIOD_BLOCKED", "ClassSchedule", null, null);
+        }
+    }
+
     private SkeletonCellResponse toCellResponse(ClassSchedule cs) {
         Period period = cs.getPeriod();
         Batch batch = cs.getBatch();
@@ -185,6 +206,8 @@ public class TimetableSkeletonService {
                 "This subject already has a session placed at this exact day and period",
                 "SKELETON_CELL_ALREADY_PLACED", "ClassSchedule", null, null);
         }
+
+        requireNotBlocked(request.dayOfWeek(), period, offering.getTermInstance());
 
         ClassSchedule cs = new ClassSchedule();
         cs.setSessionType(request.sessionType());

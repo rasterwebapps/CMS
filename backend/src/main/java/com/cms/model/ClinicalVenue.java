@@ -31,6 +31,8 @@ public class ClinicalVenue {
 
     private String department;
 
+    private Integer capacity;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
@@ -49,6 +51,13 @@ public class ClinicalVenue {
         this.name = name;
         this.hospitalName = hospitalName;
         this.department = department;
+    }
+
+    public ClinicalVenue(String name, String hospitalName, String department, Integer capacity) {
+        this.name = name;
+        this.hospitalName = hospitalName;
+        this.department = department;
+        this.capacity = capacity;
     }
 
     public Long getId() {
@@ -81,6 +90,14 @@ public class ClinicalVenue {
 
     public void setDepartment(String department) {
         this.department = department;
+    }
+
+    public Integer getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(Integer capacity) {
+        this.capacity = capacity;
     }
 
     public Boolean getIsActive() {

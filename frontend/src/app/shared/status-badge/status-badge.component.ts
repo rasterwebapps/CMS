@@ -82,6 +82,7 @@ export class CmsStatusBadgeComponent {
       case 'PENDING':
       case 'SUBMITTED':
       case 'UPCOMING':
+      case 'PLANNED':
         return 'status-pending';
 
       // ── Negative / terminal failure states ───────────────────────────────
@@ -125,6 +126,7 @@ export class CmsStatusBadgeComponent {
       // ── Current / primary states ─────────────────────────────────────────
       case 'CURRENT':
       case 'ONGOING':
+      case 'OPEN':
         return 'status-current';
 
       // ── Past / closed-cycle states ────────────────────────────────────────

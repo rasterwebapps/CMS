@@ -14,6 +14,7 @@ export interface UnstaffedCell {
   startTime: string;
   endTime: string;
   batchName: string | null;
+  requiredStrength: number | null;
 }
 
 export interface StaffingAssignmentRequest {

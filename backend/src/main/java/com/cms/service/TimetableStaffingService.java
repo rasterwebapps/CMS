@@ -17,9 +17,12 @@ import com.cms.model.Faculty;
 import com.cms.model.Lab;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
+import com.cms.model.enums.RegistrationStatus;
+import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.ClinicalVenueRepository;
+import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabRepository;
 
@@ -46,17 +49,23 @@ public class TimetableStaffingService {
     private final ClassroomRepository classroomRepository;
     private final LabRepository labRepository;
     private final ClinicalVenueRepository clinicalVenueRepository;
+    private final BatchRepository batchRepository;
+    private final CourseRegistrationRepository courseRegistrationRepository;
 
     public TimetableStaffingService(ClassScheduleRepository classScheduleRepository,
                                      FacultyRepository facultyRepository,
                                      ClassroomRepository classroomRepository,
                                      LabRepository labRepository,
-                                     ClinicalVenueRepository clinicalVenueRepository) {
+                                     ClinicalVenueRepository clinicalVenueRepository,
+                                     BatchRepository batchRepository,
+                                     CourseRegistrationRepository courseRegistrationRepository) {
         this.classScheduleRepository = classScheduleRepository;
         this.facultyRepository = facultyRepository;
         this.classroomRepository = classroomRepository;
         this.labRepository = labRepository;
         this.clinicalVenueRepository = clinicalVenueRepository;
+        this.batchRepository = batchRepository;
+        this.courseRegistrationRepository = courseRegistrationRepository;
     }
 
     public List<UnstaffedCellResponse> getUnstaffedCells(Long termInstanceId) {
@@ -93,6 +102,7 @@ public class TimetableStaffingService {
                 Classroom classroom = classroomRepository.findById(request.classroomId())
                     .orElseThrow(() -> new ResourceNotFoundException("Classroom not found with id: " + request.classroomId()));
                 requireRoomFree(classroom.getId(), ClassSessionType.THEORY, cs, start, end);
+                requireCapacityFit(cs, classroom.getCapacity());
                 cs.setClassroom(classroom);
             }
             case LAB -> {
@@ -102,6 +112,7 @@ public class TimetableStaffingService {
                 Lab lab = labRepository.findById(request.labId())
                     .orElseThrow(() -> new ResourceNotFoundException("Lab not found with id: " + request.labId()));
                 requireRoomFree(lab.getId(), ClassSessionType.LAB, cs, start, end);
+                requireCapacityFit(cs, lab.getCapacity());
                 cs.setLab(lab);
             }
             case CLINICAL -> {
@@ -111,6 +122,7 @@ public class TimetableStaffingService {
                 ClinicalVenue venue = clinicalVenueRepository.findById(request.clinicalVenueId())
                     .orElseThrow(() -> new ResourceNotFoundException("Clinical venue not found with id: " + request.clinicalVenueId()));
                 requireRoomFree(venue.getId(), ClassSessionType.CLINICAL, cs, start, end);
+                requireCapacityFit(cs, venue.getCapacity());
                 cs.setClinicalVenue(venue);
             }
         }
@@ -159,6 +171,35 @@ public class TimetableStaffingService {
         }
     }
 
+    /** Hard-blocks assigning a venue that can't seat the group being placed in it. Strength is
+     *  resolved from the same entities the rest of the app already uses to answer "who's actually
+     *  in this session" — {@link com.cms.model.CourseRegistration} for THEORY (a whole-cohort
+     *  audience) and {@link com.cms.model.Batch#getId()} student roster for LAB/CLINICAL (a
+     *  sub-group audience) — never guessed. Unknown venue capacity or unresolvable strength (e.g.
+     *  a legacy row with no courseOffering/batch link) never blocks: only a *known* mismatch does. */
+    private void requireCapacityFit(ClassSchedule cs, Integer venueCapacity) {
+        if (venueCapacity == null) {
+            return;
+        }
+        Integer strength = resolveRequiredStrength(cs);
+        if (strength == null || strength <= venueCapacity) {
+            return;
+        }
+        throw new LifecycleConflictException(
+            "This venue seats " + venueCapacity + ", but " + strength + " students need to be accommodated for this session.",
+            "STAFFING_CAPACITY_EXCEEDED", "ClassSchedule", cs.getId(), null);
+    }
+
+    private Integer resolveRequiredStrength(ClassSchedule cs) {
+        return switch (cs.getSessionType()) {
+            case THEORY -> cs.getCourseOffering() == null ? null
+                : (int) courseRegistrationRepository.countByCourseOfferingIdAndStatus(
+                    cs.getCourseOffering().getId(), RegistrationStatus.REGISTERED);
+            case LAB, CLINICAL -> cs.getBatch() == null ? null
+                : (int) batchRepository.countStudents(cs.getBatch().getId());
+        };
+    }
+
     private UnstaffedCellResponse toResponse(ClassSchedule cs) {
         var period = cs.getPeriod();
         var speciality = cs.getSubject().getSpeciality();
@@ -175,7 +216,8 @@ public class TimetableStaffingService {
             period != null ? period.getName() : null,
             period != null ? period.getStartTime() : null,
             period != null ? period.getEndTime() : null,
-            cs.getBatchName() != null ? cs.getBatchName() : (cs.getBatch() != null ? cs.getBatch().getName() : null)
+            cs.getBatchName() != null ? cs.getBatchName() : (cs.getBatch() != null ? cs.getBatch().getName() : null),
+            resolveRequiredStrength(cs)
         );
     }
 }

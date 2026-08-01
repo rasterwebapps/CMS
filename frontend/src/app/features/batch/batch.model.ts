@@ -19,6 +19,12 @@ export interface BatchRequest {
   coordinatorFacultyId?: number | null;
 }
 
+export interface BatchAutoCreateRequest {
+  courseOfferingId: number;
+  count: number;
+  capacity: number;
+}
+
 export interface BatchStudent {
   studentId: number;
   studentName: string;

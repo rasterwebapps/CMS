@@ -1,0 +1,255 @@
+// ─── Header ─────────────────────────────────────
+.ddf-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ddf-date-field {
+  width: 180px;
+
+  ::ng-deep .mat-mdc-text-field-wrapper { padding-bottom: 0; }
+}
+
+.ddf-date-label {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-muted);
+  font-weight: 600;
+}
+
+// ─── Body / sections ────────────────────────────
+.ddf-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ddf-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.events-subtitle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.events-subtitle {
+  margin: 0;
+  font-size: var(--cms-text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cms-text-muted);
+  font-weight: 700;
+}
+
+.ddf-empty-hint {
+  margin: 0;
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-sm);
+  font-style: italic;
+}
+
+// ─── Row (event / already-blocked list) ─────────
+.ddf-already-blocked {
+  margin-bottom: 12px;
+}
+
+.ddf-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--cms-border-light);
+  font-size: var(--cms-text-base);
+
+  &:last-child { border-bottom: none; }
+}
+
+.ddf-row-icon { font-size: var(--cms-text-md); width: 16px; height: 16px; color: var(--cms-text-muted); flex-shrink: 0; }
+.ddf-row-title { font-weight: 600; flex: 1; color: var(--cms-text-primary); min-width: 0; }
+.ddf-row-summary { color: var(--cms-text-muted); font-size: var(--cms-text-sm); white-space: nowrap; }
+
+.ddf-row-tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--cms-border-default);
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+// ─── Inline forms ────────────────────────────────
+.ddf-inline-form, .ddf-block-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
+}
+
+.full-width { width: 100%; }
+
+// ─── Period tap-select grid ──────────────────────
+.ddf-period-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.ddf-period-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  border: 1px dashed var(--cms-border-default);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+
+  &:hover { border-color: rgba(var(--cms-primary-rgb), 0.35); }
+
+  &--selected {
+    border-color: var(--cms-primary);
+    border-style: solid;
+    background: rgba(var(--cms-primary-rgb), 0.08);
+  }
+
+  &--blocked {
+    cursor: pointer;
+    border-style: solid;
+    border-color: var(--cms-danger);
+    background: var(--cms-danger-light);
+    opacity: 0.85;
+  }
+}
+
+.ddf-period-chip__name { font-size: var(--cms-text-sm); font-weight: 700; color: var(--cms-text-primary); }
+.ddf-period-chip__time { font-size: var(--cms-text-xs); color: var(--cms-text-muted); }
+.ddf-period-chip__tag {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cms-danger);
+  font-weight: 700;
+}
+
+.ddf-whole-day-btn { align-self: flex-start; }
+
+// ─── Block type toggle ───────────────────────────
+.ddf-block-type-toggle {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ddf-block-type-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  color: var(--cms-text-secondary);
+  font-size: var(--cms-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  input[type="radio"] { accent-color: var(--cms-primary); }
+
+  &--selected {
+    border-color: var(--cms-primary);
+    color: var(--cms-primary);
+    background: rgba(var(--cms-primary-rgb), 0.06);
+    font-weight: 700;
+  }
+}
+
+.ddf-repeat-icon { font-size: var(--cms-text-md); width: 16px; height: 16px; }
+
+// ─── Repeat panel (phone-alarm-style weekday chips) ──
+.ddf-repeat-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--cms-bg-muted);
+}
+
+.ddf-weekday-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ddf-weekday-chip {
+  width: 40px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  color: var(--cms-text-secondary);
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  &:hover { border-color: rgba(var(--cms-primary-rgb), 0.35); }
+
+  &--selected {
+    background: var(--cms-primary);
+    border-color: var(--cms-primary);
+    color: var(--cms-text-on-gradient);
+  }
+}
+
+.ddf-row-count-preview {
+  margin: 0;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-muted);
+}
+
+// ─── Result step ──────────────────────────────────
+.ddf-block-result {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.result-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--cms-text-base);
+  font-weight: 500;
+
+  &--success { color: var(--cms-success); }
+  &--failed { color: var(--cms-danger); }
+}
+
+.failure-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

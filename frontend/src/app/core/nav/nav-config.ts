@@ -90,6 +90,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Timetable Draft Review', icon: 'auto_awesome',    route: '/timetable/draft-review', permissions: ['TIMETABLE_GENERATE', 'TIMETABLE_MANAGE'] },
       { label: 'Skeleton Builder',    icon: 'grid_on',            route: '/timetable/skeleton-builder', permissions: ['TIMETABLE_VIEW'] },
       { label: 'Staffing',            icon: 'assignment_ind',     route: '/timetable/staffing',   permissions: ['TIMETABLE_VIEW'] },
+      { label: 'Capacity Planner',    icon: 'calculate',          route: '/timetable/capacity-planner', permissions: ['TIMETABLE_CAPACITY_PLANNER_VIEW'] },
       { label: 'Progress Report',     icon: 'insights',           route: '/progress-report',     permissions: ['PROGRESS_REPORT_VIEW'] },
       { label: 'Resource Timetable',  icon: 'grid_view',          route: '/timetable/resource-grid', permissions: ['TIMETABLE_FACULTY_GRID_VIEW', 'TIMETABLE_CLASSROOM_GRID_VIEW'] },
       { label: 'Faculty Absence',     icon: 'person_off',         route: '/faculty-absence',     permissions: ['FACULTY_ABSENCE_MARK', 'FACULTY_ABSENCE_SUBSTITUTE_APPLY'] },

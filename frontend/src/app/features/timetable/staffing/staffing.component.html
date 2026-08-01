@@ -4,6 +4,7 @@
     <div class="mlp-hdr-left">
       <h1 class="page-title">Timetable <em>Staffing</em></h1>
       <p class="page-subtitle">Assign faculty and a room to every session placed in the Skeleton Builder, before this term's draft can be approved</p>
+      <p class="page-subtitle">Need to size rooms/batches first? Open the <a routerLink="/timetable/capacity-planner">Capacity Planner</a>.</p>
     </div>
   </div>
 
@@ -45,6 +46,7 @@
               <span>{{ dayLabels[row.dayOfWeek] }}</span>
               <span>{{ row.slotName }} ({{ row.startTime }}–{{ row.endTime }})</span>
               @if (row.batchName) { <span>Section: {{ row.batchName }}</span> }
+              @if (row.requiredStrength) { <span>Strength: {{ row.requiredStrength }}</span> }
             </div>
           </div>
 
@@ -52,14 +54,14 @@
             <select class="field-select" [(ngModel)]="row.facultyId" [disabled]="!canManage() || row.saving" aria-label="Faculty">
               <option [ngValue]="null" disabled>Select faculty</option>
               @for (f of eligibleFacultyFor(row); track f.id) {
-                <option [ngValue]="f.id">{{ f.name }}</option>
+                <option [ngValue]="f.id">{{ facultyOptionLabel(row, f) }}</option>
               }
             </select>
 
             <select class="field-select" [(ngModel)]="row.roomId" [disabled]="!canManage() || row.saving" [attr.aria-label]="roomLabel(row)">
               <option [ngValue]="null" disabled>Select {{ roomLabel(row).toLowerCase() }}</option>
               @for (r of roomOptionsFor(row); track r.id) {
-                <option [ngValue]="r.id">{{ r.name }}</option>
+                <option [ngValue]="r.id">{{ roomOptionLabel(row, r) }}</option>
               }
             </select>
 

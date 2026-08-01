@@ -190,7 +190,9 @@ export class AcademicYearService {
   ): Observable<CourseOffering[]> {
     let params = new HttpParams().set('termInstanceId', termInstanceId.toString());
     if (semesterNumber != null) {
-      params = params.set('semesterNumber', semesterNumber.toString());
+      // Backend query param is named termNumber (matches CourseOffering.termNumber / the
+      // course_offerings.term_number column) -- semesterNumber is just this method's public name.
+      params = params.set('termNumber', semesterNumber.toString());
     }
     return this.http.get<CourseOffering[]>(`${environment.apiUrl}/course-offerings`, { params });
   }

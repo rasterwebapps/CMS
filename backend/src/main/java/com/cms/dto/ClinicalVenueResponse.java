@@ -7,6 +7,7 @@ public record ClinicalVenueResponse(
     String name,
     String hospitalName,
     String department,
+    Integer capacity,
     Boolean isActive,
     Instant createdAt,
     Instant updatedAt

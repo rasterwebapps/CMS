@@ -19,5 +19,6 @@ public record UnstaffedCellResponse(
     String slotName,
     LocalTime startTime,
     LocalTime endTime,
-    String batchName
+    String batchName,
+    Integer requiredStrength
 ) {}

@@ -63,7 +63,7 @@ export class ClinicalVenueListComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected readonly displayedColumns = ['name', 'hospitalName', 'department', 'isActive', 'actions'];
+  protected readonly displayedColumns = ['name', 'hospitalName', 'department', 'capacity', 'isActive', 'actions'];
   protected readonly dataSource = new MatTableDataSource<ClinicalVenue>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
