@@ -2,6 +2,7 @@ package com.cms.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record RoomRequest(
@@ -21,9 +22,12 @@ public record RoomRequest(
      *  re-parent an existing room to a different zone on update. */
     Long zoneId,
 
-    /** Room Purpose Classification — both optional so existing room-creation flows keep working
-     *  unclassified; subTypeId must belong to purposeCategoryId when both are set. */
+    /** Room Purpose Classification — required on both create and update (this DTO backs both
+     *  endpoints) so a Room can no longer be saved unclassified; subTypeId must belong to
+     *  purposeCategoryId. */
+    @NotNull(message = "Purpose category is required")
     Long purposeCategoryId,
 
+    @NotNull(message = "Sub-type is required")
     Long subTypeId
 ) {}

@@ -145,9 +145,15 @@
           </select>
         </div>
       }
-      @if (z.wardenName) {
-        <p class="panel-note">Warden: {{ z.wardenName }} — manage on the full Zone edit page.</p>
-      }
+      <div class="form-group">
+        <label for="csp-ze-warden">Warden</label>
+        <select id="csp-ze-warden" [disabled]="!canManage()" [ngModel]="zoneEdit().wardenId" (ngModelChange)="zoneEdit.set({ ...zoneEdit(), wardenId: $event })">
+          <option [ngValue]="null">— None —</option>
+          @for (fac of faculties(); track fac.id) {
+            <option [ngValue]="fac.id">{{ fac.fullName }}</option>
+          }
+        </select>
+      </div>
 
       @if (canManage()) {
         <div class="panel-btn-row">
@@ -180,7 +186,7 @@
       <div class="form-group">
         <label for="csp-re-purpose">Purpose category</label>
         <select id="csp-re-purpose" [disabled]="!canManage()" [ngModel]="roomEdit().purposeCategoryId" (ngModelChange)="onRoomPurposeCategoryChange($event)">
-          <option [ngValue]="null">Unclassified</option>
+          <option [ngValue]="null">— Choose a purpose —</option>
           @for (c of purposeCategories(); track c.id) {
             <option [ngValue]="c.id">{{ c.name }}</option>
           }
@@ -189,7 +195,7 @@
       <div class="form-group">
         <label for="csp-re-subtype">Sub-type</label>
         <select id="csp-re-subtype" [disabled]="!canManage() || !roomEdit().purposeCategoryId" [ngModel]="roomEdit().subTypeId" (ngModelChange)="roomEdit.set({ ...roomEdit(), subTypeId: $event })">
-          <option [ngValue]="null">{{ roomEdit().purposeCategoryId ? 'Unspecified' : 'Select a purpose category first' }}</option>
+          <option [ngValue]="null">{{ roomEdit().purposeCategoryId ? '— Choose a sub-type —' : 'Select a purpose category first' }}</option>
           @for (s of subTypes(); track s.id) {
             <option [ngValue]="s.id">{{ s.name }}</option>
           }
@@ -198,7 +204,7 @@
 
       @if (canManage()) {
         <div class="panel-btn-row">
-          <button type="button" [disabled]="!roomEdit().roomNumber.trim() || roomSaving()" (click)="saveRoom()">
+          <button type="button" [disabled]="!roomEdit().roomNumber.trim() || !roomEdit().purposeCategoryId || !roomEdit().subTypeId || roomSaving()" (click)="saveRoom()">
             {{ roomSaving() ? 'Saving…' : 'Save' }}
           </button>
           <button type="button" class="btn-outline" (click)="toggleActive('room')">{{ r.isActive ? 'Deactivate' : 'Activate' }}</button>
@@ -250,6 +256,9 @@
             <div class="form-group">
               <input type="text" placeholder="Code (auto-suggested)" [ngModel]="addBranchForm().code" (ngModelChange)="addBranchForm.set({ ...addBranchForm(), code: $event })" />
             </div>
+            <div class="form-group">
+              <input type="text" placeholder="Description (optional)" [ngModel]="addBranchForm().description" (ngModelChange)="addBranchForm.set({ ...addBranchForm(), description: $event })" />
+            </div>
             @if (addBranchForm().error) {
               <p class="panel-error">{{ addBranchForm().error }}</p>
             }
@@ -273,6 +282,23 @@
             <div class="form-group">
               <input type="text" placeholder="Code (auto-suggested)" [ngModel]="addBlockForm().code" (ngModelChange)="addBlockForm.set({ ...addBlockForm(), code: $event })" />
             </div>
+            <div class="form-group">
+              <input type="text" placeholder="Description (optional)" [ngModel]="addBlockForm().description" (ngModelChange)="addBlockForm.set({ ...addBlockForm(), description: $event })" />
+            </div>
+            <label class="checkbox-row">
+              <input type="checkbox" [ngModel]="addBlockForm().isHostel" (ngModelChange)="addBlockForm.set({ ...addBlockForm(), isHostel: $event })" />
+              Entitle this Block for Hostel
+            </label>
+            @if (addBlockForm().isHostel) {
+              <div class="form-group">
+                <label for="csp-add-block-gender">Gender restriction</label>
+                <select id="csp-add-block-gender" [ngModel]="addBlockForm().genderRestriction" (ngModelChange)="addBlockForm.set({ ...addBlockForm(), genderRestriction: $event })">
+                  <option [ngValue]="null">— None —</option>
+                  <option value="BOYS">Boys</option>
+                  <option value="GIRLS">Girls</option>
+                </select>
+              </div>
+            }
             @if (addBlockForm().error) {
               <p class="panel-error">{{ addBlockForm().error }}</p>
             }
@@ -336,6 +362,29 @@
               <label for="csp-zone-name">Zone name</label>
               <input id="csp-zone-name" type="text" placeholder="Zone name" [ngModel]="addZoneForm().name" (ngModelChange)="addZoneForm.set({ ...addZoneForm(), name: $event })" (keydown.enter)="submitAddZone()" />
             </div>
+            <label class="checkbox-row">
+              <input type="checkbox" [ngModel]="addZoneForm().isHostel" (ngModelChange)="addZoneForm.set({ ...addZoneForm(), isHostel: $event })" />
+              Entitle this Zone for Hostel
+            </label>
+            @if (addZoneForm().isHostel) {
+              <div class="form-group">
+                <label for="csp-add-zone-gender">Gender restriction</label>
+                <select id="csp-add-zone-gender" [ngModel]="addZoneForm().genderRestriction" (ngModelChange)="addZoneForm.set({ ...addZoneForm(), genderRestriction: $event })">
+                  <option [ngValue]="null">— None —</option>
+                  <option value="BOYS">Boys</option>
+                  <option value="GIRLS">Girls</option>
+                </select>
+              </div>
+            }
+            <div class="form-group">
+              <label for="csp-add-zone-warden">Warden</label>
+              <select id="csp-add-zone-warden" [ngModel]="addZoneForm().wardenId" (ngModelChange)="addZoneForm.set({ ...addZoneForm(), wardenId: $event })">
+                <option [ngValue]="null">— None —</option>
+                @for (fac of faculties(); track fac.id) {
+                  <option [ngValue]="fac.id">{{ fac.fullName }}</option>
+                }
+              </select>
+            </div>
             @if (addZoneForm().error) {
               <p class="panel-error">{{ addZoneForm().error }}</p>
             }
@@ -354,15 +403,36 @@
             <div class="panel-title">Add Room</div>
             <div class="form-group">
               <label for="csp-room-name">Room number</label>
-              <input id="csp-room-name" type="text" placeholder="Room number" [ngModel]="addRoomForm().name" (ngModelChange)="addRoomForm.set({ ...addRoomForm(), name: $event })" />
+              <input id="csp-room-name" type="text" placeholder="Room number" [ngModel]="addRoomForm().roomNumber" (ngModelChange)="addRoomForm.set({ ...addRoomForm(), roomNumber: $event })" />
             </div>
             <div class="form-group">
               <input type="number" min="1" placeholder="Capacity (optional)" [ngModel]="addRoomForm().capacity" (ngModelChange)="addRoomForm.set({ ...addRoomForm(), capacity: $event })" />
             </div>
+            <div class="form-group">
+              <input type="text" placeholder="Description (optional)" [ngModel]="addRoomForm().description" (ngModelChange)="addRoomForm.set({ ...addRoomForm(), description: $event })" />
+            </div>
+            <div class="form-group">
+              <label for="csp-add-room-purpose">Purpose category</label>
+              <select id="csp-add-room-purpose" [ngModel]="addRoomForm().purposeCategoryId" (ngModelChange)="onAddRoomPurposeCategoryChange($event)">
+                <option [ngValue]="null">— Choose a purpose —</option>
+                @for (c of purposeCategories(); track c.id) {
+                  <option [ngValue]="c.id">{{ c.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="csp-add-room-subtype">Sub-type</label>
+              <select id="csp-add-room-subtype" [disabled]="!addRoomForm().purposeCategoryId" [ngModel]="addRoomForm().subTypeId" (ngModelChange)="addRoomForm.set({ ...addRoomForm(), subTypeId: $event })">
+                <option [ngValue]="null">{{ addRoomForm().purposeCategoryId ? '— Choose a sub-type —' : 'Select a purpose category first' }}</option>
+                @for (s of addRoomSubTypes(); track s.id) {
+                  <option [ngValue]="s.id">{{ s.name }}</option>
+                }
+              </select>
+            </div>
             @if (addRoomForm().error) {
               <p class="panel-error">{{ addRoomForm().error }}</p>
             }
-            <button type="button" [disabled]="!addRoomForm().name.trim() || addRoomForm().submitting" (click)="submitAddRoom()">
+            <button type="button" [disabled]="!addRoomForm().roomNumber.trim() || !addRoomForm().purposeCategoryId || !addRoomForm().subTypeId || addRoomForm().submitting" (click)="submitAddRoom()">
               {{ addRoomForm().submitting ? 'Adding…' : '+ Add Room' }}
             </button>
           </div>

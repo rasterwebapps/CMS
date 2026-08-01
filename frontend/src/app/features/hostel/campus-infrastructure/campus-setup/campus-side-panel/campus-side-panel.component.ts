@@ -9,19 +9,33 @@ import { RoomPurposeCategoryService } from '../../../room-purpose-category/room-
 import { RoomPurposeCategory } from '../../../room-purpose-category/room-purpose-category.model';
 import { RoomSubTypeService } from '../../../room-sub-type/room-sub-type.service';
 import { RoomSubType } from '../../../room-sub-type/room-sub-type.model';
+import { FacultyService } from '../../../../faculty/faculty.service';
+import { Faculty } from '../../../../faculty/faculty.model';
 import { CmsStatusBadgeComponent } from '../../../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../../../core/toast/toast.service';
 
 export type CampusPanelLevel = 'branch' | 'block' | 'floor' | 'zone' | 'room';
 
-interface AddFormState {
+interface AddBranchFormState {
   name: string;
   code: string;
-  capacity: string;
+  description: string;
   submitting: boolean;
   error: string | null;
 }
-const emptyAddForm = (): AddFormState => ({ name: '', code: '', capacity: '', submitting: false, error: null });
+const emptyAddBranchForm = (): AddBranchFormState => ({ name: '', code: '', description: '', submitting: false, error: null });
+
+interface AddBlockFormState {
+  name: string;
+  code: string;
+  description: string;
+  isHostel: boolean;
+  genderRestriction: GenderRestriction | null;
+  submitting: boolean;
+  error: string | null;
+}
+const emptyAddBlockForm = (): AddBlockFormState =>
+  ({ name: '', code: '', description: '', isHostel: false, genderRestriction: null, submitting: false, error: null });
 
 interface AddFloorFormState {
   name: string;
@@ -34,6 +48,29 @@ interface AddFloorFormState {
 }
 const emptyAddFloorForm = (floorNumber: number): AddFloorFormState =>
   ({ name: '', floorNumber, isHostel: false, genderRestriction: null, isBasement: false, submitting: false, error: null });
+
+interface AddZoneFormState {
+  name: string;
+  isHostel: boolean;
+  genderRestriction: GenderRestriction | null;
+  wardenId: number | null;
+  submitting: boolean;
+  error: string | null;
+}
+const emptyAddZoneForm = (): AddZoneFormState =>
+  ({ name: '', isHostel: false, genderRestriction: null, wardenId: null, submitting: false, error: null });
+
+interface AddRoomFormState {
+  roomNumber: string;
+  capacity: string;
+  description: string;
+  purposeCategoryId: number | null;
+  subTypeId: number | null;
+  submitting: boolean;
+  error: string | null;
+}
+const emptyAddRoomForm = (): AddRoomFormState =>
+  ({ roomNumber: '', capacity: '', description: '', purposeCategoryId: null, subTypeId: null, submitting: false, error: null });
 
 const codeSuggestionFrom = (name: string): string =>
   name.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 20);
@@ -59,6 +96,7 @@ export class CampusSidePanelComponent {
   private readonly roomTypeService = inject(HostelRoomTypeService);
   private readonly categoryService = inject(RoomPurposeCategoryService);
   private readonly subTypeService = inject(RoomSubTypeService);
+  private readonly facultyService = inject(FacultyService);
   private readonly toast = inject(ToastService);
 
   readonly canManage = input(false);
@@ -98,12 +136,18 @@ export class CampusSidePanelComponent {
   protected readonly roomTypes = signal<HostelRoomType[]>([]);
   protected readonly purposeCategories = signal<RoomPurposeCategory[]>([]);
   protected readonly subTypes = signal<RoomSubType[]>([]);
+  /** Separate from `subTypes` above (Room's own edit/properties view) even though only one of the
+   *  two is ever visible at once — keeps the Add-Room form's option list from ever flashing stale
+   *  data carried over from whichever Room was last selected, or vice versa. */
+  protected readonly addRoomSubTypes = signal<RoomSubType[]>([]);
+  /** Zone's warden picker (Add and Edit both) — loaded once, not gated behind any drill position. */
+  protected readonly faculties = signal<Faculty[]>([]);
 
   // ── Edit-in-place field state, one per level ────────────────────────────
   protected readonly branchEdit = signal({ name: '', code: '', description: '' });
   protected readonly blockEdit = signal({ name: '', code: '', description: '', isHostel: false, genderRestriction: null as GenderRestriction | null });
   protected readonly floorEdit = signal({ name: '', floorNumber: 0, isHostel: false, genderRestriction: null as GenderRestriction | null, isBasement: false });
-  protected readonly zoneEdit = signal({ name: '', isHostel: false, genderRestriction: null as GenderRestriction | null });
+  protected readonly zoneEdit = signal({ name: '', isHostel: false, genderRestriction: null as GenderRestriction | null, wardenId: null as number | null });
   protected readonly roomEdit = signal({
     roomNumber: '', capacity: '' as number | string, description: '',
     purposeCategoryId: null as number | null, subTypeId: null as number | null,
@@ -118,26 +162,27 @@ export class CampusSidePanelComponent {
   protected readonly hostelAssigning = signal(false);
 
   // ── Add-child form state, one per level ─────────────────────────────────
-  protected readonly addBranchForm = signal(emptyAddForm());
-  protected readonly addBlockForm = signal(emptyAddForm());
+  protected readonly addBranchForm = signal(emptyAddBranchForm());
+  protected readonly addBlockForm = signal(emptyAddBlockForm());
   protected readonly addFloorForm = signal(emptyAddFloorForm(0));
 
   /** Next unused floorNumber in the selected block — seeds the Add Floor form's default, same as
    *  the auto-suggested Code field elsewhere in this panel, but still editable before submit. */
   protected readonly nextFloorNumber = computed(() => this.blockFloors().reduce((max, fl) => Math.max(max, fl.floorNumber), -1) + 1);
-  protected readonly addZoneForm = signal(emptyAddForm());
-  protected readonly addRoomForm = signal(emptyAddForm());
+  protected readonly addZoneForm = signal(emptyAddZoneForm());
+  protected readonly addRoomForm = signal(emptyAddRoomForm());
 
   constructor() {
     this.roomTypeService.getAll(true).subscribe({ next: (types) => this.roomTypes.set(types) });
     this.categoryService.getAll(true).subscribe({ next: (categories) => this.purposeCategories.set(categories) });
+    this.facultyService.getAll().subscribe({ next: (faculty) => this.faculties.set(faculty) });
 
     // ── Add-child forms reset off the *drill position* inputs — unaffected by the editing split
     // below, since "which entity's children am I adding to" is about where you've navigated, not
     // which sibling you're inspecting via its edit pencil.
     effect(() => {
       this.branch();
-      this.addBlockForm.set(emptyAddForm());
+      this.addBlockForm.set(emptyAddBlockForm());
     });
     effect(() => {
       this.block();
@@ -145,11 +190,12 @@ export class CampusSidePanelComponent {
     });
     effect(() => {
       this.floor();
-      this.addZoneForm.set(emptyAddForm());
+      this.addZoneForm.set(emptyAddZoneForm());
     });
     effect(() => {
       this.zone();
-      this.addRoomForm.set(emptyAddForm());
+      this.addRoomForm.set(emptyAddRoomForm());
+      this.addRoomSubTypes.set([]);
     });
 
     // ── Edit-in-place field state resets off the *editing* inputs instead — set only when a card's
@@ -176,7 +222,11 @@ export class CampusSidePanelComponent {
     });
     effect(() => {
       const z = this.editingZone();
-      this.zoneEdit.set(z ? { name: z.name, isHostel: z.isHostel, genderRestriction: z.genderRestriction } : { name: '', isHostel: false, genderRestriction: null });
+      this.zoneEdit.set(
+        z
+          ? { name: z.name, isHostel: z.isHostel, genderRestriction: z.genderRestriction, wardenId: z.wardenId }
+          : { name: '', isHostel: false, genderRestriction: null, wardenId: null }
+      );
     });
     effect(() => {
       const r = this.room();
@@ -187,7 +237,7 @@ export class CampusSidePanelComponent {
       );
       this.roomHostelTypeId.set(r?.hostelRoomTypeId ?? null);
       this.subTypes.set([]);
-      if (r?.purposeCategoryId) this.loadSubTypesForCategory(r.purposeCategoryId);
+      if (r?.purposeCategoryId) this.loadSubTypesForCategory(r.purposeCategoryId, this.subTypes);
     });
   }
 
@@ -196,11 +246,18 @@ export class CampusSidePanelComponent {
   protected onRoomPurposeCategoryChange(purposeCategoryId: number | null): void {
     this.roomEdit.set({ ...this.roomEdit(), purposeCategoryId, subTypeId: null });
     this.subTypes.set([]);
-    if (purposeCategoryId) this.loadSubTypesForCategory(purposeCategoryId);
+    if (purposeCategoryId) this.loadSubTypesForCategory(purposeCategoryId, this.subTypes);
   }
 
-  private loadSubTypesForCategory(purposeCategoryId: number): void {
-    this.subTypeService.getAll(purposeCategoryId, true).subscribe({ next: (s) => this.subTypes.set(s) });
+  /** Same as `onRoomPurposeCategoryChange` above but for the Add-Room form's own category select. */
+  protected onAddRoomPurposeCategoryChange(purposeCategoryId: number | null): void {
+    this.addRoomForm.set({ ...this.addRoomForm(), purposeCategoryId, subTypeId: null });
+    this.addRoomSubTypes.set([]);
+    if (purposeCategoryId) this.loadSubTypesForCategory(purposeCategoryId, this.addRoomSubTypes);
+  }
+
+  private loadSubTypesForCategory(purposeCategoryId: number, target: typeof this.subTypes): void {
+    this.subTypeService.getAll(purposeCategoryId, true).subscribe({ next: (s) => target.set(s) });
   }
 
   // ── Save current entity's fields ────────────────────────────────────────
@@ -290,7 +347,7 @@ export class CampusSidePanelComponent {
         name: f.name.trim(),
         isHostel: f.isHostel,
         genderRestriction: f.genderRestriction,
-        wardenId: z.wardenId,
+        wardenId: f.wardenId,
         isActive: z.isActive,
         floorId: z.floorId,
       })
@@ -310,7 +367,7 @@ export class CampusSidePanelComponent {
   protected saveRoom(): void {
     const r = this.room();
     const f = this.roomEdit();
-    if (!r || !f.roomNumber.trim() || this.roomSaving()) return;
+    if (!r || !f.roomNumber.trim() || !f.purposeCategoryId || !f.subTypeId || this.roomSaving()) return;
     const capacity = f.capacity === '' ? null : Number(f.capacity);
     this.roomSaving.set(true);
     this.service
@@ -403,9 +460,9 @@ export class CampusSidePanelComponent {
     if (!orgId || !name || f.submitting) return;
     const code = f.code.trim() || codeSuggestionFrom(name);
     this.addBranchForm.set({ ...f, submitting: true, error: null });
-    this.service.createBranch(orgId, { name, code }).subscribe({
+    this.service.createBranch(orgId, { name, code, description: f.description.trim() || undefined }).subscribe({
       next: (created) => {
-        this.addBranchForm.set(emptyAddForm());
+        this.addBranchForm.set(emptyAddBranchForm());
         this.created.emit({ level: 'branch', id: created.id });
       },
       error: (err) => this.addBranchForm.set({ ...f, submitting: false, error: err?.error?.message ?? 'Failed to add branch.' }),
@@ -419,13 +476,21 @@ export class CampusSidePanelComponent {
     if (!branch || !name || f.submitting) return;
     const code = f.code.trim() || codeSuggestionFrom(name);
     this.addBlockForm.set({ ...f, submitting: true, error: null });
-    this.service.createBlock(branch.id, { name, code }).subscribe({
-      next: (created) => {
-        this.addBlockForm.set(emptyAddForm());
-        this.created.emit({ level: 'block', id: created.id });
-      },
-      error: (err) => this.addBlockForm.set({ ...f, submitting: false, error: err?.error?.message ?? 'Failed to add block.' }),
-    });
+    this.service
+      .createBlock(branch.id, {
+        name,
+        code,
+        description: f.description.trim() || undefined,
+        isHostel: f.isHostel,
+        genderRestriction: f.genderRestriction,
+      })
+      .subscribe({
+        next: (created) => {
+          this.addBlockForm.set(emptyAddBlockForm());
+          this.created.emit({ level: 'block', id: created.id });
+        },
+        error: (err) => this.addBlockForm.set({ ...f, submitting: false, error: err?.error?.message ?? 'Failed to add block.' }),
+      });
   }
 
   protected submitAddFloor(): void {
@@ -457,28 +522,39 @@ export class CampusSidePanelComponent {
     const name = f.name.trim();
     if (!floor || !name || f.submitting) return;
     this.addZoneForm.set({ ...f, submitting: true, error: null });
-    this.service.createZone(floor.id, { name }).subscribe({
-      next: (created) => {
-        this.addZoneForm.set(emptyAddForm());
-        this.created.emit({ level: 'zone', id: created.id });
-      },
-      error: (err) => this.addZoneForm.set({ ...f, submitting: false, error: err?.error?.message ?? 'Failed to add zone.' }),
-    });
+    this.service
+      .createZone(floor.id, { name, isHostel: f.isHostel, genderRestriction: f.genderRestriction, wardenId: f.wardenId })
+      .subscribe({
+        next: (created) => {
+          this.addZoneForm.set(emptyAddZoneForm());
+          this.created.emit({ level: 'zone', id: created.id });
+        },
+        error: (err) => this.addZoneForm.set({ ...f, submitting: false, error: err?.error?.message ?? 'Failed to add zone.' }),
+      });
   }
 
   protected submitAddRoom(): void {
     const zone = this.zone();
     const f = this.addRoomForm();
-    const roomNumber = f.name.trim();
-    if (!zone || !roomNumber || f.submitting) return;
+    const roomNumber = f.roomNumber.trim();
+    if (!zone || !roomNumber || !f.purposeCategoryId || !f.subTypeId || f.submitting) return;
     const capacity = f.capacity.trim() ? Number(f.capacity.trim()) : null;
     this.addRoomForm.set({ ...f, submitting: true, error: null });
-    this.service.createRoom(zone.id, { roomNumber, capacity }).subscribe({
-      next: (created) => {
-        this.addRoomForm.set(emptyAddForm());
-        this.created.emit({ level: 'room', id: created.id });
-      },
-      error: (err) => this.addRoomForm.set({ ...f, submitting: false, error: err?.error?.message ?? 'Failed to add room.' }),
-    });
+    this.service
+      .createRoom(zone.id, {
+        roomNumber,
+        capacity,
+        description: f.description.trim() || undefined,
+        purposeCategoryId: f.purposeCategoryId,
+        subTypeId: f.subTypeId,
+      })
+      .subscribe({
+        next: (created) => {
+          this.addRoomForm.set(emptyAddRoomForm());
+          this.addRoomSubTypes.set([]);
+          this.created.emit({ level: 'room', id: created.id });
+        },
+        error: (err) => this.addRoomForm.set({ ...f, submitting: false, error: err?.error?.message ?? 'Failed to add room.' }),
+      });
   }
 }
