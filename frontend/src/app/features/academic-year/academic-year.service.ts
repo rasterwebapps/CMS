@@ -147,6 +147,30 @@ export class AcademicYearService {
     return this.http.delete<void>(`${this.calendarEventUrl}/${id}`);
   }
 
+  /** "Delete this and all future occurrences" for an event seeded from a recurring Holiday
+   *  Template -- stops the template from seeding further years and removes this + any other
+   *  future-dated instance it generated. Past occurrences are never touched. */
+  deleteCalendarEventSeries(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.calendarEventUrl}/${id}/series`);
+  }
+
+  /** Save-time conflict check -- any event (any type) overlapping a proposed date range, so the
+   *  flyout can warn before creating/updating an event that collides with something already
+   *  scheduled. */
+  checkOverlappingEvents(
+    academicYearId: number,
+    start: string,
+    end: string,
+    excludeId?: number,
+  ): Observable<CalendarEvent[]> {
+    let params = new HttpParams().set('start', start).set('end', end);
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<CalendarEvent[]>(
+      `${this.calendarEventUrl}/academic-year/${academicYearId}/overlapping`,
+      { params },
+    );
+  }
+
   // TermInstance methods
   getTermInstancesByAcademicYear(academicYearId: number): Observable<TermInstance[]> {
     return this.http.get<TermInstance[]>(`${environment.apiUrl}/term-instances`, {

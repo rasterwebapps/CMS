@@ -175,6 +175,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Faculty',            icon: 'groups',            route: '/faculty',                 permissions: ['FACULTY_VIEW', 'FACULTY_CREATE', 'FACULTY_EDIT', 'FACULTY_DELETE', 'FACULTY_EXPORT', 'FACULTY_MANAGE'] },
       { label: 'Faculty Doc Config', icon: 'rule',              route: '/faculty/document-config', permissions: ['FACULTY_DOC_CONFIG_VIEW', 'FACULTY_DOC_CONFIG_MANAGE'] },
       { label: 'Fee Structures',     icon: 'account_balance',   route: '/fee-structures',          permissions: ['FEE_STRUCTURE_VIEW', 'FEE_STRUCTURE_CREATE', 'FEE_STRUCTURE_EDIT', 'FEE_STRUCTURE_DELETE', 'FEE_STRUCTURE_EXPORT', 'FEE_STRUCTURE_MANAGE'] },
+      { label: 'Holiday Templates',  icon: 'event_repeat',      route: '/holiday-templates',       permissions: ['HOLIDAY_TEMPLATE_VIEW', 'HOLIDAY_TEMPLATE_MANAGE'] },
       { label: 'Institutions',       icon: 'corporate_fare',    route: '/institutions',            permissions: ['INSTITUTION_VIEW', 'INSTITUTION_CREATE', 'INSTITUTION_EDIT', 'INSTITUTION_DELETE', 'INSTITUTION_MANAGE'] },
       { label: 'Labs',               icon: 'science',           route: '/labs',                    permissions: ['LAB_VIEW', 'LAB_CREATE', 'LAB_EDIT', 'LAB_DELETE', 'LAB_EXPORT', 'LAB_MANAGE'] },
       { label: 'Location Master',    icon: 'public',            route: '/india-locations',         permissions: ['INDIA_LOCATION_VIEW', 'INDIA_LOCATION_CREATE', 'INDIA_LOCATION_EDIT', 'INDIA_LOCATION_DELETE', 'INDIA_LOCATION_EXPORT', 'INDIA_LOCATION_MANAGE'] },

@@ -1,6 +1,7 @@
 package com.cms.dto;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import com.cms.model.enums.CalendarEventType;
 import com.cms.model.enums.HolidayCategory;
@@ -30,10 +31,20 @@ public record CalendarEventRequest(
     Long academicYearId,
 
     /** Required by service-layer validation when eventType == HOLIDAY; ignored otherwise. */
-    HolidayCategory holidayCategory
+    HolidayCategory holidayCategory,
+
+    /** Only meaningful when eventType == HOLIDAY -- which periods to auto-block for every date in
+     *  [startDate, endDate]. Null or empty means "whole day" (every active period). Ignored for
+     *  every other eventType. */
+    List<Long> blockedPeriodIds
 ) {
     public CalendarEventRequest(String title, String description, LocalDate startDate, LocalDate endDate,
                                  CalendarEventType eventType, Long academicYearId) {
-        this(title, description, startDate, endDate, eventType, academicYearId, null);
+        this(title, description, startDate, endDate, eventType, academicYearId, null, null);
+    }
+
+    public CalendarEventRequest(String title, String description, LocalDate startDate, LocalDate endDate,
+                                 CalendarEventType eventType, Long academicYearId, HolidayCategory holidayCategory) {
+        this(title, description, startDate, endDate, eventType, academicYearId, holidayCategory, null);
     }
 }

@@ -1,10 +1,17 @@
 <cms-flyout-panel width="520px" ariaLabel="Day detail" (closed)="close()">
   <div flyoutHeader class="ddf-header">
-    <mat-form-field appearance="outline" class="ddf-date-field">
-      <input matInput type="date" [ngModel]="selectedDateIso()" (ngModelChange)="onDateChange($event)"
-        [min]="academicYear().startDate" [max]="academicYear().endDate" />
-    </mat-form-field>
-    <span class="ddf-date-label">{{ selectedDateLabel() }}</span>
+    <app-flyout-mini-calendar
+      [events]="events()"
+      [selectedDateIso]="eventFormMode() === 'CLOSED' ? selectedDateIso() : null"
+      [rangeStart]="eventFormMode() !== 'CLOSED' ? eventForm.get('startDate')?.value ?? null : null"
+      [rangeEnd]="eventFormMode() !== 'CLOSED' ? eventForm.get('endDate')?.value ?? null : null"
+      [minDate]="academicYear().startDate"
+      [maxDate]="academicYear().endDate"
+      (dayClicked)="onCalendarDayClick($event)"
+    />
+    @if (eventFormMode() === 'CLOSED') {
+      <span class="ddf-date-label">{{ selectedDateLabel() }}</span>
+    }
   </div>
 
   <div flyoutBody class="ddf-body">
@@ -35,9 +42,16 @@
                 <button class="btn-icon-action" type="button" (click)="openEditEventForm(evt)" matTooltip="Edit">
                   <mat-icon>edit</mat-icon>
                 </button>
-                <button class="btn-icon-action danger" type="button" (click)="deleteEvent(evt)" matTooltip="Delete">
-                  <mat-icon>delete</mat-icon>
-                </button>
+                @if (evt.sourceHolidayTemplateId != null) {
+                  <button class="btn-icon-action danger" type="button"
+                    [matMenuTriggerFor]="deleteChoiceMenu" [matMenuTriggerData]="{ event: evt }" matTooltip="Delete">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                } @else {
+                  <button class="btn-icon-action danger" type="button" (click)="deleteEvent(evt)" matTooltip="Delete">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
               }
             </div>
           }
@@ -93,12 +107,57 @@
             </div>
           }
 
+          @if (showPeriodPickerField()) {
+            <div class="form-field">
+              <label class="form-field-label">Periods to Block</label>
+              <p class="field-hint">Every date from Start to End gets these periods auto-blocked.</p>
+              <button type="button" class="btn-secondary ddf-whole-day-btn" (click)="toggleHolidayWholeDay()">
+                <mat-icon>select_all</mat-icon>
+                {{ holidayWholeDay() ? 'Whole Day (all periods)' : 'Switch to Whole Day' }}
+              </button>
+              @if (!holidayWholeDay()) {
+                <div class="ddf-period-grid">
+                  @for (p of periods(); track p.id) {
+                    <button type="button" class="ddf-period-chip"
+                      [class.ddf-period-chip--selected]="holidayPeriodIds().has(p.id)"
+                      (click)="toggleHolidayPeriod(p.id)">
+                      <span class="ddf-period-chip__name">{{ p.name }}</span>
+                      <span class="ddf-period-chip__time">{{ p.startTime }}–{{ p.endTime }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+
           <div class="form-field">
             <label class="form-field-label">Description</label>
             <mat-form-field appearance="outline" class="full-width">
               <textarea matInput formControlName="description" rows="2" placeholder="Optional details"></textarea>
             </mat-form-field>
           </div>
+
+          @if (checkingConflicts()) {
+            <p class="ddf-empty-hint">Checking for overlapping events…</p>
+          }
+          @if (overlappingEvents().length > 0) {
+            <div class="ddf-conflict-panel">
+              <p class="ddf-conflict-panel__title">
+                <mat-icon>warning</mat-icon>
+                This date range overlaps {{ overlappingEvents().length }} existing event{{ overlappingEvents().length !== 1 ? 's' : '' }}:
+              </p>
+              @for (conflict of overlappingEvents(); track conflict.id) {
+                <div class="ddf-row">
+                  <mat-icon class="ddf-row-icon">{{ eventTypeIcons[conflict.eventType] }}</mat-icon>
+                  <span class="ddf-row-title">{{ conflict.title }}</span>
+                  <span class="ddf-row-summary">{{ conflict.startDate }}@if (conflict.startDate !== conflict.endDate) { – {{ conflict.endDate }} }</span>
+                  <button class="btn-icon-action danger" type="button" (click)="removeConflictingEvent(conflict)" matTooltip="Delete this event">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+          }
         </form>
       }
     </section>
@@ -121,6 +180,9 @@
               <mat-icon class="ddf-row-icon">{{ block.blockType === 'RECURRING' ? 'event_repeat' : 'event_busy' }}</mat-icon>
               <span class="ddf-row-title">{{ block.reason }}</span>
               <span class="ddf-row-summary">{{ formatBlockSummary(block) }}</span>
+              @if (block.sourceCalendarEventId != null) {
+                <span class="ddf-row-tag" matTooltip="Auto-generated by a Holiday event; delete to run a special class instead">Auto · Holiday</span>
+              }
               @if (canManageBlocks()) {
                 <button class="btn-icon-action" type="button" (click)="openEditBlockForm(block)" matTooltip="Edit">
                   <mat-icon>edit</mat-icon>
@@ -247,9 +309,15 @@
   <div flyoutFooter>
     @if (eventFormMode() !== 'CLOSED') {
       <button mat-button type="button" (click)="cancelEventForm()">Cancel</button>
-      <button mat-flat-button color="primary" type="button" [disabled]="eventSaving()" (click)="saveEvent()">
-        @if (eventSaving()) { <mat-spinner diameter="16" /> } @else { {{ editingEventId() ? 'Update' : 'Create' }} Event }
-      </button>
+      @if (overlappingEvents().length > 0) {
+        <button mat-flat-button color="warn" type="button" [disabled]="eventSaving()" (click)="proceedDespiteConflicts()">
+          @if (eventSaving()) { <mat-spinner diameter="16" /> } @else { Proceed Anyway }
+        </button>
+      } @else {
+        <button mat-flat-button color="primary" type="button" [disabled]="eventSaving() || checkingConflicts()" (click)="saveEvent()">
+          @if (eventSaving() || checkingConflicts()) { <mat-spinner diameter="16" /> } @else { {{ editingEventId() ? 'Update' : 'Create' }} Event }
+        </button>
+      }
     } @else if (blockFormOpen() && blockStep() === 'FORM') {
       <button mat-button type="button" (click)="cancelBlockForm()">Cancel</button>
       <button mat-flat-button color="primary" type="button" [disabled]="blockSaving()" (click)="submitBlock()">
@@ -259,4 +327,17 @@
       <button mat-flat-button color="primary" type="button" (click)="finishBlockResult()">Done</button>
     }
   </div>
+
+  <mat-menu #deleteChoiceMenu="matMenu">
+    <ng-template matMenuContent let-event="event">
+      <button mat-menu-item type="button" (click)="deleteEvent(event)">
+        <mat-icon>event_busy</mat-icon>
+        <span>Delete this occurrence only</span>
+      </button>
+      <button mat-menu-item type="button" (click)="deleteEventSeries(event)">
+        <mat-icon>event_repeat</mat-icon>
+        <span>Delete this and all future occurrences</span>
+      </button>
+    </ng-template>
+  </mat-menu>
 </cms-flyout-panel>

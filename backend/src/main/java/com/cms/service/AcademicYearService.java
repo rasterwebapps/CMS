@@ -27,6 +27,7 @@ import com.cms.model.Cohort;
 import com.cms.model.Course;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.CohortStatus;
+import com.cms.model.enums.ProgramStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.CohortRepository;
@@ -47,6 +48,7 @@ public class AcademicYearService {
     private final TermBillingScheduleService termBillingScheduleService;
     private final CohortRepository cohortRepository;
     private final CourseRepository courseRepository;
+    private final HolidayTemplateSeedingService holidayTemplateSeedingService;
 
     public AcademicYearService(AcademicYearRepository academicYearRepository,
                                FeeStructureGroupRepository feeStructureGroupRepository,
@@ -54,7 +56,8 @@ public class AcademicYearService {
                                TermInstanceRepository termInstanceRepository,
                                TermBillingScheduleService termBillingScheduleService,
                                CohortRepository cohortRepository,
-                               CourseRepository courseRepository) {
+                               CourseRepository courseRepository,
+                               HolidayTemplateSeedingService holidayTemplateSeedingService) {
         this.academicYearRepository = academicYearRepository;
         this.feeStructureGroupRepository = feeStructureGroupRepository;
         this.termInstanceService = termInstanceService;
@@ -62,6 +65,7 @@ public class AcademicYearService {
         this.termBillingScheduleService = termBillingScheduleService;
         this.cohortRepository = cohortRepository;
         this.courseRepository = courseRepository;
+        this.holidayTemplateSeedingService = holidayTemplateSeedingService;
     }
 
     @Transactional
@@ -98,6 +102,7 @@ public class AcademicYearService {
         AcademicYear saved = academicYearRepository.save(academicYear);
         termInstanceService.createTermInstancesForAcademicYear(saved);
         createCohortsWithSeats(saved, request.cohortSeatAllocations());
+        holidayTemplateSeedingService.seedForAcademicYear(saved);
         return toResponse(saved);
     }
 
@@ -341,6 +346,11 @@ public class AcademicYearService {
         for (Long courseId : allocationsByCourseId.keySet()) {
             Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
+            if (course.getProgram() != null && course.getProgram().getStatus() != ProgramStatus.ACTIVE) {
+                throw new IllegalArgumentException(
+                    "Seats can only be allocated for active programs — '" + course.getProgram().getName()
+                        + "' is not active");
+            }
             CohortSeatAllocationRequest allocation = allocationsByCourseId.get(courseId);
             Cohort cohort = buildCohort(course, academicYear);
             int total = allocation.totalSeats() != null ? allocation.totalSeats() : 0;

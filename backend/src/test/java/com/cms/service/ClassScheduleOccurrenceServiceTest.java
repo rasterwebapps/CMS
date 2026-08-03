@@ -2,6 +2,7 @@ package com.cms.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -17,28 +18,30 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.model.AcademicYear;
-import com.cms.model.CalendarEvent;
+import com.cms.model.BlockedPeriod;
 import com.cms.model.ClassSchedule;
+import com.cms.model.Period;
 import com.cms.model.TermInstance;
-import com.cms.model.enums.CalendarEventType;
+import com.cms.model.enums.BlockType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
-import com.cms.repository.CalendarEventRepository;
+import com.cms.repository.BlockedPeriodRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ClassScheduleOccurrenceServiceTest {
 
     @Mock
-    private CalendarEventRepository calendarEventRepository;
+    private BlockedPeriodRepository blockedPeriodRepository;
 
     private ClassScheduleOccurrenceService service;
     private AcademicYear academicYear;
     private TermInstance termInstance;
+    private Period period;
 
     @BeforeEach
     void setUp() {
-        service = new ClassScheduleOccurrenceService(calendarEventRepository);
+        service = new ClassScheduleOccurrenceService(blockedPeriodRepository);
 
         academicYear = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         academicYear.setId(1L);
@@ -51,6 +54,9 @@ class ClassScheduleOccurrenceServiceTest {
         termInstance.setId(10L);
         termInstance.setCreatedAt(Instant.now());
         termInstance.setUpdatedAt(Instant.now());
+
+        period = new Period();
+        period.setId(50L);
     }
 
     private ClassSchedule mondaySchedule() {
@@ -58,12 +64,13 @@ class ClassScheduleOccurrenceServiceTest {
         schedule.setId(100L);
         schedule.setTermInstance(termInstance);
         schedule.setDayOfWeek(DayOfWeek.MONDAY);
+        schedule.setPeriod(period);
         return schedule;
     }
 
     @Test
     void shouldReturnEveryMatchingWeekdayWithinTermBounds() {
-        when(calendarEventRepository.findOverlapping(any(), any(), any(), any()))
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(anyLong(), any(), any()))
             .thenReturn(Collections.emptyList());
 
         List<LocalDate> dates = service.occurrenceDatesFor(
@@ -76,7 +83,7 @@ class ClassScheduleOccurrenceServiceTest {
 
     @Test
     void shouldClampToCallerSuppliedWindow() {
-        when(calendarEventRepository.findOverlapping(any(), any(), any(), any()))
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(anyLong(), any(), any()))
             .thenReturn(Collections.emptyList());
 
         List<LocalDate> dates = service.occurrenceDatesFor(
@@ -86,12 +93,13 @@ class ClassScheduleOccurrenceServiceTest {
     }
 
     @Test
-    void shouldExcludeHolidayDates() {
-        CalendarEvent independenceDayHoliday = new CalendarEvent();
-        independenceDayHoliday.setStartDate(LocalDate.of(2024, 8, 12));
-        independenceDayHoliday.setEndDate(LocalDate.of(2024, 8, 12));
-        when(calendarEventRepository.findOverlapping(
-                1L, CalendarEventType.HOLIDAY, LocalDate.of(2024, 8, 5), LocalDate.of(2024, 8, 26)))
+    void shouldExcludeDatesCoveredByAOneOffBlock() {
+        BlockedPeriod independenceDayHoliday = new BlockedPeriod();
+        independenceDayHoliday.setPeriod(period);
+        independenceDayHoliday.setBlockType(BlockType.ONE_OFF);
+        independenceDayHoliday.setSpecificDate(LocalDate.of(2024, 8, 12));
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(
+                50L, LocalDate.of(2024, 8, 5), LocalDate.of(2024, 8, 26)))
             .thenReturn(List.of(independenceDayHoliday));
 
         List<LocalDate> dates = service.occurrenceDatesFor(
@@ -99,6 +107,25 @@ class ClassScheduleOccurrenceServiceTest {
 
         assertThat(dates).containsExactly(
             LocalDate.of(2024, 8, 5), LocalDate.of(2024, 8, 19), LocalDate.of(2024, 8, 26));
+    }
+
+    @Test
+    void shouldExcludeDatesCoveredByARecurringBlock() {
+        BlockedPeriod standingMeeting = new BlockedPeriod();
+        standingMeeting.setPeriod(period);
+        standingMeeting.setBlockType(BlockType.RECURRING);
+        standingMeeting.setDayOfWeek(DayOfWeek.MONDAY);
+        standingMeeting.setRangeStartDate(LocalDate.of(2024, 8, 19));
+        standingMeeting.setRangeEndDate(LocalDate.of(2024, 8, 19));
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(
+                50L, LocalDate.of(2024, 8, 5), LocalDate.of(2024, 8, 26)))
+            .thenReturn(List.of(standingMeeting));
+
+        List<LocalDate> dates = service.occurrenceDatesFor(
+            mondaySchedule(), LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+
+        assertThat(dates).containsExactly(
+            LocalDate.of(2024, 8, 5), LocalDate.of(2024, 8, 12), LocalDate.of(2024, 8, 26));
     }
 
     @Test
@@ -110,8 +137,8 @@ class ClassScheduleOccurrenceServiceTest {
     }
 
     @Test
-    void batchedVariantShouldReuseHolidayLookupPerAcademicYear() {
-        when(calendarEventRepository.findOverlapping(any(), any(), any(), any()))
+    void batchedVariantShouldReuseBlockLookupPerPeriod() {
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(anyLong(), any(), any()))
             .thenReturn(Collections.emptyList());
 
         ClassSchedule first = mondaySchedule();
@@ -123,7 +150,7 @@ class ClassScheduleOccurrenceServiceTest {
 
         assertThat(result.get(100L)).hasSize(4);
         assertThat(result.get(200L)).hasSize(4);
-        org.mockito.Mockito.verify(calendarEventRepository, org.mockito.Mockito.times(1))
-            .findOverlapping(any(), any(), any(), any());
+        org.mockito.Mockito.verify(blockedPeriodRepository, org.mockito.Mockito.times(1))
+            .findApplicableForPeriodInRange(anyLong(), any(), any());
     }
 }

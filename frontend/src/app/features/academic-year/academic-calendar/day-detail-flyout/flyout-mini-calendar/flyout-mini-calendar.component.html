@@ -1,0 +1,38 @@
+<div class="fmc-calendar">
+  <div class="fmc-nav">
+    <button type="button" mat-icon-button (click)="goToPreviousMonth()" aria-label="Previous month">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <span class="fmc-month-label">{{ monthLabel() }}</span>
+    <button type="button" mat-icon-button (click)="goToNextMonth()" aria-label="Next month">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+
+  <div class="fmc-weekday-row">
+    <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+  </div>
+
+  <div class="fmc-grid">
+    @for (week of weeks(); track trackByWeek($index)) {
+      <div class="fmc-week-row">
+        @for (cell of week; track trackByIso($index, cell)) {
+          <button
+            type="button"
+            class="fmc-day"
+            [class.fmc-day--outside]="!cell.isCurrentMonth"
+            [class.fmc-day--today]="cell.isToday"
+            [class.fmc-day--selected]="cell.isSelected"
+            [class.fmc-day--in-range]="cell.isInRange"
+            (click)="onDayClick(cell)"
+          >
+            {{ cell.dayNum }}
+            @if (cell.hasEvents) {
+              <span class="fmc-day__dot"></span>
+            }
+          </button>
+        }
+      </div>
+    }
+  </div>
+</div>

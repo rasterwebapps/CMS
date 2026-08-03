@@ -1,5 +1,6 @@
 package com.cms.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -73,5 +74,27 @@ public class CalendarEventController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         calendarEventService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /** "Delete this and all future occurrences" for an event seeded from a recurring Holiday
+     *  Template -- 404s via the underlying not-found lookup, or 400s if the event was never
+     *  template-linked (use the plain DELETE /{id} for a one-off/manually-created event). */
+    @DeleteMapping("/{id}/series")
+    @PreAuthorize("@perm.has('ACADEMIC_CALENDAR_MANAGE')")
+    public ResponseEntity<Void> deleteSeries(@PathVariable Long id) {
+        calendarEventService.deleteSeries(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Read-only conflict check the flyout runs before create/update -- any event type overlapping
+     *  the proposed range, not just other Holidays. */
+    @GetMapping("/academic-year/{academicYearId}/overlapping")
+    public ResponseEntity<List<CalendarEventResponse>> findOverlapping(
+            @PathVariable Long academicYearId,
+            @RequestParam LocalDate start,
+            @RequestParam LocalDate end,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(
+            calendarEventService.findOverlappingAnyType(academicYearId, start, end, excludeId));
     }
 }

@@ -7,6 +7,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatMenuModule } from '@angular/material/menu';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { CmsFlyoutPanelComponent } from '../../../../shared/flyout-panel/flyout-panel.component';
@@ -33,6 +34,7 @@ import {
   EVENT_TYPE_LABELS,
 } from '../calendar-display.constants';
 import { formatBlockSummary } from '../blocked-period-summary.util';
+import { FlyoutMiniCalendarComponent } from './flyout-mini-calendar/flyout-mini-calendar.component';
 
 export type DayDetailSection = 'EVENTS' | 'BLOCKS';
 
@@ -66,7 +68,9 @@ const MULTI_ROW_CONFIRM_THRESHOLD = 15;
     MatFormFieldModule,
     MatInputModule,
     MatTooltipModule,
+    MatMenuModule,
     CmsFlyoutPanelComponent,
+    FlyoutMiniCalendarComponent,
   ],
   templateUrl: './day-detail-flyout.component.html',
   styleUrl: './day-detail-flyout.component.scss',
@@ -138,6 +142,31 @@ export class DayDetailFlyoutComponent implements OnInit {
 
   protected showHolidayCategoryField(): boolean {
     return this.eventForm.get('eventType')?.value === 'HOLIDAY';
+  }
+
+  // ─── Half-day holiday period picker (only meaningful when eventType === 'HOLIDAY') ───
+  /** Whole-day is the default -- an empty `holidayPeriodIds` selection, matching the backend's
+   *  own "null/empty means every active period" contract exactly (see CalendarEventService
+   *  .resolvePeriodIds), rather than the frontend independently tracking "all periods selected". */
+  protected readonly holidayWholeDay = signal(true);
+  protected readonly holidayPeriodIds = signal<Set<number>>(new Set());
+
+  protected showPeriodPickerField(): boolean {
+    return this.eventForm.get('eventType')?.value === 'HOLIDAY';
+  }
+
+  protected toggleHolidayWholeDay(): void {
+    const next = !this.holidayWholeDay();
+    this.holidayWholeDay.set(next);
+    if (next) this.holidayPeriodIds.set(new Set());
+  }
+
+  protected toggleHolidayPeriod(periodId: number): void {
+    if (this.holidayWholeDay()) return;
+    const next = new Set(this.holidayPeriodIds());
+    if (next.has(periodId)) next.delete(periodId);
+    else next.add(periodId);
+    this.holidayPeriodIds.set(next);
   }
 
   protected eventTypeBadgeClass(type: CalendarEventType): string {
@@ -213,6 +242,31 @@ export class DayDetailFlyoutComponent implements OnInit {
     }
   }
 
+  /** Click handler for the inline mini-calendar -- dual role depending on what's open. With no
+   *  Add/Edit Event form open, a click is exactly the old "change viewing date" native-input
+   *  action. With the form open, a click builds a date range: the first click (or a click before
+   *  the current start, or a click while a multi-day range is already set) starts a fresh
+   *  single-day selection; a second click on/after that start date extends the end forward --
+   *  the same two-click range gesture as a typical calendar range picker. The native Start/End
+   *  Date inputs stay in sync automatically since both read/write the same form controls. */
+  protected onCalendarDayClick(iso: string): void {
+    if (this.eventFormMode() === 'CLOSED') {
+      this.onDateChange(iso);
+      return;
+    }
+    const startCtrl = this.eventForm.get('startDate')!;
+    const endCtrl = this.eventForm.get('endDate')!;
+    const currentStart = startCtrl.value as string | null;
+    const currentEnd = endCtrl.value as string | null;
+    const isMultiDaySelection = !!(currentStart && currentEnd && currentStart !== currentEnd);
+    if (!currentStart || iso < currentStart || isMultiDaySelection) {
+      startCtrl.setValue(iso);
+      endCtrl.setValue(iso);
+    } else {
+      endCtrl.setValue(iso);
+    }
+  }
+
   private toIso(d: Date): string {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -239,6 +293,9 @@ export class DayDetailFlyoutComponent implements OnInit {
       startDate: this.selectedDateIso(),
       endDate: this.selectedDateIso(),
     });
+    this.holidayWholeDay.set(true);
+    this.holidayPeriodIds.set(new Set());
+    this.overlappingEvents.set([]);
     this.eventFormMode.set('ADD');
   }
 
@@ -252,19 +309,70 @@ export class DayDetailFlyoutComponent implements OnInit {
       eventType: event.eventType,
       holidayCategory: event.holidayCategory,
     });
+    const activeIds = this.periods().map((p) => p.id);
+    const isWholeDay = event.blockedPeriodIds.length === 0
+      || activeIds.every((id) => event.blockedPeriodIds.includes(id));
+    this.holidayWholeDay.set(isWholeDay);
+    this.holidayPeriodIds.set(isWholeDay ? new Set() : new Set(event.blockedPeriodIds));
+    this.overlappingEvents.set([]);
     this.eventFormMode.set('EDIT');
   }
 
   protected cancelEventForm(): void {
     this.eventFormMode.set('CLOSED');
     this.editingEventId.set(null);
+    this.overlappingEvents.set([]);
   }
+
+  // ─── Conflict detection (any event type overlapping the proposed range) ───
+  protected readonly overlappingEvents = signal<CalendarEvent[]>([]);
+  protected readonly checkingConflicts = signal(false);
 
   protected saveEvent(): void {
     if (this.eventForm.invalid) {
       scrollToFirstInvalid(this.eventForm);
       return;
     }
+    const val = this.eventForm.getRawValue();
+    this.checkingConflicts.set(true);
+    this.academicYearService.checkOverlappingEvents(
+      this.academicYear().id, val.startDate!, val.endDate!, this.editingEventId() ?? undefined,
+    ).subscribe({
+      next: (overlaps) => {
+        this.checkingConflicts.set(false);
+        if (overlaps.length > 0) {
+          this.overlappingEvents.set(overlaps);
+        } else {
+          this.performSaveEvent();
+        }
+      },
+      // Fail open -- a broken conflict-check endpoint must never block saving an otherwise-valid event.
+      error: () => {
+        this.checkingConflicts.set(false);
+        this.performSaveEvent();
+      },
+    });
+  }
+
+  /** Explicit override once the admin has seen the overlap list and decided to proceed anyway. */
+  protected proceedDespiteConflicts(): void {
+    this.overlappingEvents.set([]);
+    this.performSaveEvent();
+  }
+
+  protected removeConflictingEvent(event: CalendarEvent): void {
+    if (!confirm(`Delete "${event.title}"?`)) return;
+    this.academicYearService.deleteCalendarEvent(event.id).subscribe({
+      next: () => {
+        this.toast.success('Event deleted');
+        this.overlappingEvents.set(this.overlappingEvents().filter((e) => e.id !== event.id));
+        this.dataChanged.emit();
+      },
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete event'),
+    });
+  }
+
+  private performSaveEvent(): void {
     const val = this.eventForm.getRawValue();
     const req: CalendarEventRequest = {
       title: val.title!,
@@ -274,6 +382,8 @@ export class DayDetailFlyoutComponent implements OnInit {
       eventType: val.eventType as CalendarEventType,
       academicYearId: this.academicYear().id,
       holidayCategory: val.eventType === 'HOLIDAY' ? (val.holidayCategory as HolidayCategory | null) : null,
+      blockedPeriodIds: val.eventType === 'HOLIDAY' && !this.holidayWholeDay()
+        ? [...this.holidayPeriodIds()] : undefined,
     };
 
     this.eventSaving.set(true);
@@ -296,6 +406,9 @@ export class DayDetailFlyoutComponent implements OnInit {
     });
   }
 
+  /** Plain single-event delete. For a template-seeded event, the delete button opens a menu
+   *  offering this ("this occurrence only") alongside deleteEventSeries -- both ultimately land
+   *  here or there, never a bare confirm() for a recurring event. */
   protected deleteEvent(event: CalendarEvent): void {
     if (!confirm(`Delete "${event.title}"?`)) return;
     this.academicYearService.deleteCalendarEvent(event.id).subscribe({
@@ -304,6 +417,23 @@ export class DayDetailFlyoutComponent implements OnInit {
         this.dataChanged.emit();
       },
       error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete event'),
+    });
+  }
+
+  /** "Delete this and all future occurrences" -- stops the source Holiday Template from seeding
+   *  further years and removes this + every other future-dated instance it generated. Past
+   *  occurrences are never touched (enforced server-side). */
+  protected deleteEventSeries(event: CalendarEvent): void {
+    if (!confirm(
+      `Delete "${event.title}" and every future occurrence of its holiday template? ` +
+      `Past occurrences will not be affected.`,
+    )) return;
+    this.academicYearService.deleteCalendarEventSeries(event.id).subscribe({
+      next: () => {
+        this.toast.success('Event series deleted');
+        this.dataChanged.emit();
+      },
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete event series'),
     });
   }
 

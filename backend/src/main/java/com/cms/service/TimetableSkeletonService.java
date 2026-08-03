@@ -145,14 +145,30 @@ public class TimetableSkeletonService {
     /** Hard-blocks placing a session at a day+period covered by a RECURRING blocked-period rule
      *  whose date range overlaps this offering's term at all -- deliberately coarse, since a
      *  recurring weekly-template placement can't represent "blocked some weeks, not others."
-     *  ONE_OFF blocks never reach this check -- they only affect Capacity Planner buffer-hours
-     *  math and calendar display, not placement. */
+     *  Manually-created ONE_OFF blocks never reach this check -- they only affect Capacity
+     *  Planner buffer-hours math and calendar display, not placement. Holiday-derived ONE_OFF
+     *  blocks (auto-generated from a HOLIDAY CalendarEvent) DO hard-block here too, scoped
+     *  strictly to {@code sourceCalendarEventId IS NOT NULL} so this is the same accepted
+     *  coarseness RECURRING already has (one holiday Monday blocks every Monday of that period for
+     *  the whole term), not a new behavior change for manual one-off blocks. */
     private void requireNotBlocked(DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
         List<BlockedPeriod> conflicts = blockedPeriodRepository.findOverlappingRecurringBlocks(
             dayOfWeek, period.getId(), termInstance.getStartDate(), termInstance.getEndDate());
         if (!conflicts.isEmpty()) {
             throw new LifecycleConflictException(
                 "This day and period is blocked: " + conflicts.get(0).getReason(),
+                "SKELETON_CELL_PERIOD_BLOCKED", "ClassSchedule", null, null);
+        }
+
+        java.time.DayOfWeek targetDay = java.time.DayOfWeek.valueOf(dayOfWeek.name());
+        List<BlockedPeriod> holidayConflicts = blockedPeriodRepository.findHolidayOneOffBlocksInRange(
+                period.getId(), termInstance.getStartDate(), termInstance.getEndDate())
+            .stream()
+            .filter(bp -> bp.getSpecificDate().getDayOfWeek() == targetDay)
+            .toList();
+        if (!holidayConflicts.isEmpty()) {
+            throw new LifecycleConflictException(
+                "This day and period is blocked: " + holidayConflicts.get(0).getReason(),
                 "SKELETON_CELL_PERIOD_BLOCKED", "ClassSchedule", null, null);
         }
     }

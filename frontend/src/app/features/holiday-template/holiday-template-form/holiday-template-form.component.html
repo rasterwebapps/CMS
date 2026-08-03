@@ -1,0 +1,172 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/holiday-templates" aria-label="Back to holiday templates">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Holiday Template</em></h1>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update this recurring holiday rule.' : 'Define a holiday that repeats every year or every month — it will auto-seed into every new academic year.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+
+      <!-- ── LEFT: Form Card ─────────────────────────────────── -->
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Holiday Template Information</div>
+            <div class="entry-form-card__hdr-sub">Name, recurrence rule, and category</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <!-- Name -->
+            <div class="field-group">
+              <label for="ht-name" class="field-label">
+                Name <span class="required-star">*</span>
+              </label>
+              <input
+                id="ht-name"
+                class="field-input"
+                formControlName="name"
+                placeholder="e.g., Republic Day"
+                autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+              />
+              @if (form.get('name')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">{{ getFieldError('name') }}</p>
+              }
+            </div>
+
+            <!-- Recurrence Type -->
+            <div class="field-group">
+              <label for="ht-recurrence" class="field-label">
+                Repeats <span class="required-star">*</span>
+              </label>
+              <select id="ht-recurrence" class="field-select" formControlName="recurrenceType">
+                <option value="YEARLY">Every year (fixed date)</option>
+                <option value="MONTHLY">Every month (e.g. 2nd Saturday)</option>
+              </select>
+            </div>
+
+            @if (isYearly()) {
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="ht-month" class="field-label">Month <span class="required-star">*</span></label>
+                  <select id="ht-month" class="field-select" formControlName="month">
+                    <option [ngValue]="null" disabled>Select month</option>
+                    @for (m of months; track m.value) {
+                      <option [ngValue]="m.value">{{ m.label }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label for="ht-day" class="field-label">Day <span class="required-star">*</span></label>
+                  <input id="ht-day" class="field-input" type="number" min="1" max="31" formControlName="dayOfMonth" placeholder="e.g., 26" />
+                </div>
+              </div>
+            } @else {
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="ht-week" class="field-label">Week <span class="required-star">*</span></label>
+                  <select id="ht-week" class="field-select" formControlName="weekOfMonth">
+                    <option [ngValue]="null" disabled>Select week</option>
+                    @for (w of weeksOfMonth; track w) {
+                      <option [ngValue]="w">{{ w }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label for="ht-dow" class="field-label">Day of Week <span class="required-star">*</span></label>
+                  <select id="ht-dow" class="field-select" formControlName="dayOfWeek">
+                    <option [ngValue]="null" disabled>Select day</option>
+                    @for (d of daysOfWeek; track d) {
+                      <option [ngValue]="d">{{ d }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            }
+
+            <!-- Duration -->
+            <div class="field-group">
+              <label for="ht-duration" class="field-label">
+                Duration (days) <span class="required-star">*</span>
+              </label>
+              <input
+                id="ht-duration"
+                class="field-input"
+                type="number"
+                min="1"
+                formControlName="durationDays"
+                placeholder="e.g., 1"
+              />
+              <p class="field-hint">For multi-day holidays (e.g. a 3-day festival week)</p>
+            </div>
+
+            <!-- Holiday Category -->
+            <div class="field-group">
+              <label for="ht-category" class="field-label">Holiday Category</label>
+              <select id="ht-category" class="field-select" formControlName="holidayCategory">
+                <option [ngValue]="null">Unspecified</option>
+                @for (c of holidayCategories; track c) {
+                  <option [ngValue]="c">{{ c }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- Description -->
+            <div class="field-group">
+              <label for="ht-desc" class="field-label">Description</label>
+              <textarea id="ht-desc" class="field-input" rows="2" formControlName="description" placeholder="Optional details"></textarea>
+            </div>
+
+            <!-- Footer -->
+            <div class="entry-form-card__footer">
+              <a routerLink="/holiday-templates" class="btn-secondary">Cancel</a>
+              <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+                @if (saving()) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                }
+                {{ isEditMode() ? 'Update' : 'Save' }}
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+      <!-- ── RIGHT: Preview Card ─────────────────────────────── -->
+      <aside class="entry-form-side-panel">
+        <div class="dept-preview-card">
+          <div class="dept-preview-hdr">
+            <span class="dept-preview-label">Preview</span>
+          </div>
+          <div class="dept-preview-body">
+            <div class="dept-prev-name">{{ previewName() || 'Holiday Template Name' }}</div>
+            @if (previewSummary()) {
+              <p class="dept-prev-desc">{{ previewSummary() }}</p>
+            }
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  }
+
+</div>

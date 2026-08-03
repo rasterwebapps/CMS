@@ -27,6 +27,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Batch;
 import com.cms.model.BlockedPeriod;
+import com.cms.model.CalendarEvent;
 import com.cms.model.ClassSchedule;
 import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
@@ -276,6 +277,46 @@ class TimetableSkeletonServiceTest {
         assertThatThrownBy(() -> service.placeCell(request))
             .isInstanceOf(LifecycleConflictException.class)
             .hasMessageContaining("Staff meeting");
+    }
+
+    @Test
+    void shouldRejectPlacementAtAHolidayDerivedOneOffBlock() {
+        CalendarEvent holiday = new CalendarEvent();
+        holiday.setTitle("Independence Day");
+        BlockedPeriod block = new BlockedPeriod();
+        block.setBlockType(BlockType.ONE_OFF);
+        block.setSpecificDate(LocalDate.of(2024, 8, 5)); // a Monday
+        block.setReason("Auto-blocked — Independence Day");
+        block.setSourceCalendarEvent(holiday);
+
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(blockedPeriodRepository.findHolidayOneOffBlocksInRange(
+            1L, termInstance.getStartDate(), termInstance.getEndDate()))
+            .thenReturn(List.of(block));
+
+        assertThatThrownBy(() -> service.placeCell(request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("Auto-blocked");
+    }
+
+    @Test
+    void shouldAllowPlacementWhenOnlyAManuallyCreatedOneOffBlockExists() {
+        // A manually-created ONE_OFF block (no sourceCalendarEvent) never reaches
+        // findHolidayOneOffBlocksInRange's result set -- the repository query itself filters to
+        // sourceCalendarEventId IS NOT NULL, so this simulates that by returning empty here even
+        // though a manual ONE_OFF block for this exact period/date exists in the DB.
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SkeletonCellResponse response = service.placeCell(request);
+
+        assertThat(response.sessionType()).isEqualTo(ClassSessionType.THEORY);
     }
 
     @Test

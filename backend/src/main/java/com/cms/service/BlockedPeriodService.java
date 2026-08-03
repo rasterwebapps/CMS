@@ -110,6 +110,7 @@ public class BlockedPeriodService {
         return new BlockedPeriodResponse(
             b.getId(), b.getPeriod().getId(), b.getPeriod().getName(), b.getBlockType(),
             b.getSpecificDate(), b.getDayOfWeek(), b.getRangeStartDate(), b.getRangeEndDate(),
-            b.getReason(), b.getCreatedAt(), b.getUpdatedAt());
+            b.getReason(), b.getCreatedAt(), b.getUpdatedAt(),
+            b.getSourceCalendarEvent() != null ? b.getSourceCalendarEvent().getId() : null);
     }
 }

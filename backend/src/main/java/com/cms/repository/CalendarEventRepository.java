@@ -36,4 +36,21 @@ public interface CalendarEventRepository extends JpaRepository<CalendarEvent, Lo
     List<CalendarEvent> findNonTeachingDaysOverlapping(@Param("academicYearId") Long academicYearId,
                                                          @Param("rangeStart") LocalDate rangeStart,
                                                          @Param("rangeEnd") LocalDate rangeEnd);
+
+    /** Every event (any type) overlapping a proposed date range, used by the flyout's
+     *  save-time conflict check. Unlike {@link #findOverlapping}, not filtered to one eventType --
+     *  an admin should know about an Exam already scheduled during a new Holiday, not just other
+     *  Holidays. {@code excludeId} lets an in-progress edit ignore its own row. */
+    @Query("SELECT ce FROM CalendarEvent ce WHERE ce.academicYear.id = :academicYearId " +
+           "AND (:excludeId IS NULL OR ce.id <> :excludeId) " +
+           "AND ce.startDate <= :rangeEnd AND ce.endDate >= :rangeStart")
+    List<CalendarEvent> findOverlappingAnyType(@Param("academicYearId") Long academicYearId,
+                                                @Param("rangeStart") LocalDate rangeStart,
+                                                @Param("rangeEnd") LocalDate rangeEnd,
+                                                @Param("excludeId") Long excludeId);
+
+    /** Future-dated events seeded from one HolidayTemplate -- used by the "delete this and all
+     *  future occurrences" series-delete (past instances are never touched). */
+    List<CalendarEvent> findBySourceHolidayTemplateIdAndStartDateGreaterThanEqual(
+        Long sourceHolidayTemplateId, LocalDate cutoff);
 }

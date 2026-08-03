@@ -59,6 +59,21 @@
                     <mat-spinner diameter="24"></mat-spinner>
                   </div>
                 } @else if (offeringDetail()) {
+                  <div class="blueprint-row">
+                    @if (varianceLoading()) {
+                      <span class="blueprint-row__hint">Checking blueprint…</span>
+                    } @else if (variance().length === 0) {
+                      <span class="blueprint-row__hint">No portion-completion blueprint generated yet.</span>
+                    }
+                    @if (canManageBlueprint()) {
+                      <button type="button" class="btn-secondary" [disabled]="generatingBlueprint()"
+                        (click)="generateBlueprint(subject.courseOfferingId)">
+                        @if (generatingBlueprint()) { <mat-spinner diameter="14"></mat-spinner> }
+                        {{ variance().length === 0 ? 'Generate Blueprint' : 'Regenerate Blueprint' }}
+                      </button>
+                    }
+                  </div>
+
                   <ul class="unit-detail-list">
                     @for (unit of offeringDetail()!.units; track unit.unitId) {
                       <li class="unit-detail-item" [class.unit-detail-item--covered]="unit.completed">
@@ -69,6 +84,24 @@
                         }
                         @if (unit.coveredDates.length > 0) {
                           <span class="unit-detail-item__dates">{{ unit.coveredDates.join(', ') }}</span>
+                        }
+                        @if (varianceFor(unit.unitId); as v) {
+                          @if (v.plannedCompletionDate) {
+                            <span class="unit-detail-item__variance"
+                              [class.unit-detail-item__variance--behind]="(v.varianceDays ?? 0) > 0"
+                              [class.unit-detail-item__variance--ahead]="(v.varianceDays ?? 0) < 0"
+                              matTooltip="Planned: {{ v.plannedCompletionDate }} · {{ v.completed ? 'Actual' : 'Projected' }}: {{ v.projectedOrActualDate ?? 'not reachable within current timetable' }}">
+                              @if (v.varianceDays == null) {
+                                Won't complete in time
+                              } @else if (v.varianceDays === 0) {
+                                On track
+                              } @else if (v.varianceDays! > 0) {
+                                {{ v.varianceDays }}d behind
+                              } @else {
+                                {{ -v.varianceDays! }}d ahead
+                              }
+                            </span>
+                          }
                         }
                       </li>
                     }

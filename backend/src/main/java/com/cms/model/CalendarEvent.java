@@ -58,6 +58,13 @@ public class CalendarEvent {
     @JoinColumn(name = "academic_year_id", nullable = false)
     private AcademicYear academicYear;
 
+    /** Non-null only for a HOLIDAY event seeded by {@code HolidayTemplateSeedingService} from a
+     *  recurring {@link HolidayTemplate}; null for every manually-created event. Drives the
+     *  "delete this occurrence only" vs "delete this and all future occurrences" choice. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_holiday_template_id")
+    private HolidayTemplate sourceHolidayTemplate;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -131,6 +138,14 @@ public class CalendarEvent {
 
     public void setAcademicYear(AcademicYear academicYear) {
         this.academicYear = academicYear;
+    }
+
+    public HolidayTemplate getSourceHolidayTemplate() {
+        return sourceHolidayTemplate;
+    }
+
+    public void setSourceHolidayTemplate(HolidayTemplate sourceHolidayTemplate) {
+        this.sourceHolidayTemplate = sourceHolidayTemplate;
     }
 
     public Instant getCreatedAt() {

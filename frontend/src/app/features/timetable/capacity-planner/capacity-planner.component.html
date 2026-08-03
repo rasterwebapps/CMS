@@ -70,6 +70,25 @@
       @if (p.bufferHours < 0) {
         <p class="cap-sizing-card__warn">The curriculum needs more hours than this term's calendar has available — the timetable will not fit without extending the term or trimming holidays/exam days.</p>
       }
+      @if (canViewShortfall() && shortfall(); as s) {
+        @if (s.atRisk) {
+          <div class="cap-shortfall-banner cap-shortfall-banner--risk">
+            <p class="cap-shortfall-banner__title">Portions cannot be completed as currently scheduled</p>
+            <p class="cap-shortfall-banner__detail">
+              {{ s.totalShortfallHours | number:'1.0-1' }} hrs of remaining syllabus need more teaching time than the
+              {{ s.bufferHours | number:'1.0-1' }} hrs of buffer left this term — holidays/blocks since each subject's
+              blueprint was generated have eaten into the schedule. Consider a special class on a holiday to recover time.
+            </p>
+            <ul class="cap-shortfall-banner__list">
+              @for (subj of s.subjects; track subj.courseOfferingId) {
+                <li>{{ subj.subjectName }} ({{ subj.subjectCode }}) — {{ subj.remainingShortfallHours | number:'1.0-1' }} hrs short</li>
+              }
+            </ul>
+          </div>
+        } @else if (s.subjects.length > 0) {
+          <p class="cap-shortfall-banner__ok">Portion completion is on track — {{ s.totalShortfallHours | number:'1.0-1' }} of {{ s.bufferHours | number:'1.0-1' }} buffer hrs used.</p>
+        }
+      }
     </div>
 
     <div class="cap-sizing-grid">
@@ -132,6 +151,24 @@
           <button type="button" class="btn-secondary" [disabled]="creatingBatches() || !selectedOfferingId" (click)="createSuggestedBatches()">
             @if (creatingBatches()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
             Create {{ p.labBatchesNeeded }} Batch(es)
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (canManageBlueprint() && offerings().length > 0) {
+      <div class="content-card cap-batch-action-card">
+        <h3 class="cap-sizing-card__title">Portion-Completion Blueprint</h3>
+        <p class="cap-batch-action-card__hint">Freezes planned completion dates for a subject's syllabus units from its current timetable — generate once the timetable is finalized, and again any time it's deliberately re-paced.</p>
+        <div class="cap-batch-action-card__row">
+          <select class="mlp-filter-select" [(ngModel)]="selectedOfferingId" [disabled]="offerings().length === 0" aria-label="Subject offering for blueprint">
+            @for (o of offerings(); track o.id) {
+              <option [ngValue]="o.id">{{ o.subjectName }} ({{ o.subjectCode }})</option>
+            }
+          </select>
+          <button type="button" class="btn-secondary" [disabled]="generatingBlueprint() || !selectedOfferingId" (click)="generateBlueprint()">
+            @if (generatingBlueprint()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+            Generate Blueprint
           </button>
         </div>
       </div>

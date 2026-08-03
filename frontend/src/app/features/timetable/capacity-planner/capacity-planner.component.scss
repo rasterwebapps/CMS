@@ -117,6 +117,44 @@
   color: var(--cms-warning);
 }
 
+.cap-shortfall-banner {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+
+  &--risk {
+    border: 1px solid var(--cms-warning);
+    background: var(--cms-warning-light);
+  }
+}
+
+.cap-shortfall-banner__title {
+  margin: 0 0 4px;
+  font-size: var(--cms-text-sm);
+  font-weight: 700;
+  color: var(--cms-warning);
+}
+
+.cap-shortfall-banner__detail {
+  margin: 0 0 8px;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-primary);
+  line-height: 1.5;
+}
+
+.cap-shortfall-banner__list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-muted);
+}
+
+.cap-shortfall-banner__ok {
+  margin: 10px 0 0;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-success);
+}
+
 .cap-venue-list {
   list-style: none;
   margin: 0;

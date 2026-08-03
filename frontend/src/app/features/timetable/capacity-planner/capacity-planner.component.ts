@@ -11,6 +11,8 @@ import { BatchService } from '../../batch/batch.service';
 import { CmsCapacityMeterComponent } from '../../../shared/capacity-meter/capacity-meter.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
+import { PortionBlueprintService } from '../portion-blueprint.service';
+import { PortionShortfall } from '../portion-blueprint.model';
 
 @Component({
   selector: 'app-capacity-planner',
@@ -25,6 +27,7 @@ export class CapacityPlannerComponent implements OnInit {
   private readonly batchService = inject(BatchService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
+  private readonly portionBlueprintService = inject(PortionBlueprintService);
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
@@ -34,6 +37,18 @@ export class CapacityPlannerComponent implements OnInit {
 
   protected readonly loading = signal(false);
   protected readonly creatingBatches = signal(false);
+
+  // ─── Portion-completion shortfall (reuses this screen's own bufferHours) ───
+  protected readonly shortfall = signal<PortionShortfall | null>(null);
+  protected readonly generatingBlueprint = signal(false);
+
+  protected canViewShortfall(): boolean {
+    return this.permissionService.has('PROGRESS_REPORT_VIEW');
+  }
+
+  protected canManageBlueprint(): boolean {
+    return this.permissionService.has('PORTION_BLUEPRINT_MANAGE');
+  }
 
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
@@ -65,6 +80,7 @@ export class CapacityPlannerComponent implements OnInit {
     this.selectedCohortId = null;
     this.offerings.set([]);
     this.plan.set(null);
+    this.shortfall.set(null);
     if (this.selectedAcademicYearId) {
       this.loadTermInstances(this.selectedAcademicYearId);
       this.loadCohorts(this.selectedAcademicYearId);
@@ -75,12 +91,14 @@ export class CapacityPlannerComponent implements OnInit {
     this.selectedOfferingId = null;
     this.offerings.set([]);
     this.plan.set(null);
+    this.shortfall.set(null);
   }
 
   protected onCohortChange(): void {
     this.selectedOfferingId = null;
     this.offerings.set([]);
     this.plan.set(null);
+    this.shortfall.set(null);
   }
 
   private loadTermInstances(academicYearId: number): void {
@@ -120,12 +138,16 @@ export class CapacityPlannerComponent implements OnInit {
   protected loadPlan(): void {
     if (!this.selectedTermInstanceId || !this.selectedCohortId) return;
     this.loading.set(true);
-    this.capacityPlannerService.getPlan(this.selectedTermInstanceId, this.selectedCohortId, this.targetBatchSize)
+    this.shortfall.set(null);
+    const termInstanceId = this.selectedTermInstanceId;
+    const cohortId = this.selectedCohortId;
+    this.capacityPlannerService.getPlan(termInstanceId, cohortId, this.targetBatchSize)
       .subscribe({
         next: (data) => {
           this.plan.set(data);
           this.loading.set(false);
           this.loadOfferings(data.termInstanceId, data.semesterNumber);
+          if (this.canViewShortfall()) this.loadShortfall(termInstanceId, cohortId);
         },
         error: (err) => {
           this.toast.error(err?.error?.message ?? 'Failed to load capacity plan');
@@ -133,6 +155,33 @@ export class CapacityPlannerComponent implements OnInit {
           this.loading.set(false);
         },
       });
+  }
+
+  private loadShortfall(termInstanceId: number, cohortId: number): void {
+    this.portionBlueprintService.checkShortfall(termInstanceId, cohortId).subscribe({
+      next: (data) => this.shortfall.set(data),
+      // Quiet failure -- the shortfall banner is a bonus signal, not core to this screen's purpose.
+      error: () => this.shortfall.set(null),
+    });
+  }
+
+  protected generateBlueprint(): void {
+    if (!this.selectedOfferingId) return;
+    const offeringId = this.selectedOfferingId;
+    this.generatingBlueprint.set(true);
+    this.portionBlueprintService.generateBlueprint(offeringId).subscribe({
+      next: () => {
+        this.toast.success('Blueprint generated');
+        this.generatingBlueprint.set(false);
+        if (this.selectedTermInstanceId && this.selectedCohortId) {
+          this.loadShortfall(this.selectedTermInstanceId, this.selectedCohortId);
+        }
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to generate blueprint');
+        this.generatingBlueprint.set(false);
+      },
+    });
   }
 
   protected createSuggestedBatches(): void {

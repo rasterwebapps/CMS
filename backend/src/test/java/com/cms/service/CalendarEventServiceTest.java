@@ -26,7 +26,10 @@ import com.cms.model.CalendarEvent;
 import com.cms.model.enums.CalendarEventType;
 import com.cms.model.enums.HolidayCategory;
 import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.CalendarEventRepository;
+import com.cms.repository.HolidayTemplateRepository;
+import com.cms.repository.PeriodRepository;
 
 @ExtendWith(MockitoExtension.class)
 class CalendarEventServiceTest {
@@ -37,6 +40,15 @@ class CalendarEventServiceTest {
     @Mock
     private AcademicYearRepository academicYearRepository;
 
+    @Mock
+    private BlockedPeriodRepository blockedPeriodRepository;
+
+    @Mock
+    private PeriodRepository periodRepository;
+
+    @Mock
+    private HolidayTemplateRepository holidayTemplateRepository;
+
     private CalendarEventService calendarEventService;
 
     private AcademicYear academicYear;
@@ -44,7 +56,8 @@ class CalendarEventServiceTest {
     @BeforeEach
     void setUp() {
         calendarEventService = new CalendarEventService(
-            calendarEventRepository, academicYearRepository);
+            calendarEventRepository, academicYearRepository, blockedPeriodRepository,
+            periodRepository, holidayTemplateRepository);
         academicYear = new AcademicYear(
             "2024-2025", LocalDate.of(2024, 8, 1), LocalDate.of(2025, 5, 31), true);
         academicYear.setId(1L);

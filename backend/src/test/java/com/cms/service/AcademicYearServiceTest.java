@@ -66,6 +66,9 @@ class AcademicYearServiceTest {
     @Mock
     private CourseRepository courseRepository;
 
+    @Mock
+    private HolidayTemplateSeedingService holidayTemplateSeedingService;
+
     private AcademicYearService academicYearService;
 
     @BeforeEach
@@ -73,7 +76,7 @@ class AcademicYearServiceTest {
         academicYearService = new AcademicYearService(
             academicYearRepository, feeStructureGroupRepository, termInstanceService,
             termInstanceRepository, termBillingScheduleService,
-            cohortRepository, courseRepository);
+            cohortRepository, courseRepository, holidayTemplateSeedingService);
     }
 
     /** A name/date pair safely in the future relative to whenever the suite actually runs. */

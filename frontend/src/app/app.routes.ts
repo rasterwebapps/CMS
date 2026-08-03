@@ -1349,6 +1349,31 @@ export const routes: Routes = [
         (m) => m.BloodGroupFormComponent
       ),
   },
+  // ── Masters: Holiday Template ────────────────────────────────────────────
+  {
+    path: 'holiday-templates',
+    canActivate: [authGuard, requiresPermission('HOLIDAY_TEMPLATE_VIEW', 'HOLIDAY_TEMPLATE_MANAGE')],
+    loadComponent: () =>
+      import('./features/holiday-template/holiday-template-list/holiday-template-list.component').then(
+        (m) => m.HolidayTemplateListComponent
+      ),
+  },
+  {
+    path: 'holiday-templates/new',
+    canActivate: [authGuard, requiresPermission('HOLIDAY_TEMPLATE_MANAGE')],
+    loadComponent: () =>
+      import('./features/holiday-template/holiday-template-form/holiday-template-form.component').then(
+        (m) => m.HolidayTemplateFormComponent
+      ),
+  },
+  {
+    path: 'holiday-templates/:id/edit',
+    canActivate: [authGuard, requiresPermission('HOLIDAY_TEMPLATE_MANAGE')],
+    loadComponent: () =>
+      import('./features/holiday-template/holiday-template-form/holiday-template-form.component').then(
+        (m) => m.HolidayTemplateFormComponent
+      ),
+  },
   // ── Masters: Institution ─────────────────────────────────────────────────
   {
     path: 'institutions',

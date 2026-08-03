@@ -93,6 +93,13 @@ export interface CalendarEvent {
   academicYear: AcademicYear;
   createdAt: string;
   updatedAt: string;
+  /** Distinct period ids currently auto-blocked for this event (only ever non-empty for
+   *  eventType === 'HOLIDAY'). */
+  blockedPeriodIds: number[];
+  /** Non-null only when this event was seeded from a recurring Holiday Template -- drives the
+   *  "delete this occurrence only" vs "delete this and all future occurrences" choice. */
+  sourceHolidayTemplateId: number | null;
+  sourceHolidayTemplateName: string | null;
 }
 
 export interface CalendarEventRequest {
@@ -103,6 +110,9 @@ export interface CalendarEventRequest {
   eventType: CalendarEventType;
   academicYearId: number;
   holidayCategory?: HolidayCategory | null;
+  /** Only meaningful when eventType === 'HOLIDAY' -- which periods to auto-block for every date
+   *  in [startDate, endDate]. Omitted/empty means "whole day" (every active period). */
+  blockedPeriodIds?: number[];
 }
 
 export type BlockType = 'ONE_OFF' | 'RECURRING';
@@ -120,6 +130,9 @@ export interface BlockedPeriod {
   reason: string;
   createdAt: string;
   updatedAt: string;
+  /** Non-null only when this block was auto-generated from a HOLIDAY CalendarEvent -- drives the
+   *  "Auto · Holiday" tag; deleting the row (with no special-cased UI) is the unblock override. */
+  sourceCalendarEventId: number | null;
 }
 
 export interface BlockedPeriodRequest {

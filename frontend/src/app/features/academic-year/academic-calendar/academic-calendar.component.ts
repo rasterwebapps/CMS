@@ -45,25 +45,9 @@ import {
   EVENT_TYPE_LABELS,
 } from './calendar-display.constants';
 import { DayDetailFlyoutComponent, DayDetailSection } from './day-detail-flyout/day-detail-flyout.component';
+import { buildMonthGrids, MonthGrid, toIso } from './month-grid.util';
 
 export type CalendarViewMode = 'timeline' | 'grid' | 'blocked-periods';
-
-interface MonthGrid {
-  year: number;
-  month: number; // 0-based
-  label: string;
-  days: DayCell[];
-}
-
-interface DayCell {
-  date: Date;
-  dayNum: number;
-  isCurrentMonth: boolean;
-  termStatus: 'UPCOMING' | 'ONGOING' | 'COMPLETED' | null;
-  termName: string | null;
-  events: CalendarEvent[];
-  isToday: boolean;
-}
 
 @Component({
   selector: 'app-academic-calendar',
@@ -214,16 +198,15 @@ export class AcademicCalendarComponent implements OnInit {
   protected readonly monthGrids = computed<MonthGrid[]>(() => {
     const ay = this.selectedAcademicYear();
     if (!ay) return [];
-    return this.buildMonthGrids(ay, this.termInstances(), this.events());
+    return buildMonthGrids(
+      ay, this.termInstances(), this.events(),
+      (term) => this.getTermStatus(term), (term) => this.getTermLabel(term),
+    );
   });
 
   protected blockSummary(block: BlockedPeriod): string {
     return formatBlockSummary(block, this.dayOfWeekLabels);
   }
-
-  private readonly MONTH_NAMES = Array.from({ length: 12 }, (_, i) =>
-    new Intl.DateTimeFormat('en', { month: 'long' }).format(new Date(2000, i, 1)),
-  );
 
   ngOnInit(): void {
     this.tourService.register('academic-calendar', ACADEMIC_CALENDAR_TOUR);
@@ -451,6 +434,22 @@ export class AcademicCalendarComponent implements OnInit {
     });
   }
 
+  /** "Delete this and all future occurrences" -- see the day-detail flyout's twin method for the
+   *  full rationale. Past occurrences are never touched (enforced server-side). */
+  protected deleteEventSeries(event: CalendarEvent): void {
+    if (!confirm(
+      `Delete "${event.title}" and every future occurrence of its holiday template? ` +
+      `Past occurrences will not be affected.`,
+    )) return;
+    this.academicYearService.deleteCalendarEventSeries(event.id).subscribe({
+      next: () => {
+        this.toast.success('Event series deleted');
+        this.reloadEvents();
+      },
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete event series'),
+    });
+  }
+
   private reloadEvents(): void {
     const ay = this.selectedAcademicYear();
     if (!ay) return;
@@ -509,78 +508,6 @@ export class AcademicCalendarComponent implements OnInit {
   }
 
   // ─── Grid builder ───
-  private buildMonthGrids(
-    ay: AcademicYear,
-    termInstances: TermInstance[],
-    events: CalendarEvent[],
-  ): MonthGrid[] {
-    const start = new Date(ay.startDate);
-    const end = new Date(ay.endDate);
-    const grids: MonthGrid[] = [];
-
-    let cur = new Date(start.getFullYear(), start.getMonth(), 1);
-    const endMonthStart = new Date(end.getFullYear(), end.getMonth(), 1);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    while (cur <= endMonthStart) {
-      const year = cur.getFullYear();
-      const month = cur.getMonth();
-      const firstDay = new Date(year, month, 1);
-      const lastDay = new Date(year, month + 1, 0);
-
-      // Pad start with blanks to align to Sunday
-      const startDow = firstDay.getDay();
-      const days: DayCell[] = [];
-
-      for (let pad = 0; pad < startDow; pad++) {
-        const d = new Date(year, month, -startDow + pad + 1);
-        days.push(this.buildDayCell(d, false, termInstances, events, today));
-      }
-      for (let d = 1; d <= lastDay.getDate(); d++) {
-        const date = new Date(year, month, d);
-        days.push(this.buildDayCell(date, true, termInstances, events, today));
-      }
-      // Pad end to complete final week
-      while (days.length % 7 !== 0) {
-        const date = new Date(year, month + 1, days.length - lastDay.getDate() - startDow + 1);
-        days.push(this.buildDayCell(date, false, termInstances, events, today));
-      }
-
-      grids.push({ year, month, label: `${this.MONTH_NAMES[month]} ${year}`, days });
-      cur = new Date(year, month + 1, 1);
-    }
-    return grids;
-  }
-
-  private buildDayCell(
-    date: Date,
-    isCurrentMonth: boolean,
-    termInstances: TermInstance[],
-    events: CalendarEvent[],
-    today: Date,
-  ): DayCell {
-    const iso = this.toIso(date);
-    const term = termInstances.find((item) => item.startDate <= iso && item.endDate >= iso);
-    const dayEvents = events.filter((e) => e.startDate <= iso && e.endDate >= iso);
-    return {
-      date,
-      dayNum: date.getDate(),
-      isCurrentMonth,
-      termStatus: term ? this.getTermStatus(term) : null,
-      termName: term ? this.getTermLabel(term) : null,
-      events: dayEvents,
-      isToday: date.getTime() === today.getTime(),
-    };
-  }
-
-  private toIso(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }
-
   protected trackByMonth(index: number, grid: MonthGrid): string {
     return `${grid.year}-${grid.month}`;
   }
