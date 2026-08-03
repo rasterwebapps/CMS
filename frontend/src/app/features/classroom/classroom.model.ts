@@ -17,6 +17,9 @@ export interface Classroom {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Linked physical Campus Setup Room, if any — see CmsRoomPickerComponent. */
+  roomId?: number;
+  roomLabel?: string;
 }
 
 export interface ClassroomRequest {
@@ -25,6 +28,7 @@ export interface ClassroomRequest {
   roomNumber?: string;
   capacity?: number;
   isActive?: boolean;
+  roomId?: number;
 }
 
 export interface ClassroomStatusUpdateRequest {

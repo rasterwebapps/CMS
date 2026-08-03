@@ -1,7 +1,7 @@
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -15,6 +15,9 @@ import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-ca
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
+import { CmsRoomPickerComponent } from '../../../shared/room-picker/room-picker.component';
+import { RoomPurposeCategoryService } from '../../hostel/room-purpose-category/room-purpose-category.service';
+import { RoomPurposeCategory } from '../../hostel/room-purpose-category/room-purpose-category.model';
 
 @Component({
   selector: 'app-lab-form',
@@ -22,11 +25,13 @@ import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError,
   imports: [
     RouterLink, CmsTourButtonComponent,
     ReactiveFormsModule,
+    FormsModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
     CmsPreviewCardComponent,
     CmsTipsCardComponent,
+    CmsRoomPickerComponent,
   ],
   templateUrl: './lab-form.component.html',
   styleUrl: './lab-form.component.scss',
@@ -39,12 +44,18 @@ export class LabFormComponent implements OnInit {
   private readonly specialityService = inject(SpecialityService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly roomPurposeCategoryService = inject(RoomPurposeCategoryService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Lab');
   protected readonly specialities = signal<Speciality[]>([]);
+
+  protected readonly purposeCategories = signal<RoomPurposeCategory[]>([]);
+  protected selectedPurposeCategoryId: number | null = null;
+  protected selectedRoomId: number | null = null;
+  protected readonly currentRoomLabel = signal<string | null>(null);
 
   protected readonly labTypes = LAB_TYPES;
   protected readonly labStatuses = LAB_STATUSES;
@@ -105,6 +116,10 @@ export class LabFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadSpecialities();
+    this.roomPurposeCategoryService.getAll(true).subscribe({
+      next: (categories) => this.purposeCategories.set(categories),
+      error: () => this.toast.error('Failed to load room purpose categories'),
+    });
 
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
@@ -129,6 +144,7 @@ export class LabFormComponent implements OnInit {
       roomNumber: this.form.value.roomNumber?.trim() || undefined,
       capacity: Number(this.form.value.capacity),
       status: this.form.value.status,
+      roomId: this.selectedRoomId ?? undefined,
     };
 
     this.saving.set(true);
@@ -191,6 +207,8 @@ export class LabFormComponent implements OnInit {
           capacity: lab.capacity,
           status: lab.status,
         });
+        this.selectedRoomId = lab.roomId ?? null;
+        this.currentRoomLabel.set(lab.roomLabel ?? null);
         this.loading.set(false);
       },
       error: () => {

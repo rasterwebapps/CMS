@@ -33,6 +33,7 @@ import com.cms.model.enums.LabType;
 import com.cms.repository.SpecialityRepository;
 import com.cms.repository.LabInChargeAssignmentRepository;
 import com.cms.repository.LabRepository;
+import com.cms.repository.RoomRepository;
 
 @ExtendWith(MockitoExtension.class)
 class LabServiceTest {
@@ -46,13 +47,16 @@ class LabServiceTest {
     @Mock
     private LabInChargeAssignmentRepository assignmentRepository;
 
+    @Mock
+    private RoomRepository roomRepository;
+
     private LabService labService;
 
     private Speciality speciality;
 
     @BeforeEach
     void setUp() {
-        labService = new LabService(labRepository, specialityRepository, assignmentRepository);
+        labService = new LabService(labRepository, specialityRepository, assignmentRepository, roomRepository);
         speciality = createSpeciality(1L, "Computer Science", "CS", "CS Speciality", "Dr. John");
     }
 
@@ -65,8 +69,7 @@ class LabServiceTest {
             "Main Building",
             "101",
             30,
-            LabStatus.ACTIVE
-        );
+            LabStatus.ACTIVE, null);
 
         Lab savedLab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, speciality,
             "Main Building", "101", 30, LabStatus.ACTIVE);
@@ -101,8 +104,7 @@ class LabServiceTest {
             "Main Building",
             "101",
             30,
-            LabStatus.ACTIVE
-        );
+            LabStatus.ACTIVE, null);
 
         when(specialityRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -220,8 +222,7 @@ class LabServiceTest {
             "Science Building",
             "301",
             40,
-            LabStatus.UNDER_MAINTENANCE
-        );
+            LabStatus.UNDER_MAINTENANCE, null);
 
         Lab updatedLab = createLab(1L, "Electronics Lab Updated", LabType.ELECTRONICS, newSpeciality,
             "Science Building", "301", 40, LabStatus.UNDER_MAINTENANCE);
@@ -253,8 +254,7 @@ class LabServiceTest {
             "Main Building", "101", 30, LabStatus.ACTIVE);
 
         LabRequest request = new LabRequest(
-            "Computer Lab 2", LabType.COMPUTER, 1L, "Main Building", "102", 25, LabStatus.ACTIVE
-        );
+            "Computer Lab 2", LabType.COMPUTER, 1L, "Main Building", "102", 25, LabStatus.ACTIVE, null);
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(existingLab));
         when(specialityRepository.findById(1L)).thenReturn(Optional.of(speciality));
@@ -271,7 +271,7 @@ class LabServiceTest {
 
     @Test
     void shouldThrowExceptionWhenUpdatingNonExistentLab() {
-        LabRequest request = new LabRequest("Name", LabType.COMPUTER, 1L, "Building", "101", 30, LabStatus.ACTIVE);
+        LabRequest request = new LabRequest("Name", LabType.COMPUTER, 1L, "Building", "101", 30, LabStatus.ACTIVE, null);
 
         when(labRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -288,7 +288,7 @@ class LabServiceTest {
         Lab existingLab = createLab(1L, "Computer Lab 1", LabType.COMPUTER, speciality,
             "Main Building", "101", 30, LabStatus.ACTIVE);
 
-        LabRequest request = new LabRequest("Name", LabType.COMPUTER, 999L, "Building", "101", 30, LabStatus.ACTIVE);
+        LabRequest request = new LabRequest("Name", LabType.COMPUTER, 999L, "Building", "101", 30, LabStatus.ACTIVE, null);
 
         when(labRepository.findById(1L)).thenReturn(Optional.of(existingLab));
         when(specialityRepository.findById(999L)).thenReturn(Optional.empty());

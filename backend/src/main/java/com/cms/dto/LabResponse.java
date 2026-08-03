@@ -15,5 +15,7 @@ public record LabResponse(
     Integer capacity,
     LabStatus status,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    Long roomId,
+    String roomLabel
 ) {}

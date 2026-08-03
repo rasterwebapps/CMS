@@ -10,5 +10,7 @@ public record ClinicalVenueResponse(
     Integer capacity,
     Boolean isActive,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    Long roomId,
+    String roomLabel
 ) {}

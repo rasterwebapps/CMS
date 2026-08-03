@@ -29,5 +29,8 @@ public record LabRequest(
     Integer capacity,
 
     @NotNull(message = "Status is required")
-    LabStatus status
+    LabStatus status,
+
+    /** Links this virtual venue to a physical Campus Setup Room — optional, admin-linked. */
+    Long roomId
 ) {}

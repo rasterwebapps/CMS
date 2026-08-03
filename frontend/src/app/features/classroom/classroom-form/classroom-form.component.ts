@@ -1,6 +1,6 @@
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,6 +13,9 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, trimmedMinLength, cmsFieldError } from '../../../shared/validators/cms-validators';
 import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
+import { CmsRoomPickerComponent } from '../../../shared/room-picker/room-picker.component';
+import { RoomPurposeCategoryService } from '../../hostel/room-purpose-category/room-purpose-category.service';
+import { RoomPurposeCategory } from '../../hostel/room-purpose-category/room-purpose-category.model';
 
 @Component({
   selector: 'app-classroom-form',
@@ -20,9 +23,11 @@ import { uniqueFieldValidator } from '../../../shared/validators/unique-field.va
   imports: [
     RouterLink,
     ReactiveFormsModule,
+    FormsModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    CmsRoomPickerComponent,
   ],
   templateUrl: './classroom-form.component.html',
   styleUrl: './classroom-form.component.scss',
@@ -35,6 +40,7 @@ export class ClassroomFormComponent implements OnInit {
   private readonly toast            = inject(ToastService);
   private readonly destroyRef       = inject(DestroyRef);
   private readonly http             = inject(HttpClient);
+  private readonly roomPurposeCategoryService = inject(RoomPurposeCategoryService);
 
   protected readonly loading    = signal(false);
   protected readonly saving     = signal(false);
@@ -44,6 +50,11 @@ export class ClassroomFormComponent implements OnInit {
   protected readonly previewName = signal('');
   protected readonly previewBuilding = signal('');
   protected readonly previewRoomNumber = signal('');
+
+  protected readonly purposeCategories = signal<RoomPurposeCategory[]>([]);
+  protected selectedPurposeCategoryId: number | null = null;
+  protected selectedRoomId: number | null = null;
+  protected readonly currentRoomLabel = signal<string | null>(null);
 
   private classroomId: number | null = null;
 
@@ -73,6 +84,10 @@ export class ClassroomFormComponent implements OnInit {
       this.loadClassroom();
     }
     this.setupUniquenessValidators();
+    this.roomPurposeCategoryService.getAll(true).subscribe({
+      next: (categories) => this.purposeCategories.set(categories),
+      error: () => this.toast.error('Failed to load room purpose categories'),
+    });
   }
 
   private setupUniquenessValidators(): void {
@@ -96,6 +111,7 @@ export class ClassroomFormComponent implements OnInit {
       building:   this.form.value.building?.trim() || undefined,
       roomNumber: this.form.value.roomNumber?.trim() || undefined,
       capacity:   this.form.value.capacity ?? undefined,
+      roomId:     this.selectedRoomId ?? undefined,
     };
 
     this.saving.set(true);
@@ -130,6 +146,8 @@ export class ClassroomFormComponent implements OnInit {
     this.classroomService.getById(this.classroomId).subscribe({
       next: (c) => {
         this.form.patchValue({ name: c.name, building: c.building || '', roomNumber: c.roomNumber || '', capacity: c.capacity ?? null });
+        this.selectedRoomId = c.roomId ?? null;
+        this.currentRoomLabel.set(c.roomLabel ?? null);
         this.loading.set(false);
       },
       error: () => {

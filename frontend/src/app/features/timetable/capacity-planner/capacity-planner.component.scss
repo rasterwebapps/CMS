@@ -193,6 +193,20 @@
   flex-wrap: wrap;
 }
 
+.cap-allocation-splits {
+  margin: 12px 0;
+}
+
+.cap-split-row {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--cms-border-default);
+
+  select, input {
+    min-width: 140px;
+  }
+}
+
 .cap-utilization-card {
   padding: 16px 18px;
 }

@@ -93,6 +93,26 @@
               }
             </div>
 
+            <!-- Physical Location (on-campus only) -->
+            <div class="field-group">
+              <label for="cv-purpose-category" class="field-label">Physical Location (optional, on-campus only)</label>
+              <p class="field-hint">Only for an on-campus clinical/skills space. Leave blank for an off-campus hospital posting — Hospital Name/Department above already describes it.</p>
+              @if (currentRoomLabel()) {
+                <p class="field-hint">Currently linked to: {{ currentRoomLabel() }}</p>
+              }
+              <select id="cv-purpose-category" class="field-input" [(ngModel)]="selectedPurposeCategoryId" [ngModelOptions]="{standalone: true}">
+                <option [ngValue]="null">Select a purpose category</option>
+                @for (cat of purposeCategories(); track cat.id) {
+                  <option [ngValue]="cat.id">{{ cat.name }}</option>
+                }
+              </select>
+              <cms-room-picker
+                [purposeCategoryId]="selectedPurposeCategoryId"
+                [(selectedRoomId)]="selectedRoomId"
+                label="Physical room"
+              />
+            </div>
+
             <!-- Footer -->
             <div class="entry-form-card__footer">
               <a routerLink="/clinical-venues" class="btn-secondary">Cancel</a>

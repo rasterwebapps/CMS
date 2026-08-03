@@ -19,5 +19,9 @@ public record ClinicalVenueRequest(
     @Positive(message = "Capacity must be greater than zero")
     Integer capacity,
 
-    Boolean isActive
+    Boolean isActive,
+
+    /** Links this virtual venue to a physical Campus Setup Room — for an off-site venue, that
+     *  Room lives under a hospital Branch. Optional, admin-linked. */
+    Long roomId
 ) {}

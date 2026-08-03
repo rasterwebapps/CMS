@@ -156,6 +156,85 @@
       </div>
     }
 
+    @if (canManageAllocation() || canRevertAllocation()) {
+      <div class="content-card cap-batch-action-card">
+        <h3 class="cap-sizing-card__title">Cohort Room Allocation</h3>
+        <p class="cap-batch-action-card__hint">Commit this cohort's physical Theory room and Lab/Clinical batch venues for {{ p.termLabel }} — Staffing builds the timetable against these once committed.</p>
+
+        @if (loadingAllocation()) {
+          <p class="skeleton-empty-hint">Loading current allocation…</p>
+        } @else if (currentAllocation(); as alloc) {
+          <p class="cap-sizing-card__ok">Theory room: {{ alloc.theoryClassroomName }} <span class="cap-venue-list__cap">(cap {{ alloc.theoryClassroomCapacity }})</span></p>
+          <ul class="cap-venue-list">
+            @for (b of alloc.batches; track b.batchId) {
+              <li>
+                {{ b.subjectName }} — {{ b.batchName }} ({{ b.sessionType }}) · {{ b.venueName }} · {{ b.plannedSize }} students
+                @if (!b.isActive) { <span class="cap-venue-list__cap">(inactive)</span> }
+              </li>
+            } @empty {
+              <li class="cap-venue-list__none">No Lab/Clinical batches in this allocation.</li>
+            }
+          </ul>
+          <p class="cap-batch-action-card__hint">Committed by {{ alloc.committedBy || 'unknown' }} on {{ alloc.committedAt | date:'medium' }}</p>
+          @if (canRevertAllocation()) {
+            <button type="button" class="btn-secondary" [disabled]="revertingAllocation()" (click)="revertAllocation()">
+              @if (revertingAllocation()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+              Revert Allocation
+            </button>
+          }
+        } @else if (canManageAllocation()) {
+          <div class="field-group">
+            <label class="field-label">Theory room (fits {{ p.cohortStrength }} students)</label>
+            <cms-room-picker
+              [purposeCategoryId]="academicCategoryId()"
+              [minCapacity]="p.cohortStrength"
+              [(selectedRoomId)]="selectedTheoryRoomId"
+              label="Theory room"
+            />
+          </div>
+
+          <div class="cap-allocation-splits">
+            <h4 class="cap-utilization-col__title">Lab / Clinical Batches</h4>
+            @for (split of draftSplits(); track split.localId) {
+              <div class="cap-batch-action-card__row cap-split-row">
+                <select class="mlp-filter-select" [(ngModel)]="split.courseOfferingId" [ngModelOptions]="{standalone: true}" aria-label="Subject offering">
+                  <option [ngValue]="null">Select subject</option>
+                  @for (o of offerings(); track o.id) {
+                    <option [ngValue]="o.id">{{ o.subjectName }} ({{ o.subjectCode }})</option>
+                  }
+                </select>
+                <select class="mlp-filter-select" [(ngModel)]="split.sessionType" [ngModelOptions]="{standalone: true}" aria-label="Session type">
+                  <option value="LAB">Lab</option>
+                  <option value="CLINICAL">Clinical</option>
+                </select>
+                <select class="mlp-filter-select" [(ngModel)]="split.venueId" [ngModelOptions]="{standalone: true}" aria-label="Venue">
+                  <option [ngValue]="null">Select venue</option>
+                  @for (r of academicRooms(); track r.id) {
+                    <option [ngValue]="r.id">{{ r.zoneName }} · {{ r.roomNumber }}@if (r.subTypeName) { [{{ r.subTypeName }}] } (cap {{ r.capacity }})</option>
+                  }
+                </select>
+                <input class="field-input" [(ngModel)]="split.batchName" [ngModelOptions]="{standalone: true}" placeholder="Batch name" />
+                <input class="field-input" type="number" min="1" [(ngModel)]="split.plannedSize" [ngModelOptions]="{standalone: true}" placeholder="Planned size" />
+                <cms-capacity-meter [occupied]="split.plannedSize ?? 0" [capacity]="roomCapacity(split.venueId)"></cms-capacity-meter>
+                @if (isSplitOverCapacity(split)) {
+                  <span class="cap-sizing-card__warn">Exceeds venue capacity</span>
+                }
+                <button type="button" class="btn-secondary" (click)="removeDraftSplit(split.localId)">Remove</button>
+              </div>
+            }
+            <button type="button" class="btn-secondary" (click)="addDraftSplit()">+ Add Batch</button>
+          </div>
+
+          <div class="cap-batch-action-card__row">
+            <button type="button" class="btn-primary" [disabled]="committingAllocation() || !selectedTheoryRoomId" (click)="commitAllocation()">
+              @if (committingAllocation()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+              Commit Allocation
+            </button>
+          </div>
+        }
+      </div>
+    }
+
     @if (canManageBlueprint() && offerings().length > 0) {
       <div class="content-card cap-batch-action-card">
         <h3 class="cap-sizing-card__title">Portion-Completion Blueprint</h3>

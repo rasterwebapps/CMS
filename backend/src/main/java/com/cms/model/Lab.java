@@ -49,6 +49,12 @@ public class Lab {
 
     private Integer capacity;
 
+    /** Links this virtual venue to the physical Campus Setup Room hierarchy. Nullable/non-unique —
+     *  see {@link Classroom#getRoom()} for the shared rationale. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id")
+    private Room room;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private LabStatus status;
@@ -129,6 +135,14 @@ public class Lab {
 
     public void setCapacity(Integer capacity) {
         this.capacity = capacity;
+    }
+
+    public Room getRoom() {
+        return room;
+    }
+
+    public void setRoom(Room room) {
+        this.room = room;
     }
 
     public LabStatus getStatus() {

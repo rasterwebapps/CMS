@@ -9,9 +9,12 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -32,6 +35,13 @@ public class Classroom {
     private String roomNumber;
 
     private Integer capacity;
+
+    /** Links this virtual venue to the physical Campus Setup Room hierarchy. Nullable/non-unique:
+     *  legacy rows predate this link, and one physical Room can carry multiple virtual identities
+     *  (e.g. also used as a Seminar Hall) — admin-linked explicitly, never auto-created. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id")
+    private Room room;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -92,6 +102,14 @@ public class Classroom {
 
     public void setCapacity(Integer capacity) {
         this.capacity = capacity;
+    }
+
+    public Room getRoom() {
+        return room;
+    }
+
+    public void setRoom(Room room) {
+        this.room = room;
     }
 
     public Boolean getIsActive() {

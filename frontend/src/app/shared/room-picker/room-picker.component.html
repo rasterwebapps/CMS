@@ -1,0 +1,18 @@
+<select
+  class="mlp-filter-select"
+  [attr.aria-label]="label"
+  [(ngModel)]="selectedRoomId"
+  (ngModelChange)="onSelectionChange()"
+  [disabled]="disabled || purposeCategoryId == null || rooms().length === 0"
+>
+  @if (purposeCategoryId == null) {
+    <option [ngValue]="null">Select a purpose category first</option>
+  } @else if (rooms().length === 0) {
+    <option [ngValue]="null">{{ loading() ? 'Loading rooms…' : 'No matching rooms' }}</option>
+  } @else {
+    <option [ngValue]="null">Select a room</option>
+    @for (room of rooms(); track room.id) {
+      <option [ngValue]="room.id">{{ roomLabel(room) }}</option>
+    }
+  }
+</select>

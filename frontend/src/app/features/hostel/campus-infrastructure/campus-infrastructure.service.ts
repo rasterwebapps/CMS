@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments';
 import {
@@ -187,6 +187,16 @@ export class CampusInfrastructureService {
   }
 
   // ─── Rooms ───────────────────────────────────────────────────────────────
+
+  /** Flat, campus-wide room search by purpose — spans every Branch (including a hospital Branch
+   *  hosting clinical venues), unlike the zone-scoped listing below. Used by venue pickers (Cohort
+   *  Room Allocation, Classroom/Lab/ClinicalVenue master forms). */
+  getRoomsByPurpose(purposeCategoryId: number, subTypeId?: number | null, minCapacity?: number | null): Observable<Room[]> {
+    let params = new HttpParams().set('purposeCategoryId', purposeCategoryId);
+    if (subTypeId != null) params = params.set('subTypeId', subTypeId);
+    if (minCapacity != null) params = params.set('minCapacity', minCapacity);
+    return this.http.get<Room[]>(`${this.baseUrl}/rooms`, { params });
+  }
 
   getRoomsByZone(zoneId: number, activeOnly = false): Observable<Room[]> {
     return this.http.get<Room[]>(`${this.baseUrl}/zones/${zoneId}/rooms?activeOnly=${activeOnly}`);

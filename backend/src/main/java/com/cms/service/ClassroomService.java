@@ -14,16 +14,20 @@ import com.cms.dto.ClassroomRequest;
 import com.cms.dto.ClassroomResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Classroom;
+import com.cms.model.Room;
 import com.cms.repository.ClassroomRepository;
+import com.cms.repository.RoomRepository;
 
 @Service
 @Transactional(readOnly = true)
 public class ClassroomService {
 
     private final ClassroomRepository classroomRepository;
+    private final RoomRepository roomRepository;
 
-    public ClassroomService(ClassroomRepository classroomRepository) {
+    public ClassroomService(ClassroomRepository classroomRepository, RoomRepository roomRepository) {
         this.classroomRepository = classroomRepository;
+        this.roomRepository = roomRepository;
     }
 
     @Transactional
@@ -39,7 +43,22 @@ public class ClassroomService {
         if (request.isActive() != null) {
             classroom.setIsActive(request.isActive());
         }
+        classroom.setRoom(resolveRoom(request.roomId()));
         return toResponse(classroomRepository.save(classroom));
+    }
+
+    /** Mirrors the isResidential gate on HostelRoom assignment: a Room must be classified under
+     *  the Academic purpose category before it can become a Classroom's physical location, so an
+     *  admin can't accidentally (or deliberately) mislabel a dorm room as a teaching space. */
+    private Room resolveRoom(Long roomId) {
+        if (roomId == null) return null;
+        Room room = roomRepository.findById(roomId)
+            .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
+        if (room.getPurposeCategory() == null || !"ACADEMIC".equals(room.getPurposeCategory().getCode())) {
+            throw new IllegalArgumentException(
+                "Room must be classified under the Academic purpose category before it can be linked to a classroom");
+        }
+        return room;
     }
 
     public List<ClassroomResponse> findAll() {
@@ -89,6 +108,7 @@ public class ClassroomService {
         if (request.isActive() != null) {
             classroom.setIsActive(request.isActive());
         }
+        classroom.setRoom(resolveRoom(request.roomId()));
         return toResponse(classroomRepository.save(classroom));
     }
 
@@ -120,8 +140,11 @@ public class ClassroomService {
     }
 
     private ClassroomResponse toResponse(Classroom c) {
+        Room room = c.getRoom();
+        String roomLabel = room != null ? room.getZone().getName() + " · " + room.getRoomNumber() : null;
         return new ClassroomResponse(c.getId(), c.getName(), c.getBuilding(), c.getRoomNumber(),
-            c.getCapacity(), c.getIsActive(), c.getCreatedAt(), c.getUpdatedAt());
+            c.getCapacity(), c.getIsActive(), c.getCreatedAt(), c.getUpdatedAt(),
+            room != null ? room.getId() : null, roomLabel);
     }
 
     private static String trim(String s) {

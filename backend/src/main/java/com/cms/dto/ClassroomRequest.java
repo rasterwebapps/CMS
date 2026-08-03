@@ -19,5 +19,8 @@ public record ClassroomRequest(
     @Positive(message = "Capacity must be positive")
     Integer capacity,
 
-    Boolean isActive
+    Boolean isActive,
+
+    /** Links this virtual venue to a physical Campus Setup Room — optional, admin-linked. */
+    Long roomId
 ) {}

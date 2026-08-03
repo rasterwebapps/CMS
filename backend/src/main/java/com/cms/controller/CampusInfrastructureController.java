@@ -303,6 +303,18 @@ public class CampusInfrastructureController {
 
     // ─── Rooms ───────────────────────────────────────────────────────────────
 
+    /** Flat, campus-wide room search by purpose — unlike the zone-scoped listing below, this
+     *  spans every Branch (including a hospital Branch hosting clinical venues). Used by venue
+     *  pickers (Cohort Room Allocation, Classroom/Lab/ClinicalVenue master forms). */
+    @GetMapping("/rooms")
+    @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_VIEW')")
+    public ResponseEntity<List<RoomResponse>> searchRoomsByPurpose(
+            @RequestParam Long purposeCategoryId,
+            @RequestParam(required = false) Long subTypeId,
+            @RequestParam(required = false) Integer minCapacity) {
+        return ResponseEntity.ok(service.findRoomsByPurpose(purposeCategoryId, subTypeId, minCapacity));
+    }
+
     @GetMapping("/zones/{zoneId}/rooms")
     @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_VIEW')")
     public ResponseEntity<List<RoomResponse>> getRoomsByZone(

@@ -14,16 +14,35 @@ import com.cms.dto.ClinicalVenueRequest;
 import com.cms.dto.ClinicalVenueResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.ClinicalVenue;
+import com.cms.model.Room;
 import com.cms.repository.ClinicalVenueRepository;
+import com.cms.repository.RoomRepository;
 
 @Service
 @Transactional(readOnly = true)
 public class ClinicalVenueService {
 
     private final ClinicalVenueRepository clinicalVenueRepository;
+    private final RoomRepository roomRepository;
 
-    public ClinicalVenueService(ClinicalVenueRepository clinicalVenueRepository) {
+    public ClinicalVenueService(ClinicalVenueRepository clinicalVenueRepository, RoomRepository roomRepository) {
         this.clinicalVenueRepository = clinicalVenueRepository;
+        this.roomRepository = roomRepository;
+    }
+
+    /** Optional, unlike Classroom/Lab -- an off-campus hospital posting has no Room to link (the
+     *  college doesn't model an external hospital's building layout) and stays fully described by
+     *  hospitalName/department as before. Only an on-campus clinical/skills space sets roomId, and
+     *  mirrors the same Academic-category gate as ClassroomService.resolveRoom when it does. */
+    private Room resolveRoom(Long roomId) {
+        if (roomId == null) return null;
+        Room room = roomRepository.findById(roomId)
+            .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
+        if (room.getPurposeCategory() == null || !"ACADEMIC".equals(room.getPurposeCategory().getCode())) {
+            throw new IllegalArgumentException(
+                "Room must be classified under the Academic purpose category before it can be linked to a clinical venue");
+        }
+        return room;
     }
 
     @Transactional
@@ -40,6 +59,7 @@ public class ClinicalVenueService {
         if (request.isActive() != null) {
             venue.setIsActive(request.isActive());
         }
+        venue.setRoom(resolveRoom(request.roomId()));
         return toResponse(clinicalVenueRepository.save(venue));
     }
 
@@ -90,6 +110,7 @@ public class ClinicalVenueService {
         if (request.isActive() != null) {
             venue.setIsActive(request.isActive());
         }
+        venue.setRoom(resolveRoom(request.roomId()));
         return toResponse(clinicalVenueRepository.save(venue));
     }
 
@@ -121,8 +142,11 @@ public class ClinicalVenueService {
     }
 
     private ClinicalVenueResponse toResponse(ClinicalVenue v) {
+        Room room = v.getRoom();
+        String roomLabel = room != null ? room.getZone().getName() + " · " + room.getRoomNumber() : null;
         return new ClinicalVenueResponse(v.getId(), v.getName(), v.getHospitalName(), v.getDepartment(),
-            v.getCapacity(), v.getIsActive(), v.getCreatedAt(), v.getUpdatedAt());
+            v.getCapacity(), v.getIsActive(), v.getCreatedAt(), v.getUpdatedAt(),
+            room != null ? room.getId() : null, roomLabel);
     }
 
     private static String trim(String s) {

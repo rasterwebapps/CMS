@@ -17,11 +17,13 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Speciality;
 import com.cms.model.Lab;
 import com.cms.model.LabInChargeAssignment;
+import com.cms.model.Room;
 import com.cms.model.enums.LabStatus;
 import com.cms.model.enums.LabType;
 import com.cms.repository.SpecialityRepository;
 import com.cms.repository.LabInChargeAssignmentRepository;
 import com.cms.repository.LabRepository;
+import com.cms.repository.RoomRepository;
 
 @Service
 @Transactional(readOnly = true)
@@ -30,12 +32,26 @@ public class LabService {
     private final LabRepository labRepository;
     private final SpecialityRepository specialityRepository;
     private final LabInChargeAssignmentRepository assignmentRepository;
+    private final RoomRepository roomRepository;
 
     public LabService(LabRepository labRepository, SpecialityRepository specialityRepository,
-                      LabInChargeAssignmentRepository assignmentRepository) {
+                      LabInChargeAssignmentRepository assignmentRepository, RoomRepository roomRepository) {
         this.labRepository = labRepository;
         this.specialityRepository = specialityRepository;
         this.assignmentRepository = assignmentRepository;
+        this.roomRepository = roomRepository;
+    }
+
+    /** Mirrors the isResidential gate on HostelRoom assignment — see ClassroomService.resolveRoom. */
+    private Room resolveRoom(Long roomId) {
+        if (roomId == null) return null;
+        Room room = roomRepository.findById(roomId)
+            .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
+        if (room.getPurposeCategory() == null || !"ACADEMIC".equals(room.getPurposeCategory().getCode())) {
+            throw new IllegalArgumentException(
+                "Room must be classified under the Academic purpose category before it can be linked to a lab");
+        }
+        return room;
     }
 
     @Transactional
@@ -59,6 +75,7 @@ public class LabService {
             request.capacity(),
             request.status()
         );
+        lab.setRoom(resolveRoom(request.roomId()));
         Lab saved = labRepository.save(lab);
         return toResponse(saved);
     }
@@ -134,6 +151,7 @@ public class LabService {
         lab.setRoomNumber(trim(request.roomNumber()));
         lab.setCapacity(request.capacity());
         lab.setStatus(request.status());
+        lab.setRoom(resolveRoom(request.roomId()));
 
         Lab updated = labRepository.save(lab);
         return toResponse(updated);
@@ -202,6 +220,8 @@ public class LabService {
             speciality.getUpdatedAt()
         );
 
+        Room room = lab.getRoom();
+        String roomLabel = room != null ? room.getZone().getName() + " · " + room.getRoomNumber() : null;
         return new LabResponse(
             lab.getId(),
             lab.getName(),
@@ -212,7 +232,9 @@ public class LabService {
             lab.getCapacity(),
             lab.getStatus(),
             lab.getCreatedAt(),
-            lab.getUpdatedAt()
+            lab.getUpdatedAt(),
+            room != null ? room.getId() : null,
+            roomLabel
         );
     }
 

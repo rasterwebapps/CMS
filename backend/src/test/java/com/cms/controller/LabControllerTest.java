@@ -59,8 +59,7 @@ class LabControllerTest {
             "Main Building",
             "101",
             30,
-            LabStatus.ACTIVE
-        );
+            LabStatus.ACTIVE, null);
 
         Instant now = Instant.now();
         SpecialityResponse deptResponse = new SpecialityResponse(
@@ -76,8 +75,7 @@ class LabControllerTest {
             30,
             LabStatus.ACTIVE,
             now,
-            now
-        );
+            now, null, null);
 
         when(labService.create(any(LabRequest.class))).thenReturn(response);
 
@@ -106,8 +104,7 @@ class LabControllerTest {
             "Main Building",
             "101",
             30,
-            LabStatus.ACTIVE
-        );
+            LabStatus.ACTIVE, null);
 
         mockMvc.perform(post("/labs")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -181,8 +178,7 @@ class LabControllerTest {
             "Main Building",
             "101",
             0,
-            LabStatus.ACTIVE
-        );
+            LabStatus.ACTIVE, null);
 
         mockMvc.perform(post("/labs")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -199,8 +195,7 @@ class LabControllerTest {
             "Main Building",
             "101",
             -5,
-            LabStatus.ACTIVE
-        );
+            LabStatus.ACTIVE, null);
 
         mockMvc.perform(post("/labs")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -216,12 +211,10 @@ class LabControllerTest {
         );
         LabResponse lab1 = new LabResponse(
             1L, "Computer Lab 1", LabType.COMPUTER, deptResponse,
-            "Main Building", "101", 30, LabStatus.ACTIVE, now, now
-        );
+            "Main Building", "101", 30, LabStatus.ACTIVE, now, now, null, null);
         LabResponse lab2 = new LabResponse(
             2L, "Physics Lab", LabType.PHYSICS, deptResponse,
-            "Science Building", "201", 25, LabStatus.ACTIVE, now, now
-        );
+            "Science Building", "201", 25, LabStatus.ACTIVE, now, now, null, null);
 
         when(labService.findAll()).thenReturn(List.of(lab1, lab2));
 
@@ -263,8 +256,7 @@ class LabControllerTest {
             30,
             LabStatus.ACTIVE,
             now,
-            now
-        );
+            now, null, null);
 
         when(labService.findById(1L)).thenReturn(response);
 
@@ -296,12 +288,10 @@ class LabControllerTest {
         );
         LabResponse lab1 = new LabResponse(
             1L, "Computer Lab 1", LabType.COMPUTER, deptResponse,
-            "Main Building", "101", 30, LabStatus.ACTIVE, now, now
-        );
+            "Main Building", "101", 30, LabStatus.ACTIVE, now, now, null, null);
         LabResponse lab2 = new LabResponse(
             2L, "Computer Lab 2", LabType.COMPUTER, deptResponse,
-            "Main Building", "102", 25, LabStatus.ACTIVE, now, now
-        );
+            "Main Building", "102", 25, LabStatus.ACTIVE, now, now, null, null);
 
         when(labService.findBySpecialityId(1L)).thenReturn(List.of(lab1, lab2));
 
@@ -334,8 +324,7 @@ class LabControllerTest {
             "Science Building",
             "301",
             40,
-            LabStatus.UNDER_MAINTENANCE
-        );
+            LabStatus.UNDER_MAINTENANCE, null);
 
         Instant now = Instant.now();
         SpecialityResponse deptResponse = new SpecialityResponse(
@@ -351,8 +340,7 @@ class LabControllerTest {
             40,
             LabStatus.UNDER_MAINTENANCE,
             now,
-            now
-        );
+            now, null, null);
 
         when(labService.update(eq(1L), any(LabRequest.class))).thenReturn(response);
 
@@ -377,8 +365,7 @@ class LabControllerTest {
             "Building",
             "101",
             30,
-            LabStatus.ACTIVE
-        );
+            LabStatus.ACTIVE, null);
 
         when(labService.update(eq(999L), any(LabRequest.class)))
             .thenThrow(new ResourceNotFoundException("Lab not found with id: 999"));
@@ -400,8 +387,7 @@ class LabControllerTest {
             "Building",
             "101",
             30,
-            LabStatus.ACTIVE
-        );
+            LabStatus.ACTIVE, null);
 
         mockMvc.perform(put("/labs/1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -644,8 +630,7 @@ class LabControllerTest {
             "Main Building",
             "101",
             null,
-            LabStatus.ACTIVE
-        );
+            LabStatus.ACTIVE, null);
 
         Instant now = Instant.now();
         SpecialityResponse deptResponse = new SpecialityResponse(
@@ -653,8 +638,7 @@ class LabControllerTest {
         );
         LabResponse response = new LabResponse(
             1L, "Computer Lab 1", LabType.COMPUTER, deptResponse,
-            "Main Building", "101", null, LabStatus.ACTIVE, now, now
-        );
+            "Main Building", "101", null, LabStatus.ACTIVE, now, now, null, null);
 
         when(labService.create(any(LabRequest.class))).thenReturn(response);
 

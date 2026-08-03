@@ -35,6 +35,9 @@ export interface Lab {
   status: LabStatus;
   createdAt: string;
   updatedAt: string;
+  /** Linked physical Campus Setup Room, if any — see CmsRoomPickerComponent. */
+  roomId?: number;
+  roomLabel?: string;
 }
 
 export interface LabRequest {
@@ -45,6 +48,7 @@ export interface LabRequest {
   roomNumber?: string;
   capacity: number;
   status: LabStatus;
+  roomId?: number;
 }
 
 export interface LabInChargeAssignment {

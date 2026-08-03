@@ -50,6 +50,23 @@ public class Batch {
     @JoinColumn(name = "coordinator_faculty_id")
     private Faculty coordinatorFaculty;
 
+    /** Physical venue this batch was assigned during Cohort Room Allocation — at most one of
+     *  {@link #lab}/{@link #clinicalVenue} is set, mirroring ClassSchedule's session-shape CHECK.
+     *  Null for batches created outside that flow (e.g. the older manual/auto-create paths). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lab_id")
+    private Lab lab;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "clinical_venue_id")
+    private ClinicalVenue clinicalVenue;
+
+    /** Traces this batch back to the CohortRoomAllocation commit that created it, so a revert can
+     *  find and deactivate exactly the batches it produced without touching unrelated ones. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cohort_room_allocation_id")
+    private CohortRoomAllocation cohortRoomAllocation;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
@@ -125,6 +142,30 @@ public class Batch {
 
     public void setCoordinatorFaculty(Faculty coordinatorFaculty) {
         this.coordinatorFaculty = coordinatorFaculty;
+    }
+
+    public Lab getLab() {
+        return lab;
+    }
+
+    public void setLab(Lab lab) {
+        this.lab = lab;
+    }
+
+    public ClinicalVenue getClinicalVenue() {
+        return clinicalVenue;
+    }
+
+    public void setClinicalVenue(ClinicalVenue clinicalVenue) {
+        this.clinicalVenue = clinicalVenue;
+    }
+
+    public CohortRoomAllocation getCohortRoomAllocation() {
+        return cohortRoomAllocation;
+    }
+
+    public void setCohortRoomAllocation(CohortRoomAllocation cohortRoomAllocation) {
+        this.cohortRoomAllocation = cohortRoomAllocation;
     }
 
     public Boolean getIsActive() {
