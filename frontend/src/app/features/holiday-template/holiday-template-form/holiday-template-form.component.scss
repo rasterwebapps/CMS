@@ -1,6 +1,38 @@
 // ─────────────────────────────────────────────────────────────
-// Period Form Page
+// Holiday Template Form Page
 // ─────────────────────────────────────────────────────────────
+
+// ── Monthly pattern radio toggle ───────────────────────────────
+.ht-pattern-toggle {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.ht-pattern-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  color: var(--cms-text-secondary);
+  font-size: var(--cms-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  input[type="radio"] { accent-color: var(--cms-primary); }
+
+  &--selected {
+    border-color: var(--cms-primary);
+    background: rgba(var(--cms-primary-rgb), 0.08);
+    color: var(--cms-primary);
+    font-weight: 600;
+  }
+}
 
 .dept-preview-card {
   background: var(--cms-bg-card);

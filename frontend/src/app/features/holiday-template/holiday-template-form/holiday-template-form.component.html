@@ -53,6 +53,18 @@
               }
             </div>
 
+            <!-- Event Type -->
+            <div class="field-group">
+              <label for="ht-event-type" class="field-label">
+                Event Type <span class="required-star">*</span>
+              </label>
+              <select id="ht-event-type" class="field-select" formControlName="eventType">
+                @for (t of eventTypes; track t) {
+                  <option [value]="t">{{ t }}</option>
+                }
+              </select>
+            </div>
+
             <!-- Recurrence Type -->
             <div class="field-group">
               <label for="ht-recurrence" class="field-label">
@@ -60,7 +72,9 @@
               </label>
               <select id="ht-recurrence" class="field-select" formControlName="recurrenceType">
                 <option value="YEARLY">Every year (fixed date)</option>
-                <option value="MONTHLY">Every month (e.g. 2nd Saturday)</option>
+                <option value="MONTHLY">Every month</option>
+                <option value="WEEKLY">Every week</option>
+                <option value="DAILY">Every day</option>
               </select>
             </div>
 
@@ -80,28 +94,87 @@
                   <input id="ht-day" class="field-input" type="number" min="1" max="31" formControlName="dayOfMonth" placeholder="e.g., 26" />
                 </div>
               </div>
-            } @else {
-              <div class="field-row">
+            }
+
+            @if (isMonthly()) {
+              <div class="ht-pattern-toggle" role="radiogroup" aria-label="Monthly pattern">
+                <label class="ht-pattern-option" [class.ht-pattern-option--selected]="monthlyPattern() === 'DAY_OF_MONTH'">
+                  <input type="radio" name="monthlyPattern" value="DAY_OF_MONTH"
+                    [checked]="monthlyPattern() === 'DAY_OF_MONTH'" (change)="setMonthlyPattern('DAY_OF_MONTH')" />
+                  Fixed day of month
+                </label>
+                <label class="ht-pattern-option" [class.ht-pattern-option--selected]="monthlyPattern() === 'NTH_WEEKDAY'">
+                  <input type="radio" name="monthlyPattern" value="NTH_WEEKDAY"
+                    [checked]="monthlyPattern() === 'NTH_WEEKDAY'" (change)="setMonthlyPattern('NTH_WEEKDAY')" />
+                  Week + weekday (e.g. 2nd Saturday)
+                </label>
+              </div>
+              @if (monthlyPattern() === 'DAY_OF_MONTH') {
                 <div class="field-group">
-                  <label for="ht-week" class="field-label">Week <span class="required-star">*</span></label>
-                  <select id="ht-week" class="field-select" formControlName="weekOfMonth">
-                    <option [ngValue]="null" disabled>Select week</option>
-                    @for (w of weeksOfMonth; track w) {
-                      <option [ngValue]="w">{{ w }}</option>
-                    }
-                  </select>
+                  <label for="ht-day" class="field-label">Day of Month <span class="required-star">*</span></label>
+                  <input id="ht-day" class="field-input" type="number" min="1" max="31" formControlName="dayOfMonth" placeholder="e.g., 15" />
                 </div>
-                <div class="field-group">
-                  <label for="ht-dow" class="field-label">Day of Week <span class="required-star">*</span></label>
-                  <select id="ht-dow" class="field-select" formControlName="dayOfWeek">
-                    <option [ngValue]="null" disabled>Select day</option>
-                    @for (d of daysOfWeek; track d) {
-                      <option [ngValue]="d">{{ d }}</option>
-                    }
-                  </select>
+              } @else {
+                <div class="field-row">
+                  <div class="field-group">
+                    <label for="ht-week" class="field-label">Week <span class="required-star">*</span></label>
+                    <select id="ht-week" class="field-select" formControlName="weekOfMonth">
+                      <option [ngValue]="null" disabled>Select week</option>
+                      @for (w of weeksOfMonth; track w) {
+                        <option [ngValue]="w">{{ w }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="field-group">
+                    <label for="ht-dow" class="field-label">Day of Week <span class="required-star">*</span></label>
+                    <select id="ht-dow" class="field-select" formControlName="dayOfWeek">
+                      <option [ngValue]="null" disabled>Select day</option>
+                      @for (d of daysOfWeek; track d) {
+                        <option [ngValue]="d">{{ d }}</option>
+                      }
+                    </select>
+                  </div>
                 </div>
+              }
+            }
+
+            @if (isWeekly()) {
+              <div class="field-group">
+                <label for="ht-dow-weekly" class="field-label">Day of Week <span class="required-star">*</span></label>
+                <select id="ht-dow-weekly" class="field-select" formControlName="dayOfWeek">
+                  <option [ngValue]="null" disabled>Select day</option>
+                  @for (d of daysOfWeek; track d) {
+                    <option [ngValue]="d">{{ d }}</option>
+                  }
+                </select>
+                <p class="field-hint">Sunday isn't selectable -- it's already treated as a non-teaching day everywhere in the system.</p>
               </div>
             }
+
+            <!-- Interval -->
+            <div class="field-group">
+              <label for="ht-interval" class="field-label">
+                Every <span class="required-star">*</span>
+              </label>
+              <input id="ht-interval" class="field-input" type="number" min="1" formControlName="intervalCount" placeholder="1" />
+              <p class="field-hint">e.g. 2 means "every 2 {{ isYearly() ? 'years' : isMonthly() ? 'months' : isWeekly() ? 'weeks' : 'days' }}"</p>
+            </div>
+
+            <!-- Anchor / Start Date -->
+            @if (needsAnchorDate()) {
+              <div class="field-group">
+                <label for="ht-anchor" class="field-label">Start Date <span class="required-star">*</span></label>
+                <input id="ht-anchor" class="field-input" type="date" formControlName="anchorDate" />
+                <p class="field-hint">Needed to know which {{ isYearly() ? 'years' : isMonthly() ? 'months' : isWeekly() ? 'weeks' : 'days' }} align with the interval above.</p>
+              </div>
+            }
+
+            <!-- End Date -->
+            <div class="field-group">
+              <label for="ht-end" class="field-label">Ends</label>
+              <input id="ht-end" class="field-input" type="date" formControlName="endDate" placeholder="Never" />
+              <p class="field-hint">Leave blank to repeat forever.</p>
+            </div>
 
             <!-- Duration -->
             <div class="field-group">
@@ -120,15 +193,17 @@
             </div>
 
             <!-- Holiday Category -->
-            <div class="field-group">
-              <label for="ht-category" class="field-label">Holiday Category</label>
-              <select id="ht-category" class="field-select" formControlName="holidayCategory">
-                <option [ngValue]="null">Unspecified</option>
-                @for (c of holidayCategories; track c) {
-                  <option [ngValue]="c">{{ c }}</option>
-                }
-              </select>
-            </div>
+            @if (showHolidayCategoryField()) {
+              <div class="field-group">
+                <label for="ht-category" class="field-label">Holiday Category</label>
+                <select id="ht-category" class="field-select" formControlName="holidayCategory">
+                  <option [ngValue]="null">Unspecified</option>
+                  @for (c of holidayCategories; track c) {
+                    <option [ngValue]="c">{{ c }}</option>
+                  }
+                </select>
+              </div>
+            }
 
             <!-- Description -->
             <div class="field-group">

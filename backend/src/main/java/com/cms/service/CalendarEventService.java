@@ -1,6 +1,7 @@
 package com.cms.service;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -16,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.AcademicYearResponse;
 import com.cms.dto.CalendarEventRequest;
 import com.cms.dto.CalendarEventResponse;
+import com.cms.dto.EventRecurrenceRequest;
+import com.cms.dto.HolidayTemplateRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.BlockedPeriod;
@@ -40,17 +43,20 @@ public class CalendarEventService {
     private final BlockedPeriodRepository blockedPeriodRepository;
     private final PeriodRepository periodRepository;
     private final HolidayTemplateRepository holidayTemplateRepository;
+    private final HolidayTemplateService holidayTemplateService;
 
     public CalendarEventService(CalendarEventRepository calendarEventRepository,
                                 AcademicYearRepository academicYearRepository,
                                 BlockedPeriodRepository blockedPeriodRepository,
                                 PeriodRepository periodRepository,
-                                HolidayTemplateRepository holidayTemplateRepository) {
+                                HolidayTemplateRepository holidayTemplateRepository,
+                                HolidayTemplateService holidayTemplateService) {
         this.calendarEventRepository = calendarEventRepository;
         this.academicYearRepository = academicYearRepository;
         this.blockedPeriodRepository = blockedPeriodRepository;
         this.periodRepository = periodRepository;
         this.holidayTemplateRepository = holidayTemplateRepository;
+        this.holidayTemplateService = holidayTemplateService;
     }
 
     @Transactional
@@ -74,6 +80,7 @@ public class CalendarEventService {
         if (saved.getEventType() == CalendarEventType.HOLIDAY) {
             syncHolidayBlocks(saved, resolvePeriodIds(request.blockedPeriodIds()));
         }
+        saved = applyRecurrence(saved, request);
         return toResponse(saved);
     }
 
@@ -154,7 +161,54 @@ public class CalendarEventService {
             blockedPeriodRepository.deleteBySourceCalendarEventId(id);
         }
 
+        saved = applyRecurrence(saved, request);
         return toResponse(saved);
+    }
+
+    /** Reconciles the event's "Repeats" state against its (possibly absent) linked
+     *  HolidayTemplate: creates one on the first repeat, updates it in place if the event is
+     *  already linked, or deactivates it (without touching past/future sibling events) if
+     *  repeats was turned off. Returns the possibly-updated event (re-fetched after the extra
+     *  save when linkage changes, so the caller's response reflects it). */
+    private CalendarEvent applyRecurrence(CalendarEvent saved, CalendarEventRequest request) {
+        HolidayTemplate existingTemplate = saved.getSourceHolidayTemplate();
+        boolean repeats = Boolean.TRUE.equals(request.repeats()) && request.recurrence() != null;
+
+        if (repeats) {
+            HolidayTemplateRequest templateRequest = buildTemplateRequest(request.recurrence(), saved);
+            if (existingTemplate == null) {
+                HolidayTemplate created = holidayTemplateService.createFromEvent(templateRequest);
+                saved.setSourceHolidayTemplate(created);
+                return calendarEventRepository.save(saved);
+            }
+            holidayTemplateService.update(existingTemplate.getId(), templateRequest);
+            return saved;
+        }
+        if (existingTemplate != null) {
+            holidayTemplateService.deactivate(existingTemplate.getId());
+            saved.setSourceHolidayTemplate(null);
+            return calendarEventRepository.save(saved);
+        }
+        return saved;
+    }
+
+    private HolidayTemplateRequest buildTemplateRequest(EventRecurrenceRequest recurrence, CalendarEvent event) {
+        int durationDays = (int) ChronoUnit.DAYS.between(event.getStartDate(), event.getEndDate()) + 1;
+        return new HolidayTemplateRequest(
+            event.getTitle(),
+            recurrence.recurrenceType(),
+            event.getEventType(),
+            event.getEventType() == CalendarEventType.HOLIDAY ? event.getHolidayCategory() : null,
+            event.getDescription(),
+            durationDays,
+            recurrence.intervalCount(),
+            event.getStartDate(),
+            recurrence.endDate(),
+            recurrence.month(),
+            recurrence.dayOfMonth(),
+            recurrence.weekOfMonth(),
+            recurrence.dayOfWeek(),
+            true);
     }
 
     @Transactional
@@ -198,9 +252,11 @@ public class CalendarEventService {
             .stream().map(this::toResponse).toList();
     }
 
-    /** Creates a seeded HOLIDAY event from a HolidayTemplate -- always whole-day (templates don't
-     *  carry a period subset, only the per-event Add Event form does). Used exclusively by
-     *  {@code HolidayTemplateSeedingService} when a new AcademicYear is created. */
+    /** Creates a seeded event from a HolidayTemplate, using whatever eventType the template
+     *  itself records (originally always HOLIDAY, now any type since a repeating event created
+     *  inline from the Add Event form can seed any type) -- always whole-day when it is a
+     *  HOLIDAY (templates don't carry a period subset, only the per-event Add Event form does).
+     *  Used by {@code HolidayTemplateSeedingService} when a new AcademicYear is created. */
     @Transactional
     public CalendarEventResponse createSeededHolidayEvent(
             HolidayTemplate template, LocalDate start, LocalDate end, AcademicYear academicYear) {
@@ -209,13 +265,15 @@ public class CalendarEventService {
         event.setDescription(template.getDescription());
         event.setStartDate(start);
         event.setEndDate(end);
-        event.setEventType(CalendarEventType.HOLIDAY);
-        event.setHolidayCategory(template.getHolidayCategory());
+        event.setEventType(template.getEventType());
+        event.setHolidayCategory(template.getEventType() == CalendarEventType.HOLIDAY ? template.getHolidayCategory() : null);
         event.setAcademicYear(academicYear);
         event.setSourceHolidayTemplate(template);
 
         CalendarEvent saved = calendarEventRepository.save(event);
-        syncHolidayBlocks(saved, resolvePeriodIds(null));
+        if (saved.getEventType() == CalendarEventType.HOLIDAY) {
+            syncHolidayBlocks(saved, resolvePeriodIds(null));
+        }
         return toResponse(saved);
     }
 

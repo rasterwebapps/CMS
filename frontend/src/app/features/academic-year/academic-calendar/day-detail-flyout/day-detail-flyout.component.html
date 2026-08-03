@@ -130,6 +130,120 @@
             </div>
           }
 
+          @if (showRepeatField()) {
+            <div class="form-field">
+              <label class="form-field-label">Repeats</label>
+              @if (loadingRepeatTemplate()) {
+                <p class="field-hint">Loading repeat settings…</p>
+              } @else {
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-select [ngModel]="repeatPreset()" [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="onRepeatPresetChange($event)">
+                    <mat-option value="NONE">Does not repeat</mat-option>
+                    <mat-option value="YEARLY">Every year</mat-option>
+                    <mat-option value="MONTHLY">Every month</mat-option>
+                    <mat-option value="WEEKLY" [disabled]="startDateIsSunday()">Every week</mat-option>
+                    <mat-option value="DAILY">Every day</mat-option>
+                    <mat-option value="CUSTOM">Custom…</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                @if (startDateIsSunday() && repeatPreset() !== 'NONE') {
+                  <p class="field-hint">Sunday is already treated as a non-teaching day everywhere, so weekly/nth-weekday patterns can't land on it.</p>
+                }
+
+                @if (repeatPreset() === 'CUSTOM') {
+                  <div class="ddf-repeat-custom">
+                    <div class="form-row">
+                      <div class="form-field">
+                        <label class="form-field-label">Frequency</label>
+                        <mat-form-field appearance="outline" class="full-width">
+                          <mat-select [ngModel]="customFrequency()" [ngModelOptions]="{standalone: true}"
+                            (ngModelChange)="customFrequency.set($event)">
+                            <mat-option value="DAILY">Day</mat-option>
+                            <mat-option value="WEEKLY">Week</mat-option>
+                            <mat-option value="MONTHLY">Month</mat-option>
+                            <mat-option value="YEARLY">Year</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                      <div class="form-field">
+                        <label class="form-field-label">Every</label>
+                        <mat-form-field appearance="outline" class="full-width">
+                          <input matInput type="number" min="1" [ngModel]="customInterval()"
+                            [ngModelOptions]="{standalone: true}" (ngModelChange)="customInterval.set($event)" />
+                        </mat-form-field>
+                      </div>
+                    </div>
+
+                    @if (customFrequency() === 'WEEKLY') {
+                      <div class="form-field">
+                        <label class="form-field-label">On</label>
+                        <mat-form-field appearance="outline" class="full-width">
+                          <mat-select [ngModel]="customDayOfWeek()" [ngModelOptions]="{standalone: true}"
+                            (ngModelChange)="customDayOfWeek.set($event)">
+                            @for (d of daysOfWeek; track d) {
+                              <mat-option [value]="d">{{ dayOfWeekLabels[d] }}</mat-option>
+                            }
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                    }
+
+                    @if (customFrequency() === 'MONTHLY') {
+                      <div class="ddf-block-type-toggle" role="radiogroup" aria-label="Monthly pattern">
+                        <label class="ddf-block-type-option" [class.ddf-block-type-option--selected]="customMonthlyPattern() === 'DAY_OF_MONTH'">
+                          <input type="radio" name="monthlyPattern" value="DAY_OF_MONTH"
+                            [checked]="customMonthlyPattern() === 'DAY_OF_MONTH'" (change)="customMonthlyPattern.set('DAY_OF_MONTH')" />
+                          Same day of month as Start Date
+                        </label>
+                        <label class="ddf-block-type-option" [class.ddf-block-type-option--selected]="customMonthlyPattern() === 'NTH_WEEKDAY'">
+                          <input type="radio" name="monthlyPattern" value="NTH_WEEKDAY"
+                            [checked]="customMonthlyPattern() === 'NTH_WEEKDAY'" (change)="customMonthlyPattern.set('NTH_WEEKDAY')" />
+                          On a specific week + weekday
+                        </label>
+                      </div>
+                      @if (customMonthlyPattern() === 'NTH_WEEKDAY') {
+                        <div class="form-row">
+                          <div class="form-field">
+                            <label class="form-field-label">Week</label>
+                            <mat-form-field appearance="outline" class="full-width">
+                              <mat-select [ngModel]="customWeekOfMonth()" [ngModelOptions]="{standalone: true}"
+                                (ngModelChange)="customWeekOfMonth.set($event)">
+                                @for (w of weeksOfMonth; track w) {
+                                  <mat-option [value]="w">{{ w }}</mat-option>
+                                }
+                              </mat-select>
+                            </mat-form-field>
+                          </div>
+                          <div class="form-field">
+                            <label class="form-field-label">Day</label>
+                            <mat-form-field appearance="outline" class="full-width">
+                              <mat-select [ngModel]="customDayOfWeek()" [ngModelOptions]="{standalone: true}"
+                                (ngModelChange)="customDayOfWeek.set($event)">
+                                @for (d of daysOfWeek; track d) {
+                                  <mat-option [value]="d">{{ dayOfWeekLabels[d] }}</mat-option>
+                                }
+                              </mat-select>
+                            </mat-form-field>
+                          </div>
+                        </div>
+                      }
+                    }
+
+                    <div class="form-field">
+                      <label class="form-field-label">Ends</label>
+                      <mat-form-field appearance="outline" class="full-width">
+                        <input matInput type="date" placeholder="Never" [ngModel]="eventRepeatEndDate()"
+                          [ngModelOptions]="{standalone: true}" (ngModelChange)="eventRepeatEndDate.set($event)" />
+                      </mat-form-field>
+                      <p class="field-hint">Leave blank to repeat forever.</p>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          }
+
           <div class="form-field">
             <label class="form-field-label">Description</label>
             <mat-form-field appearance="outline" class="full-width">

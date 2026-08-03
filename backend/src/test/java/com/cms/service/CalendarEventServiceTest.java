@@ -20,11 +20,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.CalendarEventRequest;
 import com.cms.dto.CalendarEventResponse;
+import com.cms.dto.EventRecurrenceRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.CalendarEvent;
+import com.cms.model.HolidayTemplate;
 import com.cms.model.enums.CalendarEventType;
 import com.cms.model.enums.HolidayCategory;
+import com.cms.model.enums.HolidayRecurrenceType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.CalendarEventRepository;
@@ -49,6 +52,9 @@ class CalendarEventServiceTest {
     @Mock
     private HolidayTemplateRepository holidayTemplateRepository;
 
+    @Mock
+    private HolidayTemplateService holidayTemplateService;
+
     private CalendarEventService calendarEventService;
 
     private AcademicYear academicYear;
@@ -57,7 +63,7 @@ class CalendarEventServiceTest {
     void setUp() {
         calendarEventService = new CalendarEventService(
             calendarEventRepository, academicYearRepository, blockedPeriodRepository,
-            periodRepository, holidayTemplateRepository);
+            periodRepository, holidayTemplateRepository, holidayTemplateService);
         academicYear = new AcademicYear(
             "2024-2025", LocalDate.of(2024, 8, 1), LocalDate.of(2025, 5, 31), true);
         academicYear.setId(1L);
@@ -323,6 +329,94 @@ class CalendarEventServiceTest {
         assertThatThrownBy(() -> calendarEventService.update(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage("End date must not be before start date");
+    }
+
+    // ─── RECURRENCE ───────────────────────────────────
+
+    @Test
+    void shouldCreateLinkedHolidayTemplateWhenRepeatsIsSet() {
+        CalendarEventRequest request = new CalendarEventRequest(
+            "Founder's Day", "desc", LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
+            CalendarEventType.HOLIDAY, 1L, null, null, true,
+            new EventRecurrenceRequest(HolidayRecurrenceType.YEARLY, 1, null, 10, 1, null, null));
+
+        CalendarEvent saved = buildEvent(1L, "Founder's Day", CalendarEventType.HOLIDAY, academicYear);
+        HolidayTemplate createdTemplate = new HolidayTemplate();
+        createdTemplate.setId(500L);
+
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
+        when(calendarEventRepository.save(any(CalendarEvent.class))).thenReturn(saved);
+        when(holidayTemplateService.createFromEvent(any())).thenReturn(createdTemplate);
+
+        calendarEventService.create(request);
+
+        verify(holidayTemplateService).createFromEvent(any());
+        verify(holidayTemplateService, never()).update(any(), any());
+        // Once for the initial insert, once more to persist the new sourceHolidayTemplate link.
+        verify(calendarEventRepository, org.mockito.Mockito.times(2)).save(any(CalendarEvent.class));
+    }
+
+    @Test
+    void shouldNotTouchHolidayTemplateServiceWhenRepeatsIsNotSet() {
+        CalendarEventRequest request = new CalendarEventRequest(
+            "Diwali", "Holiday", LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
+            CalendarEventType.HOLIDAY, 1L);
+
+        CalendarEvent saved = buildEvent(1L, "Diwali", CalendarEventType.HOLIDAY, academicYear);
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
+        when(calendarEventRepository.save(any(CalendarEvent.class))).thenReturn(saved);
+
+        calendarEventService.create(request);
+
+        verify(holidayTemplateService, never()).createFromEvent(any());
+        verify(holidayTemplateService, never()).update(any(), any());
+        verify(holidayTemplateService, never()).deactivate(any());
+    }
+
+    @Test
+    void shouldUpdateTheLinkedTemplateInPlaceWhenEventIsAlreadyRepeating() {
+        HolidayTemplate existingTemplate = new HolidayTemplate();
+        existingTemplate.setId(500L);
+        CalendarEvent existing = buildEvent(1L, "Founder's Day", CalendarEventType.HOLIDAY, academicYear);
+        existing.setSourceHolidayTemplate(existingTemplate);
+
+        CalendarEventRequest request = new CalendarEventRequest(
+            "Founder's Day", "desc", LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
+            CalendarEventType.HOLIDAY, 1L, null, null, true,
+            new EventRecurrenceRequest(HolidayRecurrenceType.YEARLY, 1, null, 10, 1, null, null));
+
+        when(calendarEventRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
+        when(calendarEventRepository.save(any(CalendarEvent.class))).thenReturn(existing);
+
+        calendarEventService.update(1L, request);
+
+        verify(holidayTemplateService).update(org.mockito.ArgumentMatchers.eq(500L), any());
+        verify(holidayTemplateService, never()).createFromEvent(any());
+        verify(holidayTemplateService, never()).deactivate(any());
+    }
+
+    @Test
+    void shouldDeactivateTheLinkedTemplateWhenRepeatsIsTurnedOff() {
+        HolidayTemplate existingTemplate = new HolidayTemplate();
+        existingTemplate.setId(500L);
+        CalendarEvent existing = buildEvent(1L, "Founder's Day", CalendarEventType.HOLIDAY, academicYear);
+        existing.setSourceHolidayTemplate(existingTemplate);
+
+        CalendarEventRequest request = new CalendarEventRequest(
+            "Founder's Day", "desc", LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
+            CalendarEventType.HOLIDAY, 1L);
+
+        when(calendarEventRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
+        when(calendarEventRepository.save(any(CalendarEvent.class))).thenReturn(existing);
+
+        calendarEventService.update(1L, request);
+
+        verify(holidayTemplateService).deactivate(500L);
+        verify(holidayTemplateService, never()).createFromEvent(any());
+        verify(holidayTemplateService, never()).update(any(), any());
+        assertThat(existing.getSourceHolidayTemplate()).isNull();
     }
 
     // ─── DELETE ───────────────────────────────────────

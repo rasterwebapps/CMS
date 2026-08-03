@@ -80,6 +80,20 @@
     color: #fff;
     font-weight: 700;
   }
+
+  // Outside the academic year's own dates -- not just a different month, genuinely unselectable.
+  // Takes precedence over --outside visually since "wrong month" and "can't be picked at all"
+  // are different signals a user shouldn't have to guess between.
+  &--disabled {
+    color: var(--cms-text-muted);
+    opacity: 0.3;
+    cursor: not-allowed;
+    text-decoration: line-through;
+
+    &:hover {
+      background: transparent;
+    }
+  }
 }
 
 .fmc-day__dot {

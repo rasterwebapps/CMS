@@ -36,15 +36,30 @@ public record CalendarEventRequest(
     /** Only meaningful when eventType == HOLIDAY -- which periods to auto-block for every date in
      *  [startDate, endDate]. Null or empty means "whole day" (every active period). Ignored for
      *  every other eventType. */
-    List<Long> blockedPeriodIds
+    List<Long> blockedPeriodIds,
+
+    /** When true (with a non-null recurrence), this event creates/updates a linked HolidayTemplate
+     *  anchored to this event's own startDate -- see CalendarEventService. When false on an event
+     *  that already has a linked template, the template is deactivated (this event reverts to a
+     *  one-time event; past/future sibling events are left untouched). */
+    Boolean repeats,
+
+    /** Meaningful only when repeats == true. */
+    EventRecurrenceRequest recurrence
 ) {
     public CalendarEventRequest(String title, String description, LocalDate startDate, LocalDate endDate,
                                  CalendarEventType eventType, Long academicYearId) {
-        this(title, description, startDate, endDate, eventType, academicYearId, null, null);
+        this(title, description, startDate, endDate, eventType, academicYearId, null, null, null, null);
     }
 
     public CalendarEventRequest(String title, String description, LocalDate startDate, LocalDate endDate,
                                  CalendarEventType eventType, Long academicYearId, HolidayCategory holidayCategory) {
-        this(title, description, startDate, endDate, eventType, academicYearId, holidayCategory, null);
+        this(title, description, startDate, endDate, eventType, academicYearId, holidayCategory, null, null, null);
+    }
+
+    public CalendarEventRequest(String title, String description, LocalDate startDate, LocalDate endDate,
+                                 CalendarEventType eventType, Long academicYearId, HolidayCategory holidayCategory,
+                                 List<Long> blockedPeriodIds) {
+        this(title, description, startDate, endDate, eventType, academicYearId, holidayCategory, blockedPeriodIds, null, null);
     }
 }

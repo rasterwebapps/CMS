@@ -6,13 +6,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HolidayTemplateService } from '../holiday-template.service';
 import { HolidayTemplateRequest, HolidayRecurrenceType, WeekOfMonth } from '../holiday-template.model';
-import { AppDayOfWeek, HolidayCategory } from '../../academic-year/academic-year.model';
+import { AppDayOfWeek, CalendarEventType, HolidayCategory } from '../../academic-year/academic-year.model';
 import { formatRecurrenceSummary } from '../holiday-template-summary.util';
 import { ToastService } from '../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, trimmedMinLength, cmsFieldError } from '../../../shared/validators/cms-validators';
 import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
+
+type MonthlyPattern = 'DAY_OF_MONTH' | 'NTH_WEEKDAY';
 
 @Component({
   selector: 'app-holiday-template-form',
@@ -38,7 +40,8 @@ export class HolidayTemplateFormComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
 
-  protected readonly recurrenceTypes: HolidayRecurrenceType[] = ['YEARLY', 'MONTHLY'];
+  protected readonly recurrenceTypes: HolidayRecurrenceType[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'];
+  protected readonly eventTypes: CalendarEventType[] = ['HOLIDAY', 'EXAM', 'CULTURAL', 'SPORTS', 'WORKSHOP', 'OTHER'];
   protected readonly holidayCategories: HolidayCategory[] = ['GOVERNMENT', 'LOCAL', 'INSTITUTIONAL'];
   protected readonly weeksOfMonth: WeekOfMonth[] = ['FIRST', 'SECOND', 'THIRD', 'FOURTH', 'LAST'];
   protected readonly daysOfWeek: AppDayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
@@ -49,15 +52,23 @@ export class HolidayTemplateFormComponent implements OnInit {
 
   protected readonly previewSummary = signal('');
   protected readonly previewName = signal('');
+  /** Only meaningful when recurrenceType === MONTHLY -- which of dayOfMonth vs
+   *  weekOfMonth+dayOfWeek the form is currently collecting. Not part of the saved shape itself;
+   *  derived back from whichever field is set when editing an existing template. */
+  protected readonly monthlyPattern = signal<MonthlyPattern>('DAY_OF_MONTH');
 
   private itemId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(255), noConsecutiveSpaces()]],
     recurrenceType: ['YEARLY' as HolidayRecurrenceType, Validators.required],
+    eventType: ['HOLIDAY' as CalendarEventType, Validators.required],
     holidayCategory: [null as HolidayCategory | null],
     description: [''],
     durationDays: [1, [Validators.required, Validators.min(1)]],
+    intervalCount: [1, [Validators.required, Validators.min(1)]],
+    anchorDate: [null as string | null],
+    endDate: [null as string | null],
     month: [null as number | null],
     dayOfMonth: [null as number | null],
     weekOfMonth: [null as WeekOfMonth | null],
@@ -66,6 +77,30 @@ export class HolidayTemplateFormComponent implements OnInit {
 
   protected isYearly(): boolean {
     return this.form.get('recurrenceType')?.value === 'YEARLY';
+  }
+
+  protected isMonthly(): boolean {
+    return this.form.get('recurrenceType')?.value === 'MONTHLY';
+  }
+
+  protected isWeekly(): boolean {
+    return this.form.get('recurrenceType')?.value === 'WEEKLY';
+  }
+
+  protected showHolidayCategoryField(): boolean {
+    return this.form.get('eventType')?.value === 'HOLIDAY';
+  }
+
+  /** DAILY always needs a start date to count intervals from; any other frequency only needs one
+   *  once the interval is more than 1 (at interval 1, the pattern fields alone already determine
+   *  every occurrence). */
+  protected needsAnchorDate(): boolean {
+    const intervalCount = this.form.get('intervalCount')?.value ?? 1;
+    return this.form.get('recurrenceType')?.value === 'DAILY' || intervalCount > 1;
+  }
+
+  protected setMonthlyPattern(pattern: MonthlyPattern): void {
+    this.monthlyPattern.set(pattern);
   }
 
   constructor() {
@@ -80,6 +115,7 @@ export class HolidayTemplateFormComponent implements OnInit {
               weekOfMonth: v.weekOfMonth ?? null,
               dayOfWeek: v.dayOfWeek ?? null,
               durationDays: v.durationDays || 1,
+              intervalCount: v.intervalCount || 1,
             })
           : '',
       );
@@ -111,6 +147,10 @@ export class HolidayTemplateFormComponent implements OnInit {
       scrollToFirstInvalid(this.form);
       return;
     }
+    if (this.needsAnchorDate() && !this.form.get('anchorDate')?.value) {
+      this.toast.error('A start date is required for a daily repeat, or when repeating every N > 1 units');
+      return;
+    }
     this.saving.set(true);
     const request = this.buildRequest();
     const op = this.isEditMode()
@@ -135,12 +175,17 @@ export class HolidayTemplateFormComponent implements OnInit {
     this.loading.set(true);
     this.holidayTemplateService.getById(id).subscribe({
       next: (item) => {
+        this.monthlyPattern.set(item.dayOfMonth != null ? 'DAY_OF_MONTH' : 'NTH_WEEKDAY');
         this.form.patchValue({
           name: item.name,
           recurrenceType: item.recurrenceType,
+          eventType: item.eventType,
           holidayCategory: item.holidayCategory,
           description: item.description ?? '',
           durationDays: item.durationDays,
+          intervalCount: item.intervalCount,
+          anchorDate: item.anchorDate,
+          endDate: item.endDate,
           month: item.month,
           dayOfMonth: item.dayOfMonth,
           weekOfMonth: item.weekOfMonth,
@@ -157,7 +202,7 @@ export class HolidayTemplateFormComponent implements OnInit {
 
   protected getFieldError(field: string): string {
     const labels: Record<string, string> = {
-      name: 'Name', recurrenceType: 'Recurrence type', durationDays: 'Duration',
+      name: 'Name', recurrenceType: 'Recurrence type', durationDays: 'Duration', intervalCount: 'Interval',
       month: 'Month', dayOfMonth: 'Day of month', weekOfMonth: 'Week of month', dayOfWeek: 'Day of week',
     };
     return cmsFieldError(this.form.get(field), labels[field] ?? field);
@@ -166,16 +211,25 @@ export class HolidayTemplateFormComponent implements OnInit {
   private buildRequest(): HolidayTemplateRequest {
     const v = this.form.value;
     const yearly = v.recurrenceType === 'YEARLY';
+    const monthly = v.recurrenceType === 'MONTHLY';
+    const weekly = v.recurrenceType === 'WEEKLY';
+    const monthlyFixedDay = monthly && this.monthlyPattern() === 'DAY_OF_MONTH';
+    const monthlyNthWeekday = monthly && this.monthlyPattern() === 'NTH_WEEKDAY';
+
     return {
       name: (v.name ?? '').trim(),
       recurrenceType: v.recurrenceType,
-      holidayCategory: v.holidayCategory ?? null,
+      eventType: v.eventType,
+      holidayCategory: v.eventType === 'HOLIDAY' ? (v.holidayCategory ?? null) : null,
       description: v.description?.trim() || undefined,
       durationDays: v.durationDays ?? 1,
+      intervalCount: v.intervalCount ?? 1,
+      anchorDate: this.needsAnchorDate() ? v.anchorDate : null,
+      endDate: v.endDate || null,
       month: yearly ? v.month : null,
-      dayOfMonth: yearly ? v.dayOfMonth : null,
-      weekOfMonth: yearly ? null : v.weekOfMonth,
-      dayOfWeek: yearly ? null : v.dayOfWeek,
+      dayOfMonth: yearly || monthlyFixedDay ? v.dayOfMonth : null,
+      weekOfMonth: monthlyNthWeekday ? v.weekOfMonth : null,
+      dayOfWeek: weekly || monthlyNthWeekday ? v.dayOfWeek : null,
     };
   }
 }

@@ -17,21 +17,36 @@ const DAY_OF_WEEK_LABELS: Record<string, string> = {
  *  partially-filled-in draft without needing a full HolidayTemplate (id/timestamps/etc). */
 type RecurrenceShape = Pick<
   HolidayTemplate,
-  'recurrenceType' | 'month' | 'dayOfMonth' | 'weekOfMonth' | 'dayOfWeek' | 'durationDays'
+  'recurrenceType' | 'month' | 'dayOfMonth' | 'weekOfMonth' | 'dayOfWeek' | 'durationDays' | 'intervalCount'
 >;
 
-/** One-line human summary of a HolidayTemplate's recurrence rule, e.g. "26 Jan every year" or
- *  "2nd Saturday every month" -- used by the list screen's card/table views and the form's
- *  live preview. */
+/** "every 2 weeks" / "every week" -- interval of 1 collapses to the plain unit name, matching how
+ *  iOS/Google Calendar phrase their own Repeat summaries. */
+function everyUnit(intervalCount: number, unitSingular: string, unitPlural: string): string {
+  return intervalCount > 1 ? `every ${intervalCount} ${unitPlural}` : `every ${unitSingular}`;
+}
+
+/** One-line human summary of a HolidayTemplate's recurrence rule, e.g. "26 Jan every year",
+ *  "2nd Saturday every month", "every 2 weeks on Monday", "every 3 days" -- used by the list
+ *  screen's card/table views and the form's live preview. */
 export function formatRecurrenceSummary(template: RecurrenceShape): string {
+  const interval = template.intervalCount || 1;
+  const duration = template.durationDays > 1 ? ` (${template.durationDays} days)` : '';
+
   if (template.recurrenceType === 'YEARLY') {
     const day = template.dayOfMonth ?? '?';
     const month = template.month ? MONTH_NAMES[template.month - 1] : '?';
-    const duration = template.durationDays > 1 ? ` (${template.durationDays} days)` : '';
-    return `${day} ${month} every year${duration}`;
+    return `${day} ${month} ${everyUnit(interval, 'year', 'years')}${duration}`;
   }
-  const week = template.weekOfMonth ? WEEK_OF_MONTH_LABELS[template.weekOfMonth] : '?';
-  const day = template.dayOfWeek ? DAY_OF_WEEK_LABELS[template.dayOfWeek] : '?';
-  const duration = template.durationDays > 1 ? ` (${template.durationDays} days)` : '';
-  return `${week} ${day} every month${duration}`;
+  if (template.recurrenceType === 'MONTHLY') {
+    const pattern = template.dayOfMonth != null
+      ? `day ${template.dayOfMonth}`
+      : `${template.weekOfMonth ? WEEK_OF_MONTH_LABELS[template.weekOfMonth] : '?'} ${template.dayOfWeek ? DAY_OF_WEEK_LABELS[template.dayOfWeek] : '?'}`;
+    return `${pattern} ${everyUnit(interval, 'month', 'months')}${duration}`;
+  }
+  if (template.recurrenceType === 'WEEKLY') {
+    const day = template.dayOfWeek ? DAY_OF_WEEK_LABELS[template.dayOfWeek] : '?';
+    return `${everyUnit(interval, 'week', 'weeks')} on ${day}${duration}`;
+  }
+  return `${everyUnit(interval, 'day', 'days')}${duration}`;
 }

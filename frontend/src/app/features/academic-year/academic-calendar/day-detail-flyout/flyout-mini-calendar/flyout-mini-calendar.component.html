@@ -24,6 +24,10 @@
             [class.fmc-day--today]="cell.isToday"
             [class.fmc-day--selected]="cell.isSelected"
             [class.fmc-day--in-range]="cell.isInRange"
+            [class.fmc-day--disabled]="cell.isDisabled"
+            [disabled]="cell.isDisabled"
+            [attr.aria-disabled]="cell.isDisabled"
+            [matTooltip]="cell.isDisabled ? outOfRangeHint : ''"
             (click)="onDayClick(cell)"
           >
             {{ cell.dayNum }}

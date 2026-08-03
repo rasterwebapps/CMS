@@ -1,6 +1,7 @@
 import { Component, computed, input, output, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CalendarEvent } from '../../../academic-year.model';
 import { toIso } from '../../month-grid.util';
 
@@ -13,6 +14,7 @@ interface MiniDayCell {
   isSelected: boolean;
   isInRange: boolean;
   hasEvents: boolean;
+  isDisabled: boolean;
 }
 
 /** Inline month-view calendar for the day-detail flyout -- sits above the native Start/End Date
@@ -25,7 +27,7 @@ interface MiniDayCell {
 @Component({
   selector: 'app-flyout-mini-calendar',
   standalone: true,
-  imports: [MatIconModule, MatButtonModule],
+  imports: [MatIconModule, MatButtonModule, MatTooltipModule],
   templateUrl: './flyout-mini-calendar.component.html',
   styleUrl: './flyout-mini-calendar.component.scss',
 })
@@ -38,6 +40,8 @@ export class FlyoutMiniCalendarComponent {
   readonly maxDate = input<string | null>(null);
 
   readonly dayClicked = output<string>();
+
+  protected readonly outOfRangeHint = "Outside the academic year's dates";
 
   private static readonly MONTH_NAMES = Array.from({ length: 12 }, (_, i) =>
     new Intl.DateTimeFormat('en', { month: 'long' }).format(new Date(2000, i, 1)),
@@ -63,6 +67,7 @@ export class FlyoutMiniCalendarComponent {
   });
 
   protected onDayClick(cell: MiniDayCell): void {
+    if (cell.isDisabled) return;
     this.dayClicked.emit(cell.iso);
   }
 
@@ -109,6 +114,9 @@ export class FlyoutMiniCalendarComponent {
     const rangeStart = this.rangeStart();
     const rangeEnd = this.rangeEnd();
     const isInRange = !!(rangeStart && rangeEnd && iso >= rangeStart && iso <= rangeEnd);
+    const min = this.minDate();
+    const max = this.maxDate();
+    const isDisabled = !!((min && iso < min) || (max && iso > max));
     return {
       date,
       iso,
@@ -118,6 +126,7 @@ export class FlyoutMiniCalendarComponent {
       isSelected: iso === this.selectedDateIso(),
       isInRange,
       hasEvents: this.events().some((e) => e.startDate <= iso && e.endDate >= iso),
+      isDisabled,
     };
   }
 

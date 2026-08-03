@@ -25,8 +25,12 @@ import {
   CalendarEvent,
   CalendarEventRequest,
   CalendarEventType,
+  EventRecurrenceRequest,
   HolidayCategory,
+  HolidayRecurrenceType,
+  WeekOfMonth,
 } from '../../academic-year.model';
+import { HolidayTemplateService } from '../../../holiday-template/holiday-template.service';
 import {
   DAY_OF_WEEK_LABELS,
   EVENT_TYPE_BADGE_CLASS,
@@ -40,6 +44,10 @@ export type DayDetailSection = 'EVENTS' | 'BLOCKS';
 
 type EventFormMode = 'CLOSED' | 'ADD' | 'EDIT';
 type BlockStep = 'FORM' | 'RESULT';
+/** Mirrors the presets in iOS/Google Calendar's Repeat picker; CUSTOM opens the full
+ *  frequency+interval+pattern+end-date controls. */
+type RepeatPreset = 'NONE' | 'YEARLY' | 'MONTHLY' | 'WEEKLY' | 'DAILY' | 'CUSTOM';
+type MonthlyPattern = 'DAY_OF_MONTH' | 'NTH_WEEKDAY';
 
 interface BlockSubmitResult {
   succeeded: number;
@@ -92,6 +100,7 @@ export class DayDetailFlyoutComponent implements OnInit {
 
   private readonly academicYearService = inject(AcademicYearService);
   private readonly blockedPeriodService = inject(BlockedPeriodService);
+  private readonly holidayTemplateService = inject(HolidayTemplateService);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
 
@@ -169,6 +178,126 @@ export class DayDetailFlyoutComponent implements OnInit {
     this.holidayPeriodIds.set(next);
   }
 
+  // ─── Repeats (mirrors a simplified iOS/Google Calendar Repeat picker) ───
+  protected readonly weeksOfMonth: WeekOfMonth[] = ['FIRST', 'SECOND', 'THIRD', 'FOURTH', 'LAST'];
+  protected readonly repeatPreset = signal<RepeatPreset>('NONE');
+  protected readonly customFrequency = signal<HolidayRecurrenceType>('WEEKLY');
+  protected readonly customInterval = signal(1);
+  protected readonly customMonthlyPattern = signal<MonthlyPattern>('DAY_OF_MONTH');
+  protected readonly customWeekOfMonth = signal<WeekOfMonth>('SECOND');
+  protected readonly customDayOfWeek = signal<AppDayOfWeek>('MONDAY');
+  protected readonly eventRepeatEndDate = signal<string | null>(null);
+  protected readonly loadingRepeatTemplate = signal(false);
+  /** Existing linked template's id when editing an already-repeating event -- carried through so
+   *  saveEvent() knows an update (not a create) is happening server-side, though the actual
+   *  create-vs-update decision is made backend-side purely from the event's own linkage; this is
+   *  only used to show "Repeats" pre-selected instead of "Does not repeat" on open. */
+  private editingTemplateId: number | null = null;
+
+  /** Sunday isn't representable (the app's DayOfWeek enum has no Sunday value -- already globally
+   *  non-teaching everywhere else in the codebase), so a start date landing on Sunday can't use
+   *  the Weekly preset or Custom Weekly/nth-weekday-Monthly patterns. */
+  protected startDateIsSunday(): boolean {
+    const iso = this.eventForm.get('startDate')?.value;
+    if (!iso) return false;
+    return new Date(`${iso}T00:00:00`).getDay() === 0;
+  }
+
+  protected showRepeatField(): boolean {
+    return this.eventFormMode() !== 'CLOSED';
+  }
+
+  protected onRepeatPresetChange(preset: RepeatPreset): void {
+    this.repeatPreset.set(preset);
+    if (preset === 'CUSTOM') {
+      // Default Custom's starting point to whatever plain preset makes sense for today's weekday,
+      // so switching into Custom doesn't dump the admin into an arbitrary, possibly-invalid state.
+      this.customFrequency.set('WEEKLY');
+    }
+  }
+
+  private appDayOfWeekFor(iso: string): AppDayOfWeek | null {
+    return JS_DAY_TO_APP_DAY[new Date(`${iso}T00:00:00`).getDay()];
+  }
+
+  /** Builds the request payload from either a quick preset (deriving the actual pattern from the
+   *  event's own chosen startDate) or the full Custom controls. Null means "does not repeat". */
+  protected buildRecurrenceRequest(): EventRecurrenceRequest | null {
+    const preset = this.repeatPreset();
+    if (preset === 'NONE') return null;
+
+    const startIso = this.eventForm.get('startDate')?.value as string;
+    const startDate = new Date(`${startIso}T00:00:00`);
+
+    if (preset === 'CUSTOM') {
+      const frequency = this.customFrequency();
+      const base: EventRecurrenceRequest = {
+        recurrenceType: frequency,
+        intervalCount: this.customInterval(),
+        endDate: this.eventRepeatEndDate() || null,
+      };
+      if (frequency === 'YEARLY') {
+        return { ...base, month: startDate.getMonth() + 1, dayOfMonth: startDate.getDate() };
+      }
+      if (frequency === 'MONTHLY') {
+        return this.customMonthlyPattern() === 'DAY_OF_MONTH'
+          ? { ...base, dayOfMonth: startDate.getDate() }
+          : { ...base, weekOfMonth: this.customWeekOfMonth(), dayOfWeek: this.customDayOfWeek() };
+      }
+      if (frequency === 'WEEKLY') {
+        return { ...base, dayOfWeek: this.customDayOfWeek() };
+      }
+      return base; // DAILY
+    }
+
+    // Quick presets derive the pattern from the event's own start date.
+    if (preset === 'YEARLY') {
+      return { recurrenceType: 'YEARLY', intervalCount: 1, month: startDate.getMonth() + 1, dayOfMonth: startDate.getDate() };
+    }
+    if (preset === 'MONTHLY') {
+      return { recurrenceType: 'MONTHLY', intervalCount: 1, dayOfMonth: startDate.getDate() };
+    }
+    if (preset === 'WEEKLY') {
+      const dow = this.appDayOfWeekFor(startIso);
+      return dow ? { recurrenceType: 'WEEKLY', intervalCount: 1, dayOfWeek: dow } : null;
+    }
+    return { recurrenceType: 'DAILY', intervalCount: 1 };
+  }
+
+  private resetRepeatState(): void {
+    this.repeatPreset.set('NONE');
+    this.customFrequency.set('WEEKLY');
+    this.customInterval.set(1);
+    this.customMonthlyPattern.set('DAY_OF_MONTH');
+    this.customWeekOfMonth.set('SECOND');
+    this.customDayOfWeek.set('MONDAY');
+    this.eventRepeatEndDate.set(null);
+    this.editingTemplateId = null;
+  }
+
+  /** Prefills the Repeat picker from an already-linked template so editing a repeating event
+   *  shows "Repeats" (in Custom mode, since a template's exact stored shape doesn't always map
+   *  back cleanly onto one of the quick presets) instead of silently resetting to one-time. */
+  private loadRepeatStateFromTemplate(sourceHolidayTemplateId: number): void {
+    this.loadingRepeatTemplate.set(true);
+    this.holidayTemplateService.getById(sourceHolidayTemplateId).subscribe({
+      next: (template) => {
+        this.editingTemplateId = template.id;
+        this.repeatPreset.set('CUSTOM');
+        this.customFrequency.set(template.recurrenceType);
+        this.customInterval.set(template.intervalCount ?? 1);
+        this.customMonthlyPattern.set(template.dayOfMonth != null ? 'DAY_OF_MONTH' : 'NTH_WEEKDAY');
+        if (template.weekOfMonth) this.customWeekOfMonth.set(template.weekOfMonth);
+        if (template.dayOfWeek) this.customDayOfWeek.set(template.dayOfWeek);
+        this.eventRepeatEndDate.set(template.endDate ?? null);
+        this.loadingRepeatTemplate.set(false);
+      },
+      error: () => {
+        this.loadingRepeatTemplate.set(false);
+      },
+    });
+  }
+
   protected eventTypeBadgeClass(type: CalendarEventType): string {
     return EVENT_TYPE_BADGE_CLASS[type] ?? 'cms-badge--gray';
   }
@@ -242,13 +371,22 @@ export class DayDetailFlyoutComponent implements OnInit {
     }
   }
 
+  /** Tracks the range-picker's own click sequence -- deliberately separate from the form's
+   *  startDate/endDate control values, which are always pre-filled with a real (equal) date pair
+   *  the moment the form opens. Reading the form's current values directly (as an earlier version
+   *  of this method did) made the very first click look like "a single day is already selected,
+   *  extend its end" instead of "start picking a fresh range" -- the reported bug where a range
+   *  needed three clicks. Null means "the next click starts a brand-new selection". */
+  private rangePickerAnchor: string | null = null;
+
   /** Click handler for the inline mini-calendar -- dual role depending on what's open. With no
    *  Add/Edit Event form open, a click is exactly the old "change viewing date" native-input
-   *  action. With the form open, a click builds a date range: the first click (or a click before
-   *  the current start, or a click while a multi-day range is already set) starts a fresh
-   *  single-day selection; a second click on/after that start date extends the end forward --
-   *  the same two-click range gesture as a typical calendar range picker. The native Start/End
-   *  Date inputs stay in sync automatically since both read/write the same form controls. */
+   *  action. With the form open, a click builds a date range: the first click after the form
+   *  opens (or after a range was just completed) always starts a fresh single-day selection; a
+   *  second click on/after that date completes the range and resets the sequence, so a third
+   *  click starts picking an entirely new range rather than extending further. The native
+   *  Start/End Date inputs stay in sync automatically since both read/write the same form
+   *  controls. */
   protected onCalendarDayClick(iso: string): void {
     if (this.eventFormMode() === 'CLOSED') {
       this.onDateChange(iso);
@@ -256,14 +394,16 @@ export class DayDetailFlyoutComponent implements OnInit {
     }
     const startCtrl = this.eventForm.get('startDate')!;
     const endCtrl = this.eventForm.get('endDate')!;
-    const currentStart = startCtrl.value as string | null;
-    const currentEnd = endCtrl.value as string | null;
-    const isMultiDaySelection = !!(currentStart && currentEnd && currentStart !== currentEnd);
-    if (!currentStart || iso < currentStart || isMultiDaySelection) {
+    const anchor = this.rangePickerAnchor;
+
+    if (!anchor || iso < anchor) {
+      this.rangePickerAnchor = iso;
       startCtrl.setValue(iso);
       endCtrl.setValue(iso);
     } else {
+      startCtrl.setValue(anchor);
       endCtrl.setValue(iso);
+      this.rangePickerAnchor = null;
     }
   }
 
@@ -285,6 +425,7 @@ export class DayDetailFlyoutComponent implements OnInit {
   // ─── Event mini-form ───
   protected openAddEventForm(): void {
     this.editingEventId.set(null);
+    this.rangePickerAnchor = null;
     this.eventForm.reset({
       title: '',
       description: '',
@@ -296,11 +437,13 @@ export class DayDetailFlyoutComponent implements OnInit {
     this.holidayWholeDay.set(true);
     this.holidayPeriodIds.set(new Set());
     this.overlappingEvents.set([]);
+    this.resetRepeatState();
     this.eventFormMode.set('ADD');
   }
 
   protected openEditEventForm(event: CalendarEvent): void {
     this.editingEventId.set(event.id);
+    this.rangePickerAnchor = null;
     this.eventForm.patchValue({
       title: event.title,
       description: event.description ?? '',
@@ -315,6 +458,10 @@ export class DayDetailFlyoutComponent implements OnInit {
     this.holidayWholeDay.set(isWholeDay);
     this.holidayPeriodIds.set(isWholeDay ? new Set() : new Set(event.blockedPeriodIds));
     this.overlappingEvents.set([]);
+    this.resetRepeatState();
+    if (event.sourceHolidayTemplateId != null) {
+      this.loadRepeatStateFromTemplate(event.sourceHolidayTemplateId);
+    }
     this.eventFormMode.set('EDIT');
   }
 
@@ -322,6 +469,7 @@ export class DayDetailFlyoutComponent implements OnInit {
     this.eventFormMode.set('CLOSED');
     this.editingEventId.set(null);
     this.overlappingEvents.set([]);
+    this.rangePickerAnchor = null;
   }
 
   // ─── Conflict detection (any event type overlapping the proposed range) ───
@@ -384,6 +532,8 @@ export class DayDetailFlyoutComponent implements OnInit {
       holidayCategory: val.eventType === 'HOLIDAY' ? (val.holidayCategory as HolidayCategory | null) : null,
       blockedPeriodIds: val.eventType === 'HOLIDAY' && !this.holidayWholeDay()
         ? [...this.holidayPeriodIds()] : undefined,
+      repeats: this.repeatPreset() !== 'NONE',
+      recurrence: this.buildRecurrenceRequest(),
     };
 
     this.eventSaving.set(true);

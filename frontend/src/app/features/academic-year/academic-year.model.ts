@@ -113,10 +113,30 @@ export interface CalendarEventRequest {
   /** Only meaningful when eventType === 'HOLIDAY' -- which periods to auto-block for every date
    *  in [startDate, endDate]. Omitted/empty means "whole day" (every active period). */
   blockedPeriodIds?: number[];
+  /** When true (with a non-null recurrence), creates/updates a linked Holiday Template anchored
+   *  to this event's own startDate. When false on an event that already repeats, the linked
+   *  template is deactivated (this event reverts to one-time; siblings are untouched). */
+  repeats?: boolean;
+  recurrence?: EventRecurrenceRequest | null;
+}
+
+export type AppDayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY';
+export type HolidayRecurrenceType = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+export type WeekOfMonth = 'FIRST' | 'SECOND' | 'THIRD' | 'FOURTH' | 'LAST';
+
+/** Mirrors the backend's EventRecurrenceRequest -- the "Repeats" configuration chosen inline on
+ *  the Add/Edit Event form (a simplified iOS/Google Calendar Repeat picker). */
+export interface EventRecurrenceRequest {
+  recurrenceType: HolidayRecurrenceType;
+  intervalCount?: number;
+  endDate?: string | null;
+  month?: number | null;
+  dayOfMonth?: number | null;
+  weekOfMonth?: WeekOfMonth | null;
+  dayOfWeek?: AppDayOfWeek | null;
 }
 
 export type BlockType = 'ONE_OFF' | 'RECURRING';
-export type AppDayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY';
 
 export interface BlockedPeriod {
   id: number;

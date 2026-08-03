@@ -1,9 +1,12 @@
 package com.cms.model.enums;
 
-/** WEEKLY is deliberately not a value here -- a standing weekly closure (e.g. every Sunday) is
- *  already just a {@link BlockType#RECURRING} blocked_periods rule with no CalendarEvent needed;
- *  duplicating that in HolidayTemplate would be a second mechanism for the same thing. */
+/** DAILY/WEEKLY were originally left out on the reasoning that a silent standing closure is
+ *  already just a {@link BlockType#RECURRING} blocked_periods rule -- reconsidered so a repeating
+ *  event created inline from the Add Event form (mirroring iOS/Google Calendar's Repeat picker)
+ *  can be a real, named, calendar-visible event every day/week too, not only a silent block. */
 public enum HolidayRecurrenceType {
-    YEARLY,
-    MONTHLY
+    DAILY,
+    WEEKLY,
+    MONTHLY,
+    YEARLY
 }
