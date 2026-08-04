@@ -5,7 +5,7 @@
     </a>
     <div class="entry-form-hdr-text">
       <div class="page-title-row">
-        <h1 class="page-title">{{ pageTitle() }}</h1>
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Fee Structures</em></h1>
         <cms-tour-button tourKey="fee-structure-form" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="page-subtitle">{{ isEditMode() ? 'Update the fee schedule below.' : 'Configure fee schedules for a program and course.' }}</p>

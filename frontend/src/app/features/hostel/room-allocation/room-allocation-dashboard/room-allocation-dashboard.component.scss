@@ -10,6 +10,11 @@
   font-size: 22px;
   font-weight: 700;
   color: var(--cms-text-primary);
+
+  em {
+    font-style: italic;
+    color: var(--cms-primary);
+  }
 }
 
 .rad-hdr__sub {
