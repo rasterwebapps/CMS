@@ -4979,14 +4979,12 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
   border-radius: 16px;
   padding: 22px;
   position: relative;
-  overflow: hidden;
-  // Grid items default to `min-height: auto`, which the spec resolves to 0
-  // (not content-based) whenever overflow isn't `visible` — as it is here.
-  // Inside .mlp-cards-grid's flex:1/overflow:auto scroll container, that lets
-  // grid rows compress below a card's real content height instead of the
-  // container scrolling, clipping text. An explicit non-`auto` min-height
-  // opts back into content-based sizing.
-  min-height: min-content;
+  // Deliberately not overflow:hidden — inside .mlp-cards-grid's flex:1/
+  // overflow:auto scroll container, a grid item with overflow != visible
+  // gets its row sized far too short (Chromium quirk), clipping most of the
+  // card's content on every row but the last. The top accent bar (::before)
+  // already shares this box's own border-radius, so nothing here needs
+  // clipping in the first place.
   cursor: default;
   transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
   animation: cms-rise-up 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
