@@ -126,14 +126,24 @@ public class PermissionController {
      *   Tier 2 → hierarchy_level ≤ 2 (DEV_ADMIN, SUPPORT_ADMIN)
      *   Tier 3 → hierarchy_level ≤ 2 (same as tier 2 — senior roles hold but cannot delegate)
      *   Tier 4 → anyone
+     *
+     * A permission also has to be one the caller actually holds — mirrors the
+     * no-privilege-escalation check {@link com.cms.service.AppRoleService#updatePermissions}
+     * enforces at save time. Without this, the tier-only filter let a caller check a
+     * box here (any Tier 4 permission passes for every hierarchy level) that the save
+     * endpoint would then reject with a 403, since holding it yourself is a separate,
+     * stricter requirement than merely being within delegation-tier reach for it.
      */
     @GetMapping("/delegatable")
     @PreAuthorize("@perm.has('ROLE_VIEW')")
     public ResponseEntity<List<PermissionDetail>> getDelegatablePermissions(
             @AuthenticationPrincipal Jwt jwt) {
+        String username = jwt.getClaimAsString("preferred_username");
         int callerLevel = resolveHierarchyLevel(jwt);
+        java.util.Set<String> heldCodes = userPermissionService.getPermissions(username);
         List<PermissionDetail> details = permissionRepository.findAll().stream()
             .filter(p -> Permission.tierAllowsLevel(p.getTier(), callerLevel))
+            .filter(p -> heldCodes.contains(p.getCode()))
             .sorted(java.util.Comparator.comparing(Permission::getCategory)
                 .thenComparing(Permission::getCode))
             .map(p -> new PermissionDetail(p.getId(), p.getCode(), p.getDisplayName(), p.getCategory(), p.getTier(), p.getScreenLabel()))
