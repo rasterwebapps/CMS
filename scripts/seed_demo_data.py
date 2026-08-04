@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import ssl
 import sys
 import urllib.error
 import urllib.parse
@@ -23,7 +24,12 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
-API_URL = os.environ.get('CMS_API_URL', 'http://localhost:8080/api/v1')
+# Backend now serves HTTPS-only locally (self-signed local-dev.p12, see
+# application-local.yml) since the LAN dev access change — verification is
+# disabled below to match every other local/243 tool in this repo (curl -k).
+_INSECURE_SSL_CONTEXT = ssl._create_unverified_context()
+
+API_URL = os.environ.get('CMS_API_URL', 'https://localhost:8080/api/v1')
 KEYCLOAK_URL = os.environ.get('CMS_KEYCLOAK_URL', 'http://localhost:8280')
 REALM = os.environ.get('CMS_REALM', 'cms')
 CLIENT_ID = os.environ.get('CMS_CLIENT_ID', 'cms-frontend')
@@ -300,7 +306,7 @@ def api_request(method: str, path: str, token: str, payload: dict[str, Any] | No
 
     request = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.urlopen(request, timeout=30, context=_INSECURE_SSL_CONTEXT) as response:
             raw = response.read().decode('utf-8')
             return json.loads(raw) if raw else None
     except urllib.error.HTTPError as exc:
@@ -744,8 +750,431 @@ def main() -> int:
     return 0
 
 
+# ---------------------------------------------------------------------------
+# Gap-fill seeding — populates screens that were empty as of 2026-08-04
+# (Experiments, Attendance, Manage Exams, Exam Results, Student Promotion,
+# Faculty Absence, Holiday Templates, Syllabus Unit Plan / portion tracking,
+# Cohort Room Allocation) against an ALREADY-seeded local dev database.
+#
+# Unlike main(), this does NOT create specialities/programs/students/etc —
+# it reads existing reference data via GET and only creates the 9 target
+# entity types on top of it. Safe to re-run (each section is best-effort
+# and either upserts or tolerates duplicates via try/except).
+# ---------------------------------------------------------------------------
+
+EXPERIMENT_LIBRARY = [
+    ('Vital Signs Assessment', 'Accurately measure and record temperature, pulse, respiration, and blood pressure', 'Thermometer, sphygmomanometer, stethoscope, watch with second hand', 60),
+    ('Bed Making — Occupied & Unoccupied', 'Demonstrate correct technique for making an occupied and unoccupied hospital bed', 'Linen set, bed, pillow, mackintosh', 90),
+    ('Injection Administration (IM/IV/SC)', 'Demonstrate safe intramuscular, intravenous, and subcutaneous injection technique', 'Syringes, needles, mannequin arm, antiseptic swabs, sharps container', 90),
+    ('Wound Dressing Technique', 'Perform aseptic wound dressing and document wound assessment', 'Dressing tray, sterile gloves, gauze, antiseptic solution', 60),
+    ('Catheterization Technique', 'Demonstrate urinary catheter insertion using aseptic technique', 'Catheterization tray, sterile gloves, catheter, lubricant, mannequin', 90),
+    ('CPR & Basic Life Support', 'Demonstrate chest compressions, rescue breathing, and AED use on a manikin', 'CPR manikin, AED trainer, pocket mask', 120),
+    ('Specimen Collection', 'Demonstrate correct technique for urine, stool, and blood specimen collection', 'Specimen containers, gloves, labels, vacutainer set', 45),
+    ('Personal Hygiene Care', 'Demonstrate bed bath, oral hygiene, and hair care for a bedridden patient', 'Basin, towels, soap, oral care kit', 90),
+    ('Nasogastric Tube Feeding', 'Demonstrate NG tube insertion and feeding procedure', 'NG tube, feeding syringe, stethoscope, mannequin', 60),
+    ('Preoperative & Postoperative Care', 'Demonstrate preoperative checklist and postoperative monitoring', 'Checklist form, vital signs equipment, surgical gown', 60),
+]
+
+HOLIDAY_TEMPLATES = [
+    # YEARLY — national holidays
+    {'name': 'Republic Day', 'recurrenceType': 'YEARLY', 'eventType': 'HOLIDAY', 'holidayCategory': 'GOVERNMENT', 'month': 1, 'dayOfMonth': 26, 'description': 'National holiday'},
+    {'name': 'Pongal', 'recurrenceType': 'YEARLY', 'eventType': 'HOLIDAY', 'holidayCategory': 'LOCAL', 'month': 1, 'dayOfMonth': 15, 'description': 'Tamil Nadu harvest festival'},
+    {'name': 'Independence Day', 'recurrenceType': 'YEARLY', 'eventType': 'HOLIDAY', 'holidayCategory': 'GOVERNMENT', 'month': 8, 'dayOfMonth': 15, 'description': 'National holiday'},
+    {'name': 'Gandhi Jayanti', 'recurrenceType': 'YEARLY', 'eventType': 'HOLIDAY', 'holidayCategory': 'GOVERNMENT', 'month': 10, 'dayOfMonth': 2, 'description': 'National holiday'},
+    {'name': 'Christmas', 'recurrenceType': 'YEARLY', 'eventType': 'HOLIDAY', 'holidayCategory': 'GOVERNMENT', 'month': 12, 'dayOfMonth': 25, 'description': 'National holiday'},
+    # MONTHLY (weekOfMonth + dayOfWeek) — statutory second/fourth Saturday off
+    {'name': 'Second Saturday Holiday', 'recurrenceType': 'MONTHLY', 'eventType': 'HOLIDAY', 'holidayCategory': 'INSTITUTIONAL', 'weekOfMonth': 'SECOND', 'dayOfWeek': 'SATURDAY', 'description': 'Statutory second Saturday off'},
+    {'name': 'Fourth Saturday Holiday', 'recurrenceType': 'MONTHLY', 'eventType': 'HOLIDAY', 'holidayCategory': 'INSTITUTIONAL', 'weekOfMonth': 'FOURTH', 'dayOfWeek': 'SATURDAY', 'description': 'Statutory fourth Saturday off'},
+    # DAILY one-off events (anchorDate == endDate => fires exactly once)
+    {'name': 'College Foundation Day', 'recurrenceType': 'DAILY', 'eventType': 'CULTURAL', 'anchorDateOffsetDays': -120, 'sameDayEnd': True, 'description': "SKS College of Nursing's founding anniversary"},
+    {'name': 'Annual Sports Day', 'recurrenceType': 'DAILY', 'eventType': 'SPORTS', 'anchorDateOffsetDays': -75, 'sameDayEnd': True, 'description': 'Inter-batch annual sports meet'},
+]
+
+FACULTY_ABSENCE_REASONS = [
+    'Medical leave', 'Family function', 'Conference travel', 'Personal emergency',
+    'Sick leave', 'Maternity/paternity leave', 'Approved casual leave', 'Bereavement leave',
+]
+
+
+def get_list(token: str, path: str) -> list[dict[str, Any]]:
+    result = api_request('GET', path, token)
+    return result or []
+
+
+def try_request(token: str, method: str, path: str, payload: dict[str, Any] | None, label: str) -> Any:
+    try:
+        return api_request(method, path, token, payload)
+    except SeedError as exc:
+        print(f'  ⚠️  Skipped {label}: {exc}')
+        return None
+
+
+def compute_grade(marks: int, max_marks: int) -> str:
+    pct = int(marks * 100 / max_marks) if max_marks > 0 else 0
+    if pct >= 90:
+        return 'O'
+    if pct >= 80:
+        return 'A+'
+    if pct >= 70:
+        return 'A'
+    if pct >= 60:
+        return 'B+'
+    if pct >= 50:
+        return 'B'
+    return 'F'
+
+
+def seed_academics_core_infra_gaps() -> int:
+    token = get_token()
+    today = date.today()
+
+    print('🎓 Seeding Academics + Core Infrastructure gap data (local dev)')
+    print('=' * 60)
+
+    # -- Reference data (already present in the DB — read only) -------------
+    subjects = get_list(token, '/subjects')
+    faculty = get_list(token, '/faculty')
+    students = get_list(token, '/students')
+    academic_years = get_list(token, '/academic-years')
+
+    term_instances: list[dict[str, Any]] = []
+    for ay in academic_years:
+        term_instances += get_list(token, f'/term-instances?academicYearId={ay["id"]}')
+
+    course_offerings: list[dict[str, Any]] = []
+    for ti in term_instances:
+        course_offerings += get_list(token, f'/course-offerings?termInstanceId={ti["id"]}')
+
+    class_schedules = get_list(token, '/lab-schedules')
+    cohorts = get_list(token, '/cohorts')
+    classrooms = get_list(token, '/classrooms')
+    labs = get_list(token, '/labs')
+    clinical_venues = get_list(token, '/clinical-venues')
+
+    print(f'  ℹ️  Reference data: {len(subjects)} subjects, {len(faculty)} faculty, '
+          f'{len(students)} students, {len(term_instances)} term instances, '
+          f'{len(course_offerings)} course offerings, {len(class_schedules)} class schedules, '
+          f'{len(cohorts)} cohorts')
+
+    if not subjects or not faculty or not students or not term_instances:
+        raise SeedError('Reference data is missing — run main() seeding (or the R2 cohort seed) first.')
+
+    course_offering_by_id = {co['id']: co for co in course_offerings}
+    term_instance_by_id = {ti['id']: ti for ti in term_instances}
+
+    # -------------------------------------------------------------------
+    # 1. Experiments — cycle through subjects with lab credits
+    # -------------------------------------------------------------------
+    lab_subjects = [s for s in subjects if (s.get('labCredits') or 0) > 0] or subjects
+    experiment_payloads = []
+    for idx, (name, aim, apparatus, minutes) in enumerate(EXPERIMENT_LIBRARY):
+        subject = lab_subjects[idx % len(lab_subjects)]
+        experiment_payloads.append({
+            'subjectId': subject['id'],
+            'experimentNumber': idx + 1,
+            'name': name,
+            'description': f'{name} — practical demonstration and return-demonstration by students.',
+            'aim': aim,
+            'apparatus': apparatus,
+            'procedure': f'Step-by-step demonstration of {name.lower()} followed by supervised student return-demonstration.',
+            'expectedOutcome': f'Student independently performs {name.lower()} following correct protocol.',
+            'learningOutcomes': 'Psychomotor competency, patient safety awareness, infection control practice.',
+            'estimatedDurationMinutes': minutes,
+            'isActive': True,
+        })
+    experiments_created = 0
+    for payload in experiment_payloads:
+        if try_request(token, 'POST', '/experiments', payload, f"experiment '{payload['name']}'") is not None:
+            experiments_created += 1
+    print(f'  ✅ Created {experiments_created}/{len(experiment_payloads)} experiments')
+
+    # -------------------------------------------------------------------
+    # 2. Holiday Templates
+    # -------------------------------------------------------------------
+    holiday_created = 0
+    for tpl in HOLIDAY_TEMPLATES:
+        payload = {k: v for k, v in tpl.items() if k not in ('anchorDateOffsetDays', 'sameDayEnd')}
+        if 'anchorDateOffsetDays' in tpl:
+            anchor = today + timedelta(days=tpl['anchorDateOffsetDays'])
+            payload['anchorDate'] = anchor
+            if tpl.get('sameDayEnd'):
+                payload['endDate'] = anchor
+        if try_request(token, 'POST', '/holiday-templates', payload, f"holiday template '{tpl['name']}'") is not None:
+            holiday_created += 1
+    print(f'  ✅ Created {holiday_created}/{len(HOLIDAY_TEMPLATES)} holiday templates')
+
+    # -------------------------------------------------------------------
+    # 3. Faculty Absence
+    # -------------------------------------------------------------------
+    absence_created = 0
+    for idx in range(min(10, len(faculty) * 2)):
+        member = faculty[idx % len(faculty)]
+        payload = {
+            'facultyId': member['id'],
+            'absenceDate': today - timedelta(days=5 + idx * 4),
+            'reason': FACULTY_ABSENCE_REASONS[idx % len(FACULTY_ABSENCE_REASONS)],
+        }
+        if try_request(token, 'POST', '/faculty-absences', payload, f"faculty absence for {member.get('fullName')}") is not None:
+            absence_created += 1
+    print(f'  ✅ Created {absence_created} faculty absence records')
+
+    # -------------------------------------------------------------------
+    # 4. Examinations
+    # -------------------------------------------------------------------
+    exam_types = ['THEORY', 'PRACTICAL', 'VIVA']
+    exam_subjects = subjects[:12] or subjects
+    examinations_created: list[dict[str, Any]] = []
+    for idx, subject in enumerate(exam_subjects):
+        exam_type = exam_types[idx % len(exam_types)]
+        max_marks = 50 if exam_type == 'VIVA' else 100
+        payload = {
+            'name': f"{subject['name']} — {'Mid-Term' if idx % 2 == 0 else 'End-Term'} {exam_type.title()}",
+            'subjectId': subject['id'],
+            'examType': exam_type,
+            'date': today - timedelta(days=30 - idx * 2),
+            'duration': 60 if exam_type == 'VIVA' else 180,
+            'maxMarks': max_marks,
+        }
+        created = try_request(token, 'POST', '/examinations', payload, f"examination for {subject['name']}")
+        if created is not None:
+            examinations_created.append(created)
+    print(f'  ✅ Created {len(examinations_created)}/{len(exam_subjects)} examinations')
+
+    # -------------------------------------------------------------------
+    # 5. Exam Results — 2 students per examination, published, real pass/fail split
+    # -------------------------------------------------------------------
+    exam_results_created = 0
+    marks_cycle = [88, 42, 65, 35, 74, 91]
+    for e_idx, exam in enumerate(examinations_created):
+        max_marks = exam.get('maxMarks') or 100
+        for r_idx in range(2):
+            student = students[(e_idx * 2 + r_idx) % len(students)]
+            marks_pct = marks_cycle[(e_idx * 2 + r_idx) % len(marks_cycle)]
+            marks = round(max_marks * marks_pct / 100)
+            payload = {
+                'examinationId': exam['id'],
+                'studentId': student['id'],
+                'marksObtained': Decimal(marks),
+                'grade': compute_grade(marks, max_marks),
+                'status': 'PUBLISHED',
+            }
+            if try_request(token, 'POST', '/exam-results', payload, f"exam result for {student.get('fullName')}") is not None:
+                exam_results_created += 1
+    print(f'  ✅ Created {exam_results_created} exam results')
+
+    # -------------------------------------------------------------------
+    # 6. Attendance (bulk) — a couple of full-class sessions per type
+    # -------------------------------------------------------------------
+    attendance_created = 0
+    attendance_subjects = subjects[:2] if len(subjects) >= 2 else subjects
+    roster = students[:15]
+    for s_idx, subject in enumerate(attendance_subjects):
+        for d_idx in range(2):
+            att_date = today - timedelta(days=3 + d_idx * 7 + s_idx)
+            bulk_payload = {
+                'subjectId': subject['id'],
+                'date': att_date,
+                'type': 'THEORY' if s_idx % 2 == 0 else 'LAB',
+                'studentAttendances': [
+                    {
+                        'studentId': student['id'],
+                        'status': 'PRESENT' if i % 6 != 0 else ('ABSENT' if i % 12 != 0 else 'LATE'),
+                        'remarks': None,
+                    }
+                    for i, student in enumerate(roster)
+                ],
+            }
+            result = try_request(token, 'POST', '/attendance/bulk', bulk_payload,
+                                  f"bulk attendance for {subject['name']} on {att_date}")
+            if result is not None:
+                attendance_created += len(roster)
+    print(f'  ✅ Created ~{attendance_created} attendance records (bulk)')
+
+    # -------------------------------------------------------------------
+    # 7. Syllabus Unit Plan (portion blueprint) — generate for course
+    #    offerings whose curriculum-semester-course already has units
+    # -------------------------------------------------------------------
+    blueprint_generated = 0
+    blueprint_attempted = 0
+    for co in course_offerings:
+        curriculum_term_course_id = co.get('curriculumTermCourseId')
+        if not curriculum_term_course_id:
+            continue
+        units = get_list(token, f'/syllabus-units?curriculumTermCourseId={curriculum_term_course_id}')
+        if not units:
+            continue
+        blueprint_attempted += 1
+        if blueprint_attempted > 12:
+            break
+        result = try_request(token, 'POST', f"/portion-blueprint/course-offerings/{co['id']}/generate", None,
+                              f"portion blueprint for {co.get('subjectName')}")
+        if result is not None:
+            blueprint_generated += 1
+    print(f'  ✅ Generated portion blueprint for {blueprint_generated}/{blueprint_attempted} course offerings')
+
+    # -------------------------------------------------------------------
+    # 8. Progress tracking log — best-effort, only against PUBLISHED
+    #    sessions on a real weekday occurrence within the term
+    # -------------------------------------------------------------------
+    progress_logged = 0
+    progress_attempted = 0
+    published_schedules = [cs for cs in class_schedules if cs.get('status') == 'PUBLISHED']
+    weekday_index = {'MONDAY': 0, 'TUESDAY': 1, 'WEDNESDAY': 2, 'THURSDAY': 3, 'FRIDAY': 4, 'SATURDAY': 5}
+    for cs in published_schedules[:15]:
+        term = term_instance_by_id.get(cs.get('termInstanceId'))
+        co = course_offering_by_id.get(cs.get('courseOfferingId'))
+        if not term or not co or not co.get('curriculumTermCourseId') or not cs.get('dayOfWeek'):
+            continue
+        start = date.fromisoformat(term['startDate']) if isinstance(term['startDate'], str) else term['startDate']
+        end_raw = term.get('endDate')
+        end = date.fromisoformat(end_raw) if isinstance(end_raw, str) else end_raw
+        window_end = min(today, end) if end else today
+        target_weekday = weekday_index.get(cs['dayOfWeek'])
+        if target_weekday is None or window_end < start:
+            continue
+        # Walk back from window_end to the most recent matching weekday within the term
+        occurrence = window_end
+        occurrence -= timedelta(days=(occurrence.weekday() - target_weekday) % 7)
+        if occurrence < start:
+            continue
+        units = get_list(token, f"/syllabus-units?curriculumTermCourseId={co['curriculumTermCourseId']}")
+        if not units:
+            continue
+        progress_attempted += 1
+        payload = {
+            'classScheduleId': cs['id'],
+            'occurrenceDate': occurrence,
+            'units': [
+                {'unitId': units[0]['id'], 'hoursCovered': Decimal('1.5'), 'markedComplete': False},
+            ],
+            'remarks': 'Session conducted as scheduled.',
+        }
+        result = try_request(token, 'POST', '/progress-tracking/log', payload,
+                              f"progress log for schedule {cs['id']} on {occurrence}")
+        if result is not None:
+            progress_logged += 1
+    print(f'  ✅ Logged progress for {progress_logged}/{progress_attempted} sessions attempted '
+          f'({len(published_schedules)} published schedules available)')
+
+    # -------------------------------------------------------------------
+    # 9. Cohort Room Allocation — commit for a few cohort/term pairs that
+    #    don't already have one
+    # -------------------------------------------------------------------
+    allocations_committed = 0
+    allocations_attempted = 0
+    classrooms_used_per_term: dict[Any, set[Any]] = {}
+    for cohort in cohorts:
+        if allocations_attempted >= 4:
+            break
+        active_terms = get_list(token, f"/student-promotions/active-terms?cohortId={cohort['id']}")
+        if not active_terms:
+            continue
+        term_id = active_terms[0]['termInstanceId']
+        existing = try_request(token, 'GET', f"/timetables/cohort-room-allocations?cohortId={cohort['id']}&termInstanceId={term_id}",
+                                None, f"existing allocation check for cohort {cohort['id']}")
+        if existing is not None:
+            continue  # already allocated
+        allocations_attempted += 1
+        enrolled = active_terms[0].get('enrolledCount') or 0
+        used = classrooms_used_per_term.setdefault(term_id, set())
+        classroom = next(
+            (c for c in classrooms if c['id'] not in used and (c.get('capacity') or 0) >= enrolled),
+            None,
+        )
+        if classroom is not None:
+            used.add(classroom['id'])
+        if classroom is None:
+            continue
+        term_offerings = [co for co in course_offerings if co.get('termInstanceId') == term_id]
+        best_lab = max(labs, key=lambda l: l.get('capacity') or 0, default=None)
+        best_clinical = max(clinical_venues, key=lambda v: v.get('capacity') or 0, default=None)
+        venture_splits = []
+        if term_offerings and best_lab:
+            venture_splits.append({
+                'courseOfferingId': term_offerings[0]['id'],
+                'sessionType': 'LAB',
+                'venueId': best_lab['id'],
+                'batchName': f"{cohort.get('cohortCode', 'C')}-LAB-A",
+                'plannedSize': min(20, enrolled or 20, best_lab.get('capacity') or 20),
+            })
+        if len(term_offerings) > 1 and best_clinical:
+            venture_splits.append({
+                'courseOfferingId': term_offerings[1]['id'],
+                'sessionType': 'CLINICAL',
+                'venueId': best_clinical['id'],
+                'batchName': f"{cohort.get('cohortCode', 'C')}-CLIN-A",
+                'plannedSize': min(20, enrolled or 20, best_clinical.get('capacity') or 20),
+            })
+        commit_payload = {
+            'cohortId': cohort['id'],
+            'termInstanceId': term_id,
+            'theoryClassroomId': classroom['id'],
+            'ventureSplits': venture_splits,
+        }
+        result = try_request(token, 'POST', '/timetables/cohort-room-allocations/commit', commit_payload,
+                              f"room allocation for cohort {cohort.get('displayName', cohort['id'])}")
+        if result is not None:
+            allocations_committed += 1
+    print(f'  ✅ Committed {allocations_committed}/{allocations_attempted} cohort room allocations')
+
+    # -------------------------------------------------------------------
+    # 10. Student Promotion — preview + execute for a few cohorts
+    # -------------------------------------------------------------------
+    promotions_executed = 0
+    promotions_attempted = 0
+    for cohort in cohorts:
+        if promotions_attempted >= 4:
+            break
+        active_terms = get_list(token, f"/student-promotions/active-terms?cohortId={cohort['id']}")
+        if not active_terms:
+            continue
+        from_term_id = min(active_terms, key=lambda t: t['termInstanceId'])['termInstanceId']
+        next_term = try_request(token, 'GET', f"/student-promotions/suggested-next-term?fromTermInstanceId={from_term_id}",
+                                 None, f"suggested next term for cohort {cohort['id']}")
+        if not next_term:
+            continue
+        to_term_id = next_term['termInstanceId']
+        promotions_attempted += 1
+        preview = try_request(token, 'POST', '/student-promotions/preview', {
+            'cohortId': cohort['id'],
+            'fromTermInstanceId': from_term_id,
+            'toTermInstanceId': to_term_id,
+        }, f"promotion preview for cohort {cohort['id']}")
+        if not preview or not preview.get('students'):
+            continue
+        decisions = [
+            {
+                'studentId': row['studentId'],
+                'outcome': row['recommendedOutcome'] if not row.get('blockReasons') else 'DETAINED_REPEAT',
+                'remarks': 'Auto-decided from preview during demo data seeding.',
+            }
+            for row in preview['students']
+        ]
+        execute_payload = {
+            'cohortId': cohort['id'],
+            'fromTermInstanceId': from_term_id,
+            'toTermInstanceId': to_term_id,
+            'decisions': decisions,
+            'generateCourseRegistrations': False,
+            'generateFeeDemands': False,
+        }
+        result = try_request(token, 'POST', '/student-promotions/execute', execute_payload,
+                              f"promotion execute for cohort {cohort.get('displayName', cohort['id'])}")
+        if result is not None:
+            promotions_executed += 1
+            print(f"    → {cohort.get('displayName', cohort['id'])}: {len(decisions)} student decisions")
+    print(f'  ✅ Executed promotions for {promotions_executed}/{promotions_attempted} cohorts attempted')
+
+    print(f'\n{"=" * 60}')
+    print('🎉 Gap-fill seed complete')
+    print(f'{"=" * 60}')
+    return 0
+
+
 if __name__ == '__main__':
     try:
+        if '--fill-gaps' in sys.argv:
+            raise SystemExit(seed_academics_core_infra_gaps())
         raise SystemExit(main())
     except SeedError as exc:
         print(f'ERROR: {exc}', file=sys.stderr)
