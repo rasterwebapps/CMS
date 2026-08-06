@@ -311,8 +311,10 @@ public class CampusInfrastructureController {
     public ResponseEntity<List<RoomResponse>> searchRoomsByPurpose(
             @RequestParam Long purposeCategoryId,
             @RequestParam(required = false) Long subTypeId,
-            @RequestParam(required = false) Integer minCapacity) {
-        return ResponseEntity.ok(service.findRoomsByPurpose(purposeCategoryId, subTypeId, minCapacity));
+            @RequestParam(required = false) Integer minCapacity,
+            @RequestParam(required = false) Long keepRoomId,
+            @RequestParam(required = false) String venueType) {
+        return ResponseEntity.ok(service.findRoomsByPurpose(purposeCategoryId, subTypeId, minCapacity, keepRoomId, venueType));
     }
 
     @GetMapping("/zones/{zoneId}/rooms")

@@ -55,9 +55,4 @@ export class RoomPurposeCategoryService {
     return this.http.get<boolean>(`${this.baseUrl}/name-exists`, { params });
   }
 
-  checkCodeExists(value: string, excludeId?: number): Observable<boolean> {
-    let params = new HttpParams().set('value', value);
-    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
-    return this.http.get<boolean>(`${this.baseUrl}/code-exists`, { params });
-  }
 }

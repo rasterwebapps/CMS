@@ -6,9 +6,13 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.cms.model.enums.RoomPurposeCategoryCode;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -18,7 +22,10 @@ import jakarta.persistence.Table;
  * Primary Purpose Category for a {@link Room} (Academic, Residential, Administrative, etc.) — tier
  * one of the 2-tier Room Purpose Classification. {@code isResidential} is the authoritative flag
  * checked before a Room can be designated a {@link HostelRoom}, not a hardcoded {@code code} match,
- * so it survives an admin renaming/recoding this category.
+ * so it survives an admin renaming/recoding this category. {@code code} itself is a fixed
+ * {@link RoomPurposeCategoryCode} (picked from a list, immutable once set by
+ * {@code RoomPurposeCategoryService}) rather than free text, for the same reason — anything that
+ * keys off a specific category (e.g. "must be ACADEMIC") needs that identity to never shift.
  */
 @Entity
 @Table(name = "room_purpose_categories")
@@ -32,8 +39,9 @@ public class RoomPurposeCategory {
     @Column(nullable = false, unique = true, length = 100)
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, unique = true, length = 50)
-    private String code;
+    private RoomPurposeCategoryCode code;
 
     @Column(name = "is_residential", nullable = false)
     private Boolean isResidential = false;
@@ -54,7 +62,7 @@ public class RoomPurposeCategory {
 
     public RoomPurposeCategory() {}
 
-    public RoomPurposeCategory(String name, String code, Boolean isResidential, String description) {
+    public RoomPurposeCategory(String name, RoomPurposeCategoryCode code, Boolean isResidential, String description) {
         this.name = name;
         this.code = code;
         this.isResidential = isResidential != null && isResidential;
@@ -67,8 +75,8 @@ public class RoomPurposeCategory {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public String getCode() { return code; }
-    public void setCode(String code) { this.code = code; }
+    public RoomPurposeCategoryCode getCode() { return code; }
+    public void setCode(RoomPurposeCategoryCode code) { this.code = code; }
 
     public Boolean getIsResidential() { return isResidential; }
     public void setIsResidential(Boolean isResidential) { this.isResidential = isResidential; }

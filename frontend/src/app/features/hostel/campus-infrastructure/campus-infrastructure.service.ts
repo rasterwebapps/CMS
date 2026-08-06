@@ -191,10 +191,19 @@ export class CampusInfrastructureService {
   /** Flat, campus-wide room search by purpose — spans every Branch (including a hospital Branch
    *  hosting clinical venues), unlike the zone-scoped listing below. Used by venue pickers (Cohort
    *  Room Allocation, Classroom/Lab/ClinicalVenue master forms). */
-  getRoomsByPurpose(purposeCategoryId: number, subTypeId?: number | null, minCapacity?: number | null): Observable<Room[]> {
+  /** keepRoomId: the one Room that should never be excluded even though it's already linked —
+   *  pass the venue's own currently-linked room id when editing, so its picker doesn't lose its
+   *  own selection just because it's "taken" by itself. Omit when creating new.
+   *  venueType ('CLASSROOM'/'LAB'/'CLINICAL'): excludes rooms already linked to another active
+   *  venue of this SAME type only — a Room already used by a Classroom is still offered when
+   *  picking for a new Lab, they're allowed to share a physical space. Omit to skip exclusion
+   *  entirely. */
+  getRoomsByPurpose(purposeCategoryId: number, subTypeId?: number | null, minCapacity?: number | null, keepRoomId?: number | null, venueType?: string | null): Observable<Room[]> {
     let params = new HttpParams().set('purposeCategoryId', purposeCategoryId);
     if (subTypeId != null) params = params.set('subTypeId', subTypeId);
     if (minCapacity != null) params = params.set('minCapacity', minCapacity);
+    if (keepRoomId != null) params = params.set('keepRoomId', keepRoomId);
+    if (venueType != null) params = params.set('venueType', venueType);
     return this.http.get<Room[]>(`${this.baseUrl}/rooms`, { params });
   }
 

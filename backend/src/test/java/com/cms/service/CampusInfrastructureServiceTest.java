@@ -43,6 +43,7 @@ import com.cms.model.HostelRoomType;
 import com.cms.model.Organization;
 import com.cms.model.Room;
 import com.cms.model.RoomPurposeCategory;
+import com.cms.model.enums.RoomPurposeCategoryCode;
 import com.cms.model.Zone;
 import com.cms.model.enums.GenderRestriction;
 import com.cms.repository.BlockRepository;
@@ -387,7 +388,7 @@ class CampusInfrastructureServiceTest {
     void shouldAssignHostelRoomToRoom() {
         Branch br = branch(1L, organization(1L, "Org", "ORG"), "SKSCON Campus", "SKSCON");
         Room room = room(1L, zone(1L, floor(1L, block(1L, br, "B", "B"), "F", 0), "Z", null, null), "G-101", 2);
-        RoomPurposeCategory residential = new RoomPurposeCategory("Residential (Hostel)", "RESIDENTIAL", true, null);
+        RoomPurposeCategory residential = new RoomPurposeCategory("Residential (Hostel)", RoomPurposeCategoryCode.RESIDENTIAL, true, null);
         residential.setId(1L);
         room.setPurposeCategory(residential);
         HostelRoomType roomType = new HostelRoomType("AC Double", "AC_DOUBLE", 2, true, new BigDecimal("45000.00"), null);
@@ -412,7 +413,7 @@ class CampusInfrastructureServiceTest {
     void shouldThrowWhenAssigningHostelRoomToNonResidentialRoom() {
         Branch br = branch(1L, organization(1L, "Org", "ORG"), "SKSCON Campus", "SKSCON");
         Room room = room(1L, zone(1L, floor(1L, block(1L, br, "B", "B"), "F", 0), "Z", null, null), "G-101", 2);
-        RoomPurposeCategory academic = new RoomPurposeCategory("Academic", "ACADEMIC", false, null);
+        RoomPurposeCategory academic = new RoomPurposeCategory("Academic", RoomPurposeCategoryCode.ACADEMIC, false, null);
         academic.setId(2L);
         room.setPurposeCategory(academic);
         HostelRoomRequest request = new HostelRoomRequest(1L, true);

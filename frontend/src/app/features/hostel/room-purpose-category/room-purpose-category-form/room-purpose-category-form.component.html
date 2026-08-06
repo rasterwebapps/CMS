@@ -60,25 +60,31 @@
               <label for="rpc-code" class="field-label">
                 Code <span class="required-star">*</span>
               </label>
-              <div class="code-input-wrap">
-                <input
-                  id="rpc-code"
-                  class="field-input"
-                  formControlName="code"
-                  placeholder="e.g., ACADEMIC"
-                  maxlength="50"
-                  autocomplete="off"
-                  (input)="onCodeInput($event)"
-                  [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
-                />
-                <span class="code-badge-preview" aria-hidden="true">{{ previewCode() || '—' }}</span>
-              </div>
-              @if (form.get('code')?.pending) {
-                <p class="field-hint">Checking…</p>
-              } @else if (form.get('code')?.invalid && form.get('code')?.touched) {
+              <select
+                id="rpc-code"
+                class="field-input"
+                formControlName="code"
+                [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched"
+              >
+                <option [ngValue]="null" disabled>Select a code</option>
+                @if (isEditMode()) {
+                  @for (opt of allCodeOptions; track opt.value) {
+                    <option [ngValue]="opt.value">{{ opt.label }} ({{ opt.value }})</option>
+                  }
+                } @else {
+                  @for (opt of availableCodeOptions(); track opt.value) {
+                    <option [ngValue]="opt.value">{{ opt.label }} ({{ opt.value }})</option>
+                  }
+                }
+              </select>
+              @if (form.get('code')?.invalid && form.get('code')?.touched) {
                 <p class="field-error">{{ getErrorMessage('code') }}</p>
+              } @else if (isEditMode()) {
+                <p class="field-hint">Code is picked from a fixed list and locked once a category is created.</p>
+              } @else if (availableCodeOptions().length === 0) {
+                <p class="field-hint">Every available code is already in use by an existing category.</p>
               } @else {
-                <p class="field-hint">{{ codeCharCount() }}/50 · Uppercase, no spaces</p>
+                <p class="field-hint">Picked from a fixed list — can't be changed once this category is created.</p>
               }
             </div>
 

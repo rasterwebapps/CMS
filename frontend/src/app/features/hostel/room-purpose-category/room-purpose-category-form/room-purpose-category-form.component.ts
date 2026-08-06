@@ -9,10 +9,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CmsPreviewCardComponent } from '../../../../shared/preview-card/preview-card.component';
 import { RoomPurposeCategoryService } from '../room-purpose-category.service';
-import { RoomPurposeCategoryRequest } from '../room-purpose-category.model';
+import {
+  ROOM_PURPOSE_CATEGORY_CODE_LABELS,
+  RoomPurposeCategoryCode,
+  RoomPurposeCategoryRequest,
+} from '../room-purpose-category.model';
 import { ToastService } from '../../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../../shared/utils/scroll-to-invalid';
-import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../../shared/validators/cms-validators';
+import { noConsecutiveSpaces, trimmedMinLength, cmsFieldError } from '../../../../shared/validators/cms-validators';
 import { environment } from '../../../../../environments';
 import { uniqueFieldValidator } from '../../../../shared/validators/unique-field.validator';
 
@@ -48,13 +52,20 @@ export class RoomPurposeCategoryFormComponent implements OnInit {
   protected readonly previewName          = signal('');
   protected readonly previewCode          = signal('');
   protected readonly previewIsResidential = signal(false);
-  protected readonly codeCharCount        = signal(0);
+
+  /** Every valid code, for the create-mode dropdown; filtered against usedCodes() in the
+   *  template so an admin can only pick a code no existing category already holds. */
+  protected readonly allCodeOptions: { value: RoomPurposeCategoryCode; label: string }[] =
+    (Object.entries(ROOM_PURPOSE_CATEGORY_CODE_LABELS) as [RoomPurposeCategoryCode, string][])
+      .map(([value, label]) => ({ value, label }));
+  protected readonly usedCodes = signal<Set<RoomPurposeCategoryCode>>(new Set());
+  protected readonly codeLabels = ROOM_PURPOSE_CATEGORY_CODE_LABELS;
 
   private categoryId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
     name:          ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(100), noConsecutiveSpaces()]],
-    code:          ['', [Validators.required, Validators.maxLength(50), noInternalSpaces()]],
+    code:          [null as RoomPurposeCategoryCode | null, [Validators.required]],
     isResidential: [false],
     description:   ['', [Validators.maxLength(500)]],
   });
@@ -64,9 +75,9 @@ export class RoomPurposeCategoryFormComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(v => {
         this.previewName.set((v.name ?? '').trim());
-        const code = (v.code ?? '').toUpperCase().trim();
-        this.previewCode.set(code);
-        this.codeCharCount.set(code.length);
+        // .value directly, not the destructured v -- a disabled control (locked code, edit mode)
+        // is excluded from the FormGroup's own aggregate value.
+        this.previewCode.set(this.form.get('code')?.value ?? '');
         this.previewIsResidential.set(!!v.isResidential);
       });
   }
@@ -78,8 +89,22 @@ export class RoomPurposeCategoryFormComponent implements OnInit {
       this.isEditMode.set(true);
       this.pageTitle.set('Edit Room Purpose Category');
       this.loadCategory();
+    } else {
+      this.loadUsedCodes();
     }
     this.setupUniquenessValidators();
+  }
+
+  protected availableCodeOptions(): { value: RoomPurposeCategoryCode; label: string }[] {
+    const used = this.usedCodes();
+    return this.allCodeOptions.filter((o) => !used.has(o.value));
+  }
+
+  private loadUsedCodes(): void {
+    this.categoryService.getAll(false).subscribe({
+      next: (categories) => this.usedCodes.set(new Set(categories.map((c) => c.code))),
+      error: () => this.toast.error('Failed to load existing category codes'),
+    });
   }
 
   private setupUniquenessValidators(): void {
@@ -89,24 +114,6 @@ export class RoomPurposeCategoryFormComponent implements OnInit {
         uniqueFieldValidator(this.http, `${environment.apiUrl}/room-purpose-categories/name-exists`, () => this.categoryId)
       );
       nameCtrl.updateValueAndValidity({ emitEvent: false });
-    }
-    const codeCtrl = this.form.get('code');
-    if (codeCtrl) {
-      codeCtrl.setAsyncValidators(
-        uniqueFieldValidator(this.http, `${environment.apiUrl}/room-purpose-categories/code-exists`, () => this.categoryId)
-      );
-      codeCtrl.updateValueAndValidity({ emitEvent: false });
-    }
-  }
-
-  protected onCodeInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const start = input.selectionStart ?? 0;
-    const end   = input.selectionEnd ?? 0;
-    const cleaned = stripSpaces(input.value).toUpperCase();
-    if (cleaned !== input.value) {
-      this.form.get('code')?.setValue(cleaned, { emitEvent: true });
-      setTimeout(() => input.setSelectionRange(start, end), 0);
     }
   }
 
@@ -118,7 +125,7 @@ export class RoomPurposeCategoryFormComponent implements OnInit {
 
     const request: RoomPurposeCategoryRequest = {
       name:          (this.form.value.name ?? '').trim(),
-      code:          (this.form.value.code ?? '').trim().toUpperCase(),
+      code:          this.form.get('code')?.value,
       isResidential: !!this.form.value.isResidential,
       description:   this.form.value.description?.trim() || undefined,
     };
@@ -160,6 +167,9 @@ export class RoomPurposeCategoryFormComponent implements OnInit {
           isResidential: c.isResidential,
           description: c.description || '',
         });
+        // Code is the fixed identity everything downstream keys off -- locked after creation,
+        // same rule enforced server-side in RoomPurposeCategoryService.update().
+        this.form.get('code')?.disable();
         this.loading.set(false);
       },
       error: () => {

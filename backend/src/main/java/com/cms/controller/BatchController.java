@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.cms.dto.BatchAutoCreateRequest;
 import com.cms.dto.BatchDto;
 import com.cms.dto.BatchRequest;
 import com.cms.dto.BatchStudentDto;
@@ -37,12 +36,6 @@ public class BatchController {
     @PreAuthorize("@perm.has('BATCH_MANAGE')")
     public ResponseEntity<BatchDto> createBatch(@Valid @RequestBody BatchRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createBatch(request));
-    }
-
-    @PostMapping("/auto-create")
-    @PreAuthorize("@perm.has('TIMETABLE_CAPACITY_PLANNER_BATCH_CREATE')")
-    public ResponseEntity<List<BatchDto>> autoCreateBatches(@Valid @RequestBody BatchAutoCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.autoCreateBatches(request));
     }
 
     @PutMapping("/{id}")

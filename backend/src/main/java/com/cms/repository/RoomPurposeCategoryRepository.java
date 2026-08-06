@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import com.cms.model.RoomPurposeCategory;
+import com.cms.model.enums.RoomPurposeCategoryCode;
 
 @Repository
 public interface RoomPurposeCategoryRepository extends JpaRepository<RoomPurposeCategory, Long>, JpaSpecificationExecutor<RoomPurposeCategory> {
@@ -14,8 +15,7 @@ public interface RoomPurposeCategoryRepository extends JpaRepository<RoomPurpose
     boolean existsByNameIgnoreCase(String name);
     boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
 
-    boolean existsByCodeIgnoreCase(String code);
-    boolean existsByCodeIgnoreCaseAndIdNot(String code, Long id);
+    boolean existsByCode(RoomPurposeCategoryCode code);
 
     List<RoomPurposeCategory> findAllByOrderByNameAsc();
 

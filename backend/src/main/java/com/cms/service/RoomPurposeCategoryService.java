@@ -14,6 +14,7 @@ import com.cms.dto.RoomPurposeCategoryRequest;
 import com.cms.dto.RoomPurposeCategoryResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.RoomPurposeCategory;
+import com.cms.model.enums.RoomPurposeCategoryCode;
 import com.cms.repository.RoomPurposeCategoryRepository;
 
 @Service
@@ -29,18 +30,21 @@ public class RoomPurposeCategoryService {
     @Transactional
     public RoomPurposeCategoryResponse create(RoomPurposeCategoryRequest request) {
         String name = requireTrimmed(request.name(), "Category name is required");
-        String code = requireTrimmed(request.code(), "Category code is required");
+        RoomPurposeCategoryCode code = request.code();
+        if (code == null) {
+            throw new IllegalArgumentException("Category code is required");
+        }
 
         if (roomPurposeCategoryRepository.existsByNameIgnoreCase(name)) {
             throw new IllegalArgumentException(
                 "A room purpose category with the name '" + name + "' already exists");
         }
-        if (roomPurposeCategoryRepository.existsByCodeIgnoreCase(code)) {
+        if (roomPurposeCategoryRepository.existsByCode(code)) {
             throw new IllegalArgumentException(
                 "A room purpose category with the code '" + code + "' already exists");
         }
 
-        RoomPurposeCategory category = new RoomPurposeCategory(name, code.toUpperCase(),
+        RoomPurposeCategory category = new RoomPurposeCategory(name, code,
             request.isResidential(), trim(request.description()));
         if (request.isActive() != null) {
             category.setIsActive(request.isActive());
@@ -77,23 +81,21 @@ public class RoomPurposeCategoryService {
         return toResponse(findOrThrow(id));
     }
 
+    /** {@code code} is intentionally not touched here — it's the fixed identity everything else
+     *  keys off (see {@link RoomPurposeCategory}'s class javadoc), set once at creation and never
+     *  reassignable afterward, even to another valid enum value. Only name/residential/description/
+     *  active are editable. */
     @Transactional
     public RoomPurposeCategoryResponse update(Long id, RoomPurposeCategoryRequest request) {
         RoomPurposeCategory category = findOrThrow(id);
         String name = requireTrimmed(request.name(), "Category name is required");
-        String code = requireTrimmed(request.code(), "Category code is required");
 
         if (roomPurposeCategoryRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
             throw new IllegalArgumentException(
                 "A room purpose category with the name '" + name + "' already exists");
         }
-        if (roomPurposeCategoryRepository.existsByCodeIgnoreCaseAndIdNot(code, id)) {
-            throw new IllegalArgumentException(
-                "A room purpose category with the code '" + code + "' already exists");
-        }
 
         category.setName(name);
-        category.setCode(code.toUpperCase());
         category.setIsResidential(request.isResidential() != null && request.isResidential());
         category.setDescription(trim(request.description()));
         if (request.isActive() != null) {
@@ -122,12 +124,6 @@ public class RoomPurposeCategoryService {
         String trimmed = name == null ? "" : name.trim();
         if (excludeId != null) return roomPurposeCategoryRepository.existsByNameIgnoreCaseAndIdNot(trimmed, excludeId);
         return roomPurposeCategoryRepository.existsByNameIgnoreCase(trimmed);
-    }
-
-    public boolean codeExists(String code, Long excludeId) {
-        String trimmed = code == null ? "" : code.trim();
-        if (excludeId != null) return roomPurposeCategoryRepository.existsByCodeIgnoreCaseAndIdNot(trimmed, excludeId);
-        return roomPurposeCategoryRepository.existsByCodeIgnoreCase(trimmed);
     }
 
     RoomPurposeCategory findOrThrow(Long id) {

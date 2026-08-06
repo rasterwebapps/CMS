@@ -20,6 +20,7 @@ import com.cms.model.LabInChargeAssignment;
 import com.cms.model.Room;
 import com.cms.model.enums.LabStatus;
 import com.cms.model.enums.LabType;
+import com.cms.model.enums.RoomPurposeCategoryCode;
 import com.cms.repository.SpecialityRepository;
 import com.cms.repository.LabInChargeAssignmentRepository;
 import com.cms.repository.LabRepository;
@@ -47,11 +48,18 @@ public class LabService {
         if (roomId == null) return null;
         Room room = roomRepository.findById(roomId)
             .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
-        if (room.getPurposeCategory() == null || !"ACADEMIC".equals(room.getPurposeCategory().getCode())) {
+        if (room.getPurposeCategory() == null || room.getPurposeCategory().getCode() != RoomPurposeCategoryCode.ACADEMIC) {
             throw new IllegalArgumentException(
                 "Room must be classified under the Academic purpose category before it can be linked to a lab");
         }
         return room;
+    }
+
+    /** Once a physical Room is linked, its capacity is the ground truth every downstream capacity
+     *  check (Cohort Room Allocation, Staffing) actually trusts — see
+     *  ClassroomService.resolveCapacity. Only used when unlinked. */
+    private static Integer resolveCapacity(Integer requestedCapacity, Room room) {
+        return room != null ? room.getCapacity() : requestedCapacity;
     }
 
     @Transactional
@@ -66,16 +74,17 @@ public class LabService {
                 "A lab with the name '" + name + "' already exists in this speciality");
         }
 
+        Room room = resolveRoom(request.roomId());
         Lab lab = new Lab(
             name,
             request.labType(),
             speciality,
             trim(request.building()),
             trim(request.roomNumber()),
-            request.capacity(),
+            resolveCapacity(request.capacity(), room),
             request.status()
         );
-        lab.setRoom(resolveRoom(request.roomId()));
+        lab.setRoom(room);
         Lab saved = labRepository.save(lab);
         return toResponse(saved);
     }
@@ -144,14 +153,15 @@ public class LabService {
                 + "' already exists in this speciality");
         }
 
+        Room room = resolveRoom(request.roomId());
         lab.setName(name);
         lab.setLabType(request.labType());
         lab.setSpeciality(speciality);
         lab.setBuilding(trim(request.building()));
         lab.setRoomNumber(trim(request.roomNumber()));
-        lab.setCapacity(request.capacity());
+        lab.setCapacity(resolveCapacity(request.capacity(), room));
         lab.setStatus(request.status());
-        lab.setRoom(resolveRoom(request.roomId()));
+        lab.setRoom(room);
 
         Lab updated = labRepository.save(lab);
         return toResponse(updated);

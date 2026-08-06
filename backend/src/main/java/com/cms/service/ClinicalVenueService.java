@@ -15,6 +15,7 @@ import com.cms.dto.ClinicalVenueResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.ClinicalVenue;
 import com.cms.model.Room;
+import com.cms.model.enums.RoomPurposeCategoryCode;
 import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.RoomRepository;
 
@@ -38,11 +39,19 @@ public class ClinicalVenueService {
         if (roomId == null) return null;
         Room room = roomRepository.findById(roomId)
             .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
-        if (room.getPurposeCategory() == null || !"ACADEMIC".equals(room.getPurposeCategory().getCode())) {
+        if (room.getPurposeCategory() == null || room.getPurposeCategory().getCode() != RoomPurposeCategoryCode.ACADEMIC) {
             throw new IllegalArgumentException(
                 "Room must be classified under the Academic purpose category before it can be linked to a clinical venue");
         }
         return room;
+    }
+
+    /** Once a physical Room is linked, its capacity is the ground truth every downstream capacity
+     *  check (Cohort Room Allocation, Staffing) actually trusts — see
+     *  ClassroomService.resolveCapacity. Only used when unlinked (including every off-campus
+     *  venue, which never has a room to derive from). */
+    private static Integer resolveCapacity(Integer requestedCapacity, Room room) {
+        return room != null ? room.getCapacity() : requestedCapacity;
     }
 
     @Transactional
@@ -54,12 +63,13 @@ public class ClinicalVenueService {
                 "A clinical venue with the name '" + name + "' already exists");
         }
 
+        Room room = resolveRoom(request.roomId());
         ClinicalVenue venue = new ClinicalVenue(name, trim(request.hospitalName()), trim(request.department()),
-            request.capacity());
+            resolveCapacity(request.capacity(), room));
         if (request.isActive() != null) {
             venue.setIsActive(request.isActive());
         }
-        venue.setRoom(resolveRoom(request.roomId()));
+        venue.setRoom(room);
         return toResponse(clinicalVenueRepository.save(venue));
     }
 
@@ -103,14 +113,15 @@ public class ClinicalVenueService {
                 "A clinical venue with the name '" + name + "' already exists");
         }
 
+        Room room = resolveRoom(request.roomId());
         venue.setName(name);
         venue.setHospitalName(trim(request.hospitalName()));
         venue.setDepartment(trim(request.department()));
-        venue.setCapacity(request.capacity());
+        venue.setCapacity(resolveCapacity(request.capacity(), room));
         if (request.isActive() != null) {
             venue.setIsActive(request.isActive());
         }
-        venue.setRoom(resolveRoom(request.roomId()));
+        venue.setRoom(room);
         return toResponse(clinicalVenueRepository.save(venue));
     }
 

@@ -101,11 +101,4 @@ public class RoomPurposeCategoryController {
         return ResponseEntity.ok(roomPurposeCategoryService.nameExists(value, excludeId));
     }
 
-    @GetMapping("/code-exists")
-    @PreAuthorize("@perm.has('ROOM_PURPOSE_CATEGORY_MANAGE')")
-    public ResponseEntity<Boolean> codeExists(
-            @RequestParam String value,
-            @RequestParam(required = false) Long excludeId) {
-        return ResponseEntity.ok(roomPurposeCategoryService.codeExists(value, excludeId));
-    }
 }

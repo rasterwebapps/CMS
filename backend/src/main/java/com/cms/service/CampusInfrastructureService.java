@@ -524,8 +524,8 @@ public class CampusInfrastructureService {
     /** Flat, campus-wide lookup by purpose — for venue pickers (Cohort Room Allocation, Timetable
      *  master-form Room links) that need to search across the whole org, e.g. a clinical venue
      *  under a hospital Branch, not just one Zone's own Rooms. */
-    public List<RoomResponse> findRoomsByPurpose(Long purposeCategoryId, Long subTypeId, Integer minCapacity) {
-        return roomRepository.findByPurpose(purposeCategoryId, subTypeId, minCapacity).stream()
+    public List<RoomResponse> findRoomsByPurpose(Long purposeCategoryId, Long subTypeId, Integer minCapacity, Long keepRoomId, String venueType) {
+        return roomRepository.findByPurpose(purposeCategoryId, subTypeId, minCapacity, keepRoomId, venueType).stream()
             .map(this::toRoomResponse).toList();
     }
 

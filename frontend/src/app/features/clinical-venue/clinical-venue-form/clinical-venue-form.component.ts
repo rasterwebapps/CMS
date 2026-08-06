@@ -15,7 +15,7 @@ import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 import { CmsRoomPickerComponent } from '../../../shared/room-picker/room-picker.component';
 import { RoomPurposeCategoryService } from '../../hostel/room-purpose-category/room-purpose-category.service';
-import { RoomPurposeCategory } from '../../hostel/room-purpose-category/room-purpose-category.model';
+import { Room } from '../../hostel/campus-infrastructure/campus-infrastructure.model';
 
 @Component({
   selector: 'app-clinical-venue-form',
@@ -51,10 +51,17 @@ export class ClinicalVenueFormComponent implements OnInit {
   protected readonly previewHospitalName = signal('');
   protected readonly previewDepartment   = signal('');
 
-  protected readonly purposeCategories = signal<RoomPurposeCategory[]>([]);
-  protected selectedPurposeCategoryId: number | null = null;
+  /** For an on-campus (internal) clinical/skills space, the physical Room must be Academic-purpose
+   *  — matched by the category's stable `code`, not name or id, so it survives an admin renaming
+   *  "Academic" in Room Purpose Categories. Mirrors the Classroom/Lab forms and Capacity Planner's
+   *  own loadAcademicRooms(). Left null (no room link at all) for an off-campus/external hospital
+   *  posting, which Hospital Name/Department already describe — the picker stays optional either
+   *  way, this only fixes *which* rooms it's allowed to show when it is used. */
+  protected readonly academicCategoryId = signal<number | null>(null);
   protected selectedRoomId: number | null = null;
   protected readonly currentRoomLabel = signal<string | null>(null);
+  /** This venue's own already-linked room, so its picker doesn't exclude it as "taken." */
+  protected keepRoomId: number | null = null;
 
   private venueId: number | null = null;
 
@@ -85,9 +92,28 @@ export class ClinicalVenueFormComponent implements OnInit {
     }
     this.setupUniquenessValidators();
     this.roomPurposeCategoryService.getAll(true).subscribe({
-      next: (categories) => this.purposeCategories.set(categories),
+      next: (categories) => {
+        const academic = categories.find((c) => c.code === 'ACADEMIC');
+        this.academicCategoryId.set(academic?.id ?? null);
+      },
       error: () => this.toast.error('Failed to load room purpose categories'),
     });
+  }
+
+  /** Only meaningful for an internal (on-campus) venue — once linked, this venue's capacity is
+   *  the physical room's capacity, full stop, matching the backend's own derivation
+   *  (ClinicalVenueService.resolveCapacity). Unlinking (or an external hospital posting that never
+   *  links a room at all) leaves it a plain manual field, since there's no physical figure to
+   *  derive from off-campus. */
+  protected onSelectedRoomChange(room: Room | null): void {
+    const capacityCtrl = this.form.get('capacity');
+    if (room) {
+      capacityCtrl?.setValue(room.capacity ?? null);
+      capacityCtrl?.disable();
+    } else {
+      capacityCtrl?.enable();
+      capacityCtrl?.setValue(null);
+    }
   }
 
   private setupUniquenessValidators(): void {
@@ -110,7 +136,7 @@ export class ClinicalVenueFormComponent implements OnInit {
       name:         (this.form.value.name ?? '').trim(),
       hospitalName: this.form.value.hospitalName?.trim() || undefined,
       department:   this.form.value.department?.trim() || undefined,
-      capacity:     this.form.value.capacity ?? undefined,
+      capacity:     this.form.get('capacity')?.value ?? undefined,
       roomId:       this.selectedRoomId ?? undefined,
     };
 
@@ -152,6 +178,7 @@ export class ClinicalVenueFormComponent implements OnInit {
           capacity: v.capacity ?? null,
         });
         this.selectedRoomId = v.roomId ?? null;
+        this.keepRoomId = v.roomId ?? null;
         this.currentRoomLabel.set(v.roomLabel ?? null);
         this.loading.set(false);
       },

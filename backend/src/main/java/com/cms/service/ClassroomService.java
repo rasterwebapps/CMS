@@ -15,6 +15,7 @@ import com.cms.dto.ClassroomResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Classroom;
 import com.cms.model.Room;
+import com.cms.model.enums.RoomPurposeCategoryCode;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.RoomRepository;
 
@@ -39,11 +40,13 @@ public class ClassroomService {
                 "A classroom with the name '" + name + "' already exists");
         }
 
-        Classroom classroom = new Classroom(name, trim(request.building()), trim(request.roomNumber()), request.capacity());
+        Room room = resolveRoom(request.roomId());
+        Classroom classroom = new Classroom(name, trim(request.building()), trim(request.roomNumber()),
+            resolveCapacity(request.capacity(), room));
         if (request.isActive() != null) {
             classroom.setIsActive(request.isActive());
         }
-        classroom.setRoom(resolveRoom(request.roomId()));
+        classroom.setRoom(room);
         return toResponse(classroomRepository.save(classroom));
     }
 
@@ -54,11 +57,20 @@ public class ClassroomService {
         if (roomId == null) return null;
         Room room = roomRepository.findById(roomId)
             .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
-        if (room.getPurposeCategory() == null || !"ACADEMIC".equals(room.getPurposeCategory().getCode())) {
+        if (room.getPurposeCategory() == null || room.getPurposeCategory().getCode() != RoomPurposeCategoryCode.ACADEMIC) {
             throw new IllegalArgumentException(
                 "Room must be classified under the Academic purpose category before it can be linked to a classroom");
         }
         return room;
+    }
+
+    /** Once a physical Room is linked, its capacity is the ground truth every downstream capacity
+     *  check (Cohort Room Allocation, Staffing) actually trusts — a client-supplied capacity would
+     *  let this classroom silently drift from what the room can really seat, exactly the gap a
+     *  physical-location link exists to prevent. Only used when unlinked, where there's no
+     *  physical figure to derive from. */
+    private static Integer resolveCapacity(Integer requestedCapacity, Room room) {
+        return room != null ? room.getCapacity() : requestedCapacity;
     }
 
     public List<ClassroomResponse> findAll() {
@@ -101,14 +113,15 @@ public class ClassroomService {
                 "A classroom with the name '" + name + "' already exists");
         }
 
+        Room room = resolveRoom(request.roomId());
         classroom.setName(name);
         classroom.setBuilding(trim(request.building()));
         classroom.setRoomNumber(trim(request.roomNumber()));
-        classroom.setCapacity(request.capacity());
+        classroom.setCapacity(resolveCapacity(request.capacity(), room));
         if (request.isActive() != null) {
             classroom.setIsActive(request.isActive());
         }
-        classroom.setRoom(resolveRoom(request.roomId()));
+        classroom.setRoom(room);
         return toResponse(classroomRepository.save(classroom));
     }
 

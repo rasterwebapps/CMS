@@ -94,7 +94,11 @@
                 <input id="lab-capacity" type="number" class="field-input" formControlName="capacity"
                   placeholder="e.g., 30"
                   [class.field-input--error]="form.get('capacity')?.invalid && form.get('capacity')?.touched" />
-                <p class="field-hint">Number of workstations / seats</p>
+                @if (form.get('capacity')?.disabled) {
+                  <p class="field-hint">Set by the linked physical room — unlink it below to enter a capacity manually.</p>
+                } @else {
+                  <p class="field-hint">Number of workstations / seats</p>
+                }
                 @if (form.get('capacity')?.invalid && form.get('capacity')?.touched) {
                   <p class="field-error">{{ getErrorMessage('capacity') }}</p>
                 }
@@ -114,20 +118,17 @@
               </div>
             </div>
             <div class="field-group">
-              <label for="lab-purpose-category" class="field-label">Physical Location (optional)</label>
+              <label class="field-label">Physical Location (optional)</label>
               @if (currentRoomLabel()) {
                 <p class="field-hint">Currently linked to: {{ currentRoomLabel() }}</p>
               }
-              <select id="lab-purpose-category" class="field-select" [(ngModel)]="selectedPurposeCategoryId" [ngModelOptions]="{standalone: true}">
-                <option [ngValue]="null">Select a purpose category</option>
-                @for (cat of purposeCategories(); track cat.id) {
-                  <option [ngValue]="cat.id">{{ cat.name }}</option>
-                }
-              </select>
               <cms-room-picker
-                [purposeCategoryId]="selectedPurposeCategoryId"
+                [purposeCategoryId]="academicCategoryId()"
+                [keepRoomId]="keepRoomId"
+                venueType="LAB"
                 [(selectedRoomId)]="selectedRoomId"
-                label="Physical room"
+                (selectedRoomChange)="onSelectedRoomChange($event)"
+                label="Physical room (Academic locations only)"
               />
             </div>
           </div>

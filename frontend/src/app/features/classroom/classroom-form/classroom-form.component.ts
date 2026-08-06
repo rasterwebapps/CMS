@@ -15,7 +15,7 @@ import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 import { CmsRoomPickerComponent } from '../../../shared/room-picker/room-picker.component';
 import { RoomPurposeCategoryService } from '../../hostel/room-purpose-category/room-purpose-category.service';
-import { RoomPurposeCategory } from '../../hostel/room-purpose-category/room-purpose-category.model';
+import { Room } from '../../hostel/campus-infrastructure/campus-infrastructure.model';
 
 @Component({
   selector: 'app-classroom-form',
@@ -51,10 +51,15 @@ export class ClassroomFormComponent implements OnInit {
   protected readonly previewBuilding = signal('');
   protected readonly previewRoomNumber = signal('');
 
-  protected readonly purposeCategories = signal<RoomPurposeCategory[]>([]);
-  protected selectedPurposeCategoryId: number | null = null;
+  /** Classrooms only ever link to an Academic-purpose Room — matched by the category's stable
+   *  `code`, not name or id, so it keeps working even if an admin renames "Academic" in Room
+   *  Purpose Categories. Mirrors Capacity Planner's own loadAcademicRooms(). No manual category
+   *  picker here: a classroom linked to e.g. a Residential-purpose room doesn't mean anything. */
+  protected readonly academicCategoryId = signal<number | null>(null);
   protected selectedRoomId: number | null = null;
   protected readonly currentRoomLabel = signal<string | null>(null);
+  /** This classroom's own already-linked room, so its picker doesn't exclude it as "taken." */
+  protected keepRoomId: number | null = null;
 
   private classroomId: number | null = null;
 
@@ -85,9 +90,28 @@ export class ClassroomFormComponent implements OnInit {
     }
     this.setupUniquenessValidators();
     this.roomPurposeCategoryService.getAll(true).subscribe({
-      next: (categories) => this.purposeCategories.set(categories),
+      next: (categories) => {
+        const academic = categories.find((c) => c.code === 'ACADEMIC');
+        this.academicCategoryId.set(academic?.id ?? null);
+      },
       error: () => this.toast.error('Failed to load room purpose categories'),
     });
+  }
+
+  /** Once linked, this classroom's capacity is the physical room's capacity, full stop — the
+   *  backend derives and enforces the same rule (ClassroomService.resolveCapacity), so locking it
+   *  here is a UX mirror of a real server-side rule, not just a client-side nicety. Unlinking
+   *  clears the field rather than leaving a stale auto-filled number sitting there looking
+   *  manually entered. */
+  protected onSelectedRoomChange(room: Room | null): void {
+    const capacityCtrl = this.form.get('capacity');
+    if (room) {
+      capacityCtrl?.setValue(room.capacity ?? null);
+      capacityCtrl?.disable();
+    } else {
+      capacityCtrl?.enable();
+      capacityCtrl?.setValue(null);
+    }
   }
 
   private setupUniquenessValidators(): void {
@@ -110,7 +134,7 @@ export class ClassroomFormComponent implements OnInit {
       name:       (this.form.value.name ?? '').trim(),
       building:   this.form.value.building?.trim() || undefined,
       roomNumber: this.form.value.roomNumber?.trim() || undefined,
-      capacity:   this.form.value.capacity ?? undefined,
+      capacity:   this.form.get('capacity')?.value ?? undefined,
       roomId:     this.selectedRoomId ?? undefined,
     };
 
@@ -147,6 +171,7 @@ export class ClassroomFormComponent implements OnInit {
       next: (c) => {
         this.form.patchValue({ name: c.name, building: c.building || '', roomNumber: c.roomNumber || '', capacity: c.capacity ?? null });
         this.selectedRoomId = c.roomId ?? null;
+        this.keepRoomId = c.roomId ?? null;
         this.currentRoomLabel.set(c.roomLabel ?? null);
         this.loading.set(false);
       },

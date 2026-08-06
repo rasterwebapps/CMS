@@ -1,6 +1,9 @@
 package com.cms.dto;
 
+import com.cms.model.enums.RoomPurposeCategoryCode;
+
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record RoomPurposeCategoryRequest(
@@ -9,9 +12,10 @@ public record RoomPurposeCategoryRequest(
     @Size(max = 100, message = "Name must not exceed 100 characters")
     String name,
 
-    @NotBlank(message = "Category code is required")
-    @Size(max = 50, message = "Code must not exceed 50 characters")
-    String code,
+    /** Picked from a fixed list, not typed — ignored on update (code is immutable once set), see
+     *  {@link com.cms.service.RoomPurposeCategoryService#update}. */
+    @NotNull(message = "Category code is required")
+    RoomPurposeCategoryCode code,
 
     Boolean isResidential,
 

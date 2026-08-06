@@ -2,10 +2,12 @@ package com.cms.dto;
 
 import java.time.Instant;
 
+import com.cms.model.enums.RoomPurposeCategoryCode;
+
 public record RoomPurposeCategoryResponse(
     Long id,
     String name,
-    String code,
+    RoomPurposeCategoryCode code,
     Boolean isResidential,
     String description,
     Boolean isActive,

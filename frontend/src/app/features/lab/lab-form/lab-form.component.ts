@@ -17,7 +17,7 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 import { CmsRoomPickerComponent } from '../../../shared/room-picker/room-picker.component';
 import { RoomPurposeCategoryService } from '../../hostel/room-purpose-category/room-purpose-category.service';
-import { RoomPurposeCategory } from '../../hostel/room-purpose-category/room-purpose-category.model';
+import { Room } from '../../hostel/campus-infrastructure/campus-infrastructure.model';
 
 @Component({
   selector: 'app-lab-form',
@@ -52,10 +52,15 @@ export class LabFormComponent implements OnInit {
   protected readonly pageTitle = signal('Add Lab');
   protected readonly specialities = signal<Speciality[]>([]);
 
-  protected readonly purposeCategories = signal<RoomPurposeCategory[]>([]);
-  protected selectedPurposeCategoryId: number | null = null;
+  /** Labs only ever link to an Academic-purpose Room — matched by the category's stable `code`,
+   *  not name or id, so it survives an admin renaming "Academic" in Room Purpose Categories.
+   *  Mirrors the Classroom form and Capacity Planner's own loadAcademicRooms(). No manual category
+   *  picker: a lab linked to e.g. a Residential-purpose room doesn't mean anything. */
+  protected readonly academicCategoryId = signal<number | null>(null);
   protected selectedRoomId: number | null = null;
   protected readonly currentRoomLabel = signal<string | null>(null);
+  /** This lab's own already-linked room, so its picker doesn't exclude it as "taken." */
+  protected keepRoomId: number | null = null;
 
   protected readonly labTypes = LAB_TYPES;
   protected readonly labStatuses = LAB_STATUSES;
@@ -109,7 +114,10 @@ export class LabFormComponent implements OnInit {
         this.previewSpecialityId.set(v.specialityId ? Number(v.specialityId) : null);
         this.previewBuilding.set((v.building ?? '').trim());
         this.previewRoom.set((v.roomNumber ?? '').trim());
-        this.previewCapacity.set(v.capacity ? Number(v.capacity) : null);
+        // .get('capacity')?.value directly, not the destructured v -- a disabled control (locked
+        // capacity, room linked) is excluded from the FormGroup's own aggregate value.
+        const capacityValue = this.form.get('capacity')?.value;
+        this.previewCapacity.set(capacityValue ? Number(capacityValue) : null);
         this.previewStatus.set(v.status ?? 'ACTIVE');
       });
   }
@@ -117,7 +125,10 @@ export class LabFormComponent implements OnInit {
   ngOnInit(): void {
     this.loadSpecialities();
     this.roomPurposeCategoryService.getAll(true).subscribe({
-      next: (categories) => this.purposeCategories.set(categories),
+      next: (categories) => {
+        const academic = categories.find((c) => c.code === 'ACADEMIC');
+        this.academicCategoryId.set(academic?.id ?? null);
+      },
       error: () => this.toast.error('Failed to load room purpose categories'),
     });
 
@@ -127,6 +138,20 @@ export class LabFormComponent implements OnInit {
       this.isEditMode.set(true);
       this.pageTitle.set('Edit Lab');
       this.loadLab();
+    }
+  }
+
+  /** Once linked, this lab's capacity is the physical room's capacity, full stop — the backend
+   *  derives and enforces the same rule (LabService.resolveCapacity). Unlinking clears the field
+   *  rather than leaving a stale auto-filled number sitting there looking manually entered. */
+  protected onSelectedRoomChange(room: Room | null): void {
+    const capacityCtrl = this.form.get('capacity');
+    if (room) {
+      capacityCtrl?.setValue(room.capacity ?? null);
+      capacityCtrl?.disable();
+    } else {
+      capacityCtrl?.enable();
+      capacityCtrl?.setValue(null);
     }
   }
 
@@ -142,7 +167,7 @@ export class LabFormComponent implements OnInit {
       specialityId: Number(this.form.value.specialityId),
       building: this.form.value.building?.trim() || undefined,
       roomNumber: this.form.value.roomNumber?.trim() || undefined,
-      capacity: Number(this.form.value.capacity),
+      capacity: Number(this.form.get('capacity')?.value),
       status: this.form.value.status,
       roomId: this.selectedRoomId ?? undefined,
     };
@@ -208,6 +233,7 @@ export class LabFormComponent implements OnInit {
           status: lab.status,
         });
         this.selectedRoomId = lab.roomId ?? null;
+        this.keepRoomId = lab.roomId ?? null;
         this.currentRoomLabel.set(lab.roomLabel ?? null);
         this.loading.set(false);
       },
