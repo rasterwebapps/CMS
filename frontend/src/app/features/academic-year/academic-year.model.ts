@@ -280,6 +280,8 @@ export interface CourseOffering {
   subjectType: 'CORE' | 'FOUNDATIONAL' | 'ELECTIVE';
   electiveGroupId: number | null;
   electiveGroupName: string | null;
+  labHours: number;
+  clinicalHours: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -12,5 +12,7 @@ public record AllocatedBatchResponse(
     Integer venueCapacity,
     String batchName,
     Integer plannedSize,
-    Boolean isActive
+    Boolean isActive,
+    Long cohortSectionId,
+    String cohortSectionLabel
 ) {}

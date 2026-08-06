@@ -32,12 +32,14 @@ import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.LabStatus;
+import com.cms.model.enums.PlanningBasis;
 import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.CalendarEventRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.CohortRepository;
+import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.PeriodRepository;
@@ -56,12 +58,10 @@ import com.cms.repository.TermInstanceRepository;
 @Transactional(readOnly = true)
 public class TimetableCapacityPlanningService {
 
-    /** Used only when the caller doesn't supply one; overridable per-request, never hardcoded
-     *  as policy — this is just a reasonable starting point for the input field. */
-    private static final int DEFAULT_TARGET_BATCH_SIZE = 30;
     private static final int WORKING_DAYS_PER_WEEK = 6;
 
     private final CohortRepository cohortRepository;
+    private final CohortSectionRepository cohortSectionRepository;
     private final TermInstanceRepository termInstanceRepository;
     private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
     private final ClassroomRepository classroomRepository;
@@ -74,6 +74,7 @@ public class TimetableCapacityPlanningService {
     private final BlockedPeriodRepository blockedPeriodRepository;
 
     public TimetableCapacityPlanningService(CohortRepository cohortRepository,
+                                             CohortSectionRepository cohortSectionRepository,
                                              TermInstanceRepository termInstanceRepository,
                                              StudentTermEnrollmentRepository studentTermEnrollmentRepository,
                                              ClassroomRepository classroomRepository,
@@ -85,6 +86,7 @@ public class TimetableCapacityPlanningService {
                                              CourseOfferingRepository courseOfferingRepository,
                                              BlockedPeriodRepository blockedPeriodRepository) {
         this.cohortRepository = cohortRepository;
+        this.cohortSectionRepository = cohortSectionRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
         this.classroomRepository = classroomRepository;
@@ -97,17 +99,22 @@ public class TimetableCapacityPlanningService {
         this.blockedPeriodRepository = blockedPeriodRepository;
     }
 
-    public CapacityPlanResponse getPlan(Long termInstanceId, Long cohortId, Integer targetBatchSizeParam) {
+    public CapacityPlanResponse getPlan(Long termInstanceId, Long cohortId, PlanningBasis planningBasisParam) {
         TermInstance term = termInstanceRepository.findById(termInstanceId)
             .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
         Cohort cohort = cohortRepository.findByIdWithCourse(cohortId)
             .orElseThrow(() -> new ResourceNotFoundException("Cohort not found with id: " + cohortId));
 
-        int targetBatchSize = (targetBatchSizeParam != null && targetBatchSizeParam > 0)
-            ? targetBatchSizeParam : DEFAULT_TARGET_BATCH_SIZE;
-
-        long strength = studentTermEnrollmentRepository.countByTermInstanceIdAndCohortIdAndStatus(
+        long enrolledStrength = studentTermEnrollmentRepository.countByTermInstanceIdAndCohortIdAndStatus(
             termInstanceId, cohortId, EnrollmentStatus.ENROLLED);
+        Integer sanctionedStrength = cohort.getSanctionedIntake();
+
+        PlanningBasis planningBasis = planningBasisParam != null ? planningBasisParam : PlanningBasis.ENROLLED;
+        // Read-only view: fall back to enrolled headcount if SANCTIONED was requested but this
+        // cohort has no seat data configured, rather than failing the whole plan just to show it
+        // — the commit path enforces this strictly instead (CohortRoomAllocationService).
+        long strength = (planningBasis == PlanningBasis.SANCTIONED && sanctionedStrength != null)
+            ? sanctionedStrength : enrolledStrength;
 
         // A cohort's enrolled students all share one semester in a given term (whole-cohort
         // promotion) -- used to scope the "Create Suggested Batches" subject picker down to this
@@ -130,17 +137,34 @@ public class TimetableCapacityPlanningService {
             .toList();
         boolean theoryFits = !fittingClassrooms.isEmpty();
         String theoryShortfall = theoryFits ? null
-            : "No single classroom seats " + strength + " students — consider splitting this cohort's Theory into more than one section.";
+            : "No single classroom seats " + strength + " students — split this cohort's Theory into sections below.";
 
-        int labBatchesNeeded = strength == 0 ? 0 : (int) Math.ceil((double) strength / targetBatchSize);
-        List<VenueOptionResponse> fittingLabs = activeLabs.stream()
-            .filter(l -> l.getCapacity() != null && l.getCapacity() >= targetBatchSize)
-            .map(l -> new VenueOptionResponse(l.getId(), l.getName(), l.getCapacity()))
+        // Every classroom with a genuine active claim this term (from some other cohort -- this
+        // plan's own cohort, if it already has a committed allocation, is surfaced via
+        // currentAllocation() on the frontend instead of ever reaching this draft-building path).
+        // Drives both the sectioning candidate pool below and the Venue Utilization card's
+        // "Committed — <cohort>" tag, so a room's unavailability is self-explanatory instead of
+        // silently vanishing from the picker with no on-screen reason.
+        List<com.cms.model.CohortSection> activeSectionsThisTerm = cohortSectionRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId);
+        Map<Long, String> claimedByCohortLabel = activeSectionsThisTerm.stream()
+            .collect(Collectors.toMap(s -> s.getClassroom().getId(), s -> s.getCohortRoomAllocation().getCohort().getDisplayName(),
+                (a, b) -> a));
+        Set<Long> claimedClassroomIds = claimedByCohortLabel.keySet();
+
+        // Candidate pool for Theory sectioning: every active classroom not already claimed by
+        // another cohort's active section this term, sorted biggest-first so the frontend's
+        // greedy auto-split fills the fewest possible sections by default.
+        List<VenueOptionResponse> classroomsForSectioning = activeClassrooms.stream()
+            .filter(c -> !claimedClassroomIds.contains(c.getId()))
+            .sorted((a, b) -> Integer.compare(
+                b.getCapacity() != null ? b.getCapacity() : 0, a.getCapacity() != null ? a.getCapacity() : 0))
+            .map(c -> new VenueOptionResponse(c.getId(), c.getName(), c.getCapacity()))
             .toList();
 
-        int clinicalBatchesNeeded = labBatchesNeeded;
+        List<VenueOptionResponse> fittingLabs = activeLabs.stream()
+            .map(l -> new VenueOptionResponse(l.getId(), l.getName(), l.getCapacity()))
+            .toList();
         List<VenueOptionResponse> fittingClinicalVenues = activeClinicalVenues.stream()
-            .filter(v -> v.getCapacity() != null && v.getCapacity() >= targetBatchSize)
             .map(v -> new VenueOptionResponse(v.getId(), v.getName(), v.getCapacity()))
             .toList();
 
@@ -170,25 +194,25 @@ public class TimetableCapacityPlanningService {
             term.getAcademicYear().getName() + " " + term.getTermType(),
             semesterNumber,
             strength,
+            enrolledStrength,
+            sanctionedStrength,
             workingDaysInTerm,
             totalWorkingPeriodHours,
             blockedHours,
             curriculumHoursRequired,
             bufferHours,
-            targetBatchSize,
             theoryFits,
             theoryShortfall,
             fittingClassrooms,
-            labBatchesNeeded,
+            classroomsForSectioning,
             fittingLabs,
-            clinicalBatchesNeeded,
             fittingClinicalVenues,
-            utilization(activeClassrooms, Classroom::getId, Classroom::getName, Classroom::getCapacity,
-                termSchedule, ClassSessionType.THEORY, cs -> cs.getClassroom() != null ? cs.getClassroom().getId() : null, totalSlots),
+            classroomUtilization(activeClassrooms, termSchedule, totalSlots, claimedByCohortLabel),
             utilization(activeLabs, Lab::getId, Lab::getName, Lab::getCapacity,
-                termSchedule, ClassSessionType.LAB, cs -> cs.getLab() != null ? cs.getLab().getId() : null, totalSlots),
+                termSchedule, ClassSessionType.LAB, cs -> cs.getLab() != null ? cs.getLab().getId() : null, totalSlots, Map.of()),
             utilization(activeClinicalVenues, ClinicalVenue::getId, ClinicalVenue::getName, ClinicalVenue::getCapacity,
-                termSchedule, ClassSessionType.CLINICAL, cs -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getId() : null, totalSlots)
+                termSchedule, ClassSessionType.CLINICAL, cs -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getId() : null, totalSlots,
+                Map.of())
         );
     }
 
@@ -269,13 +293,42 @@ public class TimetableCapacityPlanningService {
         return value != null ? value : 0;
     }
 
-    /** Occupied-vs-total-slot utilization for one venue type, computed from the term's already
-     *  globally-scoped schedule (a TermInstance is shared institution-wide across every
-     *  cohort/program, so this is cross-cohort occupancy, not just this planning run's cohort). */
+    /** Classroom utilization is deliberately NOT raw cross-cohort {@link ClassSchedule} occupancy
+     *  the way Lab/Clinical utilization is -- a Theory classroom is exclusively one cohort's home
+     *  room per term (enforced by {@code ux_cohort_section_classroom_per_term}), so once that
+     *  claim is reverted the room is genuinely free again even though its old DRAFT sessions
+     *  usually linger in Skeleton Builder (Theory {@code ClassSchedule} rows aren't cascaded from
+     *  {@code CohortRoomAllocation}/{@code CohortSection} the way Lab/Clinical batches are, so
+     *  reverting never cleans them up). Showing that leftover schedule debris as "occupied" next
+     *  to a room the admin is actively free to claim right now is actively misleading -- so a
+     *  classroom with no active claim always reports 0%, full stop, regardless of what stale rows
+     *  sit underneath it. Only a classroom someone currently, actively claims shows a real number. */
+    private List<VenueUtilizationResponse> classroomUtilization(List<Classroom> classrooms, List<ClassSchedule> termSchedule,
+                                                                  int totalSlots, Map<Long, String> claimedByCohortLabel) {
+        Map<Long, Long> occupiedByClassroomId = termSchedule.stream()
+            .filter(cs -> cs.getSessionType() == ClassSessionType.THEORY && cs.getClassroom() != null)
+            .collect(Collectors.groupingBy(cs -> cs.getClassroom().getId(), Collectors.counting()));
+
+        return classrooms.stream()
+            .map(c -> {
+                boolean claimed = claimedByCohortLabel.containsKey(c.getId());
+                long occupied = claimed ? occupiedByClassroomId.getOrDefault(c.getId(), 0L) : 0L;
+                double percent = !claimed || totalSlots == 0 ? 0.0 : (occupied * 100.0) / totalSlots;
+                return new VenueUtilizationResponse(c.getId(), c.getName(), c.getCapacity(), occupied, totalSlots, percent,
+                    claimedByCohortLabel.get(c.getId()));
+            })
+            .toList();
+    }
+
+    /** Occupied-vs-total-slot utilization for Lab/Clinical venues, computed from the term's
+     *  already globally-scoped schedule (a TermInstance is shared institution-wide across every
+     *  cohort/program, so this is genuinely cross-cohort occupancy) -- unlike classrooms, a
+     *  Lab/Clinical venue has no per-term exclusivity lock, so multiple cohorts legitimately share
+     *  one venue across different day/period slots and the raw count is the correct signal. */
     private <T> List<VenueUtilizationResponse> utilization(List<T> venues, Function<T, Long> idFn, Function<T, String> nameFn,
                                                              Function<T, Integer> capacityFn, List<ClassSchedule> termSchedule,
                                                              ClassSessionType type, Function<ClassSchedule, Long> venueIdFn,
-                                                             int totalSlots) {
+                                                             int totalSlots, Map<Long, String> claimedByCohortLabel) {
         Map<Long, Long> occupiedByVenueId = termSchedule.stream()
             .filter(cs -> cs.getSessionType() == type && venueIdFn.apply(cs) != null)
             .collect(Collectors.groupingBy(venueIdFn, Collectors.counting()));
@@ -285,7 +338,8 @@ public class TimetableCapacityPlanningService {
                 Long id = idFn.apply(v);
                 long occupied = occupiedByVenueId.getOrDefault(id, 0L);
                 double percent = totalSlots == 0 ? 0.0 : (occupied * 100.0) / totalSlots;
-                return new VenueUtilizationResponse(id, nameFn.apply(v), capacityFn.apply(v), occupied, totalSlots, percent);
+                return new VenueUtilizationResponse(id, nameFn.apply(v), capacityFn.apply(v), occupied, totalSlots, percent,
+                    claimedByCohortLabel.get(id));
             })
             .toList();
     }

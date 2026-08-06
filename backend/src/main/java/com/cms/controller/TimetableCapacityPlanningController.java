@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.CapacityPlanResponse;
+import com.cms.model.enums.PlanningBasis;
 import com.cms.service.TimetableCapacityPlanningService;
 
 @RestController
@@ -24,7 +25,7 @@ public class TimetableCapacityPlanningController {
     @PreAuthorize("@perm.has('TIMETABLE_CAPACITY_PLANNER_VIEW')")
     public ResponseEntity<CapacityPlanResponse> getPlan(@RequestParam Long termInstanceId,
                                                           @RequestParam Long cohortId,
-                                                          @RequestParam(required = false) Integer targetBatchSize) {
-        return ResponseEntity.ok(timetableCapacityPlanningService.getPlan(termInstanceId, cohortId, targetBatchSize));
+                                                          @RequestParam(required = false) PlanningBasis planningBasis) {
+        return ResponseEntity.ok(timetableCapacityPlanningService.getPlan(termInstanceId, cohortId, planningBasis));
     }
 }

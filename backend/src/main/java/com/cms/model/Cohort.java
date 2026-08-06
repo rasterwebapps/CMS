@@ -155,6 +155,17 @@ public class Cohort {
     public Integer getCounsellingSeats() { return counsellingSeats; }
     public void setCounsellingSeats(Integer counsellingSeats) { this.counsellingSeats = counsellingSeats; }
 
+    /** The university-sanctioned intake ceiling for this cohort — a stable planning number for
+     *  contexts (e.g. Timetable Capacity Planner) where the live enrolled headcount is still
+     *  unsettled, such as a first term where students keep joining after classes start but never
+     *  beyond what the university actually allotted. Prefers the single {@link #totalSeats} figure
+     *  when set; otherwise sums the quota breakdown. Null when neither is configured. */
+    public Integer getSanctionedIntake() {
+        if (totalSeats != null) return totalSeats;
+        if (managementSeats == null && counsellingSeats == null) return null;
+        return (managementSeats == null ? 0 : managementSeats) + (counsellingSeats == null ? 0 : counsellingSeats);
+    }
+
     public boolean isCounsellingClosed() { return counsellingClosed; }
     public void setCounsellingClosed(boolean counsellingClosed) { this.counsellingClosed = counsellingClosed; }
 

@@ -1,3 +1,5 @@
+export type PlanningBasis = 'ENROLLED' | 'SANCTIONED';
+
 export interface VenueOption {
   id: number;
   name: string;
@@ -11,6 +13,9 @@ export interface VenueUtilization {
   occupiedSlots: number;
   totalSlots: number;
   utilizationPercent: number;
+  /** Non-null only for a Classroom with a genuine active claim this term from another cohort --
+   *  Labs/Clinical Venues are never exclusively claimed per-term, so always null for those. */
+  claimedByCohortLabel: string | null;
 }
 
 export interface CapacityPlan {
@@ -20,18 +25,18 @@ export interface CapacityPlan {
   termLabel: string;
   semesterNumber: number | null;
   cohortStrength: number;
+  enrolledStrength: number;
+  sanctionedStrength: number | null;
   workingDaysInTerm: number;
   totalWorkingPeriodHours: number;
   blockedHours: number;
   curriculumHoursRequired: number;
   bufferHours: number;
-  targetBatchSize: number;
   theoryFits: boolean;
   theoryShortfallMessage: string | null;
   fittingClassrooms: VenueOption[];
-  labBatchesNeeded: number;
+  classroomsForSectioning: VenueOption[];
   fittingLabs: VenueOption[];
-  clinicalBatchesNeeded: number;
   fittingClinicalVenues: VenueOption[];
   classroomUtilization: VenueUtilization[];
   labUtilization: VenueUtilization[];

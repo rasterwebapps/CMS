@@ -18,6 +18,7 @@ import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.ClinicalVenue;
 import com.cms.model.CohortRoomAllocation;
+import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
 import com.cms.model.Faculty;
 import com.cms.model.Lab;
@@ -32,6 +33,7 @@ import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
+import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
@@ -61,6 +63,7 @@ public class TimetableStaffingService {
     private final CourseRegistrationRepository courseRegistrationRepository;
     private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
     private final CohortRoomAllocationRepository cohortRoomAllocationRepository;
+    private final CohortSectionRepository cohortSectionRepository;
     private final RotationResolverService rotationResolverService;
 
     public TimetableStaffingService(ClassScheduleRepository classScheduleRepository,
@@ -70,6 +73,7 @@ public class TimetableStaffingService {
                                      CourseRegistrationRepository courseRegistrationRepository,
                                      StudentTermEnrollmentRepository studentTermEnrollmentRepository,
                                      CohortRoomAllocationRepository cohortRoomAllocationRepository,
+                                     CohortSectionRepository cohortSectionRepository,
                                      RotationResolverService rotationResolverService) {
         this.classScheduleRepository = classScheduleRepository;
         this.facultyRepository = facultyRepository;
@@ -78,6 +82,7 @@ public class TimetableStaffingService {
         this.courseRegistrationRepository = courseRegistrationRepository;
         this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
         this.cohortRoomAllocationRepository = cohortRoomAllocationRepository;
+        this.cohortSectionRepository = cohortSectionRepository;
         this.rotationResolverService = rotationResolverService;
     }
 
@@ -201,10 +206,16 @@ public class TimetableStaffingService {
     private Classroom requireCommittedTheoryClassroom(ClassSchedule cs) {
         return resolveCommittedTheoryClassroom(cs)
             .orElseThrow(() -> new LifecycleConflictException(
-                "This cohort has no Theory room committed in Cohort Room Allocation — commit it in Capacity Planner before staffing.",
+                "This cohort has no Theory room committed in Cohort Room Allocation, or has multiple Theory "
+                    + "sections committed — commit a single-section allocation in Capacity Planner before staffing, "
+                    + "or staff each section's row explicitly once section-scoped Theory staffing is supported.",
                 "STAFFING_VENUE_NOT_COMMITTED", "ClassSchedule", cs.getId(), null));
     }
 
+    /** Non-elective Theory staffing only auto-resolves a room when the cohort's commit is
+     *  unsectioned (exactly one active {@link CohortSection}) -- a sectioned cohort has more than
+     *  one Theory room and no per-student roster yet to disambiguate which section a given
+     *  ClassSchedule row belongs to, so this deliberately returns empty rather than guessing. */
     private Optional<Classroom> resolveCommittedTheoryClassroom(ClassSchedule cs) {
         CourseOffering offering = cs.getCourseOffering();
         if (offering == null) {
@@ -218,10 +229,14 @@ public class TimetableStaffingService {
         if (cohortIds.size() != 1) {
             return Optional.empty();
         }
-        return cohortRoomAllocationRepository
+        Optional<CohortRoomAllocation> allocation = cohortRoomAllocationRepository
             .findByCohortIdAndTermInstanceIdAndStatus(
-                cohortIds.iterator().next(), offering.getTermInstance().getId(), CohortRoomAllocationStatus.COMMITTED)
-            .map(CohortRoomAllocation::getTheoryClassroom);
+                cohortIds.iterator().next(), offering.getTermInstance().getId(), CohortRoomAllocationStatus.COMMITTED);
+        if (allocation.isEmpty()) {
+            return Optional.empty();
+        }
+        List<CohortSection> sections = cohortSectionRepository.findByCohortRoomAllocationIdAndIsActiveTrue(allocation.get().getId());
+        return sections.size() == 1 ? Optional.of(sections.get(0).getClassroom()) : Optional.empty();
     }
 
     /** Blocks assigning a faculty member already committed elsewhere at this exact day/time —

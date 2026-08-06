@@ -19,14 +19,15 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 import com.cms.dto.CohortRoomAllocationCommitRequest;
 import com.cms.dto.CohortRoomAllocationResponse;
+import com.cms.dto.CohortSectionRequest;
 import com.cms.dto.VentureSplitRequest;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Batch;
 import com.cms.model.Classroom;
-import com.cms.model.ClinicalVenue;
 import com.cms.model.Cohort;
 import com.cms.model.CohortRoomAllocation;
+import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
 import com.cms.model.Lab;
 import com.cms.model.Subject;
@@ -34,12 +35,14 @@ import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.EnrollmentStatus;
+import com.cms.model.enums.PlanningBasis;
 import com.cms.model.enums.TermType;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
+import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
@@ -49,6 +52,7 @@ import com.cms.repository.TermInstanceRepository;
 class CohortRoomAllocationServiceTest {
 
     @Mock private CohortRoomAllocationRepository allocationRepository;
+    @Mock private CohortSectionRepository cohortSectionRepository;
     @Mock private CohortRepository cohortRepository;
     @Mock private TermInstanceRepository termInstanceRepository;
     @Mock private ClassroomRepository classroomRepository;
@@ -67,9 +71,9 @@ class CohortRoomAllocationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CohortRoomAllocationService(allocationRepository, cohortRepository, termInstanceRepository,
-            classroomRepository, labRepository, clinicalVenueRepository, courseOfferingRepository, batchRepository,
-            studentTermEnrollmentRepository);
+        service = new CohortRoomAllocationService(allocationRepository, cohortSectionRepository, cohortRepository,
+            termInstanceRepository, classroomRepository, labRepository, clinicalVenueRepository,
+            courseOfferingRepository, batchRepository, studentTermEnrollmentRepository);
 
         cohort = new Cohort();
         cohort.setId(1L);
@@ -97,15 +101,21 @@ class CohortRoomAllocationServiceTest {
         offering.setSubject(subject);
     }
 
-    @Test
-    void shouldRejectCommitWhenTheoryClassroomTooSmall() {
+    private void stubCohortAndTerm(long strength) {
         when(cohortRepository.findByIdWithCourse(1L)).thenReturn(Optional.of(cohort));
         when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(term));
-        when(classroomRepository.findById(10L)).thenReturn(Optional.of(theoryClassroom));
         when(studentTermEnrollmentRepository.countByTermInstanceIdAndCohortIdAndStatus(1L, 1L, EnrollmentStatus.ENROLLED))
-            .thenReturn(65L);
+            .thenReturn(strength);
+    }
 
-        CohortRoomAllocationCommitRequest request = new CohortRoomAllocationCommitRequest(1L, 1L, 10L, List.of());
+    @Test
+    void shouldRejectCommitWhenSectionPlannedSizeExceedsClassroomCapacity() {
+        stubCohortAndTerm(65);
+        when(classroomRepository.findById(10L)).thenReturn(Optional.of(theoryClassroom));
+
+        CohortSectionRequest section = new CohortSectionRequest("Section 1", 10L, 65);
+        CohortRoomAllocationCommitRequest request =
+            new CohortRoomAllocationCommitRequest(1L, 1L, PlanningBasis.ENROLLED, List.of(section), List.of());
 
         assertThatThrownBy(() -> service.commit(request, "admin"))
             .isInstanceOf(LifecycleConflictException.class)
@@ -115,12 +125,48 @@ class CohortRoomAllocationServiceTest {
     }
 
     @Test
-    void shouldRejectCommitWhenVentureSplitExceedsVenueCapacity() {
-        when(cohortRepository.findByIdWithCourse(1L)).thenReturn(Optional.of(cohort));
-        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(term));
+    void shouldRejectCommitWhenSectionsUnderCoverCohortStrength() {
+        stubCohortAndTerm(100);
         when(classroomRepository.findById(10L)).thenReturn(Optional.of(theoryClassroom));
-        when(studentTermEnrollmentRepository.countByTermInstanceIdAndCohortIdAndStatus(1L, 1L, EnrollmentStatus.ENROLLED))
-            .thenReturn(60L);
+
+        CohortSectionRequest section = new CohortSectionRequest("Section 1", 10L, 60);
+        CohortRoomAllocationCommitRequest request =
+            new CohortRoomAllocationCommitRequest(1L, 1L, PlanningBasis.ENROLLED, List.of(section), List.of());
+
+        assertThatThrownBy(() -> service.commit(request, "admin"))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("cover only 60 of 100");
+
+        verify(allocationRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectCommitWhenSectionsOverCoverCohortStrength() {
+        // Reported bug: sanctioned intake 100, two 60-cap rooms, admin fills both to full
+        // capacity (60+60=120) -- must be rejected, not silently accepted as a "buffer".
+        stubCohortAndTerm(100);
+        Classroom classroomA = theoryClassroom;
+        Classroom classroomB = new Classroom("Room 456", null, null, 60);
+        classroomB.setId(11L);
+        when(classroomRepository.findById(10L)).thenReturn(Optional.of(classroomA));
+        when(classroomRepository.findById(11L)).thenReturn(Optional.of(classroomB));
+
+        CohortSectionRequest sectionA = new CohortSectionRequest("Section 1", 10L, 60);
+        CohortSectionRequest sectionB = new CohortSectionRequest("Section 2", 11L, 60);
+        CohortRoomAllocationCommitRequest request = new CohortRoomAllocationCommitRequest(
+            1L, 1L, PlanningBasis.ENROLLED, List.of(sectionA, sectionB), List.of());
+
+        assertThatThrownBy(() -> service.commit(request, "admin"))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("120 students, 20 more than the 100");
+
+        verify(allocationRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectCommitWhenVentureSplitExceedsVenueCapacity() {
+        stubCohortAndTerm(60);
+        when(classroomRepository.findById(10L)).thenReturn(Optional.of(theoryClassroom));
 
         Lab lab = new Lab();
         lab.setId(20L);
@@ -128,8 +174,10 @@ class CohortRoomAllocationServiceTest {
         lab.setCapacity(40);
         when(labRepository.findById(20L)).thenReturn(Optional.of(lab));
 
-        VentureSplitRequest split = new VentureSplitRequest(5L, ClassSessionType.LAB, 20L, "Batch A", 45);
-        CohortRoomAllocationCommitRequest request = new CohortRoomAllocationCommitRequest(1L, 1L, 10L, List.of(split));
+        CohortSectionRequest section = new CohortSectionRequest("Section 1", 10L, 60);
+        VentureSplitRequest split = new VentureSplitRequest(5L, ClassSessionType.LAB, 20L, "Batch A", 45, null);
+        CohortRoomAllocationCommitRequest request =
+            new CohortRoomAllocationCommitRequest(1L, 1L, PlanningBasis.ENROLLED, List.of(section), List.of(split));
 
         assertThatThrownBy(() -> service.commit(request, "admin"))
             .isInstanceOf(LifecycleConflictException.class)
@@ -140,11 +188,8 @@ class CohortRoomAllocationServiceTest {
 
     @Test
     void shouldAcceptNonUniformSplitThatFitsEachVenue() {
-        when(cohortRepository.findByIdWithCourse(1L)).thenReturn(Optional.of(cohort));
-        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(term));
+        stubCohortAndTerm(60);
         when(classroomRepository.findById(10L)).thenReturn(Optional.of(theoryClassroom));
-        when(studentTermEnrollmentRepository.countByTermInstanceIdAndCohortIdAndStatus(1L, 1L, EnrollmentStatus.ENROLLED))
-            .thenReturn(60L);
 
         Lab labA = new Lab();
         labA.setId(20L);
@@ -165,6 +210,16 @@ class CohortRoomAllocationServiceTest {
             a.setId(100L);
             return a;
         });
+        when(cohortSectionRepository.save(any(CohortSection.class))).thenAnswer(inv -> {
+            CohortSection s = inv.getArgument(0);
+            s.setId(500L);
+            return s;
+        });
+        when(cohortSectionRepository.findByCohortRoomAllocationId(100L)).thenAnswer(inv -> {
+            CohortSection s = new CohortSection(null, term, "Section 1", theoryClassroom, 60);
+            s.setId(500L);
+            return List.of(s);
+        });
         when(batchRepository.save(any(Batch.class))).thenAnswer(inv -> {
             Batch b = inv.getArgument(0);
             b.setId((long) (Math.random() * 1000));
@@ -173,29 +228,110 @@ class CohortRoomAllocationServiceTest {
         when(batchRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of());
 
         // 30/30 instead of the ceil-even 40/20 -- admin's edited, non-uniform split.
-        VentureSplitRequest splitA = new VentureSplitRequest(5L, ClassSessionType.LAB, 20L, "Batch A", 30);
-        VentureSplitRequest splitB = new VentureSplitRequest(5L, ClassSessionType.LAB, 21L, "Batch B", 30);
-        CohortRoomAllocationCommitRequest request =
-            new CohortRoomAllocationCommitRequest(1L, 1L, 10L, List.of(splitA, splitB));
+        CohortSectionRequest section = new CohortSectionRequest("Section 1", 10L, 60);
+        VentureSplitRequest splitA = new VentureSplitRequest(5L, ClassSessionType.LAB, 20L, "Batch A", 30, "Section 1");
+        VentureSplitRequest splitB = new VentureSplitRequest(5L, ClassSessionType.LAB, 21L, "Batch B", 30, "Section 1");
+        CohortRoomAllocationCommitRequest request = new CohortRoomAllocationCommitRequest(
+            1L, 1L, PlanningBasis.ENROLLED, List.of(section), List.of(splitA, splitB));
 
         CohortRoomAllocationResponse response = service.commit(request, "admin");
 
-        assertThat(response.theoryClassroomId()).isEqualTo(10L);
+        assertThat(response.sections()).hasSize(1);
+        assertThat(response.sections().get(0).classroomId()).isEqualTo(10L);
         assertThat(response.status()).isEqualTo(CohortRoomAllocationStatus.COMMITTED);
         verify(batchRepository, org.mockito.Mockito.times(2)).save(any(Batch.class));
     }
 
     @Test
-    void shouldRejectCommitWhenTheoryClassroomAlreadyClaimedThisTerm() {
-        when(cohortRepository.findByIdWithCourse(1L)).thenReturn(Optional.of(cohort));
-        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(term));
-        when(classroomRepository.findById(10L)).thenReturn(Optional.of(theoryClassroom));
-        when(studentTermEnrollmentRepository.countByTermInstanceIdAndCohortIdAndStatus(1L, 1L, EnrollmentStatus.ENROLLED))
-            .thenReturn(60L);
-        when(allocationRepository.save(any(CohortRoomAllocation.class)))
-            .thenThrow(new DataIntegrityViolationException("ux_theory_classroom_per_term"));
+    void shouldRejectVentureSplitWithoutSectionLabelWhenMultipleSections() {
+        stubCohortAndTerm(100);
+        Classroom classroomA = theoryClassroom;
+        Classroom classroomB = new Classroom("Room 456", null, null, 40);
+        classroomB.setId(11L);
+        when(classroomRepository.findById(10L)).thenReturn(Optional.of(classroomA));
+        when(classroomRepository.findById(11L)).thenReturn(Optional.of(classroomB));
 
-        CohortRoomAllocationCommitRequest request = new CohortRoomAllocationCommitRequest(1L, 1L, 10L, List.of());
+        Lab lab = new Lab();
+        lab.setId(20L);
+        lab.setCapacity(60);
+        when(labRepository.findById(20L)).thenReturn(Optional.of(lab));
+
+        CohortSectionRequest sectionA = new CohortSectionRequest("Section 1", 10L, 60);
+        CohortSectionRequest sectionB = new CohortSectionRequest("Section 2", 11L, 40);
+        VentureSplitRequest split = new VentureSplitRequest(5L, ClassSessionType.LAB, 20L, "Batch A", 30, null);
+        CohortRoomAllocationCommitRequest request = new CohortRoomAllocationCommitRequest(
+            1L, 1L, PlanningBasis.ENROLLED, List.of(sectionA, sectionB), List.of(split));
+
+        assertThatThrownBy(() -> service.commit(request, "admin"))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("must specify which section");
+
+        verify(allocationRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldAcceptMultiSectionCommitWithPerSectionVentureSplits() {
+        stubCohortAndTerm(100);
+        Classroom classroomA = theoryClassroom;
+        Classroom classroomB = new Classroom("Room 456", null, null, 40);
+        classroomB.setId(11L);
+        when(classroomRepository.findById(10L)).thenReturn(Optional.of(classroomA));
+        when(classroomRepository.findById(11L)).thenReturn(Optional.of(classroomB));
+
+        Lab labA = new Lab();
+        labA.setId(20L);
+        labA.setCapacity(60);
+        Lab labB = new Lab();
+        labB.setId(21L);
+        labB.setCapacity(40);
+        when(labRepository.findById(20L)).thenReturn(Optional.of(labA));
+        when(labRepository.findById(21L)).thenReturn(Optional.of(labB));
+        when(labRepository.getReferenceById(20L)).thenReturn(labA);
+        when(labRepository.getReferenceById(21L)).thenReturn(labB);
+        when(courseOfferingRepository.findById(5L)).thenReturn(Optional.of(offering));
+
+        when(allocationRepository.save(any(CohortRoomAllocation.class))).thenAnswer(inv -> {
+            CohortRoomAllocation a = inv.getArgument(0);
+            a.setId(100L);
+            return a;
+        });
+        when(cohortSectionRepository.save(any(CohortSection.class))).thenAnswer(inv -> {
+            CohortSection s = inv.getArgument(0);
+            s.setId((long) (Math.random() * 1000));
+            return s;
+        });
+        when(cohortSectionRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of());
+        when(batchRepository.save(any(Batch.class))).thenAnswer(inv -> {
+            Batch b = inv.getArgument(0);
+            b.setId((long) (Math.random() * 1000));
+            return b;
+        });
+        when(batchRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of());
+
+        CohortSectionRequest sectionA = new CohortSectionRequest("Section 1", 10L, 60);
+        CohortSectionRequest sectionB = new CohortSectionRequest("Section 2", 11L, 40);
+        VentureSplitRequest splitA = new VentureSplitRequest(5L, ClassSessionType.LAB, 20L, "Batch A", 60, "Section 1");
+        VentureSplitRequest splitB = new VentureSplitRequest(5L, ClassSessionType.LAB, 21L, "Batch B", 40, "Section 2");
+        CohortRoomAllocationCommitRequest request = new CohortRoomAllocationCommitRequest(
+            1L, 1L, PlanningBasis.ENROLLED, List.of(sectionA, sectionB), List.of(splitA, splitB));
+
+        CohortRoomAllocationResponse response = service.commit(request, "admin");
+
+        assertThat(response.status()).isEqualTo(CohortRoomAllocationStatus.COMMITTED);
+        verify(cohortSectionRepository, org.mockito.Mockito.times(2)).save(any(CohortSection.class));
+        verify(batchRepository, org.mockito.Mockito.times(2)).save(any(Batch.class));
+    }
+
+    @Test
+    void shouldRejectCommitWhenTheoryClassroomAlreadyClaimedThisTerm() {
+        stubCohortAndTerm(60);
+        when(classroomRepository.findById(10L)).thenReturn(Optional.of(theoryClassroom));
+        when(allocationRepository.save(any(CohortRoomAllocation.class)))
+            .thenThrow(new DataIntegrityViolationException("ux_cohort_room_alloc_active"));
+
+        CohortSectionRequest section = new CohortSectionRequest("Section 1", 10L, 60);
+        CohortRoomAllocationCommitRequest request =
+            new CohortRoomAllocationCommitRequest(1L, 1L, PlanningBasis.ENROLLED, List.of(section), List.of());
 
         assertThatThrownBy(() -> service.commit(request, "admin"))
             .isInstanceOf(LifecycleConflictException.class)
@@ -205,8 +341,8 @@ class CohortRoomAllocationServiceTest {
     }
 
     @Test
-    void shouldDeactivateBatchesOnRevert() {
-        CohortRoomAllocation allocation = new CohortRoomAllocation(cohort, term, theoryClassroom, "admin");
+    void shouldDeactivateSectionsAndBatchesOnRevert() {
+        CohortRoomAllocation allocation = new CohortRoomAllocation(cohort, term, PlanningBasis.ENROLLED, 60, "admin");
         allocation.setId(100L);
         when(allocationRepository.findById(100L)).thenReturn(Optional.of(allocation));
         when(allocationRepository.save(any(CohortRoomAllocation.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -218,16 +354,22 @@ class CohortRoomAllocationServiceTest {
         when(batchRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of(batch1, batch2));
         when(batchRepository.save(any(Batch.class))).thenAnswer(inv -> inv.getArgument(0));
 
+        CohortSection section = new CohortSection(allocation, term, "Section 1", theoryClassroom, 60);
+        section.setId(300L);
+        when(cohortSectionRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of(section));
+        when(cohortSectionRepository.save(any(CohortSection.class))).thenAnswer(inv -> inv.getArgument(0));
+
         service.revert(100L, "admin");
 
         assertThat(allocation.getStatus()).isEqualTo(CohortRoomAllocationStatus.REVERTED);
         assertThat(batch1.getIsActive()).isFalse();
         assertThat(batch2.getIsActive()).isFalse();
+        assertThat(section.getIsActive()).isFalse();
     }
 
     @Test
     void shouldRejectRevertingAlreadyRevertedAllocation() {
-        CohortRoomAllocation allocation = new CohortRoomAllocation(cohort, term, theoryClassroom, "admin");
+        CohortRoomAllocation allocation = new CohortRoomAllocation(cohort, term, PlanningBasis.ENROLLED, 60, "admin");
         allocation.setId(100L);
         allocation.setStatus(CohortRoomAllocationStatus.REVERTED);
         when(allocationRepository.findById(100L)).thenReturn(Optional.of(allocation));

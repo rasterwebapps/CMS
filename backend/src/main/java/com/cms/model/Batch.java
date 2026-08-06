@@ -67,6 +67,13 @@ public class Batch {
     @JoinColumn(name = "cohort_room_allocation_id")
     private CohortRoomAllocation cohortRoomAllocation;
 
+    /** Which CohortSection sub-cohort this batch belongs to, once its cohort's Theory room has
+     *  been split into sections. Null for batches under an unsectioned (single-section)
+     *  allocation, or created outside the Cohort Room Allocation flow. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cohort_section_id")
+    private CohortSection cohortSection;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
@@ -166,6 +173,14 @@ public class Batch {
 
     public void setCohortRoomAllocation(CohortRoomAllocation cohortRoomAllocation) {
         this.cohortRoomAllocation = cohortRoomAllocation;
+    }
+
+    public CohortSection getCohortSection() {
+        return cohortSection;
+    }
+
+    public void setCohortSection(CohortSection cohortSection) {
+        this.cohortSection = cohortSection;
     }
 
     public Boolean getIsActive() {

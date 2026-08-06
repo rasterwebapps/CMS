@@ -27,6 +27,7 @@ import com.cms.model.Classroom;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Cohort;
 import com.cms.model.CohortRoomAllocation;
+import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.DesignationMaster;
@@ -43,12 +44,14 @@ import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.LabStatus;
+import com.cms.model.enums.PlanningBasis;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
+import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
@@ -63,6 +66,7 @@ class TimetableStaffingServiceTest {
     @Mock private CourseRegistrationRepository courseRegistrationRepository;
     @Mock private StudentTermEnrollmentRepository studentTermEnrollmentRepository;
     @Mock private CohortRoomAllocationRepository cohortRoomAllocationRepository;
+    @Mock private CohortSectionRepository cohortSectionRepository;
     @Mock private RotationResolverService rotationResolverService;
 
     private TimetableStaffingService service;
@@ -79,7 +83,8 @@ class TimetableStaffingServiceTest {
     void setUp() {
         service = new TimetableStaffingService(classScheduleRepository, facultyRepository,
             classroomRepository, batchRepository, courseRegistrationRepository,
-            studentTermEnrollmentRepository, cohortRoomAllocationRepository, rotationResolverService);
+            studentTermEnrollmentRepository, cohortRoomAllocationRepository, cohortSectionRepository,
+            rotationResolverService);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);
@@ -351,9 +356,13 @@ class TimetableStaffingServiceTest {
 
         Classroom committedClassroom = new Classroom("Room 202", "Main Block", "202", 60);
         committedClassroom.setId(9L);
-        CohortRoomAllocation allocation = new CohortRoomAllocation(cohort, termInstance, committedClassroom, "admin");
+        CohortRoomAllocation allocation = new CohortRoomAllocation(cohort, termInstance, PlanningBasis.ENROLLED, 55, "admin");
+        allocation.setId(50L);
         when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(7L, 10L, CohortRoomAllocationStatus.COMMITTED))
             .thenReturn(Optional.of(allocation));
+        CohortSection section = new CohortSection(allocation, termInstance, "Section 1", committedClassroom, 55);
+        when(cohortSectionRepository.findByCohortRoomAllocationIdAndIsActiveTrue(50L))
+            .thenReturn(List.of(section));
 
         StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, null);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));

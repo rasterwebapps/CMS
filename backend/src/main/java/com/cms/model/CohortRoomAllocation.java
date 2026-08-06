@@ -7,6 +7,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cms.model.enums.CohortRoomAllocationStatus;
+import com.cms.model.enums.PlanningBasis;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -22,12 +23,16 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 /**
- * A Cohort's committed physical-location claim for a Term: exactly one Theory home room, term-scoped
- * (no day/period here — that belongs to the later Staffing pass). Lab/Clinical venue assignments are
- * not on this header since a cohort can need several lab/clinical batches, not just one — see
- * {@link Batch#getCohortRoomAllocation()}. Two different cohorts can never claim the same Theory
- * classroom in the same term (DB-enforced, ux_theory_classroom_per_term); reverting sets
- * {@link #status} to REVERTED and soft-deactivates every Batch this allocation created rather than
+ * A Cohort's committed physical-location claim for a Term, term-scoped (no day/period here — that
+ * belongs to the later Staffing pass). The actual Theory room(s) live on child
+ * {@link CohortSection} rows (fetched via {@code CohortSectionRepository}, not a JPA relation
+ * here, mirroring how {@link Batch#getCohortRoomAllocation()} is fetched) — every commit produces
+ * at least one section, even the common unsectioned case. Lab/Clinical venue assignments are not
+ * on this header either, for the same reason — see {@link Batch#getCohortRoomAllocation()}.
+ * {@link #planningBasis}/{@link #plannedStrength} record which strength number (live enrolled
+ * headcount vs. university-sanctioned intake) this commit was actually planned against, since a
+ * cohort's live enrollment can keep changing after the fact. Reverting sets {@link #status} to
+ * REVERTED and soft-deactivates every Batch/CohortSection this allocation created rather than
  * deleting, so roster history survives.
  */
 @Entity
@@ -47,13 +52,16 @@ public class CohortRoomAllocation {
     @JoinColumn(name = "term_instance_id", nullable = false)
     private TermInstance termInstance;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "theory_classroom_id", nullable = false)
-    private Classroom theoryClassroom;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private CohortRoomAllocationStatus status = CohortRoomAllocationStatus.COMMITTED;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "planning_basis", nullable = false, length = 20)
+    private PlanningBasis planningBasis = PlanningBasis.ENROLLED;
+
+    @Column(name = "planning_strength", nullable = false)
+    private Integer plannedStrength = 0;
 
     @Column(name = "committed_by")
     private String committedBy;
@@ -78,10 +86,12 @@ public class CohortRoomAllocation {
     public CohortRoomAllocation() {
     }
 
-    public CohortRoomAllocation(Cohort cohort, TermInstance termInstance, Classroom theoryClassroom, String committedBy) {
+    public CohortRoomAllocation(Cohort cohort, TermInstance termInstance, PlanningBasis planningBasis,
+                                 Integer plannedStrength, String committedBy) {
         this.cohort = cohort;
         this.termInstance = termInstance;
-        this.theoryClassroom = theoryClassroom;
+        this.planningBasis = planningBasis;
+        this.plannedStrength = plannedStrength;
         this.committedBy = committedBy;
         this.committedAt = Instant.now();
     }
@@ -110,12 +120,20 @@ public class CohortRoomAllocation {
         this.termInstance = termInstance;
     }
 
-    public Classroom getTheoryClassroom() {
-        return theoryClassroom;
+    public PlanningBasis getPlanningBasis() {
+        return planningBasis;
     }
 
-    public void setTheoryClassroom(Classroom theoryClassroom) {
-        this.theoryClassroom = theoryClassroom;
+    public void setPlanningBasis(PlanningBasis planningBasis) {
+        this.planningBasis = planningBasis;
+    }
+
+    public Integer getPlannedStrength() {
+        return plannedStrength;
+    }
+
+    public void setPlannedStrength(Integer plannedStrength) {
+        this.plannedStrength = plannedStrength;
     }
 
     public CohortRoomAllocationStatus getStatus() {

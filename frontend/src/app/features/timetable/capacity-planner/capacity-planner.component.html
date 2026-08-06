@@ -31,8 +31,10 @@
         <option [ngValue]="c.id">{{ c.displayName }}</option>
       }
     </select>
-    <input class="cap-batch-size-input" type="number" min="1" placeholder="Target batch size (default 30)"
-      [(ngModel)]="targetBatchSize" aria-label="Target batch size" />
+    <select class="mlp-filter-select" [(ngModel)]="planningBasis" (ngModelChange)="onPlanningBasisChange()" aria-label="Planning basis">
+      <option value="SANCTIONED">Plan by: Sanctioned intake</option>
+      <option value="ENROLLED">Plan by: Enrolled headcount</option>
+    </select>
     <button type="button" class="btn-primary" [disabled]="loading() || !selectedTermInstanceId || !selectedCohortId" (click)="loadPlan()">
       @if (loading()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
       Calculate
@@ -41,9 +43,16 @@
 
   @if (plan(); as p) {
 
+  <div class="cap-layout">
+  <div class="cap-main-col">
+
     <div class="content-card cap-summary-card">
       <h2 class="cap-summary-card__title">{{ p.cohortLabel }} — {{ p.termLabel }}</h2>
-      <p class="cap-summary-card__strength">{{ p.cohortStrength }} students currently enrolled this term</p>
+      <p class="cap-summary-card__strength">
+        {{ p.enrolledStrength }} enrolled
+        · {{ p.sanctionedStrength != null ? (p.sanctionedStrength + ' sanctioned intake') : 'no sanctioned intake set' }}
+        &nbsp;·&nbsp; planning against <strong>{{ p.cohortStrength }}</strong> students this calculation
+      </p>
     </div>
 
     <div class="content-card cap-summary-card">
@@ -96,8 +105,8 @@
         <h3 class="cap-sizing-card__title">Room Sizing</h3>
         <p class="cap-batch-action-card__hint">
           Theory: {{ p.theoryFits ? ('fits in ' + p.fittingClassrooms.length + ' classroom(s)') : p.theoryShortfallMessage }}
-          &nbsp;·&nbsp; Lab: {{ p.labBatchesNeeded }} batch(es) of ~{{ p.targetBatchSize }} needed ({{ p.fittingLabs.length }} lab(s) fit)
-          &nbsp;·&nbsp; Clinical: {{ p.clinicalBatchesNeeded }} batch(es) of ~{{ p.targetBatchSize }} needed ({{ p.fittingClinicalVenues.length }} venue(s) fit)
+          &nbsp;·&nbsp; Lab: {{ p.fittingLabs.length }} lab(s) available
+          &nbsp;·&nbsp; Clinical: {{ p.fittingClinicalVenues.length }} venue(s) available
         </p>
       </div>
     }
@@ -105,16 +114,24 @@
     @if (canManageAllocation() || canRevertAllocation()) {
       <div class="content-card cap-batch-action-card">
         <h3 class="cap-sizing-card__title">Cohort Room Allocation</h3>
-        <p class="cap-batch-action-card__hint">Commit this cohort's physical Theory room and Lab/Clinical batch venues for {{ p.termLabel }} — Staffing builds the timetable against these once committed.</p>
+        <p class="cap-batch-action-card__hint">Commit this cohort's physical Theory section(s) and Lab/Clinical batch venues for {{ p.termLabel }} — Staffing builds the timetable against these once committed.</p>
 
         @if (loadingAllocation()) {
           <p class="skeleton-empty-hint">Loading current allocation…</p>
         } @else if (currentAllocation(); as alloc) {
-          <p class="cap-sizing-card__ok">Theory room: {{ alloc.theoryClassroomName }} <span class="cap-venue-list__cap">(cap {{ alloc.theoryClassroomCapacity }})</span></p>
+          <p class="cap-sizing-card__ok">Planned against {{ alloc.plannedStrength }} students ({{ alloc.planningBasis === 'ENROLLED' ? 'enrolled headcount' : 'sanctioned intake' }})</p>
+          <ul class="cap-venue-list">
+            @for (s of alloc.sections; track s.id) {
+              <li>
+                {{ s.sectionLabel }} — {{ s.classroomName }} <span class="cap-venue-list__cap">(cap {{ s.classroomCapacity }})</span> · {{ s.plannedSize }} students
+                @if (!s.isActive) { <span class="cap-venue-list__cap">(inactive)</span> }
+              </li>
+            }
+          </ul>
           <ul class="cap-venue-list">
             @for (b of alloc.batches; track b.batchId) {
               <li>
-                {{ b.subjectName }} — {{ b.batchName }} ({{ b.sessionType }}) · {{ b.venueName }} · {{ b.plannedSize }} students
+                {{ b.cohortSectionLabel ? (b.cohortSectionLabel + ' · ') : '' }}{{ b.subjectName }} — {{ b.batchName }} ({{ b.sessionType }}) · {{ b.venueName }} · {{ b.plannedSize }} students
                 @if (!b.isActive) { <span class="cap-venue-list__cap">(inactive)</span> }
               </li>
             } @empty {
@@ -129,83 +146,143 @@
             </button>
           }
         } @else if (canManageAllocation()) {
-          <!-- Theory: sizing info and the picker live in one step, not a separate card above -->
-          <div class="cap-step" [class.cap-step--done]="theoryRoomFinalized()">
+          <!-- Theory: one or more sections, each its own classroom + headcount. Forced into 2+
+               rows when no single classroom fits the whole cohort; otherwise pre-seeded with 1. -->
+          <div class="cap-step" [class.cap-step--done]="sectionsFinalized()">
             <div class="cap-step__head">
               <span class="cap-step__num">1</span>
-              <span class="cap-step__title">Theory</span>
+              <span class="cap-step__title">Theory Sections</span>
             </div>
 
-            @if (theoryRoomFinalized()) {
+            @if (sectionsFinalized()) {
               <div class="cap-room-confirmed">
                 <div class="cap-room-confirmed__info">
                   <span class="cap-room-confirmed__badge">Finalized</span>
-                  <span class="cap-room-confirmed__value">{{ selectedTheoryClassroomLabel() }}</span>
+                  <span class="cap-room-confirmed__value">{{ draftSections().length }} section(s), {{ sectionedTotal() }} students</span>
                 </div>
-                <button type="button" class="btn-secondary" (click)="changeTheoryRoom()">Change</button>
+                <button type="button" class="btn-secondary" (click)="changeSections()">Change</button>
               </div>
             } @else {
-              <p class="cap-batch-action-card__hint">{{ p.cohortStrength }} students enrolled this term.</p>
-              @if (!p.theoryFits) {
-                <p class="cap-sizing-card__warn">{{ p.theoryShortfallMessage }}</p>
-              } @else {
-                <div class="field-group">
-                  <label class="field-label">Theory room (fits {{ p.cohortStrength }} students)</label>
-                  <select class="mlp-filter-select" [(ngModel)]="selectedTheoryClassroomId" [ngModelOptions]="{standalone: true}" aria-label="Theory room">
-                    <option [ngValue]="null">Select a classroom</option>
-                    @for (c of p.fittingClassrooms; track c.id) {
-                      <option [ngValue]="c.id">{{ c.name }} (cap {{ c.capacity }})</option>
+              <p class="cap-batch-action-card__hint">
+                {{ p.cohortStrength }} students to place this term.
+                @if (!p.theoryFits) { No single classroom fits — split into sections below. }
+              </p>
+              <div class="cap-allocation-splits">
+                @for (section of draftSections(); track section.localId) {
+                  <div class="cap-split-row cap-split-row--compact">
+                    <input class="field-input" [(ngModel)]="section.sectionLabel" [ngModelOptions]="{standalone: true}" placeholder="Section label" />
+                    <select class="mlp-filter-select" [ngModel]="section.classroomId" (ngModelChange)="onSectionClassroomChange(section, $event)" [ngModelOptions]="{standalone: true}" aria-label="Classroom">
+                      <option [ngValue]="null">Select a classroom</option>
+                      @for (c of p.classroomsForSectioning; track c.id) {
+                        <option [ngValue]="c.id">
+                          {{ c.name }} (cap {{ c.capacity }}){{ classroomUtilizationPercent(c.id) ? ' — ' + (classroomUtilizationPercent(c.id) | number:'1.0-0') + '% already booked' : '' }}
+                        </option>
+                      }
+                    </select>
+                    <input class="field-input" type="number" min="1" [(ngModel)]="section.plannedSize" [ngModelOptions]="{standalone: true}" placeholder="Size" />
+                    <cms-capacity-meter [occupied]="section.plannedSize ?? 0" [capacity]="classroomCapacity(section.classroomId)"></cms-capacity-meter>
+                    @if (isSectionOverCapacity(section)) {
+                      <span class="cap-sizing-card__warn">Exceeds classroom capacity</span>
+                    } @else if (classroomUtilizationPercent(section.classroomId); as pct) {
+                      <span class="cap-sizing-card__warn">{{ pct | number:'1.0-0' }}% of this room's weekly slots are already booked by other cohorts</span>
                     }
-                  </select>
-                </div>
-                <div class="cap-batch-action-card__row">
-                  <button type="button" class="btn-primary" [disabled]="!selectedTheoryClassroomId" (click)="finalizeTheoryRoom()">
-                    Finalize Theory Room
-                  </button>
-                </div>
-              }
+                    <button type="button" class="btn-secondary" (click)="removeDraftSection(section.localId)">Remove</button>
+                  </div>
+                } @empty {
+                  <p class="cap-batch-action-card__hint">No sections yet — add one below.</p>
+                }
+                <button type="button" class="btn-secondary" (click)="addDraftSection()">+ Add Section</button>
+              </div>
+              <p class="cap-batch-action-card__hint" [class.cap-section-total--mismatch]="sectionedTotal() !== p.cohortStrength">
+                {{ sectionedTotal() }} of {{ p.cohortStrength }} students placed
+                @if (sectionedTotal() > p.cohortStrength) { — {{ sectionedTotal() - p.cohortStrength }} too many, resize or remove a section }
+                @if (sectionedTotal() < p.cohortStrength) { — {{ p.cohortStrength - sectionedTotal() }} short, add or resize a section }
+              </p>
+              <div class="cap-batch-action-card__row">
+                <button type="button" class="btn-primary" [disabled]="draftSections().length === 0 || sectionedTotal() !== p.cohortStrength" (click)="finalizeSections()">
+                  Finalize Sections
+                </button>
+              </div>
             }
           </div>
 
-          @if (theoryRoomFinalized()) {
-            <!-- Lab: batch count needed + one pre-filled row per batch, venue-only left to pick -->
+          @if (sectionsFinalized()) {
+            <!-- Lab: pick a subject once, its venue once, and rows auto-generate one per section -->
             <div class="cap-step">
               <div class="cap-step__head">
                 <span class="cap-step__num">2</span>
                 <span class="cap-step__title">Lab</span>
               </div>
-              <p class="cap-batch-action-card__hint">{{ p.labBatchesNeeded }} batch(es) of ~{{ p.targetBatchSize }} needed.</p>
+              <p class="cap-batch-action-card__hint">Pick a subject with Lab hours this term, then a default venue — a batch row auto-generates per section, sized to that section's full headcount. Split a row if one venue can't seat the whole section.</p>
 
               @if (p.fittingLabs.length === 0) {
-                <p class="cap-sizing-card__warn">No lab currently seats {{ p.targetBatchSize }} students at once.</p>
+                <p class="cap-sizing-card__warn">No active labs configured.</p>
               } @else {
-                <div class="cap-allocation-splits">
-                  @for (split of labSplits(); track split.localId) {
-                    <div class="cap-split-row cap-split-row--compact">
-                      <select class="mlp-filter-select" [ngModel]="split.courseOfferingId" (ngModelChange)="onSplitSubjectChange(split, $event)" [ngModelOptions]="{standalone: true}" aria-label="Subject offering">
-                        <option [ngValue]="null">Select subject</option>
-                        @for (o of offerings(); track o.id) {
-                          <option [ngValue]="o.id">{{ o.subjectName }} ({{ o.subjectCode }})</option>
-                        }
-                      </select>
-                      <input class="field-input" [(ngModel)]="split.batchName" [ngModelOptions]="{standalone: true}" placeholder="Batch name" />
-                      <input class="field-input" type="number" min="1" [(ngModel)]="split.plannedSize" [ngModelOptions]="{standalone: true}" placeholder="Size" />
-                      <select class="mlp-filter-select" [ngModel]="split.venueId" (ngModelChange)="onSplitVenueChange(split, $event)" [ngModelOptions]="{standalone: true}" aria-label="Lab venue">
-                        <option [ngValue]="null">Select lab</option>
-                        @for (v of splitVenueOptions(split); track v.id) {
-                          <option [ngValue]="v.id">{{ v.name }} (cap {{ v.capacity }})</option>
-                        }
-                      </select>
-                      <cms-capacity-meter [occupied]="split.plannedSize ?? 0" [capacity]="venueCapacity(split.venueId, splitVenueOptions(split))"></cms-capacity-meter>
-                      @if (isSplitOverCapacity(split)) {
-                        <span class="cap-sizing-card__warn">Exceeds venue capacity</span>
+                <div class="cap-session-blocks">
+                  @for (block of labBlocks(); track block.localId) {
+                    <div class="cap-session-block">
+                      <div class="cap-session-block__head">
+                        <select class="mlp-filter-select" [ngModel]="block.courseOfferingId" (ngModelChange)="onBlockSubjectChange(block, $event)" [ngModelOptions]="{standalone: true}" aria-label="Lab subject">
+                          <option [ngValue]="null">Select subject</option>
+                          @for (o of offeringsForBlock(block); track o.id) {
+                            <option [ngValue]="o.id">{{ o.subjectName }} ({{ o.subjectCode }})</option>
+                          }
+                        </select>
+                        <select class="mlp-filter-select" [ngModel]="block.defaultVenueId" (ngModelChange)="onBlockVenueChange(block, $event)" [ngModelOptions]="{standalone: true}" aria-label="Default Lab venue" [disabled]="!block.courseOfferingId">
+                          <option [ngValue]="null">Select default venue</option>
+                          @for (v of venueOptionsFor('LAB'); track v.id) {
+                            <option [ngValue]="v.id">{{ v.name }} (cap {{ v.capacity }})</option>
+                          }
+                        </select>
+                        <button type="button" class="btn-secondary" (click)="removeLabBlock(block.localId)">Remove Subject</button>
+                      </div>
+
+                      @if (block.rows.length > 0) {
+                        <div class="cap-allocation-splits">
+                          @for (s of draftSections(); track s.localId) {
+                            @if (rowsForSection(block, s.sectionLabel); as rows) {
+                              @if (rows.length === 1 && !rows[0].groupLabel) {
+                                <div class="cap-split-row cap-split-row--compact">
+                                  <span class="cap-row-label">{{ s.sectionLabel }} — {{ s.plannedSize }} students</span>
+                                  @if (isRowOverCapacity(block, rows[0])) {
+                                    <span class="cap-sizing-card__warn">
+                                      Capacity is just {{ venueCapacity(rows[0].venueId, venueOptionsFor('LAB')) }} — can't accommodate {{ rows[0].plannedSize }} together.
+                                    </span>
+                                    <button type="button" class="btn-secondary" (click)="createBatchesForSection(block, s.sectionLabel)">Create Batches?</button>
+                                  }
+                                </div>
+                              } @else {
+                                @for (row of rows; track row.localId) {
+                                  <div class="cap-split-row cap-split-row--compact">
+                                    <span class="cap-row-label">{{ rowDisplayLabel(row) }}</span>
+                                    <input class="field-input" type="number" min="1" [(ngModel)]="row.plannedSize" [ngModelOptions]="{standalone: true}" placeholder="Size" />
+                                    @if (isRowOverCapacity(block, row)) {
+                                      <span class="cap-sizing-card__warn">Exceeds venue capacity</span>
+                                    }
+                                    <button type="button" class="btn-secondary" (click)="removeRow(block, row)">Remove</button>
+                                  </div>
+                                }
+                                <div class="cap-batch-action-card__row">
+                                  <button type="button" class="btn-secondary" (click)="addBatchForSection(block, s.sectionLabel)">+ Add Batch</button>
+                                  <p class="cap-batch-action-card__hint" [class.cap-section-total--mismatch]="isSectionGroupMismatched(block, s)">
+                                    {{ sectionGroupTotal(block, s.sectionLabel) }} of {{ s.plannedSize }} students placed
+                                    @if (isSectionGroupMismatched(block, s)) { — must add up to exactly {{ s.plannedSize }} }
+                                  </p>
+                                </div>
+                              }
+                            }
+                          }
+                        </div>
                       }
-                      <button type="button" class="btn-secondary" (click)="removeDraftSplit(split.localId)">Remove</button>
                     </div>
                   } @empty {
-                    <p class="cap-batch-action-card__hint">No Lab batches yet — add one below.</p>
+                    <p class="cap-batch-action-card__hint">No Lab subjects yet — add one below.</p>
                   }
-                  <button type="button" class="btn-secondary" (click)="addDraftSplit('LAB')">+ Add Lab Batch</button>
+                  @if (hasMoreOfferings('LAB')) {
+                    <button type="button" class="btn-secondary" (click)="addLabBlock('LAB')">+ Add Subject</button>
+                  } @else if (labBlocks().length === 0) {
+                    <p class="cap-sizing-card__warn">No subjects with Lab hours found for this term's curriculum.</p>
+                  }
                 </div>
               }
             </div>
@@ -216,44 +293,82 @@
                 <span class="cap-step__num">3</span>
                 <span class="cap-step__title">Clinical</span>
               </div>
-              <p class="cap-batch-action-card__hint">{{ p.clinicalBatchesNeeded }} batch(es) of ~{{ p.targetBatchSize }} needed.</p>
+              <p class="cap-batch-action-card__hint">Pick a subject with Clinical hours this term, then a default venue — a batch row auto-generates per section, sized to that section's full headcount. Split a row if one venue can't seat the whole section.</p>
 
               @if (p.fittingClinicalVenues.length === 0) {
-                <p class="cap-sizing-card__warn">No clinical venue currently seats {{ p.targetBatchSize }} students at once.</p>
+                <p class="cap-sizing-card__warn">No active clinical venues configured.</p>
               } @else {
-                <div class="cap-allocation-splits">
-                  @for (split of clinicalSplits(); track split.localId) {
-                    <div class="cap-split-row cap-split-row--compact">
-                      <select class="mlp-filter-select" [(ngModel)]="split.courseOfferingId" [ngModelOptions]="{standalone: true}" aria-label="Subject offering">
-                        <option [ngValue]="null">Select subject</option>
-                        @for (o of offerings(); track o.id) {
-                          <option [ngValue]="o.id">{{ o.subjectName }} ({{ o.subjectCode }})</option>
-                        }
-                      </select>
-                      <input class="field-input" [(ngModel)]="split.batchName" [ngModelOptions]="{standalone: true}" placeholder="Batch name" />
-                      <input class="field-input" type="number" min="1" [(ngModel)]="split.plannedSize" [ngModelOptions]="{standalone: true}" placeholder="Size" />
-                      <select class="mlp-filter-select" [(ngModel)]="split.venueId" [ngModelOptions]="{standalone: true}" aria-label="Clinical venue">
-                        <option [ngValue]="null">Select clinical venue</option>
-                        @for (v of splitVenueOptions(split); track v.id) {
-                          <option [ngValue]="v.id">{{ v.name }} (cap {{ v.capacity }})</option>
-                        }
-                      </select>
-                      <cms-capacity-meter [occupied]="split.plannedSize ?? 0" [capacity]="venueCapacity(split.venueId, splitVenueOptions(split))"></cms-capacity-meter>
-                      @if (isSplitOverCapacity(split)) {
-                        <span class="cap-sizing-card__warn">Exceeds venue capacity</span>
+                <div class="cap-session-blocks">
+                  @for (block of clinicalBlocks(); track block.localId) {
+                    <div class="cap-session-block">
+                      <div class="cap-session-block__head">
+                        <select class="mlp-filter-select" [ngModel]="block.courseOfferingId" (ngModelChange)="onBlockSubjectChange(block, $event)" [ngModelOptions]="{standalone: true}" aria-label="Clinical subject">
+                          <option [ngValue]="null">Select subject</option>
+                          @for (o of offeringsForBlock(block); track o.id) {
+                            <option [ngValue]="o.id">{{ o.subjectName }} ({{ o.subjectCode }})</option>
+                          }
+                        </select>
+                        <select class="mlp-filter-select" [ngModel]="block.defaultVenueId" (ngModelChange)="onBlockVenueChange(block, $event)" [ngModelOptions]="{standalone: true}" aria-label="Default Clinical venue" [disabled]="!block.courseOfferingId">
+                          <option [ngValue]="null">Select default venue</option>
+                          @for (v of venueOptionsFor('CLINICAL'); track v.id) {
+                            <option [ngValue]="v.id">{{ v.name }} (cap {{ v.capacity }})</option>
+                          }
+                        </select>
+                        <button type="button" class="btn-secondary" (click)="removeLabBlock(block.localId)">Remove Subject</button>
+                      </div>
+
+                      @if (block.rows.length > 0) {
+                        <div class="cap-allocation-splits">
+                          @for (s of draftSections(); track s.localId) {
+                            @if (rowsForSection(block, s.sectionLabel); as rows) {
+                              @if (rows.length === 1 && !rows[0].groupLabel) {
+                                <div class="cap-split-row cap-split-row--compact">
+                                  <span class="cap-row-label">{{ s.sectionLabel }} — {{ s.plannedSize }} students</span>
+                                  @if (isRowOverCapacity(block, rows[0])) {
+                                    <span class="cap-sizing-card__warn">
+                                      Capacity is just {{ venueCapacity(rows[0].venueId, venueOptionsFor('CLINICAL')) }} — can't accommodate {{ rows[0].plannedSize }} together.
+                                    </span>
+                                    <button type="button" class="btn-secondary" (click)="createBatchesForSection(block, s.sectionLabel)">Create Batches?</button>
+                                  }
+                                </div>
+                              } @else {
+                                @for (row of rows; track row.localId) {
+                                  <div class="cap-split-row cap-split-row--compact">
+                                    <span class="cap-row-label">{{ rowDisplayLabel(row) }}</span>
+                                    <input class="field-input" type="number" min="1" [(ngModel)]="row.plannedSize" [ngModelOptions]="{standalone: true}" placeholder="Size" />
+                                    @if (isRowOverCapacity(block, row)) {
+                                      <span class="cap-sizing-card__warn">Exceeds venue capacity</span>
+                                    }
+                                    <button type="button" class="btn-secondary" (click)="removeRow(block, row)">Remove</button>
+                                  </div>
+                                }
+                                <div class="cap-batch-action-card__row">
+                                  <button type="button" class="btn-secondary" (click)="addBatchForSection(block, s.sectionLabel)">+ Add Batch</button>
+                                  <p class="cap-batch-action-card__hint" [class.cap-section-total--mismatch]="isSectionGroupMismatched(block, s)">
+                                    {{ sectionGroupTotal(block, s.sectionLabel) }} of {{ s.plannedSize }} students placed
+                                    @if (isSectionGroupMismatched(block, s)) { — must add up to exactly {{ s.plannedSize }} }
+                                  </p>
+                                </div>
+                              }
+                            }
+                          }
+                        </div>
                       }
-                      <button type="button" class="btn-secondary" (click)="removeDraftSplit(split.localId)">Remove</button>
                     </div>
                   } @empty {
-                    <p class="cap-batch-action-card__hint">No Clinical batches yet — add one below.</p>
+                    <p class="cap-batch-action-card__hint">No Clinical subjects yet — add one below.</p>
                   }
-                  <button type="button" class="btn-secondary" (click)="addDraftSplit('CLINICAL')">+ Add Clinical Batch</button>
+                  @if (hasMoreOfferings('CLINICAL')) {
+                    <button type="button" class="btn-secondary" (click)="addLabBlock('CLINICAL')">+ Add Subject</button>
+                  } @else if (clinicalBlocks().length === 0) {
+                    <p class="cap-sizing-card__warn">No subjects with Clinical hours found for this term's curriculum.</p>
+                  }
                 </div>
               }
             </div>
 
             <div class="cap-batch-action-card__row">
-              <button type="button" class="btn-primary" [disabled]="committingAllocation() || !selectedTheoryClassroomId" (click)="commitAllocation()">
+              <button type="button" class="btn-primary" [disabled]="committingAllocation() || !sectionsFinalized()" (click)="commitAllocation()">
                 @if (committingAllocation()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
                 Commit Allocation
               </button>
@@ -281,39 +396,50 @@
       </div>
     }
 
+  </div>
+
+  <div class="cap-side-col">
     <div class="content-card cap-utilization-card">
       <h3 class="cap-sizing-card__title">Venue Utilization This Term</h3>
-      <p class="cap-batch-action-card__hint">Occupied vs total weekly slots, across every cohort already scheduled this term — not just this one.</p>
+      <p class="cap-batch-action-card__hint">Share of each venue's recurring weekly slots already scheduled, across every cohort already using it this term — not just this one. Highlighted rows are venues in your current draft or committed allocation.</p>
       <div class="cap-utilization-grid">
         <div class="cap-utilization-col">
           <h4 class="cap-utilization-col__title">Classrooms</h4>
           @for (u of p.classroomUtilization; track u.id) {
-            <div class="cap-utilization-row">
-              <span class="cap-utilization-row__name">{{ u.name }}</span>
-              <cms-capacity-meter [occupied]="u.occupiedSlots" [capacity]="u.totalSlots"></cms-capacity-meter>
+            <div class="cap-utilization-row"
+              [class.cap-utilization-row--active]="isClassroomHighlighted(u.id)"
+              [class.cap-utilization-row--claimed]="u.claimedByCohortLabel">
+              <span class="cap-utilization-row__name" [title]="u.name">{{ u.name }}</span>
+              <cms-capacity-meter [occupied]="u.occupiedSlots" [capacity]="u.totalSlots" [label]="(u.utilizationPercent | number:'1.0-0') + '%'"></cms-capacity-meter>
+              @if (u.claimedByCohortLabel) {
+                <span class="cap-utilization-row__claim">Committed — {{ u.claimedByCohortLabel }}</span>
+              }
             </div>
           }
         </div>
         <div class="cap-utilization-col">
           <h4 class="cap-utilization-col__title">Labs</h4>
           @for (u of p.labUtilization; track u.id) {
-            <div class="cap-utilization-row">
-              <span class="cap-utilization-row__name">{{ u.name }}</span>
-              <cms-capacity-meter [occupied]="u.occupiedSlots" [capacity]="u.totalSlots"></cms-capacity-meter>
+            <div class="cap-utilization-row" [class.cap-utilization-row--active]="isVenueHighlighted('LAB', u.id)">
+              <span class="cap-utilization-row__name" [title]="u.name">{{ u.name }}</span>
+              <cms-capacity-meter [occupied]="u.occupiedSlots" [capacity]="u.totalSlots" [label]="(u.utilizationPercent | number:'1.0-0') + '%'"></cms-capacity-meter>
             </div>
           }
         </div>
         <div class="cap-utilization-col">
           <h4 class="cap-utilization-col__title">Clinical Venues</h4>
           @for (u of p.clinicalVenueUtilization; track u.id) {
-            <div class="cap-utilization-row">
-              <span class="cap-utilization-row__name">{{ u.name }}</span>
-              <cms-capacity-meter [occupied]="u.occupiedSlots" [capacity]="u.totalSlots"></cms-capacity-meter>
+            <div class="cap-utilization-row" [class.cap-utilization-row--active]="isVenueHighlighted('CLINICAL', u.id)">
+              <span class="cap-utilization-row__name" [title]="u.name">{{ u.name }}</span>
+              <cms-capacity-meter [occupied]="u.occupiedSlots" [capacity]="u.totalSlots" [label]="(u.utilizationPercent | number:'1.0-0') + '%'"></cms-capacity-meter>
             </div>
           }
         </div>
       </div>
     </div>
+  </div>
+
+  </div>
 
   } @else if (!loading()) {
     <div class="content-card">
@@ -324,9 +450,9 @@
   <div class="content-card cap-guide-card">
     <h3 class="cap-sizing-card__title">How to plan this term's timetable</h3>
     <ol class="cap-guide-list">
-      <li>Pick the term and cohort above, and Calculate — this shows how many students need Theory/Lab/Clinical seats.</li>
-      <li>In Cohort Room Allocation's Theory step: if no single classroom fits the whole cohort, plan to split it into sections before building the skeleton.</li>
-      <li>In the Lab/Clinical steps, adjust target batch size if needed, then pick a venue for each pre-filled batch row — add or remove rows if the computed count doesn't match your case — and Finalize/Commit.</li>
+      <li>Pick the term and cohort above, choose whether to plan against enrolled headcount or sanctioned intake (useful in a first term where enrollment is still rolling in), and Calculate.</li>
+      <li>In Cohort Room Allocation's Theory Sections step: if no single classroom fits the whole cohort, you'll be walked through splitting it into sections, each with its own classroom.</li>
+      <li>In the Lab/Clinical steps, pick a subject with Lab/Clinical hours and a default venue — one row auto-generates per section; Split a row if a venue can't seat the whole section — then Commit.</li>
       <li>Open <a routerLink="/timetable/skeleton-builder">Skeleton Builder</a> to place Theory/Lab/Clinical sessions into periods for each subject.</li>
       <li>Open <a routerLink="/timetable/staffing">Staffing</a> to assign faculty — Theory rooms are picked there, but Lab/Clinical rooms are already fixed from Cohort Room Allocation and can't be changed here.</li>
     </ol>

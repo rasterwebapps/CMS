@@ -24,6 +24,8 @@ public record CourseOfferingDto(
     SubjectType subjectType,
     Long electiveGroupId,
     String electiveGroupName,
+    Integer labHours,
+    Integer clinicalHours,
     Instant createdAt,
     Instant updatedAt
 ) {}
