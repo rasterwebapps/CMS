@@ -16,6 +16,7 @@ import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.CurriculumVersion;
 import com.cms.model.Faculty;
+import com.cms.model.StudentTermEnrollment;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.AssessmentPattern;
@@ -26,6 +27,7 @@ import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
 
 @Service
@@ -38,19 +40,22 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
     private final CurriculumVersionRepository curriculumVersionRepository;
     private final CurriculumSemesterCourseRepository curriculumSemesterCourseRepository;
     private final FacultyRepository facultyRepository;
+    private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
 
     public CourseOfferingServiceImpl(CourseOfferingRepository courseOfferingRepository,
                                       TermInstanceRepository termInstanceRepository,
                                       CohortRepository cohortRepository,
                                       CurriculumVersionRepository curriculumVersionRepository,
                                       CurriculumSemesterCourseRepository curriculumSemesterCourseRepository,
-                                      FacultyRepository facultyRepository) {
+                                      FacultyRepository facultyRepository,
+                                      StudentTermEnrollmentRepository studentTermEnrollmentRepository) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.cohortRepository = cohortRepository;
         this.curriculumVersionRepository = curriculumVersionRepository;
         this.curriculumSemesterCourseRepository = curriculumSemesterCourseRepository;
         this.facultyRepository = facultyRepository;
+        this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
     }
 
     @Override
@@ -137,6 +142,29 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
     public List<CourseOfferingDto> getOfferingsByTermInstanceAndSemester(Long termInstanceId,
                                                                           Integer semesterNumber) {
         return courseOfferingRepository.findByTermInstanceIdAndSemesterNumber(termInstanceId, semesterNumber)
+            .stream()
+            .map(this::toDto)
+            .toList();
+    }
+
+    @Override
+    public List<CourseOfferingDto> getOfferingsByTermInstanceAndCohort(Long termInstanceId, Long cohortId) {
+        Cohort cohort = cohortRepository.findById(cohortId)
+            .orElseThrow(() -> new ResourceNotFoundException("Cohort not found with id: " + cohortId));
+        CurriculumVersion cv = resolveActiveCurriculumVersion(cohort);
+        if (cv == null) {
+            return List.of();
+        }
+        Set<Integer> semesterNumbers = studentTermEnrollmentRepository
+            .findByTermInstanceIdAndCohortId(termInstanceId, cohortId)
+            .stream()
+            .map(StudentTermEnrollment::getSemesterNumber)
+            .collect(Collectors.toSet());
+        if (semesterNumbers.isEmpty()) {
+            return List.of();
+        }
+        return courseOfferingRepository
+            .findByTermInstanceIdAndCurriculumVersionIdAndSemesterNumberIn(termInstanceId, cv.getId(), semesterNumbers)
             .stream()
             .map(this::toDto)
             .toList();

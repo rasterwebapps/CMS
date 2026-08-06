@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,9 +31,11 @@ import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
 import com.cms.model.Program;
 import com.cms.model.Speciality;
+import com.cms.model.StudentTermEnrollment;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.CohortStatus;
+import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.ProgramStatus;
 import com.cms.model.enums.TermInstanceStatus;
@@ -42,6 +45,7 @@ import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,6 +63,8 @@ class CourseOfferingServiceImplTest {
     private CurriculumSemesterCourseRepository curriculumSemesterCourseRepository;
     @Mock
     private FacultyRepository facultyRepository;
+    @Mock
+    private StudentTermEnrollmentRepository studentTermEnrollmentRepository;
 
     private CourseOfferingServiceImpl service;
 
@@ -66,7 +72,8 @@ class CourseOfferingServiceImplTest {
     void setUp() {
         service = new CourseOfferingServiceImpl(
             courseOfferingRepository, termInstanceRepository, cohortRepository,
-            curriculumVersionRepository, curriculumSemesterCourseRepository, facultyRepository);
+            curriculumVersionRepository, curriculumSemesterCourseRepository, facultyRepository,
+            studentTermEnrollmentRepository);
     }
 
     private Speciality createSpeciality(Long id, String name, String code) {
@@ -333,6 +340,67 @@ class CourseOfferingServiceImplTest {
 
         assertThat(dtos).hasSize(1);
         assertThat(dtos.get(0).termNumber()).isEqualTo(1);
+    }
+
+    /** Regression test for the reported bug: a shared TermInstance can concurrently host another
+     *  cohort/program's offerings at the exact same semesterNumber (e.g. BSc Nursing's Term 1 and
+     *  a different regulation's Term 3 mapped subjects both landing on "2026-2027 Odd"). Unlike
+     *  {@link #getOfferingsByTermInstanceAndSemester_returnsMappedDtos}, this cohort-scoped lookup
+     *  must resolve only the requested cohort's own curriculum version and its actual enrolled
+     *  semester — never the other cohort's offering, even though both share termInstanceId and
+     *  semesterNumber. */
+    @Test
+    void getOfferingsByTermInstanceAndCohort_excludesAnotherCohortsOfferingAtTheSameSemesterNumber() {
+        AcademicYear ay = createAY(1L, "2026-2027");
+        Program bscProgram = createProgram(1L, "BSc Nursing", 4);
+        Course bscCourse = createCourse(1L, "BSc Nursing INC 2020", "BSCN-INC20", bscProgram);
+        Cohort bscCohort = createCohort(1L, bscCourse, ay);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+
+        Subject englishSubject = createSubject(1L, "Communicative English", "ENGL101");
+        CurriculumVersion bscCv = createCV(10L, bscProgram, bscCourse, ay, "INC 2020 V1");
+        CourseOffering bscOffering = createOffering(100L, ti, bscCv, englishSubject, 1);
+
+        // A different program/regulation's own semester-1 offering, sharing the same TermInstance
+        // and the same semesterNumber, but a completely different CurriculumVersion.
+        Program otherProgram = createProgram(2L, "GNM", 3);
+        Course otherCourse = createCourse(2L, "GNM 2021 Reg", "GNM-2021", otherProgram);
+        Subject unrelatedSubject = createSubject(2L, "Adult Health Nursing I", "N-AHN-I-215");
+        CurriculumVersion otherCv = createCV(20L, otherProgram, otherCourse, ay, "GNM V1");
+        CourseOffering otherOffering = createOffering(200L, ti, otherCv, unrelatedSubject, 1);
+
+        StudentTermEnrollment enrollment = new StudentTermEnrollment();
+        enrollment.setTermInstance(ti);
+        enrollment.setCohort(bscCohort);
+        enrollment.setSemesterNumber(1);
+        enrollment.setStatus(EnrollmentStatus.ENROLLED);
+
+        when(cohortRepository.findById(1L)).thenReturn(Optional.of(bscCohort));
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of(bscCv));
+        when(studentTermEnrollmentRepository.findByTermInstanceIdAndCohortId(1L, 1L)).thenReturn(List.of(enrollment));
+        when(courseOfferingRepository.findByTermInstanceIdAndCurriculumVersionIdAndSemesterNumberIn(1L, 10L, Set.of(1)))
+            .thenReturn(List.of(bscOffering)); // repository itself is expected to exclude otherOffering (different CV)
+
+        List<CourseOfferingDto> dtos = service.getOfferingsByTermInstanceAndCohort(1L, 1L);
+
+        assertThat(dtos).hasSize(1);
+        assertThat(dtos.get(0).subjectCode()).isEqualTo("ENGL101");
+        assertThat(dtos).extracting(CourseOfferingDto::subjectCode).doesNotContain(otherOffering.getSubject().getCode());
+    }
+
+    @Test
+    void getOfferingsByTermInstanceAndCohort_returnsEmptyWhenCohortHasNoActiveCurriculumVersion() {
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, createAY(1L, "2026-2027"));
+
+        when(cohortRepository.findById(1L)).thenReturn(Optional.of(cohort));
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of());
+
+        List<CourseOfferingDto> dtos = service.getOfferingsByTermInstanceAndCohort(1L, 1L);
+
+        assertThat(dtos).isEmpty();
+        verify(studentTermEnrollmentRepository, never()).findByTermInstanceIdAndCohortId(any(), any());
     }
 
     @Test

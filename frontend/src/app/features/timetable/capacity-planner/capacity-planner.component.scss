@@ -193,6 +193,90 @@
   flex-wrap: wrap;
 }
 
+// Step wrapper for the Cohort Room Allocation flow: Theory room finalize, then
+// Lab/Clinical batches — visually separated so each stage reads as its own decision
+// instead of one long scrolling form.
+.cap-step {
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 12px;
+  background: var(--cms-bg-subtle);
+
+  &--done {
+    border-color: var(--cms-success);
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.cap-step__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cap-step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--cms-primary);
+  color: #fff;
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+}
+
+.cap-step__title {
+  font-size: var(--cms-text-sm);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+// Confirmed Theory room card, shown in place of the picker once finalized.
+.cap-room-confirmed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--cms-success);
+  border-radius: 10px;
+  background: var(--cms-success-light);
+  flex-wrap: wrap;
+}
+
+.cap-room-confirmed__info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cap-room-confirmed__badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--cms-success);
+  color: #fff;
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cap-room-confirmed__value {
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
 .cap-allocation-splits {
   margin: 12px 0;
 }
@@ -204,6 +288,33 @@
 
   select, input {
     min-width: 140px;
+  }
+}
+
+// One batch, one line: name + size stay narrow and fixed, the venue picker takes the remaining
+// width — subject is asked once per step (see the field-group above this list), not per row.
+.cap-split-row--compact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+
+  .field-input {
+    min-width: 0;
+    flex: 0 0 auto;
+
+    &:nth-of-type(1) {
+      flex-basis: 130px;
+    }
+
+    &:nth-of-type(2) {
+      flex-basis: 70px;
+    }
+  }
+
+  select {
+    flex: 1 1 auto;
+    min-width: 160px;
   }
 }
 

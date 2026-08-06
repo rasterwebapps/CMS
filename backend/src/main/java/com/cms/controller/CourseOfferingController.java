@@ -33,7 +33,14 @@ public class CourseOfferingController {
     @PreAuthorize("@perm.has('COURSE_VIEW')")
     public ResponseEntity<List<CourseOfferingDto>> getOfferings(
             @RequestParam Long termInstanceId,
-            @RequestParam(required = false) Integer termNumber) {
+            @RequestParam(required = false) Integer termNumber,
+            @RequestParam(required = false) Long cohortId) {
+        // cohortId takes precedence — it's the only filter that also pins curriculumVersion, so it
+        // never mixes in another cohort/program's offerings sharing the same term+semesterNumber
+        // (see CourseOfferingServiceImpl#getOfferingsByTermInstanceAndCohort).
+        if (cohortId != null) {
+            return ResponseEntity.ok(courseOfferingService.getOfferingsByTermInstanceAndCohort(termInstanceId, cohortId));
+        }
         if (termNumber != null) {
             return ResponseEntity.ok(
                 courseOfferingService.getOfferingsByTermInstanceAndSemester(termInstanceId, termNumber));

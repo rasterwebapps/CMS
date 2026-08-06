@@ -1085,21 +1085,38 @@ def seed_academics_core_infra_gaps() -> int:
             used.add(classroom['id'])
         if classroom is None:
             continue
-        term_offerings = [co for co in course_offerings if co.get('termInstanceId') == term_id]
+        # Cohort-scoped, not just term-scoped — the unfiltered `course_offerings` list can hold
+        # another cohort/program's subjects sharing this same termInstanceId (see
+        # project_course_offering_cohort_scoping_fix), which used to leak into these batches.
+        term_offerings = get_list(token, f"/course-offerings?termInstanceId={term_id}&cohortId={cohort['id']}")
+        # Which of this cohort's own offerings actually carry Lab/Clinical hours, per their real
+        # curriculum-semester-course mapping — never picked by arbitrary list position. A subject
+        # with zero clinicalHours has no business getting a CLINICAL batch stamped on it.
+        csc_by_id: dict[Any, dict[str, Any]] = {}
+        for (cv_id, term_num) in {(co.get('curriculumVersionId'), co.get('termNumber')) for co in term_offerings}:
+            if cv_id is None or term_num is None:
+                continue
+            for csc in get_list(token, f'/curriculum-semester-courses?curriculumVersionId={cv_id}&termNumber={term_num}'):
+                csc_by_id[csc['id']] = csc
+        lab_offerings = [co for co in term_offerings
+                         if (csc_by_id.get(co.get('curriculumTermCourseId')) or {}).get('labHours', 0) > 0]
+        clinical_offerings = [co for co in term_offerings
+                               if (csc_by_id.get(co.get('curriculumTermCourseId')) or {}).get('clinicalHours', 0) > 0]
+
         best_lab = max(labs, key=lambda l: l.get('capacity') or 0, default=None)
         best_clinical = max(clinical_venues, key=lambda v: v.get('capacity') or 0, default=None)
         venture_splits = []
-        if term_offerings and best_lab:
+        if lab_offerings and best_lab:
             venture_splits.append({
-                'courseOfferingId': term_offerings[0]['id'],
+                'courseOfferingId': lab_offerings[0]['id'],
                 'sessionType': 'LAB',
                 'venueId': best_lab['id'],
                 'batchName': f"{cohort.get('cohortCode', 'C')}-LAB-A",
                 'plannedSize': min(20, enrolled or 20, best_lab.get('capacity') or 20),
             })
-        if len(term_offerings) > 1 and best_clinical:
+        if clinical_offerings and best_clinical:
             venture_splits.append({
-                'courseOfferingId': term_offerings[1]['id'],
+                'courseOfferingId': clinical_offerings[0]['id'],
                 'sessionType': 'CLINICAL',
                 'venueId': best_clinical['id'],
                 'batchName': f"{cohort.get('cohortCode', 'C')}-CLIN-A",

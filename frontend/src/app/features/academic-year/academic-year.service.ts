@@ -208,12 +208,20 @@ export class AcademicYearService {
   }
 
   // CourseOffering methods
+  /** Pass cohortId whenever the caller already knows which cohort it's planning for — it's the
+   *  only filter that also pins curriculumVersion server-side, so it never mixes in another
+   *  cohort/program's offerings that happen to share the same termInstanceId+semesterNumber (a
+   *  shared TermInstance can concurrently host several cohorts/programs at once). semesterNumber
+   *  alone only guards against mixing different admission years of the SAME curriculum. */
   getCourseOfferingsByTermInstance(
     termInstanceId: number,
     semesterNumber?: number,
+    cohortId?: number,
   ): Observable<CourseOffering[]> {
     let params = new HttpParams().set('termInstanceId', termInstanceId.toString());
-    if (semesterNumber != null) {
+    if (cohortId != null) {
+      params = params.set('cohortId', cohortId.toString());
+    } else if (semesterNumber != null) {
       // Backend query param is named termNumber (matches CourseOffering.termNumber / the
       // course_offerings.term_number column) -- semesterNumber is just this method's public name.
       params = params.set('termNumber', semesterNumber.toString());

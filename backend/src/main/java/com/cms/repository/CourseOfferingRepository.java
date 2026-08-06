@@ -1,5 +1,6 @@
 package com.cms.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -17,6 +18,15 @@ public interface CourseOfferingRepository extends JpaRepository<CourseOffering, 
     List<CourseOffering> findByTermInstanceIdAndSemesterNumber(Long termInstanceId, Integer termNumber);
 
     List<CourseOffering> findByTermInstanceIdAndCurriculumVersionId(Long termInstanceId, Long cvId);
+
+    /** Cohort-scoped read — the actual fix for cross-program/curriculum leakage. Unlike
+     *  {@link #findByTermInstanceIdAndSemesterNumber}, this also pins {@code curriculumVersionId}
+     *  so a different cohort/program's offerings sharing the same TermInstance+semesterNumber
+     *  never show up together, even though the underlying row can legitimately be shared by
+     *  several cohorts on the same curriculum version (see the idempotent-create check in
+     *  CourseOfferingServiceImpl#generateOfferingsForTermInstance). */
+    List<CourseOffering> findByTermInstanceIdAndCurriculumVersionIdAndSemesterNumberIn(
+        Long termInstanceId, Long curriculumVersionId, Collection<Integer> semesterNumbers);
 
     List<CourseOffering> findByTermInstanceIdAndIsActiveTrue(Long termInstanceId);
 
