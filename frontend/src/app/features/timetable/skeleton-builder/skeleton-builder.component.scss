@@ -129,6 +129,13 @@
   vertical-align: middle;
 }
 
+.skeleton-cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
 .skeleton-cell {
   width: 100%;
   min-height: 52px;
@@ -173,6 +180,18 @@
   &--staffed {
     opacity: 0.75;
   }
+
+  // The trailing "add another session" affordance — visually much lighter than a placed
+  // session so it reads as an empty-slot action, not a third occupant of the slot.
+  &--add {
+    min-height: 26px;
+    border-style: dashed;
+    opacity: 0.7;
+
+    &:hover:not(:disabled) {
+      opacity: 1;
+    }
+  }
 }
 
 .skeleton-cell__type {
@@ -185,6 +204,16 @@
 .skeleton-cell__batch {
   font-size: 0.65rem;
   color: var(--cms-text-muted);
+}
+
+.skeleton-cell__rotation-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--cms-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .skeleton-cell__staffed-tag {

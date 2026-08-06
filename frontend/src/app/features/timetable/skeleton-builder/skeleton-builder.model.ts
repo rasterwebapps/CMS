@@ -23,6 +23,10 @@ export interface SkeletonCell {
   batchName: string | null;
   isStaffed: boolean;
   status: SkeletonCellStatus;
+  /** Non-null only for a cell that's part of a Rotation Group — batchId/batchName are null on
+   *  those (there's no single fixed occupant); rotatingBatchNames lists who alternates through it. */
+  rotationGroupLabel: string | null;
+  rotatingBatchNames: string[];
 }
 
 export interface SkeletonBatchOption {

@@ -55,6 +55,15 @@
   flex-wrap: wrap;
 }
 
+.staffing-row__rotation {
+  font-weight: 600;
+  color: var(--cms-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
 .staffing-row__type {
   display: inline-flex;
   align-items: center;
@@ -86,5 +95,28 @@
 
   .field-select {
     min-width: 180px;
+  }
+}
+
+// Read-only venue display for LAB/CLINICAL rows — replaces the picker since the room is now
+// resolved from the batch's Cohort Room Allocation commitment, not chosen here.
+.staffing-row__committed-venue {
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.staffing-row__no-venue {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-warning);
+
+  a {
+    color: var(--cms-primary);
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
   }
 }

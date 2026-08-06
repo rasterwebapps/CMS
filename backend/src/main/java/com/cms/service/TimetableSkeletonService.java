@@ -56,19 +56,25 @@ public class TimetableSkeletonService {
     private final BatchRepository batchRepository;
     private final BatchService batchService;
     private final BlockedPeriodRepository blockedPeriodRepository;
+    private final com.cms.repository.RotationSlotRepository rotationSlotRepository;
+    private final RotationResolverService rotationResolverService;
 
     public TimetableSkeletonService(CourseOfferingRepository courseOfferingRepository,
                                      ClassScheduleRepository classScheduleRepository,
                                      PeriodRepository periodRepository,
                                      BatchRepository batchRepository,
                                      BatchService batchService,
-                                     BlockedPeriodRepository blockedPeriodRepository) {
+                                     BlockedPeriodRepository blockedPeriodRepository,
+                                     com.cms.repository.RotationSlotRepository rotationSlotRepository,
+                                     RotationResolverService rotationResolverService) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.periodRepository = periodRepository;
         this.batchRepository = batchRepository;
         this.batchService = batchService;
         this.blockedPeriodRepository = blockedPeriodRepository;
+        this.rotationSlotRepository = rotationSlotRepository;
+        this.rotationResolverService = rotationResolverService;
     }
 
     public SkeletonBuilderResponse getSkeleton(Long courseOfferingId) {
@@ -176,6 +182,19 @@ public class TimetableSkeletonService {
     private SkeletonCellResponse toCellResponse(ClassSchedule cs) {
         Period period = cs.getPeriod();
         Batch batch = cs.getBatch();
+
+        String rotationGroupLabel = null;
+        List<String> rotatingBatchNames = List.of();
+        if (batch == null) {
+            var rotationSlot = rotationSlotRepository.findByClassScheduleId(cs.getId()).orElse(null);
+            if (rotationSlot != null) {
+                rotationGroupLabel = rotationSlot.getRotationGroup().getLabel();
+                rotatingBatchNames = rotationResolverService.allAssignmentsForSlot(cs.getId()).stream()
+                    .map(a -> a.getBatch().getName())
+                    .toList();
+            }
+        }
+
         return new SkeletonCellResponse(
             cs.getId(),
             cs.getSessionType(),
@@ -187,7 +206,9 @@ public class TimetableSkeletonService {
             batch != null ? batch.getId() : null,
             batch != null ? batch.getName() : null,
             cs.getFaculty() != null,
-            cs.getStatus()
+            cs.getStatus(),
+            rotationGroupLabel,
+            rotatingBatchNames
         );
     }
 

@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
-import { AcademicYear, CourseOffering, TermInstance } from '../../academic-year/academic-year.model';
+import { AcademicYear, CohortSummary, CourseOffering, TermInstance } from '../../academic-year/academic-year.model';
 import { PeriodService } from '../../period/period.service';
 import { Period } from '../../period/period.model';
 import { SkeletonBuilderService } from './skeleton-builder.service';
@@ -13,11 +13,12 @@ import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
+import { RotationSetupFlyoutComponent } from '../rotation-setup/rotation-setup-flyout.component';
 
 @Component({
   selector: 'app-skeleton-builder',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatDialogModule, MatProgressSpinnerModule],
+  imports: [FormsModule, RouterLink, MatDialogModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent],
   templateUrl: './skeleton-builder.component.html',
   styleUrl: './skeleton-builder.component.scss',
 })
@@ -31,17 +32,20 @@ export class SkeletonBuilderComponent implements OnInit {
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
+  protected readonly cohorts = signal<CohortSummary[]>([]);
   protected readonly offerings = signal<CourseOffering[]>([]);
   protected readonly periods = signal<Period[]>([]);
   protected readonly skeleton = signal<SkeletonBuilderResponse | null>(null);
 
   protected readonly termsLoading = signal(false);
+  protected readonly cohortsLoading = signal(false);
   protected readonly offeringsLoading = signal(false);
   protected readonly skeletonLoading = signal(false);
   protected readonly placing = signal(false);
 
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
+  protected selectedCohortId: number | null = null;
   protected selectedOfferingId: number | null = null;
 
   protected readonly days = WEEK_GRID_DAYS;
@@ -58,8 +62,27 @@ export class SkeletonBuilderComponent implements OnInit {
     return this.periods().find((p) => p.id === cell.periodId) ?? null;
   });
 
+  protected readonly showRotationSetup = signal(false);
+
   protected canManage(): boolean {
     return this.permissionService.has('TIMETABLE_SKELETON_MANAGE');
+  }
+
+  protected canManageRotation(): boolean {
+    return this.permissionService.has('TIMETABLE_ROTATION_MANAGE');
+  }
+
+  protected openRotationSetup(): void {
+    this.showRotationSetup.set(true);
+  }
+
+  protected onRotationSetupClosed(): void {
+    this.showRotationSetup.set(false);
+  }
+
+  protected onRotationSaved(): void {
+    this.showRotationSetup.set(false);
+    if (this.selectedOfferingId) this.loadSkeleton(this.selectedOfferingId);
   }
 
   ngOnInit(): void {
@@ -74,6 +97,7 @@ export class SkeletonBuilderComponent implements OnInit {
         if (initialYearId) {
           this.selectedAcademicYearId = initialYearId;
           this.loadTermInstances(initialYearId);
+          this.loadCohorts();
         }
       },
       error: () => this.toast.error('Failed to load academic years'),
@@ -91,8 +115,13 @@ export class SkeletonBuilderComponent implements OnInit {
   protected onTermChange(): void {
     this.selectedOfferingId = null;
     this.skeleton.set(null);
-    if (this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId);
-    else this.offerings.set([]);
+    this.tryLoadOfferings();
+  }
+
+  protected onCohortChange(): void {
+    this.selectedOfferingId = null;
+    this.skeleton.set(null);
+    this.tryLoadOfferings();
   }
 
   protected onOfferingChange(): void {
@@ -108,15 +137,46 @@ export class SkeletonBuilderComponent implements OnInit {
         this.termInstances.set(terms);
         this.termsLoading.set(false);
         this.selectedTermInstanceId = terms[0]?.id ?? null;
-        if (this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId);
+        this.tryLoadOfferings();
       },
       error: () => { this.toast.error('Failed to load term instances'); this.termsLoading.set(false); },
     });
   }
 
-  private loadOfferings(termInstanceId: number): void {
+  /** Cohorts aren't scoped to a single academic year (an active cohort keeps appearing across
+   *  every term it's still enrolled in), so this only needs to run once, mirroring Capacity
+   *  Planner's own cohort list. */
+  private loadCohorts(): void {
+    this.cohortsLoading.set(true);
+    this.academicYearService.getAllCohorts().subscribe({
+      next: (cohorts) => {
+        this.cohorts.set(cohorts);
+        this.cohortsLoading.set(false);
+        this.selectedCohortId = cohorts[0]?.id ?? null;
+        this.tryLoadOfferings();
+      },
+      error: () => { this.toast.error('Failed to load cohorts'); this.cohortsLoading.set(false); },
+    });
+  }
+
+  /** Term instances and cohorts load independently (in parallel) — this only fires the offerings
+   *  fetch once both a term and a cohort are actually selected, regardless of which one resolves
+   *  last. */
+  private tryLoadOfferings(): void {
+    if (this.selectedTermInstanceId && this.selectedCohortId) {
+      this.loadOfferings(this.selectedTermInstanceId, this.selectedCohortId);
+    } else {
+      this.offerings.set([]);
+    }
+  }
+
+  /** Cohort-scoped (not just term-scoped) — a shared TermInstance can concurrently host other
+   *  cohorts/programs whose offerings would otherwise leak into this subject dropdown alongside
+   *  this cohort's real papers (e.g. another regulation's Term 3 subjects appearing next to this
+   *  cohort's actual Term 1 curriculum). */
+  private loadOfferings(termInstanceId: number, cohortId: number): void {
     this.offeringsLoading.set(true);
-    this.academicYearService.getCourseOfferingsByTermInstance(termInstanceId).subscribe({
+    this.academicYearService.getCourseOfferingsByTermInstance(termInstanceId, undefined, cohortId).subscribe({
       next: (offerings) => {
         this.offerings.set(offerings.filter((o) => !o.isElective));
         this.offeringsLoading.set(false);
@@ -141,18 +201,23 @@ export class SkeletonBuilderComponent implements OnInit {
     });
   }
 
-  protected cellFor(day: string, periodId: number): SkeletonCell | undefined {
-    return this.skeleton()?.cells.find((c) => c.dayOfWeek === day && c.periodId === periodId);
+  /** A (day, period) slot can hold more than one cell — e.g. two parallel Lab batches in
+   *  different rooms, or a Rotation Group's linked cells — so this returns every cell sharing
+   *  that slot, not just the first. */
+  protected cellsFor(day: string, periodId: number): SkeletonCell[] {
+    return this.skeleton()?.cells.filter((c) => c.dayOfWeek === day && c.periodId === periodId) ?? [];
   }
 
-  protected onCellClick(day: string, periodId: number): void {
+  protected onCellChipClick(cell: SkeletonCell): void {
     if (!this.canManage()) return;
-    const existing = this.cellFor(day, periodId);
-    if (existing) {
-      if (existing.isStaffed) return; // read-only once staffed -- edit via Class Schedule screen
-      this.confirmRemove(existing);
-      return;
-    }
+    if (cell.isStaffed) return; // read-only once staffed -- edit via Class Schedule screen
+    this.confirmRemove(cell);
+  }
+
+  /** Opens the placement panel for this slot — always available, even when the slot already
+   *  has one or more cells, so a second parallel batch (or rotation slot) can be added. */
+  protected onAddClick(day: string, periodId: number): void {
+    if (!this.canManage()) return;
     this.selectedCell.set({ day, periodId });
     this.selectedSessionType = 'THEORY';
     this.selectedBatchId = null;

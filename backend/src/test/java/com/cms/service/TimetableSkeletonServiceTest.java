@@ -56,6 +56,8 @@ class TimetableSkeletonServiceTest {
     @Mock private BatchRepository batchRepository;
     @Mock private BatchService batchService;
     @Mock private BlockedPeriodRepository blockedPeriodRepository;
+    @Mock private com.cms.repository.RotationSlotRepository rotationSlotRepository;
+    @Mock private RotationResolverService rotationResolverService;
 
     private TimetableSkeletonService service;
 
@@ -67,7 +69,8 @@ class TimetableSkeletonServiceTest {
     @BeforeEach
     void setUp() {
         service = new TimetableSkeletonService(courseOfferingRepository, classScheduleRepository,
-            periodRepository, batchRepository, batchService, blockedPeriodRepository);
+            periodRepository, batchRepository, batchService, blockedPeriodRepository,
+            rotationSlotRepository, rotationResolverService);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);

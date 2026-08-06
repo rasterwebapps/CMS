@@ -1,11 +1,20 @@
 package com.cms.dto;
 
 import java.time.LocalTime;
+import java.util.List;
 
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 
-/** One skeleton cell (R3 Phase 4) still waiting for faculty + room (R3 Phase 5). */
+/** One skeleton cell (R3 Phase 4) still waiting for faculty + room (R3 Phase 5). LAB/CLINICAL
+ *  rows, and non-elective THEORY rows, carry the venue already committed in Cohort Room
+ *  Allocation (Capacity Planner) — {@code venueId} null on one of those means it isn't committed
+ *  yet and staffCell() will reject it; the frontend shows a fixed value, not a picker, for those.
+ *  Elective THEORY rows ({@code isElective = true}) have no single owning cohort by design, so
+ *  {@code venueId} is always null for them and the frontend keeps a free classroom pick.
+ *  {@code rotatingBatchNames} is non-empty only for a cell that's part of a Rotation Group —
+ *  {@code batchName} is null on those (there's no single fixed occupant), and the frontend shows
+ *  "rotates: A / B" instead. */
 public record UnstaffedCellResponse(
     Long id,
     Long courseOfferingId,
@@ -20,5 +29,10 @@ public record UnstaffedCellResponse(
     LocalTime startTime,
     LocalTime endTime,
     String batchName,
-    Integer requiredStrength
+    Integer requiredStrength,
+    Long venueId,
+    String venueName,
+    Integer venueCapacity,
+    boolean isElective,
+    List<String> rotatingBatchNames
 ) {}

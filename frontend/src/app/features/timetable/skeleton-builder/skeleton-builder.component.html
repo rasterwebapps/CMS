@@ -6,7 +6,23 @@
       <p class="page-subtitle">Place Theory, Lab, and Clinical sessions into periods for one subject at a time — staff and rooms are assigned afterward</p>
       <p class="page-subtitle">Need to size rooms/batches first? Open the <a routerLink="/timetable/capacity-planner">Capacity Planner</a>.</p>
     </div>
+    @if (canManageRotation() && selectedTermInstanceId) {
+      <div class="mlp-hdr-right">
+        <button type="button" class="btn-secondary" (click)="openRotationSetup()">Set up Rotation</button>
+      </div>
+    }
   </div>
+
+  @if (showRotationSetup() && selectedTermInstanceId) {
+    <app-rotation-setup-flyout
+      [termInstanceId]="selectedTermInstanceId"
+      [periods]="periods()"
+      [days]="days"
+      [dayLabels]="dayLabels"
+      (closed)="onRotationSetupClosed()"
+      (saved)="onRotationSaved()">
+    </app-rotation-setup-flyout>
+  }
 
   <div class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
@@ -21,6 +37,15 @@
       }
       @for (term of termInstances(); track term.id) {
         <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
+      }
+    </select>
+    <select class="mlp-filter-select" [(ngModel)]="selectedCohortId" (ngModelChange)="onCohortChange()"
+      [disabled]="cohortsLoading() || cohorts().length === 0" aria-label="Cohort">
+      @if (cohorts().length === 0) {
+        <option [ngValue]="null">No cohorts yet</option>
+      }
+      @for (cohort of cohorts(); track cohort.id) {
+        <option [ngValue]="cohort.id">{{ cohort.displayName }}</option>
       }
     </select>
     <select class="mlp-filter-select" [(ngModel)]="selectedOfferingId" (ngModelChange)="onOfferingChange()"
@@ -83,23 +108,35 @@
                 <td class="skeleton-grid__day-hdr">{{ dayLabels[day] }}</td>
                 @for (period of periods(); track period.id) {
                   <td class="skeleton-grid__cell">
-                    @let cell = cellFor(day, period.id);
-                    <button type="button" class="skeleton-cell"
-                      [class.skeleton-cell--theory]="cell?.sessionType === 'THEORY'"
-                      [class.skeleton-cell--lab]="cell?.sessionType === 'LAB'"
-                      [class.skeleton-cell--clinical]="cell?.sessionType === 'CLINICAL'"
-                      [class.skeleton-cell--staffed]="cell?.isStaffed"
-                      [class.skeleton-cell--selected]="selectedCell()?.day === day && selectedCell()?.periodId === period.id"
-                      [disabled]="!canManage()"
-                      (click)="onCellClick(day, period.id)">
-                      @if (cell) {
-                        <span class="skeleton-cell__type">{{ cell.sessionType }}</span>
-                        @if (cell.batchName) { <span class="skeleton-cell__batch">{{ cell.batchName }}</span> }
-                        @if (cell.isStaffed) { <span class="skeleton-cell__staffed-tag">staffed</span> }
-                      } @else {
-                        <span class="skeleton-cell__empty">+</span>
+                    <div class="skeleton-cell-stack">
+                      @for (cell of cellsFor(day, period.id); track cell.id) {
+                        <button type="button" class="skeleton-cell"
+                          [class.skeleton-cell--theory]="cell.sessionType === 'THEORY'"
+                          [class.skeleton-cell--lab]="cell.sessionType === 'LAB'"
+                          [class.skeleton-cell--clinical]="cell.sessionType === 'CLINICAL'"
+                          [class.skeleton-cell--staffed]="cell.isStaffed"
+                          [disabled]="!canManage()"
+                          (click)="onCellChipClick(cell)">
+                          <span class="skeleton-cell__type">{{ cell.sessionType }}</span>
+                          @if (cell.rotationGroupLabel) {
+                            <span class="skeleton-cell__rotation-badge"
+                              [title]="'Rotates: ' + cell.rotatingBatchNames.join(' / ')">
+                              ⟳ {{ cell.rotationGroupLabel }}
+                            </span>
+                          } @else if (cell.batchName) {
+                            <span class="skeleton-cell__batch">{{ cell.batchName }}</span>
+                          }
+                          @if (cell.isStaffed) { <span class="skeleton-cell__staffed-tag">staffed</span> }
+                        </button>
                       }
-                    </button>
+                      <button type="button" class="skeleton-cell skeleton-cell--add"
+                        [class.skeleton-cell--selected]="selectedCell()?.day === day && selectedCell()?.periodId === period.id"
+                        [disabled]="!canManage()"
+                        [attr.aria-label]="cellsFor(day, period.id).length ? 'Add another session to this slot' : 'Place a session'"
+                        (click)="onAddClick(day, period.id)">
+                        <span class="skeleton-cell__empty">+</span>
+                      </button>
+                    </div>
                   </td>
                 }
               </tr>

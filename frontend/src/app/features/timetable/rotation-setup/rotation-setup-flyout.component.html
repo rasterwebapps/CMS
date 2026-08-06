@@ -1,0 +1,126 @@
+<cms-flyout-panel width="620px" ariaLabel="Set up batch rotation" (closed)="onClose()">
+  <div flyoutHeader>
+    <h2 class="rotation-flyout__title">Set up Batch Rotation</h2>
+  </div>
+
+  <div flyoutBody>
+    @if (step() === 'PICK_SLOTS') {
+      <p class="rotation-flyout__hint">
+        Pick the day and period shared by the subjects that should rotate (e.g. English Lab + Tamil Lab, both
+        Wed P3-4 in different rooms). Day-swap rotations don't need this screen — just place each batch
+        directly in its own day+period cell in Skeleton Builder.
+      </p>
+      <div class="rotation-flyout__row">
+        <select class="mlp-filter-select" [(ngModel)]="selectedDay" aria-label="Day">
+          <option [ngValue]="null">Day…</option>
+          @for (day of days(); track day) {
+            <option [ngValue]="day">{{ dayLabels()[day] }}</option>
+          }
+        </select>
+        <select class="mlp-filter-select" [(ngModel)]="selectedPeriodId" aria-label="Period">
+          <option [ngValue]="null">Period…</option>
+          @for (period of periods(); track period.id) {
+            <option [ngValue]="period.id">{{ period.name }} ({{ period.startTime }}–{{ period.endTime }})</option>
+          }
+        </select>
+        <button type="button" class="btn-secondary"
+          [disabled]="!selectedDay || !selectedPeriodId || loadingCandidates()"
+          (click)="findCandidates()">
+          @if (loadingCandidates()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+          Find cells
+        </button>
+      </div>
+
+      @if (candidates().length) {
+        <ul class="rotation-flyout__candidate-list">
+          @for (c of candidates(); track c.classScheduleId) {
+            <li class="rotation-flyout__candidate">
+              <label>
+                <input type="checkbox" [checked]="selectedSlotIds().has(c.classScheduleId)"
+                  (change)="toggleSlot(c.classScheduleId)" />
+                <span class="rotation-flyout__candidate-subject">{{ c.subjectName }}</span>
+                <span class="rotation-flyout__candidate-detail">{{ c.sessionType }} · {{ c.batchName }}</span>
+              </label>
+            </li>
+          }
+        </ul>
+      } @else if (!loadingCandidates() && selectedDay && selectedPeriodId) {
+        <p class="rotation-flyout__empty">
+          No un-rotated Lab/Clinical cells placed at this slot yet — place them in Skeleton Builder first.
+        </p>
+      }
+    }
+
+    @if (step() === 'ASSIGN_MEMBERS') {
+      <p class="rotation-flyout__hint">
+        Assign an existing batch to each physical group for every slot. The first group defaults to what's
+        already placed; the rest need existing batches for that subject (create them in Capacity Planner
+        first if they don't exist yet).
+      </p>
+
+      @if (loadingBatchOptions()) {
+        <div class="rotation-flyout__loading"><mat-spinner diameter="24"></mat-spinner></div>
+      } @else {
+        <div class="rotation-flyout__matrix-wrap">
+          <table class="rotation-flyout__matrix">
+            <thead>
+              <tr>
+                <th></th>
+                @for (slot of selectedSlots(); track slot.classScheduleId) {
+                  <th>{{ slot.subjectName }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (label of memberLabels(); track $index) {
+                <tr>
+                  <td>
+                    <input class="rotation-flyout__member-label" type="text" [ngModel]="label"
+                      (ngModelChange)="updateMemberLabel($index, $event)" />
+                  </td>
+                  @for (slot of selectedSlots(); track slot.classScheduleId) {
+                    <td>
+                      <select class="mlp-filter-select" [ngModel]="assignments()[$index]?.[slot.classScheduleId] ?? null"
+                        (ngModelChange)="updateAssignment($index, slot.classScheduleId, $event)">
+                        <option [ngValue]="null">Select batch…</option>
+                        @for (batch of batchOptionsBySlot()[slot.classScheduleId] ?? []; track batch.id) {
+                          <option [ngValue]="batch.id">{{ batch.name }}</option>
+                        }
+                      </select>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <div class="rotation-flyout__row">
+        <input class="rotation-flyout__label-input" type="text" [(ngModel)]="label"
+          placeholder="Rotation label, e.g. English/Tamil Wed P3-4" />
+      </div>
+      <div class="rotation-flyout__row">
+        <label class="rotation-flyout__anchor-label">
+          Anchor date (must be a {{ requiredDayLabel() }})
+          <input type="date" [(ngModel)]="anchorDate" />
+        </label>
+      </div>
+    }
+  </div>
+
+  <div flyoutFooter>
+    @if (step() === 'PICK_SLOTS') {
+      <button type="button" class="btn-secondary" (click)="onClose()">Cancel</button>
+      <button type="button" class="btn-primary" [disabled]="!canProceedToAssignments()" (click)="proceedToAssignments()">
+        Next
+      </button>
+    } @else {
+      <button type="button" class="btn-secondary" (click)="backToSlotPicker()">Back</button>
+      <button type="button" class="btn-primary" [disabled]="!canSave() || saving()" (click)="save()">
+        @if (saving()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+        Save
+      </button>
+    }
+  </div>
+</cms-flyout-panel>

@@ -1,0 +1,124 @@
+.rotation-flyout__title {
+  margin: 0;
+  font-size: var(--cms-text-md);
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.rotation-flyout__hint {
+  margin: 0 0 16px;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-muted);
+  line-height: 1.5;
+}
+
+.rotation-flyout__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.rotation-flyout__label-input,
+.rotation-flyout__anchor-label input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  color: var(--cms-text-primary);
+  font-size: var(--cms-text-sm);
+}
+
+.rotation-flyout__anchor-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-secondary);
+  width: 100%;
+}
+
+.rotation-flyout__candidate-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rotation-flyout__candidate {
+  border: 1px solid var(--cms-border-default);
+  border-radius: 10px;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+  }
+}
+
+.rotation-flyout__candidate-subject {
+  font-weight: 600;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-primary);
+}
+
+.rotation-flyout__candidate-detail {
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-muted);
+}
+
+.rotation-flyout__empty {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-muted);
+}
+
+.rotation-flyout__loading {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.rotation-flyout__matrix-wrap {
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.rotation-flyout__matrix {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 6px 8px;
+    text-align: left;
+  }
+
+  th {
+    font-size: var(--cms-text-xs);
+    font-weight: 700;
+    color: var(--cms-text-secondary);
+    white-space: nowrap;
+  }
+
+  select {
+    min-width: 160px;
+  }
+}
+
+.rotation-flyout__member-label {
+  width: 110px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  color: var(--cms-text-primary);
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+}

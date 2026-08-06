@@ -7,8 +7,6 @@ import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
 import { ClassroomService } from '../../classroom/classroom.service';
 import { Classroom } from '../../classroom/classroom.model';
-import { ClinicalVenueService } from '../../clinical-venue/clinical-venue.service';
-import { ClinicalVenue } from '../../clinical-venue/clinical-venue.model';
 import { StaffingService } from './staffing.service';
 import { UnstaffedCell } from './staffing.model';
 import { WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/week-grid.model';
@@ -32,7 +30,6 @@ interface StaffingRow extends UnstaffedCell {
 export class StaffingComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly classroomService = inject(ClassroomService);
-  private readonly clinicalVenueService = inject(ClinicalVenueService);
   private readonly staffingService = inject(StaffingService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
@@ -44,8 +41,6 @@ export class StaffingComponent implements OnInit {
 
   protected readonly faculty = signal<{ id: number; name: string; specialityId: number | null }[]>([]);
   protected readonly classrooms = signal<Classroom[]>([]);
-  protected readonly labs = signal<{ id: number; name: string; capacity: number | null }[]>([]);
-  protected readonly clinicalVenues = signal<ClinicalVenue[]>([]);
 
   /** Non-binding faculty-reuse tally, keyed by subjectCode|dayOfWeek|facultyId — incremented as
    *  assignments succeed in this session, used only to rank/hint the faculty dropdown toward
@@ -73,14 +68,6 @@ export class StaffingComponent implements OnInit {
     this.classroomService.getAll(true).subscribe({
       next: (data) => this.classrooms.set(data),
       error: () => this.toast.error('Failed to load classrooms'),
-    });
-    this.http.get<{ id: number; name: string; capacity: number | null }[]>(`${environment.apiUrl}/labs`).subscribe({
-      next: (data) => this.labs.set(data),
-      error: () => this.toast.error('Failed to load labs'),
-    });
-    this.clinicalVenueService.getAll(true).subscribe({
-      next: (data) => this.clinicalVenues.set(data),
-      error: () => this.toast.error('Failed to load clinical venues'),
     });
 
     this.academicYearService.getAllAcademicYears().subscribe({
@@ -134,15 +121,13 @@ export class StaffingComponent implements OnInit {
     return 'Clinical Venue';
   }
 
-  /** Best-fit-first: venues that seat this session's required strength sort first (tightest fit
-   *  first), then venues with unknown capacity, then undersized venues (closest to fitting first)
-   *  — never removed from the list, just ranked, since the backend hard-blocks an actual
-   *  over-capacity save regardless of what's shown here. */
+  /** Classroom-only now — LAB/CLINICAL rows no longer show a picker, they display the venue
+   *  already committed to their batch in Capacity Planner. Best-fit-first: classrooms that seat
+   *  the required strength sort first (tightest fit first), then unknown capacity, then
+   *  undersized (closest to fitting first) — never removed from the list, just ranked, since the
+   *  backend hard-blocks an actual over-capacity save regardless of what's shown here. */
   protected roomOptionsFor(row: StaffingRow): { id: number; name: string; capacity: number | null }[] {
-    const base: { id: number; name: string; capacity: number | null }[] =
-      row.sessionType === 'THEORY' ? this.classrooms().map((c) => ({ id: c.id, name: c.name, capacity: c.capacity ?? null }))
-      : row.sessionType === 'LAB' ? this.labs()
-      : this.clinicalVenues().map((v) => ({ id: v.id, name: v.name, capacity: v.capacity ?? null }));
+    const base = this.classrooms().map((c) => ({ id: c.id, name: c.name, capacity: c.capacity ?? null }));
 
     const required = row.requiredStrength;
     if (required == null) return base;
@@ -161,16 +146,25 @@ export class StaffingComponent implements OnInit {
     return tooSmall ? `${o.name} (Cap ${o.capacity} — too small)` : `${o.name} (Cap ${o.capacity})`;
   }
 
+  /** Only an elective THEORY session still gets a free room pick here — everything else
+   *  (LAB, CLINICAL, and non-elective THEORY) is hard-locked to whatever was committed in
+   *  Cohort Room Allocation, so its room is shown as fixed text instead of a picker. */
+  protected isFreelyPickedRoom(row: StaffingRow): boolean {
+    return row.sessionType === 'THEORY' && row.isElective;
+  }
+
   protected assign(row: StaffingRow): void {
     if (!row.facultyId) { this.toast.error('Pick a faculty member first'); return; }
-    if (!row.roomId) { this.toast.error(`Pick a ${this.roomLabel(row).toLowerCase()} first`); return; }
+    if (this.isFreelyPickedRoom(row) && !row.roomId) { this.toast.error('Pick a classroom first'); return; }
+    if (!this.isFreelyPickedRoom(row) && !row.venueId) {
+      this.toast.error(`No ${this.roomLabel(row).toLowerCase()} committed for this — commit it in Capacity Planner first`);
+      return;
+    }
 
     row.saving = true;
     this.staffingService.staffCell(row.id, {
       facultyId: row.facultyId,
-      classroomId: row.sessionType === 'THEORY' ? row.roomId : null,
-      labId: row.sessionType === 'LAB' ? row.roomId : null,
-      clinicalVenueId: row.sessionType === 'CLINICAL' ? row.roomId : null,
+      classroomId: this.isFreelyPickedRoom(row) ? row.roomId : null,
     }).subscribe({
       next: () => {
         this.toast.success(`Staffed ${row.subjectName}`);

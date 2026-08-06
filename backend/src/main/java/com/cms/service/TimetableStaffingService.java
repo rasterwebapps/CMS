@@ -2,6 +2,9 @@ package com.cms.service;
 
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,21 +13,28 @@ import com.cms.dto.StaffingAssignmentRequest;
 import com.cms.dto.UnstaffedCellResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.Batch;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.ClinicalVenue;
+import com.cms.model.CohortRoomAllocation;
+import com.cms.model.CourseOffering;
 import com.cms.model.Faculty;
 import com.cms.model.Lab;
+import com.cms.model.RotationMemberAssignment;
+import com.cms.model.Room;
+import com.cms.model.StudentTermEnrollment;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
+import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.RegistrationStatus;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
-import com.cms.repository.ClinicalVenueRepository;
+import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.FacultyRepository;
-import com.cms.repository.LabRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
 
 /**
  * R3 Phase 5 — the "staff what's already placed" pass that follows the Phase 4 skeleton builder.
@@ -47,25 +57,28 @@ public class TimetableStaffingService {
     private final ClassScheduleRepository classScheduleRepository;
     private final FacultyRepository facultyRepository;
     private final ClassroomRepository classroomRepository;
-    private final LabRepository labRepository;
-    private final ClinicalVenueRepository clinicalVenueRepository;
     private final BatchRepository batchRepository;
     private final CourseRegistrationRepository courseRegistrationRepository;
+    private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
+    private final CohortRoomAllocationRepository cohortRoomAllocationRepository;
+    private final RotationResolverService rotationResolverService;
 
     public TimetableStaffingService(ClassScheduleRepository classScheduleRepository,
                                      FacultyRepository facultyRepository,
                                      ClassroomRepository classroomRepository,
-                                     LabRepository labRepository,
-                                     ClinicalVenueRepository clinicalVenueRepository,
                                      BatchRepository batchRepository,
-                                     CourseRegistrationRepository courseRegistrationRepository) {
+                                     CourseRegistrationRepository courseRegistrationRepository,
+                                     StudentTermEnrollmentRepository studentTermEnrollmentRepository,
+                                     CohortRoomAllocationRepository cohortRoomAllocationRepository,
+                                     RotationResolverService rotationResolverService) {
         this.classScheduleRepository = classScheduleRepository;
         this.facultyRepository = facultyRepository;
         this.classroomRepository = classroomRepository;
-        this.labRepository = labRepository;
-        this.clinicalVenueRepository = clinicalVenueRepository;
         this.batchRepository = batchRepository;
         this.courseRegistrationRepository = courseRegistrationRepository;
+        this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
+        this.cohortRoomAllocationRepository = cohortRoomAllocationRepository;
+        this.rotationResolverService = rotationResolverService;
     }
 
     public List<UnstaffedCellResponse> getUnstaffedCells(Long termInstanceId) {
@@ -96,32 +109,22 @@ public class TimetableStaffingService {
 
         switch (cs.getSessionType()) {
             case THEORY -> {
-                if (request.classroomId() == null) {
-                    throw new IllegalArgumentException("A classroom is required to staff a THEORY session");
-                }
-                Classroom classroom = classroomRepository.findById(request.classroomId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Classroom not found with id: " + request.classroomId()));
-                requireRoomFree(classroom.getId(), ClassSessionType.THEORY, cs, start, end);
+                Classroom classroom = isElectiveOffering(cs)
+                    ? requireRequestedClassroom(request)
+                    : requireCommittedTheoryClassroom(cs);
+                requireRoomFree(ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), cs, start, end);
                 requireCapacityFit(cs, classroom.getCapacity());
                 cs.setClassroom(classroom);
             }
             case LAB -> {
-                if (request.labId() == null) {
-                    throw new IllegalArgumentException("A lab is required to staff a LAB session");
-                }
-                Lab lab = labRepository.findById(request.labId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Lab not found with id: " + request.labId()));
-                requireRoomFree(lab.getId(), ClassSessionType.LAB, cs, start, end);
+                Lab lab = requireCommittedLab(cs);
+                requireRoomFree(ClassSessionType.LAB, lab.getId(), lab.getRoom(), cs, start, end);
                 requireCapacityFit(cs, lab.getCapacity());
                 cs.setLab(lab);
             }
             case CLINICAL -> {
-                if (request.clinicalVenueId() == null) {
-                    throw new IllegalArgumentException("A clinical venue is required to staff a CLINICAL session");
-                }
-                ClinicalVenue venue = clinicalVenueRepository.findById(request.clinicalVenueId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Clinical venue not found with id: " + request.clinicalVenueId()));
-                requireRoomFree(venue.getId(), ClassSessionType.CLINICAL, cs, start, end);
+                ClinicalVenue venue = requireCommittedClinicalVenue(cs);
+                requireRoomFree(ClassSessionType.CLINICAL, venue.getId(), venue.getRoom(), cs, start, end);
                 requireCapacityFit(cs, venue.getCapacity());
                 cs.setClinicalVenue(venue);
             }
@@ -129,6 +132,96 @@ public class TimetableStaffingService {
 
         cs.setFaculty(faculty);
         return toResponse(classScheduleRepository.save(cs));
+    }
+
+    /** LAB rooms are no longer a free pick here — the venue was already decided and
+     *  capacity-checked once, in Cohort Room Allocation (Capacity Planner), when this batch was
+     *  created. Re-picking a different lab at staffing time is exactly the silent-divergence gap
+     *  that let one batch's students end up with no traceable room; a null venue means this batch
+     *  predates that flow (or was created outside it) and must be committed there first.
+     *
+     *  <p>A rotation-governed cell has no fixed batch at all ({@link ClassSchedule#getBatch()} is
+     *  null once linked into a Rotation Group) — the venue there is resolved instead from any one
+     *  of the batches rotating through this slot, since RotationGroupService already validated
+     *  they all share the exact same venue. Faculty staffing is a one-time assignment to the
+     *  slot itself; which physical group actually occupies it is resolved per-date separately. */
+    private Lab requireCommittedLab(ClassSchedule cs) {
+        Lab lab = resolveBatchForVenue(cs).map(Batch::getLab).orElse(null);
+        if (lab == null) {
+            throw new LifecycleConflictException(
+                "This batch has no Lab committed in Cohort Room Allocation — commit it in Capacity Planner before staffing.",
+                "STAFFING_VENUE_NOT_COMMITTED", "ClassSchedule", cs.getId(), null);
+        }
+        return lab;
+    }
+
+    /** Mirrors {@link #requireCommittedLab} for CLINICAL sessions. */
+    private ClinicalVenue requireCommittedClinicalVenue(ClassSchedule cs) {
+        ClinicalVenue venue = resolveBatchForVenue(cs).map(Batch::getClinicalVenue).orElse(null);
+        if (venue == null) {
+            throw new LifecycleConflictException(
+                "This batch has no Clinical Venue committed in Cohort Room Allocation — commit it in Capacity Planner before staffing.",
+                "STAFFING_VENUE_NOT_COMMITTED", "ClassSchedule", cs.getId(), null);
+        }
+        return venue;
+    }
+
+    private Optional<Batch> resolveBatchForVenue(ClassSchedule cs) {
+        if (cs.getBatch() != null) {
+            return Optional.of(cs.getBatch());
+        }
+        return rotationResolverService.anyAssignmentForSlot(cs.getId()).map(RotationMemberAssignment::getBatch);
+    }
+
+    /** Electives have no single owning cohort by design (that's the whole point of an elective —
+     *  students from different cohorts/sections opt in), so they're exempt from the Theory
+     *  hard-lock below and keep a free classroom pick, mirroring Capacity Planner's own exclusion
+     *  of electives from Cohort Room Allocation. */
+    private boolean isElectiveOffering(ClassSchedule cs) {
+        CourseOffering offering = cs.getCourseOffering();
+        return offering != null && offering.getCurriculumSemesterCourse() != null
+            && Boolean.TRUE.equals(offering.getCurriculumSemesterCourse().getIsElective());
+    }
+
+    private Classroom requireRequestedClassroom(StaffingAssignmentRequest request) {
+        if (request.classroomId() == null) {
+            throw new IllegalArgumentException("A classroom is required to staff a THEORY session");
+        }
+        return classroomRepository.findById(request.classroomId())
+            .orElseThrow(() -> new ResourceNotFoundException("Classroom not found with id: " + request.classroomId()));
+    }
+
+    /** Non-elective Theory sessions are hard-locked the same way LAB/CLINICAL is, but Theory has
+     *  no direct batch/venue FK to read — a whole cohort attends together, not a sub-group batch.
+     *  Resolved by finding the single cohort enrolled in this offering's term+semester (this
+     *  1:1 mapping already backs Capacity Planner's own offering filter) and reading that
+     *  cohort's committed Theory room from Cohort Room Allocation. Ambiguous (more than one
+     *  cohort sharing a semester) or missing resolution never guesses — it's surfaced as
+     *  "not committed" rather than silently picking a room. */
+    private Classroom requireCommittedTheoryClassroom(ClassSchedule cs) {
+        return resolveCommittedTheoryClassroom(cs)
+            .orElseThrow(() -> new LifecycleConflictException(
+                "This cohort has no Theory room committed in Cohort Room Allocation — commit it in Capacity Planner before staffing.",
+                "STAFFING_VENUE_NOT_COMMITTED", "ClassSchedule", cs.getId(), null));
+    }
+
+    private Optional<Classroom> resolveCommittedTheoryClassroom(ClassSchedule cs) {
+        CourseOffering offering = cs.getCourseOffering();
+        if (offering == null) {
+            return Optional.empty();
+        }
+        List<StudentTermEnrollment> enrollments = studentTermEnrollmentRepository
+            .findByTermInstanceIdAndSemesterNumber(offering.getTermInstance().getId(), offering.getSemesterNumber());
+        Set<Long> cohortIds = enrollments.stream()
+            .map(e -> e.getCohort().getId())
+            .collect(Collectors.toSet());
+        if (cohortIds.size() != 1) {
+            return Optional.empty();
+        }
+        return cohortRoomAllocationRepository
+            .findByCohortIdAndTermInstanceIdAndStatus(
+                cohortIds.iterator().next(), offering.getTermInstance().getId(), CohortRoomAllocationStatus.COMMITTED)
+            .map(CohortRoomAllocation::getTheoryClassroom);
     }
 
     /** Blocks assigning a faculty member already committed elsewhere at this exact day/time —
@@ -148,27 +241,51 @@ public class TimetableStaffingService {
         }
     }
 
-    /** Blocks assigning a room already occupied at this exact day/time by another session of the
-     *  same room type, checked against both PUBLISHED and other already-staffed DRAFT rows. */
-    private void requireRoomFree(Long roomId, ClassSessionType type, ClassSchedule cs, LocalTime start, LocalTime end) {
+    /** Blocks assigning a room already occupied at this exact day/time — either the exact same
+     *  venue row (same session type, same Classroom/Lab/ClinicalVenue id), or a *different* venue
+     *  that happens to share the same underlying physical Room (e.g. two separate Classrooms both
+     *  linked to Room 101 in Campus Infrastructure). The latter used to be invisible here: each
+     *  venue looked "free" on its own even though the real physical space was double-booked —
+     *  closed by comparing the resolved physical Room, not just the virtual venue id, whenever one
+     *  is linked. Checked against both PUBLISHED and other already-staffed DRAFT rows. */
+    private void requireRoomFree(ClassSessionType type, Long venueId, Room physicalRoom, ClassSchedule cs, LocalTime start, LocalTime end) {
         for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
             List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
                 cs.getDayOfWeek(), cs.getTermInstance().getId(), start, end, status, cs.getId());
-            boolean conflict = overlapping.stream().anyMatch(other -> {
-                if (other.getSessionType() != type) return false;
-                Long otherRoomId = switch (type) {
-                    case THEORY -> other.getClassroom() != null ? other.getClassroom().getId() : null;
-                    case LAB -> other.getLab() != null ? other.getLab().getId() : null;
-                    case CLINICAL -> other.getClinicalVenue() != null ? other.getClinicalVenue().getId() : null;
-                };
-                return roomId.equals(otherRoomId);
-            });
+            boolean conflict = overlapping.stream().anyMatch(other -> conflictsOnRoom(other, type, venueId, physicalRoom));
             if (conflict) {
                 throw new LifecycleConflictException(
                     "This room is already occupied by another session at this exact day and time.",
                     "STAFFING_ROOM_CONFLICT", "ClassSchedule", cs.getId(), null);
             }
         }
+    }
+
+    private boolean conflictsOnRoom(ClassSchedule other, ClassSessionType type, Long venueId, Room physicalRoom) {
+        if (other.getSessionType() == type && venueId.equals(venueIdOf(other))) {
+            return true;
+        }
+        if (physicalRoom == null) {
+            return false;
+        }
+        Room otherRoom = physicalRoomOf(other);
+        return otherRoom != null && otherRoom.getId().equals(physicalRoom.getId());
+    }
+
+    private static Long venueIdOf(ClassSchedule cs) {
+        return switch (cs.getSessionType()) {
+            case THEORY -> cs.getClassroom() != null ? cs.getClassroom().getId() : null;
+            case LAB -> cs.getLab() != null ? cs.getLab().getId() : null;
+            case CLINICAL -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getId() : null;
+        };
+    }
+
+    private static Room physicalRoomOf(ClassSchedule cs) {
+        return switch (cs.getSessionType()) {
+            case THEORY -> cs.getClassroom() != null ? cs.getClassroom().getRoom() : null;
+            case LAB -> cs.getLab() != null ? cs.getLab().getRoom() : null;
+            case CLINICAL -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getRoom() : null;
+        };
     }
 
     /** Hard-blocks assigning a venue that can't seat the group being placed in it. Strength is
@@ -190,19 +307,57 @@ public class TimetableStaffingService {
             "STAFFING_CAPACITY_EXCEEDED", "ClassSchedule", cs.getId(), null);
     }
 
+    /** For a rotation-governed cell (no fixed batch), required strength is the largest of the
+     *  rotating batches — the venue must fit whichever group's turn it is on any given week. */
     private Integer resolveRequiredStrength(ClassSchedule cs) {
         return switch (cs.getSessionType()) {
             case THEORY -> cs.getCourseOffering() == null ? null
                 : (int) courseRegistrationRepository.countByCourseOfferingIdAndStatus(
                     cs.getCourseOffering().getId(), RegistrationStatus.REGISTERED);
-            case LAB, CLINICAL -> cs.getBatch() == null ? null
-                : (int) batchRepository.countStudents(cs.getBatch().getId());
+            case LAB, CLINICAL -> {
+                if (cs.getBatch() != null) {
+                    yield (int) batchRepository.countStudents(cs.getBatch().getId());
+                }
+                List<RotationMemberAssignment> rotating = rotationResolverService.allAssignmentsForSlot(cs.getId());
+                yield rotating.isEmpty() ? null : rotating.stream()
+                    .mapToInt(a -> (int) batchRepository.countStudents(a.getBatch().getId()))
+                    .max().orElse(0);
+            }
         };
     }
 
     private UnstaffedCellResponse toResponse(ClassSchedule cs) {
         var period = cs.getPeriod();
         var speciality = cs.getSubject().getSpeciality();
+        boolean elective = isElectiveOffering(cs);
+
+        Long venueId = null;
+        String venueName = null;
+        Integer venueCapacity = null;
+        List<String> rotatingBatchNames = List.of();
+        if (cs.getSessionType() == ClassSessionType.THEORY) {
+            if (!elective) {
+                Classroom resolved = resolveCommittedTheoryClassroom(cs).orElse(null);
+                if (resolved != null) {
+                    venueId = resolved.getId();
+                    venueName = resolved.getName();
+                    venueCapacity = resolved.getCapacity();
+                }
+            }
+        } else {
+            Batch batch = resolveBatchForVenue(cs).orElse(null);
+            Lab lab = batch != null ? batch.getLab() : null;
+            ClinicalVenue clinicalVenue = batch != null ? batch.getClinicalVenue() : null;
+            venueId = lab != null ? lab.getId() : (clinicalVenue != null ? clinicalVenue.getId() : null);
+            venueName = lab != null ? lab.getName() : (clinicalVenue != null ? clinicalVenue.getName() : null);
+            venueCapacity = lab != null ? lab.getCapacity() : (clinicalVenue != null ? clinicalVenue.getCapacity() : null);
+            if (cs.getBatch() == null) {
+                rotatingBatchNames = rotationResolverService.allAssignmentsForSlot(cs.getId()).stream()
+                    .map(a -> a.getBatch().getName())
+                    .toList();
+            }
+        }
+
         return new UnstaffedCellResponse(
             cs.getId(),
             cs.getCourseOffering() != null ? cs.getCourseOffering().getId() : null,
@@ -217,7 +372,12 @@ public class TimetableStaffingService {
             period != null ? period.getStartTime() : null,
             period != null ? period.getEndTime() : null,
             cs.getBatchName() != null ? cs.getBatchName() : (cs.getBatch() != null ? cs.getBatch().getName() : null),
-            resolveRequiredStrength(cs)
+            resolveRequiredStrength(cs),
+            venueId,
+            venueName,
+            venueCapacity,
+            elective,
+            rotatingBatchNames
         );
     }
 }

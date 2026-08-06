@@ -22,27 +22,36 @@ import com.cms.dto.UnstaffedCellResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
+import com.cms.model.Batch;
 import com.cms.model.Classroom;
 import com.cms.model.ClassSchedule;
+import com.cms.model.Cohort;
+import com.cms.model.CohortRoomAllocation;
+import com.cms.model.CourseOffering;
+import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
+import com.cms.model.Lab;
 import com.cms.model.Period;
 import com.cms.model.Speciality;
+import com.cms.model.StudentTermEnrollment;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
+import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.model.enums.LabStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
-import com.cms.repository.ClinicalVenueRepository;
+import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.FacultyRepository;
-import com.cms.repository.LabRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
 
 @ExtendWith(MockitoExtension.class)
 class TimetableStaffingServiceTest {
@@ -50,10 +59,11 @@ class TimetableStaffingServiceTest {
     @Mock private ClassScheduleRepository classScheduleRepository;
     @Mock private FacultyRepository facultyRepository;
     @Mock private ClassroomRepository classroomRepository;
-    @Mock private LabRepository labRepository;
-    @Mock private ClinicalVenueRepository clinicalVenueRepository;
     @Mock private BatchRepository batchRepository;
     @Mock private CourseRegistrationRepository courseRegistrationRepository;
+    @Mock private StudentTermEnrollmentRepository studentTermEnrollmentRepository;
+    @Mock private CohortRoomAllocationRepository cohortRoomAllocationRepository;
+    @Mock private RotationResolverService rotationResolverService;
 
     private TimetableStaffingService service;
 
@@ -68,7 +78,8 @@ class TimetableStaffingServiceTest {
     @BeforeEach
     void setUp() {
         service = new TimetableStaffingService(classScheduleRepository, facultyRepository,
-            classroomRepository, labRepository, clinicalVenueRepository, batchRepository, courseRegistrationRepository);
+            classroomRepository, batchRepository, courseRegistrationRepository,
+            studentTermEnrollmentRepository, cohortRoomAllocationRepository, rotationResolverService);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);
@@ -102,6 +113,20 @@ class TimetableStaffingServiceTest {
         cell.setDayOfWeek(DayOfWeek.MONDAY);
         cell.setTermInstance(termInstance);
         cell.setPeriod(period);
+        // Default fixture is an elective offering (free classroom pick) so every pre-existing
+        // test below — none of which are about the non-elective Theory lock — keeps exercising
+        // the same free-pick behavior it always has, without needing enrollment/allocation mocks.
+        cell.setCourseOffering(electiveOffering());
+    }
+
+    private CourseOffering electiveOffering() {
+        CurriculumSemesterCourse csc = new CurriculumSemesterCourse();
+        csc.setIsElective(true);
+        CourseOffering offering = new CourseOffering();
+        offering.setTermInstance(termInstance);
+        offering.setSemesterNumber(1);
+        offering.setCurriculumSemesterCourse(csc);
+        return offering;
     }
 
     @Test
@@ -123,7 +148,7 @@ class TimetableStaffingServiceTest {
 
     @Test
     void shouldStaffATheoryCellWithFacultyAndClassroom() {
-        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L, null, null);
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
         when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
@@ -147,7 +172,7 @@ class TimetableStaffingServiceTest {
             otherDept, designation, "Computer Science", null, null, FacultyStatus.ACTIVE);
         ineligible.setId(2L);
 
-        StaffingAssignmentRequest request = new StaffingAssignmentRequest(2L, 1L, null, null);
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(2L, 1L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
         when(facultyRepository.findById(2L)).thenReturn(Optional.of(ineligible));
 
@@ -163,7 +188,7 @@ class TimetableStaffingServiceTest {
         alreadyBusyElsewhere.setFaculty(eligibleFaculty);
         alreadyBusyElsewhere.setSessionType(ClassSessionType.LAB);
 
-        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L, null, null);
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
         when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
@@ -181,7 +206,7 @@ class TimetableStaffingServiceTest {
         otherDraftInSameRoom.setSessionType(ClassSessionType.THEORY);
         otherDraftInSameRoom.setClassroom(classroom);
 
-        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L, null, null);
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
         when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
@@ -197,7 +222,7 @@ class TimetableStaffingServiceTest {
 
     @Test
     void shouldRequireClassroomForATheoryCell() {
-        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, null, null, null);
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, null);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
         when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
@@ -211,7 +236,7 @@ class TimetableStaffingServiceTest {
     @Test
     void shouldRefuseToStaffAnAlreadyPublishedRow() {
         cell.setStatus(ClassScheduleStatus.PUBLISHED);
-        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L, null, null);
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
@@ -220,11 +245,11 @@ class TimetableStaffingServiceTest {
 
     @Test
     void shouldRejectWhenClassroomCapacityIsBelowRegisteredStrength() {
-        com.cms.model.CourseOffering offering = new com.cms.model.CourseOffering();
+        CourseOffering offering = electiveOffering();
         offering.setId(50L);
         cell.setCourseOffering(offering);
 
-        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L, null, null);
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
         when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
@@ -240,11 +265,11 @@ class TimetableStaffingServiceTest {
 
     @Test
     void shouldAllowStaffingWhenRegisteredStrengthFitsClassroomCapacity() {
-        com.cms.model.CourseOffering offering = new com.cms.model.CourseOffering();
+        CourseOffering offering = electiveOffering();
         offering.setId(50L);
         cell.setCourseOffering(offering);
 
-        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L, null, null);
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
         when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
@@ -263,7 +288,141 @@ class TimetableStaffingServiceTest {
     void shouldThrowWhenCellNotFound() {
         when(classScheduleRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.staffCell(999L, new StaffingAssignmentRequest(1L, 1L, null, null)))
+        assertThatThrownBy(() -> service.staffCell(999L, new StaffingAssignmentRequest(1L, 1L)))
             .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldStaffALabCellUsingItsBatchsCommittedVenueWithNoRoomInTheRequest() {
+        Lab committedLab = new Lab("Lab A", null, speciality, "Main Block", "L1", 30, LabStatus.ACTIVE);
+        committedLab.setId(5L);
+        Batch batch = new Batch();
+        batch.setLab(committedLab);
+
+        cell.setSessionType(ClassSessionType.LAB);
+        cell.setBatch(batch);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, null);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.staffCell(100L, request);
+
+        assertThat(cell.getLab()).isEqualTo(committedLab);
+    }
+
+    @Test
+    void shouldRejectStaffingALabCellWhoseBatchHasNoCommittedVenue() {
+        Batch batchWithNoVenue = new Batch();
+
+        cell.setSessionType(ClassSessionType.LAB);
+        cell.setBatch(batchWithNoVenue);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, null);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+
+        assertThatThrownBy(() -> service.staffCell(100L, request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("no Lab committed");
+    }
+
+    @Test
+    void shouldResolveNonElectiveTheoryClassroomFromCommittedCohortRoomAllocationWithNoRoomInTheRequest() {
+        CurriculumSemesterCourse csc = new CurriculumSemesterCourse();
+        csc.setIsElective(false);
+        CourseOffering offering = new CourseOffering();
+        offering.setTermInstance(termInstance);
+        offering.setSemesterNumber(3);
+        offering.setCurriculumSemesterCourse(csc);
+        cell.setCourseOffering(offering);
+
+        Cohort cohort = new Cohort();
+        cohort.setId(7L);
+        StudentTermEnrollment enrollment = new StudentTermEnrollment();
+        enrollment.setCohort(cohort);
+        when(studentTermEnrollmentRepository.findByTermInstanceIdAndSemesterNumber(10L, 3))
+            .thenReturn(List.of(enrollment));
+
+        Classroom committedClassroom = new Classroom("Room 202", "Main Block", "202", 60);
+        committedClassroom.setId(9L);
+        CohortRoomAllocation allocation = new CohortRoomAllocation(cohort, termInstance, committedClassroom, "admin");
+        when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(7L, 10L, CohortRoomAllocationStatus.COMMITTED))
+            .thenReturn(Optional.of(allocation));
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, null);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.staffCell(100L, request);
+
+        assertThat(cell.getClassroom()).isEqualTo(committedClassroom);
+    }
+
+    @Test
+    void shouldRejectNonElectiveTheoryCellWhoseCohortHasNoCommittedRoom() {
+        CurriculumSemesterCourse csc = new CurriculumSemesterCourse();
+        csc.setIsElective(false);
+        CourseOffering offering = new CourseOffering();
+        offering.setTermInstance(termInstance);
+        offering.setSemesterNumber(3);
+        offering.setCurriculumSemesterCourse(csc);
+        cell.setCourseOffering(offering);
+
+        Cohort cohort = new Cohort();
+        cohort.setId(7L);
+        StudentTermEnrollment enrollment = new StudentTermEnrollment();
+        enrollment.setCohort(cohort);
+        when(studentTermEnrollmentRepository.findByTermInstanceIdAndSemesterNumber(10L, 3))
+            .thenReturn(List.of(enrollment));
+        when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(7L, 10L, CohortRoomAllocationStatus.COMMITTED))
+            .thenReturn(Optional.empty());
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, null);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+
+        assertThatThrownBy(() -> service.staffCell(100L, request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("no Theory room committed");
+    }
+
+    @Test
+    void shouldRejectADifferentClassroomThatSharesTheSamePhysicalRoomAsAnAlreadyOccupiedOne() {
+        com.cms.model.Room physicalRoom = new com.cms.model.Room();
+        physicalRoom.setId(99L);
+
+        Classroom otherClassroomSameRoom = new Classroom("Room B", "Main Block", "102", 60);
+        otherClassroomSameRoom.setId(2L);
+        otherClassroomSameRoom.setRoom(physicalRoom);
+        classroom.setRoom(physicalRoom);
+
+        ClassSchedule otherDraftInSamePhysicalRoom = new ClassSchedule();
+        otherDraftInSamePhysicalRoom.setId(300L);
+        otherDraftInSamePhysicalRoom.setSessionType(ClassSessionType.THEORY);
+        otherDraftInSamePhysicalRoom.setClassroom(otherClassroomSameRoom);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
+        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
+            ClassScheduleStatus.PUBLISHED, 100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
+            ClassScheduleStatus.DRAFT, 100L)).thenReturn(List.of(otherDraftInSamePhysicalRoom));
+
+        assertThatThrownBy(() -> service.staffCell(100L, request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("already occupied");
     }
 }

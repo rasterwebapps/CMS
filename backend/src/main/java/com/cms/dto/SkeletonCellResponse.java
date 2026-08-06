@@ -1,6 +1,7 @@
 package com.cms.dto;
 
 import java.time.LocalTime;
+import java.util.List;
 
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
@@ -8,7 +9,10 @@ import com.cms.model.enums.DayOfWeek;
 
 /** One placed cell in the skeleton grid — deliberately leaner than {@link ClassScheduleResponse}
  *  since the skeleton stage has no faculty/room yet; {@code isStaffed} is false until Phase 5's
- *  staffing pass fills those in and the row can be published. */
+ *  staffing pass fills those in and the row can be published. {@code rotationGroupLabel} is
+ *  non-null only for a cell that's part of a Rotation Group — {@code batchId}/{@code batchName}
+ *  are null on those (there's no single fixed occupant) and {@code rotatingBatchNames} lists who
+ *  alternates through it instead. */
 public record SkeletonCellResponse(
     Long id,
     ClassSessionType sessionType,
@@ -20,5 +24,7 @@ public record SkeletonCellResponse(
     Long batchId,
     String batchName,
     boolean isStaffed,
-    ClassScheduleStatus status
+    ClassScheduleStatus status,
+    String rotationGroupLabel,
+    List<String> rotatingBatchNames
 ) {}

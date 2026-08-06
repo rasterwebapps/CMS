@@ -45,7 +45,14 @@
               <span class="staffing-row__type staffing-row__type--{{ row.sessionType.toLowerCase() }}">{{ row.sessionType }}</span>
               <span>{{ dayLabels[row.dayOfWeek] }}</span>
               <span>{{ row.slotName }} ({{ row.startTime }}–{{ row.endTime }})</span>
-              @if (row.batchName) { <span>Section: {{ row.batchName }}</span> }
+              @if (row.batchName) {
+                <span>Section: {{ row.batchName }}</span>
+              } @else if (row.rotatingBatchNames.length) {
+                <span class="staffing-row__rotation"
+                  [title]="'Rotates: ' + row.rotatingBatchNames.join(' / ')">
+                  ⟳ Rotates: {{ row.rotatingBatchNames.join(' / ') }}
+                </span>
+              }
               @if (row.requiredStrength) { <span>Strength: {{ row.requiredStrength }}</span> }
             </div>
           </div>
@@ -58,14 +65,28 @@
               }
             </select>
 
-            <select class="field-select" [(ngModel)]="row.roomId" [disabled]="!canManage() || row.saving" [attr.aria-label]="roomLabel(row)">
-              <option [ngValue]="null" disabled>Select {{ roomLabel(row).toLowerCase() }}</option>
-              @for (r of roomOptionsFor(row); track r.id) {
-                <option [ngValue]="r.id">{{ roomOptionLabel(row, r) }}</option>
-              }
-            </select>
+            @if (isFreelyPickedRoom(row)) {
+              <select class="field-select" [(ngModel)]="row.roomId" [disabled]="!canManage() || row.saving" [attr.aria-label]="roomLabel(row)">
+                <option [ngValue]="null" disabled>Select {{ roomLabel(row).toLowerCase() }}</option>
+                @for (r of roomOptionsFor(row); track r.id) {
+                  <option [ngValue]="r.id">{{ roomOptionLabel(row, r) }}</option>
+                }
+              </select>
+            } @else if (row.venueId) {
+              <span class="staffing-row__committed-venue">
+                {{ roomLabel(row) }}: {{ row.venueName }}@if (row.venueCapacity) { (Cap {{ row.venueCapacity }}) }
+              </span>
+            } @else {
+              <span class="staffing-row__no-venue">
+                @if (row.sessionType === 'THEORY') {
+                  No Theory room committed for this cohort — commit it in <a routerLink="/timetable/capacity-planner">Capacity Planner</a> first
+                } @else {
+                  No {{ roomLabel(row).toLowerCase() }} committed for this batch — commit it in <a routerLink="/timetable/capacity-planner">Capacity Planner</a> first
+                }
+              </span>
+            }
 
-            <button type="button" class="btn-primary" [disabled]="!canManage() || row.saving" (click)="assign(row)">
+            <button type="button" class="btn-primary" [disabled]="!canManage() || row.saving || (!isFreelyPickedRoom(row) && !row.venueId)" (click)="assign(row)">
               @if (row.saving) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
               Assign
             </button>
