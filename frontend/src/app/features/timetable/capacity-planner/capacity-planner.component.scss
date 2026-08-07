@@ -26,34 +26,135 @@
   color: var(--cms-text-muted);
 }
 
-.cap-buffer-row {
+.cap-summary-card__row {
   display: flex;
-  gap: 24px;
-  margin-top: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
-.cap-buffer-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.cap-summary-card__main {
+  min-width: 0;
 }
 
-.cap-buffer-stat__label {
+// Whether this cohort's Theory/Lab/Clinical rooms are still a draft or already committed --
+// only shown to admins who can see the Cohort Room Allocation section below (view-only users
+// never load currentAllocation(), so the tag would otherwise always misreport "Draft plan").
+.cap-plan-status {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--cms-primary-alpha-8);
+  color: var(--cms-primary);
   font-size: var(--cms-text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+
+  &--committed {
+    background: var(--cms-success-light);
+    color: var(--cms-success);
+  }
+}
+
+// Term Capacity — Supply vs. Demand: four single-line tiles (icon well + value/label), following
+// the same "hero-kpi" icon-well convention already used on enquiry-detail/student-detail/
+// admission-detail (38px well, 11px radius, 20px icon, color via the --cms-* status tokens so it
+// stays theme-aware) rather than a one-off icon treatment; violet (Curriculum) is the one fixed
+// accent hex, matching the same violet already used for CLINICAL tags elsewhere in this component.
+.cap-capacity-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.cap-capacity-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 10px;
+  background: var(--cms-bg-subtle);
+
+  &[data-tone='available'] .cap-capacity-tile__icon {
+    background: var(--cms-primary-alpha-8);
+    color: var(--cms-primary);
+  }
+
+  &[data-tone='blocked'] .cap-capacity-tile__icon {
+    background: var(--cms-warning-light);
+    color: var(--cms-warning);
+  }
+
+  &[data-tone='curriculum'] .cap-capacity-tile__icon {
+    background: rgba(139, 92, 246, 0.14);
+    color: #8b5cf6;
+  }
+
+  &[data-tone='buffer'] .cap-capacity-tile__icon {
+    background: var(--cms-success-light);
+    color: var(--cms-success);
+  }
+
+  &[data-tone='buffer-warn'] .cap-capacity-tile__icon {
+    background: var(--cms-danger-light);
+    color: var(--cms-danger);
+  }
+}
+
+.cap-capacity-tile__icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon {
+    display: flex;
+    font-size: 1.2rem;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.cap-capacity-tile__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cap-capacity-tile__value {
+  font-size: var(--cms-text-lg);
+  font-weight: 800;
+  color: var(--cms-text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  small {
+    margin-left: 3px;
+    font-size: var(--cms-text-xs);
+    font-weight: 600;
+    color: var(--cms-text-muted);
+  }
+}
+
+.cap-capacity-tile__label {
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
   color: var(--cms-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
-}
-
-.cap-buffer-stat__value {
-  font-size: var(--cms-text-md);
-  font-weight: 700;
-  color: var(--cms-text-primary);
-
-  &--warn {
-    color: var(--cms-danger);
-  }
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cap-sizing-grid {
@@ -90,7 +191,7 @@
 }
 
 .cap-shortfall-banner {
-  margin-top: 14px;
+  margin-top: 16px;
   padding: 12px 14px;
   border-radius: 10px;
 
@@ -152,6 +253,148 @@
   padding: 16px 18px;
 }
 
+// Committed allocation view: one card per Theory section, its Lab/Clinical batches nested inside
+// as their own small-card grid -- replaces the old plain bullet-list rendering of the same data.
+.cap-alloc-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.cap-alloc-section {
+  padding: 12px 14px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 12px;
+  background: var(--cms-bg-subtle);
+
+  &--inactive {
+    opacity: 0.6;
+  }
+}
+
+// Same badge-alone-on-top-row, label-below split as .cap-alloc-card__head.
+.cap-alloc-section__head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.cap-alloc-section__badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cap-alloc-section__label {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--cms-bg-muted);
+  color: var(--cms-text-primary);
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.cap-alloc-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.cap-alloc-card {
+  padding: 10px 12px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 10px;
+  background: var(--cms-bg-card);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &--inactive {
+    opacity: 0.6;
+  }
+}
+
+// Badge(s) alone on their own top-left row, label on the row below -- same two-row split for
+// every card type (Theory/Lab/Clinical) so the tag lands in a consistent spot regardless of how
+// long the subject/section name is.
+.cap-alloc-card__head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.cap-alloc-card__label {
+  font-size: var(--cms-text-sm);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+.cap-alloc-card__badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cap-alloc-card__row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: var(--cms-text-xs);
+}
+
+.cap-alloc-card__key {
+  flex: 0 0 auto;
+  color: var(--cms-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.cap-alloc-card__val {
+  color: var(--cms-text-primary);
+  font-weight: 600;
+}
+
+.cap-alloc-committed-by {
+  margin-top: 4px;
+}
+
+// Matches the "Remove Photo" ghost-danger button on the Profile page (profile.component.scss
+// .btn-ghost-photo) -- same soft red pill, can't reuse that class directly since Angular's
+// per-component ViewEncapsulation scopes it to profile.component only.
+.btn-ghost-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(239, 68, 68, .35);
+  background: rgba(239, 68, 68, .12);
+  color: rgba(239, 68, 68, .85);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .18s, border-color .18s, color .18s;
+
+  &:hover:not(:disabled) {
+    background: rgba(239, 68, 68, .82);
+    border-color: transparent;
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
 .cap-batch-action-card__hint {
   margin: 0 0 12px;
   font-size: var(--cms-text-sm);
@@ -179,7 +422,7 @@
 // instead of one long scrolling form.
 .cap-step {
   padding: 14px 16px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   border: 1px solid var(--cms-border-default);
   border-radius: 12px;
   background: var(--cms-bg-subtle);
@@ -259,7 +502,7 @@
 }
 
 .cap-allocation-splits {
-  margin: 12px 0;
+  margin: 16px 0;
 }
 
 .cap-split-row {
@@ -305,10 +548,10 @@
 // its auto-generated per-section rows nested below. Sits inside a .cap-step, so it gets its own
 // card background (--cms-bg-card) to read as visually nested rather than flush with the step.
 .cap-session-blocks {
-  margin: 12px 0;
+  margin: 16px 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .cap-session-block {
@@ -373,7 +616,7 @@
 .cap-utilization-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+  gap: 16px;
   margin-top: 8px;
 }
 
@@ -386,17 +629,13 @@
   text-transform: uppercase;
 }
 
-// A true 2-column table, not a flex row -- the name column's width is the SAME fixed value on
-// every row (not "auto plus a floor" like the old flex layout), so names of different lengths no
-// longer shift where the percentage/bar column starts from row to row.
+// Name + percentage on one line, a full-width progress track below it -- matches the design
+// reference's venue rows (name/pct stacked over a thin bar) rather than the previous single-line
+// grid that squeezed cms-capacity-meter's compact bar+label into a fixed 104px name column.
 .cap-utilization-row {
-  display: grid;
-  grid-template-columns: 104px 1fr;
-  align-items: center;
-  column-gap: 10px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  margin: 0 -8px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  margin: 0 -9px 3px;
   transition: background-color 0.15s ease;
 }
 
@@ -404,7 +643,6 @@
 // isClassroomHighlighted()/isVenueHighlighted() in the component.
 .cap-utilization-row--active {
   background: var(--cms-primary-alpha-8);
-  box-shadow: inset 2px 0 0 var(--cms-primary);
 }
 
 // A classroom genuinely committed to another cohort this term -- distinct red tint from
@@ -412,7 +650,14 @@
 // unavailable rather than just "someone else is also interested."
 .cap-utilization-row--claimed {
   background: var(--cms-danger-light);
-  box-shadow: inset 2px 0 0 var(--cms-danger);
+}
+
+.cap-utilization-row__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 .cap-utilization-row__name {
@@ -433,34 +678,48 @@
   }
 }
 
+.cap-utilization-row__pct {
+  flex-shrink: 0;
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  color: var(--cms-text-muted);
+
+  .cap-utilization-row--active & {
+    color: var(--cms-primary);
+  }
+
+  .cap-utilization-row--claimed & {
+    color: var(--cms-danger);
+  }
+}
+
+.cap-utilization-row__track {
+  height: 4px;
+  border-radius: 99px;
+  background: var(--cms-bg-muted);
+  overflow: hidden;
+}
+
+.cap-utilization-row__fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--cms-text-muted);
+  transition: width 0.2s ease;
+
+  .cap-utilization-row--active & {
+    background: var(--cms-primary);
+  }
+
+  .cap-utilization-row--claimed & {
+    background: var(--cms-danger);
+  }
+}
+
 .cap-utilization-row__claim {
-  grid-column: 1 / -1;
+  display: block;
+  margin-top: 3px;
   font-size: var(--cms-text-xs);
   font-weight: 600;
   color: var(--cms-danger);
-  margin-top: 2px;
 }
 
-.cap-guide-card {
-  padding: 16px 18px;
-}
-
-.cap-guide-list {
-  margin: 0;
-  padding-left: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: var(--cms-text-sm);
-  color: var(--cms-text-primary);
-
-  a {
-    color: var(--cms-primary);
-    font-weight: 600;
-    text-decoration: none;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-}

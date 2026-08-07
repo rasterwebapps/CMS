@@ -139,17 +139,29 @@ public class TimetableCapacityPlanningService {
         String theoryShortfall = theoryFits ? null
             : "No single classroom seats " + strength + " students — split this cohort's Theory into sections below.";
 
-        // Every classroom with a genuine active claim this term (from some other cohort -- this
-        // plan's own cohort, if it already has a committed allocation, is surfaced via
-        // currentAllocation() on the frontend instead of ever reaching this draft-building path).
-        // Drives both the sectioning candidate pool below and the Venue Utilization card's
-        // "Committed — <cohort>" tag, so a room's unavailability is self-explanatory instead of
-        // silently vanishing from the picker with no on-screen reason.
+        // Every classroom with a genuine active claim this term, split two ways:
+        //  - claimedByOtherCohortLabel: claims from OTHER cohorts only -- drives the sectioning
+        //    candidate pool below and the Venue Utilization card's "Committed — <cohort>" red tag,
+        //    so a room's unavailability is self-explanatory instead of silently vanishing from the
+        //    picker with no on-screen reason. This plan's own cohort's committed rooms are excluded
+        //    here and instead read via isClassroomHighlighted() on the frontend (blue "active"
+        //    tag), since a room a cohort holds itself is not "unavailable" the way a room genuinely
+        //    claimed by someone else is.
+        //  - claimedByAnyCohortId: EVERY active claim, including this plan's own cohort -- feeds
+        //    classroomUtilization()'s occupied/percent gate, which must stay true for the cohort's
+        //    own claimed rooms too. Splitting these was required after a prior fix: excluding the
+        //    own cohort from a single shared map fixed the red "claimed by <self>" mislabel but
+        //    also zeroed this cohort's own Room 101/102-style utilization percentages, since both
+        //    concerns used to read the same map.
         List<com.cms.model.CohortSection> activeSectionsThisTerm = cohortSectionRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId);
-        Map<Long, String> claimedByCohortLabel = activeSectionsThisTerm.stream()
+        Map<Long, String> claimedByOtherCohortLabel = activeSectionsThisTerm.stream()
+            .filter(s -> !s.getCohortRoomAllocation().getCohort().getId().equals(cohortId))
             .collect(Collectors.toMap(s -> s.getClassroom().getId(), s -> s.getCohortRoomAllocation().getCohort().getDisplayName(),
                 (a, b) -> a));
-        Set<Long> claimedClassroomIds = claimedByCohortLabel.keySet();
+        Set<Long> claimedByAnyCohortId = activeSectionsThisTerm.stream()
+            .map(s -> s.getClassroom().getId())
+            .collect(Collectors.toSet());
+        Set<Long> claimedClassroomIds = claimedByOtherCohortLabel.keySet();
 
         // Candidate pool for Theory sectioning: every active classroom not already claimed by
         // another cohort's active section this term, sorted biggest-first so the frontend's
@@ -207,7 +219,7 @@ public class TimetableCapacityPlanningService {
             classroomsForSectioning,
             fittingLabs,
             fittingClinicalVenues,
-            classroomUtilization(activeClassrooms, termSchedule, totalSlots, claimedByCohortLabel),
+            classroomUtilization(activeClassrooms, termSchedule, totalSlots, claimedByAnyCohortId, claimedByOtherCohortLabel),
             utilization(activeLabs, Lab::getId, Lab::getName, Lab::getCapacity,
                 termSchedule, ClassSessionType.LAB, cs -> cs.getLab() != null ? cs.getLab().getId() : null, totalSlots, Map.of()),
             utilization(activeClinicalVenues, ClinicalVenue::getId, ClinicalVenue::getName, ClinicalVenue::getCapacity,
@@ -304,18 +316,19 @@ public class TimetableCapacityPlanningService {
      *  classroom with no active claim always reports 0%, full stop, regardless of what stale rows
      *  sit underneath it. Only a classroom someone currently, actively claims shows a real number. */
     private List<VenueUtilizationResponse> classroomUtilization(List<Classroom> classrooms, List<ClassSchedule> termSchedule,
-                                                                  int totalSlots, Map<Long, String> claimedByCohortLabel) {
+                                                                  int totalSlots, Set<Long> claimedByAnyCohortId,
+                                                                  Map<Long, String> claimedByOtherCohortLabel) {
         Map<Long, Long> occupiedByClassroomId = termSchedule.stream()
             .filter(cs -> cs.getSessionType() == ClassSessionType.THEORY && cs.getClassroom() != null)
             .collect(Collectors.groupingBy(cs -> cs.getClassroom().getId(), Collectors.counting()));
 
         return classrooms.stream()
             .map(c -> {
-                boolean claimed = claimedByCohortLabel.containsKey(c.getId());
+                boolean claimed = claimedByAnyCohortId.contains(c.getId());
                 long occupied = claimed ? occupiedByClassroomId.getOrDefault(c.getId(), 0L) : 0L;
                 double percent = !claimed || totalSlots == 0 ? 0.0 : (occupied * 100.0) / totalSlots;
                 return new VenueUtilizationResponse(c.getId(), c.getName(), c.getCapacity(), occupied, totalSlots, percent,
-                    claimedByCohortLabel.get(c.getId()));
+                    claimedByOtherCohortLabel.get(c.getId()));
             })
             .toList();
     }

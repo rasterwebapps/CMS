@@ -2,12 +2,15 @@
 
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Timetable <em>Capacity Planner</em></h1>
-      <p class="page-subtitle">Work out how many classrooms, lab batches, and instructors a cohort actually needs before building its timetable</p>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Timetable <em>Capacity Planner</em></h1>
+        <cms-tour-button tourKey="capacity-planner" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
+      <p class="page-subtitle">Work out how many classrooms and lab/clinical batches a cohort actually needs before building its timetable</p>
     </div>
   </div>
 
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-cap-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
       @for (ay of academicYears(); track ay.id) {
         <option [ngValue]="ay.id">{{ ay.name }}</option>
@@ -35,45 +38,68 @@
       <option value="SANCTIONED">Plan by: Sanctioned intake</option>
       <option value="ENROLLED">Plan by: Enrolled headcount</option>
     </select>
-    <button type="button" class="btn-primary" [disabled]="loading() || !selectedTermInstanceId || !selectedCohortId" (click)="loadPlan()">
-      @if (loading()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
-      Calculate
-    </button>
+    @if (!currentAllocation()) {
+      <button type="button" class="btn-primary" [disabled]="loading() || !selectedTermInstanceId || !selectedCohortId" (click)="loadPlan()">
+        @if (loading()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+        Calculate
+      </button>
+    }
   </div>
 
   @if (plan(); as p) {
+
+  <div class="content-card cap-summary-card">
+    <div class="cap-summary-card__row">
+      <div class="cap-summary-card__main">
+        <h2 class="cap-summary-card__title">{{ p.cohortLabel }} — {{ p.termLabel }}</h2>
+        <p class="cap-summary-card__strength">
+          {{ p.sanctionedStrength != null ? (p.sanctionedStrength + ' sanctioned intake') : 'no sanctioned intake set' }}
+          · {{ p.enrolledStrength }} enrolled
+          &nbsp;·&nbsp; planning against <strong>{{ p.cohortStrength }}</strong> students this calculation
+        </p>
+      </div>
+      @if (canManageAllocation() || canRevertAllocation()) {
+        <span class="cap-plan-status" [class.cap-plan-status--committed]="currentAllocation()">
+          {{ currentAllocation() ? 'Committed' : 'Draft plan' }}
+        </span>
+      }
+    </div>
+  </div>
 
   <div class="cap-layout">
   <div class="cap-main-col">
 
     <div class="content-card cap-summary-card">
-      <h2 class="cap-summary-card__title">{{ p.cohortLabel }} — {{ p.termLabel }}</h2>
-      <p class="cap-summary-card__strength">
-        {{ p.enrolledStrength }} enrolled
-        · {{ p.sanctionedStrength != null ? (p.sanctionedStrength + ' sanctioned intake') : 'no sanctioned intake set' }}
-        &nbsp;·&nbsp; planning against <strong>{{ p.cohortStrength }}</strong> students this calculation
-      </p>
-    </div>
-
-    <div class="content-card cap-summary-card">
       <h3 class="cap-sizing-card__title">Term Capacity — Supply vs. Demand</h3>
       <p class="cap-batch-action-card__hint">{{ p.workingDaysInTerm }} working days this term (Sundays and any Holiday/Exam calendar day excluded) × available periods = {{ p.totalWorkingPeriodHours | number:'1.0-1' }} teaching hours available.</p>
-      <div class="cap-buffer-row">
-        <div class="cap-buffer-stat">
-          <span class="cap-buffer-stat__label">Available</span>
-          <span class="cap-buffer-stat__value">{{ p.totalWorkingPeriodHours | number:'1.0-1' }} hrs</span>
+      <div class="cap-capacity-tiles">
+        <div class="cap-capacity-tile" data-tone="available">
+          <div class="cap-capacity-tile__icon"><mat-icon>schedule</mat-icon></div>
+          <div class="cap-capacity-tile__body">
+            <span class="cap-capacity-tile__value">{{ p.totalWorkingPeriodHours | number:'1.0-1' }}<small>hrs</small></span>
+            <span class="cap-capacity-tile__label">Available</span>
+          </div>
         </div>
-        <div class="cap-buffer-stat">
-          <span class="cap-buffer-stat__label">Blocked</span>
-          <span class="cap-buffer-stat__value">{{ p.blockedHours | number:'1.0-1' }} hrs</span>
+        <div class="cap-capacity-tile" data-tone="blocked">
+          <div class="cap-capacity-tile__icon"><mat-icon>block</mat-icon></div>
+          <div class="cap-capacity-tile__body">
+            <span class="cap-capacity-tile__value">{{ p.blockedHours | number:'1.0-1' }}<small>hrs</small></span>
+            <span class="cap-capacity-tile__label">Blocked</span>
+          </div>
         </div>
-        <div class="cap-buffer-stat">
-          <span class="cap-buffer-stat__label">Curriculum needs</span>
-          <span class="cap-buffer-stat__value">{{ p.curriculumHoursRequired }} hrs</span>
+        <div class="cap-capacity-tile" data-tone="curriculum">
+          <div class="cap-capacity-tile__icon"><mat-icon>menu_book</mat-icon></div>
+          <div class="cap-capacity-tile__body">
+            <span class="cap-capacity-tile__value">{{ p.curriculumHoursRequired }}<small>hrs</small></span>
+            <span class="cap-capacity-tile__label">Curriculum needs</span>
+          </div>
         </div>
-        <div class="cap-buffer-stat">
-          <span class="cap-buffer-stat__label">Buffer</span>
-          <span class="cap-buffer-stat__value" [class.cap-buffer-stat__value--warn]="p.bufferHours < 0">{{ p.bufferHours | number:'1.0-1' }} hrs</span>
+        <div class="cap-capacity-tile" [attr.data-tone]="p.bufferHours < 0 ? 'buffer-warn' : 'buffer'">
+          <div class="cap-capacity-tile__icon"><mat-icon>check_circle</mat-icon></div>
+          <div class="cap-capacity-tile__body">
+            <span class="cap-capacity-tile__value">{{ p.bufferHours | number:'1.0-1' }}<small>hrs</small></span>
+            <span class="cap-capacity-tile__label">Buffer</span>
+          </div>
         </div>
       </div>
       @if (p.bufferHours < 0) {
@@ -112,7 +138,7 @@
     }
 
     @if (canManageAllocation() || canRevertAllocation()) {
-      <div class="content-card cap-batch-action-card">
+      <div id="tour-cap-allocation" class="content-card cap-batch-action-card">
         <h3 class="cap-sizing-card__title">Cohort Room Allocation</h3>
         <p class="cap-batch-action-card__hint">Commit this cohort's physical Theory section(s) and Lab/Clinical batch venues for {{ p.termLabel }} — Staffing builds the timetable against these once committed.</p>
 
@@ -120,30 +146,74 @@
           <p class="skeleton-empty-hint">Loading current allocation…</p>
         } @else if (currentAllocation(); as alloc) {
           <p class="cap-sizing-card__ok">Planned against {{ alloc.plannedStrength }} students ({{ alloc.planningBasis === 'ENROLLED' ? 'enrolled headcount' : 'sanctioned intake' }})</p>
-          <ul class="cap-venue-list">
+
+          <div class="cap-alloc-sections">
             @for (s of alloc.sections; track s.id) {
-              <li>
-                {{ s.sectionLabel }} — {{ s.classroomName }} <span class="cap-venue-list__cap">(cap {{ s.classroomCapacity }})</span> · {{ s.plannedSize }} students
-                @if (!s.isActive) { <span class="cap-venue-list__cap">(inactive)</span> }
-              </li>
+              <div class="cap-alloc-section" [class.cap-alloc-section--inactive]="!s.isActive">
+                <div class="cap-alloc-section__head">
+                  @if (!s.isActive) {
+                    <span class="cap-alloc-section__badges">
+                      <span class="cms-badge cms-badge--gray">Inactive</span>
+                    </span>
+                  }
+                  <span class="cap-alloc-section__label">{{ s.sectionLabel }}</span>
+                </div>
+
+                <div class="cap-alloc-cards">
+                  <div class="cap-alloc-card" [class.cap-alloc-card--inactive]="!s.isActive">
+                    <div class="cap-alloc-card__head">
+                      <span class="cap-alloc-card__badges">
+                        <span class="cms-badge cms-badge--green">THEORY</span>
+                      </span>
+                      <span class="cap-alloc-card__label">Theory</span>
+                    </div>
+                    <div class="cap-alloc-card__row">
+                      <span class="cap-alloc-card__key">Room</span>
+                      <span class="cap-alloc-card__val">{{ s.classroomName }} <span class="cap-venue-list__cap">(cap {{ s.classroomCapacity }})</span></span>
+                    </div>
+                    <div class="cap-alloc-card__row">
+                      <span class="cap-alloc-card__key">Students</span>
+                      <span class="cap-alloc-card__val">{{ s.plannedSize }}</span>
+                    </div>
+                  </div>
+                  @for (b of batchesForSection(s, alloc); track b.batchId) {
+                    <div class="cap-alloc-card" [class.cap-alloc-card--inactive]="!b.isActive">
+                      <div class="cap-alloc-card__head">
+                        <span class="cap-alloc-card__badges">
+                          <span class="cms-badge" [class.cms-badge--blue]="b.sessionType === 'LAB'" [class.cms-badge--violet]="b.sessionType === 'CLINICAL'">{{ b.sessionType }}</span>
+                          @if (!b.isActive) { <span class="cms-badge cms-badge--gray">Inactive</span> }
+                        </span>
+                        <span class="cap-alloc-card__label">{{ b.subjectName }}</span>
+                      </div>
+                      <div class="cap-alloc-card__row">
+                        <span class="cap-alloc-card__key">Batch</span>
+                        <span class="cap-alloc-card__val">{{ b.batchName }}</span>
+                      </div>
+                      <div class="cap-alloc-card__row">
+                        <span class="cap-alloc-card__key">Venue</span>
+                        <span class="cap-alloc-card__val">{{ b.venueName }}</span>
+                      </div>
+                      <div class="cap-alloc-card__row">
+                        <span class="cap-alloc-card__key">Students</span>
+                        <span class="cap-alloc-card__val">{{ b.plannedSize }}</span>
+                      </div>
+                    </div>
+                  } @empty {
+                    <p class="cap-venue-list__none">No Lab/Clinical batches for this section.</p>
+                  }
+                </div>
+              </div>
             }
-          </ul>
-          <ul class="cap-venue-list">
-            @for (b of alloc.batches; track b.batchId) {
-              <li>
-                {{ b.cohortSectionLabel ? (b.cohortSectionLabel + ' · ') : '' }}{{ b.subjectName }} — {{ b.batchName }} ({{ b.sessionType }}) · {{ b.venueName }} · {{ b.plannedSize }} students
-                @if (!b.isActive) { <span class="cap-venue-list__cap">(inactive)</span> }
-              </li>
-            } @empty {
-              <li class="cap-venue-list__none">No Lab/Clinical batches in this allocation.</li>
-            }
-          </ul>
-          <p class="cap-batch-action-card__hint">Committed by {{ alloc.committedBy || 'unknown' }} on {{ alloc.committedAt | date:'medium' }}</p>
+          </div>
+
+          <p class="cap-batch-action-card__hint cap-alloc-committed-by">Committed by {{ alloc.committedBy || 'unknown' }} on {{ alloc.committedAt | date:'medium' }}</p>
           @if (canRevertAllocation()) {
-            <button type="button" class="btn-secondary" [disabled]="revertingAllocation()" (click)="revertAllocation()">
-              @if (revertingAllocation()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
-              Revert Allocation
-            </button>
+            <div class="cap-batch-action-card__row">
+              <button type="button" class="btn-ghost-danger" [disabled]="revertingAllocation()" (click)="revertAllocation()">
+                @if (revertingAllocation()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+                Revert Allocation
+              </button>
+            </div>
           }
         } @else if (canManageAllocation()) {
           <!-- Theory: one or more sections, each its own classroom + headcount. Forced into 2+
@@ -378,24 +448,6 @@
       </div>
     }
 
-    @if (canManageBlueprint() && offerings().length > 0) {
-      <div class="content-card cap-batch-action-card">
-        <h3 class="cap-sizing-card__title">Portion-Completion Blueprint</h3>
-        <p class="cap-batch-action-card__hint">Freezes planned completion dates for a subject's syllabus units from its current timetable — generate once the timetable is finalized, and again any time it's deliberately re-paced.</p>
-        <div class="cap-batch-action-card__row">
-          <select class="mlp-filter-select" [(ngModel)]="selectedOfferingId" [disabled]="offerings().length === 0" aria-label="Subject offering for blueprint">
-            @for (o of offerings(); track o.id) {
-              <option [ngValue]="o.id">{{ o.subjectName }} ({{ o.subjectCode }})</option>
-            }
-          </select>
-          <button type="button" class="btn-secondary" [disabled]="generatingBlueprint() || !selectedOfferingId" (click)="generateBlueprint()">
-            @if (generatingBlueprint()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
-            Generate Blueprint
-          </button>
-        </div>
-      </div>
-    }
-
   </div>
 
   <div class="cap-side-col">
@@ -409,8 +461,13 @@
             <div class="cap-utilization-row"
               [class.cap-utilization-row--active]="isClassroomHighlighted(u.id)"
               [class.cap-utilization-row--claimed]="u.claimedByCohortLabel">
-              <span class="cap-utilization-row__name" [title]="u.name">{{ u.name }}</span>
-              <cms-capacity-meter [occupied]="u.occupiedSlots" [capacity]="u.totalSlots" [label]="(u.utilizationPercent | number:'1.0-0') + '%'"></cms-capacity-meter>
+              <div class="cap-utilization-row__head">
+                <span class="cap-utilization-row__name" [title]="u.name">{{ u.name }}</span>
+                <span class="cap-utilization-row__pct">{{ u.utilizationPercent | number:'1.0-0' }}%</span>
+              </div>
+              <div class="cap-utilization-row__track">
+                <div class="cap-utilization-row__fill" [style.width.%]="u.utilizationPercent"></div>
+              </div>
               @if (u.claimedByCohortLabel) {
                 <span class="cap-utilization-row__claim">Committed — {{ u.claimedByCohortLabel }}</span>
               }
@@ -421,8 +478,13 @@
           <h4 class="cap-utilization-col__title">Labs</h4>
           @for (u of p.labUtilization; track u.id) {
             <div class="cap-utilization-row" [class.cap-utilization-row--active]="isVenueHighlighted('LAB', u.id)">
-              <span class="cap-utilization-row__name" [title]="u.name">{{ u.name }}</span>
-              <cms-capacity-meter [occupied]="u.occupiedSlots" [capacity]="u.totalSlots" [label]="(u.utilizationPercent | number:'1.0-0') + '%'"></cms-capacity-meter>
+              <div class="cap-utilization-row__head">
+                <span class="cap-utilization-row__name" [title]="u.name">{{ u.name }}</span>
+                <span class="cap-utilization-row__pct">{{ u.utilizationPercent | number:'1.0-0' }}%</span>
+              </div>
+              <div class="cap-utilization-row__track">
+                <div class="cap-utilization-row__fill" [style.width.%]="u.utilizationPercent"></div>
+              </div>
             </div>
           }
         </div>
@@ -430,8 +492,13 @@
           <h4 class="cap-utilization-col__title">Clinical Venues</h4>
           @for (u of p.clinicalVenueUtilization; track u.id) {
             <div class="cap-utilization-row" [class.cap-utilization-row--active]="isVenueHighlighted('CLINICAL', u.id)">
-              <span class="cap-utilization-row__name" [title]="u.name">{{ u.name }}</span>
-              <cms-capacity-meter [occupied]="u.occupiedSlots" [capacity]="u.totalSlots" [label]="(u.utilizationPercent | number:'1.0-0') + '%'"></cms-capacity-meter>
+              <div class="cap-utilization-row__head">
+                <span class="cap-utilization-row__name" [title]="u.name">{{ u.name }}</span>
+                <span class="cap-utilization-row__pct">{{ u.utilizationPercent | number:'1.0-0' }}%</span>
+              </div>
+              <div class="cap-utilization-row__track">
+                <div class="cap-utilization-row__fill" [style.width.%]="u.utilizationPercent"></div>
+              </div>
             </div>
           }
         </div>
@@ -446,16 +513,5 @@
       <p class="skeleton-empty-hint">Select a term and cohort, then Calculate to see a sizing report.</p>
     </div>
   }
-
-  <div class="content-card cap-guide-card">
-    <h3 class="cap-sizing-card__title">How to plan this term's timetable</h3>
-    <ol class="cap-guide-list">
-      <li>Pick the term and cohort above, choose whether to plan against enrolled headcount or sanctioned intake (useful in a first term where enrollment is still rolling in), and Calculate.</li>
-      <li>In Cohort Room Allocation's Theory Sections step: if no single classroom fits the whole cohort, you'll be walked through splitting it into sections, each with its own classroom.</li>
-      <li>In the Lab/Clinical steps, pick a subject with Lab/Clinical hours and a default venue — one row auto-generates per section; Split a row if a venue can't seat the whole section — then Commit.</li>
-      <li>Open <a routerLink="/timetable/skeleton-builder">Skeleton Builder</a> to place Theory/Lab/Clinical sessions into periods for each subject.</li>
-      <li>Open <a routerLink="/timetable/staffing">Staffing</a> to assign faculty — Theory rooms are picked there, but Lab/Clinical rooms are already fixed from Cohort Room Allocation and can't be changed here.</li>
-    </ol>
-  </div>
 
 </div>
