@@ -48,6 +48,12 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     List<ClassSchedule> findByTermInstanceIdAndStatusAndCourseOfferingIdIn(
         Long termInstanceId, ClassScheduleStatus status, List<Long> courseOfferingIds);
 
+    /** Status-agnostic sibling of the method above — used by the cohort-wide Skeleton Builder,
+     *  which (like {@link #findByCourseOfferingId}) needs already-published rows to still count
+     *  as "placed" for budget/conflict purposes, not just DRAFT ones. */
+    List<ClassSchedule> findByTermInstanceIdAndCourseOfferingIdIn(
+        Long termInstanceId, List<Long> courseOfferingIds);
+
     List<ClassSchedule> findByTermInstanceIdAndStatusAndBatchIdIn(
         Long termInstanceId, ClassScheduleStatus status, List<Long> batchIds);
 

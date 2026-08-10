@@ -8,11 +8,6 @@ export interface SwapTarget {
   periodId?: number | null;
 }
 
-export interface TimetableGenerationResponse {
-  generatedCount: number;
-  unplaceable: string[];
-}
-
 export interface TimetableActionResponse {
   affectedCount: number;
 }

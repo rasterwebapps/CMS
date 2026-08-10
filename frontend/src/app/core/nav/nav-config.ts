@@ -87,7 +87,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Elective Assignment', icon: 'how_to_reg',         route: '/elective-assignment', permissions: ['COURSE_REGISTRATION_ELECTIVE_ASSIGN'] },
       { label: 'Lab Schedules',       icon: 'calendar_view_week', route: '/lab-schedules',       permissions: ['LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_CREATE', 'LAB_SCHEDULE_EDIT', 'LAB_SCHEDULE_DELETE', 'LAB_SCHEDULE_EXPORT', 'LAB_SCHEDULE_MANAGE'] },
       { label: 'Timetable',           icon: 'event_note',         route: '/timetable',           permissions: ['TIMETABLE_VIEW'] },
-      { label: 'Timetable Draft Review', icon: 'auto_awesome',    route: '/timetable/draft-review', permissions: ['TIMETABLE_GENERATE', 'TIMETABLE_MANAGE'] },
+      { label: 'Timetable Draft Review', icon: 'auto_awesome',    route: '/timetable/draft-review', permissions: ['TIMETABLE_MANAGE'] },
       { label: 'Skeleton Builder',    icon: 'grid_on',            route: '/timetable/skeleton-builder', permissions: ['TIMETABLE_VIEW'] },
       { label: 'Staffing',            icon: 'assignment_ind',     route: '/timetable/staffing',   permissions: ['TIMETABLE_VIEW'] },
       { label: 'Capacity Planner',    icon: 'calculate',          route: '/timetable/capacity-planner', permissions: ['TIMETABLE_CAPACITY_PLANNER_VIEW'] },

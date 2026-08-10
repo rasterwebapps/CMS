@@ -3,6 +3,8 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
@@ -17,10 +19,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.cms.dto.BatchDto;
+import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellPlacementRequest;
 import com.cms.dto.SkeletonCellResponse;
+import com.cms.dto.SkeletonPlacementCandidateResponse;
 import com.cms.dto.SkeletonSubjectBudget;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
@@ -29,6 +32,7 @@ import com.cms.model.Batch;
 import com.cms.model.BlockedPeriod;
 import com.cms.model.CalendarEvent;
 import com.cms.model.ClassSchedule;
+import com.cms.model.Cohort;
 import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Faculty;
@@ -44,8 +48,10 @@ import com.cms.model.enums.TermType;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.CohortRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.PeriodRepository;
+import com.cms.repository.TermInstanceRepository;
 
 @ExtendWith(MockitoExtension.class)
 class TimetableSkeletonServiceTest {
@@ -58,11 +64,16 @@ class TimetableSkeletonServiceTest {
     @Mock private BlockedPeriodRepository blockedPeriodRepository;
     @Mock private com.cms.repository.RotationSlotRepository rotationSlotRepository;
     @Mock private RotationResolverService rotationResolverService;
+    @Mock private CourseOfferingService courseOfferingService;
+    @Mock private CohortRepository cohortRepository;
+    @Mock private TermInstanceRepository termInstanceRepository;
 
     private TimetableSkeletonService service;
 
     private TermInstance termInstance;
+    private Cohort cohort;
     private CourseOffering offering;
+    private CourseOffering otherOffering;
     private CurriculumSemesterCourse csc;
     private Period period;
 
@@ -70,13 +81,18 @@ class TimetableSkeletonServiceTest {
     void setUp() {
         service = new TimetableSkeletonService(courseOfferingRepository, classScheduleRepository,
             periodRepository, batchRepository, batchService, blockedPeriodRepository,
-            rotationSlotRepository, rotationResolverService);
+            rotationSlotRepository, rotationResolverService, courseOfferingService,
+            cohortRepository, termInstanceRepository);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);
         termInstance = new TermInstance(ay, TermType.ODD, LocalDate.of(2024, 6, 1), LocalDate.of(2024, 11, 30), TermInstanceStatus.OPEN);
         termInstance.setId(10L);
-        // 183 days = 27 whole weeks, matching TimetableGenerationServiceTest's fixture exactly.
+        // 183 days = 27 whole weeks, matching TimetableGenerationServiceTest's old fixture exactly.
+
+        cohort = new Cohort();
+        cohort.setId(5L);
+        cohort.setDisplayName("BSc Nursing 2024");
 
         Subject subject = new Subject("Anatomy", "ANAT101", 4, 3, 1, null, 1);
         subject.setId(1L);
@@ -92,6 +108,13 @@ class TimetableSkeletonServiceTest {
         offering.setTermInstance(termInstance);
         offering.setCurriculumSemesterCourse(csc);
 
+        Subject otherSubject = new Subject("Physiology", "PHY101", 3, 2, 0, null, 1);
+        otherSubject.setId(2L);
+        otherOffering = new CourseOffering();
+        otherOffering.setId(200L);
+        otherOffering.setSubject(otherSubject);
+        otherOffering.setTermInstance(termInstance);
+
         period = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50), 1);
         period.setId(1L);
         period.setDurationMinutes(50);
@@ -104,6 +127,8 @@ class TimetableSkeletonServiceTest {
         cs.setPeriod(period);
         cs.setDayOfWeek(DayOfWeek.MONDAY);
         cs.setStatus(staffed ? ClassScheduleStatus.PUBLISHED : ClassScheduleStatus.DRAFT);
+        cs.setCourseOffering(offering);
+        cs.setSubject(offering.getSubject());
         if (staffed) {
             Faculty f = new Faculty();
             f.setId(9L);
@@ -112,39 +137,69 @@ class TimetableSkeletonServiceTest {
         return cs;
     }
 
+    private ClassSchedule rowFor(CourseOffering off, ClassSessionType type, Batch batch, DayOfWeek day, Period p) {
+        ClassSchedule cs = new ClassSchedule();
+        cs.setSessionType(type);
+        cs.setBatch(batch);
+        cs.setPeriod(p);
+        cs.setDayOfWeek(day);
+        cs.setStatus(ClassScheduleStatus.DRAFT);
+        cs.setCourseOffering(off);
+        cs.setSubject(off.getSubject());
+        return cs;
+    }
+
+    private CourseOfferingDto offeringDto(Long id, boolean elective) {
+        return new CourseOfferingDto(id, 10L, "2024-2025 ODD", null, null, null, null, null, null, null,
+            1, null, null, true, null, elective, null, null, null, null, null, null, null);
+    }
+
+    // ── getCohortSkeleton ──────────────────────────────────────────────
+
     @Test
     void shouldComputeTheoryBudgetAccountingForShortPeriodDuration() {
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L))).thenReturn(Collections.emptyList());
         when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
         when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
 
-        SkeletonBuilderResponse response = service.getSkeleton(100L);
+        SkeletonBuilderResponse response = service.getCohortSkeleton(10L, 5L);
 
-        SkeletonSubjectBudget theory = response.budgets().stream()
+        SkeletonSubjectBudget theory = response.subjects().get(0).budgets().stream()
             .filter(b -> b.sessionType() == ClassSessionType.THEORY).findFirst().orElseThrow();
         assertThat(theory.requiredSessionsPerWeek()).isEqualTo(3);
         assertThat(theory.placedSessionsPerWeek()).isEqualTo(0);
         assertThat(theory.weeksInTerm()).isEqualTo(27);
+        assertThat(response.cohortName()).isEqualTo("BSc Nursing 2024");
     }
 
     @Test
     void shouldTrackTheoryPlacedCountFromExistingRows() {
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L))
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L)))
             .thenReturn(List.of(existingRow(ClassSessionType.THEORY, null, false)));
         when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
         when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
 
-        SkeletonBuilderResponse response = service.getSkeleton(100L);
+        SkeletonBuilderResponse response = service.getCohortSkeleton(10L, 5L);
 
-        SkeletonSubjectBudget theory = response.budgets().stream()
+        SkeletonSubjectBudget theory = response.subjects().get(0).budgets().stream()
             .filter(b -> b.sessionType() == ClassSessionType.THEORY).findFirst().orElseThrow();
         assertThat(theory.placedSessionsPerWeek()).isEqualTo(1);
         assertThat(response.cells()).hasSize(1);
-        assertThat(response.cells().get(0).isStaffed()).isFalse();
+        SkeletonCellResponse cell = response.cells().get(0);
+        assertThat(cell.isStaffed()).isFalse();
+        assertThat(cell.courseOfferingId()).isEqualTo(100L);
+        assertThat(cell.subjectName()).isEqualTo("Anatomy");
+        assertThat(cell.subjectCode()).isEqualTo("ANAT101");
     }
 
     @Test
@@ -156,16 +211,19 @@ class TimetableSkeletonServiceTest {
         batchB.setId(401L);
         batchB.setName("Batch B");
 
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L))
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L)))
             .thenReturn(List.of(existingRow(ClassSessionType.LAB, batchA, false)));
         when(batchRepository.findByCourseOfferingId(100L)).thenReturn(List.of(batchA, batchB));
         when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
 
-        SkeletonBuilderResponse response = service.getSkeleton(100L);
+        SkeletonBuilderResponse response = service.getCohortSkeleton(10L, 5L);
 
-        List<SkeletonSubjectBudget> labBudgets = response.budgets().stream()
+        List<SkeletonSubjectBudget> labBudgets = response.subjects().get(0).budgets().stream()
             .filter(b -> b.sessionType() == ClassSessionType.LAB).toList();
         assertThat(labBudgets).hasSize(2);
         SkeletonSubjectBudget forA = labBudgets.stream().filter(b -> b.batchId().equals(400L)).findFirst().orElseThrow();
@@ -178,33 +236,78 @@ class TimetableSkeletonServiceTest {
 
     @Test
     void shouldFlagLabHoursNeededWhenNoBatchesExistYet() {
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L))).thenReturn(Collections.emptyList());
         when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
         when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
 
-        SkeletonBuilderResponse response = service.getSkeleton(100L);
+        SkeletonBuilderResponse response = service.getCohortSkeleton(10L, 5L);
 
-        SkeletonSubjectBudget lab = response.budgets().stream()
+        SkeletonSubjectBudget lab = response.subjects().get(0).budgets().stream()
             .filter(b -> b.sessionType() == ClassSessionType.LAB).findFirst().orElseThrow();
         assertThat(lab.batchId()).isNull();
         assertThat(lab.requiredSessionsPerWeek()).isEqualTo(2);
     }
 
     @Test
-    void shouldThrowWhenCurriculumMappingMissing() {
+    void shouldSkipBudgetsButKeepSubjectWhenCurriculumMappingMissing() {
         offering.setCurriculumSemesterCourse(null);
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L))).thenReturn(Collections.emptyList());
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> service.getSkeleton(100L))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("no resolved curriculum mapping");
+        SkeletonBuilderResponse response = service.getCohortSkeleton(10L, 5L);
+
+        assertThat(response.subjects()).hasSize(1);
+        assertThat(response.subjects().get(0).budgets()).isEmpty();
     }
 
     @Test
+    void shouldReturnEmptyResponseWhenCohortHasNoNonElectiveOfferings() {
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of());
+
+        SkeletonBuilderResponse response = service.getCohortSkeleton(10L, 5L);
+
+        assertThat(response.subjects()).isEmpty();
+        assertThat(response.cells()).isEmpty();
+        assertThat(response.cohortName()).isEqualTo("BSc Nursing 2024");
+    }
+
+    @Test
+    void shouldFilterOutElectiveOfferingsFromCohortSkeleton() {
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L))
+            .thenReturn(List.of(offeringDto(100L, false), offeringDto(200L, true)));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L))).thenReturn(Collections.emptyList());
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
+
+        SkeletonBuilderResponse response = service.getCohortSkeleton(10L, 5L);
+
+        assertThat(response.subjects()).hasSize(1);
+        assertThat(response.subjects().get(0).courseOfferingId()).isEqualTo(100L);
+        verify(courseOfferingRepository, never()).findById(200L);
+    }
+
+    // ── placeCell ──────────────────────────────────────────────────────
+
+    @Test
     void shouldPlaceATheoryCellWithNoFacultyOrRoom() {
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
@@ -219,7 +322,7 @@ class TimetableSkeletonServiceTest {
 
     @Test
     void shouldRequireBatchForLabPlacement() {
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, null, 5L);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
 
@@ -230,13 +333,13 @@ class TimetableSkeletonServiceTest {
 
     @Test
     void shouldRejectABatchBelongingToADifferentOffering() {
-        CourseOffering otherOffering = new CourseOffering();
-        otherOffering.setId(999L);
+        CourseOffering otherOff = new CourseOffering();
+        otherOff.setId(999L);
         Batch foreignBatch = new Batch();
         foreignBatch.setId(500L);
-        foreignBatch.setCourseOffering(otherOffering);
+        foreignBatch.setCourseOffering(otherOff);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, 500L);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, 500L, 5L);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(batchRepository.findById(500L)).thenReturn(Optional.of(foreignBatch));
@@ -251,13 +354,72 @@ class TimetableSkeletonServiceTest {
         ClassSchedule existing = existingRow(ClassSessionType.THEORY, null, false);
         existing.setPeriod(period);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(existing));
 
         assertThatThrownBy(() -> service.placeCell(request))
             .isInstanceOf(LifecycleConflictException.class);
+    }
+
+    @Test
+    void shouldBlockTheoryPlacementWhenAnotherSubjectAlreadyOccupiesThatCohortSlot() {
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L))
+            .thenReturn(List.of(offeringDto(100L, false), offeringDto(200L, false)));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L, 200L)))
+            .thenReturn(List.of(rowFor(otherOffering, ClassSessionType.LAB, null, DayOfWeek.MONDAY, period)));
+
+        assertThatThrownBy(() -> service.placeCell(request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("mandatory");
+    }
+
+    @Test
+    void shouldBlockLabPlacementWhenATheorySessionOccupiesThatCohortSlotForAnotherSubject() {
+        Batch batchA = new Batch();
+        batchA.setId(400L);
+        batchA.setCourseOffering(offering);
+
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, 400L, 5L);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(batchRepository.findById(400L)).thenReturn(Optional.of(batchA));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L))
+            .thenReturn(List.of(offeringDto(100L, false), offeringDto(200L, false)));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L, 200L)))
+            .thenReturn(List.of(rowFor(otherOffering, ClassSessionType.THEORY, null, DayOfWeek.MONDAY, period)));
+
+        assertThatThrownBy(() -> service.placeCell(request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("mandatory Theory session");
+    }
+
+    @Test
+    void shouldAllowLabPlacementFromDifferentSubjectsInTheSameCohortSlot() {
+        Batch batchA = new Batch();
+        batchA.setId(400L);
+        batchA.setCourseOffering(offering);
+
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, 400L, 5L);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(batchRepository.findById(400L)).thenReturn(Optional.of(batchA));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L))
+            .thenReturn(List.of(offeringDto(100L, false), offeringDto(200L, false)));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L, 200L)))
+            .thenReturn(List.of(rowFor(otherOffering, ClassSessionType.LAB, null, DayOfWeek.MONDAY, period)));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SkeletonCellResponse response = service.placeCell(request);
+
+        assertThat(response.sessionType()).isEqualTo(ClassSessionType.LAB);
     }
 
     @Test
@@ -269,7 +431,7 @@ class TimetableSkeletonServiceTest {
         block.setRangeEndDate(LocalDate.of(2024, 11, 30));
         block.setReason("Staff meeting");
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
@@ -292,7 +454,7 @@ class TimetableSkeletonServiceTest {
         block.setReason("Auto-blocked — Independence Day");
         block.setSourceCalendarEvent(holiday);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
@@ -311,7 +473,7 @@ class TimetableSkeletonServiceTest {
         // findHolidayOneOffBlocksInRange's result set -- the repository query itself filters to
         // sourceCalendarEventId IS NOT NULL, so this simulates that by returning empty here even
         // though a manual ONE_OFF block for this exact period/date exists in the DB.
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
@@ -322,6 +484,56 @@ class TimetableSkeletonServiceTest {
         assertThat(response.sessionType()).isEqualTo(ClassSessionType.THEORY);
     }
 
+    // ── suggestCandidates ──────────────────────────────────────────────
+
+    @Test
+    void shouldSuggestCandidateSlotsUpToShortfall() {
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+
+        List<SkeletonPlacementCandidateResponse> candidates = service.suggestCandidates(100L, ClassSessionType.THEORY, null);
+
+        assertThat(candidates).hasSize(3); // required=3 for the fixture's 54 theory hours
+        assertThat(candidates).extracting(SkeletonPlacementCandidateResponse::periodId).containsOnly(1L);
+        assertThat(candidates.stream().map(SkeletonPlacementCandidateResponse::dayOfWeek).distinct()).hasSize(3);
+    }
+
+    @Test
+    void shouldSkipDaysAlreadyUsedBySameSubjectWhenSuggesting() {
+        ClassSchedule already = existingRow(ClassSessionType.THEORY, null, false); // MONDAY by default
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(already));
+
+        List<SkeletonPlacementCandidateResponse> candidates = service.suggestCandidates(100L, ClassSessionType.THEORY, null);
+
+        assertThat(candidates).hasSize(2);
+        assertThat(candidates).extracting(SkeletonPlacementCandidateResponse::dayOfWeek).doesNotContain(DayOfWeek.MONDAY);
+    }
+
+    @Test
+    void shouldReturnEmptyCandidatesWhenNoHoursNeededForSessionType() {
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+
+        List<SkeletonPlacementCandidateResponse> candidates = service.suggestCandidates(100L, ClassSessionType.CLINICAL, null);
+
+        assertThat(candidates).isEmpty();
+    }
+
+    @Test
+    void shouldReturnEmptyCandidatesWhenCurriculumMappingMissing() {
+        offering.setCurriculumSemesterCourse(null);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+
+        List<SkeletonPlacementCandidateResponse> candidates = service.suggestCandidates(100L, ClassSessionType.THEORY, null);
+
+        assertThat(candidates).isEmpty();
+    }
+
+    // ── removeCell ─────────────────────────────────────────────────────
+
     @Test
     void shouldRemoveAnUnstaffedDraftCell() {
         ClassSchedule cs = existingRow(ClassSessionType.THEORY, null, false);
@@ -330,7 +542,7 @@ class TimetableSkeletonServiceTest {
 
         service.removeCell(1L);
 
-        org.mockito.Mockito.verify(classScheduleRepository).deleteById(1L);
+        verify(classScheduleRepository).deleteById(1L);
     }
 
     @Test
@@ -342,7 +554,7 @@ class TimetableSkeletonServiceTest {
         assertThatThrownBy(() -> service.removeCell(1L))
             .isInstanceOf(LifecycleConflictException.class);
 
-        org.mockito.Mockito.verify(classScheduleRepository, org.mockito.Mockito.never()).deleteById(any());
+        verify(classScheduleRepository, never()).deleteById(any());
     }
 
     @Test

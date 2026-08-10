@@ -22,5 +22,11 @@ public record SkeletonCellPlacementRequest(
 
     /** Required for LAB/CLINICAL (each batch needs its own placement); optional for THEORY
      *  (R3 Phase 3 section-scoping — null means the whole cohort). */
-    Long batchId
+    Long batchId,
+
+    /** Passed explicitly rather than inferred — CourseOffering has no enforced Cohort FK (only
+     *  resolvable via curriculumVersion.course matching), and the caller already has the cohort
+     *  selected. Used to find sibling offerings for the cohort-exclusivity Theory conflict check. */
+    @NotNull(message = "Cohort is required")
+    Long cohortId
 ) {}

@@ -3,7 +3,7 @@
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
       <h1 class="mlp-title">Timetable <em>Draft Review</em></h1>
-      <p class="page-subtitle">Generate a draft theory + lab timetable from the active curriculum and approve it once it looks right</p>
+      <p class="page-subtitle">Review the draft built via Skeleton Builder + Staffing, swap sessions if needed, and approve it once it looks right</p>
     </div>
   </div>
 
@@ -31,19 +31,6 @@
     </div>
   }
 
-  @if (unplaceable().length > 0) {
-    <div class="content-card timetable-warning-banner">
-      <div class="timetable-warning-banner__title">
-        {{ unplaceable().length }} session(s) could not be auto-placed — fix these manually via the Lab Schedules screen before approving:
-      </div>
-      <ul class="timetable-warning-banner__list">
-        @for (msg of unplaceable(); track msg) {
-          <li>{{ msg }}</li>
-        }
-      </ul>
-    </div>
-  }
-
   <div class="content-card">
     @if (loading()) {
       <div class="loading-container">
@@ -53,15 +40,12 @@
       <cms-week-grid
         mode="review"
         [sessions]="sessions()"
-        [generating]="generating()"
         [saving]="saving() || swapping()"
-        [allowGenerate]="canGenerate()"
         [allowManage]="canManage()"
         [allowRevert]="canRevert()"
         [swapMode]="swapMode()"
         [swapSourceSessionId]="swapSource()?.id ?? null"
         [candidateCells]="candidateCells()"
-        (generateClick)="onGenerate()"
         (approveClick)="onApprove()"
         (discardClick)="onDiscard()"
         (revertClick)="onRevert()"

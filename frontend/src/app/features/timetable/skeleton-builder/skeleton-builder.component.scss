@@ -15,8 +15,8 @@
   margin: 0;
 }
 
-// ── Budget summary ──────────────────────────────────────────────
-.skeleton-budget-card {
+// ── Subjects rail (cohort-wide since R3.1) ────────────────────────
+.skeleton-subjects-card {
   padding: 18px 20px;
 }
 
@@ -25,6 +25,59 @@
   font-size: var(--cms-text-md);
   font-weight: 600;
   color: var(--cms-text-primary);
+}
+
+.skeleton-subject-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.skeleton-subject-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: rgba(var(--cms-primary-rgb), 0.3);
+  }
+
+  &--active {
+    border-color: var(--subject-color, var(--cms-primary));
+    box-shadow: 0 0 0 1px var(--subject-color, var(--cms-primary));
+  }
+}
+
+.skeleton-subject-card__hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.skeleton-subject-card__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--subject-color, var(--cms-primary));
+  flex-shrink: 0;
+}
+
+.skeleton-subject-card__name {
+  font-size: var(--cms-text-base);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+.skeleton-subject-card__code {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-muted);
 }
 
 .skeleton-budget-grid {
@@ -37,6 +90,12 @@
   border: 1px solid var(--cms-border-default);
   border-radius: 12px;
   padding: 12px 14px;
+}
+
+.skeleton-budget-item__suggest {
+  margin-top: 10px;
+  padding: 4px 12px;
+  font-size: var(--cms-text-xs);
 }
 
 .skeleton-budget-item__label {
@@ -136,6 +195,16 @@
   min-width: 0;
 }
 
+.skeleton-cell-stack__advisory {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--cms-badge-amber-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
 .skeleton-cell {
   width: 100%;
   min-height: 52px;
@@ -148,7 +217,10 @@
   border: 1px dashed var(--cms-border-default);
   background: transparent;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  // Subject-color accent bar, layered via box-shadow rather than a border side so it never
+  // fights the border shorthand used for the theory/lab/clinical/selected states below.
+  box-shadow: inset 3px 0 0 0 var(--subject-color, transparent);
 
   &:disabled {
     cursor: default;
@@ -162,6 +234,13 @@
   &--selected {
     border-color: var(--cms-primary);
     border-style: solid;
+  }
+
+  &--candidate {
+    border-color: var(--cms-badge-green-text);
+    border-style: solid;
+    background: var(--cms-badge-green-bg);
+    opacity: 1;
   }
 
   &--theory {
@@ -187,11 +266,20 @@
     min-height: 26px;
     border-style: dashed;
     opacity: 0.7;
+    box-shadow: none;
 
     &:hover:not(:disabled) {
       opacity: 1;
     }
   }
+}
+
+.skeleton-cell__subject {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--cms-text-muted);
+  text-transform: uppercase;
 }
 
 .skeleton-cell__type {

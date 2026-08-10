@@ -1,5 +1,7 @@
 package com.cms.controller;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellPlacementRequest;
 import com.cms.dto.SkeletonCellResponse;
+import com.cms.dto.SkeletonPlacementCandidateResponse;
+import com.cms.model.enums.ClassSessionType;
 import com.cms.service.TimetableSkeletonService;
 
 import jakarta.validation.Valid;
@@ -31,8 +35,17 @@ public class TimetableSkeletonController {
 
     @GetMapping
     @PreAuthorize("@perm.has('TIMETABLE_VIEW')")
-    public ResponseEntity<SkeletonBuilderResponse> getSkeleton(@RequestParam Long courseOfferingId) {
-        return ResponseEntity.ok(timetableSkeletonService.getSkeleton(courseOfferingId));
+    public ResponseEntity<SkeletonBuilderResponse> getSkeleton(@RequestParam Long termInstanceId, @RequestParam Long cohortId) {
+        return ResponseEntity.ok(timetableSkeletonService.getCohortSkeleton(termInstanceId, cohortId));
+    }
+
+    @GetMapping("/suggest")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_MANAGE')")
+    public ResponseEntity<List<SkeletonPlacementCandidateResponse>> suggestCandidates(
+            @RequestParam Long courseOfferingId,
+            @RequestParam ClassSessionType sessionType,
+            @RequestParam(required = false) Long batchId) {
+        return ResponseEntity.ok(timetableSkeletonService.suggestCandidates(courseOfferingId, sessionType, batchId));
     }
 
     @PostMapping("/cells")

@@ -26,5 +26,8 @@ public record SkeletonCellResponse(
     boolean isStaffed,
     ClassScheduleStatus status,
     String rotationGroupLabel,
-    List<String> rotatingBatchNames
+    List<String> rotatingBatchNames,
+    Long courseOfferingId,
+    String subjectName,
+    String subjectCode
 ) {}

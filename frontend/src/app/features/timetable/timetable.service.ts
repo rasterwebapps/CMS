@@ -12,7 +12,6 @@ import {
   SwapCandidate,
   SwapTarget,
   TimetableActionResponse,
-  TimetableGenerationResponse,
   TimetableOccurrenceScope,
 } from './timetable.model';
 
@@ -20,11 +19,6 @@ import {
 export class TimetableService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/timetables`;
-
-  generate(termInstanceId: number): Observable<TimetableGenerationResponse> {
-    const params = new HttpParams().set('termInstanceId', termInstanceId);
-    return this.http.post<TimetableGenerationResponse>(`${this.baseUrl}/generate`, null, { params });
-  }
 
   getDraft(termInstanceId: number): Observable<ClassSchedule[]> {
     const params = new HttpParams().set('termInstanceId', termInstanceId);

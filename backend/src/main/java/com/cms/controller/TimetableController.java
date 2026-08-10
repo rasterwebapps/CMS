@@ -22,7 +22,6 @@ import com.cms.dto.ResourceGridRowResponse;
 import com.cms.dto.SwapCandidateResponse;
 import com.cms.dto.SwapRequest;
 import com.cms.dto.TimetableActionResponse;
-import com.cms.dto.TimetableGenerationResponse;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.service.ClassScheduleService;
@@ -100,14 +99,8 @@ public class TimetableController {
             timetableOccurrenceService.findOccurrences(identity, termInstanceId, from, to, scope));
     }
 
-    @PostMapping("/generate")
-    @PreAuthorize("@perm.has('TIMETABLE_GENERATE')")
-    public ResponseEntity<TimetableGenerationResponse> generate(@RequestParam Long termInstanceId) {
-        return ResponseEntity.ok(timetableGenerationService.generate(termInstanceId));
-    }
-
     @GetMapping("/draft")
-    @PreAuthorize("@perm.has('TIMETABLE_GENERATE') or @perm.has('TIMETABLE_MANAGE')")
+    @PreAuthorize("@perm.has('TIMETABLE_MANAGE')")
     public ResponseEntity<List<ClassScheduleResponse>> findDraft(@RequestParam Long termInstanceId) {
         return ResponseEntity.ok(classScheduleService.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT));
     }

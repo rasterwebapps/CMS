@@ -31,9 +31,7 @@ export class TimetableDraftReviewComponent implements OnInit {
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
   protected readonly sessions = signal<ClassSchedule[]>([]);
-  protected readonly unplaceable = signal<string[]>([]);
   protected readonly loading = signal(false);
-  protected readonly generating = signal(false);
   protected readonly saving = signal(false);
   protected readonly termsLoading = signal(false);
 
@@ -44,10 +42,6 @@ export class TimetableDraftReviewComponent implements OnInit {
 
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
-
-  protected canGenerate(): boolean {
-    return this.permissionService.has('TIMETABLE_GENERATE');
-  }
 
   protected canManage(): boolean {
     return this.permissionService.has('TIMETABLE_MANAGE');
@@ -80,49 +74,12 @@ export class TimetableDraftReviewComponent implements OnInit {
   protected onAcademicYearChange(): void {
     this.selectedTermInstanceId = null;
     this.sessions.set([]);
-    this.unplaceable.set([]);
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
   protected onTermChange(): void {
-    this.unplaceable.set([]);
     if (this.selectedTermInstanceId) this.loadDraft(this.selectedTermInstanceId);
     else this.sessions.set([]);
-  }
-
-  protected onGenerate(): void {
-    if (!this.selectedTermInstanceId) return;
-    if (this.sessions().length === 0) {
-      this.doGenerate();
-      return;
-    }
-    this.dialog.open(ConfirmDialogComponent, {
-      data: {
-        title: 'Regenerate Draft Timetable',
-        message: 'This discards the current draft — including any manual swaps you made — and creates a new arrangement. This cannot be undone.',
-        confirmText: 'Regenerate',
-        cancelText: 'Cancel',
-      },
-    }).afterClosed().subscribe((confirmed) => {
-      if (confirmed) this.doGenerate();
-    });
-  }
-
-  private doGenerate(): void {
-    this.cancelSwap();
-    this.generating.set(true);
-    this.timetableService.generate(this.selectedTermInstanceId!).subscribe({
-      next: (response) => {
-        this.unplaceable.set(response.unplaceable);
-        this.toast.success(`Generated ${response.generatedCount} session(s)`);
-        this.loadDraft(this.selectedTermInstanceId!);
-        this.generating.set(false);
-      },
-      error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to generate timetable');
-        this.generating.set(false);
-      },
-    });
   }
 
   protected onApprove(): void {
@@ -131,7 +88,6 @@ export class TimetableDraftReviewComponent implements OnInit {
     this.timetableService.approve(this.selectedTermInstanceId).subscribe({
       next: (response) => {
         this.toast.success(`Approved ${response.affectedCount} session(s) — timetable is now live`);
-        this.unplaceable.set([]);
         this.loadDraft(this.selectedTermInstanceId!);
         this.saving.set(false);
       },
@@ -191,7 +147,6 @@ export class TimetableDraftReviewComponent implements OnInit {
       next: () => {
         this.toast.success('Draft discarded');
         this.sessions.set([]);
-        this.unplaceable.set([]);
         this.saving.set(false);
       },
       error: (err) => {

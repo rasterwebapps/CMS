@@ -11,7 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalTime;
-import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -26,7 +25,6 @@ import com.cms.dto.MyTimetableResponse;
 import com.cms.dto.ProfileIdentity;
 import com.cms.dto.SwapCandidateResponse;
 import com.cms.dto.TimetableActionResponse;
-import com.cms.dto.TimetableGenerationResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.DayOfWeek;
@@ -65,29 +63,6 @@ class TimetableControllerTest {
 
     @MockitoBean
     private ResourceGridService resourceGridService;
-
-    @Test
-    void shouldGenerateTimetable() throws Exception {
-        TimetableGenerationResponse response = new TimetableGenerationResponse(3, Collections.emptyList());
-        when(timetableGenerationService.generate(10L)).thenReturn(response);
-
-        mockMvc.perform(post("/timetables/generate").param("termInstanceId", "10"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.generatedCount").value(3))
-            .andExpect(jsonPath("$.unplaceable").isEmpty());
-
-        verify(timetableGenerationService).generate(10L);
-    }
-
-    @Test
-    void shouldReturnConflictWhenTimetableAlreadyExists() throws Exception {
-        when(timetableGenerationService.generate(10L)).thenThrow(
-            new LifecycleConflictException("A timetable already exists for this term. Clear it before regenerating.",
-                "TIMETABLE_ALREADY_EXISTS", "TermInstance", 10L, null));
-
-        mockMvc.perform(post("/timetables/generate").param("termInstanceId", "10"))
-            .andExpect(status().isConflict());
-    }
 
     @Test
     void shouldFindDraftRows() throws Exception {
