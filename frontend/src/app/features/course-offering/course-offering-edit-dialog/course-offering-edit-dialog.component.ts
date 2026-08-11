@@ -47,6 +47,7 @@ export class CourseOfferingEditDialogComponent {
 
   protected readonly form: FormGroup = this.fb.group({
     facultyId: [this.data.offering.facultyId],
+    secondaryFacultyId: [this.data.offering.secondaryFacultyId],
     sectionLabel: [this.data.offering.sectionLabel ?? ''],
   });
 
@@ -54,6 +55,7 @@ export class CourseOfferingEditDialogComponent {
     const v = this.form.value;
     const request: CourseOfferingUpdateRequest = {
       facultyId: v.facultyId ?? null,
+      secondaryFacultyId: v.secondaryFacultyId ?? null,
       sectionLabel: (v.sectionLabel ?? '').trim() || null,
     };
 

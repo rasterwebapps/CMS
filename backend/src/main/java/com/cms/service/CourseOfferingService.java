@@ -14,7 +14,7 @@ public interface CourseOfferingService {
     List<CourseOfferingDto> getOfferingsByTermInstanceAndCohort(Long termInstanceId, Long cohortId);
     List<CourseOfferingDto> getOfferingsByTermInstanceAndElectiveGroup(Long termInstanceId, Long electiveGroupId);
     CourseOfferingDto getById(Long id);
-    CourseOfferingDto updateOffering(Long id, Long facultyId, String sectionLabel);
+    CourseOfferingDto updateOffering(Long id, Long facultyId, Long secondaryFacultyId, String sectionLabel);
     void deactivateOffering(Long id);
     void deactivateAllOfferingsForTermInstance(Long termInstanceId);
 }

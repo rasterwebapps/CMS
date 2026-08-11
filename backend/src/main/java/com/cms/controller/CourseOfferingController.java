@@ -76,7 +76,7 @@ public class CourseOfferingController {
             @PathVariable Long id,
             @RequestBody CourseOfferingUpdateRequest request) {
         return ResponseEntity.ok(
-            courseOfferingService.updateOffering(id, request.facultyId(), request.sectionLabel()));
+            courseOfferingService.updateOffering(id, request.facultyId(), request.secondaryFacultyId(), request.sectionLabel()));
     }
 
     @DeleteMapping("/{id}")

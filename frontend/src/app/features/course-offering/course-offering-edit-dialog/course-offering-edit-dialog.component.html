@@ -25,6 +25,17 @@
     </div>
 
     <div class="field-group">
+      <label for="coed-secondary-faculty" class="field-label">Secondary Faculty (optional)</label>
+      <select id="coed-secondary-faculty" class="field-select" formControlName="secondaryFacultyId">
+        <option [ngValue]="null">None</option>
+        @for (f of data.facultyOptions; track f.id) {
+          <option [ngValue]="f.id">{{ f.name }}</option>
+        }
+      </select>
+      <p class="field-hint">Informational backup/co-instructor note only — not eligible for staffing or substitution</p>
+    </div>
+
+    <div class="field-group">
       <label for="coed-section" class="field-label">Section Label</label>
       <input
         id="coed-section"

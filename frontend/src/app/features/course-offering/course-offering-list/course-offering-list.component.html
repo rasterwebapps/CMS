@@ -124,6 +124,11 @@
             <td mat-cell *matCellDef="let row">{{ facultyName(row.facultyId) }}</td>
           </ng-container>
 
+          <ng-container matColumnDef="secondaryFaculty">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Secondary Faculty</th>
+            <td mat-cell *matCellDef="let row">{{ row.secondaryFacultyId ? facultyName(row.secondaryFacultyId) : '—' }}</td>
+          </ng-container>
+
           <ng-container matColumnDef="sectionLabel">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Section</th>
             <td mat-cell *matCellDef="let row">{{ row.sectionLabel || '—' }}</td>

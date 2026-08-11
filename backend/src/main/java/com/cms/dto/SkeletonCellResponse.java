@@ -23,11 +23,15 @@ public record SkeletonCellResponse(
     LocalTime endTime,
     Long batchId,
     String batchName,
+    Long cohortSectionId,
+    String cohortSectionLabel,
     boolean isStaffed,
     ClassScheduleStatus status,
     String rotationGroupLabel,
     List<String> rotatingBatchNames,
     Long courseOfferingId,
     String subjectName,
-    String subjectCode
+    String subjectCode,
+    Long electiveGroupId,
+    String electiveGroupName
 ) {}

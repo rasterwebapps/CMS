@@ -17,6 +17,8 @@ public record CourseOfferingDto(
     String subjectSpecialityName,
     Integer termNumber,
     Long facultyId,
+    /** Informational-only backup/co-instructor note — never eligible for staffing/substitution. */
+    Long secondaryFacultyId,
     String sectionLabel,
     Boolean isActive,
     Long curriculumTermCourseId,

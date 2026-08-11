@@ -57,7 +57,7 @@ export class CourseOfferingListComponent implements OnInit {
   }
 
   protected readonly displayedColumns = [
-    'subjectCode', 'subjectName', 'semesterNumber', 'faculty', 'sectionLabel', 'status', 'actions',
+    'subjectCode', 'subjectName', 'semesterNumber', 'faculty', 'secondaryFaculty', 'sectionLabel', 'status', 'actions',
   ];
   protected readonly dataSource = new MatTableDataSource<CourseOffering>([]);
   protected readonly loading = signal(false);

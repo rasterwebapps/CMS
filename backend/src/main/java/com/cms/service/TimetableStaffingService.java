@@ -1,10 +1,13 @@
 package com.cms.service;
 
+import java.time.Duration;
 import java.time.LocalTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +17,7 @@ import com.cms.dto.UnstaffedCellResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Batch;
+import com.cms.model.BlockedPeriod;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.ClinicalVenue;
@@ -21,20 +25,26 @@ import com.cms.model.CohortRoomAllocation;
 import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
 import com.cms.model.Faculty;
+import com.cms.model.FacultyAvailability;
 import com.cms.model.Lab;
+import com.cms.model.Period;
 import com.cms.model.RotationMemberAssignment;
 import com.cms.model.Room;
 import com.cms.model.StudentTermEnrollment;
+import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortRoomAllocationStatus;
+import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.RegistrationStatus;
 import com.cms.repository.BatchRepository;
+import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseRegistrationRepository;
+import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 
@@ -65,6 +75,9 @@ public class TimetableStaffingService {
     private final CohortRoomAllocationRepository cohortRoomAllocationRepository;
     private final CohortSectionRepository cohortSectionRepository;
     private final RotationResolverService rotationResolverService;
+    private final BlockedPeriodRepository blockedPeriodRepository;
+    private final FacultyAvailabilityRepository facultyAvailabilityRepository;
+    private final SystemConfigurationService systemConfigurationService;
 
     public TimetableStaffingService(ClassScheduleRepository classScheduleRepository,
                                      FacultyRepository facultyRepository,
@@ -74,7 +87,10 @@ public class TimetableStaffingService {
                                      StudentTermEnrollmentRepository studentTermEnrollmentRepository,
                                      CohortRoomAllocationRepository cohortRoomAllocationRepository,
                                      CohortSectionRepository cohortSectionRepository,
-                                     RotationResolverService rotationResolverService) {
+                                     RotationResolverService rotationResolverService,
+                                     BlockedPeriodRepository blockedPeriodRepository,
+                                     FacultyAvailabilityRepository facultyAvailabilityRepository,
+                                     SystemConfigurationService systemConfigurationService) {
         this.classScheduleRepository = classScheduleRepository;
         this.facultyRepository = facultyRepository;
         this.classroomRepository = classroomRepository;
@@ -84,6 +100,9 @@ public class TimetableStaffingService {
         this.cohortRoomAllocationRepository = cohortRoomAllocationRepository;
         this.cohortSectionRepository = cohortSectionRepository;
         this.rotationResolverService = rotationResolverService;
+        this.blockedPeriodRepository = blockedPeriodRepository;
+        this.facultyAvailabilityRepository = facultyAvailabilityRepository;
+        this.systemConfigurationService = systemConfigurationService;
     }
 
     public List<UnstaffedCellResponse> getUnstaffedCells(Long termInstanceId) {
@@ -104,13 +123,17 @@ public class TimetableStaffingService {
                 "CELL_NOT_DRAFT", "ClassSchedule", classScheduleId, null);
         }
 
+        requireNotBlocked(cs.getDayOfWeek(), cs.getPeriod(), cs.getTermInstance());
+
         Faculty faculty = facultyRepository.findById(request.facultyId())
             .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + request.facultyId()));
         ClassScheduleService.requireEligibleFaculty(cs.getSubject(), faculty, cs.getFaculty());
 
         LocalTime start = cs.getPeriod().getStartTime();
         LocalTime end = cs.getPeriod().getEndTime();
+        requireFacultyAvailable(faculty.getId(), cs.getDayOfWeek(), start, end);
         requireFacultyFree(faculty.getId(), cs, start, end);
+        requireWithinWorkloadCaps(faculty, cs, start, end);
 
         switch (cs.getSessionType()) {
             case THEORY -> {
@@ -137,6 +160,36 @@ public class TimetableStaffingService {
 
         cs.setFaculty(faculty);
         return toResponse(classScheduleRepository.save(cs));
+    }
+
+    /** Blocks staffing a cell that falls in a recurring institutional lock (lunch, assembly,
+     *  sports) or a holiday-derived one-off block — the exact same check {@link
+     *  TimetableSkeletonService#placeCell} already applies at placement time, duplicated here
+     *  rather than shared (see the class-level note on why conflict checking here is deliberately
+     *  narrower/separate from the skeleton builder's own checks) since a skeleton cell can sit
+     *  unstaffed for a while and a block could be added/changed in between placement and staffing.
+     *  Manually-created ONE_OFF blocks never reach this check — only RECURRING and
+     *  holiday-auto-generated ONE_OFF blocks do, matching the skeleton builder's own coarseness. */
+    private void requireNotBlocked(DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
+        List<BlockedPeriod> conflicts = blockedPeriodRepository.findOverlappingRecurringBlocks(
+            dayOfWeek, period.getId(), termInstance.getStartDate(), termInstance.getEndDate());
+        if (!conflicts.isEmpty()) {
+            throw new LifecycleConflictException(
+                "This day and period is blocked: " + conflicts.get(0).getReason(),
+                "STAFFING_PERIOD_BLOCKED", "ClassSchedule", null, null);
+        }
+
+        java.time.DayOfWeek targetDay = java.time.DayOfWeek.valueOf(dayOfWeek.name());
+        List<BlockedPeriod> holidayConflicts = blockedPeriodRepository.findHolidayOneOffBlocksInRange(
+                period.getId(), termInstance.getStartDate(), termInstance.getEndDate())
+            .stream()
+            .filter(bp -> bp.getSpecificDate().getDayOfWeek() == targetDay)
+            .toList();
+        if (!holidayConflicts.isEmpty()) {
+            throw new LifecycleConflictException(
+                "This day and period is blocked: " + holidayConflicts.get(0).getReason(),
+                "STAFFING_PERIOD_BLOCKED", "ClassSchedule", null, null);
+        }
     }
 
     /** LAB rooms are no longer a free pick here — the venue was already decided and
@@ -206,17 +259,27 @@ public class TimetableStaffingService {
     private Classroom requireCommittedTheoryClassroom(ClassSchedule cs) {
         return resolveCommittedTheoryClassroom(cs)
             .orElseThrow(() -> new LifecycleConflictException(
-                "This cohort has no Theory room committed in Cohort Room Allocation, or has multiple Theory "
-                    + "sections committed — commit a single-section allocation in Capacity Planner before staffing, "
-                    + "or staff each section's row explicitly once section-scoped Theory staffing is supported.",
+                "This cohort has no Theory room committed in Cohort Room Allocation, or this row predates "
+                    + "section-scoped placement and its cohort has multiple Theory sections committed — commit an "
+                    + "allocation in Capacity Planner before staffing, or re-place this session via Skeleton Builder "
+                    + "so it carries a specific section.",
                 "STAFFING_VENUE_NOT_COMMITTED", "ClassSchedule", cs.getId(), null));
     }
 
-    /** Non-elective Theory staffing only auto-resolves a room when the cohort's commit is
-     *  unsectioned (exactly one active {@link CohortSection}) -- a sectioned cohort has more than
-     *  one Theory room and no per-student roster yet to disambiguate which section a given
-     *  ClassSchedule row belongs to, so this deliberately returns empty rather than guessing. */
+    /** Since R3.2, a Theory {@code ClassSchedule} row placed via Skeleton Builder carries its own
+     *  {@link CohortSection} directly (V368) whenever the cohort's commit was sectioned at
+     *  placement time — that's checked first and, when present, resolves the room with no
+     *  ambiguity at all. Rows placed before that column existed (or via any other path) fall back
+     *  to the original enrollment-inference chain, which only auto-resolves a room when the
+     *  cohort's commit is unsectioned (exactly one active {@link CohortSection}) -- a sectioned
+     *  cohort has more than one Theory room and, without the direct link, no way to disambiguate
+     *  which section that particular row belongs to, so the fallback deliberately returns empty
+     *  rather than guessing. */
     private Optional<Classroom> resolveCommittedTheoryClassroom(ClassSchedule cs) {
+        if (cs.getCohortSection() != null) {
+            return Optional.of(cs.getCohortSection().getClassroom());
+        }
+
         CourseOffering offering = cs.getCourseOffering();
         if (offering == null) {
             return Optional.empty();
@@ -239,6 +302,20 @@ public class TimetableStaffingService {
         return sections.size() == 1 ? Optional.of(sections.get(0).getClassroom()) : Optional.empty();
     }
 
+    /** Blocks staffing a faculty member into a slot they've declared themselves unavailable for
+     *  (leave, external duty, a visiting lecturer's fixed weekly window, etc) — the same {@link
+     *  FacultyAvailability} check {@link TimetableSwapService} and {@code FacultySessionSwapService}
+     *  already apply, closing the one staffing path that skipped it. A faculty member with no rows
+     *  in this table is assumed fully available, so this only ever blocks on an explicit exception. */
+    private void requireFacultyAvailable(Long facultyId, DayOfWeek dayOfWeek, LocalTime start, LocalTime end) {
+        List<FacultyAvailability> blocks = facultyAvailabilityRepository.findOverlapping(facultyId, dayOfWeek, start, end);
+        if (!blocks.isEmpty()) {
+            throw new LifecycleConflictException(
+                "This faculty member is unavailable at this day and time: " + blocks.get(0).getReason(),
+                "STAFFING_FACULTY_UNAVAILABLE", "ClassSchedule", null, null);
+        }
+    }
+
     /** Blocks assigning a faculty member already committed elsewhere at this exact day/time —
      *  checked against both live PUBLISHED rows and other already-staffed DRAFT rows in the same
      *  term, excluding this cell itself. */
@@ -254,6 +331,125 @@ public class TimetableStaffingService {
                     "STAFFING_FACULTY_CONFLICT", "ClassSchedule", cs.getId(), null);
             }
         }
+    }
+
+    /** Hard-blocks staffing a faculty member past whatever daily/weekly/continuous-hours caps the
+     *  admin has configured in System Configuration (category {@code TIMETABLE}) — a blank or
+     *  non-positive/unparseable cap value is treated as "no cap", never as an error, since these
+     *  ship blank by default and a malformed manual edit must never crash staffing. "Weekly" sums
+     *  every session this faculty has in the term regardless of day, since the whole timetable is
+     *  one recurring weekly template with no separate calendar-week concept anywhere in {@link
+     *  ClassSchedule}. Checked against both PUBLISHED and other already-staffed DRAFT rows,
+     *  excluding this cell itself so a re-staff (same cell, different or same faculty) doesn't
+     *  double-count its own slot. */
+    private void requireWithinWorkloadCaps(Faculty faculty, ClassSchedule cs, LocalTime start, LocalTime end) {
+        Optional<Double> dailyCap = resolveCapHours("timetable.faculty_max_daily_hours");
+        Optional<Double> weeklyCap = resolveCapHours("timetable.faculty_max_weekly_hours");
+        Optional<Double> continuousCap = resolveCapHours("timetable.faculty_max_continuous_hours");
+        if (dailyCap.isEmpty() && weeklyCap.isEmpty() && continuousCap.isEmpty()) {
+            return;
+        }
+
+        double newSessionHours = Duration.between(start, end).toMinutes() / 60.0;
+        List<ClassSchedule> otherSessions = Stream.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)
+            .flatMap(status -> classScheduleRepository
+                .findByTermInstanceIdAndStatusAndFacultyId(cs.getTermInstance().getId(), status, faculty.getId())
+                .stream())
+            .filter(other -> !other.getId().equals(cs.getId()))
+            .filter(other -> other.getPeriod() != null)
+            .toList();
+
+        if (dailyCap.isPresent()) {
+            double dailyHours = otherSessions.stream()
+                .filter(other -> other.getDayOfWeek() == cs.getDayOfWeek())
+                .mapToDouble(other -> sessionHours(other.getPeriod()))
+                .sum() + newSessionHours;
+            if (dailyHours > dailyCap.get()) {
+                throw new LifecycleConflictException(
+                    "Staffing this session would put this faculty member at " + formatHours(dailyHours)
+                        + " hours today, over the configured daily cap of " + formatHours(dailyCap.get()) + " hours.",
+                    "STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED", "ClassSchedule", cs.getId(), null);
+            }
+        }
+
+        if (weeklyCap.isPresent()) {
+            double weeklyHours = otherSessions.stream()
+                .mapToDouble(other -> sessionHours(other.getPeriod()))
+                .sum() + newSessionHours;
+            if (weeklyHours > weeklyCap.get()) {
+                throw new LifecycleConflictException(
+                    "Staffing this session would put this faculty member at " + formatHours(weeklyHours)
+                        + " hours this week, over the configured weekly cap of " + formatHours(weeklyCap.get()) + " hours.",
+                    "STAFFING_WORKLOAD_WEEKLY_CAP_EXCEEDED", "ClassSchedule", cs.getId(), null);
+            }
+        }
+
+        if (continuousCap.isPresent()) {
+            double continuousHours = continuousChainHours(otherSessions, cs.getDayOfWeek(), start, end);
+            if (continuousHours > continuousCap.get()) {
+                throw new LifecycleConflictException(
+                    "Staffing this session would put this faculty member into a " + formatHours(continuousHours)
+                        + "-hour unbroken run, over the configured continuous-hours cap of "
+                        + formatHours(continuousCap.get()) + " hours.",
+                    "STAFFING_WORKLOAD_CONTINUOUS_CAP_EXCEEDED", "ClassSchedule", cs.getId(), null);
+            }
+        }
+    }
+
+    /** Sums the back-to-back (no-gap) run of same-day sessions that the new [start,end) interval
+     *  joins onto, including the new interval itself — faculty-free already guarantees no true
+     *  overlap, so "continuous" here just means adjacent intervals with zero gap between them. */
+    private double continuousChainHours(List<ClassSchedule> otherSessions, DayOfWeek dayOfWeek,
+                                         LocalTime start, LocalTime end) {
+        record Interval(LocalTime start, LocalTime end) {}
+
+        List<Interval> intervals = Stream.concat(
+                otherSessions.stream()
+                    .filter(other -> other.getDayOfWeek() == dayOfWeek)
+                    .map(other -> new Interval(other.getPeriod().getStartTime(), other.getPeriod().getEndTime())),
+                Stream.of(new Interval(start, end)))
+            .sorted(Comparator.comparing(Interval::start))
+            .toList();
+
+        List<Interval> runs = new java.util.ArrayList<>();
+        LocalTime runStart = null;
+        LocalTime runEnd = null;
+        for (Interval interval : intervals) {
+            if (runStart == null || !interval.start().equals(runEnd)) {
+                if (runStart != null) runs.add(new Interval(runStart, runEnd));
+                runStart = interval.start();
+            }
+            runEnd = interval.end();
+        }
+        runs.add(new Interval(runStart, runEnd));
+
+        return runs.stream()
+            .filter(run -> !run.start().isAfter(start) && !run.end().isBefore(end))
+            .mapToDouble(run -> Duration.between(run.start(), run.end()).toMinutes() / 60.0)
+            .findFirst()
+            .orElse(Duration.between(start, end).toMinutes() / 60.0);
+    }
+
+    private double sessionHours(Period period) {
+        return Duration.between(period.getStartTime(), period.getEndTime()).toMinutes() / 60.0;
+    }
+
+    private Optional<Double> resolveCapHours(String configKey) {
+        return systemConfigurationService.findByKey(configKey)
+            .map(config -> config.configValue())
+            .filter(value -> value != null && !value.isBlank())
+            .flatMap(value -> {
+                try {
+                    double parsed = Double.parseDouble(value.trim());
+                    return parsed > 0 ? Optional.of(parsed) : Optional.<Double>empty();
+                } catch (NumberFormatException e) {
+                    return Optional.empty();
+                }
+            });
+    }
+
+    private static String formatHours(double hours) {
+        return hours == Math.floor(hours) ? String.valueOf((long) hours) : String.valueOf(hours);
     }
 
     /** Blocks assigning a room already occupied at this exact day/time — either the exact same

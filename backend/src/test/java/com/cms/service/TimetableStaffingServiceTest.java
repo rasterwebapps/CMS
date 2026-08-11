@@ -3,6 +3,8 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
@@ -18,11 +20,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.StaffingAssignmentRequest;
+import com.cms.dto.SystemConfigurationResponse;
 import com.cms.dto.UnstaffedCellResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Batch;
+import com.cms.model.BlockedPeriod;
 import com.cms.model.Classroom;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Cohort;
@@ -32,6 +36,7 @@ import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
+import com.cms.model.FacultyAvailability;
 import com.cms.model.Lab;
 import com.cms.model.Period;
 import com.cms.model.Speciality;
@@ -41,18 +46,22 @@ import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortRoomAllocationStatus;
+import com.cms.model.enums.ConfigDataType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.LabStatus;
 import com.cms.model.enums.PlanningBasis;
+import com.cms.model.enums.BlockType;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.BatchRepository;
+import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseRegistrationRepository;
+import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 
@@ -68,6 +77,9 @@ class TimetableStaffingServiceTest {
     @Mock private CohortRoomAllocationRepository cohortRoomAllocationRepository;
     @Mock private CohortSectionRepository cohortSectionRepository;
     @Mock private RotationResolverService rotationResolverService;
+    @Mock private BlockedPeriodRepository blockedPeriodRepository;
+    @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
+    @Mock private SystemConfigurationService systemConfigurationService;
 
     private TimetableStaffingService service;
 
@@ -84,7 +96,8 @@ class TimetableStaffingServiceTest {
         service = new TimetableStaffingService(classScheduleRepository, facultyRepository,
             classroomRepository, batchRepository, courseRegistrationRepository,
             studentTermEnrollmentRepository, cohortRoomAllocationRepository, cohortSectionRepository,
-            rotationResolverService);
+            rotationResolverService, blockedPeriodRepository, facultyAvailabilityRepository,
+            systemConfigurationService);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);
@@ -122,6 +135,10 @@ class TimetableStaffingServiceTest {
         // test below — none of which are about the non-elective Theory lock — keeps exercising
         // the same free-pick behavior it always has, without needing enrollment/allocation mocks.
         cell.setCourseOffering(electiveOffering());
+    }
+
+    private SystemConfigurationResponse configResponse(String key, String value) {
+        return new SystemConfigurationResponse(1L, key, value, null, ConfigDataType.DECIMAL, "TIMETABLE", true, null, null);
     }
 
     private CourseOffering electiveOffering() {
@@ -407,6 +424,91 @@ class TimetableStaffingServiceTest {
     }
 
     @Test
+    void shouldResolveTheoryClassroomDirectlyFromTheCellsOwnCohortSectionWithoutEnrollmentInference() {
+        Classroom sectionClassroom = new Classroom("Room 303", "Main Block", "303", 40);
+        sectionClassroom.setId(11L);
+        CohortRoomAllocation allocation = new CohortRoomAllocation();
+        allocation.setId(60L);
+        CohortSection section = new CohortSection(allocation, termInstance, "Section A", sectionClassroom, 30);
+        cell.setCohortSection(section);
+
+        CurriculumSemesterCourse csc = new CurriculumSemesterCourse();
+        csc.setIsElective(false);
+        CourseOffering offering = new CourseOffering();
+        offering.setTermInstance(termInstance);
+        offering.setSemesterNumber(3);
+        offering.setCurriculumSemesterCourse(csc);
+        cell.setCourseOffering(offering);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, null);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.staffCell(100L, request);
+
+        assertThat(cell.getClassroom()).isEqualTo(sectionClassroom);
+        // The direct link on the cell resolves the room with no ambiguity -- the legacy
+        // enrollment-inference chain (and its dependency on this repository) is never consulted.
+        verifyNoInteractions(studentTermEnrollmentRepository);
+    }
+
+    @Test
+    void shouldResolveTheoryClassroomForASectionedCohortWhenTheCellCarriesItsOwnSection() {
+        // Regression test: today (without a direct link on the cell) a >1-section allocation
+        // always fails staffing with STAFFING_VENUE_NOT_COMMITTED, because
+        // resolveCommittedTheoryClassroom's enrollment-inference fallback refuses to guess which
+        // of several sections a row belongs to -- reproduced here by stubbing the exact same
+        // 2-active-section allocation the legacy path would choke on, then proving staffing still
+        // succeeds because the cell's own direct CohortSection link is checked first and skips
+        // that fallback entirely.
+        Classroom sectionAClassroom = new Classroom("Room 202", "Main Block", "202", 30);
+        sectionAClassroom.setId(9L);
+        Classroom sectionBClassroom = new Classroom("Room 203", "Main Block", "203", 30);
+        sectionBClassroom.setId(10L);
+        CohortRoomAllocation allocation = new CohortRoomAllocation();
+        allocation.setId(60L);
+        CohortSection sectionA = new CohortSection(allocation, termInstance, "Section A", sectionAClassroom, 30);
+        CohortSection sectionB = new CohortSection(allocation, termInstance, "Section B", sectionBClassroom, 30);
+        cell.setCohortSection(sectionA);
+
+        CurriculumSemesterCourse csc = new CurriculumSemesterCourse();
+        csc.setIsElective(false);
+        CourseOffering offering = new CourseOffering();
+        offering.setTermInstance(termInstance);
+        offering.setSemesterNumber(3);
+        offering.setCurriculumSemesterCourse(csc);
+        cell.setCourseOffering(offering);
+
+        Cohort cohort = new Cohort();
+        cohort.setId(7L);
+        StudentTermEnrollment enrollment = new StudentTermEnrollment();
+        enrollment.setCohort(cohort);
+        // Stubbed leniently -- these back the legacy fallback path, which this test proves is
+        // never reached (the direct cell.getCohortSection() link short-circuits before it).
+        lenient().when(studentTermEnrollmentRepository.findByTermInstanceIdAndSemesterNumber(10L, 3))
+            .thenReturn(List.of(enrollment));
+        lenient().when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(7L, 10L, CohortRoomAllocationStatus.COMMITTED))
+            .thenReturn(Optional.of(allocation));
+        lenient().when(cohortSectionRepository.findByCohortRoomAllocationIdAndIsActiveTrue(60L))
+            .thenReturn(List.of(sectionA, sectionB));
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, null);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.staffCell(100L, request);
+
+        assertThat(cell.getClassroom()).isEqualTo(sectionAClassroom);
+        verifyNoInteractions(studentTermEnrollmentRepository);
+    }
+
+    @Test
     void shouldRejectADifferentClassroomThatSharesTheSamePhysicalRoomAsAnAlreadyOccupiedOne() {
         com.cms.model.Room physicalRoom = new com.cms.model.Room();
         physicalRoom.setId(99L);
@@ -433,5 +535,213 @@ class TimetableStaffingServiceTest {
         assertThatThrownBy(() -> service.staffCell(100L, request))
             .isInstanceOf(LifecycleConflictException.class)
             .hasMessageContaining("already occupied");
+    }
+
+    @Test
+    void shouldRejectStaffingACellAtARecurringBlockedPeriod() {
+        BlockedPeriod block = new BlockedPeriod();
+        block.setBlockType(BlockType.RECURRING);
+        block.setDayOfWeek(DayOfWeek.MONDAY);
+        block.setRangeStartDate(LocalDate.of(2024, 6, 1));
+        block.setRangeEndDate(LocalDate.of(2024, 11, 30));
+        block.setReason("Staff meeting");
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(blockedPeriodRepository.findOverlappingRecurringBlocks(
+            DayOfWeek.MONDAY, 1L, termInstance.getStartDate(), termInstance.getEndDate()))
+            .thenReturn(List.of(block));
+
+        assertThatThrownBy(() -> service.staffCell(100L, request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("Staff meeting");
+    }
+
+    @Test
+    void shouldRejectStaffingACellAtAHolidayDerivedOneOffBlock() {
+        com.cms.model.CalendarEvent holiday = new com.cms.model.CalendarEvent();
+        holiday.setTitle("Independence Day");
+        BlockedPeriod block = new BlockedPeriod();
+        block.setBlockType(BlockType.ONE_OFF);
+        block.setSpecificDate(LocalDate.of(2024, 8, 5)); // a Monday
+        block.setReason("Auto-blocked — Independence Day");
+        block.setSourceCalendarEvent(holiday);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(blockedPeriodRepository.findHolidayOneOffBlocksInRange(
+            1L, termInstance.getStartDate(), termInstance.getEndDate()))
+            .thenReturn(List.of(block));
+
+        assertThatThrownBy(() -> service.staffCell(100L, request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("Auto-blocked");
+    }
+
+    @Test
+    void shouldRejectStaffingAFacultyMemberDuringTheirDeclaredUnavailableWindow() {
+        FacultyAvailability unavailable = new FacultyAvailability();
+        unavailable.setReason("On approved leave");
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(facultyAvailabilityRepository.findOverlapping(1L, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime()))
+            .thenReturn(List.of(unavailable));
+
+        assertThatThrownBy(() -> service.staffCell(100L, request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("On approved leave");
+    }
+
+    @Test
+    void shouldRejectStaffingWhenDailyCapWouldBeExceeded() {
+        Period newCellPeriod = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(11, 0), 2);
+        newCellPeriod.setId(2L);
+        cell.setPeriod(newCellPeriod);
+
+        ClassSchedule existingSameDay = new ClassSchedule();
+        existingSameDay.setId(400L);
+        existingSameDay.setFaculty(eligibleFaculty);
+        existingSameDay.setDayOfWeek(DayOfWeek.MONDAY);
+        Period existingPeriod = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 30), 1);
+        existingPeriod.setId(1L);
+        existingSameDay.setPeriod(existingPeriod);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_hours"))
+            .thenReturn(Optional.of(configResponse("timetable.faculty_max_daily_hours", "1")));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 1L))
+            .thenReturn(List.of(existingSameDay));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.DRAFT, 1L))
+            .thenReturn(Collections.emptyList());
+
+        assertThatThrownBy(() -> service.staffCell(100L, request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("daily cap");
+    }
+
+    @Test
+    void shouldRejectStaffingWhenWeeklyCapWouldBeExceeded() {
+        ClassSchedule existingDifferentDay = new ClassSchedule();
+        existingDifferentDay.setId(400L);
+        existingDifferentDay.setFaculty(eligibleFaculty);
+        existingDifferentDay.setDayOfWeek(DayOfWeek.TUESDAY);
+        Period existingPeriod = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 30), 1);
+        existingPeriod.setId(1L);
+        existingDifferentDay.setPeriod(existingPeriod);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_hours"))
+            .thenReturn(Optional.empty());
+        when(systemConfigurationService.findByKey("timetable.faculty_max_weekly_hours"))
+            .thenReturn(Optional.of(configResponse("timetable.faculty_max_weekly_hours", "1")));
+        when(systemConfigurationService.findByKey("timetable.faculty_max_continuous_hours"))
+            .thenReturn(Optional.empty());
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 1L))
+            .thenReturn(List.of(existingDifferentDay));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.DRAFT, 1L))
+            .thenReturn(Collections.emptyList());
+
+        assertThatThrownBy(() -> service.staffCell(100L, request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("weekly cap");
+    }
+
+    @Test
+    void shouldRejectStaffingWhenContinuousCapWouldBeExceeded() {
+        Period newCellPeriod = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(11, 0), 2);
+        newCellPeriod.setId(2L);
+        cell.setPeriod(newCellPeriod);
+
+        ClassSchedule precedingSameDay = new ClassSchedule();
+        precedingSameDay.setId(400L);
+        precedingSameDay.setFaculty(eligibleFaculty);
+        precedingSameDay.setDayOfWeek(DayOfWeek.MONDAY);
+        Period precedingPeriod = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), 1);
+        precedingPeriod.setId(1L);
+        precedingSameDay.setPeriod(precedingPeriod);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_hours"))
+            .thenReturn(Optional.empty());
+        when(systemConfigurationService.findByKey("timetable.faculty_max_weekly_hours"))
+            .thenReturn(Optional.empty());
+        when(systemConfigurationService.findByKey("timetable.faculty_max_continuous_hours"))
+            .thenReturn(Optional.of(configResponse("timetable.faculty_max_continuous_hours", "1")));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 1L))
+            .thenReturn(List.of(precedingSameDay));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.DRAFT, 1L))
+            .thenReturn(Collections.emptyList());
+
+        assertThatThrownBy(() -> service.staffCell(100L, request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("continuous-hours cap");
+    }
+
+    @Test
+    void shouldAllowStaffingExactlyAtTheCapBoundary() {
+        Period newCellPeriod = new Period("2nd Period", LocalTime.of(9, 30), LocalTime.of(10, 0), 2);
+        newCellPeriod.setId(2L);
+        cell.setPeriod(newCellPeriod);
+
+        ClassSchedule existingSameDay = new ClassSchedule();
+        existingSameDay.setId(400L);
+        existingSameDay.setFaculty(eligibleFaculty);
+        existingSameDay.setDayOfWeek(DayOfWeek.MONDAY);
+        Period existingPeriod = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 30), 1);
+        existingPeriod.setId(1L);
+        existingSameDay.setPeriod(existingPeriod);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_hours"))
+            .thenReturn(Optional.of(configResponse("timetable.faculty_max_daily_hours", "1")));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 1L))
+            .thenReturn(List.of(existingSameDay));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.DRAFT, 1L))
+            .thenReturn(Collections.emptyList());
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.staffCell(100L, request);
+
+        assertThat(cell.getFaculty()).isEqualTo(eligibleFaculty);
+    }
+
+    @Test
+    void shouldIgnoreAnUnparseableWorkloadCapConfigValue() {
+        // A malformed manual edit to the daily-cap config (unparseable as a number) must degrade
+        // to "no cap" rather than crashing staffing -- both other caps stay unset too, so this
+        // resolves to zero configured caps and requireWithinWorkloadCaps returns before ever
+        // consulting the faculty's other sessions this term.
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_hours"))
+            .thenReturn(Optional.of(configResponse("timetable.faculty_max_daily_hours", "not-a-number")));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.staffCell(100L, request);
+
+        assertThat(cell.getFaculty()).isEqualTo(eligibleFaculty);
     }
 }

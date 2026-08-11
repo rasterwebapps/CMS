@@ -443,7 +443,7 @@ class CourseOfferingServiceImplTest {
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
         when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
 
-        service.updateOffering(1L, 42L, "Section A");
+        service.updateOffering(1L, 42L, null, "Section A");
 
         assertThat(offering.getFacultyId()).isEqualTo(42L);
         assertThat(offering.getSectionLabel()).isEqualTo("Section A");
@@ -466,7 +466,7 @@ class CourseOfferingServiceImplTest {
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
         when(facultyRepository.findById(42L)).thenReturn(Optional.of(mismatchedFaculty));
 
-        assertThatThrownBy(() -> service.updateOffering(1L, 42L, "Section A"))
+        assertThatThrownBy(() -> service.updateOffering(1L, 42L, null, "Section A"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("not eligible to teach");
 
@@ -490,7 +490,7 @@ class CourseOfferingServiceImplTest {
         when(facultyRepository.findById(42L)).thenReturn(Optional.of(matchingFaculty));
         when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
 
-        service.updateOffering(1L, 42L, "Section A");
+        service.updateOffering(1L, 42L, null, "Section A");
 
         assertThat(offering.getFacultyId()).isEqualTo(42L);
     }
@@ -514,7 +514,7 @@ class CourseOfferingServiceImplTest {
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
         when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
 
-        service.updateOffering(1L, 42L, "Section A - Renamed");
+        service.updateOffering(1L, 42L, null, "Section A - Renamed");
 
         assertThat(offering.getSectionLabel()).isEqualTo("Section A - Renamed");
         verify(facultyRepository, never()).findById(any());

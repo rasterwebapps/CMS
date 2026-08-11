@@ -51,6 +51,11 @@ public class CourseOffering {
     @Column(name = "faculty_id")
     private Long facultyId;
 
+    /** Informational-only backup/co-instructor note — never eligible for staffing/substitution,
+     *  never gets its own ClassSchedule rows, no scheduling logic reads it. */
+    @Column(name = "secondary_faculty_id")
+    private Long secondaryFacultyId;
+
     @Column(name = "section_label", length = 50)
     private String sectionLabel;
 
@@ -122,6 +127,14 @@ public class CourseOffering {
 
     public void setFacultyId(Long facultyId) {
         this.facultyId = facultyId;
+    }
+
+    public Long getSecondaryFacultyId() {
+        return secondaryFacultyId;
+    }
+
+    public void setSecondaryFacultyId(Long secondaryFacultyId) {
+        this.secondaryFacultyId = secondaryFacultyId;
     }
 
     public String getSectionLabel() {

@@ -44,8 +44,9 @@ public class TimetableSkeletonController {
     public ResponseEntity<List<SkeletonPlacementCandidateResponse>> suggestCandidates(
             @RequestParam Long courseOfferingId,
             @RequestParam ClassSessionType sessionType,
-            @RequestParam(required = false) Long batchId) {
-        return ResponseEntity.ok(timetableSkeletonService.suggestCandidates(courseOfferingId, sessionType, batchId));
+            @RequestParam(required = false) Long batchId,
+            @RequestParam(required = false) Long cohortSectionId) {
+        return ResponseEntity.ok(timetableSkeletonService.suggestCandidates(courseOfferingId, sessionType, batchId, cohortSectionId));
     }
 
     @PostMapping("/cells")

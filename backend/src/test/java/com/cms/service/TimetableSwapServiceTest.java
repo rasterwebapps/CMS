@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
@@ -21,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.SwapCandidateResponse;
 import com.cms.dto.SwapRequest;
 import com.cms.exception.LifecycleConflictException;
+import com.cms.model.BlockedPeriod;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.CourseOffering;
@@ -31,10 +34,12 @@ import com.cms.model.Period;
 import com.cms.model.Speciality;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.BlockType;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.PeriodRepository;
@@ -45,6 +50,7 @@ class TimetableSwapServiceTest {
     @Mock private ClassScheduleRepository classScheduleRepository;
     @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
     @Mock private PeriodRepository periodRepository;
+    @Mock private BlockedPeriodRepository blockedPeriodRepository;
 
     private TimetableSwapService service;
 
@@ -60,10 +66,12 @@ class TimetableSwapServiceTest {
     @BeforeEach
     void setUp() {
         service = new TimetableSwapService(classScheduleRepository, facultyAvailabilityRepository,
-            periodRepository);
+            periodRepository, blockedPeriodRepository);
 
         termInstance = new TermInstance();
         termInstance.setId(10L);
+        termInstance.setStartDate(LocalDate.of(2024, 6, 1));
+        termInstance.setEndDate(LocalDate.of(2024, 11, 30));
 
         Speciality speciality = new Speciality("Nursing", "NUR", "Nursing Dept", null, null);
         speciality.setId(1L);
@@ -186,5 +194,46 @@ class TimetableSwapServiceTest {
         assertThat(occupant.getPeriod()).isEqualTo(p1);
         verify(classScheduleRepository).save(source);
         verify(classScheduleRepository).save(occupant);
+    }
+
+    @Test
+    void shouldExcludeARecurringBlockedPeriodFromCandidates() {
+        BlockedPeriod block = new BlockedPeriod();
+        block.setBlockType(BlockType.RECURRING);
+        block.setReason("Staff meeting");
+
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(p1, p2));
+        when(facultyAvailabilityRepository.findOverlapping(eq(1L), any(), any(), any())).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findOverlapping(any(), eq(10L), any(), any(), eq(ClassScheduleStatus.DRAFT), eq(100L)))
+            .thenReturn(Collections.emptyList());
+        // Block every day for p2 specifically -- p1's only candidate day (MONDAY) is already
+        // excluded as the session's own current slot, so this isolates the effect to p2's rows.
+        // lenient(): findCandidates scans every (day, period) combination, most of which have
+        // periodId=1L and would otherwise trip strict-stubbing's "unmatched invocation" guard.
+        lenient().when(blockedPeriodRepository.findOverlappingRecurringBlocks(any(), eq(2L), eq(termInstance.getStartDate()), eq(termInstance.getEndDate())))
+            .thenReturn(List.of(block));
+
+        List<SwapCandidateResponse> candidates = service.findCandidates(10L, 100L);
+
+        assertThat(candidates).isNotEmpty();
+        assertThat(candidates).noneMatch(c -> c.periodId().equals(2L));
+    }
+
+    @Test
+    void shouldRejectDirectSwapIntoABlockedPeriod() {
+        BlockedPeriod block = new BlockedPeriod();
+        block.setBlockType(BlockType.RECURRING);
+        block.setReason("Staff meeting");
+
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
+        when(periodRepository.findById(2L)).thenReturn(Optional.of(p2));
+        when(blockedPeriodRepository.findOverlappingRecurringBlocks(
+            DayOfWeek.TUESDAY, 2L, termInstance.getStartDate(), termInstance.getEndDate()))
+            .thenReturn(List.of(block));
+
+        assertThatThrownBy(() -> service.swap(10L, 100L, new SwapRequest(DayOfWeek.TUESDAY, 2L)))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("no longer available");
     }
 }

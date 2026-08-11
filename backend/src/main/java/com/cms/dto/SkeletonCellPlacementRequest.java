@@ -28,5 +28,12 @@ public record SkeletonCellPlacementRequest(
      *  resolvable via curriculumVersion.course matching), and the caller already has the cohort
      *  selected. Used to find sibling offerings for the cohort-exclusivity Theory conflict check. */
     @NotNull(message = "Cohort is required")
-    Long cohortId
+    Long cohortId,
+
+    /** THEORY only — selects which CohortSection this session is for, once the cohort's
+     *  committed Theory room allocation has one or more active sections (required whenever any
+     *  exist, even the trivial single-section case, so Staffing can resolve the room directly
+     *  later). Ignored for LAB/CLINICAL — their section scope is derived from the chosen
+     *  batchId's own Batch.cohortSection instead. */
+    Long cohortSectionId
 ) {}

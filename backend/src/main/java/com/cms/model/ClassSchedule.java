@@ -100,6 +100,16 @@ public class ClassSchedule {
     @JoinColumn(name = "course_offering_id")
     private CourseOffering courseOffering;
 
+    /** Which CohortSection sub-cohort this THEORY session was placed for, once its cohort's
+     *  committed Theory room has been split into sections (see V364) -- mirrors
+     *  Batch#getCohortSection() for LAB/CLINICAL. Null means "whole cohort": either no committed
+     *  CohortRoomAllocation for this cohort/term, or a row placed before V368 added this column.
+     *  Never set on LAB/CLINICAL rows; their section scope is derived from their own
+     *  Batch#getCohortSection() instead. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cohort_section_id")
+    private CohortSection cohortSection;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -245,6 +255,14 @@ public class ClassSchedule {
 
     public void setCourseOffering(CourseOffering courseOffering) {
         this.courseOffering = courseOffering;
+    }
+
+    public CohortSection getCohortSection() {
+        return cohortSection;
+    }
+
+    public void setCohortSection(CohortSection cohortSection) {
+        this.cohortSection = cohortSection;
     }
 
     public Instant getCreatedAt() {

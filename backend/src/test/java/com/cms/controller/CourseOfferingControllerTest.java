@@ -42,7 +42,7 @@ class CourseOfferingControllerTest {
             id, termInstanceId, "2024-2025 ODD",
             1L, "CV-2024",
             1L, "Mathematics", "MATH101", null, null,
-            semNum, null, null, true,
+            semNum, null, null, null, true,
             null, false, com.cms.model.enums.SubjectType.CORE,
             null, null,
             0, 0,
@@ -105,7 +105,7 @@ class CourseOfferingControllerTest {
     @Test
     void update() throws Exception {
         CourseOfferingDto dto = createDto(1L, 1L, 1);
-        when(service.updateOffering(1L, 42L, "A")).thenReturn(dto);
+        when(service.updateOffering(1L, 42L, null, "A")).thenReturn(dto);
 
         mockMvc.perform(put("/course-offerings/1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -113,7 +113,7 @@ class CourseOfferingControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1));
 
-        verify(service).updateOffering(1L, 42L, "A");
+        verify(service).updateOffering(1L, 42L, null, "A");
     }
 
     @Test

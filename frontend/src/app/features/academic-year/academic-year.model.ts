@@ -273,6 +273,8 @@ export interface CourseOffering {
   subjectSpecialityName: string | null;
   semesterNumber: number;
   facultyId: number | null;
+  /** Informational-only backup/co-instructor note — never eligible for staffing/substitution. */
+  secondaryFacultyId: number | null;
   sectionLabel: string | null;
   isActive: boolean;
   curriculumTermCourseId: number | null;
@@ -288,6 +290,7 @@ export interface CourseOffering {
 
 export interface CourseOfferingUpdateRequest {
   facultyId?: number | null;
+  secondaryFacultyId?: number | null;
   sectionLabel?: string | null;
 }
 

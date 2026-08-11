@@ -188,11 +188,13 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
 
     @Override
     @Transactional
-    public CourseOfferingDto updateOffering(Long id, Long facultyId, String sectionLabel) {
+    public CourseOfferingDto updateOffering(Long id, Long facultyId, Long secondaryFacultyId, String sectionLabel) {
         CourseOffering offering = courseOfferingRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + id));
         requireEligibleFaculty(offering, facultyId);
         offering.setFacultyId(facultyId);
+        // Informational only -- no eligibility gate, unlike the primary facultyId above.
+        offering.setSecondaryFacultyId(secondaryFacultyId);
         offering.setSectionLabel(sectionLabel);
         return toDto(courseOfferingRepository.save(offering));
     }
@@ -272,6 +274,7 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
             o.getSubject().getSpeciality() != null ? o.getSubject().getSpeciality().getName() : null,
             o.getSemesterNumber(),
             o.getFacultyId(),
+            o.getSecondaryFacultyId(),
             o.getSectionLabel(),
             o.getIsActive(),
             csc != null ? csc.getId() : null,

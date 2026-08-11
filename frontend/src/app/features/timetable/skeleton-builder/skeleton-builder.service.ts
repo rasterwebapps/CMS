@@ -21,12 +21,13 @@ export class SkeletonBuilderService {
     });
   }
 
-  suggestCandidates(courseOfferingId: number, sessionType: SkeletonSessionType, batchId: number | null): Observable<SkeletonPlacementCandidate[]> {
+  suggestCandidates(courseOfferingId: number, sessionType: SkeletonSessionType, batchId: number | null, cohortSectionId: number | null): Observable<SkeletonPlacementCandidate[]> {
     const params: Record<string, string> = {
       courseOfferingId: courseOfferingId.toString(),
       sessionType,
     };
     if (batchId != null) params['batchId'] = batchId.toString();
+    if (cohortSectionId != null) params['cohortSectionId'] = cohortSectionId.toString();
     return this.http.get<SkeletonPlacementCandidate[]>(`${this.baseUrl}/suggest`, { params });
   }
 

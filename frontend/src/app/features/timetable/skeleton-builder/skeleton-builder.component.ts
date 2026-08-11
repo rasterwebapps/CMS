@@ -8,7 +8,7 @@ import { AcademicYear, CohortSummary, TermInstance } from '../../academic-year/a
 import { PeriodService } from '../../period/period.service';
 import { Period } from '../../period/period.model';
 import { SkeletonBuilderService } from './skeleton-builder.service';
-import { SkeletonBuilderResponse, SkeletonCell, SkeletonPlacementCandidate, SkeletonSessionType, SkeletonSubject } from './skeleton-builder.model';
+import { SkeletonBuilderResponse, SkeletonCell, SkeletonPlacementCandidate, SkeletonSectionOption, SkeletonSessionType, SkeletonSubject } from './skeleton-builder.model';
 import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/week-grid.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
@@ -58,10 +58,12 @@ export class SkeletonBuilderComponent implements OnInit {
   protected readonly selectedCell = signal<{ day: string; periodId: number } | null>(null);
   protected selectedSessionType: SkeletonSessionType = 'THEORY';
   protected selectedBatchId: number | null = null;
+  protected selectedCohortSectionId: number | null = null;
 
   protected readonly candidates = signal<SkeletonPlacementCandidate[]>([]);
 
   protected readonly needsBatch = computed(() => this.selectedSessionType !== 'THEORY');
+  protected readonly needsSection = computed(() => this.selectedSessionType === 'THEORY' && this.activeSections().length > 0);
   protected readonly selectedPeriod = computed(() => {
     const cell = this.selectedCell();
     if (!cell) return null;
@@ -77,6 +79,7 @@ export class SkeletonBuilderComponent implements OnInit {
     if (!id) return [];
     return this.skeleton()?.batches.filter((b) => b.courseOfferingId === id) ?? [];
   });
+  protected readonly activeSections = computed<SkeletonSectionOption[]>(() => this.skeleton()?.sections ?? []);
 
   protected readonly showRotationSetup = signal(false);
 
@@ -254,6 +257,21 @@ export class SkeletonBuilderComponent implements OnInit {
     this.selectedCell.set({ day, periodId });
     this.selectedSessionType = 'THEORY';
     this.selectedBatchId = null;
+    this.autoSelectSoleSection();
+  }
+
+  /** Re-run the auto-select whenever the panel's session-type radio flips (back) to THEORY, so
+   *  the trivial single-section case never forces an extra click regardless of which type was
+   *  picked first. */
+  protected onSessionTypeChange(): void {
+    this.selectedBatchId = null;
+    this.selectedCohortSectionId = null;
+    this.autoSelectSoleSection();
+  }
+
+  private autoSelectSoleSection(): void {
+    const sections = this.activeSections();
+    this.selectedCohortSectionId = sections.length === 1 ? sections[0].id : null;
   }
 
   protected cancelPlacement(): void {
@@ -269,6 +287,10 @@ export class SkeletonBuilderComponent implements OnInit {
       this.toast.error('A batch is required for a Lab or Clinical session');
       return;
     }
+    if (this.needsSection() && !this.selectedCohortSectionId) {
+      this.toast.error('A cohort section is required to place a Theory session for this cohort');
+      return;
+    }
     this.placing.set(true);
     this.skeletonService.placeCell({
       courseOfferingId: offeringId,
@@ -277,6 +299,7 @@ export class SkeletonBuilderComponent implements OnInit {
       periodId: cell.periodId,
       batchId: this.selectedBatchId,
       cohortId,
+      cohortSectionId: this.selectedSessionType === 'THEORY' ? this.selectedCohortSectionId : null,
     }).subscribe({
       next: () => {
         this.toast.success('Placed');
@@ -292,12 +315,12 @@ export class SkeletonBuilderComponent implements OnInit {
     });
   }
 
-  protected onSuggestClick(courseOfferingId: number, sessionType: SkeletonSessionType, batchId: number | null, event: Event): void {
+  protected onSuggestClick(courseOfferingId: number, sessionType: SkeletonSessionType, batchId: number | null, cohortSectionId: number | null, event: Event): void {
     event.stopPropagation();
     if (!this.canManage()) return;
     this.activeOfferingId = courseOfferingId;
     this.suggesting.set(true);
-    this.skeletonService.suggestCandidates(courseOfferingId, sessionType, batchId).subscribe({
+    this.skeletonService.suggestCandidates(courseOfferingId, sessionType, batchId, cohortSectionId).subscribe({
       next: (candidates) => {
         this.candidates.set(candidates);
         this.suggesting.set(false);

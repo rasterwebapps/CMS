@@ -11,11 +11,14 @@ import com.cms.dto.SwapCandidateResponse;
 import com.cms.dto.SwapRequest;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.BlockedPeriod;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Period;
+import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
+import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.PeriodRepository;
@@ -40,13 +43,16 @@ public class TimetableSwapService {
     private final ClassScheduleRepository classScheduleRepository;
     private final FacultyAvailabilityRepository facultyAvailabilityRepository;
     private final PeriodRepository periodRepository;
+    private final BlockedPeriodRepository blockedPeriodRepository;
 
     public TimetableSwapService(ClassScheduleRepository classScheduleRepository,
                                  FacultyAvailabilityRepository facultyAvailabilityRepository,
-                                 PeriodRepository periodRepository) {
+                                 PeriodRepository periodRepository,
+                                 BlockedPeriodRepository blockedPeriodRepository) {
         this.classScheduleRepository = classScheduleRepository;
         this.facultyAvailabilityRepository = facultyAvailabilityRepository;
         this.periodRepository = periodRepository;
+        this.blockedPeriodRepository = blockedPeriodRepository;
     }
 
     /** Whether a (day,start,end) slot works for `moving` — availability-clean and, if occupied,
@@ -71,7 +77,7 @@ public class TimetableSwapService {
 
     private void addIfCandidate(List<SwapCandidateResponse> out, ClassSchedule source, DayOfWeek day,
                                  LocalTime start, LocalTime end, Long periodId) {
-        SlotEvaluation eval = evaluateSlot(source, day, start, end, null);
+        SlotEvaluation eval = evaluateSlot(source, day, start, end, periodId, null);
         if (!eval.valid()) {
             return;
         }
@@ -101,7 +107,7 @@ public class TimetableSwapService {
         }
 
         // Never trust a stale candidate list — re-evaluate from scratch.
-        SlotEvaluation eval = evaluateSlot(source, request.dayOfWeek(), start, end, null);
+        SlotEvaluation eval = evaluateSlot(source, request.dayOfWeek(), start, end, targetPeriod.getId(), null);
         if (!eval.valid()) {
             throw slotUnavailable(sessionId);
         }
@@ -126,14 +132,18 @@ public class TimetableSwapService {
      *  swap, not just a move into an empty slot. */
     private SlotEvaluation evaluateReverse(ClassSchedule source, ClassSchedule occupant) {
         return evaluateSlot(occupant, source.getDayOfWeek(),
-            source.getPeriod().getStartTime(), source.getPeriod().getEndTime(), source.getId());
+            source.getPeriod().getStartTime(), source.getPeriod().getEndTime(), source.getPeriod().getId(), source.getId());
     }
 
     /** @param alsoExcludeId an additional row (besides `moving` itself, always excluded) to leave
      *                       out of the conflict scan — used for the reverse-swap check, where the
      *                       session vacating the slot must not count as a blocker. */
     private SlotEvaluation evaluateSlot(ClassSchedule moving, DayOfWeek day, LocalTime start, LocalTime end,
-                                         Long alsoExcludeId) {
+                                         Long periodId, Long alsoExcludeId) {
+        if (isBlocked(day, periodId, moving.getTermInstance())) {
+            return SlotEvaluation.BLOCKED;
+        }
+
         // Null for an unstaffed R3 Phase 4 skeleton row -- nothing to check faculty-availability
         // or faculty-conflict against yet, so both checks below become no-ops for it.
         Long facultyId = moving.getFaculty() != null ? moving.getFaculty().getId() : null;
@@ -175,6 +185,25 @@ public class TimetableSwapService {
             }
         }
         return new SlotEvaluation(true, roomOccupant);
+    }
+
+    /** Non-throwing sibling of {@link TimetableSkeletonService}'s equivalent check — a candidate
+     *  slot that falls in a recurring institutional lock or a holiday-derived one-off block simply
+     *  never shows up as valid, rather than surfacing a distinct error code (there's no dedicated
+     *  UI affordance here to explain "why" a slot didn't appear, unlike the skeleton builder's
+     *  explicit placement action). Manually-created ONE_OFF blocks never reach this check, matching
+     *  the skeleton builder's own coarseness. */
+    private boolean isBlocked(DayOfWeek dayOfWeek, Long periodId, TermInstance termInstance) {
+        List<BlockedPeriod> conflicts = blockedPeriodRepository.findOverlappingRecurringBlocks(
+            dayOfWeek, periodId, termInstance.getStartDate(), termInstance.getEndDate());
+        if (!conflicts.isEmpty()) {
+            return true;
+        }
+        java.time.DayOfWeek targetDay = java.time.DayOfWeek.valueOf(dayOfWeek.name());
+        return blockedPeriodRepository.findHolidayOneOffBlocksInRange(
+                periodId, termInstance.getStartDate(), termInstance.getEndDate())
+            .stream()
+            .anyMatch(bp -> bp.getSpecificDate().getDayOfWeek() == targetDay);
     }
 
     /** THEORY audience is batch-scoped when a section was picked (R3 Phase 3), falling back to
