@@ -162,6 +162,12 @@ public class Faculty {
     @Column(name = "commission_amount", precision = 12, scale = 2)
     private BigDecimal commissionAmount;
 
+    /** Advisory-only, for the faculty capacity-planning report. Wins over
+     *  {@link DesignationMaster#getDefaultWeeklyTeachingHours()} when set; null means "use the
+     *  designation default", not zero. */
+    @Column(name = "planned_weekly_hours_override")
+    private Integer plannedWeeklyHoursOverride;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -313,6 +319,9 @@ public class Faculty {
 
     public BigDecimal getCommissionAmount() { return commissionAmount; }
     public void setCommissionAmount(BigDecimal commissionAmount) { this.commissionAmount = commissionAmount; }
+
+    public Integer getPlannedWeeklyHoursOverride() { return plannedWeeklyHoursOverride; }
+    public void setPlannedWeeklyHoursOverride(Integer plannedWeeklyHoursOverride) { this.plannedWeeklyHoursOverride = plannedWeeklyHoursOverride; }
 
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }

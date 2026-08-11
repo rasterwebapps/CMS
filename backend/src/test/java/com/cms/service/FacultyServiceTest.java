@@ -286,6 +286,30 @@ class FacultyServiceTest {
     }
 
     @Test
+    void shouldPersistPlannedWeeklyHoursOverrideOnCreate() {
+        FacultyRequest request = facultyRequestWithOverride(
+            "EMP001", "John", "Doe", "john.doe@college.edu", "1234567890",
+            1L, 1L, "Artificial Intelligence", "Machine Learning Lab",
+            LocalDate.of(2020, 1, 15), FacultyStatus.ACTIVE, 22);
+
+        Faculty savedFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john.doe@college.edu",
+            testSpeciality, professor, FacultyStatus.ACTIVE);
+        savedFaculty.setPlannedWeeklyHoursOverride(22);
+
+        when(specialityRepository.findById(1L)).thenReturn(Optional.of(testSpeciality));
+        when(designationRepository.findById(1L)).thenReturn(Optional.of(professor));
+        when(facultyRepository.save(any(Faculty.class))).thenReturn(savedFaculty);
+
+        FacultyResponse response = facultyService.create(request);
+
+        assertThat(response.plannedWeeklyHoursOverride()).isEqualTo(22);
+
+        ArgumentCaptor<Faculty> captor = ArgumentCaptor.forClass(Faculty.class);
+        verify(facultyRepository).save(captor.capture());
+        assertThat(captor.getValue().getPlannedWeeklyHoursOverride()).isEqualTo(22);
+    }
+
+    @Test
     void shouldThrowExceptionWhenUpdatingWithDuplicateEmployeeCode() {
         Faculty existingFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
             testSpeciality, professor, FacultyStatus.ACTIVE);
@@ -401,7 +425,27 @@ class FacultyServiceTest {
             specialization, labExpertise, joiningDate, status,
             facultyType, highestQualification, null, null, null, null, gender, maritalStatus,
             null, null, null, null, null, null, null, null, bankAccountType, address,
-            years, years, years, years, years, years, years
+            years, years, years, years, years, years, years, null
+        );
+    }
+
+    private static FacultyRequest facultyRequestWithOverride(
+            String employeeCode, String firstName, String lastName, String email, String phone,
+            Long specialityId, Long designationId, String specialization, String labExpertise,
+            LocalDate joiningDate, FacultyStatus status, Integer plannedWeeklyHoursOverride) {
+        final com.cms.model.enums.FacultyType facultyType = null;
+        final com.cms.model.enums.FacultyQualification highestQualification = null;
+        final com.cms.model.enums.Gender gender = null;
+        final com.cms.model.enums.MaritalStatus maritalStatus = null;
+        final com.cms.model.enums.BankAccountType bankAccountType = null;
+        final com.cms.dto.AddressRequest address = null;
+        final java.math.BigDecimal years = null;
+        return new FacultyRequest(
+            employeeCode, firstName, lastName, email, phone, specialityId, designationId,
+            specialization, labExpertise, joiningDate, status,
+            facultyType, highestQualification, null, null, null, null, gender, maritalStatus,
+            null, null, null, null, null, null, null, null, bankAccountType, address,
+            years, years, years, years, years, years, years, plannedWeeklyHoursOverride
         );
     }
 

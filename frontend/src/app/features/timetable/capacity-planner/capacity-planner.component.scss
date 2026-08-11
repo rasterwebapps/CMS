@@ -9,6 +9,93 @@
   margin: 0;
 }
 
+// ─── Faculty Workload tab toggle ───
+.cap-tab-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--cms-radius-md, 10px);
+  background: var(--cms-bg-muted);
+  width: fit-content;
+}
+
+.cap-tab-toggle__btn {
+  padding: 6px 16px;
+  border: none;
+  border-radius: var(--cms-radius-sm, 6px);
+  background: transparent;
+  color: var(--cms-text-secondary);
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+
+  &--active {
+    background: var(--cms-bg-card);
+    color: var(--cms-primary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  }
+}
+
+// ─── Faculty Workload table ───
+.cap-fw-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th, td {
+    padding: 10px 12px;
+    font-size: var(--cms-text-sm);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  th {
+    color: var(--cms-text-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--cms-border-default);
+  }
+
+  td {
+    color: var(--cms-text-primary);
+    box-shadow: inset 0 -1px 0 var(--cms-border-default);
+  }
+}
+
+.cap-fw-warn {
+  color: var(--cms-warning);
+  font-weight: 600;
+}
+
+.cap-fw-unconfigured {
+  color: var(--cms-text-muted);
+  font-style: italic;
+}
+
+.cap-fw-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--cms-radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &--ok {
+    background: var(--cms-success-light);
+    color: var(--cms-success);
+  }
+
+  &--warn {
+    background: var(--cms-warning-light);
+    color: var(--cms-warning);
+  }
+
+  &--danger {
+    background: var(--cms-danger-light);
+    color: var(--cms-danger);
+  }
+}
+
 .cap-summary-card {
   padding: 18px 20px;
 }

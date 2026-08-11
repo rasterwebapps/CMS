@@ -70,7 +70,7 @@ export class DesignationListComponent implements OnInit, AfterViewInit, OnDestro
     });
   }
 
-  protected readonly displayedColumns = ['code', 'name', 'description', 'isActive', 'actions'];
+  protected readonly displayedColumns = ['code', 'name', 'description', 'defaultWeeklyTeachingHours', 'isActive', 'actions'];
   protected readonly dataSource = new MatTableDataSource<DesignationMaster>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');

@@ -131,6 +131,7 @@ export class FacultyFormComponent implements OnInit {
     phone: ['', [Validators.maxLength(20)]],
     specialityId: [null as number | null, [Validators.required]],
     designationId: [null as number | null, [Validators.required]],
+    plannedWeeklyHoursOverride: [null as number | null, [Validators.min(0)]],
     facultyType: [null as string | null],
     highestQualification: [null as FacultyQualification | null],
     nrtsNumber: ['', [Validators.maxLength(50)]],
@@ -277,6 +278,7 @@ export class FacultyFormComponent implements OnInit {
       clinicalExperiencePgYears: this.numberOrUndefined(v.clinicalExperiencePgYears),
       clinicalExperiencePhdYears: this.numberOrUndefined(v.clinicalExperiencePhdYears),
       commissionAmount: this.numberOrUndefined(v.commissionAmount),
+      plannedWeeklyHoursOverride: this.numberOrUndefined(v.plannedWeeklyHoursOverride),
     };
 
     this.saving.set(true);
@@ -415,6 +417,9 @@ export class FacultyFormComponent implements OnInit {
       const maxLength = control.errors['maxlength'].requiredLength;
       return `${this.getFieldLabel(fieldName)} must be at most ${maxLength} characters`;
     }
+    if (control.errors['min']) {
+      return `${this.getFieldLabel(fieldName)} cannot be negative`;
+    }
     return '';
   }
 
@@ -427,6 +432,7 @@ export class FacultyFormComponent implements OnInit {
       phone: 'Phone',
       specialityId: 'Speciality',
       designationId: 'Designation',
+      plannedWeeklyHoursOverride: 'Weekly Teaching Hours Override',
       specialization: 'Specialization',
       labExpertise: 'Lab Expertise',
       joiningDate: 'Joining Date',
@@ -514,6 +520,7 @@ export class FacultyFormComponent implements OnInit {
           clinicalExperiencePgYears: faculty.clinicalExperiencePgYears ?? null,
           clinicalExperiencePhdYears: faculty.clinicalExperiencePhdYears ?? null,
           commissionAmount: faculty.commissionAmount ?? null,
+          plannedWeeklyHoursOverride: faculty.plannedWeeklyHoursOverride ?? null,
         });
         this.loading.set(false);
       },

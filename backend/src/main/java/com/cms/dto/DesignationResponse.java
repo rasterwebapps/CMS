@@ -8,6 +8,7 @@ public record DesignationResponse(
     String code,
     String description,
     Boolean isActive,
+    Integer defaultWeeklyTeachingHours,
     Instant createdAt,
     Instant updatedAt
 ) {
@@ -19,6 +20,6 @@ public record DesignationResponse(
         Instant createdAt,
         Instant updatedAt
     ) {
-        this(id, name, code, description, true, createdAt, updatedAt);
+        this(id, name, code, description, true, null, createdAt, updatedAt);
     }
 }

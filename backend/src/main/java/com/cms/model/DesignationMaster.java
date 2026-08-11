@@ -35,6 +35,11 @@ public class DesignationMaster {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    /** Advisory-only default for the faculty capacity-planning report; a per-Faculty override
+     *  wins over this when set. Null means unconfigured, not zero. */
+    @Column(name = "default_weekly_teaching_hours")
+    private Integer defaultWeeklyTeachingHours;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -65,6 +70,9 @@ public class DesignationMaster {
 
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+
+    public Integer getDefaultWeeklyTeachingHours() { return defaultWeeklyTeachingHours; }
+    public void setDefaultWeeklyTeachingHours(Integer defaultWeeklyTeachingHours) { this.defaultWeeklyTeachingHours = defaultWeeklyTeachingHours; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

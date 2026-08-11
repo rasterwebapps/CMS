@@ -44,6 +44,7 @@ public class DesignationService {
         if (request.isActive() != null) {
             designation.setIsActive(request.isActive());
         }
+        designation.setDefaultWeeklyTeachingHours(request.defaultWeeklyTeachingHours());
         return toResponse(designationRepository.save(designation));
     }
 
@@ -97,6 +98,7 @@ public class DesignationService {
         if (request.isActive() != null) {
             designation.setIsActive(request.isActive());
         }
+        designation.setDefaultWeeklyTeachingHours(request.defaultWeeklyTeachingHours());
         return toResponse(designationRepository.save(designation));
     }
 
@@ -135,7 +137,7 @@ public class DesignationService {
 
     private DesignationResponse toResponse(DesignationMaster d) {
         return new DesignationResponse(d.getId(), d.getName(), d.getCode(), d.getDescription(),
-            d.getIsActive(), d.getCreatedAt(), d.getUpdatedAt());
+            d.getIsActive(), d.getDefaultWeeklyTeachingHours(), d.getCreatedAt(), d.getUpdatedAt());
     }
 
     private static String trim(String s) {

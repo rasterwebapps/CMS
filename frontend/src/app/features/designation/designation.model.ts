@@ -14,6 +14,9 @@ export interface DesignationMaster {
   code: string;
   description?: string;
   isActive: boolean;
+  /** Advisory-only default for the faculty capacity-planning report; a per-faculty override wins
+   *  over this when set. Undefined means unconfigured, not zero. */
+  defaultWeeklyTeachingHours?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -23,6 +26,7 @@ export interface DesignationRequest {
   code: string;
   description?: string;
   isActive?: boolean;
+  defaultWeeklyTeachingHours?: number;
 }
 
 export interface DesignationStatusUpdateRequest {

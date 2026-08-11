@@ -11,6 +11,7 @@ import com.cms.model.enums.Gender;
 import com.cms.model.enums.MaritalStatus;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -106,5 +107,8 @@ public record FacultyRequest(
     BigDecimal clinicalExperiencePgYears,
     BigDecimal clinicalExperiencePhdYears,
 
-    BigDecimal commissionAmount
+    BigDecimal commissionAmount,
+
+    @Min(value = 0, message = "Planned weekly hours cannot be negative")
+    Integer plannedWeeklyHoursOverride
 ) {}

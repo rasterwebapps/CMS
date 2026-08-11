@@ -57,6 +57,7 @@ export class DesignationFormComponent implements OnInit {
     name:        ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(100), noConsecutiveSpaces()]],
     code:        ['', [Validators.required, Validators.maxLength(50), noInternalSpaces()]],
     description: ['', [Validators.maxLength(500)]],
+    defaultWeeklyTeachingHours: [null, [Validators.min(0)]],
   });
 
   constructor() {
@@ -121,6 +122,7 @@ export class DesignationFormComponent implements OnInit {
       name:        (this.form.value.name ?? '').trim(),
       code:        (this.form.value.code ?? '').trim().toUpperCase(),
       description: this.form.value.description?.trim() || undefined,
+      defaultWeeklyTeachingHours: this.form.value.defaultWeeklyTeachingHours ?? undefined,
     };
 
     this.saving.set(true);
@@ -143,6 +145,7 @@ export class DesignationFormComponent implements OnInit {
 
   private static readonly FIELD_LABELS: Record<string, string> = {
     name: 'Name', code: 'Code', description: 'Description',
+    defaultWeeklyTeachingHours: 'Default weekly teaching hours',
   };
 
   protected getErrorMessage(fieldName: string): string {
@@ -154,7 +157,12 @@ export class DesignationFormComponent implements OnInit {
     this.loading.set(true);
     this.designationService.getById(this.designationId).subscribe({
       next: (d) => {
-        this.form.patchValue({ name: d.name, code: d.code, description: d.description || '' });
+        this.form.patchValue({
+          name: d.name,
+          code: d.code,
+          description: d.description || '',
+          defaultWeeklyTeachingHours: d.defaultWeeklyTeachingHours ?? null,
+        });
         this.loading.set(false);
       },
       error: () => {

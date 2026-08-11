@@ -150,6 +150,22 @@
 
             <div class="field-row">
               <div class="field-group">
+                <label for="fac-weekly-hours" class="field-label">Weekly Teaching Hours Override</label>
+                <input id="fac-weekly-hours" type="number" min="0" class="field-input"
+                  formControlName="plannedWeeklyHoursOverride"
+                  placeholder="Leave blank to use the designation default"
+                  [class.field-input--error]="form.get('plannedWeeklyHoursOverride')?.invalid && form.get('plannedWeeklyHoursOverride')?.touched" />
+                @if (form.get('plannedWeeklyHoursOverride')?.invalid && form.get('plannedWeeklyHoursOverride')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('plannedWeeklyHoursOverride') }}</p>
+                } @else {
+                  <p class="field-hint">Advisory only, used by the Faculty Workload capacity report.</p>
+                }
+              </div>
+              <div class="field-group"></div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
                 <label for="fac-joining" class="field-label">Joining Date <span class="required-star">*</span></label>
                 <input id="fac-joining" type="date" class="field-input" formControlName="joiningDate"
                   [class.field-input--error]="form.get('joiningDate')?.invalid && form.get('joiningDate')?.touched" />

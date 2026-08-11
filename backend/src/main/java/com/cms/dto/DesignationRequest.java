@@ -1,5 +1,6 @@
 package com.cms.dto;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -16,5 +17,8 @@ public record DesignationRequest(
     @Size(max = 500, message = "Description must not exceed 500 characters")
     String description,
 
-    Boolean isActive
+    Boolean isActive,
+
+    @Min(value = 0, message = "Default weekly teaching hours cannot be negative")
+    Integer defaultWeeklyTeachingHours
 ) {}

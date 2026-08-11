@@ -103,6 +103,9 @@ export interface Faculty {
   updatedAt: string;
   documentReview?: FacultyDocumentReviewSummary;
   commissionAmount?: number | null;
+  /** Advisory-only, for the faculty capacity-planning report. Wins over the designation's default
+   *  when set; undefined means "use the designation default", not zero. */
+  plannedWeeklyHoursOverride?: number | null;
 }
 
 export interface FacultyRequest {
@@ -142,6 +145,7 @@ export interface FacultyRequest {
   clinicalExperiencePgYears?: number;
   clinicalExperiencePhdYears?: number;
   commissionAmount?: number;
+  plannedWeeklyHoursOverride?: number;
 }
 
 export interface FacultyDocument {

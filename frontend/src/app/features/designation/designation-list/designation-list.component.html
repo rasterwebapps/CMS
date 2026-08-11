@@ -85,6 +85,9 @@
             @if (item.description && item.description !== item.name) {
               <p class="dept-card__desc">{{ item.description }}</p>
             }
+            @if (item.defaultWeeklyTeachingHours) {
+              <p class="dept-card__desc">{{ item.defaultWeeklyTeachingHours }} hrs/week default</p>
+            }
           </div>
         }
       </div>
@@ -116,6 +119,10 @@
         <ng-container matColumnDef="description">
           <th mat-header-cell *matHeaderCellDef>Description</th>
           <td mat-cell *matCellDef="let row">{{ row.description || '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="defaultWeeklyTeachingHours">
+          <th mat-header-cell *matHeaderCellDef class="cell-align-center">Weekly Hours</th>
+          <td mat-cell *matCellDef="let row" class="cell-align-center">{{ row.defaultWeeklyTeachingHours ?? '—' }}</td>
         </ng-container>
         <ng-container matColumnDef="isActive">
           <th mat-header-cell *matHeaderCellDef class="cell-align-center">Status</th>

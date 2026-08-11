@@ -7,8 +7,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, CohortSummary, CourseOffering, TermInstance } from '../../academic-year/academic-year.model';
 import { CapacityPlannerService } from './capacity-planner.service';
-import { CapacityPlan, PlanningBasis, VenueOption } from './capacity-planner.model';
+import { CapacityPlan, FacultyWorkloadReport, PlanningBasis, VenueOption } from './capacity-planner.model';
 import { CmsCapacityMeterComponent } from '../../../shared/capacity-meter/capacity-meter.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -59,7 +60,7 @@ interface DraftSection {
   standalone: true,
   imports: [
     FormsModule, MatDialogModule, MatProgressSpinnerModule, MatIconModule,
-    CmsCapacityMeterComponent, CmsTourButtonComponent, DecimalPipe, DatePipe,
+    CmsCapacityMeterComponent, CmsEmptyStateComponent, CmsTourButtonComponent, DecimalPipe, DatePipe,
   ],
   templateUrl: './capacity-planner.component.html',
   styleUrl: './capacity-planner.component.scss',
@@ -81,6 +82,11 @@ export class CapacityPlannerComponent implements OnInit {
   protected readonly plan = signal<CapacityPlan | null>(null);
 
   protected readonly loading = signal(false);
+
+  // ─── Faculty Workload tab (advisory, term-wide, no cohort scoping) ───
+  protected readonly activeTab = signal<'rooms' | 'faculty'>('rooms');
+  protected readonly facultyWorkload = signal<FacultyWorkloadReport | null>(null);
+  protected readonly loadingFacultyWorkload = signal(false);
 
   // ─── Cohort Room Allocation (physical Theory/Lab/Clinical room commit) ───
   // Theory/Lab/Clinical pickers below source real Classroom/Lab/ClinicalVenue entities from the
@@ -618,6 +624,7 @@ export class CapacityPlannerComponent implements OnInit {
     this.plan.set(null);
     this.shortfall.set(null);
     this.resetAllocationDraft();
+    this.facultyWorkload.set(null);
     if (this.selectedAcademicYearId) {
       this.loadTermInstances(this.selectedAcademicYearId);
       this.loadCohorts(this.selectedAcademicYearId);
@@ -629,7 +636,40 @@ export class CapacityPlannerComponent implements OnInit {
     this.plan.set(null);
     this.shortfall.set(null);
     this.resetAllocationDraft();
+    this.facultyWorkload.set(null);
     this.autoLoadPlanIfReady();
+    if (this.activeTab() === 'faculty') this.loadFacultyWorkload();
+  }
+
+  /** Faculty Workload is term-wide (no cohort selector), so switching to it just needs a term
+   *  already picked — unlike the Room/Batch tab it never depends on a cohort. Lazily loads on
+   *  first switch to this tab per term, not eagerly on every academic-year/term change, since the
+   *  admin may never open it in a given session. */
+  protected setActiveTab(tab: 'rooms' | 'faculty'): void {
+    this.activeTab.set(tab);
+    if (tab === 'faculty' && this.selectedTermInstanceId && !this.facultyWorkload() && !this.loadingFacultyWorkload()) {
+      this.loadFacultyWorkload();
+    }
+  }
+
+  protected selectedTermLabel(): string {
+    const term = this.termInstances().find((t) => t.id === this.selectedTermInstanceId);
+    return term ? `${term.termType} · ${term.status}` : '';
+  }
+
+  protected loadFacultyWorkload(): void {
+    if (!this.selectedTermInstanceId) return;
+    this.loadingFacultyWorkload.set(true);
+    this.capacityPlannerService.getFacultyWorkloadReport(this.selectedTermInstanceId).subscribe({
+      next: (report) => {
+        this.facultyWorkload.set(report);
+        this.loadingFacultyWorkload.set(false);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to load faculty workload report');
+        this.loadingFacultyWorkload.set(false);
+      },
+    });
   }
 
   protected onCohortChange(): void {

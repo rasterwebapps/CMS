@@ -10,6 +10,17 @@
     </div>
   </div>
 
+  <div class="cap-tab-toggle anim-rise anim-rise--d1" role="tablist">
+    <button type="button" class="cap-tab-toggle__btn" role="tab" [class.cap-tab-toggle__btn--active]="activeTab() === 'rooms'"
+      [attr.aria-selected]="activeTab() === 'rooms'" (click)="setActiveTab('rooms')">
+      Room &amp; Batch Capacity
+    </button>
+    <button type="button" class="cap-tab-toggle__btn" role="tab" [class.cap-tab-toggle__btn--active]="activeTab() === 'faculty'"
+      [attr.aria-selected]="activeTab() === 'faculty'" (click)="setActiveTab('faculty')">
+      Faculty Workload
+    </button>
+  </div>
+
   <div id="tour-cap-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
       @for (ay of academicYears(); track ay.id) {
@@ -25,27 +36,115 @@
         <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
       }
     </select>
-    <select class="mlp-filter-select" [(ngModel)]="selectedCohortId" (ngModelChange)="onCohortChange()"
-      [disabled]="cohorts().length === 0" aria-label="Cohort">
-      @if (cohorts().length === 0) {
-        <option [ngValue]="null">No cohorts yet</option>
+    @if (activeTab() === 'rooms') {
+      <select class="mlp-filter-select" [(ngModel)]="selectedCohortId" (ngModelChange)="onCohortChange()"
+        [disabled]="cohorts().length === 0" aria-label="Cohort">
+        @if (cohorts().length === 0) {
+          <option [ngValue]="null">No cohorts yet</option>
+        }
+        @for (c of cohorts(); track c.id) {
+          <option [ngValue]="c.id">{{ c.displayName }}</option>
+        }
+      </select>
+      <select class="mlp-filter-select" [(ngModel)]="planningBasis" (ngModelChange)="onPlanningBasisChange()" aria-label="Planning basis">
+        <option value="SANCTIONED">Plan by: Sanctioned intake</option>
+        <option value="ENROLLED">Plan by: Enrolled headcount</option>
+      </select>
+      @if (!currentAllocation()) {
+        <button type="button" class="btn-primary" [disabled]="loading() || !selectedTermInstanceId || !selectedCohortId" (click)="loadPlan()">
+          @if (loading()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+          Calculate
+        </button>
       }
-      @for (c of cohorts(); track c.id) {
-        <option [ngValue]="c.id">{{ c.displayName }}</option>
-      }
-    </select>
-    <select class="mlp-filter-select" [(ngModel)]="planningBasis" (ngModelChange)="onPlanningBasisChange()" aria-label="Planning basis">
-      <option value="SANCTIONED">Plan by: Sanctioned intake</option>
-      <option value="ENROLLED">Plan by: Enrolled headcount</option>
-    </select>
-    @if (!currentAllocation()) {
-      <button type="button" class="btn-primary" [disabled]="loading() || !selectedTermInstanceId || !selectedCohortId" (click)="loadPlan()">
-        @if (loading()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
-        Calculate
+    } @else {
+      <button type="button" class="btn-primary" [disabled]="loadingFacultyWorkload() || !selectedTermInstanceId" (click)="loadFacultyWorkload()">
+        @if (loadingFacultyWorkload()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+        Refresh
       </button>
     }
   </div>
 
+  @if (activeTab() === 'faculty') {
+    @if (loadingFacultyWorkload()) {
+      <div class="content-card">
+        <div class="loading-container"><mat-spinner diameter="40"></mat-spinner></div>
+      </div>
+    } @else if (facultyWorkload(); as w) {
+      <div class="content-card cap-summary-card">
+        <div class="cap-summary-card__row">
+          <div class="cap-summary-card__main">
+            <h2 class="cap-summary-card__title">Faculty Workload — {{ selectedTermLabel() }}</h2>
+            <p class="cap-summary-card__strength">
+              {{ w.totalDemandHoursPerWeek | number:'1.0-1' }} hrs/wk curriculum demand
+              &nbsp;·&nbsp; {{ w.totalCommittedHoursPerWeek | number:'1.0-1' }} hrs/wk committed
+              &nbsp;·&nbsp; {{ w.totalConfiguredCapacityHoursPerWeek | number:'1.0-1' }} hrs/wk configured capacity
+              @if (w.unconfiguredFacultyCount > 0) {
+                &nbsp;·&nbsp; <span class="cap-fw-warn">{{ w.unconfiguredFacultyCount }} faculty not configured</span>
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-card mlp-table-card">
+        <div class="table-wrapper">
+          <table class="cap-fw-table">
+            <thead>
+              <tr>
+                <th>Faculty</th>
+                <th>Designation</th>
+                <th class="cell-align-right">Demand/wk</th>
+                <th class="cell-align-right">Committed/wk</th>
+                <th class="cell-align-right">Blocked/wk</th>
+                <th class="cell-align-right">Net Capacity/wk</th>
+                <th class="cell-align-center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of w.rows; track row.facultyId) {
+                <tr>
+                  <td>{{ row.facultyName }}</td>
+                  <td>{{ row.designationName || '—' }}</td>
+                  <td class="cell-align-right">{{ row.demandHoursPerWeek | number:'1.0-1' }}</td>
+                  <td class="cell-align-right">{{ row.committedHoursPerWeek | number:'1.0-1' }}</td>
+                  <td class="cell-align-right">{{ row.blockedHoursPerWeek | number:'1.0-1' }}</td>
+                  <td class="cell-align-right">
+                    @if (row.capacityConfigured) {
+                      {{ row.netCapacityHours | number:'1.0-1' }}
+                    } @else {
+                      <span class="cap-fw-unconfigured">Not configured</span>
+                    }
+                  </td>
+                  <td class="cell-align-center">
+                    @if (row.overCommitted) {
+                      <span class="cap-fw-badge cap-fw-badge--danger">Over committed</span>
+                    } @else if (row.overDemand) {
+                      <span class="cap-fw-badge cap-fw-badge--warn">Over demand</span>
+                    } @else if (row.capacityConfigured) {
+                      <span class="cap-fw-badge cap-fw-badge--ok">OK</span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7">
+                    <cms-empty-state icon="groups" title="No faculty involved yet"
+                      subtitle="No faculty has curriculum offerings or placed sessions in this term yet."></cms-empty-state>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    } @else {
+      <div class="content-card">
+        <p class="skeleton-empty-hint">Select a term to see its faculty workload report.</p>
+      </div>
+    }
+  }
+
+  @if (activeTab() === 'rooms') {
   @if (plan(); as p) {
 
   <div class="content-card cap-summary-card">
@@ -512,6 +611,7 @@
     <div class="content-card">
       <p class="skeleton-empty-hint">Select a term and cohort, then Calculate to see a sizing report.</p>
     </div>
+  }
   }
 
 </div>

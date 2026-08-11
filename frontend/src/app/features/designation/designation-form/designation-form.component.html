@@ -99,6 +99,25 @@
               }
             </div>
 
+            <!-- Default weekly teaching hours (advisory, faculty capacity planning) -->
+            <div class="field-group">
+              <label for="dsg-weekly-hours" class="field-label">Default Weekly Teaching Hours</label>
+              <input
+                id="dsg-weekly-hours"
+                type="number"
+                min="0"
+                class="field-input"
+                formControlName="defaultWeeklyTeachingHours"
+                placeholder="e.g., 18"
+                [class.field-input--error]="form.get('defaultWeeklyTeachingHours')?.invalid && form.get('defaultWeeklyTeachingHours')?.touched"
+              />
+              @if (form.get('defaultWeeklyTeachingHours')?.invalid && form.get('defaultWeeklyTeachingHours')?.touched) {
+                <p class="field-error">{{ getErrorMessage('defaultWeeklyTeachingHours') }}</p>
+              } @else {
+                <p class="field-hint">Advisory only — used by the Faculty Workload capacity report. Leave blank if not yet configured.</p>
+              }
+            </div>
+
             <!-- Footer -->
             <div class="entry-form-card__footer">
               <a routerLink="/designations" class="btn-secondary">Cancel</a>

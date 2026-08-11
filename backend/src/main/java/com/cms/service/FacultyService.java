@@ -273,6 +273,7 @@ public class FacultyService {
         faculty.setClinicalExperiencePgYears(r.clinicalExperiencePgYears());
         faculty.setClinicalExperiencePhdYears(r.clinicalExperiencePhdYears());
         faculty.setCommissionAmount(r.commissionAmount());
+        faculty.setPlannedWeeklyHoursOverride(r.plannedWeeklyHoursOverride());
     }
 
     private static String trim(String s) {
@@ -347,7 +348,8 @@ public class FacultyService {
             faculty.getCreatedAt(),
             faculty.getUpdatedAt(),
             documentReviewSummary(faculty),
-            faculty.getCommissionAmount()
+            faculty.getCommissionAmount(),
+            faculty.getPlannedWeeklyHoursOverride()
         );
     }
 

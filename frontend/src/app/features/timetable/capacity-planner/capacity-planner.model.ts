@@ -1,5 +1,31 @@
 export type PlanningBasis = 'ENROLLED' | 'SANCTIONED';
 
+/** One faculty's row in the advisory, term-wide Faculty Workload capacity report — see
+ *  `FacultyWorkloadCapacityService` on the backend for how each figure is computed. Purely a
+ *  dashboard: never blocks anything, never auto-allocates. */
+export interface FacultyWorkloadRow {
+  facultyId: number;
+  facultyName: string;
+  designationName: string | null;
+  demandHoursPerWeek: number;
+  committedHoursPerWeek: number;
+  blockedHoursPerWeek: number;
+  capacityConfigured: boolean;
+  effectiveCapacityHours: number | null;
+  netCapacityHours: number | null;
+  overDemand: boolean;
+  overCommitted: boolean;
+}
+
+export interface FacultyWorkloadReport {
+  termInstanceId: number;
+  rows: FacultyWorkloadRow[];
+  totalDemandHoursPerWeek: number;
+  totalCommittedHoursPerWeek: number;
+  totalConfiguredCapacityHoursPerWeek: number;
+  unconfiguredFacultyCount: number;
+}
+
 export interface VenueOption {
   id: number;
   name: string;
