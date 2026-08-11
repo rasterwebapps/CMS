@@ -144,8 +144,8 @@ public class TimetableStaffingService {
         List<ConstraintViolation> violations = new ArrayList<>();
         checkBlocked(cs.getDayOfWeek(), cs.getPeriod().getId(), cs.getTermInstance()).ifPresent(violations::add);
         checkFacultyAvailable(faculty.getId(), cs.getDayOfWeek(), start, end).ifPresent(violations::add);
-        checkFacultyFree(faculty.getId(), cs, start, end).ifPresent(violations::add);
-        violations.addAll(checkWithinWorkloadCaps(faculty, cs, start, end));
+        checkFacultyFree(faculty.getId(), cs, cs.getDayOfWeek(), start, end).ifPresent(violations::add);
+        violations.addAll(checkWithinWorkloadCaps(faculty, cs, cs.getDayOfWeek(), start, end));
 
         Runnable applyRoom = null;
         if (violations.isEmpty()) {
@@ -154,19 +154,19 @@ public class TimetableStaffingService {
                     Classroom classroom = isElectiveOffering(cs)
                         ? requireRequestedClassroom(request)
                         : requireCommittedTheoryClassroom(cs);
-                    checkRoomFree(ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), cs, start, end).ifPresent(violations::add);
+                    checkRoomFree(ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), cs, cs.getDayOfWeek(), start, end).ifPresent(violations::add);
                     checkCapacityFit(cs, classroom.getCapacity()).ifPresent(violations::add);
                     applyRoom = () -> cs.setClassroom(classroom);
                 }
                 case LAB -> {
                     Lab lab = requireCommittedLab(cs);
-                    checkRoomFree(ClassSessionType.LAB, lab.getId(), lab.getRoom(), cs, start, end).ifPresent(violations::add);
+                    checkRoomFree(ClassSessionType.LAB, lab.getId(), lab.getRoom(), cs, cs.getDayOfWeek(), start, end).ifPresent(violations::add);
                     checkCapacityFit(cs, lab.getCapacity()).ifPresent(violations::add);
                     applyRoom = () -> cs.setLab(lab);
                 }
                 case CLINICAL -> {
                     ClinicalVenue venue = requireCommittedClinicalVenue(cs);
-                    checkRoomFree(ClassSessionType.CLINICAL, venue.getId(), venue.getRoom(), cs, start, end).ifPresent(violations::add);
+                    checkRoomFree(ClassSessionType.CLINICAL, venue.getId(), venue.getRoom(), cs, cs.getDayOfWeek(), start, end).ifPresent(violations::add);
                     checkCapacityFit(cs, venue.getCapacity()).ifPresent(violations::add);
                     applyRoom = () -> cs.setClinicalVenue(venue);
                 }
@@ -307,7 +307,7 @@ public class TimetableStaffingService {
      *  etc) — the same {@link FacultyAvailability} check {@link TimetableSwapService} and {@code
      *  FacultySessionSwapService} already apply, closing the one staffing path that skipped it. A
      *  faculty member with no rows in this table is assumed fully available. */
-    private Optional<ConstraintViolation> checkFacultyAvailable(Long facultyId, DayOfWeek dayOfWeek, LocalTime start, LocalTime end) {
+    Optional<ConstraintViolation> checkFacultyAvailable(Long facultyId, DayOfWeek dayOfWeek, LocalTime start, LocalTime end) {
         List<FacultyAvailability> blocks = facultyAvailabilityRepository.findOverlapping(facultyId, dayOfWeek, start, end);
         if (blocks.isEmpty()) {
             return Optional.empty();
@@ -318,11 +318,13 @@ public class TimetableStaffingService {
 
     /** Non-throwing: returns a violation if this faculty member is already committed elsewhere at
      *  this exact day/time — checked against both live PUBLISHED rows and other already-staffed
-     *  DRAFT rows in the same term, excluding this cell itself. */
-    private Optional<ConstraintViolation> checkFacultyFree(Long facultyId, ClassSchedule cs, LocalTime start, LocalTime end) {
+     *  DRAFT rows in the same term, excluding this cell itself. {@code day} is passed explicitly
+     *  rather than read from {@code cs.getDayOfWeek()} so {@link TimetableSkeletonService#moveCell}
+     *  can re-check a *target* day for an already-staffed cell without first mutating it. */
+    Optional<ConstraintViolation> checkFacultyFree(Long facultyId, ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end) {
         for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
             List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
-                cs.getDayOfWeek(), cs.getTermInstance().getId(), start, end, status, cs.getId());
+                day, cs.getTermInstance().getId(), start, end, status, cs.getId());
             boolean conflict = overlapping.stream()
                 .anyMatch(other -> other.getFaculty() != null && other.getFaculty().getId().equals(facultyId));
             if (conflict) {
@@ -333,19 +335,19 @@ public class TimetableStaffingService {
         return Optional.empty();
     }
 
-    /** Hard-blocks staffing a faculty member past whatever daily/weekly/continuous-hours caps the
-     *  admin has configured in System Configuration (category {@code TIMETABLE}) — a blank or
-     *  non-positive/unparseable cap value is treated as "no cap", never as an error, since these
-     *  ship blank by default and a malformed manual edit must never crash staffing. "Weekly" sums
-     *  every session this faculty has in the term regardless of day, since the whole timetable is
-     *  one recurring weekly template with no separate calendar-week concept anywhere in {@link
-     *  ClassSchedule}. Checked against both PUBLISHED and other already-staffed DRAFT rows,
-     *  excluding this cell itself so a re-staff (same cell, different or same faculty) doesn't
-     *  double-count its own slot. */
     /** Non-throwing: returns every exceeded cap (daily/weekly/continuous can all be exceeded at
      *  once), rather than stopping at the first — see the class-level note on why every check here
-     *  collects instead of throws. */
-    private List<ConstraintViolation> checkWithinWorkloadCaps(Faculty faculty, ClassSchedule cs, LocalTime start, LocalTime end) {
+     *  collects instead of throws. Hard-blocks staffing a faculty member past whatever
+     *  daily/weekly/continuous-hours caps the admin has configured in System Configuration
+     *  (category {@code TIMETABLE}) — a blank or non-positive/unparseable cap value is treated as
+     *  "no cap", never as an error, since these ship blank by default and a malformed manual edit
+     *  must never crash staffing. "Weekly" sums every session this faculty has in the term
+     *  regardless of day, since the whole timetable is one recurring weekly template with no
+     *  separate calendar-week concept anywhere in {@link ClassSchedule}. Checked against both
+     *  PUBLISHED and other already-staffed DRAFT rows, excluding this cell itself so a re-staff
+     *  (same cell, different or same faculty) doesn't double-count its own slot. {@code day} is
+     *  passed explicitly for the same reason as {@link #checkFacultyFree}. */
+    List<ConstraintViolation> checkWithinWorkloadCaps(Faculty faculty, ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end) {
         Optional<Double> dailyCap = resolveCapHours("timetable.faculty_max_daily_hours");
         Optional<Double> weeklyCap = resolveCapHours("timetable.faculty_max_weekly_hours");
         Optional<Double> continuousCap = resolveCapHours("timetable.faculty_max_continuous_hours");
@@ -366,7 +368,7 @@ public class TimetableStaffingService {
 
         if (dailyCap.isPresent()) {
             double dailyHours = otherSessions.stream()
-                .filter(other -> other.getDayOfWeek() == cs.getDayOfWeek())
+                .filter(other -> other.getDayOfWeek() == day)
                 .mapToDouble(other -> sessionHours(other.getPeriod()))
                 .sum() + newSessionHours;
             if (dailyHours > dailyCap.get()) {
@@ -388,7 +390,7 @@ public class TimetableStaffingService {
         }
 
         if (continuousCap.isPresent()) {
-            double continuousHours = continuousChainHours(otherSessions, cs.getDayOfWeek(), start, end);
+            double continuousHours = continuousChainHours(otherSessions, day, start, end);
             if (continuousHours > continuousCap.get()) {
                 violations.add(new ConstraintViolation("STAFFING_WORKLOAD_CONTINUOUS_CAP_EXCEEDED",
                     "Staffing this session would put this faculty member into a " + formatHours(continuousHours)
@@ -462,11 +464,12 @@ public class TimetableStaffingService {
      *  linked to Room 101 in Campus Infrastructure). The latter used to be invisible here: each
      *  venue looked "free" on its own even though the real physical space was double-booked —
      *  closed by comparing the resolved physical Room, not just the virtual venue id, whenever one
-     *  is linked. Checked against both PUBLISHED and other already-staffed DRAFT rows. */
-    private Optional<ConstraintViolation> checkRoomFree(ClassSessionType type, Long venueId, Room physicalRoom, ClassSchedule cs, LocalTime start, LocalTime end) {
+     *  is linked. Checked against both PUBLISHED and other already-staffed DRAFT rows. {@code day}
+     *  is passed explicitly for the same reason as {@link #checkFacultyFree}. */
+    Optional<ConstraintViolation> checkRoomFree(ClassSessionType type, Long venueId, Room physicalRoom, ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end) {
         for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
             List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
-                cs.getDayOfWeek(), cs.getTermInstance().getId(), start, end, status, cs.getId());
+                day, cs.getTermInstance().getId(), start, end, status, cs.getId());
             boolean conflict = overlapping.stream().anyMatch(other -> conflictsOnRoom(other, type, venueId, physicalRoom));
             if (conflict) {
                 return Optional.of(new ConstraintViolation("STAFFING_ROOM_CONFLICT",
@@ -487,7 +490,7 @@ public class TimetableStaffingService {
         return otherRoom != null && otherRoom.getId().equals(physicalRoom.getId());
     }
 
-    private static Long venueIdOf(ClassSchedule cs) {
+    static Long venueIdOf(ClassSchedule cs) {
         return switch (cs.getSessionType()) {
             case THEORY -> cs.getClassroom() != null ? cs.getClassroom().getId() : null;
             case LAB -> cs.getLab() != null ? cs.getLab().getId() : null;
@@ -495,7 +498,7 @@ public class TimetableStaffingService {
         };
     }
 
-    private static Room physicalRoomOf(ClassSchedule cs) {
+    static Room physicalRoomOf(ClassSchedule cs) {
         return switch (cs.getSessionType()) {
             case THEORY -> cs.getClassroom() != null ? cs.getClassroom().getRoom() : null;
             case LAB -> cs.getLab() != null ? cs.getLab().getRoom() : null;

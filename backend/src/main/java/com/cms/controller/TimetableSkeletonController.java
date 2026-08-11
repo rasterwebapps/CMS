@@ -9,12 +9,14 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.SkeletonBuilderResponse;
+import com.cms.dto.SkeletonCellMoveRequest;
 import com.cms.dto.SkeletonCellPlacementRequest;
 import com.cms.dto.SkeletonCellResponse;
 import com.cms.dto.SkeletonPlacementCandidateResponse;
@@ -60,5 +62,11 @@ public class TimetableSkeletonController {
     public ResponseEntity<Void> removeCell(@PathVariable Long id) {
         timetableSkeletonService.removeCell(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/cells/{id}/move")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_MOVE')")
+    public ResponseEntity<SkeletonCellResponse> moveCell(@PathVariable Long id, @Valid @RequestBody SkeletonCellMoveRequest request) {
+        return ResponseEntity.ok(timetableSkeletonService.moveCell(id, request));
     }
 }

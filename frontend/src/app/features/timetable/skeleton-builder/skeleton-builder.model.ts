@@ -103,3 +103,9 @@ export interface SkeletonPlacementCandidate {
   dayOfWeek: string;
   periodId: number;
 }
+
+export interface SkeletonCellMoveRequest {
+  dayOfWeek: string;
+  periodId: number;
+  cohortId: number;
+}

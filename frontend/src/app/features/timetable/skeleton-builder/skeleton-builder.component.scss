@@ -220,6 +220,14 @@
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+  min-height: 100%;
+
+  // A slot currently being dragged over (by a cell from anywhere else in the grid, via the
+  // table-level cdkDropListGroup) gets a soft highlight so the drop target is obvious.
+  &.cdk-drop-list-dragging {
+    background: rgba(var(--cms-primary-rgb), 0.06);
+    border-radius: 8px;
+  }
 }
 
 .skeleton-cell-stack__advisory {
@@ -256,6 +264,25 @@
 
   &:hover:not(:disabled) {
     border-color: rgba(var(--cms-primary-rgb), 0.35);
+  }
+
+  // Draggable placed cells (not the dashed "add" affordance, which never carries cdkDrag) get a
+  // grab cursor; .cdk-drag-disabled is the class CDK itself applies when [cdkDragDisabled] is
+  // true, so a user without TIMETABLE_SKELETON_MOVE still sees the plain pointer cursor.
+  &[cdkDrag]:not(.cdk-drag-disabled):not(:disabled) {
+    cursor: grab;
+  }
+
+  &.cdk-drag-preview {
+    box-shadow: var(--cms-shadow-xl);
+    opacity: 0.96;
+    cursor: grabbing;
+  }
+  &.cdk-drag-placeholder {
+    opacity: 0.3;
+  }
+  &.cdk-drag-animating {
+    transition: transform 220ms cubic-bezier(0.2, 0, 0, 1);
   }
 
   &--selected {

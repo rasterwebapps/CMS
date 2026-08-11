@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, CohortSummary, TermInstance } from '../../academic-year/academic-year.model';
 import { PeriodService } from '../../period/period.service';
@@ -19,7 +20,7 @@ import { colorForSubject } from './subject-color.util';
 @Component({
   selector: 'app-skeleton-builder',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatDialogModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent],
+  imports: [FormsModule, RouterLink, MatDialogModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent, DragDropModule],
   templateUrl: './skeleton-builder.component.html',
   styleUrl: './skeleton-builder.component.scss',
 })
@@ -85,6 +86,10 @@ export class SkeletonBuilderComponent implements OnInit {
 
   protected canManage(): boolean {
     return this.permissionService.has('TIMETABLE_SKELETON_MANAGE');
+  }
+
+  protected canMove(): boolean {
+    return this.permissionService.has('TIMETABLE_SKELETON_MOVE');
   }
 
   protected canManageRotation(): boolean {
@@ -322,6 +327,26 @@ export class SkeletonBuilderComponent implements OnInit {
   private violationText(err: any): string | undefined {
     const violations = err?.error?.violations as { message: string }[] | undefined;
     return violations?.length ? violations.map((v) => v.message).join('\n') : err?.error?.message;
+  }
+
+  /** Drops onto the same slot the cell was already in are a no-op — CDK still fires the event
+   *  for a same-list drop, so this guards it before ever calling the backend. Reloads the whole
+   *  skeleton on success rather than patching the dragged cell's day/period locally, matching the
+   *  reload-after-mutation pattern {@link confirmPlacement}/remove already use. */
+  protected onCellDrop(event: CdkDragDrop<unknown>, day: string, periodId: number): void {
+    const cell = event.item.data as SkeletonCell;
+    const cohortId = this.selectedCohortId;
+    if (!cell || !cohortId || (cell.dayOfWeek === day && cell.periodId === periodId)) return;
+
+    this.skeletonService.moveCell(cell.id, { dayOfWeek: day, periodId, cohortId }).subscribe({
+      next: () => {
+        this.toast.success('Moved');
+        this.reloadSkeleton();
+      },
+      error: (err) => {
+        this.toast.error(this.violationText(err) ?? 'Failed to move session');
+      },
+    });
   }
 
   protected onSuggestClick(courseOfferingId: number, sessionType: SkeletonSessionType, batchId: number | null, cohortSectionId: number | null, event: Event): void {

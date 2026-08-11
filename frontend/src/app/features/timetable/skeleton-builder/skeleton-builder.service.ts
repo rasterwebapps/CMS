@@ -5,6 +5,7 @@ import { environment } from '../../../../environments';
 import {
   SkeletonBuilderResponse,
   SkeletonCell,
+  SkeletonCellMoveRequest,
   SkeletonCellPlacementRequest,
   SkeletonPlacementCandidate,
   SkeletonSessionType,
@@ -37,5 +38,9 @@ export class SkeletonBuilderService {
 
   removeCell(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/cells/${id}`);
+  }
+
+  moveCell(id: number, request: SkeletonCellMoveRequest): Observable<SkeletonCell> {
+    return this.http.put<SkeletonCell>(`${this.baseUrl}/cells/${id}/move`, request);
   }
 }

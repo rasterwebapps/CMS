@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,6 +16,7 @@ import com.cms.dto.CohortSectionResponse;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.SkeletonBuilderResponse;
+import com.cms.dto.SkeletonCellMoveRequest;
 import com.cms.dto.SkeletonCellPlacementRequest;
 import com.cms.dto.SkeletonCellResponse;
 import com.cms.dto.SkeletonPlacementCandidateResponse;
@@ -87,6 +89,7 @@ public class TimetableSkeletonService {
     private final TermInstanceRepository termInstanceRepository;
     private final CohortRoomAllocationRepository cohortRoomAllocationRepository;
     private final CohortSectionRepository cohortSectionRepository;
+    private final TimetableStaffingService timetableStaffingService;
 
     public TimetableSkeletonService(CourseOfferingRepository courseOfferingRepository,
                                      ClassScheduleRepository classScheduleRepository,
@@ -100,7 +103,8 @@ public class TimetableSkeletonService {
                                      CohortRepository cohortRepository,
                                      TermInstanceRepository termInstanceRepository,
                                      CohortRoomAllocationRepository cohortRoomAllocationRepository,
-                                     CohortSectionRepository cohortSectionRepository) {
+                                     CohortSectionRepository cohortSectionRepository,
+                                     TimetableStaffingService timetableStaffingService) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.periodRepository = periodRepository;
@@ -114,6 +118,7 @@ public class TimetableSkeletonService {
         this.termInstanceRepository = termInstanceRepository;
         this.cohortRoomAllocationRepository = cohortRoomAllocationRepository;
         this.cohortSectionRepository = cohortSectionRepository;
+        this.timetableStaffingService = timetableStaffingService;
     }
 
     public SkeletonBuilderResponse getCohortSkeleton(Long termInstanceId, Long cohortId) {
@@ -400,16 +405,7 @@ public class TimetableSkeletonService {
 
         List<ConstraintViolation> violations = new ArrayList<>();
 
-        boolean alreadyPlaced = classScheduleRepository.findByCourseOfferingId(offering.getId()).stream()
-            .anyMatch(cs -> cs.getSessionType() == request.sessionType()
-                && cs.getDayOfWeek() == request.dayOfWeek()
-                && cs.getPeriod() != null && cs.getPeriod().getId().equals(request.periodId())
-                && Objects.equals(cs.getBatch() != null ? cs.getBatch().getId() : null, request.batchId())
-                && Objects.equals(cs.getCohortSection() != null ? cs.getCohortSection().getId() : null, request.cohortSectionId()));
-        if (alreadyPlaced) {
-            violations.add(new ConstraintViolation("SKELETON_CELL_ALREADY_PLACED",
-                "This subject already has a session placed at this exact day and period"));
-        }
+        checkAlreadyPlaced(offering, request).ifPresent(violations::add);
 
         if (isElectiveOffering(offering)) {
             checkElectiveGroupSlot(offering, request).ifPresent(violations::add);
@@ -436,6 +432,84 @@ public class TimetableSkeletonService {
         cs.setCohortSection(cohortSection);
         cs.setIsActive(true);
 
+        return toCellResponse(classScheduleRepository.save(cs));
+    }
+
+    /** Non-throwing: returns a violation if this course offering already has another session of
+     *  the exact same type/day/period/batch/section combination — checked by both {@link
+     *  #placeCell} (against a not-yet-created row) and {@link #moveCell} (against the target slot;
+     *  the moving cell itself always sits at its *old* slot when this runs, so it never spuriously
+     *  matches itself here). */
+    private Optional<ConstraintViolation> checkAlreadyPlaced(CourseOffering offering, SkeletonCellPlacementRequest request) {
+        boolean alreadyPlaced = classScheduleRepository.findByCourseOfferingId(offering.getId()).stream()
+            .anyMatch(cs -> cs.getSessionType() == request.sessionType()
+                && cs.getDayOfWeek() == request.dayOfWeek()
+                && cs.getPeriod() != null && cs.getPeriod().getId().equals(request.periodId())
+                && Objects.equals(cs.getBatch() != null ? cs.getBatch().getId() : null, request.batchId())
+                && Objects.equals(cs.getCohortSection() != null ? cs.getCohortSection().getId() : null, request.cohortSectionId()));
+        return alreadyPlaced ? Optional.of(new ConstraintViolation("SKELETON_CELL_ALREADY_PLACED",
+            "This subject already has a session placed at this exact day and period")) : Optional.empty();
+    }
+
+    /** Moves an already-placed cell (unstaffed or already-staffed) to a different day/period,
+     *  re-running the same placement checks {@link #placeCell} uses against the target slot, plus
+     *  — when the cell already carries a faculty — {@link TimetableStaffingService}'s faculty/room
+     *  checks re-evaluated at that target slot (day-parameterized there for exactly this reason).
+     *  Room/capacity/faculty-eligibility are deliberately NOT rechecked: none of them change on a
+     *  pure day/period move (the room, audience, and faculty all stay exactly what they already
+     *  were), so re-validating them would be redundant work re-proving something already true. */
+    @Transactional
+    public SkeletonCellResponse moveCell(Long classScheduleId, SkeletonCellMoveRequest request) {
+        ClassSchedule cs = classScheduleRepository.findById(classScheduleId)
+            .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + classScheduleId));
+        if (cs.getStatus() != ClassScheduleStatus.DRAFT) {
+            throw new LifecycleConflictException(
+                "Only a draft skeleton cell can be moved here.",
+                "SKELETON_CELL_NOT_DRAFT", "ClassSchedule", classScheduleId, null);
+        }
+        if (cs.getDayOfWeek() == request.dayOfWeek()
+                && cs.getPeriod() != null && cs.getPeriod().getId().equals(request.periodId())) {
+            throw new IllegalArgumentException("Target slot is the same as the cell's current slot");
+        }
+        Period targetPeriod = periodRepository.findById(request.periodId())
+            .orElseThrow(() -> new ResourceNotFoundException("Period not found with id: " + request.periodId()));
+
+        CourseOffering offering = cs.getCourseOffering();
+        SkeletonCellPlacementRequest asPlacementRequest = new SkeletonCellPlacementRequest(
+            offering.getId(), cs.getSessionType(), request.dayOfWeek(), targetPeriod.getId(),
+            cs.getBatch() != null ? cs.getBatch().getId() : null,
+            request.cohortId(),
+            cs.getCohortSection() != null ? cs.getCohortSection().getId() : null);
+
+        List<ConstraintViolation> violations = new ArrayList<>();
+        checkAlreadyPlaced(offering, asPlacementRequest).ifPresent(violations::add);
+        if (isElectiveOffering(offering)) {
+            checkElectiveGroupSlot(offering, asPlacementRequest).ifPresent(violations::add);
+        } else {
+            checkCohortExclusivity(asPlacementRequest, offering, cs.getBatch(), cs.getCohortSection()).ifPresent(violations::add);
+        }
+        checkBlocked(request.dayOfWeek(), targetPeriod.getId(), offering.getTermInstance()).ifPresent(violations::add);
+
+        if (cs.getFaculty() != null) {
+            LocalTime start = targetPeriod.getStartTime();
+            LocalTime end = targetPeriod.getEndTime();
+            Long facultyId = cs.getFaculty().getId();
+            timetableStaffingService.checkFacultyAvailable(facultyId, request.dayOfWeek(), start, end).ifPresent(violations::add);
+            timetableStaffingService.checkFacultyFree(facultyId, cs, request.dayOfWeek(), start, end).ifPresent(violations::add);
+            violations.addAll(timetableStaffingService.checkWithinWorkloadCaps(cs.getFaculty(), cs, request.dayOfWeek(), start, end));
+            Long venueId = TimetableStaffingService.venueIdOf(cs);
+            if (venueId != null) {
+                timetableStaffingService.checkRoomFree(cs.getSessionType(), venueId, TimetableStaffingService.physicalRoomOf(cs),
+                    cs, request.dayOfWeek(), start, end).ifPresent(violations::add);
+            }
+        }
+
+        if (!violations.isEmpty()) {
+            throw new TimetableConstraintViolationException(violations);
+        }
+
+        cs.setDayOfWeek(request.dayOfWeek());
+        cs.setPeriod(targetPeriod);
         return toCellResponse(classScheduleRepository.save(cs));
     }
 
