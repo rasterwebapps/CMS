@@ -42,15 +42,18 @@ public class TimetableSwapService {
     private final FacultyAvailabilityRepository facultyAvailabilityRepository;
     private final PeriodRepository periodRepository;
     private final TimetableBlockedPeriodChecker blockedPeriodChecker;
+    private final AuditLogService auditLogService;
 
     public TimetableSwapService(ClassScheduleRepository classScheduleRepository,
                                  FacultyAvailabilityRepository facultyAvailabilityRepository,
                                  PeriodRepository periodRepository,
-                                 TimetableBlockedPeriodChecker blockedPeriodChecker) {
+                                 TimetableBlockedPeriodChecker blockedPeriodChecker,
+                                 AuditLogService auditLogService) {
         this.classScheduleRepository = classScheduleRepository;
         this.facultyAvailabilityRepository = facultyAvailabilityRepository;
         this.periodRepository = periodRepository;
         this.blockedPeriodChecker = blockedPeriodChecker;
+        this.auditLogService = auditLogService;
     }
 
     /** Whether a (day,start,end) slot works for `moving` — availability-clean and, if occupied,
@@ -93,7 +96,7 @@ public class TimetableSwapService {
     }
 
     @Transactional
-    public void swap(Long termInstanceId, Long sessionId, SwapRequest request) {
+    public void swap(Long termInstanceId, Long sessionId, SwapRequest request, String actor) {
         ClassSchedule source = requireDraftSession(termInstanceId, sessionId);
 
         Period targetPeriod = periodRepository.findById(request.periodId())
@@ -123,6 +126,8 @@ public class TimetableSwapService {
         source.setDayOfWeek(request.dayOfWeek());
         source.setPeriod(targetPeriod);
         classScheduleRepository.save(source);
+        auditLogService.record(actor, "TIMETABLE_SESSION_SWAPPED", "ClassSchedule", sessionId.toString(),
+            "Moved to " + request.dayOfWeek() + " " + targetPeriod.getName());
     }
 
     /** Confirms `occupant` could itself move back into `source`'s original slot without new

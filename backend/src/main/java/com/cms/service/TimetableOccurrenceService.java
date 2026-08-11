@@ -15,6 +15,7 @@ import com.cms.dto.ClassScheduleResponse;
 import com.cms.dto.ProfileIdentity;
 import com.cms.model.ClassSchedule;
 import com.cms.model.enums.ClassScheduleStatus;
+import com.cms.model.enums.OccurrenceStatus;
 import com.cms.repository.ClassScheduleRepository;
 
 /**
@@ -51,6 +52,8 @@ public class TimetableOccurrenceService {
 
         Map<Long, List<LocalDate>> datesBySchedule =
             occurrenceService.occurrenceDatesForSchedules(schedules, from, to);
+        Map<Long, List<ClassScheduleOccurrenceService.CancelledOccurrence>> cancelledBySchedule =
+            occurrenceService.cancelledDatesForSchedules(schedules, from, to);
 
         List<ClassScheduleResponse> responses = classScheduleService.toResponseList(schedules);
         Map<Long, ClassScheduleResponse> responseById = new HashMap<>();
@@ -62,7 +65,11 @@ public class TimetableOccurrenceService {
         for (ClassSchedule schedule : schedules) {
             ClassScheduleResponse response = responseById.get(schedule.getId());
             for (LocalDate date : datesBySchedule.getOrDefault(schedule.getId(), List.of())) {
-                result.add(new ClassScheduleOccurrenceResponse(date, response));
+                result.add(new ClassScheduleOccurrenceResponse(date, response, OccurrenceStatus.HELD, null));
+            }
+            for (ClassScheduleOccurrenceService.CancelledOccurrence cancelled
+                    : cancelledBySchedule.getOrDefault(schedule.getId(), List.of())) {
+                result.add(new ClassScheduleOccurrenceResponse(cancelled.date(), response, OccurrenceStatus.CANCELLED, cancelled.reason()));
             }
         }
         result.sort(Comparator.comparing(ClassScheduleOccurrenceResponse::date)

@@ -153,4 +153,58 @@ class ClassScheduleOccurrenceServiceTest {
         org.mockito.Mockito.verify(blockedPeriodRepository, org.mockito.Mockito.times(1))
             .findApplicableForPeriodInRange(anyLong(), any(), any());
     }
+
+    // ── cancelledDatesForSchedules (purely additive -- occurrenceDatesFor/occurrenceDatesForSchedules above are untouched) ──
+
+    @Test
+    void cancelledDatesShouldReturnTheBlockedDateWithItsReason() {
+        BlockedPeriod independenceDayHoliday = new BlockedPeriod();
+        independenceDayHoliday.setPeriod(period);
+        independenceDayHoliday.setBlockType(BlockType.ONE_OFF);
+        independenceDayHoliday.setSpecificDate(LocalDate.of(2024, 8, 12));
+        independenceDayHoliday.setReason("Independence Day");
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(anyLong(), any(), any()))
+            .thenReturn(List.of(independenceDayHoliday));
+
+        Map<Long, List<ClassScheduleOccurrenceService.CancelledOccurrence>> result =
+            service.cancelledDatesForSchedules(List.of(mondaySchedule()), LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+
+        assertThat(result.get(100L)).hasSize(1);
+        assertThat(result.get(100L).get(0).date()).isEqualTo(LocalDate.of(2024, 8, 12));
+        assertThat(result.get(100L).get(0).reason()).isEqualTo("Independence Day");
+    }
+
+    @Test
+    void cancelledDatesShouldBeEmptyWhenNothingIsBlocked() {
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(anyLong(), any(), any()))
+            .thenReturn(Collections.emptyList());
+
+        Map<Long, List<ClassScheduleOccurrenceService.CancelledOccurrence>> result =
+            service.cancelledDatesForSchedules(List.of(mondaySchedule()), LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+
+        assertThat(result.get(100L)).isEmpty();
+    }
+
+    @Test
+    void cancelledAndHeldDatesShouldBeComplementarySets() {
+        BlockedPeriod standingMeeting = new BlockedPeriod();
+        standingMeeting.setPeriod(period);
+        standingMeeting.setBlockType(BlockType.RECURRING);
+        standingMeeting.setDayOfWeek(DayOfWeek.MONDAY);
+        standingMeeting.setRangeStartDate(LocalDate.of(2024, 8, 19));
+        standingMeeting.setRangeEndDate(LocalDate.of(2024, 8, 19));
+        standingMeeting.setReason("Staff meeting");
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(anyLong(), any(), any()))
+            .thenReturn(List.of(standingMeeting));
+
+        List<LocalDate> held = service.occurrenceDatesFor(
+            mondaySchedule(), LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+        Map<Long, List<ClassScheduleOccurrenceService.CancelledOccurrence>> cancelled =
+            service.cancelledDatesForSchedules(List.of(mondaySchedule()), LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+
+        assertThat(held).containsExactly(
+            LocalDate.of(2024, 8, 5), LocalDate.of(2024, 8, 12), LocalDate.of(2024, 8, 26));
+        assertThat(cancelled.get(100L)).extracting(ClassScheduleOccurrenceService.CancelledOccurrence::date)
+            .containsExactly(LocalDate.of(2024, 8, 19));
+    }
 }

@@ -44,6 +44,7 @@ class FacultySessionSwapServiceTest {
     @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
     @Mock private SessionOccurrenceRepository sessionOccurrenceRepository;
     @Mock private ClassScheduleOccurrenceService occurrenceService;
+    @Mock private AuditLogService auditLogService;
 
     private FacultySessionSwapService service;
 
@@ -57,7 +58,7 @@ class FacultySessionSwapServiceTest {
     @BeforeEach
     void setUp() {
         service = new FacultySessionSwapService(classScheduleRepository, facultyAvailabilityRepository,
-            sessionOccurrenceRepository, occurrenceService);
+            sessionOccurrenceRepository, occurrenceService, auditLogService);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);
@@ -188,7 +189,7 @@ class FacultySessionSwapServiceTest {
             return occ;
         });
 
-        service.applySwap(300L, 301L, date);
+        service.applySwap(300L, 301L, date, "admin");
 
         assertThat(sessionA.getFaculty().getId()).isEqualTo(1L);
         assertThat(sessionB.getFaculty().getId()).isEqualTo(2L);

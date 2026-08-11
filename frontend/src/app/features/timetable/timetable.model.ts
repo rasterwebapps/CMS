@@ -17,11 +17,17 @@ export interface MyTimetableResponse {
   holidays: WeekGridHolidayInfo[];
 }
 
-/** One real calendar-dated firing of a recurring ClassSchedule row -- the projection behind
- *  Month/Week/Day calendar views, from GET /timetables/occurrences. */
+export type OccurrenceStatus = 'HELD' | 'SUBSTITUTED' | 'CANCELLED';
+
+/** One calendar-dated firing of a recurring ClassSchedule row -- the projection behind
+ *  Month/Week/Day calendar views, from GET /timetables/occurrences. occurrenceStatus is CANCELLED
+ *  (with cancelReason set) for a date the session's period is blocked -- shown explicitly rather
+ *  than silently missing from the list. */
 export interface ClassScheduleOccurrence {
   date: string;
   session: ClassSchedule;
+  occurrenceStatus: OccurrenceStatus;
+  cancelReason: string | null;
 }
 
 export type TimetableOccurrenceScope = 'browse' | 'personal';

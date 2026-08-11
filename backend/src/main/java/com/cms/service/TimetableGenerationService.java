@@ -9,7 +9,9 @@ import com.cms.dto.TimetableActionResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.ClassSchedule;
+import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
+import com.cms.model.enums.TermInstanceStatus;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.LabAttendanceRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -27,27 +29,58 @@ public class TimetableGenerationService {
     private final ClassScheduleRepository classScheduleRepository;
     private final TermInstanceRepository termInstanceRepository;
     private final LabAttendanceRepository labAttendanceRepository;
+    private final AuditLogService auditLogService;
 
     public TimetableGenerationService(ClassScheduleRepository classScheduleRepository,
                                        TermInstanceRepository termInstanceRepository,
-                                       LabAttendanceRepository labAttendanceRepository) {
+                                       LabAttendanceRepository labAttendanceRepository,
+                                       AuditLogService auditLogService) {
         this.classScheduleRepository = classScheduleRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.labAttendanceRepository = labAttendanceRepository;
+        this.auditLogService = auditLogService;
+    }
+
+    /** A LOCKED term's timetable is immutable — clear/approve/revert all refuse once the term
+     *  itself has moved past OPEN, independently of whatever {@link ClassScheduleStatus} its rows
+     *  are in. */
+    private void requireNotLocked(TermInstance term) {
+        if (term.getStatus() == TermInstanceStatus.LOCKED) {
+            throw new LifecycleConflictException(
+                "This term is locked. Its timetable can no longer be changed.",
+                "TIMETABLE_TERM_LOCKED", "TermInstance", term.getId(), null);
+        }
+    }
+
+    private TermInstance requireTermInstance(Long termInstanceId) {
+        return termInstanceRepository.findById(termInstanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
     }
 
     @Transactional
-    public TimetableActionResponse clear(Long termInstanceId) {
-        if (!termInstanceRepository.existsById(termInstanceId)) {
-            throw new ResourceNotFoundException("Term instance not found with id: " + termInstanceId);
+    public TimetableActionResponse clear(Long termInstanceId, String actor) {
+        TermInstance term = requireTermInstance(termInstanceId);
+        requireNotLocked(term);
+        // Mirrors revertToDraft's own attendance guard below -- a hard delete is strictly more
+        // dangerous than a revert-to-draft for the exact same reason: lab_attendances.lab_schedule_id
+        // has no ON DELETE/status-transition handling, so wiping attendance-backed sessions would
+        // orphan that history's session linkage.
+        if (labAttendanceRepository.existsByLabScheduleTermInstanceId(termInstanceId)) {
+            throw new LifecycleConflictException(
+                "Attendance has already been recorded against this term's timetable. It can no longer be discarded.",
+                "TIMETABLE_ATTENDANCE_RECORDED", "TermInstance", termInstanceId, null);
         }
         List<ClassSchedule> existing = classScheduleRepository.findByTermInstanceId(termInstanceId);
         classScheduleRepository.deleteByTermInstanceId(termInstanceId);
+        auditLogService.record(actor, "TIMETABLE_DISCARDED", "TermInstance",
+            termInstanceId.toString(), existing.size() + " session(s) discarded");
         return new TimetableActionResponse(existing.size());
     }
 
     @Transactional
-    public TimetableActionResponse approve(Long termInstanceId) {
+    public TimetableActionResponse approve(Long termInstanceId, String actor) {
+        TermInstance term = requireTermInstance(termInstanceId);
+        requireNotLocked(term);
         List<ClassSchedule> drafts = classScheduleRepository.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT);
         if (drafts.isEmpty()) {
             throw new ResourceNotFoundException("No draft timetable found for term instance id: " + termInstanceId);
@@ -66,6 +99,8 @@ public class TimetableGenerationService {
             cs.setStatus(ClassScheduleStatus.PUBLISHED);
             classScheduleRepository.save(cs);
         }
+        auditLogService.record(actor, "TIMETABLE_APPROVED", "TermInstance",
+            termInstanceId.toString(), drafts.size() + " session(s) approved");
         return new TimetableActionResponse(drafts.size());
     }
 
@@ -78,7 +113,9 @@ public class TimetableGenerationService {
      * clear/re-placement wipe out attendance history's session linkage.
      */
     @Transactional
-    public TimetableActionResponse revertToDraft(Long termInstanceId) {
+    public TimetableActionResponse revertToDraft(Long termInstanceId, String actor) {
+        TermInstance term = requireTermInstance(termInstanceId);
+        requireNotLocked(term);
         List<ClassSchedule> published = classScheduleRepository.findByTermInstanceIdAndStatus(
             termInstanceId, ClassScheduleStatus.PUBLISHED);
         if (published.isEmpty()) {
@@ -93,6 +130,8 @@ public class TimetableGenerationService {
             cs.setStatus(ClassScheduleStatus.DRAFT);
             classScheduleRepository.save(cs);
         }
+        auditLogService.record(actor, "TIMETABLE_REVERTED_TO_DRAFT", "TermInstance",
+            termInstanceId.toString(), published.size() + " session(s) reverted to draft");
         return new TimetableActionResponse(published.size());
     }
 }

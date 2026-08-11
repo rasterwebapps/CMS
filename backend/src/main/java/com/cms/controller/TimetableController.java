@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -113,20 +115,20 @@ public class TimetableController {
 
     @PostMapping("/{termInstanceId}/approve")
     @PreAuthorize("@perm.has('TIMETABLE_MANAGE')")
-    public ResponseEntity<TimetableActionResponse> approve(@PathVariable Long termInstanceId) {
-        return ResponseEntity.ok(timetableGenerationService.approve(termInstanceId));
+    public ResponseEntity<TimetableActionResponse> approve(@PathVariable Long termInstanceId, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(timetableGenerationService.approve(termInstanceId, actor(jwt)));
     }
 
     @DeleteMapping("/{termInstanceId}")
     @PreAuthorize("@perm.has('TIMETABLE_MANAGE')")
-    public ResponseEntity<TimetableActionResponse> clear(@PathVariable Long termInstanceId) {
-        return ResponseEntity.ok(timetableGenerationService.clear(termInstanceId));
+    public ResponseEntity<TimetableActionResponse> clear(@PathVariable Long termInstanceId, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(timetableGenerationService.clear(termInstanceId, actor(jwt)));
     }
 
     @PostMapping("/{termInstanceId}/revert-to-draft")
     @PreAuthorize("@perm.has('TIMETABLE_DISCARD_PUBLISHED')")
-    public ResponseEntity<TimetableActionResponse> revertToDraft(@PathVariable Long termInstanceId) {
-        return ResponseEntity.ok(timetableGenerationService.revertToDraft(termInstanceId));
+    public ResponseEntity<TimetableActionResponse> revertToDraft(@PathVariable Long termInstanceId, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(timetableGenerationService.revertToDraft(termInstanceId, actor(jwt)));
     }
 
     @GetMapping("/{termInstanceId}/sessions/{sessionId}/swap-candidates")
@@ -139,8 +141,16 @@ public class TimetableController {
     @PostMapping("/{termInstanceId}/sessions/{sessionId}/swap")
     @PreAuthorize("@perm.has('TIMETABLE_SWAP')")
     public ResponseEntity<Void> swap(
-            @PathVariable Long termInstanceId, @PathVariable Long sessionId, @Valid @RequestBody SwapRequest request) {
-        timetableSwapService.swap(termInstanceId, sessionId, request);
+            @PathVariable Long termInstanceId, @PathVariable Long sessionId, @Valid @RequestBody SwapRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        timetableSwapService.swap(termInstanceId, sessionId, request, actor(jwt));
         return ResponseEntity.noContent().build();
+    }
+
+    /** Null in some WebMvcTest slices that disable the security filter chain (see
+     *  ImportController for the same established pattern) -- never null in real traffic, where
+     *  every one of these endpoints is already gated by {@code @PreAuthorize}. */
+    private static String actor(Jwt jwt) {
+        return jwt != null ? jwt.getClaimAsString("preferred_username") : "system";
     }
 }

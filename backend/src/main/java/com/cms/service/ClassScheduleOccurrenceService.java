@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +39,10 @@ public class ClassScheduleOccurrenceService {
     public ClassScheduleOccurrenceService(BlockedPeriodRepository blockedPeriodRepository) {
         this.blockedPeriodRepository = blockedPeriodRepository;
     }
+
+    /** One weekly-recurring date that's blocked rather than skipped silently — the complement of
+     *  {@link #occurrenceDatesFor}'s own result set for the same schedule/window. */
+    public record CancelledOccurrence(LocalDate date, String reason) {}
 
     /** Occurrence dates for one schedule, clamped to both the term's own bounds and the
      *  caller-supplied [from, to] window, skipping any date on which this schedule's period is
@@ -79,8 +84,58 @@ public class ClassScheduleOccurrenceService {
         return result;
     }
 
+    /** Batched variant of {@link #cancelledDatesFor}, mirroring {@link
+     *  #occurrenceDatesForSchedules}'s own batching shape (one block fetch per distinct period,
+     *  reused across every schedule sharing it). Purely additive — {@link #occurrenceDatesFor}/
+     *  {@link #occurrenceDatesForSchedules} are untouched by this, since {@link
+     *  com.cms.service.PortionBlueprintService}, {@link com.cms.service.ProgressTrackingService},
+     *  and {@link com.cms.service.FacultySessionSwapService} all depend on their existing
+     *  excludes-blocked-dates contract. */
+    public Map<Long, List<CancelledOccurrence>> cancelledDatesForSchedules(
+            List<ClassSchedule> schedules, LocalDate from, LocalDate to) {
+        Map<Long, List<BlockedPeriod>> blocksByPeriod = new HashMap<>();
+        Map<Long, List<CancelledOccurrence>> result = new HashMap<>();
+
+        for (ClassSchedule schedule : schedules) {
+            TermInstance term = schedule.getTermInstance();
+            LocalDate start = maxDate(from, term.getStartDate());
+            LocalDate end = minDate(to, term.getEndDate());
+            if (start.isAfter(end)) {
+                result.put(schedule.getId(), List.of());
+                continue;
+            }
+            Long periodId = schedule.getPeriod().getId();
+            List<BlockedPeriod> blocks = blocksByPeriod.computeIfAbsent(periodId,
+                id -> blockedPeriodRepository.findApplicableForPeriodInRange(id, from, to));
+            result.put(schedule.getId(), cancelledDatesFor(schedule, start, end, blocks));
+        }
+        return result;
+    }
+
     private static List<LocalDate> datesFor(ClassSchedule schedule, LocalDate start, LocalDate end,
                                              List<BlockedPeriod> blocks) {
+        List<LocalDate> dates = new ArrayList<>();
+        for (LocalDate date : weeklyDatesInRange(schedule, start, end)) {
+            if (matchingBlock(date, blocks).isEmpty()) {
+                dates.add(date);
+            }
+        }
+        return dates;
+    }
+
+    private static List<CancelledOccurrence> cancelledDatesFor(ClassSchedule schedule, LocalDate start, LocalDate end,
+                                                                 List<BlockedPeriod> blocks) {
+        List<CancelledOccurrence> cancelled = new ArrayList<>();
+        for (LocalDate date : weeklyDatesInRange(schedule, start, end)) {
+            matchingBlock(date, blocks).ifPresent(block -> cancelled.add(new CancelledOccurrence(date, block.getReason())));
+        }
+        return cancelled;
+    }
+
+    /** The raw weekly-recurring date sequence for a schedule within [start, end], with no
+     *  blocked-date filtering applied — shared by both {@link #datesFor} (which then excludes
+     *  blocked dates) and {@link #cancelledDatesFor} (which keeps only them). */
+    private static List<LocalDate> weeklyDatesInRange(ClassSchedule schedule, LocalDate start, LocalDate end) {
         // com.cms.model.enums.DayOfWeek only has MONDAY..SATURDAY (no SUNDAY) -- names line up
         // exactly with java.time.DayOfWeek's, so valueOf() is a safe direct mapping.
         java.time.DayOfWeek targetDay = java.time.DayOfWeek.valueOf(schedule.getDayOfWeek().name());
@@ -88,9 +143,6 @@ public class ClassScheduleOccurrenceService {
 
         List<LocalDate> dates = new ArrayList<>();
         for (LocalDate date = first; !date.isAfter(end); date = date.plusWeeks(1)) {
-            if (isBlocked(date, blocks)) {
-                continue;
-            }
             dates.add(date);
         }
         return dates;
@@ -99,7 +151,7 @@ public class ClassScheduleOccurrenceService {
     /** Mirrors the exact ONE_OFF/RECURRING matching logic already used by
      *  {@code TimetableCapacityPlanningService.blockedHoursInTerm} -- kept consistent so both
      *  agree on which dates are actually non-teaching. */
-    private static boolean isBlocked(LocalDate date, List<BlockedPeriod> blocks) {
+    private static Optional<BlockedPeriod> matchingBlock(LocalDate date, List<BlockedPeriod> blocks) {
         com.cms.model.enums.DayOfWeek appDayOfWeek = com.cms.model.enums.DayOfWeek.valueOf(date.getDayOfWeek().name());
         for (BlockedPeriod block : blocks) {
             boolean matches = block.getBlockType() == BlockType.ONE_OFF
@@ -107,10 +159,10 @@ public class ClassScheduleOccurrenceService {
                 : appDayOfWeek == block.getDayOfWeek()
                     && !date.isBefore(block.getRangeStartDate()) && !date.isAfter(block.getRangeEndDate());
             if (matches) {
-                return true;
+                return Optional.of(block);
             }
         }
-        return false;
+        return Optional.empty();
     }
 
     private static LocalDate maxDate(LocalDate a, LocalDate b) {

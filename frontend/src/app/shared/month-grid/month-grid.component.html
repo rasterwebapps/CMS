@@ -23,7 +23,11 @@
         @if (occurrencesFor(cell).length > 0) {
           <div class="month-grid__day-sessions">
             @for (occ of occurrencesFor(cell).slice(0, 2); track occ.session.id) {
-              <span class="month-grid__session-pill" [matTooltip]="occ.session.subjectName">{{ occ.session.subjectName }}</span>
+              <span class="month-grid__session-pill"
+                [class.month-grid__session-pill--cancelled]="occ.occurrenceStatus === 'CANCELLED'"
+                [matTooltip]="occ.occurrenceStatus === 'CANCELLED' ? 'Cancelled — ' + occ.cancelReason : occ.session.subjectName">
+                {{ occ.session.subjectName }}
+              </span>
             }
             @if (occurrencesFor(cell).length > 2) {
               <span class="month-grid__session-more">+{{ occurrencesFor(cell).length - 2 }} more</span>

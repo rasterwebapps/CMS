@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -39,8 +41,10 @@ public class FacultySessionSwapController {
     @PostMapping("/sessions/{classScheduleId}/apply")
     @PreAuthorize("@perm.has('TIMETABLE_STAFF_SWAP')")
     public ResponseEntity<Void> applySwap(
-            @PathVariable Long classScheduleId, @Valid @RequestBody ApplyStaffSwapRequest request) {
-        facultySessionSwapService.applySwap(classScheduleId, request.targetClassScheduleId(), request.date());
+            @PathVariable Long classScheduleId, @Valid @RequestBody ApplyStaffSwapRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        facultySessionSwapService.applySwap(classScheduleId, request.targetClassScheduleId(), request.date(),
+            jwt != null ? jwt.getClaimAsString("preferred_username") : "system");
         return ResponseEntity.noContent().build();
     }
 }

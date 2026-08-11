@@ -36,6 +36,17 @@
   &--lab {
     border-left: 3px solid rgba(16, 185, 129, 0.6);
   }
+
+  // A session that doesn't happen on this date (holiday-blocked) -- muted + struck through
+  // instead of just vanishing from the day's agenda.
+  &--cancelled {
+    opacity: 0.65;
+    border-left-color: var(--cms-border-default);
+
+    .day-agenda__subject {
+      text-decoration: line-through;
+    }
+  }
 }
 
 .day-agenda__time {
@@ -63,4 +74,10 @@
 .day-agenda__faculty {
   font-size: var(--cms-text-xs);
   color: var(--cms-text-muted);
+}
+
+.day-agenda__cancelled-badge {
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  color: var(--cms-badge-amber-text);
 }

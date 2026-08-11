@@ -8,15 +8,20 @@
       @for (occ of sortedOccurrences(); track occ.session.id) {
         <li class="day-agenda__item"
           [class.day-agenda__item--theory]="occ.session.sessionType === 'THEORY'"
-          [class.day-agenda__item--lab]="occ.session.sessionType === 'LAB'">
+          [class.day-agenda__item--lab]="occ.session.sessionType === 'LAB'"
+          [class.day-agenda__item--cancelled]="occ.occurrenceStatus === 'CANCELLED'">
           <div class="day-agenda__time">{{ occ.session.startTime }} – {{ occ.session.endTime }}</div>
           <div class="day-agenda__body">
             <span class="day-agenda__subject">{{ occ.session.subjectName }}</span>
-            <span class="day-agenda__room">{{ occ.session.roomName }}</span>
-            @if (occ.session.batchName) {
-              <span class="day-agenda__batch">{{ occ.session.batchName }}</span>
+            @if (occ.occurrenceStatus === 'CANCELLED') {
+              <span class="day-agenda__cancelled-badge">Cancelled — {{ occ.cancelReason }}</span>
+            } @else {
+              <span class="day-agenda__room">{{ occ.session.roomName }}</span>
+              @if (occ.session.batchName) {
+                <span class="day-agenda__batch">{{ occ.session.batchName }}</span>
+              }
+              <span class="day-agenda__faculty">{{ occ.session.facultyName }}</span>
             }
-            <span class="day-agenda__faculty">{{ occ.session.facultyName }}</span>
           </div>
         </li>
       }

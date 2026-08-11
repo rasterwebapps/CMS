@@ -52,6 +52,7 @@ class FacultyAbsenceServiceTest {
     @Mock private FacultyRepository facultyRepository;
     @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
     @Mock private SessionOccurrenceRepository sessionOccurrenceRepository;
+    @Mock private AuditLogService auditLogService;
 
     private FacultyAbsenceService service;
 
@@ -64,7 +65,7 @@ class FacultyAbsenceServiceTest {
     @BeforeEach
     void setUp() {
         service = new FacultyAbsenceService(facultyAbsenceRepository, classScheduleRepository,
-            facultyRepository, facultyAvailabilityRepository, sessionOccurrenceRepository);
+            facultyRepository, facultyAvailabilityRepository, sessionOccurrenceRepository, auditLogService);
 
         speciality = new Speciality("Nursing", "NUR", "Nursing Dept", null, null);
         speciality.setId(1L);
@@ -247,7 +248,7 @@ class FacultyAbsenceServiceTest {
         when(sessionOccurrenceRepository.save(any(com.cms.model.SessionOccurrence.class)))
             .thenAnswer(inv -> inv.getArgument(0));
 
-        AffectedSessionResponse response = service.applySubstitute(50L, 300L, 2L);
+        AffectedSessionResponse response = service.applySubstitute(50L, 300L, 2L, "admin");
 
         assertThat(response.substituteFacultyName()).isEqualTo("Jane Roe");
         assertThat(response.occurrenceStatus()).isEqualTo(com.cms.model.enums.OccurrenceStatus.SUBSTITUTED);
@@ -267,7 +268,7 @@ class FacultyAbsenceServiceTest {
         when(facultyRepository.findBySpecialityIdAndStatus(1L, FacultyStatus.ACTIVE))
             .thenReturn(List.of(absentFaculty)); // eligibleFaculty (id=2) not in the pool at all
 
-        assertThatThrownBy(() -> service.applySubstitute(50L, 300L, 2L))
+        assertThatThrownBy(() -> service.applySubstitute(50L, 300L, 2L, "admin"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("no longer eligible");
     }

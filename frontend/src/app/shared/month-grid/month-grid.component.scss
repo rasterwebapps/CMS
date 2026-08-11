@@ -95,6 +95,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+
+  // A session that doesn't happen on this date (holiday-blocked) -- muted + struck through
+  // instead of just vanishing from the day's list.
+  &--cancelled {
+    background: var(--cms-bg-muted, rgba(0, 0, 0, 0.06));
+    color: var(--cms-text-muted);
+    text-decoration: line-through;
+  }
 }
 
 .month-grid__session-more {

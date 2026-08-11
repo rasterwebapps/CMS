@@ -48,6 +48,7 @@ class TimetableSwapServiceTest {
     @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
     @Mock private PeriodRepository periodRepository;
     @Mock private TimetableBlockedPeriodChecker blockedPeriodChecker;
+    @Mock private AuditLogService auditLogService;
 
     private TimetableSwapService service;
 
@@ -63,7 +64,7 @@ class TimetableSwapServiceTest {
     @BeforeEach
     void setUp() {
         service = new TimetableSwapService(classScheduleRepository, facultyAvailabilityRepository,
-            periodRepository, blockedPeriodChecker);
+            periodRepository, blockedPeriodChecker, auditLogService);
 
         termInstance = new TermInstance();
         termInstance.setId(10L);
@@ -150,7 +151,7 @@ class TimetableSwapServiceTest {
         when(classScheduleRepository.findOverlapping(eq(DayOfWeek.TUESDAY), eq(10L), any(), any(),
             eq(ClassScheduleStatus.DRAFT), eq(100L))).thenReturn(Collections.emptyList());
 
-        service.swap(10L, 100L, new SwapRequest(DayOfWeek.TUESDAY, 2L));
+        service.swap(10L, 100L, new SwapRequest(DayOfWeek.TUESDAY, 2L), "admin");
 
         assertThat(source.getDayOfWeek()).isEqualTo(DayOfWeek.TUESDAY);
         assertThat(source.getPeriod()).isEqualTo(p2);
@@ -183,7 +184,7 @@ class TimetableSwapServiceTest {
         when(classScheduleRepository.findOverlapping(eq(DayOfWeek.MONDAY), eq(10L), eq(p1.getStartTime()), eq(p1.getEndTime()),
             eq(ClassScheduleStatus.DRAFT), eq(200L))).thenReturn(List.of());
 
-        service.swap(10L, 100L, new SwapRequest(DayOfWeek.TUESDAY, 2L));
+        service.swap(10L, 100L, new SwapRequest(DayOfWeek.TUESDAY, 2L), "admin");
 
         assertThat(source.getDayOfWeek()).isEqualTo(DayOfWeek.TUESDAY);
         assertThat(source.getPeriod()).isEqualTo(p2);
@@ -221,7 +222,7 @@ class TimetableSwapServiceTest {
             DayOfWeek.TUESDAY, 2L, termInstance.getStartDate(), termInstance.getEndDate()))
             .thenReturn(Optional.of("Staff meeting"));
 
-        assertThatThrownBy(() -> service.swap(10L, 100L, new SwapRequest(DayOfWeek.TUESDAY, 2L)))
+        assertThatThrownBy(() -> service.swap(10L, 100L, new SwapRequest(DayOfWeek.TUESDAY, 2L), "admin"))
             .isInstanceOf(LifecycleConflictException.class)
             .hasMessageContaining("no longer available");
     }

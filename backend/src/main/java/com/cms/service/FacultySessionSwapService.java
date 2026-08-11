@@ -35,15 +35,18 @@ public class FacultySessionSwapService {
     private final FacultyAvailabilityRepository facultyAvailabilityRepository;
     private final SessionOccurrenceRepository sessionOccurrenceRepository;
     private final ClassScheduleOccurrenceService occurrenceService;
+    private final AuditLogService auditLogService;
 
     public FacultySessionSwapService(ClassScheduleRepository classScheduleRepository,
                                       FacultyAvailabilityRepository facultyAvailabilityRepository,
                                       SessionOccurrenceRepository sessionOccurrenceRepository,
-                                      ClassScheduleOccurrenceService occurrenceService) {
+                                      ClassScheduleOccurrenceService occurrenceService,
+                                      AuditLogService auditLogService) {
         this.classScheduleRepository = classScheduleRepository;
         this.facultyAvailabilityRepository = facultyAvailabilityRepository;
         this.sessionOccurrenceRepository = sessionOccurrenceRepository;
         this.occurrenceService = occurrenceService;
+        this.auditLogService = auditLogService;
     }
 
     public List<StaffSwapCandidateResponse> findSwapCandidates(Long classScheduleId, LocalDate date) {
@@ -73,7 +76,7 @@ public class FacultySessionSwapService {
     }
 
     @Transactional
-    public void applySwap(Long sessionAId, Long sessionBId, LocalDate date) {
+    public void applySwap(Long sessionAId, Long sessionBId, LocalDate date, String actor) {
         ClassSchedule a = requirePublishedRealOccurrence(sessionAId, date);
         ClassSchedule b = requirePublishedRealOccurrence(sessionBId, date);
 
@@ -100,6 +103,9 @@ public class FacultySessionSwapService {
         savedB.setSwapPartnerOccurrence(savedA);
         sessionOccurrenceRepository.save(savedA);
         sessionOccurrenceRepository.save(savedB);
+        auditLogService.record(actor, "TIMETABLE_STAFF_SWAPPED", "ClassSchedule",
+            sessionAId + "," + sessionBId, "Faculty swapped for " + date + ": "
+                + a.getFaculty().getFullName() + " <-> " + b.getFaculty().getFullName());
     }
 
     private boolean isFacultyFreeAt(Long facultyId, DayOfWeek day, LocalTime start, LocalTime end,

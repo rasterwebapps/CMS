@@ -1,9 +1,11 @@
 package com.cms.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -86,54 +88,58 @@ class TimetableControllerTest {
 
     @Test
     void shouldApproveDraftTimetable() throws Exception {
-        when(timetableGenerationService.approve(10L)).thenReturn(new TimetableActionResponse(5));
+        when(timetableGenerationService.approve(eq(10L), anyString())).thenReturn(new TimetableActionResponse(5));
 
-        mockMvc.perform(post("/timetables/10/approve"))
+        // The security filter chain is disabled in this WebMvcTest slice (addFilters = false), so
+        // @AuthenticationPrincipal Jwt resolves null regardless of .with(jwt()...) here -- same
+        // established limitation as ImportControllerTest, hence anyString() above/below rather
+        // than asserting a specific actor value.
+        mockMvc.perform(post("/timetables/10/approve").with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.affectedCount").value(5));
 
-        verify(timetableGenerationService).approve(10L);
+        verify(timetableGenerationService).approve(eq(10L), anyString());
     }
 
     @Test
     void shouldReturnNotFoundWhenApprovingWithNoDrafts() throws Exception {
-        when(timetableGenerationService.approve(999L))
+        when(timetableGenerationService.approve(eq(999L), anyString()))
             .thenThrow(new ResourceNotFoundException("No draft timetable found for term instance id: 999"));
 
-        mockMvc.perform(post("/timetables/999/approve"))
+        mockMvc.perform(post("/timetables/999/approve").with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isNotFound());
     }
 
     @Test
     void shouldClearTimetable() throws Exception {
-        when(timetableGenerationService.clear(10L)).thenReturn(new TimetableActionResponse(7));
+        when(timetableGenerationService.clear(eq(10L), anyString())).thenReturn(new TimetableActionResponse(7));
 
-        mockMvc.perform(delete("/timetables/10"))
+        mockMvc.perform(delete("/timetables/10").with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.affectedCount").value(7));
 
-        verify(timetableGenerationService).clear(10L);
+        verify(timetableGenerationService).clear(eq(10L), anyString());
     }
 
     @Test
     void shouldRevertPublishedTimetableToDraft() throws Exception {
-        when(timetableGenerationService.revertToDraft(10L)).thenReturn(new TimetableActionResponse(4));
+        when(timetableGenerationService.revertToDraft(eq(10L), anyString())).thenReturn(new TimetableActionResponse(4));
 
-        mockMvc.perform(post("/timetables/10/revert-to-draft"))
+        mockMvc.perform(post("/timetables/10/revert-to-draft").with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.affectedCount").value(4));
 
-        verify(timetableGenerationService).revertToDraft(10L);
+        verify(timetableGenerationService).revertToDraft(eq(10L), anyString());
     }
 
     @Test
     void shouldReturnConflictWhenRevertingWithAttendanceRecorded() throws Exception {
-        when(timetableGenerationService.revertToDraft(10L))
+        when(timetableGenerationService.revertToDraft(eq(10L), anyString()))
             .thenThrow(new LifecycleConflictException(
                 "Attendance has already been recorded against this term's timetable. It can no longer be reverted to draft.",
                 "TIMETABLE_ATTENDANCE_RECORDED", "TermInstance", 10L, null));
 
-        mockMvc.perform(post("/timetables/10/revert-to-draft"))
+        mockMvc.perform(post("/timetables/10/revert-to-draft").with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isConflict());
     }
 
@@ -168,9 +174,10 @@ class TimetableControllerTest {
     void shouldSwapSession() throws Exception {
         mockMvc.perform(post("/timetables/10/sessions/55/swap")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"dayOfWeek\":\"TUESDAY\",\"periodId\":2}"))
+                .content("{\"dayOfWeek\":\"TUESDAY\",\"periodId\":2}")
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isNoContent());
 
-        verify(timetableSwapService).swap(eq(10L), eq(55L), any());
+        verify(timetableSwapService).swap(eq(10L), eq(55L), any(), anyString());
     }
 }

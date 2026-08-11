@@ -43,17 +43,20 @@ public class FacultyAbsenceService {
     private final FacultyRepository facultyRepository;
     private final FacultyAvailabilityRepository facultyAvailabilityRepository;
     private final SessionOccurrenceRepository sessionOccurrenceRepository;
+    private final AuditLogService auditLogService;
 
     public FacultyAbsenceService(FacultyAbsenceRepository facultyAbsenceRepository,
                                   ClassScheduleRepository classScheduleRepository,
                                   FacultyRepository facultyRepository,
                                   FacultyAvailabilityRepository facultyAvailabilityRepository,
-                                  SessionOccurrenceRepository sessionOccurrenceRepository) {
+                                  SessionOccurrenceRepository sessionOccurrenceRepository,
+                                  AuditLogService auditLogService) {
         this.facultyAbsenceRepository = facultyAbsenceRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.facultyRepository = facultyRepository;
         this.facultyAvailabilityRepository = facultyAvailabilityRepository;
         this.sessionOccurrenceRepository = sessionOccurrenceRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -140,7 +143,7 @@ public class FacultyAbsenceService {
     }
 
     @Transactional
-    public AffectedSessionResponse applySubstitute(Long absenceId, Long classScheduleId, Long substituteFacultyId) {
+    public AffectedSessionResponse applySubstitute(Long absenceId, Long classScheduleId, Long substituteFacultyId, String actor) {
         FacultyAbsence absence = findAbsenceOrThrow(absenceId);
         ClassSchedule schedule = classScheduleRepository.findById(classScheduleId)
             .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + classScheduleId));
@@ -161,6 +164,8 @@ public class FacultyAbsenceService {
         occurrence.setFacultyAbsence(absence);
         occurrence.setOccurrenceStatus(OccurrenceStatus.SUBSTITUTED);
         sessionOccurrenceRepository.save(occurrence);
+        auditLogService.record(actor, "TIMETABLE_SUBSTITUTE_APPLIED", "ClassSchedule", classScheduleId.toString(),
+            substitute.getFullName() + " substituted for " + absence.getAbsenceDate());
 
         LocalTime[] times = resolveTimes(schedule);
         String roomName = resolveRoomName(schedule);

@@ -6,6 +6,8 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -68,8 +70,10 @@ public class FacultyAbsenceController {
     @PreAuthorize("@perm.has('FACULTY_ABSENCE_SUBSTITUTE_APPLY')")
     public ResponseEntity<AffectedSessionResponse> applySubstitute(
             @PathVariable Long absenceId, @PathVariable Long classScheduleId,
-            @Valid @RequestBody ApplySubstituteRequest request) {
+            @Valid @RequestBody ApplySubstituteRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(
-            facultyAbsenceService.applySubstitute(absenceId, classScheduleId, request.substituteFacultyId()));
+            facultyAbsenceService.applySubstitute(absenceId, classScheduleId, request.substituteFacultyId(),
+                jwt != null ? jwt.getClaimAsString("preferred_username") : "system"));
     }
 }
