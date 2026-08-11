@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments';
-import { StaffingAssignmentRequest, UnstaffedCell } from './staffing.model';
+import { AutoStaffResult, StaffingAssignmentRequest, UnstaffedCell } from './staffing.model';
 
 @Injectable({ providedIn: 'root' })
 export class StaffingService {
@@ -17,5 +17,11 @@ export class StaffingService {
 
   staffCell(id: number, request: StaffingAssignmentRequest): Observable<UnstaffedCell> {
     return this.http.put<UnstaffedCell>(`${this.baseUrl}/cells/${id}`, request);
+  }
+
+  autoStaff(termInstanceId: number): Observable<AutoStaffResult> {
+    return this.http.post<AutoStaffResult>(`${this.baseUrl}/auto-staff`, null, {
+      params: { termInstanceId: termInstanceId.toString() },
+    });
   }
 }

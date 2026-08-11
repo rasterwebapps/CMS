@@ -15,12 +15,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.AutoPlaceResult;
 import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellMoveRequest;
 import com.cms.dto.SkeletonCellPlacementRequest;
 import com.cms.dto.SkeletonCellResponse;
 import com.cms.dto.SkeletonPlacementCandidateResponse;
 import com.cms.model.enums.ClassSessionType;
+import com.cms.service.TimetableSkeletonAutoPlaceService;
 import com.cms.service.TimetableSkeletonService;
 
 import jakarta.validation.Valid;
@@ -30,9 +32,12 @@ import jakarta.validation.Valid;
 public class TimetableSkeletonController {
 
     private final TimetableSkeletonService timetableSkeletonService;
+    private final TimetableSkeletonAutoPlaceService timetableSkeletonAutoPlaceService;
 
-    public TimetableSkeletonController(TimetableSkeletonService timetableSkeletonService) {
+    public TimetableSkeletonController(TimetableSkeletonService timetableSkeletonService,
+                                        TimetableSkeletonAutoPlaceService timetableSkeletonAutoPlaceService) {
         this.timetableSkeletonService = timetableSkeletonService;
+        this.timetableSkeletonAutoPlaceService = timetableSkeletonAutoPlaceService;
     }
 
     @GetMapping
@@ -68,5 +73,11 @@ public class TimetableSkeletonController {
     @PreAuthorize("@perm.has('TIMETABLE_SKELETON_MOVE')")
     public ResponseEntity<SkeletonCellResponse> moveCell(@PathVariable Long id, @Valid @RequestBody SkeletonCellMoveRequest request) {
         return ResponseEntity.ok(timetableSkeletonService.moveCell(id, request));
+    }
+
+    @PostMapping("/auto-place")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_AUTO_PLACE')")
+    public ResponseEntity<AutoPlaceResult> autoPlace(@RequestParam Long termInstanceId, @RequestParam Long cohortId) {
+        return ResponseEntity.ok(timetableSkeletonAutoPlaceService.autoPlace(termInstanceId, cohortId));
     }
 }

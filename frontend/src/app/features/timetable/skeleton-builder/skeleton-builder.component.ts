@@ -43,6 +43,7 @@ export class SkeletonBuilderComponent implements OnInit {
   protected readonly skeletonLoading = signal(false);
   protected readonly placing = signal(false);
   protected readonly suggesting = signal(false);
+  protected readonly autoPlacing = signal(false);
 
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
@@ -90,6 +91,37 @@ export class SkeletonBuilderComponent implements OnInit {
 
   protected canMove(): boolean {
     return this.permissionService.has('TIMETABLE_SKELETON_MOVE');
+  }
+
+  protected canAutoPlace(): boolean {
+    return this.permissionService.has('TIMETABLE_SKELETON_AUTO_PLACE');
+  }
+
+  /** Fills whatever shortfall remains for the current cohort/term in one shot — electives are
+   *  skipped server-side (they need a free room pick and same-slot group coordination, left
+   *  manual for now), and every other constraint (blocked periods, cohort-exclusivity, ...) is the
+   *  same check manual placement already goes through. Manual placement stays fully available
+   *  alongside this — it only fills what's short, never touches an already-placed cell. */
+  protected onAutoPlaceClick(): void {
+    const termInstanceId = this.selectedTermInstanceId;
+    const cohortId = this.selectedCohortId;
+    if (!termInstanceId || !cohortId || this.autoPlacing()) return;
+    this.autoPlacing.set(true);
+    this.skeletonService.autoPlace(termInstanceId, cohortId).subscribe({
+      next: (result) => {
+        this.autoPlacing.set(false);
+        if (result.placedCount > 0) this.toast.success(`Placed ${result.placedCount} session(s)`);
+        if (result.unplaced.length > 0) {
+          this.toast.warning(result.unplaced.map((u) => `${u.subjectName} (${u.sessionType}): ${u.reason}`).join('\n'));
+        }
+        if (result.placedCount === 0 && result.unplaced.length === 0) this.toast.info('Nothing left to auto-place');
+        this.reloadSkeleton();
+      },
+      error: (err) => {
+        this.autoPlacing.set(false);
+        this.toast.error(err?.error?.message ?? 'Failed to auto-place');
+      },
+    });
   }
 
   protected canManageRotation(): boolean {

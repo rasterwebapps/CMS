@@ -50,6 +50,7 @@ export class StaffingComponent implements OnInit {
 
   protected readonly termsLoading = signal(false);
   protected readonly rowsLoading = signal(false);
+  protected readonly autoStaffing = signal(false);
 
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
@@ -58,6 +59,35 @@ export class StaffingComponent implements OnInit {
 
   protected canManage(): boolean {
     return this.permissionService.has('TIMETABLE_STAFFING_MANAGE');
+  }
+
+  protected canAutoStaff(): boolean {
+    return this.permissionService.has('TIMETABLE_STAFFING_AUTO_STAFF');
+  }
+
+  /** Staffs whatever unstaffed cells remain for the current term in one shot — electives are
+   *  skipped server-side (they need a free room pick, left manual), and every other constraint
+   *  (faculty availability/conflict, workload caps, room conflict) is the same check manual
+   *  staffing already goes through. Manual staffing stays fully available alongside this. */
+  protected onAutoStaffClick(): void {
+    const termInstanceId = this.selectedTermInstanceId;
+    if (!termInstanceId || this.autoStaffing()) return;
+    this.autoStaffing.set(true);
+    this.staffingService.autoStaff(termInstanceId).subscribe({
+      next: (result) => {
+        this.autoStaffing.set(false);
+        if (result.staffedCount > 0) this.toast.success(`Staffed ${result.staffedCount} session(s)`);
+        if (result.unplaced.length > 0) {
+          this.toast.warning(result.unplaced.map((u) => `${u.subjectName}: ${u.reason}`).join('\n'));
+        }
+        if (result.staffedCount === 0 && result.unplaced.length === 0) this.toast.info('Nothing left to auto-staff');
+        this.loadRows(termInstanceId);
+      },
+      error: (err) => {
+        this.autoStaffing.set(false);
+        this.toast.error(err?.error?.message ?? 'Failed to auto-staff');
+      },
+    });
   }
 
   ngOnInit(): void {

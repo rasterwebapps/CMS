@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments';
 import {
+  AutoPlaceResult,
   SkeletonBuilderResponse,
   SkeletonCell,
   SkeletonCellMoveRequest,
@@ -42,5 +43,11 @@ export class SkeletonBuilderService {
 
   moveCell(id: number, request: SkeletonCellMoveRequest): Observable<SkeletonCell> {
     return this.http.put<SkeletonCell>(`${this.baseUrl}/cells/${id}/move`, request);
+  }
+
+  autoPlace(termInstanceId: number, cohortId: number): Observable<AutoPlaceResult> {
+    return this.http.post<AutoPlaceResult>(`${this.baseUrl}/auto-place`, null, {
+      params: { termInstanceId: termInstanceId.toString(), cohortId: cohortId.toString() },
+    });
   }
 }

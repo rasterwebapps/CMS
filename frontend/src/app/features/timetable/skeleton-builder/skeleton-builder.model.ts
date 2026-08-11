@@ -109,3 +109,15 @@ export interface SkeletonCellMoveRequest {
   periodId: number;
   cohortId: number;
 }
+
+export interface AutoPlaceUnplacedItem {
+  subjectName: string;
+  sessionType: SkeletonSessionType;
+  occupantLabel: string | null;
+  reason: string;
+}
+
+export interface AutoPlaceResult {
+  placedCount: number;
+  unplaced: AutoPlaceUnplacedItem[];
+}

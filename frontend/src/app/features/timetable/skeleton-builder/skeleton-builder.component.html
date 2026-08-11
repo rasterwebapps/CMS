@@ -6,9 +6,17 @@
       <p class="page-subtitle">Place Theory, Lab, and Clinical sessions into periods for a cohort's whole term at once — staff and rooms are assigned afterward</p>
       <p class="page-subtitle">Need to size rooms/batches first? Open the <a routerLink="/timetable/capacity-planner">Capacity Planner</a>.</p>
     </div>
-    @if (canManageRotation() && selectedTermInstanceId) {
+    @if (selectedTermInstanceId && (canManageRotation() || (canAutoPlace() && selectedCohortId))) {
       <div class="mlp-hdr-right">
-        <button type="button" class="btn-secondary" (click)="openRotationSetup()">Set up Rotation</button>
+        @if (canAutoPlace() && selectedCohortId) {
+          <button type="button" class="btn-secondary" [disabled]="autoPlacing()" (click)="onAutoPlaceClick()">
+            @if (autoPlacing()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+            Auto-place remaining
+          </button>
+        }
+        @if (canManageRotation()) {
+          <button type="button" class="btn-secondary" (click)="openRotationSetup()">Set up Rotation</button>
+        }
       </div>
     }
   </div>

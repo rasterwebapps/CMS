@@ -6,6 +6,14 @@
       <p class="page-subtitle">Assign faculty and a room to every session placed in the Skeleton Builder, before this term's draft can be approved</p>
       <p class="page-subtitle">Need to size rooms/batches first? Open the <a routerLink="/timetable/capacity-planner">Capacity Planner</a>.</p>
     </div>
+    @if (canAutoStaff() && selectedTermInstanceId) {
+      <div class="mlp-hdr-right">
+        <button type="button" class="btn-secondary" [disabled]="autoStaffing()" (click)="onAutoStaffClick()">
+          @if (autoStaffing()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+          Auto-staff remaining
+        </button>
+      </div>
+    }
   </div>
 
   <div class="mlp-toolbar anim-rise anim-rise--d1">

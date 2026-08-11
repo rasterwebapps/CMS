@@ -34,3 +34,13 @@ export interface StaffingAssignmentRequest {
    *  room server-side from the committed Cohort Room Allocation venue. */
   classroomId: number | null;
 }
+
+export interface AutoStaffUnplacedItem {
+  subjectName: string;
+  reason: string;
+}
+
+export interface AutoStaffResult {
+  staffedCount: number;
+  unplaced: AutoStaffUnplacedItem[];
+}

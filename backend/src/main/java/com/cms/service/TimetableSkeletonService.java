@@ -584,7 +584,7 @@ public class TimetableSkeletonService {
                     + " has a mandatory Theory session in this slot for this audience — no other session can be placed here"));
     }
 
-    private boolean isElectiveOffering(CourseOffering offering) {
+    boolean isElectiveOffering(CourseOffering offering) {
         CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
         return csc != null && Boolean.TRUE.equals(csc.getIsElective());
     }
