@@ -79,5 +79,11 @@
 .day-agenda__cancelled-badge {
   font-size: var(--cms-text-xs);
   font-weight: 600;
-  color: var(--cms-badge-amber-text);
+  color: var(--cms-warning);
+}
+
+.day-agenda__substituted-badge {
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  color: var(--cms-info);
 }

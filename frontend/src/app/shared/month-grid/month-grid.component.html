@@ -25,7 +25,10 @@
             @for (occ of occurrencesFor(cell).slice(0, 2); track occ.session.id) {
               <span class="month-grid__session-pill"
                 [class.month-grid__session-pill--cancelled]="occ.occurrenceStatus === 'CANCELLED'"
-                [matTooltip]="occ.occurrenceStatus === 'CANCELLED' ? 'Cancelled — ' + occ.cancelReason : occ.session.subjectName">
+                [class.month-grid__session-pill--substituted]="occ.occurrenceStatus === 'SUBSTITUTED'"
+                [matTooltip]="occ.occurrenceStatus === 'CANCELLED' ? 'Cancelled — ' + occ.cancelReason
+                  : occ.occurrenceStatus === 'SUBSTITUTED' ? occ.session.subjectName + ' — substituted by ' + occ.session.facultyName
+                  : occ.session.subjectName">
                 {{ occ.session.subjectName }}
               </span>
             }

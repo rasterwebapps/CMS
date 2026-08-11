@@ -103,6 +103,11 @@
     color: var(--cms-text-muted);
     text-decoration: line-through;
   }
+
+  &--substituted {
+    background: var(--cms-info-light);
+    color: var(--cms-info);
+  }
 }
 
 .month-grid__session-more {

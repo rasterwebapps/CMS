@@ -21,6 +21,9 @@
                 <span class="day-agenda__batch">{{ occ.session.batchName }}</span>
               }
               <span class="day-agenda__faculty">{{ occ.session.facultyName }}</span>
+              @if (occ.occurrenceStatus === 'SUBSTITUTED') {
+                <span class="day-agenda__substituted-badge">Substituted</span>
+              }
             }
           </div>
         </li>
