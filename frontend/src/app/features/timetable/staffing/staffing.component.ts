@@ -177,10 +177,19 @@ export class StaffingComponent implements OnInit {
         this.rows.update((list) => list.filter((r) => r.id !== row.id));
       },
       error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to assign faculty/room');
+        this.toast.error(this.violationText(err) ?? 'Failed to assign faculty/room');
         row.saving = false;
       },
     });
+  }
+
+  /** A staffing attempt can fail several independent checks at once (blocked period, faculty
+   *  conflict, workload cap, room conflict, ...) — the backend now reports every one of them
+   *  together instead of just the first, so this joins them into one multi-line toast instead of
+   *  making the user fix-and-resubmit repeatedly to discover each problem in turn. */
+  private violationText(err: any): string | undefined {
+    const violations = err?.error?.violations as { message: string }[] | undefined;
+    return violations?.length ? violations.map((v) => v.message).join('\n') : err?.error?.message;
   }
 
   private loadTermInstances(academicYearId: number): void {

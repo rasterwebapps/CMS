@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellPlacementRequest;
@@ -28,10 +29,9 @@ import com.cms.dto.SkeletonPlacementCandidateResponse;
 import com.cms.dto.SkeletonSubjectBudget;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Batch;
-import com.cms.model.BlockedPeriod;
-import com.cms.model.CalendarEvent;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.Cohort;
@@ -44,7 +44,6 @@ import com.cms.model.Faculty;
 import com.cms.model.Period;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
-import com.cms.model.enums.BlockType;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortRoomAllocationStatus;
@@ -52,7 +51,6 @@ import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.BatchRepository;
-import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
@@ -69,7 +67,7 @@ class TimetableSkeletonServiceTest {
     @Mock private PeriodRepository periodRepository;
     @Mock private BatchRepository batchRepository;
     @Mock private BatchService batchService;
-    @Mock private BlockedPeriodRepository blockedPeriodRepository;
+    @Mock private TimetableBlockedPeriodChecker blockedPeriodChecker;
     @Mock private com.cms.repository.RotationSlotRepository rotationSlotRepository;
     @Mock private RotationResolverService rotationResolverService;
     @Mock private CourseOfferingService courseOfferingService;
@@ -90,7 +88,7 @@ class TimetableSkeletonServiceTest {
     @BeforeEach
     void setUp() {
         service = new TimetableSkeletonService(courseOfferingRepository, classScheduleRepository,
-            periodRepository, batchRepository, batchService, blockedPeriodRepository,
+            periodRepository, batchRepository, batchService, blockedPeriodChecker,
             rotationSlotRepository, rotationResolverService, courseOfferingService,
             cohortRepository, termInstanceRepository, cohortRoomAllocationRepository, cohortSectionRepository);
 
@@ -481,7 +479,7 @@ class TimetableSkeletonServiceTest {
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(existing));
 
         assertThatThrownBy(() -> service.placeCell(request))
-            .isInstanceOf(LifecycleConflictException.class);
+            .isInstanceOf(TimetableConstraintViolationException.class);
     }
 
     @Test
@@ -496,7 +494,7 @@ class TimetableSkeletonServiceTest {
             .thenReturn(List.of(rowFor(otherOffering, ClassSessionType.LAB, null, DayOfWeek.MONDAY, period)));
 
         assertThatThrownBy(() -> service.placeCell(request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("mandatory");
     }
 
@@ -517,7 +515,7 @@ class TimetableSkeletonServiceTest {
             .thenReturn(List.of(rowFor(otherOffering, ClassSessionType.THEORY, null, DayOfWeek.MONDAY, period)));
 
         assertThatThrownBy(() -> service.placeCell(request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("mandatory Theory session");
     }
 
@@ -545,46 +543,31 @@ class TimetableSkeletonServiceTest {
 
     @Test
     void shouldRejectPlacementAtARecurringBlockedPeriod() {
-        BlockedPeriod block = new BlockedPeriod();
-        block.setBlockType(BlockType.RECURRING);
-        block.setDayOfWeek(DayOfWeek.MONDAY);
-        block.setRangeStartDate(LocalDate.of(2024, 6, 1));
-        block.setRangeEndDate(LocalDate.of(2024, 11, 30));
-        block.setReason("Staff meeting");
-
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
-        when(blockedPeriodRepository.findOverlappingRecurringBlocks(
+        when(blockedPeriodChecker.blockReason(
             DayOfWeek.MONDAY, 1L, termInstance.getStartDate(), termInstance.getEndDate()))
-            .thenReturn(List.of(block));
+            .thenReturn(Optional.of("Staff meeting"));
 
         assertThatThrownBy(() -> service.placeCell(request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("Staff meeting");
     }
 
     @Test
     void shouldRejectPlacementAtAHolidayDerivedOneOffBlock() {
-        CalendarEvent holiday = new CalendarEvent();
-        holiday.setTitle("Independence Day");
-        BlockedPeriod block = new BlockedPeriod();
-        block.setBlockType(BlockType.ONE_OFF);
-        block.setSpecificDate(LocalDate.of(2024, 8, 5)); // a Monday
-        block.setReason("Auto-blocked — Independence Day");
-        block.setSourceCalendarEvent(holiday);
-
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
-        when(blockedPeriodRepository.findHolidayOneOffBlocksInRange(
-            1L, termInstance.getStartDate(), termInstance.getEndDate()))
-            .thenReturn(List.of(block));
+        when(blockedPeriodChecker.blockReason(
+            DayOfWeek.MONDAY, 1L, termInstance.getStartDate(), termInstance.getEndDate()))
+            .thenReturn(Optional.of("Auto-blocked — Independence Day"));
 
         assertThatThrownBy(() -> service.placeCell(request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("Auto-blocked");
     }
 
@@ -675,7 +658,7 @@ class TimetableSkeletonServiceTest {
             .thenReturn(List.of(theoryForA));
 
         assertThatThrownBy(() -> service.placeCell(request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("mandatory");
     }
 
@@ -799,7 +782,7 @@ class TimetableSkeletonServiceTest {
             .thenReturn(List.of(existingForA));
 
         assertThatThrownBy(() -> service.placeCell(request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("already scheduled");
     }
 

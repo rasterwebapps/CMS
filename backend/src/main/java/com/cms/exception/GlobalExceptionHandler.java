@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.cms.dto.ErrorResponse;
 import com.cms.dto.LifecycleConflictResponse;
+import com.cms.dto.TimetableConstraintViolationResponse;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -78,6 +79,18 @@ public class GlobalExceptionHandler {
             ex.getEntity(),
             ex.getEntityId(),
             ex.getBlockerCount(),
+            Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(TimetableConstraintViolationException.class)
+    public ResponseEntity<TimetableConstraintViolationResponse> handleTimetableConstraintViolation(
+            TimetableConstraintViolationException ex) {
+        TimetableConstraintViolationResponse error = new TimetableConstraintViolationResponse(
+            HttpStatus.CONFLICT.value(),
+            ex.getMessage(),
+            ex.getViolations(),
             Instant.now()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);

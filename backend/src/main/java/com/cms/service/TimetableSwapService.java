@@ -11,14 +11,12 @@ import com.cms.dto.SwapCandidateResponse;
 import com.cms.dto.SwapRequest;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
-import com.cms.model.BlockedPeriod;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Period;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
-import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.PeriodRepository;
@@ -43,16 +41,16 @@ public class TimetableSwapService {
     private final ClassScheduleRepository classScheduleRepository;
     private final FacultyAvailabilityRepository facultyAvailabilityRepository;
     private final PeriodRepository periodRepository;
-    private final BlockedPeriodRepository blockedPeriodRepository;
+    private final TimetableBlockedPeriodChecker blockedPeriodChecker;
 
     public TimetableSwapService(ClassScheduleRepository classScheduleRepository,
                                  FacultyAvailabilityRepository facultyAvailabilityRepository,
                                  PeriodRepository periodRepository,
-                                 BlockedPeriodRepository blockedPeriodRepository) {
+                                 TimetableBlockedPeriodChecker blockedPeriodChecker) {
         this.classScheduleRepository = classScheduleRepository;
         this.facultyAvailabilityRepository = facultyAvailabilityRepository;
         this.periodRepository = periodRepository;
-        this.blockedPeriodRepository = blockedPeriodRepository;
+        this.blockedPeriodChecker = blockedPeriodChecker;
     }
 
     /** Whether a (day,start,end) slot works for `moving` — availability-clean and, if occupied,
@@ -194,16 +192,8 @@ public class TimetableSwapService {
      *  explicit placement action). Manually-created ONE_OFF blocks never reach this check, matching
      *  the skeleton builder's own coarseness. */
     private boolean isBlocked(DayOfWeek dayOfWeek, Long periodId, TermInstance termInstance) {
-        List<BlockedPeriod> conflicts = blockedPeriodRepository.findOverlappingRecurringBlocks(
-            dayOfWeek, periodId, termInstance.getStartDate(), termInstance.getEndDate());
-        if (!conflicts.isEmpty()) {
-            return true;
-        }
-        java.time.DayOfWeek targetDay = java.time.DayOfWeek.valueOf(dayOfWeek.name());
-        return blockedPeriodRepository.findHolidayOneOffBlocksInRange(
-                periodId, termInstance.getStartDate(), termInstance.getEndDate())
-            .stream()
-            .anyMatch(bp -> bp.getSpecificDate().getDayOfWeek() == targetDay);
+        return blockedPeriodChecker.blockReason(dayOfWeek, periodId, termInstance.getStartDate(), termInstance.getEndDate())
+            .isPresent();
     }
 
     /** THEORY audience is batch-scoped when a section was picked (R3 Phase 3), falling back to

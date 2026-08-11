@@ -24,9 +24,9 @@ import com.cms.dto.SystemConfigurationResponse;
 import com.cms.dto.UnstaffedCellResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Batch;
-import com.cms.model.BlockedPeriod;
 import com.cms.model.Classroom;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Cohort;
@@ -51,11 +51,9 @@ import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.LabStatus;
 import com.cms.model.enums.PlanningBasis;
-import com.cms.model.enums.BlockType;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.BatchRepository;
-import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
@@ -77,7 +75,7 @@ class TimetableStaffingServiceTest {
     @Mock private CohortRoomAllocationRepository cohortRoomAllocationRepository;
     @Mock private CohortSectionRepository cohortSectionRepository;
     @Mock private RotationResolverService rotationResolverService;
-    @Mock private BlockedPeriodRepository blockedPeriodRepository;
+    @Mock private TimetableBlockedPeriodChecker blockedPeriodChecker;
     @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
     @Mock private SystemConfigurationService systemConfigurationService;
 
@@ -96,7 +94,7 @@ class TimetableStaffingServiceTest {
         service = new TimetableStaffingService(classScheduleRepository, facultyRepository,
             classroomRepository, batchRepository, courseRegistrationRepository,
             studentTermEnrollmentRepository, cohortRoomAllocationRepository, cohortSectionRepository,
-            rotationResolverService, blockedPeriodRepository, facultyAvailabilityRepository,
+            rotationResolverService, blockedPeriodChecker, facultyAvailabilityRepository,
             systemConfigurationService);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
@@ -217,7 +215,7 @@ class TimetableStaffingServiceTest {
             ClassScheduleStatus.PUBLISHED, 100L)).thenReturn(List.of(alreadyBusyElsewhere));
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("already scheduled");
     }
 
@@ -238,7 +236,7 @@ class TimetableStaffingServiceTest {
             ClassScheduleStatus.DRAFT, 100L)).thenReturn(List.of(otherDraftInSameRoom));
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("already occupied");
     }
 
@@ -281,7 +279,7 @@ class TimetableStaffingServiceTest {
             .thenReturn(75L);
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("seats 60");
     }
 
@@ -533,48 +531,35 @@ class TimetableStaffingServiceTest {
             ClassScheduleStatus.DRAFT, 100L)).thenReturn(List.of(otherDraftInSamePhysicalRoom));
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("already occupied");
     }
 
     @Test
     void shouldRejectStaffingACellAtARecurringBlockedPeriod() {
-        BlockedPeriod block = new BlockedPeriod();
-        block.setBlockType(BlockType.RECURRING);
-        block.setDayOfWeek(DayOfWeek.MONDAY);
-        block.setRangeStartDate(LocalDate.of(2024, 6, 1));
-        block.setRangeEndDate(LocalDate.of(2024, 11, 30));
-        block.setReason("Staff meeting");
-
         StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
-        when(blockedPeriodRepository.findOverlappingRecurringBlocks(
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(blockedPeriodChecker.blockReason(
             DayOfWeek.MONDAY, 1L, termInstance.getStartDate(), termInstance.getEndDate()))
-            .thenReturn(List.of(block));
+            .thenReturn(Optional.of("Staff meeting"));
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("Staff meeting");
     }
 
     @Test
     void shouldRejectStaffingACellAtAHolidayDerivedOneOffBlock() {
-        com.cms.model.CalendarEvent holiday = new com.cms.model.CalendarEvent();
-        holiday.setTitle("Independence Day");
-        BlockedPeriod block = new BlockedPeriod();
-        block.setBlockType(BlockType.ONE_OFF);
-        block.setSpecificDate(LocalDate.of(2024, 8, 5)); // a Monday
-        block.setReason("Auto-blocked — Independence Day");
-        block.setSourceCalendarEvent(holiday);
-
         StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
-        when(blockedPeriodRepository.findHolidayOneOffBlocksInRange(
-            1L, termInstance.getStartDate(), termInstance.getEndDate()))
-            .thenReturn(List.of(block));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(blockedPeriodChecker.blockReason(
+            DayOfWeek.MONDAY, 1L, termInstance.getStartDate(), termInstance.getEndDate()))
+            .thenReturn(Optional.of("Auto-blocked — Independence Day"));
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("Auto-blocked");
     }
 
@@ -590,7 +575,7 @@ class TimetableStaffingServiceTest {
             .thenReturn(List.of(unavailable));
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("On approved leave");
     }
 
@@ -621,7 +606,7 @@ class TimetableStaffingServiceTest {
             .thenReturn(Collections.emptyList());
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("daily cap");
     }
 
@@ -652,7 +637,7 @@ class TimetableStaffingServiceTest {
             .thenReturn(Collections.emptyList());
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("weekly cap");
     }
 
@@ -687,8 +672,34 @@ class TimetableStaffingServiceTest {
             .thenReturn(Collections.emptyList());
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
-            .isInstanceOf(LifecycleConflictException.class)
+            .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("continuous-hours cap");
+    }
+
+    @Test
+    void shouldReportEveryViolationTogetherWhenMultipleChecksFailAtOnce() {
+        ClassSchedule alreadyBusyElsewhere = new ClassSchedule();
+        alreadyBusyElsewhere.setId(200L);
+        alreadyBusyElsewhere.setFaculty(eligibleFaculty);
+        alreadyBusyElsewhere.setSessionType(ClassSessionType.LAB);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(blockedPeriodChecker.blockReason(
+            DayOfWeek.MONDAY, 1L, termInstance.getStartDate(), termInstance.getEndDate()))
+            .thenReturn(Optional.of("Staff meeting"));
+        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
+            ClassScheduleStatus.PUBLISHED, 100L)).thenReturn(List.of(alreadyBusyElsewhere));
+
+        assertThatThrownBy(() -> service.staffCell(100L, request))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .satisfies(ex -> {
+                List<com.cms.dto.ConstraintViolation> violations =
+                    ((TimetableConstraintViolationException) ex).getViolations();
+                assertThat(violations).extracting(com.cms.dto.ConstraintViolation::code)
+                    .contains("STAFFING_PERIOD_BLOCKED", "STAFFING_FACULTY_CONFLICT");
+            });
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.cms.service;
 
 import java.time.Duration;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -12,12 +13,13 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.ConstraintViolation;
 import com.cms.dto.StaffingAssignmentRequest;
 import com.cms.dto.UnstaffedCellResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.Batch;
-import com.cms.model.BlockedPeriod;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.ClinicalVenue;
@@ -38,7 +40,6 @@ import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.RegistrationStatus;
 import com.cms.repository.BatchRepository;
-import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
@@ -75,7 +76,7 @@ public class TimetableStaffingService {
     private final CohortRoomAllocationRepository cohortRoomAllocationRepository;
     private final CohortSectionRepository cohortSectionRepository;
     private final RotationResolverService rotationResolverService;
-    private final BlockedPeriodRepository blockedPeriodRepository;
+    private final TimetableBlockedPeriodChecker blockedPeriodChecker;
     private final FacultyAvailabilityRepository facultyAvailabilityRepository;
     private final SystemConfigurationService systemConfigurationService;
 
@@ -88,7 +89,7 @@ public class TimetableStaffingService {
                                      CohortRoomAllocationRepository cohortRoomAllocationRepository,
                                      CohortSectionRepository cohortSectionRepository,
                                      RotationResolverService rotationResolverService,
-                                     BlockedPeriodRepository blockedPeriodRepository,
+                                     TimetableBlockedPeriodChecker blockedPeriodChecker,
                                      FacultyAvailabilityRepository facultyAvailabilityRepository,
                                      SystemConfigurationService systemConfigurationService) {
         this.classScheduleRepository = classScheduleRepository;
@@ -100,7 +101,7 @@ public class TimetableStaffingService {
         this.cohortRoomAllocationRepository = cohortRoomAllocationRepository;
         this.cohortSectionRepository = cohortSectionRepository;
         this.rotationResolverService = rotationResolverService;
-        this.blockedPeriodRepository = blockedPeriodRepository;
+        this.blockedPeriodChecker = blockedPeriodChecker;
         this.facultyAvailabilityRepository = facultyAvailabilityRepository;
         this.systemConfigurationService = systemConfigurationService;
     }
@@ -113,6 +114,16 @@ public class TimetableStaffingService {
             .toList();
     }
 
+    /** R3.4 — the faculty-side guards below are independent of each other, so all of them run and
+     *  every failure is collected into one {@link TimetableConstraintViolationException} rather
+     *  than throwing on the first one found: fixing a blocked period only to discover the faculty
+     *  was also double-booked (on a second, separate attempt) was a frustrating fix-one-resubmit
+     *  loop. Room resolution and its own checks (room-free/capacity-fit) only run once the
+     *  faculty side is entirely clean — committed-room resolution ({@code requireCommitted*}/
+     *  {@code requireRequestedClassroom}) is a fail-fast setup-gap check, not a constraint to
+     *  collect, and every check after it needs a resolved room's identity to even run; skipping it
+     *  whenever a faculty-side violation already exists also keeps this from probing Capacity
+     *  Planner room commitments that were never going to matter for a rejected attempt. */
     @Transactional
     public UnstaffedCellResponse staffCell(Long classScheduleId, StaffingAssignmentRequest request) {
         ClassSchedule cs = classScheduleRepository.findById(classScheduleId)
@@ -123,73 +134,62 @@ public class TimetableStaffingService {
                 "CELL_NOT_DRAFT", "ClassSchedule", classScheduleId, null);
         }
 
-        requireNotBlocked(cs.getDayOfWeek(), cs.getPeriod(), cs.getTermInstance());
-
         Faculty faculty = facultyRepository.findById(request.facultyId())
             .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + request.facultyId()));
         ClassScheduleService.requireEligibleFaculty(cs.getSubject(), faculty, cs.getFaculty());
 
         LocalTime start = cs.getPeriod().getStartTime();
         LocalTime end = cs.getPeriod().getEndTime();
-        requireFacultyAvailable(faculty.getId(), cs.getDayOfWeek(), start, end);
-        requireFacultyFree(faculty.getId(), cs, start, end);
-        requireWithinWorkloadCaps(faculty, cs, start, end);
 
-        switch (cs.getSessionType()) {
-            case THEORY -> {
-                Classroom classroom = isElectiveOffering(cs)
-                    ? requireRequestedClassroom(request)
-                    : requireCommittedTheoryClassroom(cs);
-                requireRoomFree(ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), cs, start, end);
-                requireCapacityFit(cs, classroom.getCapacity());
-                cs.setClassroom(classroom);
-            }
-            case LAB -> {
-                Lab lab = requireCommittedLab(cs);
-                requireRoomFree(ClassSessionType.LAB, lab.getId(), lab.getRoom(), cs, start, end);
-                requireCapacityFit(cs, lab.getCapacity());
-                cs.setLab(lab);
-            }
-            case CLINICAL -> {
-                ClinicalVenue venue = requireCommittedClinicalVenue(cs);
-                requireRoomFree(ClassSessionType.CLINICAL, venue.getId(), venue.getRoom(), cs, start, end);
-                requireCapacityFit(cs, venue.getCapacity());
-                cs.setClinicalVenue(venue);
+        List<ConstraintViolation> violations = new ArrayList<>();
+        checkBlocked(cs.getDayOfWeek(), cs.getPeriod().getId(), cs.getTermInstance()).ifPresent(violations::add);
+        checkFacultyAvailable(faculty.getId(), cs.getDayOfWeek(), start, end).ifPresent(violations::add);
+        checkFacultyFree(faculty.getId(), cs, start, end).ifPresent(violations::add);
+        violations.addAll(checkWithinWorkloadCaps(faculty, cs, start, end));
+
+        Runnable applyRoom = null;
+        if (violations.isEmpty()) {
+            switch (cs.getSessionType()) {
+                case THEORY -> {
+                    Classroom classroom = isElectiveOffering(cs)
+                        ? requireRequestedClassroom(request)
+                        : requireCommittedTheoryClassroom(cs);
+                    checkRoomFree(ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), cs, start, end).ifPresent(violations::add);
+                    checkCapacityFit(cs, classroom.getCapacity()).ifPresent(violations::add);
+                    applyRoom = () -> cs.setClassroom(classroom);
+                }
+                case LAB -> {
+                    Lab lab = requireCommittedLab(cs);
+                    checkRoomFree(ClassSessionType.LAB, lab.getId(), lab.getRoom(), cs, start, end).ifPresent(violations::add);
+                    checkCapacityFit(cs, lab.getCapacity()).ifPresent(violations::add);
+                    applyRoom = () -> cs.setLab(lab);
+                }
+                case CLINICAL -> {
+                    ClinicalVenue venue = requireCommittedClinicalVenue(cs);
+                    checkRoomFree(ClassSessionType.CLINICAL, venue.getId(), venue.getRoom(), cs, start, end).ifPresent(violations::add);
+                    checkCapacityFit(cs, venue.getCapacity()).ifPresent(violations::add);
+                    applyRoom = () -> cs.setClinicalVenue(venue);
+                }
             }
         }
 
+        if (!violations.isEmpty()) {
+            throw new TimetableConstraintViolationException(violations);
+        }
+
+        applyRoom.run();
         cs.setFaculty(faculty);
         return toResponse(classScheduleRepository.save(cs));
     }
 
-    /** Blocks staffing a cell that falls in a recurring institutional lock (lunch, assembly,
-     *  sports) or a holiday-derived one-off block — the exact same check {@link
-     *  TimetableSkeletonService#placeCell} already applies at placement time, duplicated here
-     *  rather than shared (see the class-level note on why conflict checking here is deliberately
-     *  narrower/separate from the skeleton builder's own checks) since a skeleton cell can sit
-     *  unstaffed for a while and a block could be added/changed in between placement and staffing.
-     *  Manually-created ONE_OFF blocks never reach this check — only RECURRING and
-     *  holiday-auto-generated ONE_OFF blocks do, matching the skeleton builder's own coarseness. */
-    private void requireNotBlocked(DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
-        List<BlockedPeriod> conflicts = blockedPeriodRepository.findOverlappingRecurringBlocks(
-            dayOfWeek, period.getId(), termInstance.getStartDate(), termInstance.getEndDate());
-        if (!conflicts.isEmpty()) {
-            throw new LifecycleConflictException(
-                "This day and period is blocked: " + conflicts.get(0).getReason(),
-                "STAFFING_PERIOD_BLOCKED", "ClassSchedule", null, null);
-        }
-
-        java.time.DayOfWeek targetDay = java.time.DayOfWeek.valueOf(dayOfWeek.name());
-        List<BlockedPeriod> holidayConflicts = blockedPeriodRepository.findHolidayOneOffBlocksInRange(
-                period.getId(), termInstance.getStartDate(), termInstance.getEndDate())
-            .stream()
-            .filter(bp -> bp.getSpecificDate().getDayOfWeek() == targetDay)
-            .toList();
-        if (!holidayConflicts.isEmpty()) {
-            throw new LifecycleConflictException(
-                "This day and period is blocked: " + holidayConflicts.get(0).getReason(),
-                "STAFFING_PERIOD_BLOCKED", "ClassSchedule", null, null);
-        }
+    /** Non-throwing: returns a violation if this cell falls in a recurring institutional lock
+     *  (lunch, assembly, sports) or a holiday-derived one-off block, backed by the same shared
+     *  {@link TimetableBlockedPeriodChecker} {@link TimetableSkeletonService#placeCell} and {@link
+     *  TimetableSwapService} use — re-checked here separately (not just at placement time) since a
+     *  skeleton cell can sit unstaffed for a while and a block could be added/changed in between. */
+    private Optional<ConstraintViolation> checkBlocked(DayOfWeek dayOfWeek, Long periodId, TermInstance termInstance) {
+        return blockedPeriodChecker.blockReason(dayOfWeek, periodId, termInstance.getStartDate(), termInstance.getEndDate())
+            .map(reason -> new ConstraintViolation("STAFFING_PERIOD_BLOCKED", "This day and period is blocked: " + reason));
     }
 
     /** LAB rooms are no longer a free pick here — the venue was already decided and
@@ -302,35 +302,35 @@ public class TimetableStaffingService {
         return sections.size() == 1 ? Optional.of(sections.get(0).getClassroom()) : Optional.empty();
     }
 
-    /** Blocks staffing a faculty member into a slot they've declared themselves unavailable for
-     *  (leave, external duty, a visiting lecturer's fixed weekly window, etc) — the same {@link
-     *  FacultyAvailability} check {@link TimetableSwapService} and {@code FacultySessionSwapService}
-     *  already apply, closing the one staffing path that skipped it. A faculty member with no rows
-     *  in this table is assumed fully available, so this only ever blocks on an explicit exception. */
-    private void requireFacultyAvailable(Long facultyId, DayOfWeek dayOfWeek, LocalTime start, LocalTime end) {
+    /** Non-throwing: returns a violation if this faculty member has declared themselves
+     *  unavailable at this slot (leave, external duty, a visiting lecturer's fixed weekly window,
+     *  etc) — the same {@link FacultyAvailability} check {@link TimetableSwapService} and {@code
+     *  FacultySessionSwapService} already apply, closing the one staffing path that skipped it. A
+     *  faculty member with no rows in this table is assumed fully available. */
+    private Optional<ConstraintViolation> checkFacultyAvailable(Long facultyId, DayOfWeek dayOfWeek, LocalTime start, LocalTime end) {
         List<FacultyAvailability> blocks = facultyAvailabilityRepository.findOverlapping(facultyId, dayOfWeek, start, end);
-        if (!blocks.isEmpty()) {
-            throw new LifecycleConflictException(
-                "This faculty member is unavailable at this day and time: " + blocks.get(0).getReason(),
-                "STAFFING_FACULTY_UNAVAILABLE", "ClassSchedule", null, null);
+        if (blocks.isEmpty()) {
+            return Optional.empty();
         }
+        return Optional.of(new ConstraintViolation("STAFFING_FACULTY_UNAVAILABLE",
+            "This faculty member is unavailable at this day and time: " + blocks.get(0).getReason()));
     }
 
-    /** Blocks assigning a faculty member already committed elsewhere at this exact day/time —
-     *  checked against both live PUBLISHED rows and other already-staffed DRAFT rows in the same
-     *  term, excluding this cell itself. */
-    private void requireFacultyFree(Long facultyId, ClassSchedule cs, LocalTime start, LocalTime end) {
+    /** Non-throwing: returns a violation if this faculty member is already committed elsewhere at
+     *  this exact day/time — checked against both live PUBLISHED rows and other already-staffed
+     *  DRAFT rows in the same term, excluding this cell itself. */
+    private Optional<ConstraintViolation> checkFacultyFree(Long facultyId, ClassSchedule cs, LocalTime start, LocalTime end) {
         for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
             List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
                 cs.getDayOfWeek(), cs.getTermInstance().getId(), start, end, status, cs.getId());
             boolean conflict = overlapping.stream()
                 .anyMatch(other -> other.getFaculty() != null && other.getFaculty().getId().equals(facultyId));
             if (conflict) {
-                throw new LifecycleConflictException(
-                    "This faculty member is already scheduled for another session at this exact day and time.",
-                    "STAFFING_FACULTY_CONFLICT", "ClassSchedule", cs.getId(), null);
+                return Optional.of(new ConstraintViolation("STAFFING_FACULTY_CONFLICT",
+                    "This faculty member is already scheduled for another session at this exact day and time."));
             }
         }
+        return Optional.empty();
     }
 
     /** Hard-blocks staffing a faculty member past whatever daily/weekly/continuous-hours caps the
@@ -342,12 +342,15 @@ public class TimetableStaffingService {
      *  ClassSchedule}. Checked against both PUBLISHED and other already-staffed DRAFT rows,
      *  excluding this cell itself so a re-staff (same cell, different or same faculty) doesn't
      *  double-count its own slot. */
-    private void requireWithinWorkloadCaps(Faculty faculty, ClassSchedule cs, LocalTime start, LocalTime end) {
+    /** Non-throwing: returns every exceeded cap (daily/weekly/continuous can all be exceeded at
+     *  once), rather than stopping at the first — see the class-level note on why every check here
+     *  collects instead of throws. */
+    private List<ConstraintViolation> checkWithinWorkloadCaps(Faculty faculty, ClassSchedule cs, LocalTime start, LocalTime end) {
         Optional<Double> dailyCap = resolveCapHours("timetable.faculty_max_daily_hours");
         Optional<Double> weeklyCap = resolveCapHours("timetable.faculty_max_weekly_hours");
         Optional<Double> continuousCap = resolveCapHours("timetable.faculty_max_continuous_hours");
         if (dailyCap.isEmpty() && weeklyCap.isEmpty() && continuousCap.isEmpty()) {
-            return;
+            return List.of();
         }
 
         double newSessionHours = Duration.between(start, end).toMinutes() / 60.0;
@@ -359,16 +362,17 @@ public class TimetableStaffingService {
             .filter(other -> other.getPeriod() != null)
             .toList();
 
+        List<ConstraintViolation> violations = new ArrayList<>();
+
         if (dailyCap.isPresent()) {
             double dailyHours = otherSessions.stream()
                 .filter(other -> other.getDayOfWeek() == cs.getDayOfWeek())
                 .mapToDouble(other -> sessionHours(other.getPeriod()))
                 .sum() + newSessionHours;
             if (dailyHours > dailyCap.get()) {
-                throw new LifecycleConflictException(
+                violations.add(new ConstraintViolation("STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED",
                     "Staffing this session would put this faculty member at " + formatHours(dailyHours)
-                        + " hours today, over the configured daily cap of " + formatHours(dailyCap.get()) + " hours.",
-                    "STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED", "ClassSchedule", cs.getId(), null);
+                        + " hours today, over the configured daily cap of " + formatHours(dailyCap.get()) + " hours."));
             }
         }
 
@@ -377,23 +381,23 @@ public class TimetableStaffingService {
                 .mapToDouble(other -> sessionHours(other.getPeriod()))
                 .sum() + newSessionHours;
             if (weeklyHours > weeklyCap.get()) {
-                throw new LifecycleConflictException(
+                violations.add(new ConstraintViolation("STAFFING_WORKLOAD_WEEKLY_CAP_EXCEEDED",
                     "Staffing this session would put this faculty member at " + formatHours(weeklyHours)
-                        + " hours this week, over the configured weekly cap of " + formatHours(weeklyCap.get()) + " hours.",
-                    "STAFFING_WORKLOAD_WEEKLY_CAP_EXCEEDED", "ClassSchedule", cs.getId(), null);
+                        + " hours this week, over the configured weekly cap of " + formatHours(weeklyCap.get()) + " hours."));
             }
         }
 
         if (continuousCap.isPresent()) {
             double continuousHours = continuousChainHours(otherSessions, cs.getDayOfWeek(), start, end);
             if (continuousHours > continuousCap.get()) {
-                throw new LifecycleConflictException(
+                violations.add(new ConstraintViolation("STAFFING_WORKLOAD_CONTINUOUS_CAP_EXCEEDED",
                     "Staffing this session would put this faculty member into a " + formatHours(continuousHours)
                         + "-hour unbroken run, over the configured continuous-hours cap of "
-                        + formatHours(continuousCap.get()) + " hours.",
-                    "STAFFING_WORKLOAD_CONTINUOUS_CAP_EXCEEDED", "ClassSchedule", cs.getId(), null);
+                        + formatHours(continuousCap.get()) + " hours."));
             }
         }
+
+        return violations;
     }
 
     /** Sums the back-to-back (no-gap) run of same-day sessions that the new [start,end) interval
@@ -459,17 +463,17 @@ public class TimetableStaffingService {
      *  venue looked "free" on its own even though the real physical space was double-booked —
      *  closed by comparing the resolved physical Room, not just the virtual venue id, whenever one
      *  is linked. Checked against both PUBLISHED and other already-staffed DRAFT rows. */
-    private void requireRoomFree(ClassSessionType type, Long venueId, Room physicalRoom, ClassSchedule cs, LocalTime start, LocalTime end) {
+    private Optional<ConstraintViolation> checkRoomFree(ClassSessionType type, Long venueId, Room physicalRoom, ClassSchedule cs, LocalTime start, LocalTime end) {
         for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
             List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
                 cs.getDayOfWeek(), cs.getTermInstance().getId(), start, end, status, cs.getId());
             boolean conflict = overlapping.stream().anyMatch(other -> conflictsOnRoom(other, type, venueId, physicalRoom));
             if (conflict) {
-                throw new LifecycleConflictException(
-                    "This room is already occupied by another session at this exact day and time.",
-                    "STAFFING_ROOM_CONFLICT", "ClassSchedule", cs.getId(), null);
+                return Optional.of(new ConstraintViolation("STAFFING_ROOM_CONFLICT",
+                    "This room is already occupied by another session at this exact day and time."));
             }
         }
+        return Optional.empty();
     }
 
     private boolean conflictsOnRoom(ClassSchedule other, ClassSessionType type, Long venueId, Room physicalRoom) {
@@ -505,17 +509,16 @@ public class TimetableStaffingService {
      *  audience) and {@link com.cms.model.Batch#getId()} student roster for LAB/CLINICAL (a
      *  sub-group audience) — never guessed. Unknown venue capacity or unresolvable strength (e.g.
      *  a legacy row with no courseOffering/batch link) never blocks: only a *known* mismatch does. */
-    private void requireCapacityFit(ClassSchedule cs, Integer venueCapacity) {
+    private Optional<ConstraintViolation> checkCapacityFit(ClassSchedule cs, Integer venueCapacity) {
         if (venueCapacity == null) {
-            return;
+            return Optional.empty();
         }
         Integer strength = resolveRequiredStrength(cs);
         if (strength == null || strength <= venueCapacity) {
-            return;
+            return Optional.empty();
         }
-        throw new LifecycleConflictException(
-            "This venue seats " + venueCapacity + ", but " + strength + " students need to be accommodated for this session.",
-            "STAFFING_CAPACITY_EXCEEDED", "ClassSchedule", cs.getId(), null);
+        return Optional.of(new ConstraintViolation("STAFFING_CAPACITY_EXCEEDED",
+            "This venue seats " + venueCapacity + ", but " + strength + " students need to be accommodated for this session."));
     }
 
     /** For a rotation-governed cell (no fixed batch), required strength is the largest of the

@@ -71,6 +71,9 @@
     font-size: var(--cms-text-base);
     line-height: 1.4;
     word-break: break-word;
+    // A multi-violation toast joins its messages with \n — render each on its own line instead
+    // of collapsing into one run-on paragraph. No effect on ordinary single-line messages.
+    white-space: pre-line;
   }
 
   &__close {

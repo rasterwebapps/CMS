@@ -309,10 +309,19 @@ export class SkeletonBuilderComponent implements OnInit {
         this.reloadSkeleton();
       },
       error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to place session');
+        this.toast.error(this.violationText(err) ?? 'Failed to place session');
         this.placing.set(false);
       },
     });
+  }
+
+  /** A placement attempt can fail several independent checks at once (already placed, blocked
+   *  period, cohort/elective slot clash, ...) — the backend now reports every one of them
+   *  together instead of just the first, so this joins them into one multi-line toast instead of
+   *  making the user fix-and-resubmit repeatedly to discover each problem in turn. */
+  private violationText(err: any): string | undefined {
+    const violations = err?.error?.violations as { message: string }[] | undefined;
+    return violations?.length ? violations.map((v) => v.message).join('\n') : err?.error?.message;
   }
 
   protected onSuggestClick(courseOfferingId: number, sessionType: SkeletonSessionType, batchId: number | null, cohortSectionId: number | null, event: Event): void {

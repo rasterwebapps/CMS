@@ -23,7 +23,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.SwapCandidateResponse;
 import com.cms.dto.SwapRequest;
 import com.cms.exception.LifecycleConflictException;
-import com.cms.model.BlockedPeriod;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.CourseOffering;
@@ -34,12 +33,10 @@ import com.cms.model.Period;
 import com.cms.model.Speciality;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
-import com.cms.model.enums.BlockType;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.FacultyStatus;
-import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.PeriodRepository;
@@ -50,7 +47,7 @@ class TimetableSwapServiceTest {
     @Mock private ClassScheduleRepository classScheduleRepository;
     @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
     @Mock private PeriodRepository periodRepository;
-    @Mock private BlockedPeriodRepository blockedPeriodRepository;
+    @Mock private TimetableBlockedPeriodChecker blockedPeriodChecker;
 
     private TimetableSwapService service;
 
@@ -66,7 +63,7 @@ class TimetableSwapServiceTest {
     @BeforeEach
     void setUp() {
         service = new TimetableSwapService(classScheduleRepository, facultyAvailabilityRepository,
-            periodRepository, blockedPeriodRepository);
+            periodRepository, blockedPeriodChecker);
 
         termInstance = new TermInstance();
         termInstance.setId(10L);
@@ -198,10 +195,6 @@ class TimetableSwapServiceTest {
 
     @Test
     void shouldExcludeARecurringBlockedPeriodFromCandidates() {
-        BlockedPeriod block = new BlockedPeriod();
-        block.setBlockType(BlockType.RECURRING);
-        block.setReason("Staff meeting");
-
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(p1, p2));
         when(facultyAvailabilityRepository.findOverlapping(eq(1L), any(), any(), any())).thenReturn(Collections.emptyList());
@@ -211,8 +204,8 @@ class TimetableSwapServiceTest {
         // excluded as the session's own current slot, so this isolates the effect to p2's rows.
         // lenient(): findCandidates scans every (day, period) combination, most of which have
         // periodId=1L and would otherwise trip strict-stubbing's "unmatched invocation" guard.
-        lenient().when(blockedPeriodRepository.findOverlappingRecurringBlocks(any(), eq(2L), eq(termInstance.getStartDate()), eq(termInstance.getEndDate())))
-            .thenReturn(List.of(block));
+        lenient().when(blockedPeriodChecker.blockReason(any(), eq(2L), eq(termInstance.getStartDate()), eq(termInstance.getEndDate())))
+            .thenReturn(Optional.of("Staff meeting"));
 
         List<SwapCandidateResponse> candidates = service.findCandidates(10L, 100L);
 
@@ -222,15 +215,11 @@ class TimetableSwapServiceTest {
 
     @Test
     void shouldRejectDirectSwapIntoABlockedPeriod() {
-        BlockedPeriod block = new BlockedPeriod();
-        block.setBlockType(BlockType.RECURRING);
-        block.setReason("Staff meeting");
-
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(p2));
-        when(blockedPeriodRepository.findOverlappingRecurringBlocks(
+        when(blockedPeriodChecker.blockReason(
             DayOfWeek.TUESDAY, 2L, termInstance.getStartDate(), termInstance.getEndDate()))
-            .thenReturn(List.of(block));
+            .thenReturn(Optional.of("Staff meeting"));
 
         assertThatThrownBy(() -> service.swap(10L, 100L, new SwapRequest(DayOfWeek.TUESDAY, 2L)))
             .isInstanceOf(LifecycleConflictException.class)

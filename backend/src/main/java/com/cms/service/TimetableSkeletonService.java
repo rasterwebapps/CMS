@@ -5,12 +5,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.CohortSectionResponse;
+import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellPlacementRequest;
@@ -20,8 +22,8 @@ import com.cms.dto.SkeletonSubjectBudget;
 import com.cms.dto.SkeletonSubjectResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.Batch;
-import com.cms.model.BlockedPeriod;
 import com.cms.model.Classroom;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Cohort;
@@ -35,7 +37,6 @@ import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.repository.BatchRepository;
-import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
@@ -78,7 +79,7 @@ public class TimetableSkeletonService {
     private final PeriodRepository periodRepository;
     private final BatchRepository batchRepository;
     private final BatchService batchService;
-    private final BlockedPeriodRepository blockedPeriodRepository;
+    private final TimetableBlockedPeriodChecker blockedPeriodChecker;
     private final com.cms.repository.RotationSlotRepository rotationSlotRepository;
     private final RotationResolverService rotationResolverService;
     private final CourseOfferingService courseOfferingService;
@@ -92,7 +93,7 @@ public class TimetableSkeletonService {
                                      PeriodRepository periodRepository,
                                      BatchRepository batchRepository,
                                      BatchService batchService,
-                                     BlockedPeriodRepository blockedPeriodRepository,
+                                     TimetableBlockedPeriodChecker blockedPeriodChecker,
                                      com.cms.repository.RotationSlotRepository rotationSlotRepository,
                                      RotationResolverService rotationResolverService,
                                      CourseOfferingService courseOfferingService,
@@ -105,7 +106,7 @@ public class TimetableSkeletonService {
         this.periodRepository = periodRepository;
         this.batchRepository = batchRepository;
         this.batchService = batchService;
-        this.blockedPeriodRepository = blockedPeriodRepository;
+        this.blockedPeriodChecker = blockedPeriodChecker;
         this.rotationSlotRepository = rotationSlotRepository;
         this.rotationResolverService = rotationResolverService;
         this.courseOfferingService = courseOfferingService;
@@ -299,35 +300,21 @@ public class TimetableSkeletonService {
      *  strictly to {@code sourceCalendarEventId IS NOT NULL} so this is the same accepted
      *  coarseness RECURRING already has (one holiday Monday blocks every Monday of that period for
      *  the whole term), not a new behavior change for manual one-off blocks. */
-    private void requireNotBlocked(DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
-        String reason = blockReason(dayOfWeek, period, termInstance);
-        if (reason != null) {
-            throw new LifecycleConflictException(
-                "This day and period is blocked: " + reason,
-                "SKELETON_CELL_PERIOD_BLOCKED", "ClassSchedule", null, null);
-        }
+    /** Non-throwing: returns a violation if this day+period falls in a recurring institutional
+     *  lock or a holiday-derived one-off block — backed by the shared {@link
+     *  TimetableBlockedPeriodChecker} {@link TimetableStaffingService} and {@link
+     *  TimetableSwapService} also use. */
+    private Optional<ConstraintViolation> checkBlocked(DayOfWeek dayOfWeek, Long periodId, TermInstance termInstance) {
+        return blockedPeriodChecker.blockReason(dayOfWeek, periodId, termInstance.getStartDate(), termInstance.getEndDate())
+            .map(reason -> new ConstraintViolation("SKELETON_CELL_PERIOD_BLOCKED", "This day and period is blocked: " + reason));
     }
 
-    /** Non-throwing sibling of {@link #requireNotBlocked}, used by {@link #suggestCandidates} to
-     *  silently skip a blocked slot rather than aborting the whole scan. Returns the block reason,
-     *  or null if the slot is free. */
+    /** Used by {@link #suggestCandidates} to silently skip a blocked slot rather than surfacing a
+     *  distinct violation — there's no per-candidate UI affordance to explain "why" a slot didn't
+     *  appear. Returns the block reason, or null if the slot is free. */
     private String blockReason(DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
-        List<BlockedPeriod> conflicts = blockedPeriodRepository.findOverlappingRecurringBlocks(
-            dayOfWeek, period.getId(), termInstance.getStartDate(), termInstance.getEndDate());
-        if (!conflicts.isEmpty()) {
-            return conflicts.get(0).getReason();
-        }
-
-        java.time.DayOfWeek targetDay = java.time.DayOfWeek.valueOf(dayOfWeek.name());
-        List<BlockedPeriod> holidayConflicts = blockedPeriodRepository.findHolidayOneOffBlocksInRange(
-                period.getId(), termInstance.getStartDate(), termInstance.getEndDate())
-            .stream()
-            .filter(bp -> bp.getSpecificDate().getDayOfWeek() == targetDay)
-            .toList();
-        if (!holidayConflicts.isEmpty()) {
-            return holidayConflicts.get(0).getReason();
-        }
-        return null;
+        return blockedPeriodChecker.blockReason(dayOfWeek, period.getId(), termInstance.getStartDate(), termInstance.getEndDate())
+            .orElse(null);
     }
 
     private SkeletonCellResponse toCellResponse(ClassSchedule cs) {
@@ -411,6 +398,8 @@ public class TimetableSkeletonService {
             }
         }
 
+        List<ConstraintViolation> violations = new ArrayList<>();
+
         boolean alreadyPlaced = classScheduleRepository.findByCourseOfferingId(offering.getId()).stream()
             .anyMatch(cs -> cs.getSessionType() == request.sessionType()
                 && cs.getDayOfWeek() == request.dayOfWeek()
@@ -418,18 +407,21 @@ public class TimetableSkeletonService {
                 && Objects.equals(cs.getBatch() != null ? cs.getBatch().getId() : null, request.batchId())
                 && Objects.equals(cs.getCohortSection() != null ? cs.getCohortSection().getId() : null, request.cohortSectionId()));
         if (alreadyPlaced) {
-            throw new LifecycleConflictException(
-                "This subject already has a session placed at this exact day and period",
-                "SKELETON_CELL_ALREADY_PLACED", "ClassSchedule", null, null);
+            violations.add(new ConstraintViolation("SKELETON_CELL_ALREADY_PLACED",
+                "This subject already has a session placed at this exact day and period"));
         }
 
         if (isElectiveOffering(offering)) {
-            checkElectiveGroupSlot(offering, request);
+            checkElectiveGroupSlot(offering, request).ifPresent(violations::add);
         } else {
-            checkCohortExclusivity(request, offering, batch, cohortSection);
+            checkCohortExclusivity(request, offering, batch, cohortSection).ifPresent(violations::add);
         }
 
-        requireNotBlocked(request.dayOfWeek(), period, offering.getTermInstance());
+        checkBlocked(request.dayOfWeek(), period.getId(), offering.getTermInstance()).ifPresent(violations::add);
+
+        if (!violations.isEmpty()) {
+            throw new TimetableConstraintViolationException(violations);
+        }
 
         ClassSchedule cs = new ClassSchedule();
         cs.setSessionType(request.sessionType());
@@ -478,11 +470,11 @@ public class TimetableSkeletonService {
      *  LAB/CLINICAL-vs-LAB/CLINICAL across different subjects (same audience) is deliberately NOT
      *  blocked here — real roster overlap can't be proven without batch rosters that don't exist
      *  yet; the frontend surfaces that case as an advisory instead of a hard error. */
-    private void checkCohortExclusivity(SkeletonCellPlacementRequest request, CourseOffering offering,
+    private Optional<ConstraintViolation> checkCohortExclusivity(SkeletonCellPlacementRequest request, CourseOffering offering,
                                          Batch batch, CohortSection cohortSection) {
         List<Long> cohortOfferingIds = nonElectiveOfferingIds(offering.getTermInstance().getId(), request.cohortId());
         if (cohortOfferingIds.isEmpty()) {
-            return;
+            return Optional.empty();
         }
         List<ClassSchedule> cohortCellsAtSlot = classScheduleRepository
             .findByTermInstanceIdAndCourseOfferingIdIn(offering.getTermInstance().getId(), cohortOfferingIds)
@@ -491,7 +483,7 @@ public class TimetableSkeletonService {
                 && cs.getPeriod() != null && cs.getPeriod().getId().equals(request.periodId()))
             .toList();
         if (cohortCellsAtSlot.isEmpty()) {
-            return;
+            return Optional.empty();
         }
 
         String placingScope = request.sessionType() == ClassSessionType.THEORY
@@ -499,30 +491,23 @@ public class TimetableSkeletonService {
             : scopeKeyForSectionId(batch != null && batch.getCohortSection() != null ? batch.getCohortSection().getId() : null);
 
         if (request.sessionType() == ClassSessionType.THEORY) {
-            cohortCellsAtSlot.stream()
+            return cohortCellsAtSlot.stream()
                 .filter(cs -> scopesConflict(placingScope, scopeKeyForCell(cs)))
                 .findFirst()
-                .ifPresent(other -> {
-                    throw new LifecycleConflictException(
-                        "A Theory session is mandatory for this audience and can't share a slot with another session — "
-                            + (other.getSubject() != null ? other.getSubject().getName() : "another subject")
-                            + " already has a session placed here",
-                        "SKELETON_CELL_COHORT_CLASH", "ClassSchedule", null, null);
-                });
-            return;
+                .map(other -> new ConstraintViolation("SKELETON_CELL_COHORT_CLASH",
+                    "A Theory session is mandatory for this audience and can't share a slot with another session — "
+                        + (other.getSubject() != null ? other.getSubject().getName() : "another subject")
+                        + " already has a session placed here"));
         }
 
-        cohortCellsAtSlot.stream()
+        // LAB/CLINICAL vs LAB/CLINICAL from a different subject, same audience: allowed, advisory-only client-side.
+        return cohortCellsAtSlot.stream()
             .filter(cs -> cs.getSessionType() == ClassSessionType.THEORY)
             .filter(cs -> scopesConflict(placingScope, scopeKeyForCell(cs)))
             .findFirst()
-            .ifPresent(theoryCell -> {
-                throw new LifecycleConflictException(
-                    (theoryCell.getSubject() != null ? theoryCell.getSubject().getName() : "Another subject")
-                        + " has a mandatory Theory session in this slot for this audience — no other session can be placed here",
-                    "SKELETON_CELL_COHORT_CLASH", "ClassSchedule", null, null);
-            });
-        // LAB/CLINICAL vs LAB/CLINICAL from a different subject, same audience: allowed, advisory-only client-side.
+            .map(theoryCell -> new ConstraintViolation("SKELETON_CELL_COHORT_CLASH",
+                (theoryCell.getSubject() != null ? theoryCell.getSubject().getName() : "Another subject")
+                    + " has a mandatory Theory session in this slot for this audience — no other session can be placed here"));
     }
 
     private boolean isElectiveOffering(CourseOffering offering) {
@@ -542,35 +527,35 @@ public class TimetableSkeletonService {
      *  otherwise exempt from {@link #checkCohortExclusivity} entirely — matching their existing
      *  exemption from Staffing's committed-room hard-lock, since they have no single owning
      *  cohort audience by design. */
-    private void checkElectiveGroupSlot(CourseOffering offering, SkeletonCellPlacementRequest request) {
+    private Optional<ConstraintViolation> checkElectiveGroupSlot(CourseOffering offering, SkeletonCellPlacementRequest request) {
         CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
         if (csc == null || csc.getElectiveGroup() == null) {
-            return;
+            return Optional.empty();
         }
         Long groupId = csc.getElectiveGroup().getId();
         List<Long> siblingIds = courseOfferingRepository
             .findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(offering.getTermInstance().getId(), groupId)
             .stream().map(CourseOffering::getId).toList();
         if (siblingIds.isEmpty()) {
-            return;
+            return Optional.empty();
         }
 
         List<ClassSchedule> existingGroupCells = classScheduleRepository
             .findByTermInstanceIdAndCourseOfferingIdIn(offering.getTermInstance().getId(), siblingIds);
         if (existingGroupCells.isEmpty()) {
-            return;
+            return Optional.empty();
         }
 
         ClassSchedule anyExisting = existingGroupCells.get(0);
         boolean sameSlot = anyExisting.getDayOfWeek() == request.dayOfWeek()
             && anyExisting.getPeriod() != null && anyExisting.getPeriod().getId().equals(request.periodId());
-        if (!sameSlot) {
-            throw new LifecycleConflictException(
-                "This elective group is already scheduled for " + anyExisting.getDayOfWeek()
-                    + (anyExisting.getPeriod() != null ? ", " + anyExisting.getPeriod().getName() : "")
-                    + " — every subject in the group must share the same slot.",
-                "SKELETON_ELECTIVE_GROUP_SLOT_MISMATCH", "ClassSchedule", null, null);
+        if (sameSlot) {
+            return Optional.empty();
         }
+        return Optional.of(new ConstraintViolation("SKELETON_ELECTIVE_GROUP_SLOT_MISMATCH",
+            "This elective group is already scheduled for " + anyExisting.getDayOfWeek()
+                + (anyExisting.getPeriod() != null ? ", " + anyExisting.getPeriod().getName() : "")
+                + " — every subject in the group must share the same slot."));
     }
 
     /** Read-only candidate slots for a subject/session-type/batch (or, for THEORY, cohort section)
