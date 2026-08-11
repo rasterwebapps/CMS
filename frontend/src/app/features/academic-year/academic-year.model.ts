@@ -187,6 +187,16 @@ export interface TermInstanceUpdateRequest {
   status?: TermInstanceStatus | null;
 }
 
+/** Live checklist data shown before advancing a term's status — every field is system-verified
+ *  from real state; fields irrelevant to targetStatus come back empty/zero rather than missing. */
+export interface TermAdvanceChecklist {
+  targetStatus: TermInstanceStatus;
+  cohortsWithoutCurriculum: string[];
+  outstandingFeeDemandCount: number;
+  outstandingFeeDemandAmount: number;
+  draftTimetableSessionCount: number;
+}
+
 export interface TermBillingSchedule {
   id: number;
   academicYearId: number;

@@ -557,4 +557,35 @@ class CourseOfferingServiceImplTest {
         assertThat(o1.getIsActive()).isFalse();
         assertThat(o2.getIsActive()).isFalse();
     }
+
+    @Test
+    void findActiveCohortsWithoutCurriculumVersion_returnsCohortsWithNoActiveVersionMapped() {
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Cohort cohort = createCohort(1L, course, ay);
+
+        when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of());
+
+        List<Cohort> result = service.findActiveCohortsWithoutCurriculumVersion();
+
+        assertThat(result).containsExactly(cohort);
+    }
+
+    @Test
+    void findActiveCohortsWithoutCurriculumVersion_omitsCohortsThatHaveOne() {
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Cohort cohort = createCohort(1L, course, ay);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+
+        when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of(cv));
+
+        List<Cohort> result = service.findActiveCohortsWithoutCurriculumVersion();
+
+        assertThat(result).isEmpty();
+    }
 }

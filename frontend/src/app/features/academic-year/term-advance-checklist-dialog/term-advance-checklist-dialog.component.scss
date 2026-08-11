@@ -1,0 +1,65 @@
+.tac-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 420px;
+  max-width: 560px;
+}
+
+.tac-intro {
+  margin: 0;
+  color: var(--cms-text-secondary, var(--mat-sys-on-surface-variant));
+  font-size: var(--cms-text-sm, 0.875rem);
+  line-height: 1.5;
+
+  &:last-of-type {
+    font-weight: 600;
+    color: var(--cms-danger, #b91c1c);
+  }
+}
+
+.tac-loading {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.tac-checklist {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tac-item {
+  border-radius: 8px;
+  padding: 6px 8px;
+
+  ::ng-deep .mdc-label {
+    font-size: var(--cms-text-sm, 0.875rem);
+    line-height: 1.4;
+  }
+
+  &--warn {
+    background: var(--cms-warning-light);
+  }
+}
+
+.tac-item__icon {
+  margin-right: 4px;
+}
+
+.tac-ack {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  background: var(--cms-bg-muted, rgba(0, 0, 0, 0.03));
+
+  ::ng-deep .mdc-label {
+    font-size: var(--cms-text-sm, 0.875rem);
+    font-weight: 600;
+  }
+}

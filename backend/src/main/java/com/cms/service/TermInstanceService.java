@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -8,15 +9,20 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.FeeDemandDto;
+import com.cms.dto.TermAdvanceChecklistResponse;
 import com.cms.dto.TermInstanceDto;
 import com.cms.dto.TermInstanceUpdateRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
+import com.cms.model.Cohort;
 import com.cms.model.Student;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.TermInstanceRepository;
 
 @Service
@@ -25,6 +31,7 @@ public class TermInstanceService {
 
     private final TermInstanceRepository termInstanceRepository;
     private final AcademicYearRepository academicYearRepository;
+    private final ClassScheduleRepository classScheduleRepository;
 
     // Field injection with @Lazy breaks the circular dependency:
     // TermInstanceService -> StudentTermEnrollmentService -> TermInstanceRepository
@@ -45,9 +52,11 @@ public class TermInstanceService {
     private FeeDemandService feeDemandService;
 
     public TermInstanceService(TermInstanceRepository termInstanceRepository,
-                                AcademicYearRepository academicYearRepository) {
+                                AcademicYearRepository academicYearRepository,
+                                ClassScheduleRepository classScheduleRepository) {
         this.termInstanceRepository = termInstanceRepository;
         this.academicYearRepository = academicYearRepository;
+        this.classScheduleRepository = classScheduleRepository;
     }
 
     @Transactional
@@ -129,6 +138,38 @@ public class TermInstanceService {
         TermInstance instance = termInstanceRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + id));
         return toDto(instance);
+    }
+
+    /** Live data for the term-advance checklist shown before a PLANNED→OPEN or OPEN→LOCKED
+     *  transition — every field is system-verified from real state (never a guessed/self-reported
+     *  value), but nothing here blocks the transition itself; the admin still ticks each item and
+     *  gives a final acknowledgment client-side. Fields irrelevant to {@code targetStatus} come
+     *  back empty/zero. */
+    public TermAdvanceChecklistResponse getAdvanceChecklist(Long termInstanceId, TermInstanceStatus targetStatus) {
+        if (!termInstanceRepository.existsById(termInstanceId)) {
+            throw new ResourceNotFoundException("Term instance not found with id: " + termInstanceId);
+        }
+
+        List<String> cohortsWithoutCurriculum = List.of();
+        int outstandingFeeDemandCount = 0;
+        BigDecimal outstandingFeeDemandAmount = BigDecimal.ZERO;
+        int draftTimetableSessionCount = 0;
+
+        if (targetStatus == TermInstanceStatus.OPEN) {
+            cohortsWithoutCurriculum = courseOfferingService.findActiveCohortsWithoutCurriculumVersion()
+                .stream().map(Cohort::getDisplayName).toList();
+        } else if (targetStatus == TermInstanceStatus.LOCKED) {
+            List<FeeDemandDto> outstanding = feeDemandService.getOutstandingDemands(termInstanceId);
+            outstandingFeeDemandCount = outstanding.size();
+            outstandingFeeDemandAmount = outstanding.stream()
+                .map(FeeDemandDto::outstandingAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            draftTimetableSessionCount = classScheduleRepository
+                .findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT).size();
+        }
+
+        return new TermAdvanceChecklistResponse(targetStatus, cohortsWithoutCurriculum,
+            outstandingFeeDemandCount, outstandingFeeDemandAmount, draftTimetableSessionCount);
     }
 
     @Transactional

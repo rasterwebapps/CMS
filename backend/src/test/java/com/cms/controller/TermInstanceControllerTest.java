@@ -21,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.cms.dto.TermAdvanceChecklistResponse;
 import com.cms.dto.TermInstanceDto;
 import com.cms.dto.TermInstanceUpdateRequest;
 import com.cms.exception.ResourceNotFoundException;
@@ -114,6 +115,23 @@ class TermInstanceControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldGetAdvanceChecklist() throws Exception {
+        TermAdvanceChecklistResponse response = new TermAdvanceChecklistResponse(
+            TermInstanceStatus.LOCKED, List.of(), 2, java.math.BigDecimal.valueOf(7500), 1);
+
+        when(termInstanceService.getAdvanceChecklist(1L, TermInstanceStatus.LOCKED)).thenReturn(response);
+
+        mockMvc.perform(get("/term-instances/1/advance-checklist").param("targetStatus", "LOCKED"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.targetStatus").value("LOCKED"))
+            .andExpect(jsonPath("$.outstandingFeeDemandCount").value(2))
+            .andExpect(jsonPath("$.outstandingFeeDemandAmount").value(7500))
+            .andExpect(jsonPath("$.draftTimetableSessionCount").value(1));
+
+        verify(termInstanceService).getAdvanceChecklist(1L, TermInstanceStatus.LOCKED);
     }
 
     private TermInstanceDto createDto(Long id, Long ayId, String ayName, TermType type,

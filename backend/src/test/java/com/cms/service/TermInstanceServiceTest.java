@@ -23,11 +23,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.TermInstanceDto;
 import com.cms.dto.TermInstanceUpdateRequest;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.dto.FeeDemandDto;
+import com.cms.dto.TermAdvanceChecklistResponse;
 import com.cms.model.AcademicYear;
+import com.cms.model.Cohort;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.ClassScheduleStatus;
+import com.cms.model.enums.DemandStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
+import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.TermInstanceRepository;
 import com.cms.service.CourseOfferingService;
 import com.cms.service.CourseRegistrationService;
@@ -55,13 +61,16 @@ class TermInstanceServiceTest {
     @Mock
     private FeeDemandService feeDemandService;
 
+    @Mock
+    private ClassScheduleRepository classScheduleRepository;
+
     private TermInstanceService termInstanceService;
 
     private AcademicYear testAcademicYear;
 
     @BeforeEach
     void setUp() {
-        termInstanceService = new TermInstanceService(termInstanceRepository, academicYearRepository);
+        termInstanceService = new TermInstanceService(termInstanceRepository, academicYearRepository, classScheduleRepository);
         termInstanceService.setStudentTermEnrollmentService(studentTermEnrollmentService);
         termInstanceService.setCourseOfferingService(courseOfferingService);
         termInstanceService.setCourseRegistrationService(courseRegistrationService);
@@ -478,5 +487,81 @@ class TermInstanceServiceTest {
         ti.setCreatedAt(Instant.now());
         ti.setUpdatedAt(Instant.now());
         return ti;
+    }
+
+    // ── getAdvanceChecklist ────────────────────────────────────────────────
+
+    private FeeDemandDto outstandingDemand(java.math.BigDecimal outstanding) {
+        return new FeeDemandDto(1L, 1L, 1L, "Jane Roe", "BSN24", 10L, "ODD 2026-2027", 1L, "2026-2027",
+            java.math.BigDecimal.valueOf(50000), LocalDate.of(2026, 9, 1), java.math.BigDecimal.ZERO,
+            outstanding, DemandStatus.UNPAID);
+    }
+
+    @Test
+    void shouldThrowWhenGettingChecklistForNonExistentTerm() {
+        when(termInstanceRepository.existsById(999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> termInstanceService.getAdvanceChecklist(999L, TermInstanceStatus.OPEN))
+            .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldListCohortsMissingCurriculumForOpenTarget() {
+        Cohort missing = new Cohort();
+        missing.setId(1L);
+        missing.setDisplayName("BSc Nursing 2024");
+        when(termInstanceRepository.existsById(10L)).thenReturn(true);
+        when(courseOfferingService.findActiveCohortsWithoutCurriculumVersion()).thenReturn(List.of(missing));
+
+        TermAdvanceChecklistResponse response = termInstanceService.getAdvanceChecklist(10L, TermInstanceStatus.OPEN);
+
+        assertThat(response.targetStatus()).isEqualTo(TermInstanceStatus.OPEN);
+        assertThat(response.cohortsWithoutCurriculum()).containsExactly("BSc Nursing 2024");
+        assertThat(response.outstandingFeeDemandCount()).isZero();
+        assertThat(response.draftTimetableSessionCount()).isZero();
+    }
+
+    @Test
+    void shouldReturnEmptyCohortListWhenEveryActiveCohortHasCurriculumForOpenTarget() {
+        when(termInstanceRepository.existsById(10L)).thenReturn(true);
+        when(courseOfferingService.findActiveCohortsWithoutCurriculumVersion()).thenReturn(List.of());
+
+        TermAdvanceChecklistResponse response = termInstanceService.getAdvanceChecklist(10L, TermInstanceStatus.OPEN);
+
+        assertThat(response.cohortsWithoutCurriculum()).isEmpty();
+    }
+
+    @Test
+    void shouldSumOutstandingFeesAndCountDraftSessionsForLockedTarget() {
+        when(termInstanceRepository.existsById(10L)).thenReturn(true);
+        when(feeDemandService.getOutstandingDemands(10L)).thenReturn(List.of(
+            outstandingDemand(java.math.BigDecimal.valueOf(5000)),
+            outstandingDemand(java.math.BigDecimal.valueOf(2500))));
+        com.cms.model.ClassSchedule draft1 = new com.cms.model.ClassSchedule();
+        com.cms.model.ClassSchedule draft2 = new com.cms.model.ClassSchedule();
+        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(draft1, draft2));
+
+        TermAdvanceChecklistResponse response = termInstanceService.getAdvanceChecklist(10L, TermInstanceStatus.LOCKED);
+
+        assertThat(response.targetStatus()).isEqualTo(TermInstanceStatus.LOCKED);
+        assertThat(response.outstandingFeeDemandCount()).isEqualTo(2);
+        assertThat(response.outstandingFeeDemandAmount()).isEqualByComparingTo("7500");
+        assertThat(response.draftTimetableSessionCount()).isEqualTo(2);
+        assertThat(response.cohortsWithoutCurriculum()).isEmpty();
+    }
+
+    @Test
+    void shouldReturnZeroesForLockedTargetWhenTermIsClean() {
+        when(termInstanceRepository.existsById(10L)).thenReturn(true);
+        when(feeDemandService.getOutstandingDemands(10L)).thenReturn(List.of());
+        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of());
+
+        TermAdvanceChecklistResponse response = termInstanceService.getAdvanceChecklist(10L, TermInstanceStatus.LOCKED);
+
+        assertThat(response.outstandingFeeDemandCount()).isZero();
+        assertThat(response.outstandingFeeDemandAmount()).isEqualByComparingTo("0");
+        assertThat(response.draftTimetableSessionCount()).isZero();
     }
 }

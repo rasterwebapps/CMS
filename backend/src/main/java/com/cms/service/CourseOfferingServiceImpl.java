@@ -131,6 +131,13 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
     }
 
     @Override
+    public List<Cohort> findActiveCohortsWithoutCurriculumVersion() {
+        return cohortRepository.findByStatus(CohortStatus.ACTIVE).stream()
+            .filter(cohort -> resolveActiveCurriculumVersion(cohort) == null)
+            .toList();
+    }
+
+    @Override
     public List<CourseOfferingDto> getOfferingsByTermInstance(Long termInstanceId) {
         return courseOfferingRepository.findByTermInstanceId(termInstanceId)
             .stream()

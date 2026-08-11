@@ -1,0 +1,38 @@
+<h2 mat-dialog-title>{{ title }}</h2>
+
+<mat-dialog-content class="tac-content">
+  @for (line of introLines; track line) {
+    <p class="tac-intro">{{ line }}</p>
+  }
+
+  @if (loading()) {
+    <div class="tac-loading">
+      <mat-spinner diameter="32" aria-label="Loading checklist"></mat-spinner>
+    </div>
+  } @else {
+    <ul class="tac-checklist">
+      @for (item of items(); track item.label; let i = $index) {
+        <li class="tac-item" [class.tac-item--warn]="item.warn === true">
+          <mat-checkbox [checked]="item.checked" (change)="toggleItem(i)">
+            @if (item.warn === true) { <span class="tac-item__icon">⚠</span> }
+            @if (item.warn === false) { <span class="tac-item__icon">✓</span> }
+            {{ item.label }}
+          </mat-checkbox>
+        </li>
+      }
+    </ul>
+
+    <div class="tac-ack">
+      <mat-checkbox [checked]="acknowledged()" (change)="toggleAcknowledged()">
+        I acknowledge this action is permanent, cannot be reverted, and I have reviewed the items above.
+      </mat-checkbox>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="onCancel()">Cancel</button>
+  <button mat-flat-button color="warn" [disabled]="!canConfirm()" (click)="onConfirm()">
+    {{ title }}
+  </button>
+</mat-dialog-actions>

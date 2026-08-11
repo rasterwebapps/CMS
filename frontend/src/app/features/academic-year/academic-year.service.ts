@@ -24,7 +24,9 @@ import {
   Page,
   SeatAvailabilityResponse,
   StudentTermEnrollment,
+  TermAdvanceChecklist,
   TermInstance,
+  TermInstanceStatus,
   TermInstanceUpdateRequest,
   TermBillingSchedule,
   TermBillingScheduleRequest,
@@ -180,6 +182,12 @@ export class AcademicYearService {
 
   updateTermInstance(id: number, request: TermInstanceUpdateRequest): Observable<TermInstance> {
     return this.http.put<TermInstance>(`${environment.apiUrl}/term-instances/${id}`, request);
+  }
+
+  getTermAdvanceChecklist(id: number, targetStatus: TermInstanceStatus): Observable<TermAdvanceChecklist> {
+    return this.http.get<TermAdvanceChecklist>(`${environment.apiUrl}/term-instances/${id}/advance-checklist`, {
+      params: { targetStatus },
+    });
   }
 
   // TermBillingSchedule methods

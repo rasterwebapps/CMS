@@ -43,7 +43,7 @@ import { ACADEMIC_YEAR_FORM_TOUR } from '../../../shared/tour/tours/academic-yea
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
-import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { TermAdvanceChecklistDialogComponent } from '../term-advance-checklist-dialog/term-advance-checklist-dialog.component';
 
 @Component({
   selector: 'app-academic-year-form',
@@ -376,31 +376,22 @@ export class AcademicYearFormComponent implements OnInit {
 
   // ── Term status operations ────────────────────────────────────────────────────
 
-  /** BR-53: consequence text shown before a term status advance — PLANNED→OPEN and OPEN→LOCKED
-   *  each do something real behind the scenes, so an admin should see what before confirming. */
-  private termAdvanceConfirmMessage(termType: 'ODD' | 'EVEN', next: TermInstanceStatus): string {
-    const ayName = this.form.get('name')?.value ?? 'this academic year';
-    const termLabel = `${termType} term for ${ayName}`;
-    if (next === 'OPEN') {
-      return `Opening the ${termLabel} will generate course offerings from the curriculum, `
-        + `making it available for course registration and fee collection. Continue?`;
-    }
-    return `Locking the ${termLabel} is permanent and cannot be undone. It deactivates all `
-      + `course offerings for this term. Make sure exam results are published and fee collection `
-      + `is finalized first. Continue?`;
-  }
-
+  /** BR-53 shipped a single-paragraph confirm dialog here; replaced by
+   *  TermAdvanceChecklistDialogComponent's itemized, system-verified checklist + separate
+   *  acknowledgment — how much now depends on term status (course offerings, fee demand
+   *  generation/collection eligibility, the timetable freezing once LOCKED) outgrew one warning
+   *  paragraph, and neither PLANNED→OPEN nor OPEN→LOCKED has a reverse path in the backend. */
   protected advanceTermStatus(termType: 'ODD' | 'EVEN'): void {
     const term = termType === 'ODD' ? this.oddTermInstance() : this.evenTermInstance();
     const next = term ? this.getNextStatus(term.status) : null;
     if (!term || !next) return;
 
-    this.dialog.open(ConfirmDialogComponent, {
+    this.dialog.open(TermAdvanceChecklistDialogComponent, {
       data: {
-        title: next === 'OPEN' ? 'Open Term' : 'Lock Term',
-        message: this.termAdvanceConfirmMessage(termType, next),
-        confirmText: next === 'OPEN' ? 'Open Term' : 'Lock Term',
-        cancelText: 'Cancel',
+        termInstanceId: term.id,
+        termType,
+        targetStatus: next,
+        academicYearName: this.form.get('name')?.value ?? 'this academic year',
       },
     }).afterClosed().subscribe((confirmed) => {
       if (confirmed) this.performAdvanceTermStatus(termType, term.id, next);

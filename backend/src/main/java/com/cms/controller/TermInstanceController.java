@@ -12,8 +12,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.TermAdvanceChecklistResponse;
 import com.cms.dto.TermInstanceDto;
 import com.cms.dto.TermInstanceUpdateRequest;
+import com.cms.model.enums.TermInstanceStatus;
 import com.cms.service.TermInstanceService;
 
 @RestController
@@ -43,5 +45,15 @@ public class TermInstanceController {
             @PathVariable Long id,
             @RequestBody TermInstanceUpdateRequest request) {
         return ResponseEntity.ok(termInstanceService.updateTermInstance(id, request));
+    }
+
+    /** Gated the same as the PUT above (not left open like the two GETs above it) -- this
+     *  surfaces outstanding fee amounts, and is only ever useful to someone about to perform the
+     *  gated action it previews. */
+    @GetMapping("/{id}/advance-checklist")
+    @PreAuthorize("@perm.has('SEMESTER_MANAGE')")
+    public ResponseEntity<TermAdvanceChecklistResponse> getAdvanceChecklist(
+            @PathVariable Long id, @RequestParam TermInstanceStatus targetStatus) {
+        return ResponseEntity.ok(termInstanceService.getAdvanceChecklist(id, targetStatus));
     }
 }
