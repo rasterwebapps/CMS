@@ -679,7 +679,7 @@
 
 **Frontend:**
 - [x] **R1-6.3.6** Toolbar notification bell wired to the real feed (previously a dead hardcoded badge)
-- [x] **R1-6.3.7** Academic Year form's `advanceTermStatus()` wrapped with shared `ConfirmDialogComponent`
+- [x] **R1-6.3.7** Academic Year form's `advanceTermStatus()` wrapped with shared `ConfirmDialogComponent` — **since 2026-08-11** replaced with `TermAdvanceChecklistDialogComponent` (itemized, system-verified checklist + separate acknowledgment; see BUSINESS_REQUIREMENTS.md Change Log)
 
 ---
 
