@@ -58,6 +58,8 @@
 - [BR-49: INC Nursing Curriculum Compliance — Per-Semester Hours, Electives, Attendance Thresholds & Batches](#br-49-inc-nursing-curriculum-compliance--per-semester-hours-electives-attendance-thresholds--batches)
 - [BR-52: Student Promotion / Progression](#br-52-student-promotion--progression)
 - [BR-53: Term Lifecycle Confirmation & Overdue Alerting](#br-53-term-lifecycle-confirmation--overdue-alerting)
+- [BR-54: Room Purpose Classification (2-Tier Category + Sub-Type)](#br-54-room-purpose-classification-2-tier-category--sub-type)
+- [BR-55: Special/Remedial Class Scheduler](#br-55-specialremedial-class-scheduler)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -1413,6 +1415,7 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-08-12 | BR-55 | **Special/Remedial Class Scheduler added:** first path for a one-off ad-hoc class outside the recurring weekly template — single-subject and whole-day-repeat modes, both via a new faculty-request/admin-approval workflow. `SessionOccurrence` extended (nullable `class_schedule_id` + new special-class columns) rather than a new table; two-part conflict checking (recurring template + other special classes, since a special class has no `ClassSchedule` row for either check alone to see); Period-grid slots only; term-lock-gated; audited via the existing `AuditLogService`. Workload-cap enforcement, progress-report crediting, and notification firing explicitly deferred. Migrations V374, V375. | — |
 | 2026-08-11 | BR-53 | **Term advance confirmation upgraded from a single paragraph to an itemized, system-verified checklist + separate acknowledgment:** how much now depends on term status (course offering generation, fee demand generation/collection eligibility, and the timetable freezing entirely once `LOCKED`, per the timetable-engine roadmap's Step 7) outgrew one warning paragraph. New `TermAdvanceChecklistDialogComponent` replaces the shared `ConfirmDialogComponent` call — shows live, system-computed data (active cohorts missing a curriculum version for `OPEN`; outstanding fee demand count/amount and unapproved draft timetable session count for `LOCKED`, each composed from already-existing service methods) plus one plainly-labeled self-attestation item (exam results published — no system signal exists for this anywhere in the codebase) and a separate final acknowledgment checkbox. Deliberately **not** a hard block on the underlying checks passing — the hard block is on ticking every item + the acknowledgment; two of the real dependencies have no reliable system signal, and both transitions remain irreversible, so a lockout tied to incomplete logic would be a worse failure mode than trusting the admin's judgment once shown the real numbers. New `GET /term-instances/{id}/advance-checklist`, gated identically to the existing `PUT` (no new permission). New `CourseOfferingService.findActiveCohortsWithoutCurriculumVersion()`. No schema change. | — |
 | 2026-07-17 | BR-53, BR-28 | **Term Lifecycle Confirmation & Overdue Alerting added:** advancing a term's status (`PLANNED→OPEN`/`OPEN→LOCKED`) now requires confirming a consequence dialog first. New daily `AcademicTermAlertService` job raises an in-app alert when a term is still `PLANNED` within 14 days of its start date, auto-resolving once the admin acts. First real slice of BR-28's notification-sending backend — new `notifications`/`notification_dismissals` tables (broadcast-style alerts, per-user dismissal), `GET /notifications/feed`/`POST /notifications/{id}/dismiss`, and the toolbar bell (previously a dead hardcoded badge) now wired to a real feed. New `academicTermAlerts` preference category, gated by `ACADEMIC_YEAR_MANAGE`. Migration V287. | — |
 | 2026-07-17 | BR-52 | **Student Promotion select-step simplified:** picking a cohort was previously followed by two full academic-year → term cascades (From and To), meaningless repeat clicking for the common case. New `GET /student-promotions/active-terms?cohortId=` auto-detects the term instance(s) a cohort currently has `ENROLLED` students in (usually exactly one) and `GET /student-promotions/suggested-next-term?fromTermInstanceId=` auto-suggests the destination — the cascade now only appears as a manual fallback (new cohort with no enrollment yet, no next term created, or opted into via "Choose different terms manually"). No schema change; new repository query methods only (`AcademicYearRepository.findByStartDateGreaterThanOrderByStartDateAsc`, `StudentTermEnrollmentRepository.findByCohortIdAndStatus`). | — |
@@ -2853,6 +2856,44 @@ This BR adds a standard 2-tier ERP room taxonomy, stored per-Room, so any module
 - **No new "vacant rooms" query/endpoint.** The existing Hostel allocation dashboard already only ever lists actual `HostelRoom`s (never non-hostel locations), so that specific need was already met independent of this taxonomy. A reusable "vacant/available rooms of purpose X" picker for other modules (Academic timetable room picker, Library room picker, etc.) is real future work, not built here.
 - **No new server-side gender-matching enforcement** at allocation time — confirmed still display-only in both the allocation dashboard and the room-preference picker; unchanged by this BR.
 - **No changes to the separate legacy `Classroom` entity** (its own free-text `building` field) — its noted future migration onto the Room hierarchy is unrelated to this BR.
+
+---
+
+## BR-55: Special/Remedial Class Scheduler
+
+### Business Rule
+
+The timetable engine had no path for a one-off ad-hoc class (e.g. "Pathology revision, Sat Aug 29, 10:00 AM") — `SessionOccurrence`, the table anchoring "this recurring session actually happened on this date," is strictly bound to an existing recurring `ClassSchedule` master row (`class_schedule_id NOT NULL`), so a session with no backing weekly-template row had nowhere to live. This BR adds that path, directly onto the same table rather than a parallel one, so a special class is a first-class occurrence alongside regular sessions rather than a separate concept the rest of the timetable module has to know about.
+
+- **Two request modes**, both going through the same faculty-request → admin-approval workflow: a **single-subject** ad-hoc session on one date/period, and a **whole-day-repeat**, where every subject/period from a source weekday's recurring timetable is copied onto a different target date for a cohort (e.g. "this Saturday follows Tuesday's schedule"). A day-repeat submission creates one `SessionOccurrence` row per copied session, all sharing one `request_batch_id` so they approve/reject atomically as a group.
+- **Faculty requests, Admin approves** — a new approval-workflow pattern for the timetable module (the closest existing precedent, `FacultyAbsence`, records-and-applies directly with no gate). `approval_status` (`PENDING`/`APPROVED`/`REJECTED`/`CANCELLED`) mirrors the `ScholarshipStatus`-style real-enum pattern rather than `FeeRefund`'s plain-string status.
+- Special classes must use the institution's existing **Period-grid slots** — not free-form times — so they plug directly into the existing room/faculty conflict-checking machinery in `TimetableStaffingService` instead of requiring new clock-time overlap logic.
+- **Conflict checking is two-part**, since a special class has no `ClassSchedule` row: (1) checked against the recurring weekly template via the existing `ClassScheduleRepository.findOverlapping`, and (2) checked against other pending/approved special classes on the same date+period via a new query, since those likewise have no `ClassSchedule` row for (1) to see. A duplicate-request guard (partial unique index, live rows only) blocks resubmitting the same date/period/subject/cohort while a prior request is still pending or approved.
+- Special classes respect the same term-lock gating as the rest of the timetable engine (`TimetableGenerationService.requireNotLocked`) and are written through the existing generic `AuditLogService`, matching the audit-trail pattern OC-116 established for the rest of the module.
+- **Explicit v1 exclusion:** special classes do **not** count against a faculty's weekly workload cap (`TimetableStaffingService.checkWithinWorkloadCaps`) — that check is structured entirely around recurring `ClassSchedule` rows for a term, and folding a one-off session into a *weekly* ceiling was judged not to be the right semantics for an ad-hoc session. Hard faculty/room double-booking is still always blocked.
+
+### Scope
+
+- `SessionOccurrence` extended (not a new table): `class_schedule_id` becomes nullable; new columns carry the special-class case (subject/course-offering/cohort-section/period/venue/requested-faculty, `occurrence_source` discriminator, approval status + requester/approver/timestamps/reason, `request_batch_id` for day-repeat grouping).
+- New `SpecialClassRequestService` (request/approve/reject/cancel/list), new tuple-shaped overloads on `TimetableStaffingService`'s faculty/room conflict checks (existing `ClassSchedule`-shaped methods delegate to them, unchanged behavior for the regular-session path).
+- New `SpecialClassController` — request (single-subject, day-repeat), approve/reject (single + batch), cancel, my-requests, approval-queue endpoints.
+- Frontend: faculty-facing "My Special Classes" list (own requests) and admin-facing "Special Class Approvals" queue — two screens, matching the existing `my-timetable`/`timetable-view` split idiom rather than one role-switched screen — plus a shared request-creation flyout (mode pick → single-subject/day-repeat form → conflict review → submit), added to the Academics nav group.
+
+### Permissions
+
+- `TIMETABLE_SPECIAL_CLASS_REQUEST`, `TIMETABLE_SPECIAL_CLASS_APPROVE`, `TIMETABLE_SPECIAL_CLASS_VIEW`, `TIMETABLE_SPECIAL_CLASS_CANCEL` — new, dedicated per the operation-wise permission mapping rule.
+
+### Migration Notes
+
+- V374 — makes `session_occurrences.class_schedule_id` nullable; adds the special-class columns, a shape-validating check constraint, a partial unique index (duplicate-request guard, live rows only), and supporting indexes. Additive only.
+- V375 — seeds the four permissions above and grants them to the appropriate faculty/admin-tier roles, ending with the standard DEV_ADMIN/SUPPORT_ADMIN catch-all sync block.
+
+### Explicitly Out of Scope
+
+- **Progress-report crediting.** A special class's hours do not yet count toward course portion-completion percentages in the Progress Report — `ProgressTrackingService.aggregateByUnit`/`PortionBlueprintService.actualCompletionDates` both key off a derived query that structurally can't see a null-`class_schedule_id` row. A merge via a new, additive repository method is real future work, not built here. (The one NPE risk this created — `ProgressTrackingService.toDto` unconditionally dereferencing `getClassSchedule()` — is fixed regardless, since it's a live crash risk the moment any special-class row exists.)
+- **Notification firing on approve/reject.** BR-28's notification-sending backend is only fully wired for one category (`academicTermAlerts`) so far; a faculty member currently has to check "My Special Classes" manually rather than getting notified. Wiring a new category through the existing `NotificationRepository`/`NotificationPreferenceService` pattern is a natural fast-follow.
+- **Workload-cap enforcement against special classes** — a deliberate product decision (see Business Rule above), not a deferred gap.
+- **Free-form/custom time slots** — special classes are Period-grid-only in v1; a genuinely custom start/end time (outside any defined Period) would need new time-overlap conflict logic this pass doesn't build.
 
 ---
 

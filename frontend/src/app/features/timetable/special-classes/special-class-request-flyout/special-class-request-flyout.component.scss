@@ -1,0 +1,35 @@
+.scf-mode-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.scf-mode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  strong {
+    font-size: 0.95rem;
+  }
+
+  span {
+    font-size: 0.82rem;
+    color: var(--cms-text-secondary);
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--cms-primary);
+    box-shadow: 0 0 0 1px var(--cms-primary);
+  }
+}

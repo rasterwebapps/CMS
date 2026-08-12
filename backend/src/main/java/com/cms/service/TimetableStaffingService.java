@@ -322,9 +322,20 @@ public class TimetableStaffingService {
      *  rather than read from {@code cs.getDayOfWeek()} so {@link TimetableSkeletonService#moveCell}
      *  can re-check a *target* day for an already-staffed cell without first mutating it. */
     Optional<ConstraintViolation> checkFacultyFree(Long facultyId, ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end) {
+        return checkFacultyFree(facultyId, cs.getTermInstance().getId(), cs.getId(), day, start, end);
+    }
+
+    /** Tuple-shaped overload of {@link #checkFacultyFree(Long, ClassSchedule, DayOfWeek, LocalTime, LocalTime)}
+     *  for BR-55 special classes, which have no backing {@link ClassSchedule} to read a term/exclude-id
+     *  from — {@code excludeClassScheduleId} is nullable (a special class never excludes an existing
+     *  recurring row). Checks only against the recurring weekly template; the caller is responsible
+     *  for separately checking against other special classes, which this can't see (they have no
+     *  ClassSchedule row for {@code findOverlapping} to match). */
+    Optional<ConstraintViolation> checkFacultyFree(Long facultyId, Long termInstanceId, Long excludeClassScheduleId,
+                                                    DayOfWeek day, LocalTime start, LocalTime end) {
         for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
             List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
-                day, cs.getTermInstance().getId(), start, end, status, cs.getId());
+                day, termInstanceId, start, end, status, excludeClassScheduleId);
             boolean conflict = overlapping.stream()
                 .anyMatch(other -> other.getFaculty() != null && other.getFaculty().getId().equals(facultyId));
             if (conflict) {
@@ -467,9 +478,18 @@ public class TimetableStaffingService {
      *  is linked. Checked against both PUBLISHED and other already-staffed DRAFT rows. {@code day}
      *  is passed explicitly for the same reason as {@link #checkFacultyFree}. */
     Optional<ConstraintViolation> checkRoomFree(ClassSessionType type, Long venueId, Room physicalRoom, ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end) {
+        return checkRoomFree(type, venueId, physicalRoom, cs.getTermInstance().getId(), cs.getId(), day, start, end);
+    }
+
+    /** Tuple-shaped overload of {@link #checkRoomFree(ClassSessionType, Long, Room, ClassSchedule, DayOfWeek, LocalTime, LocalTime)}
+     *  for BR-55 special classes — see {@link #checkFacultyFree(Long, Long, Long, DayOfWeek, LocalTime, LocalTime)}
+     *  for why {@code excludeClassScheduleId} is nullable and what this can't see. */
+    Optional<ConstraintViolation> checkRoomFree(ClassSessionType type, Long venueId, Room physicalRoom,
+                                                 Long termInstanceId, Long excludeClassScheduleId,
+                                                 DayOfWeek day, LocalTime start, LocalTime end) {
         for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
             List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
-                day, cs.getTermInstance().getId(), start, end, status, cs.getId());
+                day, termInstanceId, start, end, status, excludeClassScheduleId);
             boolean conflict = overlapping.stream().anyMatch(other -> conflictsOnRoom(other, type, venueId, physicalRoom));
             if (conflict) {
                 return Optional.of(new ConstraintViolation("STAFFING_ROOM_CONFLICT",

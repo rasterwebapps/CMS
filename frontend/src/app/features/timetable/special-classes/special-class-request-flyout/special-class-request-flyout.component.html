@@ -1,0 +1,153 @@
+<cms-flyout-panel width="480px" ariaLabel="Request special class" (closed)="onClose()">
+  <div flyoutHeader>
+    @if (mode() === 'PICK_MODE') { Request a Special Class }
+    @else if (mode() === 'SINGLE_SUBJECT') { Single-Subject Special Class }
+    @else { Whole-Day Repeat }
+  </div>
+
+  <div flyoutBody>
+    @if (mode() === 'PICK_MODE') {
+      <p class="field-hint">Choose what kind of special/remedial session you want to request.</p>
+      <div class="scf-mode-cards">
+        <button type="button" class="scf-mode-card" (click)="pickMode('SINGLE_SUBJECT')">
+          <strong>Single Subject</strong>
+          <span>One ad-hoc revision/remedial class for one subject on a specific date and period.</span>
+        </button>
+        <button type="button" class="scf-mode-card" (click)="pickMode('DAY_REPEAT')">
+          <strong>Whole-Day Repeat</strong>
+          <span>Copy an entire weekday's timetable onto a different date for one cohort section.</span>
+        </button>
+      </div>
+    }
+
+    @if (mode() === 'SINGLE_SUBJECT') {
+      <div class="field-group">
+        <label class="field-label" for="scf-year">Academic Year</label>
+        <select id="scf-year" class="field-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()">
+          @for (y of academicYears(); track y.id) { <option [ngValue]="y.id">{{ y.name }}</option> }
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-term">Term</label>
+        <select id="scf-term" class="field-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermOrCohortChange()">
+          @for (t of termInstances(); track t.id) { <option [ngValue]="t.id">{{ t.termType }} · {{ t.status }}</option> }
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-cohort">Cohort</label>
+        <select id="scf-cohort" class="field-select" [(ngModel)]="selectedCohortId" (ngModelChange)="onTermOrCohortChange()">
+          @for (c of cohorts(); track c.id) { <option [ngValue]="c.id">{{ c.displayName }}</option> }
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-offering">
+          Subject <span class="field-required">*</span>
+        </label>
+        <select id="scf-offering" class="field-select" [(ngModel)]="selectedCourseOfferingId" (ngModelChange)="onCourseOfferingChange()">
+          <option [ngValue]="null">Select subject</option>
+          @for (o of courseOfferings(); track o.id) { <option [ngValue]="o.id">{{ o.subjectName }} ({{ o.subjectCode }})</option> }
+        </select>
+        @if (loadingOfferings()) { <p class="field-hint">Loading subjects…</p> }
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-cohort-section">Cohort Section (optional)</label>
+        <input id="scf-cohort-section" type="number" class="field-input" [(ngModel)]="cohortSectionId"
+               placeholder="Leave blank for the whole cohort" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-date">Date <span class="field-required">*</span></label>
+        <input id="scf-date" type="date" class="field-input" [(ngModel)]="occurrenceDate" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-period">Period <span class="field-required">*</span></label>
+        <select id="scf-period" class="field-select" [(ngModel)]="periodId">
+          <option [ngValue]="null">Select period</option>
+          @for (p of periods(); track p.id) { <option [ngValue]="p.id">{{ p.name }} ({{ p.startTime }}–{{ p.endTime }})</option> }
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-session-type">Session Type</label>
+        <select id="scf-session-type" class="field-select" [(ngModel)]="sessionType" (ngModelChange)="onSessionTypeChange()">
+          <option value="THEORY">Theory</option>
+          <option value="LAB">Lab</option>
+          <option value="CLINICAL">Clinical</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-venue">Venue <span class="field-required">*</span></label>
+        <select id="scf-venue" class="field-select" [(ngModel)]="venueId">
+          <option [ngValue]="null">Select venue</option>
+          @for (v of venueOptionsFor(sessionType); track v.id) { <option [ngValue]="v.id">{{ v.name }}</option> }
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-faculty">Faculty <span class="field-required">*</span></label>
+        <select id="scf-faculty" class="field-select" [(ngModel)]="requestedFacultyId">
+          <option [ngValue]="null">Select faculty</option>
+          @for (f of faculty(); track f.id) { <option [ngValue]="f.id">{{ f.fullName }}</option> }
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-reason">Reason</label>
+        <textarea id="scf-reason" class="field-textarea" rows="3" [(ngModel)]="reason"
+                  placeholder="e.g. Revision lecture ahead of internal exam"></textarea>
+      </div>
+    }
+
+    @if (mode() === 'DAY_REPEAT') {
+      <div class="field-group">
+        <label class="field-label" for="scf-r-year">Academic Year</label>
+        <select id="scf-r-year" class="field-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()">
+          @for (y of academicYears(); track y.id) { <option [ngValue]="y.id">{{ y.name }}</option> }
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-r-term">Term</label>
+        <select id="scf-r-term" class="field-select" [(ngModel)]="selectedTermInstanceId">
+          @for (t of termInstances(); track t.id) { <option [ngValue]="t.id">{{ t.termType }} · {{ t.status }}</option> }
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-r-cohort-section">
+          Cohort Section ID <span class="field-required">*</span>
+        </label>
+        <input id="scf-r-cohort-section" type="number" class="field-input" [(ngModel)]="repeatCohortSectionId"
+               placeholder="From Capacity Planner → Cohort Room Allocation" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-r-source-day">Follow Schedule From <span class="field-required">*</span></label>
+        <select id="scf-r-source-day" class="field-select" [(ngModel)]="sourceDayOfWeek">
+          @for (d of weekDays; track d) { <option [value]="d">{{ d | titlecase }}</option> }
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-r-target-date">Onto Date <span class="field-required">*</span></label>
+        <input id="scf-r-target-date" type="date" class="field-input" [(ngModel)]="targetDate" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="scf-r-reason">Reason</label>
+        <textarea id="scf-r-reason" class="field-textarea" rows="3" [(ngModel)]="repeatReason"
+                  placeholder="e.g. Saturday makeup for a holiday week"></textarea>
+      </div>
+      <p class="field-hint">Every subject scheduled on the chosen weekday for this cohort section will be copied
+        onto the target date. Sessions whose cohort ownership can't be confirmed are skipped and reported after
+        submission.</p>
+    }
+  </div>
+
+  <div flyoutFooter>
+    @if (mode() === 'PICK_MODE') {
+      <button type="button" class="btn-cancel" (click)="onClose()">Cancel</button>
+    } @else if (mode() === 'SINGLE_SUBJECT') {
+      <button type="button" class="btn-cancel" (click)="backToModePicker()" [disabled]="saving()">Back</button>
+      <button type="button" class="btn-primary" [disabled]="!canSubmitSingle() || saving()" (click)="submitSingle()">
+        @if (saving()) { <span class="btn-spinner"></span> Requesting… } @else { Request }
+      </button>
+    } @else {
+      <button type="button" class="btn-cancel" (click)="backToModePicker()" [disabled]="saving()">Back</button>
+      <button type="button" class="btn-primary" [disabled]="!canSubmitRepeat() || saving()" (click)="submitRepeat()">
+        @if (saving()) { <span class="btn-spinner"></span> Requesting… } @else { Request }
+      </button>
+    }
+  </div>
+</cms-flyout-panel>

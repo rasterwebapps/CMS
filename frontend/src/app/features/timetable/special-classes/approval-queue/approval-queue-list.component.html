@@ -1,0 +1,108 @@
+<div class="mlp-page">
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Special Class <em>Approvals</em></h1>
+      <p class="mlp-sub">Pending faculty requests for ad-hoc special/remedial classes and whole-day repeats.</p>
+    </div>
+  </div>
+
+  <div class="content-card mlp-table-card anim-rise anim-rise--d1">
+    @if (loading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading approval queue"></mat-spinner>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+          <ng-container matColumnDef="requestedAt">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Requested</th>
+            <td mat-cell *matCellDef="let r"><span class="mono">{{ r.requestedAt | date:'mediumDate' }}</span></td>
+          </ng-container>
+
+          <ng-container matColumnDef="occurrenceDate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
+            <td mat-cell *matCellDef="let r">
+              <span class="mono">{{ r.occurrenceDate }}</span>
+              @if (r.occurrenceSource === 'DAY_REPEAT') {
+                <span class="aql-batch-tag" title="Part of a whole-day-repeat batch">Day Repeat</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="subjectName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Subject</th>
+            <td mat-cell *matCellDef="let r">{{ r.subjectName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="periodName">
+            <th mat-header-cell *matHeaderCellDef>Period</th>
+            <td mat-cell *matCellDef="let r">{{ r.periodName || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="venueName">
+            <th mat-header-cell *matHeaderCellDef>Venue</th>
+            <td mat-cell *matCellDef="let r">{{ r.venueName || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="requestedFacultyName">
+            <th mat-header-cell *matHeaderCellDef>Faculty</th>
+            <td mat-cell *matCellDef="let r">{{ r.requestedFacultyName || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="requestedByFacultyName">
+            <th mat-header-cell *matHeaderCellDef>Requested By</th>
+            <td mat-cell *matCellDef="let r">{{ r.requestedByFacultyName || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions" stickyEnd>
+            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <td mat-cell *matCellDef="let r">
+              <div class="row-actions">
+                <cms-row-action-btn variant="success" tooltip="Approve" ariaLabel="Approve" [disabled]="acting()" (clicked)="confirmApprove(r)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  Approve
+                </cms-row-action-btn>
+                <cms-row-action-btn variant="danger" tooltip="Reject" ariaLabel="Reject" [disabled]="acting()" (clicked)="startReject(r)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Reject
+                </cms-row-action-btn>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+          <tr mat-row *matRowDef="let r; columns: displayedColumns;"></tr>
+
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
+              <cms-empty-state icon="task_alt" title="No pending requests" subtitle="Special class requests awaiting approval will appear here." />
+            </td>
+          </tr>
+        </table>
+      </div>
+      <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons />
+    }
+  </div>
+
+  @if (rejectTarget(); as row) {
+    <cms-flyout-panel width="420px" ariaLabel="Reject special class" (closed)="closeRejectPanel()">
+      <div flyoutHeader>Reject Special Class</div>
+      <div flyoutBody>
+        <p class="field-hint">{{ row.subjectName }} on {{ row.occurrenceDate }}
+          @if (row.requestBatchId) { — rejecting will decline every session in this day-repeat batch. }
+        </p>
+        <div class="field-group">
+          <label class="field-label" for="aql-reason">Reason <span class="field-required">*</span></label>
+          <textarea id="aql-reason" class="field-textarea" rows="4" [(ngModel)]="rejectionReason"
+                    placeholder="Explain why this request is being rejected…"></textarea>
+        </div>
+      </div>
+      <div flyoutFooter>
+        <button type="button" class="btn-cancel" (click)="closeRejectPanel()" [disabled]="acting()">Back</button>
+        <button type="button" class="btn-danger" [disabled]="!rejectionReason.trim() || acting()" (click)="confirmReject()">
+          @if (acting()) { <span class="btn-spinner"></span> Rejecting… } @else { Confirm Reject }
+        </button>
+      </div>
+    </cms-flyout-panel>
+  }
+</div>

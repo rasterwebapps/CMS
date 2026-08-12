@@ -13,6 +13,7 @@ import { WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/week-grid.model'
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments/environment';
+import { violationText } from '../../../shared/util/violation-text';
 
 interface StaffingRow extends UnstaffedCell {
   facultyId: number | null;
@@ -207,19 +208,10 @@ export class StaffingComponent implements OnInit {
         this.rows.update((list) => list.filter((r) => r.id !== row.id));
       },
       error: (err) => {
-        this.toast.error(this.violationText(err) ?? 'Failed to assign faculty/room');
+        this.toast.error(violationText(err) ?? 'Failed to assign faculty/room');
         row.saving = false;
       },
     });
-  }
-
-  /** A staffing attempt can fail several independent checks at once (blocked period, faculty
-   *  conflict, workload cap, room conflict, ...) — the backend now reports every one of them
-   *  together instead of just the first, so this joins them into one multi-line toast instead of
-   *  making the user fix-and-resubmit repeatedly to discover each problem in turn. */
-  private violationText(err: any): string | undefined {
-    const violations = err?.error?.violations as { message: string }[] | undefined;
-    return violations?.length ? violations.map((v) => v.message).join('\n') : err?.error?.message;
   }
 
   private loadTermInstances(academicYearId: number): void {

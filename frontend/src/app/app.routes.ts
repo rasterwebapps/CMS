@@ -980,6 +980,22 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'timetable/special-classes/my-requests',
+    canActivate: withPermission('TIMETABLE_SPECIAL_CLASS_VIEW'),
+    loadComponent: () =>
+      import('./features/timetable/special-classes/my-requests/my-requests-list.component').then(
+        (m) => m.MyRequestsListComponent
+      ),
+  },
+  {
+    path: 'timetable/special-classes/approval-queue',
+    canActivate: withPermission('TIMETABLE_SPECIAL_CLASS_APPROVE'),
+    loadComponent: () =>
+      import('./features/timetable/special-classes/approval-queue/approval-queue-list.component').then(
+        (m) => m.ApprovalQueueListComponent
+      ),
+  },
+  {
     path: 'faculty-availability',
     canActivate: withPermission('FACULTY_AVAILABILITY_VIEW', 'FACULTY_AVAILABILITY_MANAGE'),
     loadComponent: () =>

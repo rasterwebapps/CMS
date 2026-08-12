@@ -4,12 +4,17 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.cms.model.enums.ClassSessionType;
+import com.cms.model.enums.DayOfWeek;
+import com.cms.model.enums.OccurrenceSource;
 import com.cms.model.enums.OccurrenceStatus;
+import com.cms.model.enums.SpecialClassApprovalStatus;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -29,10 +34,18 @@ import jakarta.persistence.UniqueConstraint;
 
 /**
  * "This recurring {@link ClassSchedule} row actually happened on this specific date" anchor — the
- * shared spine for portion-completion progress (this table's original purpose) and, later, Phase
- * 6's faculty-absence substitution (extended additively onto this same table rather than a second
- * one, per the Round 2 plan). Rows are created lazily, only once something is actually logged for
- * a date — never pre-populated for every theoretical occurrence.
+ * shared spine for portion-completion progress (this table's original purpose), Phase 6's
+ * faculty-absence substitution, and (BR-55) an ad-hoc special/remedial class or one row of a
+ * whole-day-repeat batch that has no backing {@link ClassSchedule} row at all. Rows are created
+ * lazily, only once something is actually logged/requested for a date — never pre-populated for
+ * every theoretical occurrence.
+ *
+ * <p>{@link #getOccurrenceSource()} discriminates the two shapes: for {@code REGULAR} rows
+ * {@link #getClassSchedule()} is always non-null and every field below {@code swapPartnerOccurrence}
+ * is irrelevant; for {@code SPECIAL_CLASS}/{@code DAY_REPEAT} rows {@link #getClassSchedule()} is
+ * always null and the special-class fields below carry the session's identity directly. The
+ * database enforces this shape via {@code chk_session_occurrences_special_shape} (V374) — never
+ * construct a row that violates it.
  */
 @Entity
 @Table(name = "session_occurrences",
@@ -44,8 +57,9 @@ public class SessionOccurrence {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Null for a {@code SPECIAL_CLASS}/{@code DAY_REPEAT} row (BR-55) — see class javadoc. */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_schedule_id", nullable = false)
+    @JoinColumn(name = "class_schedule_id")
     private ClassSchedule classSchedule;
 
     @Column(name = "occurrence_date", nullable = false)
@@ -82,6 +96,84 @@ public class SessionOccurrence {
     @JoinColumn(name = "swap_partner_occurrence_id")
     private SessionOccurrence swapPartnerOccurrence;
 
+    // ---- BR-55 special-class fields (populated only when occurrenceSource != REGULAR) ----
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "occurrence_source", nullable = false, length = 20)
+    private OccurrenceSource occurrenceSource = OccurrenceSource.REGULAR;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subject_id")
+    private Subject subject;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_offering_id")
+    private CourseOffering courseOffering;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cohort_section_id")
+    private CohortSection cohortSection;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "period_id")
+    private Period period;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "session_type", length = 20)
+    private ClassSessionType sessionType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "classroom_id")
+    private Classroom classroom;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lab_id")
+    private Lab lab;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "clinical_venue_id")
+    private ClinicalVenue clinicalVenue;
+
+    /** The faculty this special class is scheduled for -- distinct from {@link #effectiveFaculty}/
+     *  {@link #facultyAbsence}, which are substitution-specific and semantically wrong to reuse
+     *  for a request that was never a substitution in the first place. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "requested_faculty_id")
+    private Faculty requestedFaculty;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_status", length = 20)
+    private SpecialClassApprovalStatus approvalStatus;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "requested_by_faculty_id")
+    private Faculty requestedByFaculty;
+
+    @Column(name = "requested_at")
+    private Instant requestedAt;
+
+    @Column(name = "request_reason", length = 500)
+    private String requestReason;
+
+    /** DAY_REPEAT only -- the source weekday this occurrence's session was copied from. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source_day_of_week")
+    private DayOfWeek sourceDayOfWeek;
+
+    /** Null for a single-subject SPECIAL_CLASS request; shared by every row a single DAY_REPEAT
+     *  submission creates, so the whole batch can be approved/rejected/displayed atomically. */
+    @Column(name = "request_batch_id")
+    private UUID requestBatchId;
+
+    @Column(name = "approved_by")
+    private String approvedBy;
+
+    @Column(name = "approved_at")
+    private Instant approvedAt;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -96,6 +188,29 @@ public class SessionOccurrence {
     public SessionOccurrence(ClassSchedule classSchedule, LocalDate occurrenceDate) {
         this.classSchedule = classSchedule;
         this.occurrenceDate = occurrenceDate;
+    }
+
+    /** BR-55: builds a PENDING ad-hoc row with no backing {@link ClassSchedule}. Leaves
+     *  {@link #requestBatchId} null (single-subject request) -- callers building a DAY_REPEAT
+     *  batch set it afterward via {@link #setRequestBatchId(UUID)}, shared across the batch. */
+    public static SessionOccurrence forSpecialClass(OccurrenceSource source, LocalDate occurrenceDate,
+            Subject subject, CourseOffering courseOffering, CohortSection cohortSection, Period period,
+            ClassSessionType sessionType, Faculty requestedFaculty, Faculty requestedByFaculty,
+            String requestReason) {
+        SessionOccurrence occurrence = new SessionOccurrence();
+        occurrence.occurrenceSource = source;
+        occurrence.occurrenceDate = occurrenceDate;
+        occurrence.subject = subject;
+        occurrence.courseOffering = courseOffering;
+        occurrence.cohortSection = cohortSection;
+        occurrence.period = period;
+        occurrence.sessionType = sessionType;
+        occurrence.requestedFaculty = requestedFaculty;
+        occurrence.requestedByFaculty = requestedByFaculty;
+        occurrence.requestReason = requestReason;
+        occurrence.requestedAt = Instant.now();
+        occurrence.approvalStatus = SpecialClassApprovalStatus.PENDING;
+        return occurrence;
     }
 
     public Long getId() {
@@ -192,5 +307,157 @@ public class SessionOccurrence {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public OccurrenceSource getOccurrenceSource() {
+        return occurrenceSource;
+    }
+
+    public void setOccurrenceSource(OccurrenceSource occurrenceSource) {
+        this.occurrenceSource = occurrenceSource;
+    }
+
+    public Subject getSubject() {
+        return subject;
+    }
+
+    public void setSubject(Subject subject) {
+        this.subject = subject;
+    }
+
+    public CourseOffering getCourseOffering() {
+        return courseOffering;
+    }
+
+    public void setCourseOffering(CourseOffering courseOffering) {
+        this.courseOffering = courseOffering;
+    }
+
+    public CohortSection getCohortSection() {
+        return cohortSection;
+    }
+
+    public void setCohortSection(CohortSection cohortSection) {
+        this.cohortSection = cohortSection;
+    }
+
+    public Period getPeriod() {
+        return period;
+    }
+
+    public void setPeriod(Period period) {
+        this.period = period;
+    }
+
+    public ClassSessionType getSessionType() {
+        return sessionType;
+    }
+
+    public void setSessionType(ClassSessionType sessionType) {
+        this.sessionType = sessionType;
+    }
+
+    public Classroom getClassroom() {
+        return classroom;
+    }
+
+    public void setClassroom(Classroom classroom) {
+        this.classroom = classroom;
+    }
+
+    public Lab getLab() {
+        return lab;
+    }
+
+    public void setLab(Lab lab) {
+        this.lab = lab;
+    }
+
+    public ClinicalVenue getClinicalVenue() {
+        return clinicalVenue;
+    }
+
+    public void setClinicalVenue(ClinicalVenue clinicalVenue) {
+        this.clinicalVenue = clinicalVenue;
+    }
+
+    public Faculty getRequestedFaculty() {
+        return requestedFaculty;
+    }
+
+    public void setRequestedFaculty(Faculty requestedFaculty) {
+        this.requestedFaculty = requestedFaculty;
+    }
+
+    public SpecialClassApprovalStatus getApprovalStatus() {
+        return approvalStatus;
+    }
+
+    public void setApprovalStatus(SpecialClassApprovalStatus approvalStatus) {
+        this.approvalStatus = approvalStatus;
+    }
+
+    public Faculty getRequestedByFaculty() {
+        return requestedByFaculty;
+    }
+
+    public void setRequestedByFaculty(Faculty requestedByFaculty) {
+        this.requestedByFaculty = requestedByFaculty;
+    }
+
+    public Instant getRequestedAt() {
+        return requestedAt;
+    }
+
+    public void setRequestedAt(Instant requestedAt) {
+        this.requestedAt = requestedAt;
+    }
+
+    public String getRequestReason() {
+        return requestReason;
+    }
+
+    public void setRequestReason(String requestReason) {
+        this.requestReason = requestReason;
+    }
+
+    public DayOfWeek getSourceDayOfWeek() {
+        return sourceDayOfWeek;
+    }
+
+    public void setSourceDayOfWeek(DayOfWeek sourceDayOfWeek) {
+        this.sourceDayOfWeek = sourceDayOfWeek;
+    }
+
+    public UUID getRequestBatchId() {
+        return requestBatchId;
+    }
+
+    public void setRequestBatchId(UUID requestBatchId) {
+        this.requestBatchId = requestBatchId;
+    }
+
+    public String getApprovedBy() {
+        return approvedBy;
+    }
+
+    public void setApprovedBy(String approvedBy) {
+        this.approvedBy = approvedBy;
+    }
+
+    public Instant getApprovedAt() {
+        return approvedAt;
+    }
+
+    public void setApprovedAt(Instant approvedAt) {
+        this.approvedAt = approvedAt;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
     }
 }

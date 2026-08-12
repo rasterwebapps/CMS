@@ -1,0 +1,97 @@
+<div class="mlp-page">
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">My <em>Special Classes</em></h1>
+      <p class="mlp-sub">Request an ad-hoc special/remedial class or a whole-day repeat — an admin must approve before it goes live.</p>
+    </div>
+    <div class="mlp-hdr-right">
+      <button class="btn-primary" (click)="openRequestFlyout()" aria-label="Request a special class">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Request Special Class
+      </button>
+    </div>
+  </div>
+
+  <div class="content-card mlp-table-card anim-rise anim-rise--d1">
+    @if (loading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading requests"></mat-spinner>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+          <ng-container matColumnDef="occurrenceDate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
+            <td mat-cell *matCellDef="let r">
+              <span class="mono">{{ r.occurrenceDate }}</span>
+              @if (r.occurrenceSource === 'DAY_REPEAT') {
+                <span class="mrl-batch-tag" title="Part of a whole-day-repeat batch">Day Repeat</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="subjectName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Subject</th>
+            <td mat-cell *matCellDef="let r">{{ r.subjectName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="periodName">
+            <th mat-header-cell *matHeaderCellDef>Period</th>
+            <td mat-cell *matCellDef="let r">{{ r.periodName || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="venueName">
+            <th mat-header-cell *matHeaderCellDef>Venue</th>
+            <td mat-cell *matCellDef="let r">{{ r.venueName || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="requestedFacultyName">
+            <th mat-header-cell *matHeaderCellDef>Faculty</th>
+            <td mat-cell *matCellDef="let r">{{ r.requestedFacultyName || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="approvalStatus">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+            <td mat-cell *matCellDef="let r">
+              <cms-status-badge [status]="r.approvalStatus"></cms-status-badge>
+              @if (r.approvalStatus === 'REJECTED' && r.rejectionReason) {
+                <span class="field-hint" [title]="r.rejectionReason">ⓘ</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions" stickyEnd>
+            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <td mat-cell *matCellDef="let r">
+              <div class="row-actions">
+                @if (canCancel(r)) {
+                  <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Cancel" ariaLabel="Cancel special class" (clicked)="confirmCancel(r)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </cms-row-action-btn>
+                }
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+          <tr mat-row *matRowDef="let r; columns: displayedColumns;"></tr>
+
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
+              <cms-empty-state
+                icon="event_available"
+                title="No special class requests yet"
+                subtitle="Use &quot;Request Special Class&quot; to schedule an ad-hoc revision/remedial session."
+              />
+            </td>
+          </tr>
+        </table>
+      </div>
+      <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons />
+    }
+  </div>
+
+  @if (showRequestFlyout()) {
+    <app-special-class-request-flyout (closed)="onFlyoutClosed()" (saved)="onFlyoutSaved()" />
+  }
+</div>

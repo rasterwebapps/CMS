@@ -251,7 +251,11 @@ public class ProgressTrackingService {
             .map(c -> new UnitCoverageDto(c.getSyllabusUnit().getId(), c.getSyllabusUnit().getUnitNumber(),
                 c.getSyllabusUnit().getTitle(), c.getHoursCovered(), Boolean.TRUE.equals(c.getMarkedComplete())))
             .toList();
-        return new SessionOccurrenceDto(occurrence.getId(), occurrence.getClassSchedule().getId(),
+        // BR-55: a SPECIAL_CLASS/DAY_REPEAT occurrence has no ClassSchedule -- not yet reachable
+        // from this method's actual callers (they only ever load REGULAR rows), but guarded here
+        // since it's the one confirmed NPE site the moment any code path passes one through.
+        Long classScheduleId = occurrence.getClassSchedule() != null ? occurrence.getClassSchedule().getId() : null;
+        return new SessionOccurrenceDto(occurrence.getId(), classScheduleId,
             occurrence.getOccurrenceDate(), coverages, occurrence.getRemarks(),
             occurrence.getCreatedAt(), occurrence.getUpdatedAt());
     }
