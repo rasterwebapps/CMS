@@ -940,6 +940,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'timetable/conflict-inspector',
+    canActivate: withPermission('TIMETABLE_CONFLICT_INSPECTOR_VIEW'),
+    loadComponent: () =>
+      import('./features/timetable/conflict-inspector/conflict-inspector.component').then(
+        (m) => m.ConflictInspectorComponent
+      ),
+  },
+  {
     path: 'timetable/workload-rules',
     canActivate: withPermission('TIMETABLE_WORKLOAD_RULES_VIEW', 'TIMETABLE_WORKLOAD_RULES_MANAGE'),
     loadComponent: () =>

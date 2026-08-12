@@ -7,8 +7,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -17,9 +19,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.ConflictScanResponse;
+import com.cms.dto.ConstraintViolation;
 import com.cms.dto.TimetableActionResponse;
+import com.cms.dto.TimetableConflictRow;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.ClassSchedule;
 import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
@@ -39,15 +45,20 @@ class TimetableGenerationServiceTest {
     @Mock private TermInstanceRepository termInstanceRepository;
     @Mock private LabAttendanceRepository labAttendanceRepository;
     @Mock private AuditLogService auditLogService;
+    @Mock private TimetableConflictInspectorService timetableConflictInspectorService;
 
     private TimetableGenerationService service;
 
     private Faculty faculty;
 
+    private static ConflictScanResponse cleanScan() {
+        return new ConflictScanResponse(10L, "Test Term", Instant.now(), 2, 0, 0, Map.of(), List.of());
+    }
+
     @BeforeEach
     void setUp() {
         service = new TimetableGenerationService(classScheduleRepository, termInstanceRepository,
-            labAttendanceRepository, auditLogService);
+            labAttendanceRepository, auditLogService, timetableConflictInspectorService);
 
         Speciality speciality = new Speciality("Nursing", "NUR", "Nursing Dept", null, null);
         speciality.setId(1L);
@@ -126,6 +137,7 @@ class TimetableGenerationServiceTest {
         when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(draft1, draft2));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
 
         TimetableActionResponse response = service.approve(10L, "admin");
 
@@ -166,6 +178,35 @@ class TimetableGenerationServiceTest {
             .isInstanceOf(LifecycleConflictException.class);
 
         verify(classScheduleRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldBlockApproveWhenConflictScanFindsViolations() {
+        // OC-125: approve() now re-runs the same whole-term structural scan the Conflict
+        // Inspector dashboard shows -- a staffed-but-still-conflicting draft (e.g. two subjects
+        // double-booking the same faculty) must refuse here, not silently publish.
+        ClassSchedule staffed = new ClassSchedule();
+        staffed.setId(1L);
+        staffed.setStatus(ClassScheduleStatus.DRAFT);
+        staffed.setFaculty(faculty);
+
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
+        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(staffed));
+        ConstraintViolation violation = new ConstraintViolation(
+            "STAFFING_FACULTY_CONFLICT", "This faculty member is already scheduled for another session at this exact day and time.");
+        TimetableConflictRow row = new TimetableConflictRow(
+            1L, "Anatomy", "ANAT101", null, null, "Period 1", null, null,
+            "John Doe", "Room 101", null, ClassScheduleStatus.DRAFT, List.of(violation));
+        ConflictScanResponse dirtyScan = new ConflictScanResponse(
+            10L, "Test Term", Instant.now(), 1, 1, 1, Map.of("STAFFING_FACULTY_CONFLICT", 1), List.of(row));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(dirtyScan);
+
+        assertThatThrownBy(() -> service.approve(10L, "admin"))
+            .isInstanceOf(TimetableConstraintViolationException.class);
+
+        verify(classScheduleRepository, never()).save(any());
+        verify(auditLogService, never()).record(any(), any(), any(), any(), any());
     }
 
     @Test

@@ -1,0 +1,112 @@
+<div class="mlp-page">
+
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Timetable <em>Conflict Inspector</em></h1>
+      <p class="page-subtitle">Every structural violation still standing in this term's draft and published timetable — the same checks that must all be clean before it can be approved.</p>
+    </div>
+  </div>
+
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
+      @for (ay of academicYears(); track ay.id) {
+        <option [ngValue]="ay.id">{{ ay.name }}</option>
+      }
+    </select>
+    <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()"
+      [disabled]="termInstances().length === 0" aria-label="Term">
+      @if (termInstances().length === 0) {
+        <option [ngValue]="null">No terms yet</option>
+      }
+      @for (term of termInstances(); track term.id) {
+        <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
+      }
+    </select>
+    <button type="button" class="btn-secondary" [disabled]="loading() || !selectedTermInstanceId" (click)="onRescan()">
+      @if (loading()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+      Rescan
+    </button>
+  </div>
+
+  @if (scan(); as s) {
+    <div class="content-card ci-summary-card anim-rise anim-rise--d2">
+      <div class="ci-summary-card__row">
+        <div class="ci-summary-card__main">
+          <h2 class="ci-summary-card__title">{{ s.termLabel }}</h2>
+          <p class="ci-summary-card__strength">{{ s.scannedCellCount }} session(s) scanned</p>
+        </div>
+        <span class="ci-scan-status" [class.ci-scan-status--clean]="s.violationCount === 0">
+          {{ s.violationCount === 0 ? 'Clean — ready to publish' : 'Blocks publish' }}
+        </span>
+      </div>
+
+      <div class="ci-tiles">
+        <div class="ci-tile" data-tone="scanned">
+          <span class="ci-tile__value">{{ s.scannedCellCount }}</span>
+          <span class="ci-tile__label">Sessions scanned</span>
+        </div>
+        <div class="ci-tile" data-tone="rows">
+          <span class="ci-tile__value">{{ s.violationCellCount }}</span>
+          <span class="ci-tile__label">Sessions with violations</span>
+        </div>
+        <div class="ci-tile" data-tone="violations">
+          <span class="ci-tile__value">{{ s.violationCount }}</span>
+          <span class="ci-tile__label">Total violations</span>
+        </div>
+      </div>
+    </div>
+
+    @if (s.rows.length === 0) {
+      <cms-empty-state
+        icon="verified"
+        title="No conflicts"
+        subtitle="This term is clean — every session passes room, faculty, workload, and blocked-period checks.">
+      </cms-empty-state>
+    } @else {
+      <div class="content-card mlp-table-card anim-rise anim-rise--d3">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Day / Period</th>
+                <th>Subject</th>
+                <th>Faculty</th>
+                <th>Venue</th>
+                <th>Status</th>
+                <th>Violations</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of s.rows; track row.classScheduleId) {
+                <tr>
+                  <td>{{ row.dayOfWeek }} · {{ row.periodLabel }}</td>
+                  <td>
+                    <div class="ci-subject-cell">
+                      <div class="ci-subject-cell__name">{{ row.subjectName }}</div>
+                      <div class="ci-subject-cell__code">{{ row.subjectCode }}</div>
+                    </div>
+                  </td>
+                  <td>{{ row.facultyName ?? '—' }}</td>
+                  <td>{{ row.venueName ?? '—' }}</td>
+                  <td><cms-status-badge [status]="row.status"></cms-status-badge></td>
+                  <td>
+                    <div class="ci-violation-list">
+                      @for (v of row.violations; track v.code) {
+                        <span class="cms-badge cms-badge--red">{{ v.message }}</span>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  } @else if (loading()) {
+    <div class="ci-loading">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  }
+
+</div>

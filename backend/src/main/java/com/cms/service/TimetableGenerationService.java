@@ -5,9 +5,12 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.ConflictScanResponse;
+import com.cms.dto.ConstraintViolation;
 import com.cms.dto.TimetableActionResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.ClassSchedule;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
@@ -30,15 +33,18 @@ public class TimetableGenerationService {
     private final TermInstanceRepository termInstanceRepository;
     private final LabAttendanceRepository labAttendanceRepository;
     private final AuditLogService auditLogService;
+    private final TimetableConflictInspectorService timetableConflictInspectorService;
 
     public TimetableGenerationService(ClassScheduleRepository classScheduleRepository,
                                        TermInstanceRepository termInstanceRepository,
                                        LabAttendanceRepository labAttendanceRepository,
-                                       AuditLogService auditLogService) {
+                                       AuditLogService auditLogService,
+                                       TimetableConflictInspectorService timetableConflictInspectorService) {
         this.classScheduleRepository = classScheduleRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.labAttendanceRepository = labAttendanceRepository;
         this.auditLogService = auditLogService;
+        this.timetableConflictInspectorService = timetableConflictInspectorService;
     }
 
     /** A LOCKED term's timetable is immutable — clear/approve/revert all refuse once the term
@@ -94,6 +100,19 @@ public class TimetableGenerationService {
             throw new LifecycleConflictException(
                 unstaffedCount + " session(s) in this draft still need faculty/room assigned via the Staffing screen before it can be approved.",
                 "TIMETABLE_UNSTAFFED_CELLS", "TermInstance", termInstanceId, (int) unstaffedCount);
+        }
+        // Everything below unstaffedCount is a structural correctness gate: nothing catches a
+        // faculty/room double-booked across two independently-staffed skeleton cells, or a cap
+        // exceeded by a later swap, until here -- see TimetableStaffingService's own class-level
+        // Javadoc for why this can happen even though every individual staffCell call was clean
+        // at the time. Reuses the exact same scan the Conflict Inspector dashboard shows, so a
+        // clean dashboard and an approvable term are guaranteed to mean the same thing.
+        ConflictScanResponse scan = timetableConflictInspectorService.scanTerm(termInstanceId);
+        if (scan.violationCount() > 0) {
+            List<ConstraintViolation> violations = scan.rows().stream()
+                .flatMap(row -> row.violations().stream())
+                .toList();
+            throw new TimetableConstraintViolationException(violations);
         }
         for (ClassSchedule cs : drafts) {
             cs.setStatus(ClassScheduleStatus.PUBLISHED);

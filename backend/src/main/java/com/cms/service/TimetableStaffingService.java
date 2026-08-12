@@ -545,8 +545,10 @@ public class TimetableStaffingService {
      *  in this session" — {@link com.cms.model.CourseRegistration} for THEORY (a whole-cohort
      *  audience) and {@link com.cms.model.Batch#getId()} student roster for LAB/CLINICAL (a
      *  sub-group audience) — never guessed. Unknown venue capacity or unresolvable strength (e.g.
-     *  a legacy row with no courseOffering/batch link) never blocks: only a *known* mismatch does. */
-    private Optional<ConstraintViolation> checkCapacityFit(ClassSchedule cs, Integer venueCapacity) {
+     *  a legacy row with no courseOffering/batch link) never blocks: only a *known* mismatch does.
+     *  Package-private (like the other checks above) so {@link TimetableConflictInspectorService}
+     *  can re-run it against an already-committed room, not just at staffing time. */
+    Optional<ConstraintViolation> checkCapacityFit(ClassSchedule cs, Integer venueCapacity) {
         if (venueCapacity == null) {
             return Optional.empty();
         }

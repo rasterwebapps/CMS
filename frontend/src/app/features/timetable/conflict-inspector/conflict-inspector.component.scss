@@ -1,0 +1,99 @@
+.ci-summary-card {
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+
+.ci-summary-card__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ci-summary-card__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  margin: 0 0 4px;
+}
+
+.ci-summary-card__strength {
+  font-size: 0.85rem;
+  color: var(--cms-text-secondary);
+  margin: 0;
+}
+
+.ci-scan-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--cms-badge-red-bg);
+  color: var(--cms-badge-red-text);
+
+  &--clean {
+    background: var(--cms-badge-green-bg);
+    color: var(--cms-badge-green-text);
+  }
+}
+
+.ci-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.ci-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: var(--cms-radius-md, 10px);
+  background: var(--cms-bg-muted);
+}
+
+.ci-tile__value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+.ci-tile__label {
+  font-size: 0.75rem;
+  color: var(--cms-text-secondary);
+}
+
+.ci-subject-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.ci-subject-cell__name {
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.ci-subject-cell__code {
+  font-size: 0.75rem;
+  color: var(--cms-text-secondary);
+}
+
+.ci-violation-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.ci-loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}

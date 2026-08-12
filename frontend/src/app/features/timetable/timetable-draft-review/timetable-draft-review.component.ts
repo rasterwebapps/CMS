@@ -12,6 +12,7 @@ import { WeekGridSession } from '../../../shared/week-grid/week-grid.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
+import { violationText } from '../../../shared/util/violation-text';
 
 @Component({
   selector: 'app-timetable-draft-review',
@@ -92,7 +93,7 @@ export class TimetableDraftReviewComponent implements OnInit {
         this.saving.set(false);
       },
       error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to approve timetable');
+        this.toast.error(violationText(err) ?? 'Failed to approve timetable');
         this.saving.set(false);
       },
     });
