@@ -87,3 +87,25 @@
   font-weight: 600;
   color: var(--cms-info);
 }
+
+.day-agenda__relocate-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  color: var(--cms-text-secondary);
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--cms-primary);
+    color: var(--cms-primary);
+  }
+}

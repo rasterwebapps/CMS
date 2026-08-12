@@ -83,7 +83,8 @@
           <mat-spinner diameter="36" aria-label="Loading day view"></mat-spinner>
         </div>
       } @else {
-        <cms-day-agenda [date]="dayDate()" [occurrences]="filteredOccurrences()" />
+        <cms-day-agenda [date]="dayDate()" [occurrences]="filteredOccurrences()"
+          [allowRoomRelocate]="canRelocateRoom()" (relocateRoomClick)="openRoomRelocation($event)" />
       }
     }
   </div>

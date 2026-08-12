@@ -45,4 +45,8 @@ public interface SessionOccurrenceRepository extends JpaRepository<SessionOccurr
      *  v1) -- additive counterpart to {@link #findByClassSchedule_CourseOffering_Id}, which
      *  cannot see these rows either. Not yet called from any service. */
     List<SessionOccurrence> findByCourseOffering_Id(Long courseOfferingId);
+
+    /** Every occurrence (any source -- REGULAR relocation, SPECIAL_CLASS, DAY_REPEAT) on one
+     *  date, used by {@code RoomRelocationService}'s date-specific room-conflict check. */
+    List<SessionOccurrence> findByOccurrenceDate(LocalDate occurrenceDate);
 }

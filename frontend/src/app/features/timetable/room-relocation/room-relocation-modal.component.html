@@ -1,0 +1,37 @@
+<h2 mat-dialog-title>Relocate Room</h2>
+
+<mat-dialog-content class="rrm-content">
+  <p class="rrm-summary">
+    <strong>{{ data.occurrence.session.subjectName }}</strong>
+    on {{ data.occurrence.date }}, {{ data.occurrence.session.startTime }}–{{ data.occurrence.session.endTime }}
+  </p>
+  <p class="rrm-current">Current room: <strong>{{ data.occurrence.session.roomName || '—' }}</strong></p>
+
+  @if (loading()) {
+    <div class="rrm-loading">
+      <mat-spinner diameter="28" aria-label="Loading candidate rooms"></mat-spinner>
+    </div>
+  } @else if (candidates().length === 0) {
+    <p class="rrm-empty">No conflict-free rooms of this session's type are available on this date.</p>
+  } @else {
+    <div class="field-group">
+      <label class="field-label" for="rrm-venue">New Room</label>
+      <select id="rrm-venue" class="field-select" [(ngModel)]="selectedVenueId">
+        <option [ngValue]="null">Select a room</option>
+        @for (c of candidates(); track c.id) {
+          <option [ngValue]="c.id">{{ c.name }}@if (c.capacity) { &nbsp;(seats {{ c.capacity }}) }</option>
+        }
+      </select>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button type="button" class="btn-cancel" (click)="close()" [disabled]="saving()">Close</button>
+  <button type="button" class="btn-secondary" (click)="confirmRevert()" [disabled]="saving()">
+    @if (saving()) { <span class="btn-spinner"></span> } Reset to Recurring Room
+  </button>
+  <button type="button" class="btn-primary" [disabled]="!selectedVenueId || saving()" (click)="confirmRelocate()">
+    @if (saving()) { <span class="btn-spinner"></span> Relocating… } @else { Relocate }
+  </button>
+</mat-dialog-actions>

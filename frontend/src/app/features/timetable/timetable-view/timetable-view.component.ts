@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
 import { TimetableService } from '../timetable.service';
@@ -10,13 +11,15 @@ import { CmsWeekGridComponent } from '../../../shared/week-grid/week-grid.compon
 import { CmsMonthGridComponent } from '../../../shared/month-grid/month-grid.component';
 import { CmsDayAgendaComponent } from '../../../shared/day-agenda/day-agenda.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { PermissionService } from '../../../core/permissions/permission.service';
+import { RoomRelocationModalComponent } from '../room-relocation/room-relocation-modal.component';
 
 export type TimetableViewMode = 'week' | 'month' | 'day';
 
 @Component({
   selector: 'app-timetable-view',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, CmsWeekGridComponent, CmsMonthGridComponent, CmsDayAgendaComponent],
+  imports: [FormsModule, MatProgressSpinnerModule, MatDialogModule, CmsWeekGridComponent, CmsMonthGridComponent, CmsDayAgendaComponent],
   templateUrl: './timetable-view.component.html',
   styleUrl: './timetable-view.component.scss',
 })
@@ -25,6 +28,10 @@ export class TimetableViewComponent implements OnInit {
   private readonly timetableService = inject(TimetableService);
   private readonly toast = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
+  private readonly permissionService = inject(PermissionService);
+  private readonly dialog = inject(MatDialog);
+
+  protected readonly canRelocateRoom = computed(() => this.permissionService.has('TIMETABLE_ROOM_RELOCATE'));
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
@@ -193,6 +200,15 @@ export class TimetableViewComponent implements OnInit {
       next: (occs) => { this.occurrences.set(occs); this.occurrencesLoading.set(false); },
       error: () => { this.toast.error('Failed to load day view'); this.occurrencesLoading.set(false); },
     });
+  }
+
+  /** Day view only -- Week view has no date concept (it renders the recurring weekly pattern),
+   *  so a per-date relocation can't be triggered from there. */
+  protected openRoomRelocation(occurrence: ClassScheduleOccurrence): void {
+    this.dialog.open(RoomRelocationModalComponent, { data: { occurrence }, width: '440px' })
+      .afterClosed().subscribe((changed) => {
+        if (changed) this.loadDayOccurrences(this.dayDate());
+      });
   }
 
   private loadTermInstances(academicYearId: number, preselectTermInstanceId?: number): void {

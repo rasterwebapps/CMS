@@ -47,6 +47,7 @@ import com.cms.repository.LabRepository;
 import com.cms.repository.PeriodRepository;
 import com.cms.repository.SessionOccurrenceRepository;
 import com.cms.repository.SubjectRepository;
+import com.cms.service.SessionOccurrenceVenue.VenueResolution;
 
 /**
  * BR-55 — Special/Remedial Class Scheduler. Faculty request a single-subject ad-hoc session or a
@@ -176,7 +177,7 @@ public class SpecialClassRequestService {
         List<ConstraintViolation> allViolations = new ArrayList<>();
 
         for (ClassSchedule cs : resolvable) {
-            VenueResolution venue = resolveVenueFromClassSchedule(cs);
+            VenueResolution venue = SessionOccurrenceVenue.fromClassSchedule(cs);
             List<ConstraintViolation> rowViolations = new ArrayList<>();
             Long facultyId = cs.getFaculty() != null ? cs.getFaculty().getId() : null;
             Long rowCourseOfferingId = cs.getCourseOffering() != null ? cs.getCourseOffering().getId() : null;
@@ -355,7 +356,7 @@ public class SpecialClassRequestService {
             return;
         }
         DayOfWeek day = dayOfWeek(occurrence.getOccurrenceDate());
-        VenueResolution venue = resolveVenueFromOccurrence(occurrence);
+        VenueResolution venue = SessionOccurrenceVenue.fromOccurrence(occurrence);
         Long facultyId = occurrence.getRequestedFaculty() != null ? occurrence.getRequestedFaculty().getId() : null;
         Long courseOfferingId = occurrence.getCourseOffering() != null ? occurrence.getCourseOffering().getId() : null;
         List<ConstraintViolation> violations = new ArrayList<>();
@@ -437,7 +438,7 @@ public class SpecialClassRequestService {
                     "This faculty member already has another special class at this exact date and period."));
             }
             if (venueId != null) {
-                VenueResolution otherVenue = resolveVenueFromOccurrence(other);
+                VenueResolution otherVenue = SessionOccurrenceVenue.fromOccurrence(other);
                 boolean sameVenue = other.getSessionType() == sessionType && venueId.equals(otherVenue.venueId());
                 boolean samePhysicalRoom = physicalRoom != null && otherVenue.physicalRoom() != null
                     && physicalRoom.getId().equals(otherVenue.physicalRoom().getId());
@@ -447,11 +448,6 @@ public class SpecialClassRequestService {
                 }
             }
         }
-    }
-
-    private record VenueResolution(Long venueId, Room physicalRoom, Integer capacity,
-                                    Classroom classroom, Lab lab, ClinicalVenue clinicalVenue) {
-        private static final VenueResolution NONE = new VenueResolution(null, null, null, null, null, null);
     }
 
     private VenueResolution resolveVenue(ClassSessionType sessionType, Long classroomId, Long labId, Long clinicalVenueId) {
@@ -483,36 +479,6 @@ public class SpecialClassRequestService {
         };
     }
 
-    /** Carries over the source ClassSchedule row's already-committed venue for a DAY_REPEAT copy;
-     *  null-safe since a source row can be unstaffed/room-less (skeleton not yet fully staffed). */
-    private VenueResolution resolveVenueFromClassSchedule(ClassSchedule cs) {
-        return switch (cs.getSessionType()) {
-            case THEORY -> cs.getClassroom() != null
-                ? new VenueResolution(cs.getClassroom().getId(), cs.getClassroom().getRoom(), cs.getClassroom().getCapacity(), cs.getClassroom(), null, null)
-                : VenueResolution.NONE;
-            case LAB -> cs.getLab() != null
-                ? new VenueResolution(cs.getLab().getId(), cs.getLab().getRoom(), cs.getLab().getCapacity(), null, cs.getLab(), null)
-                : VenueResolution.NONE;
-            case CLINICAL -> cs.getClinicalVenue() != null
-                ? new VenueResolution(cs.getClinicalVenue().getId(), cs.getClinicalVenue().getRoom(), cs.getClinicalVenue().getCapacity(), null, null, cs.getClinicalVenue())
-                : VenueResolution.NONE;
-        };
-    }
-
-    private VenueResolution resolveVenueFromOccurrence(SessionOccurrence occurrence) {
-        return switch (occurrence.getSessionType()) {
-            case THEORY -> occurrence.getClassroom() != null
-                ? new VenueResolution(occurrence.getClassroom().getId(), occurrence.getClassroom().getRoom(), occurrence.getClassroom().getCapacity(), occurrence.getClassroom(), null, null)
-                : VenueResolution.NONE;
-            case LAB -> occurrence.getLab() != null
-                ? new VenueResolution(occurrence.getLab().getId(), occurrence.getLab().getRoom(), occurrence.getLab().getCapacity(), null, occurrence.getLab(), null)
-                : VenueResolution.NONE;
-            case CLINICAL -> occurrence.getClinicalVenue() != null
-                ? new VenueResolution(occurrence.getClinicalVenue().getId(), occurrence.getClinicalVenue().getRoom(), occurrence.getClinicalVenue().getCapacity(), null, null, occurrence.getClinicalVenue())
-                : VenueResolution.NONE;
-        };
-    }
-
     private void applyVenue(SessionOccurrence occurrence, ClassSessionType sessionType, VenueResolution venue) {
         switch (sessionType) {
             case THEORY -> occurrence.setClassroom(venue.classroom());
@@ -522,7 +488,7 @@ public class SpecialClassRequestService {
     }
 
     private SpecialClassOccurrenceDto toDto(SessionOccurrence o) {
-        VenueResolution venue = resolveVenueFromOccurrence(o);
+        VenueResolution venue = SessionOccurrenceVenue.fromOccurrence(o);
         String venueName = venue.classroom() != null ? venue.classroom().getName()
             : venue.lab() != null ? venue.lab().getName()
             : venue.clinicalVenue() != null ? venue.clinicalVenue().getName() : null;
