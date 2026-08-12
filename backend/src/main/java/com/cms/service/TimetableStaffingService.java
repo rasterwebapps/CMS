@@ -360,7 +360,7 @@ public class TimetableStaffingService {
      *  passed explicitly for the same reason as {@link #checkFacultyFree}. */
     List<ConstraintViolation> checkWithinWorkloadCaps(Faculty faculty, ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end) {
         Optional<Double> dailyCap = resolveCapHours("timetable.faculty_max_daily_hours");
-        Optional<Double> weeklyCap = resolveCapHours("timetable.faculty_max_weekly_hours");
+        Optional<Double> weeklyCap = resolveWeeklyCap(faculty);
         Optional<Double> continuousCap = resolveCapHours("timetable.faculty_max_continuous_hours");
         if (dailyCap.isEmpty() && weeklyCap.isEmpty() && continuousCap.isEmpty()) {
             return List.of();
@@ -449,6 +449,20 @@ public class TimetableStaffingService {
 
     private double sessionHours(Period period) {
         return Duration.between(period.getStartTime(), period.getEndTime()).toMinutes() / 60.0;
+    }
+
+    /** Per-faculty override, then designation default (both from {@link
+     *  FacultyWorkloadCapacityService}'s existing resolver, OC-119) -- falling back to the flat
+     *  institution-wide config value, falling back to no cap. Reused rather than duplicated so the
+     *  advisory Faculty Workload report and this hard gate can never resolve a faculty's weekly
+     *  capacity differently. A configured value of 0 or less is treated as unset, mirroring {@link
+     *  #resolveCapHours}'s own "blank/zero = no cap" convention. */
+    private Optional<Double> resolveWeeklyCap(Faculty faculty) {
+        Integer perFacultyOrDesignation = FacultyWorkloadCapacityService.resolveEffectiveCapacity(faculty);
+        if (perFacultyOrDesignation != null && perFacultyOrDesignation > 0) {
+            return Optional.of(perFacultyOrDesignation.doubleValue());
+        }
+        return resolveCapHours("timetable.faculty_max_weekly_hours");
     }
 
     private Optional<Double> resolveCapHours(String configKey) {

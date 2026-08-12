@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
 import com.cms.model.FacultyAvailability;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.FacultyAvailabilityRepository;
@@ -28,14 +30,15 @@ import com.cms.repository.FacultyRepository;
 import com.cms.repository.TermInstanceRepository;
 
 /**
- * Advisory-only "does this term have enough faculty-hours to cover the work" report — a separate
- * initiative from the hard per-faculty daily/weekly/continuous caps in
- * {@link TimetableStaffingService#requireWithinWorkloadCaps}. Shows two independent demand
- * figures side by side rather than picking one: curriculum-required hours per {@link
+ * "Does this term have enough faculty-hours to cover the work" report. Shows two independent
+ * demand figures side by side rather than picking one: curriculum-required hours per {@link
  * CourseOffering} (visible before any staffing happens) and hours actually committed via placed
  * {@link ClassSchedule} rows (the real load once Skeleton Builder/Staffing has run), both against
  * a designation-default-with-per-faculty-override capacity, net of {@link FacultyAvailability}
- * blocked (prep/eval) time. Never auto-allocates and never blocks anything — purely a dashboard.
+ * blocked (prep/eval) time. Never auto-allocates and never blocks anything itself — purely a
+ * dashboard — but {@link #resolveEffectiveCapacity} is also the single source of truth {@link
+ * TimetableStaffingService#checkWithinWorkloadCaps}'s weekly hard-cap gate resolves a faculty's
+ * capacity from, so this report and that enforcement gate can never disagree on the number.
  */
 @Service
 @Transactional(readOnly = true)
@@ -75,8 +78,13 @@ public class FacultyWorkloadCapacityService {
             demandByFaculty.merge(facultyId, totalHours / (double) weeksInTerm, Double::sum);
         }
 
+        // Matches TimetableStaffingService.checkWithinWorkloadCaps's own {PUBLISHED, DRAFT}
+        // filter -- previously this summed every status, which could silently disagree with the
+        // hard-cap gate's own committed-hours count for the same faculty/term.
         Map<Long, Double> committedByFaculty = new HashMap<>();
-        for (ClassSchedule schedule : classScheduleRepository.findByTermInstanceId(termInstanceId)) {
+        for (ClassSchedule schedule : Stream.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)
+                .flatMap(status -> classScheduleRepository.findByTermInstanceIdAndStatus(termInstanceId, status).stream())
+                .toList()) {
             Faculty faculty = schedule.getFaculty();
             if (faculty == null || faculty.getId() == null || schedule.getPeriod() == null) {
                 continue;
@@ -132,7 +140,7 @@ public class FacultyWorkloadCapacityService {
             totalDemand, totalCommitted, totalConfiguredCapacity, unconfiguredCount);
     }
 
-    private static Integer resolveEffectiveCapacity(Faculty faculty) {
+    static Integer resolveEffectiveCapacity(Faculty faculty) {
         if (faculty.getPlannedWeeklyHoursOverride() != null) {
             return faculty.getPlannedWeeklyHoursOverride();
         }

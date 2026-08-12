@@ -1,0 +1,23 @@
+.fwr-card {
+  padding: 24px;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fwr-intro {
+  margin: 0 0 12px;
+
+  a {
+    color: var(--cms-primary);
+    text-decoration: underline;
+  }
+}
+
+.fwr-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}

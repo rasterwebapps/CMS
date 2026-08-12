@@ -940,6 +940,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'timetable/workload-rules',
+    canActivate: withPermission('TIMETABLE_WORKLOAD_RULES_VIEW', 'TIMETABLE_WORKLOAD_RULES_MANAGE'),
+    loadComponent: () =>
+      import('./features/timetable/faculty-workload-rules/faculty-workload-rules.component').then(
+        (m) => m.FacultyWorkloadRulesComponent
+      ),
+  },
+  {
     path: 'timetable',
     canActivate: withPermission('TIMETABLE_VIEW'),
     loadComponent: () =>
