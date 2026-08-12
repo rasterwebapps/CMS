@@ -79,6 +79,7 @@ export const NAV_ENTRIES: NavEntry[] = [
     label: 'Academics',
     icon: 'auto_stories',
     items: [
+      // -- Curriculum setup --
       { label: 'Syllabus',            icon: 'library_books',      route: '/syllabi',             permissions: ['SYLLABUS_VIEW', 'SYLLABUS_CREATE', 'SYLLABUS_EDIT', 'SYLLABUS_DELETE', 'SYLLABUS_EXPORT', 'SYLLABUS_MANAGE'] },
       { label: 'Experiments',         icon: 'biotech',            route: '/experiments',         permissions: ['EXPERIMENT_VIEW', 'EXPERIMENT_CREATE', 'EXPERIMENT_EDIT', 'EXPERIMENT_DELETE', 'EXPERIMENT_EXPORT', 'EXPERIMENT_MANAGE'] },
       { label: 'CO/PO Mapping',       icon: 'account_tree',       route: '/curriculum-mappings', permissions: ['COPO_VIEW', 'COPO_CREATE', 'COPO_EDIT', 'COPO_DELETE', 'COPO_MANAGE'] },
@@ -86,22 +87,27 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Course Offerings',    icon: 'event_available',    route: '/course-offerings',    permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
       { label: 'Elective Assignment', icon: 'how_to_reg',         route: '/elective-assignment', permissions: ['COURSE_REGISTRATION_ELECTIVE_ASSIGN'] },
       { label: 'Lab Schedules',       icon: 'calendar_view_week', route: '/lab-schedules',       permissions: ['LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_CREATE', 'LAB_SCHEDULE_EDIT', 'LAB_SCHEDULE_DELETE', 'LAB_SCHEDULE_EXPORT', 'LAB_SCHEDULE_MANAGE'] },
-      { label: 'Timetable',           icon: 'event_note',         route: '/timetable',           permissions: ['TIMETABLE_VIEW'] },
-      { label: 'Timetable Draft Review', icon: 'auto_awesome',    route: '/timetable/draft-review', permissions: ['TIMETABLE_MANAGE'] },
+      // -- Timetable build --
       { label: 'Skeleton Builder',    icon: 'grid_on',            route: '/timetable/skeleton-builder', permissions: ['TIMETABLE_VIEW'] },
       { label: 'Staffing',            icon: 'assignment_ind',     route: '/timetable/staffing',   permissions: ['TIMETABLE_VIEW'] },
       { label: 'Capacity Planner',    icon: 'calculate',          route: '/timetable/capacity-planner', permissions: ['TIMETABLE_CAPACITY_PLANNER_VIEW'] },
       { label: 'Faculty Workload Rules', icon: 'rule',            route: '/timetable/workload-rules', permissions: ['TIMETABLE_WORKLOAD_RULES_VIEW', 'TIMETABLE_WORKLOAD_RULES_MANAGE'] },
-      { label: 'Progress Report',     icon: 'insights',           route: '/progress-report',     permissions: ['PROGRESS_REPORT_VIEW'] },
+      { label: 'Timetable Draft Review', icon: 'auto_awesome',    route: '/timetable/draft-review', permissions: ['TIMETABLE_MANAGE'] },
+      { label: 'Timetable',           icon: 'event_note',         route: '/timetable',           permissions: ['TIMETABLE_VIEW'] },
       { label: 'Resource Timetable',  icon: 'grid_view',          route: '/timetable/resource-grid', permissions: ['TIMETABLE_FACULTY_GRID_VIEW', 'TIMETABLE_CLASSROOM_GRID_VIEW'] },
+      // -- Timetable ops --
       { label: 'Faculty Absence',     icon: 'person_off',         route: '/faculty-absence',     permissions: ['FACULTY_ABSENCE_MARK', 'FACULTY_ABSENCE_SUBSTITUTE_APPLY'] },
       { label: 'Staff Session Swap',  icon: 'swap_horiz',         route: '/timetable/staff-swap', permissions: ['TIMETABLE_STAFF_SWAP'] },
       { label: 'My Special Classes',  icon: 'event_available',    route: '/timetable/special-classes/my-requests', permissions: ['TIMETABLE_SPECIAL_CLASS_VIEW', 'TIMETABLE_SPECIAL_CLASS_REQUEST'] },
       { label: 'Special Class Approvals', icon: 'fact_check',     route: '/timetable/special-classes/approval-queue', permissions: ['TIMETABLE_SPECIAL_CLASS_APPROVE'] },
       { label: 'Faculty Availability', icon: 'event_busy',        route: '/faculty-availability', permissions: ['FACULTY_AVAILABILITY_VIEW', 'FACULTY_AVAILABILITY_MANAGE'] },
+      // -- Attendance & progress --
       { label: 'Attendance',          icon: 'fact_check',         route: '/attendance',          permissions: ['ATTENDANCE_VIEW', 'ATTENDANCE_CREATE', 'ATTENDANCE_EDIT', 'ATTENDANCE_DELETE', 'ATTENDANCE_EXPORT', 'ATTENDANCE_MANAGE'] },
+      { label: 'Progress Report',     icon: 'insights',           route: '/progress-report',     permissions: ['PROGRESS_REPORT_VIEW'] },
+      // -- Examinations --
       { label: 'Manage Exams',        icon: 'quiz',               route: '/examinations',        permissions: ['EXAMINATION_VIEW', 'EXAMINATION_CREATE', 'EXAMINATION_EDIT', 'EXAMINATION_DELETE', 'EXAMINATION_MANAGE'] },
       { label: 'Exam Results',        icon: 'grade',              route: '/exam-results',        permissions: ['EXAM_RESULT_VIEW', 'EXAM_RESULT_CREATE', 'EXAM_RESULT_EDIT', 'EXAM_RESULT_DELETE', 'EXAM_RESULT_EXPORT', 'EXAM_RESULT_MANAGE'] },
+      // -- Promotion --
       { label: 'Student Promotion',   icon: 'move_up',            route: '/student-promotions',  permissions: ['STUDENT_PROMOTION_VIEW', 'STUDENT_PROMOTION_MANAGE'] },
     ],
   },
