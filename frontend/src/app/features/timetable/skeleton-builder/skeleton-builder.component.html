@@ -6,7 +6,7 @@
       <p class="page-subtitle">Place Theory, Lab, and Clinical sessions into periods for a cohort's whole term at once — staff and rooms are assigned afterward</p>
       <p class="page-subtitle">Need to size rooms/batches first? Open the <a routerLink="/timetable/capacity-planner">Capacity Planner</a>.</p>
     </div>
-    @if (selectedTermInstanceId && (canManageRotation() || (canAutoPlace() && selectedCohortId))) {
+    @if (selectedTermInstanceId && (canManageRotation() || (canAutoPlace() && selectedCohortId) || (canPlaceElectiveGroup() && hasElectiveGroup()))) {
       <div class="mlp-hdr-right">
         @if (canAutoPlace() && selectedCohortId) {
           <button type="button" class="btn-secondary" [disabled]="autoPlacing()" (click)="onAutoPlaceClick()">
@@ -16,6 +16,9 @@
         }
         @if (canManageRotation()) {
           <button type="button" class="btn-secondary" (click)="openRotationSetup()">Set up Rotation</button>
+        }
+        @if (canPlaceElectiveGroup() && hasElectiveGroup()) {
+          <button type="button" class="btn-secondary" (click)="openElectiveBlock()">Place Elective Block</button>
         }
       </div>
     }
@@ -30,6 +33,19 @@
       (closed)="onRotationSetupClosed()"
       (saved)="onRotationSaved()">
     </app-rotation-setup-flyout>
+  }
+
+  @if (showElectiveBlock() && selectedTermInstanceId && selectedCohortId && skeleton(); as loadedSkeleton) {
+    <app-elective-slot-block-flyout
+      [termInstanceId]="selectedTermInstanceId"
+      [cohortId]="selectedCohortId"
+      [periods]="periods()"
+      [days]="days"
+      [dayLabels]="dayLabels"
+      [skeleton]="loadedSkeleton"
+      (closed)="onElectiveBlockClosed()"
+      (saved)="onElectiveBlockSaved()">
+    </app-elective-slot-block-flyout>
   }
 
   <div class="mlp-toolbar anim-rise anim-rise--d1">

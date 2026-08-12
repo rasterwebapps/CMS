@@ -8,3 +8,12 @@
     min-width: 220px;
   }
 }
+
+.ea-schedule-status {
+  margin: 0 0 12px;
+
+  a {
+    color: var(--cms-primary);
+    text-decoration: underline;
+  }
+}

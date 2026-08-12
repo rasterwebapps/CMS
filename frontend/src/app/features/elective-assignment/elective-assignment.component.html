@@ -32,6 +32,16 @@
     </div>
   </div>
 
+  @if (selectedElectiveGroupId && scheduleStatus(); as status) {
+    <p class="field-hint ea-schedule-status">
+      @if (status.scheduled) {
+        Scheduled: {{ status.dayOfWeek }}, {{ status.periodName }} ({{ status.startTime }}–{{ status.endTime }})
+      } @else {
+        Not yet scheduled — <a routerLink="/timetable/skeleton-builder">place it in Skeleton Builder</a> first.
+      }
+    </p>
+  }
+
   <div class="content-card mlp-table-card">
     @if (loading()) {
       <div class="loading-container">

@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.AutoPlaceResult;
+import com.cms.dto.ElectiveGroupPlacementRequest;
+import com.cms.dto.ElectiveGroupScheduleResponse;
 import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellMoveRequest;
 import com.cms.dto.SkeletonCellPlacementRequest;
@@ -79,5 +81,18 @@ public class TimetableSkeletonController {
     @PreAuthorize("@perm.has('TIMETABLE_SKELETON_AUTO_PLACE')")
     public ResponseEntity<AutoPlaceResult> autoPlace(@RequestParam Long termInstanceId, @RequestParam Long cohortId) {
         return ResponseEntity.ok(timetableSkeletonAutoPlaceService.autoPlace(termInstanceId, cohortId));
+    }
+
+    @PostMapping("/elective-groups/place")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_ELECTIVE_PLACE')")
+    public ResponseEntity<List<SkeletonCellResponse>> placeElectiveGroup(@Valid @RequestBody ElectiveGroupPlacementRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(timetableSkeletonService.placeElectiveGroup(request));
+    }
+
+    @GetMapping("/elective-groups/{electiveGroupId}/schedule")
+    @PreAuthorize("@perm.has('TIMETABLE_VIEW') or @perm.has('COURSE_REGISTRATION_ELECTIVE_ASSIGN')")
+    public ResponseEntity<ElectiveGroupScheduleResponse> getElectiveGroupSchedule(
+            @PathVariable Long electiveGroupId, @RequestParam Long termInstanceId) {
+        return ResponseEntity.ok(timetableSkeletonService.getElectiveGroupSchedule(electiveGroupId, termInstanceId));
     }
 }

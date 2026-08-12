@@ -2,6 +2,7 @@ package com.cms.service;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.CohortSectionResponse;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
+import com.cms.dto.ElectiveGroupMemberPlacement;
+import com.cms.dto.ElectiveGroupPlacementRequest;
+import com.cms.dto.ElectiveGroupScheduleResponse;
 import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellMoveRequest;
 import com.cms.dto.SkeletonCellPlacementRequest;
@@ -616,11 +620,10 @@ public class TimetableSkeletonService {
 
         List<ClassSchedule> existingGroupCells = classScheduleRepository
             .findByTermInstanceIdAndCourseOfferingIdIn(offering.getTermInstance().getId(), siblingIds);
-        if (existingGroupCells.isEmpty()) {
+        ClassSchedule anyExisting = resolveGroupAnchor(existingGroupCells).orElse(null);
+        if (anyExisting == null) {
             return Optional.empty();
         }
-
-        ClassSchedule anyExisting = existingGroupCells.get(0);
         boolean sameSlot = anyExisting.getDayOfWeek() == request.dayOfWeek()
             && anyExisting.getPeriod() != null && anyExisting.getPeriod().getId().equals(request.periodId());
         if (sameSlot) {
@@ -630,6 +633,135 @@ public class TimetableSkeletonService {
             "This elective group is already scheduled for " + anyExisting.getDayOfWeek()
                 + (anyExisting.getPeriod() != null ? ", " + anyExisting.getPeriod().getName() : "")
                 + " — every subject in the group must share the same slot."));
+    }
+
+    /** The group's real "first" placement -- deterministically the lowest-id (earliest-created)
+     *  cell, never an arbitrary list-order pick. Used both by {@link #checkElectiveGroupSlot}'s
+     *  reactive per-cell check and by {@link #placeElectiveGroup}/{@link #getElectiveGroupSchedule}
+     *  so all three agree on what "this group's slot" means. */
+    private Optional<ClassSchedule> resolveGroupAnchor(List<ClassSchedule> groupCells) {
+        return groupCells.stream().min(Comparator.comparing(ClassSchedule::getId));
+    }
+
+    /** Atomically places every member of an elective group's session at one shared day/period --
+     *  the "visually bundle and place at once" action Skeleton Builder's per-cell {@link
+     *  #placeCell} has no equivalent for (each elective subject there is placed one at a time,
+     *  only reactively validated against {@link #checkElectiveGroupSlot} once a sibling already
+     *  exists). Skips {@link #checkElectiveGroupSlot}/{@link #checkCohortExclusivity} entirely --
+     *  this method IS the group-slot enforcement, atomically, for every member in one pass -- but
+     *  still runs the same {@link #checkAlreadyPlaced}/{@link #checkBlocked} checks {@link
+     *  #placeCell} does per member. Collects every violation across every member before throwing
+     *  (all-or-nothing: nothing is saved if any member fails), matching {@code
+     *  SpecialClassRequestService.requestDayRepeat}'s established batch-placement contract. */
+    @Transactional
+    public List<SkeletonCellResponse> placeElectiveGroup(ElectiveGroupPlacementRequest request) {
+        List<CourseOffering> siblingOfferings = courseOfferingRepository
+            .findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(request.termInstanceId(), request.electiveGroupId());
+        Map<Long, CourseOffering> siblingsById = siblingOfferings.stream()
+            .collect(java.util.stream.Collectors.toMap(CourseOffering::getId, o -> o));
+
+        Period period = periodRepository.findById(request.periodId())
+            .orElseThrow(() -> new ResourceNotFoundException("Period not found with id: " + request.periodId()));
+
+        List<Long> siblingIds = siblingOfferings.stream().map(CourseOffering::getId).toList();
+        List<ClassSchedule> existingGroupCells = siblingIds.isEmpty() ? List.of()
+            : classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(request.termInstanceId(), siblingIds);
+        ClassSchedule anchor = resolveGroupAnchor(existingGroupCells).orElse(null);
+        if (anchor != null) {
+            boolean matchesAnchor = anchor.getDayOfWeek() == request.dayOfWeek()
+                && anchor.getPeriod() != null && anchor.getPeriod().getId().equals(request.periodId());
+            if (!matchesAnchor) {
+                throw new TimetableConstraintViolationException(List.of(new ConstraintViolation(
+                    "SKELETON_ELECTIVE_GROUP_SLOT_MISMATCH",
+                    "This elective group is already scheduled for " + anchor.getDayOfWeek()
+                        + (anchor.getPeriod() != null ? ", " + anchor.getPeriod().getName() : "")
+                        + " — a bulk placement can't move an already-scheduled group.")));
+            }
+        }
+
+        List<CohortSection> activeSections = resolveActiveSections(request.cohortId(), request.termInstanceId());
+        List<ConstraintViolation> violations = new ArrayList<>();
+        List<ClassSchedule> toSave = new ArrayList<>();
+
+        for (ElectiveGroupMemberPlacement member : request.members()) {
+            CourseOffering offering = siblingsById.get(member.courseOfferingId());
+            if (offering == null) {
+                violations.add(new ConstraintViolation("SKELETON_ELECTIVE_GROUP_MEMBER_INVALID",
+                    "Course offering " + member.courseOfferingId() + " is not a member of this elective group."));
+                continue;
+            }
+
+            SkeletonCellPlacementRequest asPlacementRequest = new SkeletonCellPlacementRequest(
+                member.courseOfferingId(), member.sessionType(), request.dayOfWeek(), request.periodId(),
+                member.batchId(), request.cohortId(), member.cohortSectionId());
+
+            Batch batch = null;
+            if (member.sessionType() == ClassSessionType.LAB || member.sessionType() == ClassSessionType.CLINICAL) {
+                if (member.batchId() == null) {
+                    violations.add(new ConstraintViolation("SKELETON_CELL_BATCH_REQUIRED",
+                        offering.getSubject().getName() + ": a batch is required for a " + member.sessionType() + " session"));
+                    continue;
+                }
+                batch = batchRepository.findById(member.batchId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Batch not found with id: " + member.batchId()));
+            }
+
+            CohortSection cohortSection = null;
+            if (member.sessionType() == ClassSessionType.THEORY && !activeSections.isEmpty()) {
+                if (member.cohortSectionId() == null) {
+                    violations.add(new ConstraintViolation("SKELETON_CELL_SECTION_REQUIRED",
+                        offering.getSubject().getName() + ": a cohort section is required for this Theory session"));
+                    continue;
+                }
+                cohortSection = activeSections.stream()
+                    .filter(s -> s.getId().equals(member.cohortSectionId()))
+                    .findFirst()
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                        "Cohort section not found with id: " + member.cohortSectionId() + " for this cohort/term"));
+            }
+
+            checkAlreadyPlaced(offering, asPlacementRequest).ifPresent(violations::add);
+            checkBlocked(request.dayOfWeek(), period.getId(), offering.getTermInstance()).ifPresent(violations::add);
+
+            ClassSchedule cs = new ClassSchedule();
+            cs.setSessionType(member.sessionType());
+            cs.setStatus(ClassScheduleStatus.DRAFT);
+            cs.setSubject(offering.getSubject());
+            cs.setDayOfWeek(request.dayOfWeek());
+            cs.setTermInstance(offering.getTermInstance());
+            cs.setCourseOffering(offering);
+            cs.setPeriod(period);
+            cs.setBatch(batch);
+            cs.setBatchName(batch != null ? batch.getName() : null);
+            cs.setCohortSection(cohortSection);
+            cs.setIsActive(true);
+            toSave.add(cs);
+        }
+
+        if (!violations.isEmpty()) {
+            throw new TimetableConstraintViolationException(violations);
+        }
+
+        return classScheduleRepository.saveAll(toSave).stream().map(this::toCellResponse).toList();
+    }
+
+    /** Read-only lookup for the Elective Assignment screen (and anywhere else that needs to know
+     *  "has this term's elective group been scheduled yet") -- same anchor resolution {@link
+     *  #placeElectiveGroup}/{@link #checkElectiveGroupSlot} use, so this can never disagree with
+     *  what placement actually enforces. */
+    public ElectiveGroupScheduleResponse getElectiveGroupSchedule(Long electiveGroupId, Long termInstanceId) {
+        List<Long> siblingIds = courseOfferingRepository
+            .findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(termInstanceId, electiveGroupId)
+            .stream().map(CourseOffering::getId).toList();
+        List<ClassSchedule> existingGroupCells = siblingIds.isEmpty() ? List.of()
+            : classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(termInstanceId, siblingIds);
+        ClassSchedule anchor = resolveGroupAnchor(existingGroupCells).orElse(null);
+        if (anchor == null || anchor.getPeriod() == null) {
+            return new ElectiveGroupScheduleResponse(false, null, null, null, null);
+        }
+        Period period = anchor.getPeriod();
+        return new ElectiveGroupScheduleResponse(true, anchor.getDayOfWeek(), period.getName(),
+            period.getStartTime(), period.getEndTime());
     }
 
     /** Read-only candidate slots for a subject/session-type/batch (or, for THEORY, cohort section)

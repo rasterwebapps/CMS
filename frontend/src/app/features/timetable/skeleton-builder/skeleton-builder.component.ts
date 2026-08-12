@@ -15,13 +15,14 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { RotationSetupFlyoutComponent } from '../rotation-setup/rotation-setup-flyout.component';
+import { ElectiveSlotBlockFlyoutComponent } from './elective-slot-block-flyout.component';
 import { colorForSubject } from './subject-color.util';
 import { violationText } from '../../../shared/util/violation-text';
 
 @Component({
   selector: 'app-skeleton-builder',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatDialogModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent, DragDropModule],
+  imports: [FormsModule, RouterLink, MatDialogModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent, ElectiveSlotBlockFlyoutComponent, DragDropModule],
   templateUrl: './skeleton-builder.component.html',
   styleUrl: './skeleton-builder.component.scss',
 })
@@ -85,6 +86,9 @@ export class SkeletonBuilderComponent implements OnInit {
   protected readonly activeSections = computed<SkeletonSectionOption[]>(() => this.skeleton()?.sections ?? []);
 
   protected readonly showRotationSetup = signal(false);
+  protected readonly showElectiveBlock = signal(false);
+  protected readonly hasElectiveGroup = computed(() =>
+    (this.skeleton()?.subjects ?? []).some((s) => s.electiveGroupId != null));
 
   protected canManage(): boolean {
     return this.permissionService.has('TIMETABLE_SKELETON_MANAGE');
@@ -96,6 +100,23 @@ export class SkeletonBuilderComponent implements OnInit {
 
   protected canAutoPlace(): boolean {
     return this.permissionService.has('TIMETABLE_SKELETON_AUTO_PLACE');
+  }
+
+  protected canPlaceElectiveGroup(): boolean {
+    return this.permissionService.has('TIMETABLE_SKELETON_ELECTIVE_PLACE');
+  }
+
+  protected openElectiveBlock(): void {
+    this.showElectiveBlock.set(true);
+  }
+
+  protected onElectiveBlockClosed(): void {
+    this.showElectiveBlock.set(false);
+  }
+
+  protected onElectiveBlockSaved(): void {
+    this.showElectiveBlock.set(false);
+    this.reloadSkeleton();
   }
 
   /** Fills whatever shortfall remains for the current cohort/term in one shot — electives are

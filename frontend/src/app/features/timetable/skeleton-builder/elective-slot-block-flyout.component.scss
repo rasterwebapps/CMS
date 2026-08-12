@@ -1,0 +1,20 @@
+.esb-members-title {
+  margin-top: 16px;
+}
+
+.esb-member {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+
+  &__name {
+    font-size: var(--cms-text-sm);
+    font-weight: 600;
+    color: var(--cms-text-primary);
+  }
+}

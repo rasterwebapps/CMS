@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../environments';
 import {
   AutoPlaceResult,
+  ElectiveGroupPlacementRequest,
+  ElectiveGroupScheduleResponse,
   SkeletonBuilderResponse,
   SkeletonCell,
   SkeletonCellMoveRequest,
@@ -48,6 +50,16 @@ export class SkeletonBuilderService {
   autoPlace(termInstanceId: number, cohortId: number): Observable<AutoPlaceResult> {
     return this.http.post<AutoPlaceResult>(`${this.baseUrl}/auto-place`, null, {
       params: { termInstanceId: termInstanceId.toString(), cohortId: cohortId.toString() },
+    });
+  }
+
+  placeElectiveGroup(request: ElectiveGroupPlacementRequest): Observable<SkeletonCell[]> {
+    return this.http.post<SkeletonCell[]>(`${this.baseUrl}/elective-groups/place`, request);
+  }
+
+  getElectiveGroupSchedule(electiveGroupId: number, termInstanceId: number): Observable<ElectiveGroupScheduleResponse> {
+    return this.http.get<ElectiveGroupScheduleResponse>(`${this.baseUrl}/elective-groups/${electiveGroupId}/schedule`, {
+      params: { termInstanceId: termInstanceId.toString() },
     });
   }
 }

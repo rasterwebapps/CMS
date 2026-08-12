@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -14,6 +14,8 @@ import {
 } from '../academic-year/academic-year.model';
 import { CmsEmptyStateComponent } from '../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../core/toast/toast.service';
+import { SkeletonBuilderService } from '../timetable/skeleton-builder/skeleton-builder.service';
+import { ElectiveGroupScheduleResponse } from '../timetable/skeleton-builder/skeleton-builder.model';
 
 interface ElectiveGroupOption {
   electiveGroupId: number;
@@ -32,7 +34,7 @@ interface AssignmentRow {
   selector: 'app-elective-assignment',
   standalone: true,
   imports: [
-    FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
+    FormsModule, RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, CmsEmptyStateComponent,
   ],
   templateUrl: './elective-assignment.component.html',
@@ -40,6 +42,7 @@ interface AssignmentRow {
 })
 export class ElectiveAssignmentComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
+  private readonly skeletonBuilderService = inject(SkeletonBuilderService);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
 
@@ -60,6 +63,7 @@ export class ElectiveAssignmentComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly assigning = signal<number | null>(null);
   protected readonly selectedOfferingByEnrollment = new Map<number, number>();
+  protected readonly scheduleStatus = signal<ElectiveGroupScheduleResponse | null>(null);
 
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
@@ -97,6 +101,7 @@ export class ElectiveAssignmentComponent implements OnInit {
 
   protected onGroupChange(): void {
     this.dataSource.data = [];
+    this.scheduleStatus.set(null);
     const termInstanceId = this.selectedTermInstanceId;
     const group = this.selectedGroup();
     if (!termInstanceId || !group) return;
@@ -108,6 +113,11 @@ export class ElectiveAssignmentComponent implements OnInit {
         this.loadEnrollments(termInstanceId, group);
       },
       error: () => { this.toast.error('Failed to load elective options'); this.loading.set(false); },
+    });
+
+    this.skeletonBuilderService.getElectiveGroupSchedule(group.electiveGroupId, termInstanceId).subscribe({
+      next: (status) => this.scheduleStatus.set(status),
+      error: () => this.scheduleStatus.set(null),
     });
   }
 
@@ -141,6 +151,7 @@ export class ElectiveAssignmentComponent implements OnInit {
     this.electiveGroupOptions.set([]);
     this.offeringOptions.set([]);
     this.dataSource.data = [];
+    this.scheduleStatus.set(null);
   }
 
   private loadTermInstances(academicYearId: number, preselectTermInstanceId?: number): void {

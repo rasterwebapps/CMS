@@ -121,3 +121,27 @@ export interface AutoPlaceResult {
   placedCount: number;
   unplaced: AutoPlaceUnplacedItem[];
 }
+
+export interface ElectiveGroupMemberPlacement {
+  courseOfferingId: number;
+  sessionType: SkeletonSessionType;
+  batchId: number | null;
+  cohortSectionId: number | null;
+}
+
+export interface ElectiveGroupPlacementRequest {
+  electiveGroupId: number;
+  termInstanceId: number;
+  cohortId: number;
+  dayOfWeek: string;
+  periodId: number;
+  members: ElectiveGroupMemberPlacement[];
+}
+
+export interface ElectiveGroupScheduleResponse {
+  scheduled: boolean;
+  dayOfWeek: string | null;
+  periodName: string | null;
+  startTime: string | null;
+  endTime: string | null;
+}

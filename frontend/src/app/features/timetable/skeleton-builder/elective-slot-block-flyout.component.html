@@ -1,0 +1,67 @@
+<cms-flyout-panel width="480px" ariaLabel="Place elective slot block" (closed)="onClose()">
+  <div flyoutHeader>{{ electiveGroupName() }} — Slot Block</div>
+
+  <div flyoutBody>
+    @if (electiveSubjects().length === 0) {
+      <p class="field-hint">This term has no elective group yet.</p>
+    } @else if (unplacedSubjects().length === 0) {
+      <p class="field-hint">Every subject in this group is already placed.</p>
+    } @else {
+      <div class="field-group">
+        <label class="field-label" for="esb-day">Day</label>
+        <select id="esb-day" class="field-select" [(ngModel)]="selectedDayOfWeek" [disabled]="isLocked()">
+          <option [ngValue]="null">Day…</option>
+          @for (day of days(); track day) {
+            <option [ngValue]="day">{{ dayLabels()[day] }}</option>
+          }
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="esb-period">Period</label>
+        <select id="esb-period" class="field-select" [(ngModel)]="selectedPeriodId" [disabled]="isLocked()">
+          <option [ngValue]="null">Period…</option>
+          @for (period of periods(); track period.id) {
+            <option [ngValue]="period.id">{{ period.name }} ({{ period.startTime }}–{{ period.endTime }})</option>
+          }
+        </select>
+        @if (isLocked()) {
+          <p class="field-hint">This group is already scheduled — the remaining members below will join it at this slot.</p>
+        }
+      </div>
+
+      <p class="field-label esb-members-title">Unplaced members</p>
+      @for (subject of unplacedSubjects(); track subject.courseOfferingId) {
+        <div class="esb-member">
+          <div class="esb-member__name">{{ subject.subjectName }} ({{ subject.subjectCode }}) — {{ nextBudgetSessionType(subject) }}</div>
+          @if (needsBatch(subject)) {
+            <select class="field-select" aria-label="Batch"
+                    (change)="updateSelection(subject.courseOfferingId, 'batchId', $any($event.target).value ? +$any($event.target).value : null)">
+              <option value="">Select batch</option>
+              @for (b of batchOptionsFor(subject); track b.id) {
+                <option [value]="b.id">{{ b.name }}</option>
+              }
+            </select>
+          }
+          @if (needsSection(subject)) {
+            <select class="field-select" aria-label="Cohort section"
+                    (change)="updateSelection(subject.courseOfferingId, 'cohortSectionId', $any($event.target).value ? +$any($event.target).value : null)">
+              <option value="">Select section</option>
+              @for (s of skeleton().sections; track s.id) {
+                <option [value]="s.id">{{ s.sectionLabel }}</option>
+              }
+            </select>
+          }
+        </div>
+      }
+    }
+  </div>
+
+  <div flyoutFooter>
+    <button type="button" class="btn-cancel" (click)="onClose()" [disabled]="saving()">Close</button>
+    @if (unplacedSubjects().length > 0) {
+      <button type="button" class="btn-primary" [disabled]="!canSubmit() || saving()" (click)="submit()">
+        @if (saving()) { <span class="btn-spinner"></span> Placing… } @else { Place Block }
+      </button>
+    }
+  </div>
+</cms-flyout-panel>
