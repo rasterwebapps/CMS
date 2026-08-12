@@ -429,7 +429,7 @@ export const routes: Routes = [
   },
   {
     path: 'academic-calendar',
-    canActivate: withPermission('ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_MANAGE'),
+    canActivate: withPermission('ACADEMIC_CALENDAR_VIEW', 'ACADEMIC_CALENDAR_MANAGE'),
     loadComponent: () =>
       import('./features/academic-year/academic-calendar/academic-calendar.component').then(
         (m) => m.AcademicCalendarComponent

@@ -60,6 +60,10 @@
 - [BR-53: Term Lifecycle Confirmation & Overdue Alerting](#br-53-term-lifecycle-confirmation--overdue-alerting)
 - [BR-54: Room Purpose Classification (2-Tier Category + Sub-Type)](#br-54-room-purpose-classification-2-tier-category--sub-type)
 - [BR-55: Special/Remedial Class Scheduler](#br-55-specialremedial-class-scheduler)
+- [BR-56: Timetable Core Engine — Data Model, Placement, Staffing, Rotation & Capacity Planning](#br-56-timetable-core-engine--data-model-placement-staffing-rotation--capacity-planning)
+- [BR-57: Timetable Lifecycle, Audit Trail & Post-Publish Adjustments](#br-57-timetable-lifecycle-audit-trail--post-publish-adjustments)
+- [BR-58: Portion-Completion Tracking & Holiday-Driven Session Scheduling](#br-58-portion-completion-tracking--holiday-driven-session-scheduling)
+- [BR-59: Academic Calendar — Base Module (Events, Year View, Progress, Print/Export)](#br-59-academic-calendar--base-module-events-year-view-progress-printexport)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -1415,6 +1419,8 @@ Backend returns HTTP 409 with a descriptive message. Frontend must surface that 
 
 | Date | BR ID(s) | Change Description | Changed By |
 |------|----------|-------------------|------------|
+| 2026-08-12 | BR-59 | **Documentation gap backfill** (retroactive — no code change): the base Academic Calendar module (`CalendarEvent`/`calendar_events`, V60, shipped 2026-04-27) — year-selector, Timeline/Month-Grid views, client-computed stats/progress bars (no dedicated backend stats endpoint), browser-print, hand-rolled CSV export — documented for the first time, closing the gap BR-58 explicitly flagged as still-open. Traces the `Semester`→`TermInstance` retirement's effect on this table (`semester_id` dropped, V116) and the permission-code evolution from hardcoded roles → `ACADEMIC_YEAR_MANAGE` → dedicated `ACADEMIC_CALENDAR_VIEW`/`MANAGE` (V247). Found and fixed a latent bug in the same pass: `app.routes.ts`'s route guard still checked the old `ACADEMIC_YEAR_VIEW`/`MANAGE` codes while `nav-config.ts` had been migrated to the dedicated `ACADEMIC_CALENDAR_VIEW`/`MANAGE` codes — harmless today only because every role in the local dev DB held both pairs identically, but would have silently diverged the moment a role got one pair without the other. `app.routes.ts` updated to match; no schema/permission change. | — |
+| 2026-08-12 | BR-56, BR-57, BR-58 | **Documentation gap backfill** (retroactive — no code change): the entire timetable/roster engine — ~25 shipped commits (OC-69 through OC-122) spanning the two-layer `ClassSchedule`/`SessionOccurrence` model, Skeleton Builder, Staffing, batch rotation, auto-place/auto-staff, Capacity Planner, term-lifecycle gating, audit trail, cancelled-occurrence display, faculty absence/substitute, staff session swap, Resource Timetable Grid, Room Relocation Modal, Progress Report/portion-completion blueprint, and holiday auto-block/recurring templates — had shipped with no BR coverage because BR-49 explicitly excluded a general lecture timetable system at the time it was written. Split into three BRs by concern: BR-56 (data model + placement/staffing/capacity write paths), BR-57 (lifecycle/audit/post-publish adjustments), BR-58 (portion-completion + holiday-driven scheduling). BR-49's Explicitly Out of Scope section updated to point here; BR-55 (Special/Remedial Class Scheduler, already documented) referenced rather than repeated. Flags two orphaned permissions (`TIMETABLE_GENERATE`, `TIMETABLE_CAPACITY_PLANNER_BATCH_CREATE`) and one real, still-open correctness gap (no centralized `validateAssignment()` — Skeleton/Staffing/Swap each assemble their own constraint-check list, and `TimetableSwapService`/`FacultySessionSwapService` never recheck workload caps). Also documents OC-122 (Faculty Workload Rules, same day), which connected the advisory per-faculty/designation weekly-hours resolver to the hard-cap enforcement gate — closing a discrepancy this backfill would otherwise have had to document as still-open. | — |
 | 2026-08-12 | BR-55 | **Special/Remedial Class Scheduler added:** first path for a one-off ad-hoc class outside the recurring weekly template — single-subject and whole-day-repeat modes, both via a new faculty-request/admin-approval workflow. `SessionOccurrence` extended (nullable `class_schedule_id` + new special-class columns) rather than a new table; two-part conflict checking (recurring template + other special classes, since a special class has no `ClassSchedule` row for either check alone to see); Period-grid slots only; term-lock-gated; audited via the existing `AuditLogService`. Workload-cap enforcement, progress-report crediting, and notification firing explicitly deferred. Migrations V374, V375. | — |
 | 2026-08-11 | BR-53 | **Term advance confirmation upgraded from a single paragraph to an itemized, system-verified checklist + separate acknowledgment:** how much now depends on term status (course offering generation, fee demand generation/collection eligibility, and the timetable freezing entirely once `LOCKED`, per the timetable-engine roadmap's Step 7) outgrew one warning paragraph. New `TermAdvanceChecklistDialogComponent` replaces the shared `ConfirmDialogComponent` call — shows live, system-computed data (active cohorts missing a curriculum version for `OPEN`; outstanding fee demand count/amount and unapproved draft timetable session count for `LOCKED`, each composed from already-existing service methods) plus one plainly-labeled self-attestation item (exam results published — no system signal exists for this anywhere in the codebase) and a separate final acknowledgment checkbox. Deliberately **not** a hard block on the underlying checks passing — the hard block is on ticking every item + the acknowledgment; two of the real dependencies have no reliable system signal, and both transitions remain irreversible, so a lockout tied to incomplete logic would be a worse failure mode than trusting the admin's judgment once shown the real numbers. New `GET /term-instances/{id}/advance-checklist`, gated identically to the existing `PUT` (no new permission). New `CourseOfferingService.findActiveCohortsWithoutCurriculumVersion()`. No schema change. | — |
 | 2026-07-17 | BR-53, BR-28 | **Term Lifecycle Confirmation & Overdue Alerting added:** advancing a term's status (`PLANNED→OPEN`/`OPEN→LOCKED`) now requires confirming a consequence dialog first. New daily `AcademicTermAlertService` job raises an in-app alert when a term is still `PLANNED` within 14 days of its start date, auto-resolving once the admin acts. First real slice of BR-28's notification-sending backend — new `notifications`/`notification_dismissals` tables (broadcast-style alerts, per-user dismissal), `GET /notifications/feed`/`POST /notifications/{id}/dismiss`, and the toolbar bell (previously a dead hardcoded badge) now wired to a real feed. New `academicTermAlerts` preference category, gated by `ACADEMIC_YEAR_MANAGE`. Migration V287. | — |
@@ -2682,7 +2688,7 @@ Indian Nursing Council (INC) curricula require the system to express things the 
 
 ### Explicitly Out of Scope
 
-- **A general lecture timetable system.** Only `LabSchedule` (lab/practical scheduling) was extended — there was no lecture-timetable construct before this BR and none was built; "Timetable Automation" in the original ask was specifically about lab-block scheduling, which `LabSchedule` already covered.
+- **A general lecture timetable system.** Only `LabSchedule` (lab/practical scheduling) was extended — there was no lecture-timetable construct before this BR and none was built; "Timetable Automation" in the original ask was specifically about lab-block scheduling, which `LabSchedule` already covered. **Update 2026-08-12:** that general timetable/roster engine has since been built (`LabSchedule` was itself renamed/generalized into `ClassSchedule`, V293) — see BR-56 (Core Placement, Staffing, Rotation & Capacity Planning), BR-57 (Lifecycle, Audit Trail & Post-Publish Adjustments), and BR-58 (Portion-Completion Tracking & Holiday-Driven Session Scheduling) for its documentation, backfilled retroactively from ~25 shipped commits (OC-69 through OC-122) that had no BR coverage until this pass.
 - **Hard cutover of `lab_schedules.batch_name`.** The free-text column is kept and kept in sync alongside the new `batch_id` FK indefinitely in this pass; dropping it or making `batch_id` required is a separate future migration once all rows are backfilled and the frontend fully relies on the dropdown.
 - **Retrofitting `CourseRegistrationController`/`StudentTermEnrollmentController` onto dedicated permission codes.** They continue to reuse `ADMISSION_VIEW`/`ADMISSION_CREATE` for their pre-existing endpoints (see Permissions above) — pre-existing granularity debt, not something this BR introduced or was asked to fix.
 - **Student self-service elective selection.** Elective assignment is always admin-entered on the new Elective Assignment screen; there is no student-facing portal flow.
@@ -2894,6 +2900,211 @@ The timetable engine had no path for a one-off ad-hoc class (e.g. "Pathology rev
 - **Notification firing on approve/reject.** BR-28's notification-sending backend is only fully wired for one category (`academicTermAlerts`) so far; a faculty member currently has to check "My Special Classes" manually rather than getting notified. Wiring a new category through the existing `NotificationRepository`/`NotificationPreferenceService` pattern is a natural fast-follow.
 - **Workload-cap enforcement against special classes** — a deliberate product decision (see Business Rule above), not a deferred gap.
 - **Free-form/custom time slots** — special classes are Period-grid-only in v1; a genuinely custom start/end time (outside any defined Period) would need new time-overlap conflict logic this pass doesn't build.
+
+---
+
+## BR-56: Timetable Core Engine — Data Model, Placement, Staffing, Rotation & Capacity Planning
+
+> **Documentation gap backfill.** This BR, BR-57, and BR-58 retroactively document the general lecture/lab/clinical timetable engine — ~25 shipped commits (tickets OC-69 through OC-122) that built the entire scheduling system with no BR coverage, because BR-49 explicitly excluded "a general lecture timetable system" from its own scope at the time (see BR-49's Explicitly Out of Scope, updated 2026-08-12 to point here). Written from the shipped code, not a new requirement. Split into three BRs by concern rather than one: this one covers the data model and the placement/staffing/capacity write paths; BR-57 covers lifecycle gating, audit trail, and post-publish adjustments (absence/swap/room relocation); BR-58 covers portion-completion tracking and holiday-driven scheduling. BR-55 (Special/Remedial Class Scheduler) already has its own BR and is referenced here, not repeated.
+
+### Business Rule
+
+**Two-layer data model.** `ClassSchedule` (table `class_schedules`) is the recurring **weekly master** row — no calendar date, just day-of-week + period + term. `SessionOccurrence` (table `session_occurrences`, V322) is the **per-date actual instance** of a `ClassSchedule` firing, created lazily (only when something is logged/overridden for a date, never pre-populated for every date up front). `class_schedules` began life as `lab_schedules` and was renamed/generalized to cover THEORY as well as LAB by V293; CLINICAL was added later (V334, alongside a dedicated `ClinicalVenue` master, since a clinical posting has no `Classroom`/`Lab` row to attach to). `ClassSchedule.faculty` became nullable (V335) so Skeleton Builder can place an unstaffed DRAFT row before Staffing assigns a faculty — a DB check constraint requires faculty/room only once a row is `PUBLISHED`. `cohort_section_id` (V368) lets a THEORY row scope to one sub-section of a cohort once Capacity Planner has split its committed room into sections; LAB/CLINICAL rows derive their audience from `Batch` instead.
+
+**Skeleton Builder is the sole placement path.** The old one-shot `TimetableGenerationService.generate()` — a randomized greedy shuffle with no backtracking, against a far smaller rule set (no cohort sections, rotation groups, workload caps, elective groups, or capacity-committed rooms existed when it was written) — was retired entirely (OC-111) because it could stomp on Skeleton Builder's own DRAFT rows. Skeleton Builder places **one grid per cohort/term covering every non-elective `CourseOffering` that cohort has that term at once**, not one subject at a time. Cells can be dragged to a new day/period (OC-114) — a move re-runs the same placement checks (already-placed, elective-slot, blocked-period, cohort-exclusivity) plus, only when the cell already carries a faculty, the same faculty/room checks Staffing uses, re-evaluated at the target slot; room/capacity/faculty-eligibility are deliberately not rechecked since a pure day/period move can't change them.
+
+**Elective slot blocks.** Every `CourseOffering` mapped into the same `CurriculumElectiveGroup` must be placed at the exact same day+period within a given term — students choose one elective, so the options only work offered simultaneously. The first placement for a group in a term sets the slot freely; every later placement in that group must match it exactly. Electives are exempt from the cohort-exclusivity hard-block (no single owning audience) and from Staffing's committed-room hard-lock.
+
+**Staffing.** `checkCapacityFit` hard-blocks a venue that can't seat the resolved required strength (whole-cohort registration count for THEORY; batch roster count for LAB/CLINICAL, or the *largest* of the rotating batches for a rotation-governed cell). `checkWithinWorkloadCaps` enforces three configurable caps — daily, weekly, continuous-run hours — read from `system_configurations` (blank/non-positive = no cap, opt-in). **As of 2026-08-12 (OC-122), the weekly tier resolves a faculty's cap as: per-faculty override → designation default → flat institution-wide config value → no cap** (`TimetableStaffingService.resolveWeeklyCap` calling into `FacultyWorkloadCapacityService.resolveEffectiveCapacity`, the same resolver the advisory Faculty Workload report already used) — closing what had been a real discrepancy where the advisory report and the hard-cap gate computed two independently-configured numbers despite the report service's own javadoc claiming otherwise. Daily and continuous-run caps remain institution-wide only; there is no per-faculty/per-designation schema for those two tiers (deliberate — see Explicitly Out of Scope). A new, dedicated **Faculty Workload Rules** screen (OC-122) wraps the same three existing `system_configurations` rows in a scoped editor, replacing having to find them in the generic System Configuration list; per-faculty/per-designation overrides are still edited on the existing Faculty Master / Designation Master forms, not duplicated here. All constraint checks a placement/staffing write can fail are now collected and reported **together** rather than failing fast on the first one (OC-113), sharing one exception/violation shape (`TimetableConstraintViolationException`/`ConstraintViolation`) and one de-duplicated blocked-period predicate (`TimetableBlockedPeriodChecker`) across Skeleton, Staffing, and Swap — though each write path (`placeCell`, `moveCell`, `staffCell`) still independently assembles its own list of which checks to run (see Explicitly Out of Scope).
+
+**Batch rotation.** A `RotationGroup` (V363) generalizes odd/even alternation to any N-way cycle (`cycleLength ≥ 2`) for a shared Lab/Clinical slot — which `Batch` occupies a fixed `ClassSchedule` cell rotates week-to-week, computed from actual elapsed weeks since an anchor date (not raw ISO week number, so it stays predictable across year boundaries), while the cell's faculty and venue never change. A rotation-linked cell has no single `Batch` of its own once linked.
+
+**Auto-place / auto-staff (OC-115).** An explicit augmentation of the manual two-phase workflow, not a return to one-shot generation. Auto-place does a greedy first-fit day×period scan calling the real `placeCell` (every rule from the manual path applies unchanged, nothing reimplemented), with a bounded single-attempt backtrack that can only leave a run with the same or more total placements than before the attempt — never fewer. Auto-staff has **no backtracking at all** (a staffing conflict — a specific faculty's time already spent — has no equivalent "freed resource" a retry could lean on) and ranks candidate faculty by whether they already teach other sessions of the same subject, to reduce fragmentation. **Both explicitly skip elective offerings**, matching the retired generator's own precedent. Auto-place operates one cohort at a time by API contract; auto-staff operates on a whole term at once.
+
+**Capacity Planner.** Cohort Room Allocation "commit" is a **term-scoped, hard exclusive claim on room ownership** (a home Theory classroom plus Lab/Clinical batch-venue splits) — enforced by a DB unique index so no two active sections, even across different cohorts, can share a classroom in the same term. This is deliberately a claim on *who owns this room this term*, not a day/period lock; actual slot-level conflict-freedom is still resolved later, at Staffing time. Revert never deletes — it flips status to `REVERTED` and soft-deactivates the sections/batches it created, so roster history survives. "Create Suggested Batches" as it exists today is a client-side draft-state convenience (splitting an unsplit section's capacity into an editable batch list before commit) — the original server-side bulk auto-create endpoint the `TIMETABLE_CAPACITY_PLANNER_BATCH_CREATE` permission was written for no longer exists in the codebase (see Explicitly Out of Scope). The faculty capacity-planning report (OC-119) is a **read-only, advisory-only** term-wide demand(pre-staffing curriculum-required hours)-vs-committed(post-staffing placed hours)-vs-capacity dashboard per faculty; its `demand > capacity` / `committed > capacity` flags are display-only and block nothing.
+
+### Scope
+
+- **Entities/tables:** `ClassSchedule`/`class_schedules` (V293 rename+generalize, V334 CLINICAL, V335 nullable faculty, V368 `cohort_section_id`), `SessionOccurrence`/`session_occurrences` (V322), `CurriculumElectiveGroup`/`curriculum_elective_groups` (V265), `ClinicalVenue`/`clinical_venues` (V332, capacity V345), `BlockedPeriod`/`blocked_periods` (V347), `RotationGroup`/`RotationSlot`/`RotationMember`/`RotationMemberAssignment` (V363), `CohortSection`/`cohort_sections` (V364), `CohortRoomAllocation`/`cohort_room_allocations` (V359, V364, V366), `Batch` venue-link extensions (V360, V365).
+- **Backend services:** `TimetableSkeletonService` (`placeCell`/`moveCell`/`getCohortSkeleton`/`suggestCandidates`/`checkElectiveGroupSlot`/`checkCohortExclusivity`/`checkBlocked`), `TimetableStaffingService` (`staffCell`/`checkCapacityFit`/`checkWithinWorkloadCaps`/`checkFacultyAvailable`/`checkFacultyFree`/`checkRoomFree`), `TimetableBlockedPeriodChecker`, `RotationGroupService`/`RotationResolverService`, `TimetableSkeletonAutoPlaceService`/`TimetableStaffingAutoAssignService`, `TimetableCapacityPlanningService`, `CohortRoomAllocationService`, `FacultyWorkloadCapacityService` (advisory report), `FacultyWorkloadRulesService` (OC-122 scoped config editor). `TimetableGenerationService.generate()` deleted entirely (OC-111); the service now only exposes `clear`/`approve`/`revertToDraft` (documented under BR-57).
+- **Endpoints:** `TimetableSkeletonController` (skeleton CRUD, move, auto-place, suggest-candidates), `TimetableStaffingController` (staff-cell, unstaffed-cells, auto-staff), `TimetableCapacityPlanningController` (capacity report, faculty workload report), `CohortRoomAllocationController` (commit/get-current/revert), `RotationGroupController` (list/candidate-slots/effective/create/delete), `FacultyWorkloadRulesController` (`GET`/`PUT /timetables/workload-rules`, OC-122).
+- **Frontend:** Skeleton Builder, Staffing, Capacity Planner (incl. Faculty Workload tab), Rotation Setup flyout, Faculty Workload Rules screen — all under the Academics nav group.
+
+### Permissions
+
+| Code | Gates | Seeded |
+|---|---|---|
+| `TIMETABLE_VIEW` | Base view access | V294 |
+| `TIMETABLE_MANAGE` | Manual class-schedule mutation; anchor most of the below auto-grant from | V294 |
+| `TIMETABLE_GENERATE` | Legacy one-click generator — **orphaned**, no controller references it since OC-111 | V294 |
+| `TIMETABLE_SKELETON_MANAGE` | Skeleton Builder place/remove cell, suggest-candidates | V336 |
+| `TIMETABLE_SKELETON_MOVE` | Skeleton Builder drag-and-drop move | V371 |
+| `TIMETABLE_SKELETON_AUTO_PLACE` | Auto-place remaining shortfall | V372 |
+| `TIMETABLE_STAFFING_MANAGE` | Staffing screen staff-cell | (skeleton-era) |
+| `TIMETABLE_STAFFING_AUTO_STAFF` | Auto-staff remaining shortfall | V372 |
+| `TIMETABLE_CAPACITY_PLANNER_VIEW` | Capacity Planner, incl. the Faculty Workload advisory report (no separate permission was minted for the report) | V346 |
+| `TIMETABLE_CAPACITY_PLANNER_BATCH_CREATE` | "Create Suggested Batches" — **orphaned**, zero controller references today | V346 |
+| `TIMETABLE_COHORT_ROOM_ALLOCATION_VIEW`/`_MANAGE`/`_REVERT` | Cohort Room Allocation commit/get/revert — each its own dedicated permission | V361 |
+| `TIMETABLE_ROTATION_VIEW`/`_MANAGE` | Rotation Group setup | V363 |
+| `TIMETABLE_WORKLOAD_RULES_VIEW`/`_MANAGE` | Faculty Workload Rules screen (wraps the V370 config rows) | V377 |
+
+### Migration Notes
+
+V265, V267 (elective groups) · V271–V274 (batches) · V293 (`class_schedules` rename/generalize) · V294 (base timetable permissions) · V313–V315 (faculty availability, swap/discard permissions — full detail in BR-57) · V322 (`session_occurrences`) · V331 (merge LabSlot into shared `Period` master) · V332–V334 (clinical venues, CLINICAL session type) · V335 (unstaffed DRAFT rows) · V336 (skeleton permission) · V345–V348 (clinical capacity, capacity planner permissions, blocked periods) · V358–V361 (room-hierarchy linkage, cohort room allocations, allocation permissions) · V363–V368 (rotation groups, cohort sections, batch/class-schedule section links) · V369 (informational-only `secondaryFacultyId`) · V370 (workload-cap config rows) · V371–V372 (skeleton-move, auto-place/auto-staff permissions) · V373 (`default_weekly_teaching_hours`/`planned_weekly_hours_override`, OC-119) · V377 (Faculty Workload Rules permissions, OC-122).
+
+### Explicitly Out of Scope
+
+- **No single centralized `validateAssignment()` orchestrator.** Individual constraint checks and the violation/exception shape are shared (`TimetableBlockedPeriodChecker`, `TimetableConstraintViolationException`), but `placeCell`, `moveCell`, and `staffCell` each independently assemble their own list of which checks to run — the *orchestration* is still duplicated three times even though the *implementations* are reused. A genuine, not-yet-closed gap.
+- **`CourseOffering.secondaryFacultyId` (V369) is informational-only** — confirmed by exhaustive grep to have zero references in any placement/staffing/auto-place service; it is a display-only backup/co-instructor note, never eligible for staffing or substitution. This is by design, not an oversight.
+- **`TIMETABLE_GENERATE` and `TIMETABLE_CAPACITY_PLANNER_BATCH_CREATE` are orphaned permissions** with no remaining controller references — flagged here as a cleanup candidate, not removed by this documentation pass.
+- **Daily and continuous-run workload caps stay institution-wide only.** OC-122 connected only the weekly tier to per-faculty/per-designation resolution; no per-tier schema exists for daily/continuous, and none was added.
+- **Global multi-cohort CSP/backtracking solver, alternative-generation/reseed, pin-lock-then-regenerate, day-mapping override (any-weekday), `periodSpan` multi-period spanning** — all greenfield, not built by this or any prior commit in this range.
+- **Cross-term double-booking is not runtime-checked** — closed by a design assumption that `TermInstance` date ranges never overlap institution-wide (enforced by `AcademicYear`/`TermInstance` validation elsewhere). Worth revisiting only if two programs are ever run with overlapping-dated terms.
+
+---
+
+## BR-57: Timetable Lifecycle, Audit Trail & Post-Publish Adjustments
+
+> **Documentation gap backfill**, sibling to BR-56 — see that BR's header note for full context on why this was never documented until now.
+
+### Business Rule
+
+**Term-status lifecycle gating.** `TimetableGenerationService.requireNotLocked` blocks any timetable write once a `TermInstance` status is `LOCKED`, independent of each `ClassSchedule` row's own DRAFT/PUBLISHED status — previously the two were fully independent, so a locked term's timetable could still be edited. The same guard is reused verbatim by BR-55's `SpecialClassRequestService`. The pre-existing "clear timetable" action (`TimetableGenerationService.clear`, which hard-deletes every `ClassSchedule` row for a term) gained the same attendance-exists guard `revertToDraft` already had, closing a gap where a term with recorded lab attendance could previously have its whole timetable wiped with no check.
+
+**Audit trail.** The generic `AuditLogService.record(actor, action, entityType, entityId, detail)` (runs in its own `REQUIRES_NEW` transaction so an audit row survives even if the caller's transaction rolls back) is now wired into every timetable-mutating action that previously recorded a timestamp but no actor: discard, approve, revert-to-draft, staff-to-staff swap, faculty-absence substitute apply, and — added afterward, reusing the same pattern — room relocation/revert (OC-121) and BR-55's special-class request actions. This established a repo-wide actor-resolution convention (JWT `preferred_username` claim, with a `"system"` fallback for test slices that disable the security filter chain) that later timetable features reuse rather than reinventing.
+
+**Cancelled occurrences.** `OccurrenceStatus.CANCELLED` had existed in the enum since V327 as dead code — nothing ever set or read it. It is now a **computed, not persisted**, classification: every date in a `ClassSchedule`'s weekly-recurring sequence that falls on a `BlockedPeriod`-matching date for that schedule's specific `Period` is synthesized as a virtual `CANCELLED` entry (with the block's reason) when the calendar is read, so it displays muted/struck-through instead of silently vanishing from Day/Month views. The underlying date-generation methods other features (Progress Report, Swap) already depend on for "excludes blocked dates" behaviour were deliberately left untouched — this is a purely additive, read-time transparency layer. (A `SessionOccurrence` row *can* separately carry a real persisted `CANCELLED` status too, e.g. from a BR-55 special-class rejection — a distinct case from the computed classification described here.)
+
+**Faculty Absence & substitute — fully manual, no auto-apply.** Recording an absence (`markAbsent`) only creates a `FacultyAbsence` row; it does not touch any session or apply any substitute. A coordinator then separately views the affected sessions, separately views eligible-substitute candidates (same speciality, active, no availability conflict, not already teaching elsewhere at that time), and separately, explicitly applies one chosen substitute per session — re-validated against the same eligibility rules at apply time rather than trusting a stale candidate list. The substitute is a **per-date `SessionOccurrence` override** (`effectiveFaculty` + `occurrenceStatus = SUBSTITUTED`); the recurring `ClassSchedule.faculty` is never mutated, so every other date of the same weekly schedule keeps showing the original faculty. Marking an absence and applying a substitute are two dedicated permissions, since a department coordinator might do one without the other. **OC-118 fixed a real display bug**: the calendar read path previously built every entry straight from `ClassSchedule.faculty` and never consulted the override at all, so an already-applied substitute silently never appeared in Timetable View or My Timetable. Fixed by building a date-scoped faculty-override map and rebuilding each occurrence's response from it.
+
+**Staff Session Swap.** A mutual (both-direction) availability check between two `PUBLISHED` sessions on the same date — admin-initiated only, no faculty self-service. Both sessions' occurrences are reciprocally linked (`swapPartnerOccurrence`) and each one's `effectiveFaculty` is set to the other's original faculty for that date only, audited the same way as absence substitution. This is a deliberately separate mechanism from the DRAFT-only, day/period-mutating `TimetableSwapService` used in Draft Review — different table of "what changes," different lifecycle stage.
+
+**Resource Timetable Grid.** A cross-cohort, per-resource (Faculty, or Classroom/Lab/ClinicalVenue folded into one "room" grid) one-day master view — answers "is Faculty X / Room Y busy at any time today, across every cohort in the institution," which the cohort-scoped `/timetable` screen structurally cannot answer since it only ever shows one cohort's grid. Gated by two separate permissions (Faculty grid vs Classroom grid) since the two audiences differ.
+
+**Room Relocation Modal (OC-121).** A single-date-only room override, triggered from Timetable View's **Day view only** (Week view has no date concept and can't support a per-date override). Mechanically mirrors the absence-substitute pattern but for venues instead of faculty — never mutates the recurring `ClassSchedule`'s own room. This closed a genuine, previously-open gap: **no per-date room conflict-checking existed anywhere in the system before this** — the pre-existing room-free check only understood the recurring weekly pattern, not what else might already be relocated onto the same room on that specific date. A companion live NPE risk was fixed in the same commit: the calendar read path built a faculty-override map via a null-intolerant collector with no guard for occurrences that carry a room override but no faculty override (exactly what a room-only relocation produces) — would have thrown the instant any such row existed.
+
+### Scope
+
+- **Entities:** `SessionOccurrence` extensions for substitution (V327: `effective_faculty_id`, `faculty_absence_id`, `occurrence_status`) and swap linkage (V329: `swap_partner_occurrence_id`); `FacultyAbsence`/`faculty_absences` (V326).
+- **Backend services:** `TimetableGenerationService` (now `clear`/`approve`/`revertToDraft`/`requireNotLocked` only), `AuditLogService`, `ClassScheduleOccurrenceService` (`cancelledDatesForSchedules`), `TimetableOccurrenceService` (`findOccurrences`, override-map construction), `FacultyAbsenceService` (`markAbsent`/`findAffectedSessions`/`findEligibleSubstitutes`/`applySubstitute`), `FacultySessionSwapService` (`findSwapCandidates`/`applySwap`/`isFacultyFreeAt`), `ResourceGridService`, `RoomRelocationService`, shared `SessionOccurrenceVenue` helper (extracted so Room Relocation and BR-55 Special Class don't duplicate venue-resolution logic).
+- **Endpoints:** `TimetableController` (discard/approve/revert-to-draft, resource-grid faculty/classroom), `FacultyAbsenceController`, `FacultySessionSwapController`, `RoomRelocationController` (candidates/relocate/revert).
+- **Frontend:** Faculty Absence, Staff Session Swap, Resource Timetable Grid, Room Relocation modal (triggered from Day Agenda) — all under Academics.
+
+### Permissions
+
+| Code | Gates | Seeded |
+|---|---|---|
+| `TIMETABLE_DISCARD_PUBLISHED` | Revert a published timetable back to draft | V315 |
+| `TIMETABLE_FACULTY_GRID_VIEW` | Resource Timetable Grid — Faculty rows | V325 |
+| `TIMETABLE_CLASSROOM_GRID_VIEW` | Resource Timetable Grid — Classroom/Lab/Clinical rows | V325 |
+| `FACULTY_ABSENCE_MARK` | Record a faculty absence | V328 |
+| `FACULTY_ABSENCE_SUBSTITUTE_APPLY` | Apply a chosen substitute — deliberately separate from marking | V328 |
+| `TIMETABLE_STAFF_SWAP` | Staff-to-staff session swap, both find-candidates and apply | V330 |
+| `TIMETABLE_ROOM_RELOCATE` | Single-date room relocation, candidates/relocate/revert | V376 |
+
+### Migration Notes
+
+V313–V315 (faculty availability, swap/discard permissions) · V322 (`session_occurrences` base) · V325 (resource-grid permissions) · V326–V328 (faculty absences, substitution fields, absence permissions) · V329–V330 (swap-partner link, staff-swap permission) · V376 (room relocation permission). OC-116 (term-status gating, audit trail, cancelled occurrences) shipped with **no migration** — pure application-layer wiring of pre-existing schema and the already-defined-but-unused `OccurrenceStatus.CANCELLED` enum value.
+
+### Explicitly Out of Scope
+
+- **No true centralized conflict validation here either.** `TimetableSwapService.evaluateSlot` and `FacultySessionSwapService.isFacultyFreeAt` each reimplement their own conflict logic independently of BR-56's shared checks, and **neither rechecks workload caps at all** — a live correctness gap, not fixed by this BR.
+- **No notification firing** on absence-substitute apply or staff-swap events — a faculty member has to check the relevant screen manually; BR-28's notification backend isn't wired to these categories yet (same gap BR-55 notes for its own approve/reject flow).
+- **No conflict-inspector / pre-publish violation dashboard** — greenfield, not built.
+- **No admin-forced session/logout-style override** of a stuck swap or relocation — reverting is the only undo path, no separate audit-override tooling exists beyond the standard audit trail.
+
+---
+
+## BR-58: Portion-Completion Tracking & Holiday-Driven Session Scheduling
+
+> **Documentation gap backfill**, sibling to BR-56/BR-57. Also documents the pre-existing base Academic Calendar module (`calendar_events`, V60, shipped 2026-04-27) only insofar as this initiative extends it — the base module's own CRUD/grid-view UI predates this timetable-engine effort by roughly three months and has never had a BR of its own; that remains a separate, still-open documentation gap this BR does not close.
+
+### Business Rule
+
+**Progress Report combines two independent layers.** Base progress tracking (`SessionOccurrence`/`SessionOccurrenceUnit`) treats a syllabus unit as "complete" only the instant a faculty deliberately marks it so during a specific dated occurrence log — never inferred from logged hours crossing the unit's planned-hours figure. Layered on top, a portion-completion **Blueprint** (`SyllabusUnitPlan`) freezes a **Planned** completion date per unit from a one-time walk of the offering's real timetable timeline, generated once and never moving except on an explicit regenerate — while a **Projected-or-Actual** date is recomputed live on every read against whatever the timetable currently allows, so if a holiday removes sessions after the blueprint was frozen, every not-yet-complete unit's projected date cascades forward together. A remaining-shortfall check compares each subject's outstanding planned hours against its remaining available timetable hours and feeds a shortfall banner shown in both Progress Report and Capacity Planner.
+
+**Holiday auto-block.** A `HOLIDAY`-type `CalendarEvent` automatically generates and keeps in sync a set of `BlockedPeriod` rows — whole-day by default (every active Period), or a specific subset of Periods for a half-day holiday — re-synced on the event's create, update, **and** delete. A period already covered by another block (manual or another holiday) is skipped, so Capacity Planner's available-hours math never double-counts. An admin can delete one specific auto-generated block for one date+period without touching the parent holiday event at all — this is the sanctioned way to run a special/remedial class during an otherwise-blocked slot.
+
+**Effect on session generation is a date-skip on read, not a deletion.** No `SessionOccurrence` rows are ever pre-created and then removed for a blocked date — the weekly-recurring date sequence simply omits any date whose specific `Period` is blocked, checked at the Period level (not "does any holiday exist this date"), so a half-day holiday correctly blocks only the affected periods and leaves the rest of that date's sessions untouched. Skeleton Builder additionally hard-blocks placement onto holiday-auto-generated blocks specifically, distinct from manually-created one-off blocks.
+
+**Holiday Templates.** A recurring-holiday master (yearly/monthly/custom recurrence, including nth-weekday patterns like "3rd Monday of October") that auto-seeds matching `CalendarEvent` rows into every newly-created academic year. Later extended to an inline "Repeats" picker directly on the Add/Edit Calendar Event form itself (any event type, not just holidays) — quick presets plus a custom frequency/interval/end-date builder, auto-creating or updating a linked template behind the scenes so the template screen and the inline picker stay in sync.
+
+### Scope
+
+- **Entities/tables:** `SyllabusUnitPlan`/`syllabus_unit_plan` (V353), `HolidayTemplate`/`holiday_templates` (V349, extended V356–V357), `BlockedPeriod.sourceCalendarEvent` link (V350), `CalendarEvent.sourceHolidayTemplate` link (V351).
+- **Backend services:** `ProgressTrackingService` (`aggregateByUnit`, `getProgressForOffering`, `getOverallProgressSummary`), `PortionBlueprintService` (`generateBlueprint`, `getProjection`, `remainingShortfallHours`, `actualCompletionDates`), `CalendarEventService` (`syncHolidayBlocks`), `HolidayTemplateService`/`HolidayTemplateDateCalculator`/`HolidayTemplateSeedingService`.
+- **Endpoints:** `PortionBlueprintController`, `HolidayTemplateController`; Progress Report and Calendar Event endpoints extended in place.
+- **Frontend:** Progress Report screen (base progress + blueprint variance, lazy-loaded per offering), inline "Repeats" picker on the Calendar Event form, standalone Holiday Templates screen.
+
+### Permissions
+
+| Code | Gates | Seeded |
+|---|---|---|
+| `PROGRESS_LOG_CREATE` | Faculty logging session progress | V323 |
+| `PROGRESS_REPORT_VIEW` | Admin/HOD viewing the subject progress report | V323 |
+| `PORTION_BLUEPRINT_MANAGE` | Generating/regenerating the portion-completion blueprint | V355 |
+
+A `PORTION_PLAN_VISIBLE_TO_FACULTY` config toggle exists (V354) but is not yet wired to any actual gate — see Explicitly Out of Scope.
+
+### Migration Notes
+
+V60 (base `calendar_events`, pre-existing) · V317 (holiday category on calendar events) · V319–V320 (syllabus units base) · V322–V324 (`session_occurrences` base + unit-coverage hours/completion) · V323 (progress-tracking permissions) · V347–V348 (blocked periods + permissions) · V349 (holiday templates) · V350–V352 (auto-block/template linkage, template permissions) · V353–V355 (syllabus unit plan, visibility config, blueprint permission) · V356–V357 (extended recurrence, event-type on templates).
+
+### Explicitly Out of Scope
+
+- **The base Academic Calendar module itself** (year selector, event CRUD, grid view, print/export — V60) predates this timetable-engine initiative by about three months and has never been documented in a BR of its own. A real, separate documentation gap; not closed by this BR. **Update 2026-08-12: now documented as BR-59.**
+- **`PORTION_PLAN_VISIBLE_TO_FACULTY` gates nothing yet.** The config toggle was seeded (V354) anticipating a faculty-facing surface that was never built — currently Progress Report is admin/HOD-only regardless of this toggle's value.
+- **BR-55 special classes don't feed portion-completion aggregation** — already noted as future work in BR-55 itself, not duplicated here.
+
+---
+
+## BR-59: Academic Calendar — Base Module (Events, Year View, Progress, Print/Export)
+
+> **Documentation gap backfill.** This is the base Academic Calendar module (`CalendarEvent`, V60) — the year-selector/grid-view/events screen the BR-58 holiday-auto-block and Holiday Templates extensions are built on top of. It shipped 2026-04-27, roughly three months before the timetable-engine initiative (OC-69 onward) started using it, and had never been documented in a BR of its own. Written retroactively from the shipped code, not a new requirement. Does not repeat anything BR-58 already documents (holiday auto-block, Holiday Templates, inline Repeats picker) or anything the timetable engine (BR-56/57) built downstream of this module (`BlockedPeriod`, the day-detail flyout that replaced this module's original Add/Edit dialog).
+
+### Business Rule
+
+**A `CalendarEvent`** is a titled date range (`startDate`/`endDate`, `endDate` must not be before `startDate` — the only validated date rule) of one of six types — `HOLIDAY`, `EXAM`, `CULTURAL`, `SPORTS`, `WORKSHOP`, `OTHER` — scoped mandatorily to one `AcademicYear`. It was originally also optionally scoped to one `Semester`, but that FK was dropped (V116, 2026-05-07) as part of a full retirement of the `Semester` entity in favor of `TermInstance` — `calendar_events.semester_id` was removed rather than repointed, so a `CalendarEvent` today carries no term-level association at all; term/period relevance is resolved purely by client-side date-range overlap against whichever `TermInstance`s the selected academic year has, not by any FK. A `HOLIDAY`-type event can additionally carry a `holidayCategory` (`GOVERNMENT`/`LOCAL`/`INSTITUTIONAL`, added V317, nullable and cleared server-side for every other event type) — this addition (2026-07-28) already belongs to the early timetable-engine prep work, not the April origin, but is documented here since it's a direct extension of this module's own entity.
+
+**One screen, two view modes, no backend stats endpoint.** The Academic Calendar screen offers a Timeline view (a semester/term progress strip with marker dots) and a Month Grid view (one real calendar-month grid per month the selected academic year spans, Sunday-aligned, each day colored by whether it falls in an upcoming/ongoing/completed term and dotted per event type). Every number shown — total weeks, term count, days remaining in the current term, event count, each term's progress-bar percentage, and the "upcoming in the next 30 days" banner (capped at 5) — is computed **entirely client-side** from the same two GET calls (academic years, events-by-year) already needed to render the page; there is no dedicated stats/summary endpoint on the backend.
+
+**Role-gating evolved through three stages** and today has a genuine, not-merely-cosmetic split: Admin/College Admin see Years/Semesters/Add Event controls and can edit; every other role (Faculty/Student/Parent) has those controls hidden entirely — not just disabled — while still seeing the full read-only timeline/grid/events list. Print and Export are visible to every role regardless of edit permission. Gating moved from a hardcoded `hasRole('ROLE_ADMIN')`/`hasRole('ROLE_COLLEGE_ADMIN')` check (origin) → the pre-existing `ACADEMIC_YEAR_MANAGE` permission (2026-05-05, before this module had its own permission codes) → its own dedicated `ACADEMIC_CALENDAR_VIEW`/`ACADEMIC_CALENDAR_MANAGE` codes (V247, 2026-07-03), auto-granted to whichever roles already held the `ACADEMIC_YEAR_VIEW`/`MANAGE` pair at the time.
+
+**Print is a browser-print mechanism, not a PDF export.** The page's content is cloned into a hidden `<iframe>` (mirroring the host page's stylesheets), and `window.print()` is triggered on that iframe — the browser's own print dialog and print CSS produce the output, no PDF-generation library is involved.
+
+**Export is a hand-rolled CSV builder**, not a spreadsheet library — UTF-8 BOM-prefixed for Excel compatibility, columns Title / Type / Start Date / End Date / Description / Academic Year, filename `academic-calendar-{academicYearName}.csv`, disabled when there are no events to export.
+
+### Scope
+
+- **Entity/table:** `CalendarEvent`/`calendar_events` (V60) — `id`, `title`, `description`, `startDate`, `endDate`, `eventType` (`CalendarEventType` enum), `academicYear` (mandatory FK), `holidayCategory` (nullable, V317), `createdAt`/`updatedAt`. (`semester_id` existed at origin, dropped V116.)
+- **Backend:** `CalendarEventController` (`POST`/`GET`/`GET /{id}`/`GET /academic-year/{id}?eventType=`/`PUT`/`DELETE /calendar-events`), `CalendarEventService`, `CalendarEventRepository`.
+- **Frontend:** single screen `frontend/src/app/features/academic-year/academic-calendar/academic-calendar.component.ts` — Timeline/Month-Grid view toggle, inline Add/Edit Event dialog (at origin; later replaced by the day-detail flyout under BR-56/57's Skeleton-Builder-era work, out of scope here), Print and CSV Export actions.
+- **Nav:** "Academic Calendar" under the **Preferences** nav group (not Academics), route `/academic-calendar`.
+
+### Permissions
+
+| Code | Gates | Seeded |
+|---|---|---|
+| `ACADEMIC_CALENDAR_VIEW` | Read access to the calendar screen | V247 |
+| `ACADEMIC_CALENDAR_MANAGE` | Add/edit/delete events, and shows the Years/Semesters/Add Event controls | V247 |
+
+Auto-assigned at seed time to every role already holding `ACADEMIC_YEAR_VIEW`/`ACADEMIC_YEAR_MANAGE` respectively.
+
+### Migration Notes
+
+- V59 — adds `status` to `semesters` (shipped in the same origin PR; superseded by the later `Semester`→`TermInstance` retirement, V115–V117).
+- V60 — creates `calendar_events`.
+- V116 — drops `semester_id` from `calendar_events` (part of the full `Semester` entity retirement).
+- V247 — adds `ACADEMIC_CALENDAR_VIEW`/`MANAGE` permission codes, auto-assigned from the `ACADEMIC_YEAR_VIEW`/`MANAGE` pair.
+- V295 — adds `idx_calendar_events_date_range(academic_year_id, event_type, start_date, end_date)`, added 2026-07-20 to support the timetable engine's date-range holiday lookups (OC-69) — infrastructure for a downstream consumer, not a base-module behavior change.
+- V317 — adds `holiday_category` (see Business Rule; OC-88, early timetable-engine prep).
+
+### Explicitly Out of Scope
+
+- ~~**A latent permission-code mismatch, found not fixed.**~~ **Fixed 2026-08-12.** `nav-config.ts`'s nav entry gated on the current `ACADEMIC_CALENDAR_VIEW`/`MANAGE` codes, but the route guard in `app.routes.ts` still checked the old `ACADEMIC_YEAR_VIEW`/`ACADEMIC_YEAR_MANAGE` codes — never updated despite the 2026-07-03 permission-isolation commit's own message claiming the nav entry was migrated. Verified behavior-neutral (every role in the local dev DB held both pairs identically) before changing `app.routes.ts`'s `canActivate` to `withPermission('ACADEMIC_CALENDAR_VIEW', 'ACADEMIC_CALENDAR_MANAGE')`, matching the nav entry. No schema/permission change — a route-guard code fix only.
+- **No dedicated stats/summary backend endpoint** — all figures (weeks, term count, days remaining, event count, per-term progress percentage) are computed client-side from data already fetched for rendering; there's no reusable server-side "calendar stats" API another screen could call.
+- **Holiday auto-block, Holiday Templates, the inline Repeats picker, and `BlockedPeriod` integration** — all documented in BR-58, not repeated here.
+- **The day-detail flyout that later replaced this module's original inline Add/Edit dialog** — that UI evolution happened as part of the timetable engine's own Capacity Planning work (OC-97) and is downstream of this module, not part of its base scope.
 
 ---
 
