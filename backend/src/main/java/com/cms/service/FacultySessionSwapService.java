@@ -8,14 +8,15 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.ConstraintViolation;
 import com.cms.dto.StaffSwapCandidateResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.ClassSchedule;
 import com.cms.model.SessionOccurrence;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.repository.ClassScheduleRepository;
-import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.SessionOccurrenceRepository;
 
 /**
@@ -32,21 +33,21 @@ import com.cms.repository.SessionOccurrenceRepository;
 public class FacultySessionSwapService {
 
     private final ClassScheduleRepository classScheduleRepository;
-    private final FacultyAvailabilityRepository facultyAvailabilityRepository;
     private final SessionOccurrenceRepository sessionOccurrenceRepository;
     private final ClassScheduleOccurrenceService occurrenceService;
     private final AuditLogService auditLogService;
+    private final TimetableStaffingService timetableStaffingService;
 
     public FacultySessionSwapService(ClassScheduleRepository classScheduleRepository,
-                                      FacultyAvailabilityRepository facultyAvailabilityRepository,
                                       SessionOccurrenceRepository sessionOccurrenceRepository,
                                       ClassScheduleOccurrenceService occurrenceService,
-                                      AuditLogService auditLogService) {
+                                      AuditLogService auditLogService,
+                                      TimetableStaffingService timetableStaffingService) {
         this.classScheduleRepository = classScheduleRepository;
-        this.facultyAvailabilityRepository = facultyAvailabilityRepository;
         this.sessionOccurrenceRepository = sessionOccurrenceRepository;
         this.occurrenceService = occurrenceService;
         this.auditLogService = auditLogService;
+        this.timetableStaffingService = timetableStaffingService;
     }
 
     public List<StaffSwapCandidateResponse> findSwapCandidates(Long classScheduleId, LocalDate date) {
@@ -62,10 +63,10 @@ public class FacultySessionSwapService {
             if (candidate.getFaculty().getId().equals(source.getFaculty().getId())) continue;
 
             LocalTime[] candidateTimes = resolveTimes(candidate);
-            boolean sourceFacultyFreeAtCandidateSlot = isFacultyFreeAt(source.getFaculty().getId(),
-                source.getDayOfWeek(), candidateTimes[0], candidateTimes[1], source.getId(), source.getTermInstance().getId());
-            boolean candidateFacultyFreeAtSourceSlot = isFacultyFreeAt(candidate.getFaculty().getId(),
-                source.getDayOfWeek(), sourceTimes[0], sourceTimes[1], candidate.getId(), source.getTermInstance().getId());
+            boolean sourceFacultyFreeAtCandidateSlot =
+                checkFacultyFreeToMove(source, source.getDayOfWeek(), candidateTimes[0], candidateTimes[1]).isEmpty();
+            boolean candidateFacultyFreeAtSourceSlot =
+                checkFacultyFreeToMove(candidate, source.getDayOfWeek(), sourceTimes[0], sourceTimes[1]).isEmpty();
 
             if (sourceFacultyFreeAtCandidateSlot && candidateFacultyFreeAtSourceSlot) {
                 results.add(new StaffSwapCandidateResponse(candidate.getId(), candidate.getSubject().getName(),
@@ -80,11 +81,22 @@ public class FacultySessionSwapService {
         ClassSchedule a = requirePublishedRealOccurrence(sessionAId, date);
         ClassSchedule b = requirePublishedRealOccurrence(sessionBId, date);
 
-        // Never trust a stale candidate list -- re-validate mutual availability from scratch.
-        boolean stillValid = findSwapCandidates(sessionAId, date).stream()
-            .anyMatch(c -> c.classScheduleId().equals(sessionBId));
-        if (!stillValid) {
-            throw new IllegalArgumentException("This swap is no longer available — availability may have changed since candidates were loaded");
+        // Never trust a stale candidate list -- re-validate mutual availability from scratch,
+        // directly rather than by re-deriving through findSwapCandidates' own list-membership check
+        // (which only reported pass/fail, discarding the specific reason on failure).
+        if (!a.getDayOfWeek().equals(b.getDayOfWeek())) {
+            throw new IllegalArgumentException("Both sessions must fall on the same day to be swapped");
+        }
+        if (a.getFaculty().getId().equals(b.getFaculty().getId())) {
+            throw new IllegalArgumentException("Cannot swap a session with another session taught by the same faculty member");
+        }
+        LocalTime[] aTimes = resolveTimes(a);
+        LocalTime[] bTimes = resolveTimes(b);
+        List<ConstraintViolation> violations = new ArrayList<>();
+        violations.addAll(checkFacultyFreeToMove(a, a.getDayOfWeek(), bTimes[0], bTimes[1]));
+        violations.addAll(checkFacultyFreeToMove(b, b.getDayOfWeek(), aTimes[0], aTimes[1]));
+        if (!violations.isEmpty()) {
+            throw new TimetableConstraintViolationException(violations);
         }
 
         SessionOccurrence occA = sessionOccurrenceRepository.findByClassScheduleIdAndOccurrenceDate(sessionAId, date)
@@ -108,14 +120,21 @@ public class FacultySessionSwapService {
                 + a.getFaculty().getFullName() + " <-> " + b.getFaculty().getFullName());
     }
 
-    private boolean isFacultyFreeAt(Long facultyId, DayOfWeek day, LocalTime start, LocalTime end,
-                                     Long excludeScheduleId, Long termInstanceId) {
-        if (!facultyAvailabilityRepository.findOverlapping(facultyId, day, start, end).isEmpty()) {
-            return false;
-        }
-        List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
-            day, termInstanceId, start, end, ClassScheduleStatus.PUBLISHED, excludeScheduleId);
-        return overlapping.stream().noneMatch(cs -> cs.getFaculty().getId().equals(facultyId));
+    /** Non-throwing: reuses {@link TimetableStaffingService}'s shared, already-validated checks
+     *  (same ones {@code staffCell} uses) instead of this service's own former hand-rolled
+     *  availability/overlap query -- also closes a real gap where a single-date substitution never
+     *  rechecked workload caps. Passing {@code cs} directly (not raw id/exclude params) mirrors the
+     *  reuse pattern {@link TimetableSkeletonService#moveCell} already established for "re-check an
+     *  existing entity at a target day/time without mutating it first". Widens from this service's
+     *  old PUBLISHED-only scope to the shared checks' PUBLISHED+DRAFT scope -- a faculty member's own
+     *  not-yet-approved DRAFT row at this day/time in the same term now also blocks the swap. */
+    private List<ConstraintViolation> checkFacultyFreeToMove(ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end) {
+        List<ConstraintViolation> violations = new ArrayList<>();
+        Long facultyId = cs.getFaculty().getId();
+        timetableStaffingService.checkFacultyAvailable(facultyId, day, start, end).ifPresent(violations::add);
+        timetableStaffingService.checkFacultyFree(facultyId, cs, day, start, end).ifPresent(violations::add);
+        violations.addAll(timetableStaffingService.checkWithinWorkloadCaps(cs.getFaculty(), cs, day, start, end));
+        return violations;
     }
 
     private ClassSchedule requirePublishedRealOccurrence(Long classScheduleId, LocalDate date) {

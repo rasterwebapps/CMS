@@ -8,6 +8,7 @@ import { TimetableService } from '../timetable.service';
 import { ClassScheduleOccurrence, StaffSwapCandidate } from '../timetable.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { violationText } from '../../../shared/util/violation-text';
 
 @Component({
   selector: 'app-staff-session-swap',
@@ -141,7 +142,7 @@ export class StaffSessionSwapComponent implements OnInit {
         this.loadDay();
       },
       error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to apply swap');
+        this.toast.error(violationText(err) ?? 'Failed to apply swap');
         this.applyingCandidateId.set(null);
       },
     });

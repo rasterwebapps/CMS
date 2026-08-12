@@ -2,13 +2,13 @@ package com.cms.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,7 +18,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.ConstraintViolation;
 import com.cms.dto.StaffSwapCandidateResponse;
+import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.AcademicYear;
 import com.cms.model.ClassSchedule;
 import com.cms.model.DesignationMaster;
@@ -34,17 +36,16 @@ import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.ClassScheduleRepository;
-import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.SessionOccurrenceRepository;
 
 @ExtendWith(MockitoExtension.class)
 class FacultySessionSwapServiceTest {
 
     @Mock private ClassScheduleRepository classScheduleRepository;
-    @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
     @Mock private SessionOccurrenceRepository sessionOccurrenceRepository;
     @Mock private ClassScheduleOccurrenceService occurrenceService;
     @Mock private AuditLogService auditLogService;
+    @Mock private TimetableStaffingService timetableStaffingService;
 
     private FacultySessionSwapService service;
 
@@ -57,8 +58,8 @@ class FacultySessionSwapServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new FacultySessionSwapService(classScheduleRepository, facultyAvailabilityRepository,
-            sessionOccurrenceRepository, occurrenceService, auditLogService);
+        service = new FacultySessionSwapService(classScheduleRepository,
+            sessionOccurrenceRepository, occurrenceService, auditLogService, timetableStaffingService);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);
@@ -120,14 +121,6 @@ class FacultySessionSwapServiceTest {
         when(occurrenceService.occurrenceDatesFor(sessionA, date, date)).thenReturn(List.of(date));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(10L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
             .thenReturn(List.of(sessionA, sessionB));
-        when(facultyAvailabilityRepository.findOverlapping(1L, DayOfWeek.MONDAY, LocalTime.of(10, 0), LocalTime.of(11, 0)))
-            .thenReturn(Collections.emptyList());
-        when(facultyAvailabilityRepository.findOverlapping(2L, DayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)))
-            .thenReturn(Collections.emptyList());
-        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, LocalTime.of(10, 0), LocalTime.of(11, 0),
-            ClassScheduleStatus.PUBLISHED, 300L)).thenReturn(Collections.emptyList());
-        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, LocalTime.of(9, 0), LocalTime.of(10, 0),
-            ClassScheduleStatus.PUBLISHED, 301L)).thenReturn(Collections.emptyList());
 
         List<StaffSwapCandidateResponse> candidates = service.findSwapCandidates(300L, date);
 
@@ -143,8 +136,22 @@ class FacultySessionSwapServiceTest {
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(10L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
             .thenReturn(List.of(sessionA, sessionB));
         // Faculty A is blocked at B's slot (10-11) -- mutual check fails.
-        when(facultyAvailabilityRepository.findOverlapping(1L, DayOfWeek.MONDAY, LocalTime.of(10, 0), LocalTime.of(11, 0)))
-            .thenReturn(List.of(new com.cms.model.FacultyAvailability()));
+        when(timetableStaffingService.checkFacultyAvailable(1L, DayOfWeek.MONDAY, LocalTime.of(10, 0), LocalTime.of(11, 0)))
+            .thenReturn(Optional.of(new ConstraintViolation("STAFFING_FACULTY_UNAVAILABLE", "On leave")));
+
+        List<StaffSwapCandidateResponse> candidates = service.findSwapCandidates(300L, date);
+
+        assertThat(candidates).isEmpty();
+    }
+
+    @Test
+    void shouldExcludeCandidateThatWouldExceedAWorkloadCap() {
+        when(classScheduleRepository.findById(300L)).thenReturn(Optional.of(sessionA));
+        when(occurrenceService.occurrenceDatesFor(sessionA, date, date)).thenReturn(List.of(date));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(10L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
+            .thenReturn(List.of(sessionA, sessionB));
+        when(timetableStaffingService.checkWithinWorkloadCaps(eq(facultyA), eq(sessionA), eq(DayOfWeek.MONDAY), any(), any()))
+            .thenReturn(List.of(new ConstraintViolation("STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED", "Over the daily cap")));
 
         List<StaffSwapCandidateResponse> candidates = service.findSwapCandidates(300L, date);
 
@@ -177,10 +184,6 @@ class FacultySessionSwapServiceTest {
         when(classScheduleRepository.findById(301L)).thenReturn(Optional.of(sessionB));
         when(occurrenceService.occurrenceDatesFor(sessionA, date, date)).thenReturn(List.of(date));
         when(occurrenceService.occurrenceDatesFor(sessionB, date, date)).thenReturn(List.of(date));
-        when(classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(10L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
-            .thenReturn(List.of(sessionA, sessionB));
-        when(facultyAvailabilityRepository.findOverlapping(any(), any(), any(), any())).thenReturn(Collections.emptyList());
-        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any())).thenReturn(Collections.emptyList());
         when(sessionOccurrenceRepository.findByClassScheduleIdAndOccurrenceDate(300L, date)).thenReturn(Optional.empty());
         when(sessionOccurrenceRepository.findByClassScheduleIdAndOccurrenceDate(301L, date)).thenReturn(Optional.empty());
         when(sessionOccurrenceRepository.save(any(SessionOccurrence.class))).thenAnswer(inv -> {
@@ -193,5 +196,32 @@ class FacultySessionSwapServiceTest {
 
         assertThat(sessionA.getFaculty().getId()).isEqualTo(1L);
         assertThat(sessionB.getFaculty().getId()).isEqualTo(2L);
+    }
+
+    @Test
+    void shouldRejectApplySwapBetweenSessionsTaughtByTheSameFaculty() {
+        sessionB.setFaculty(facultyA);
+        when(classScheduleRepository.findById(300L)).thenReturn(Optional.of(sessionA));
+        when(classScheduleRepository.findById(301L)).thenReturn(Optional.of(sessionB));
+        when(occurrenceService.occurrenceDatesFor(sessionA, date, date)).thenReturn(List.of(date));
+        when(occurrenceService.occurrenceDatesFor(sessionB, date, date)).thenReturn(List.of(date));
+
+        assertThatThrownBy(() -> service.applySwap(300L, 301L, date, "admin"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("same faculty");
+    }
+
+    @Test
+    void shouldRejectApplySwapWhenWorkloadCapWouldBeExceeded() {
+        when(classScheduleRepository.findById(300L)).thenReturn(Optional.of(sessionA));
+        when(classScheduleRepository.findById(301L)).thenReturn(Optional.of(sessionB));
+        when(occurrenceService.occurrenceDatesFor(sessionA, date, date)).thenReturn(List.of(date));
+        when(occurrenceService.occurrenceDatesFor(sessionB, date, date)).thenReturn(List.of(date));
+        when(timetableStaffingService.checkWithinWorkloadCaps(eq(facultyA), eq(sessionA), eq(DayOfWeek.MONDAY), any(), any()))
+            .thenReturn(List.of(new ConstraintViolation("STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED", "Over the daily cap")));
+
+        assertThatThrownBy(() -> service.applySwap(300L, 301L, date, "admin"))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("Over the daily cap");
     }
 }

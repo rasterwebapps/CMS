@@ -7,18 +7,18 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.ConstraintViolation;
 import com.cms.dto.SwapCandidateResponse;
 import com.cms.dto.SwapRequest;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Period;
-import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.repository.ClassScheduleRepository;
-import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.PeriodRepository;
 
 /**
@@ -39,27 +39,31 @@ import com.cms.repository.PeriodRepository;
 public class TimetableSwapService {
 
     private final ClassScheduleRepository classScheduleRepository;
-    private final FacultyAvailabilityRepository facultyAvailabilityRepository;
     private final PeriodRepository periodRepository;
     private final TimetableBlockedPeriodChecker blockedPeriodChecker;
     private final AuditLogService auditLogService;
+    private final TimetableStaffingService timetableStaffingService;
 
     public TimetableSwapService(ClassScheduleRepository classScheduleRepository,
-                                 FacultyAvailabilityRepository facultyAvailabilityRepository,
                                  PeriodRepository periodRepository,
                                  TimetableBlockedPeriodChecker blockedPeriodChecker,
-                                 AuditLogService auditLogService) {
+                                 AuditLogService auditLogService,
+                                 TimetableStaffingService timetableStaffingService) {
         this.classScheduleRepository = classScheduleRepository;
-        this.facultyAvailabilityRepository = facultyAvailabilityRepository;
         this.periodRepository = periodRepository;
         this.blockedPeriodChecker = blockedPeriodChecker;
         this.auditLogService = auditLogService;
+        this.timetableStaffingService = timetableStaffingService;
     }
 
     /** Whether a (day,start,end) slot works for `moving` — availability-clean and, if occupied,
-     *  occupied by at most one same-room session (the potential swap partner). */
-    private record SlotEvaluation(boolean valid, ClassSchedule occupant) {
-        static final SlotEvaluation BLOCKED = new SlotEvaluation(false, null);
+     *  occupied by at most one same-room session (the potential swap partner). `violations` is
+     *  populated whenever `valid` is false, carrying the specific reason(s) so callers can surface
+     *  more than "slot unavailable" at commit time. */
+    private record SlotEvaluation(boolean valid, ClassSchedule occupant, List<ConstraintViolation> violations) {
+        static SlotEvaluation blocked(List<ConstraintViolation> violations) {
+            return new SlotEvaluation(false, null, violations);
+        }
     }
 
     public List<SwapCandidateResponse> findCandidates(Long termInstanceId, Long sessionId) {
@@ -110,13 +114,14 @@ public class TimetableSwapService {
         // Never trust a stale candidate list — re-evaluate from scratch.
         SlotEvaluation eval = evaluateSlot(source, request.dayOfWeek(), start, end, targetPeriod.getId(), null);
         if (!eval.valid()) {
-            throw slotUnavailable(sessionId);
+            throw new TimetableConstraintViolationException(eval.violations());
         }
 
         if (eval.occupant() != null) {
             ClassSchedule occupant = eval.occupant();
-            if (!evaluateReverse(source, occupant).valid()) {
-                throw slotUnavailable(sessionId);
+            SlotEvaluation reverseEval = evaluateReverse(source, occupant);
+            if (!reverseEval.valid()) {
+                throw new TimetableConstraintViolationException(reverseEval.violations());
             }
             occupant.setDayOfWeek(source.getDayOfWeek());
             occupant.setPeriod(source.getPeriod());
@@ -140,22 +145,43 @@ public class TimetableSwapService {
 
     /** @param alsoExcludeId an additional row (besides `moving` itself, always excluded) to leave
      *                       out of the conflict scan — used for the reverse-swap check, where the
-     *                       session vacating the slot must not count as a blocker. */
+     *                       session vacating the slot must not count as a blocker.
+     *
+     *  <p>Faculty-availability and workload-cap checks below delegate to {@link
+     *  TimetableStaffingService}'s shared, already-validated methods (same ones {@code staffCell}
+     *  uses) — a candidate slot a faculty member can't actually be staffed into shouldn't be
+     *  offered as swappable either. Faculty-conflict/room/audience detection stays hand-rolled
+     *  against one shared query, for two reasons neither shared method's contract covers: (1) an
+     *  occupied target slot in the *same room* can legitimately become a two-way swap partner here
+     *  (not "must be entirely free"), and (2) {@code alsoExcludeId} — the reverse-swap partner's own
+     *  still-unmutated row — must never count as a blocker against itself, which {@link
+     *  TimetableStaffingService#checkFacultyFree} has no way to express (single-excludeId contract). */
     private SlotEvaluation evaluateSlot(ClassSchedule moving, DayOfWeek day, LocalTime start, LocalTime end,
                                          Long periodId, Long alsoExcludeId) {
-        if (isBlocked(day, periodId, moving.getTermInstance())) {
-            return SlotEvaluation.BLOCKED;
-        }
+        List<ConstraintViolation> violations = new ArrayList<>();
+        blockedPeriodChecker.blockReason(day, periodId, moving.getTermInstance().getStartDate(), moving.getTermInstance().getEndDate())
+            .ifPresent(reason -> violations.add(new ConstraintViolation(
+                "SWAP_PERIOD_BLOCKED", "This day and period is blocked: " + reason)));
 
-        // Null for an unstaffed R3 Phase 4 skeleton row -- nothing to check faculty-availability
-        // or faculty-conflict against yet, so both checks below become no-ops for it.
+        // Null for an unstaffed R3 Phase 4 skeleton row -- nothing to check faculty-availability,
+        // workload caps, or faculty-conflict against yet, so all three become no-ops for it.
         Long facultyId = moving.getFaculty() != null ? moving.getFaculty().getId() : null;
-        if (facultyId != null && !facultyAvailabilityRepository.findOverlapping(facultyId, day, start, end).isEmpty()) {
-            return SlotEvaluation.BLOCKED;
+        if (facultyId != null) {
+            timetableStaffingService.checkFacultyAvailable(facultyId, day, start, end).ifPresent(violations::add);
+            violations.addAll(timetableStaffingService.checkWithinWorkloadCaps(moving.getFaculty(), moving, day, start, end));
+        }
+        if (!violations.isEmpty()) {
+            return SlotEvaluation.blocked(violations);
         }
 
-        List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
-            day, moving.getTermInstance().getId(), start, end, ClassScheduleStatus.DRAFT, moving.getId());
+        // Faculty/room/audience conflicts, checked against both PUBLISHED and other DRAFT rows in
+        // one shared query -- widened from the old DRAFT-only scan, closing a gap where a draft swap
+        // could otherwise land on a slot a live PUBLISHED session already occupies.
+        List<ClassSchedule> overlapping = new ArrayList<>();
+        for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
+            overlapping.addAll(classScheduleRepository.findOverlapping(
+                day, moving.getTermInstance().getId(), start, end, status, moving.getId()));
+        }
         if (alsoExcludeId != null) {
             overlapping = overlapping.stream().filter(cs -> !cs.getId().equals(alsoExcludeId)).toList();
         }
@@ -173,32 +199,30 @@ public class TimetableSwapService {
                 ? (cs.getClassroom() != null ? cs.getClassroom().getId() : null)
                 : (cs.getLab() != null ? cs.getLab().getId() : null);
             if (sameSessionType && roomId != null && roomId.equals(csRoomId)) {
-                if (roomOccupant != null) {
-                    return SlotEvaluation.BLOCKED; // more than one session in the same room shouldn't happen structurally
+                // A PUBLISHED occupant can never be a swap partner -- this service only ever
+                // reschedules DRAFT rows, so silently moving a live session would be a real bug.
+                // More than one DRAFT occupant in the same room shouldn't happen structurally either.
+                if (cs.getStatus() != ClassScheduleStatus.DRAFT || roomOccupant != null) {
+                    violations.add(new ConstraintViolation("SWAP_ROOM_CONFLICT",
+                        "This room is already occupied by another session at this exact day and time."));
+                    return SlotEvaluation.blocked(violations);
                 }
                 roomOccupant = cs;
                 continue;
             }
             if (facultyId != null && cs.getFaculty() != null && cs.getFaculty().getId().equals(facultyId)) {
-                return SlotEvaluation.BLOCKED;
+                violations.add(new ConstraintViolation("SWAP_FACULTY_CONFLICT",
+                    "This faculty member is already scheduled for another session at this exact day and time."));
+                return SlotEvaluation.blocked(violations);
             }
             Long csAudienceId = resolveAudienceId(cs);
             if (sameSessionType && audienceId != null && audienceId.equals(csAudienceId)) {
-                return SlotEvaluation.BLOCKED;
+                violations.add(new ConstraintViolation("SWAP_AUDIENCE_CONFLICT",
+                    "This slot is already occupied by another session for the same cohort/batch."));
+                return SlotEvaluation.blocked(violations);
             }
         }
-        return new SlotEvaluation(true, roomOccupant);
-    }
-
-    /** Non-throwing sibling of {@link TimetableSkeletonService}'s equivalent check — a candidate
-     *  slot that falls in a recurring institutional lock or a holiday-derived one-off block simply
-     *  never shows up as valid, rather than surfacing a distinct error code (there's no dedicated
-     *  UI affordance here to explain "why" a slot didn't appear, unlike the skeleton builder's
-     *  explicit placement action). Manually-created ONE_OFF blocks never reach this check, matching
-     *  the skeleton builder's own coarseness. */
-    private boolean isBlocked(DayOfWeek dayOfWeek, Long periodId, TermInstance termInstance) {
-        return blockedPeriodChecker.blockReason(dayOfWeek, periodId, termInstance.getStartDate(), termInstance.getEndDate())
-            .isPresent();
+        return new SlotEvaluation(true, roomOccupant, List.of());
     }
 
     /** THEORY audience is batch-scoped when a section was picked (R3 Phase 3), falling back to
@@ -222,11 +246,5 @@ public class TimetableSwapService {
                 "SESSION_NOT_DRAFT", "ClassSchedule", sessionId, null);
         }
         return cs;
-    }
-
-    private static LifecycleConflictException slotUnavailable(Long sessionId) {
-        return new LifecycleConflictException(
-            "This slot is no longer available for swap — it may have changed since candidates were loaded.",
-            "SWAP_SLOT_UNAVAILABLE", "ClassSchedule", sessionId, null);
     }
 }

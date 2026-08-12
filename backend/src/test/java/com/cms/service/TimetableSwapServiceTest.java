@@ -20,15 +20,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.ConstraintViolation;
 import com.cms.dto.SwapCandidateResponse;
 import com.cms.dto.SwapRequest;
 import com.cms.exception.LifecycleConflictException;
+import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.CourseOffering;
 import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
-import com.cms.model.FacultyAvailability;
 import com.cms.model.Period;
 import com.cms.model.Speciality;
 import com.cms.model.Subject;
@@ -38,17 +39,16 @@ import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.repository.ClassScheduleRepository;
-import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.PeriodRepository;
 
 @ExtendWith(MockitoExtension.class)
 class TimetableSwapServiceTest {
 
     @Mock private ClassScheduleRepository classScheduleRepository;
-    @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
     @Mock private PeriodRepository periodRepository;
     @Mock private TimetableBlockedPeriodChecker blockedPeriodChecker;
     @Mock private AuditLogService auditLogService;
+    @Mock private TimetableStaffingService timetableStaffingService;
 
     private TimetableSwapService service;
 
@@ -63,8 +63,8 @@ class TimetableSwapServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TimetableSwapService(classScheduleRepository, facultyAvailabilityRepository,
-            periodRepository, blockedPeriodChecker, auditLogService);
+        service = new TimetableSwapService(classScheduleRepository, periodRepository,
+            blockedPeriodChecker, auditLogService, timetableStaffingService);
 
         termInstance = new TermInstance();
         termInstance.setId(10L);
@@ -119,8 +119,7 @@ class TimetableSwapServiceTest {
     void shouldOfferEmptySlotAsCandidateWhenNothingElseScheduled() {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(p1, p2));
-        when(facultyAvailabilityRepository.findOverlapping(eq(1L), any(), any(), any())).thenReturn(Collections.emptyList());
-        when(classScheduleRepository.findOverlapping(any(), eq(10L), any(), any(), eq(ClassScheduleStatus.DRAFT), eq(100L)))
+        when(classScheduleRepository.findOverlapping(any(), eq(10L), any(), any(), any(), eq(100L)))
             .thenReturn(Collections.emptyList());
 
         List<SwapCandidateResponse> candidates = service.findCandidates(10L, 100L);
@@ -134,8 +133,20 @@ class TimetableSwapServiceTest {
     void shouldExcludeSlotsBlockedByFacultyAvailability() {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(p1, p2));
-        when(facultyAvailabilityRepository.findOverlapping(eq(1L), any(), any(), any()))
-            .thenReturn(List.of(new FacultyAvailability()));
+        when(timetableStaffingService.checkFacultyAvailable(eq(1L), any(), any(), any()))
+            .thenReturn(Optional.of(new ConstraintViolation("STAFFING_FACULTY_UNAVAILABLE", "On leave")));
+
+        List<SwapCandidateResponse> candidates = service.findCandidates(10L, 100L);
+
+        assertThat(candidates).isEmpty();
+    }
+
+    @Test
+    void shouldExcludeSlotsThatWouldExceedAWorkloadCap() {
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(p1, p2));
+        when(timetableStaffingService.checkWithinWorkloadCaps(eq(faculty), eq(source), any(), any(), any()))
+            .thenReturn(List.of(new ConstraintViolation("STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED", "Over the daily cap")));
 
         List<SwapCandidateResponse> candidates = service.findCandidates(10L, 100L);
 
@@ -146,10 +157,8 @@ class TimetableSwapServiceTest {
     void shouldMoveSessionToAnEmptySlot() {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(p2));
-        when(facultyAvailabilityRepository.findOverlapping(eq(1L), eq(DayOfWeek.TUESDAY), any(), any()))
-            .thenReturn(Collections.emptyList());
         when(classScheduleRepository.findOverlapping(eq(DayOfWeek.TUESDAY), eq(10L), any(), any(),
-            eq(ClassScheduleStatus.DRAFT), eq(100L))).thenReturn(Collections.emptyList());
+            any(), eq(100L))).thenReturn(Collections.emptyList());
 
         service.swap(10L, 100L, new SwapRequest(DayOfWeek.TUESDAY, 2L), "admin");
 
@@ -159,7 +168,7 @@ class TimetableSwapServiceTest {
     }
 
     @Test
-    void shouldSwapWithOccupyingSessionInSameRoom() {
+    void shouldSwapWithOccupyingDraftSessionInSameRoom() {
         ClassSchedule occupant = new ClassSchedule();
         occupant.setId(200L);
         occupant.setSessionType(ClassSessionType.THEORY);
@@ -178,9 +187,12 @@ class TimetableSwapServiceTest {
 
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(p2));
-        when(facultyAvailabilityRepository.findOverlapping(any(), any(), any(), any())).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findOverlapping(eq(DayOfWeek.TUESDAY), eq(10L), eq(p2.getStartTime()), eq(p2.getEndTime()),
+            eq(ClassScheduleStatus.PUBLISHED), eq(100L))).thenReturn(List.of());
         when(classScheduleRepository.findOverlapping(eq(DayOfWeek.TUESDAY), eq(10L), eq(p2.getStartTime()), eq(p2.getEndTime()),
             eq(ClassScheduleStatus.DRAFT), eq(100L))).thenReturn(List.of(occupant));
+        when(classScheduleRepository.findOverlapping(eq(DayOfWeek.MONDAY), eq(10L), eq(p1.getStartTime()), eq(p1.getEndTime()),
+            eq(ClassScheduleStatus.PUBLISHED), eq(200L))).thenReturn(List.of());
         when(classScheduleRepository.findOverlapping(eq(DayOfWeek.MONDAY), eq(10L), eq(p1.getStartTime()), eq(p1.getEndTime()),
             eq(ClassScheduleStatus.DRAFT), eq(200L))).thenReturn(List.of());
 
@@ -195,11 +207,35 @@ class TimetableSwapServiceTest {
     }
 
     @Test
+    void shouldRejectSwapOntoASlotOccupiedByAPublishedSession() {
+        // Closes a real gap: this service only ever reschedules DRAFT rows, so a PUBLISHED
+        // occupant must always be a hard conflict, never a swap-partner candidate.
+        ClassSchedule publishedOccupant = new ClassSchedule();
+        publishedOccupant.setId(200L);
+        publishedOccupant.setSessionType(ClassSessionType.THEORY);
+        publishedOccupant.setStatus(ClassScheduleStatus.PUBLISHED);
+        Faculty otherFaculty = new Faculty();
+        otherFaculty.setId(2L);
+        publishedOccupant.setFaculty(otherFaculty);
+        publishedOccupant.setClassroom(classroom);
+
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
+        when(periodRepository.findById(2L)).thenReturn(Optional.of(p2));
+        when(classScheduleRepository.findOverlapping(eq(DayOfWeek.TUESDAY), eq(10L), eq(p2.getStartTime()), eq(p2.getEndTime()),
+            eq(ClassScheduleStatus.PUBLISHED), eq(100L))).thenReturn(List.of(publishedOccupant));
+        lenient().when(classScheduleRepository.findOverlapping(eq(DayOfWeek.TUESDAY), eq(10L), eq(p2.getStartTime()), eq(p2.getEndTime()),
+            eq(ClassScheduleStatus.DRAFT), eq(100L))).thenReturn(Collections.emptyList());
+
+        assertThatThrownBy(() -> service.swap(10L, 100L, new SwapRequest(DayOfWeek.TUESDAY, 2L), "admin"))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("already occupied");
+    }
+
+    @Test
     void shouldExcludeARecurringBlockedPeriodFromCandidates() {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(p1, p2));
-        when(facultyAvailabilityRepository.findOverlapping(eq(1L), any(), any(), any())).thenReturn(Collections.emptyList());
-        when(classScheduleRepository.findOverlapping(any(), eq(10L), any(), any(), eq(ClassScheduleStatus.DRAFT), eq(100L)))
+        when(classScheduleRepository.findOverlapping(any(), eq(10L), any(), any(), any(), eq(100L)))
             .thenReturn(Collections.emptyList());
         // Block every day for p2 specifically -- p1's only candidate day (MONDAY) is already
         // excluded as the session's own current slot, so this isolates the effect to p2's rows.
@@ -223,7 +259,7 @@ class TimetableSwapServiceTest {
             .thenReturn(Optional.of("Staff meeting"));
 
         assertThatThrownBy(() -> service.swap(10L, 100L, new SwapRequest(DayOfWeek.TUESDAY, 2L), "admin"))
-            .isInstanceOf(LifecycleConflictException.class)
-            .hasMessageContaining("no longer available");
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("Staff meeting");
     }
 }

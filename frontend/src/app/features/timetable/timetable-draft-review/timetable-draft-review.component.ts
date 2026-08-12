@@ -192,7 +192,7 @@ export class TimetableDraftReviewComponent implements OnInit {
         this.loadDraft(this.selectedTermInstanceId!);
       },
       error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to swap — this slot may no longer be available');
+        this.toast.error(violationText(err) ?? 'Failed to swap — this slot may no longer be available');
         this.swapping.set(false);
         // Refresh candidates in case the conflict is stale, rather than leaving a dead list up.
         this.timetableService.getSwapCandidates(this.selectedTermInstanceId!, source.id).subscribe({
