@@ -755,4 +755,107 @@ class TimetableStaffingServiceTest {
 
         assertThat(cell.getFaculty()).isEqualTo(eligibleFaculty);
     }
+
+    // ---- OC-127: validateAssignment()'s new room/audience scan (used directly by
+    // TimetableSwapService, not just via staffCell's STRICT-mode path above) ----
+
+    @Test
+    void validateAssignmentShouldOfferASingleDraftSameRoomOccupantAsASwapPartnerInsteadOfAViolation() {
+        ClassSchedule draftOccupant = new ClassSchedule();
+        draftOccupant.setId(300L);
+        draftOccupant.setSessionType(ClassSessionType.THEORY);
+        draftOccupant.setStatus(ClassScheduleStatus.DRAFT);
+        draftOccupant.setClassroom(classroom);
+
+        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
+            ClassScheduleStatus.PUBLISHED, 100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
+            ClassScheduleStatus.DRAFT, 100L)).thenReturn(List.of(draftOccupant));
+
+        var roomCheck = new TimetableStaffingService.RoomCheckSpec(
+            ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), TimetableStaffingService.RoomMode.ALLOW_SINGLE_DRAFT_SWAP_PARTNER);
+        var result = service.validateAssignment(cell, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(),
+            null, null, roomCheck, null);
+
+        assertThat(result.isValid()).isTrue();
+        assertThat(result.swapPartnerOccupant()).isEqualTo(draftOccupant);
+    }
+
+    @Test
+    void validateAssignmentShouldRejectAPublishedOccupantEvenInSwapPartnerMode() {
+        ClassSchedule publishedOccupant = new ClassSchedule();
+        publishedOccupant.setId(300L);
+        publishedOccupant.setSessionType(ClassSessionType.THEORY);
+        publishedOccupant.setStatus(ClassScheduleStatus.PUBLISHED);
+        publishedOccupant.setClassroom(classroom);
+
+        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
+            ClassScheduleStatus.PUBLISHED, 100L)).thenReturn(List.of(publishedOccupant));
+        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
+            ClassScheduleStatus.DRAFT, 100L)).thenReturn(Collections.emptyList());
+
+        var roomCheck = new TimetableStaffingService.RoomCheckSpec(
+            ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), TimetableStaffingService.RoomMode.ALLOW_SINGLE_DRAFT_SWAP_PARTNER);
+        var result = service.validateAssignment(cell, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(),
+            null, null, roomCheck, null);
+
+        assertThat(result.isValid()).isFalse();
+        assertThat(result.swapPartnerOccupant()).isNull();
+        assertThat(result.violations()).extracting(com.cms.dto.ConstraintViolation::code).contains("SWAP_ROOM_CONFLICT");
+    }
+
+    @Test
+    void validateAssignmentShouldDetectAnAudienceConflictForTheSameCohortSection() {
+        Batch batch = new Batch();
+        batch.setId(400L);
+        cell.setBatch(batch);
+        cell.setSessionType(ClassSessionType.LAB);
+
+        ClassSchedule sameAudience = new ClassSchedule();
+        sameAudience.setId(300L);
+        sameAudience.setSessionType(ClassSessionType.LAB);
+        sameAudience.setStatus(ClassScheduleStatus.DRAFT);
+        sameAudience.setBatch(batch);
+
+        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
+            ClassScheduleStatus.PUBLISHED, 100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
+            ClassScheduleStatus.DRAFT, 100L)).thenReturn(List.of(sameAudience));
+
+        // Audience checking only ever runs alongside a room check in real usage (TimetableSwapService
+        // always passes both together) -- sameAudience has no lab of its own, so this roomCheck
+        // (an unrelated lab id) stays clean, isolating the assertion to the audience conflict alone.
+        var roomCheck = new TimetableStaffingService.RoomCheckSpec(
+            ClassSessionType.LAB, 999L, null, TimetableStaffingService.RoomMode.ALLOW_SINGLE_DRAFT_SWAP_PARTNER);
+        var result = service.validateAssignment(cell, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(),
+            null, null, roomCheck, 400L);
+
+        assertThat(result.isValid()).isFalse();
+        assertThat(result.violations()).extracting(com.cms.dto.ConstraintViolation::code).contains("SWAP_AUDIENCE_CONFLICT");
+    }
+
+    @Test
+    void validateAssignmentShouldExcludeAnAlsoExcludeIdRowFromEveryCheck() {
+        // The reverse-swap partner's own still-unmutated row must never count as a blocker
+        // against itself, for either the faculty-conflict or the room-conflict check.
+        ClassSchedule reverseSwapPartner = new ClassSchedule();
+        reverseSwapPartner.setId(300L);
+        reverseSwapPartner.setSessionType(ClassSessionType.THEORY);
+        reverseSwapPartner.setStatus(ClassScheduleStatus.DRAFT);
+        reverseSwapPartner.setClassroom(classroom);
+        reverseSwapPartner.setFaculty(eligibleFaculty);
+
+        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
+            ClassScheduleStatus.PUBLISHED, 100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
+            ClassScheduleStatus.DRAFT, 100L)).thenReturn(List.of(reverseSwapPartner));
+
+        var roomCheck = new TimetableStaffingService.RoomCheckSpec(
+            ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), TimetableStaffingService.RoomMode.ALLOW_SINGLE_DRAFT_SWAP_PARTNER);
+        var result = service.validateAssignment(cell, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(),
+            eligibleFaculty, 300L, roomCheck, null);
+
+        assertThat(result.isValid()).isTrue();
+        assertThat(result.swapPartnerOccupant()).isNull();
+    }
 }

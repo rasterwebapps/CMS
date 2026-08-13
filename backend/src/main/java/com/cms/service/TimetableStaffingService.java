@@ -140,12 +140,14 @@ public class TimetableStaffingService {
 
         LocalTime start = cs.getPeriod().getStartTime();
         LocalTime end = cs.getPeriod().getEndTime();
+        DayOfWeek day = cs.getDayOfWeek();
 
-        List<ConstraintViolation> violations = new ArrayList<>();
-        checkBlocked(cs.getDayOfWeek(), start, end, cs.getTermInstance()).ifPresent(violations::add);
-        checkFacultyAvailable(faculty.getId(), cs.getDayOfWeek(), start, end).ifPresent(violations::add);
-        checkFacultyFree(faculty.getId(), cs, cs.getDayOfWeek(), start, end).ifPresent(violations::add);
-        violations.addAll(checkWithinWorkloadCaps(faculty, cs, cs.getDayOfWeek(), start, end));
+        // Faculty-side pass first, room-side pass second -- both funnel through the same
+        // validateAssignment() entry point (OC-127), kept as two calls (not one) specifically to
+        // preserve the ordering guarantee below: room resolution can throw (STAFFING_VENUE_NOT_COMMITTED)
+        // and must never run before we know the faculty side is clean.
+        List<ConstraintViolation> violations = new ArrayList<>(
+            validateAssignment(cs, day, start, end, faculty, null, null, null).violations());
 
         Runnable applyRoom = null;
         if (violations.isEmpty()) {
@@ -154,19 +156,22 @@ public class TimetableStaffingService {
                     Classroom classroom = isElectiveOffering(cs)
                         ? requireRequestedClassroom(request)
                         : requireCommittedTheoryClassroom(cs);
-                    checkRoomFree(ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), cs, cs.getDayOfWeek(), start, end).ifPresent(violations::add);
+                    violations.addAll(validateAssignment(cs, day, start, end, null, null,
+                        new RoomCheckSpec(ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), RoomMode.STRICT), null).violations());
                     checkCapacityFit(cs, classroom.getCapacity()).ifPresent(violations::add);
                     applyRoom = () -> cs.setClassroom(classroom);
                 }
                 case LAB -> {
                     Lab lab = requireCommittedLab(cs);
-                    checkRoomFree(ClassSessionType.LAB, lab.getId(), lab.getRoom(), cs, cs.getDayOfWeek(), start, end).ifPresent(violations::add);
+                    violations.addAll(validateAssignment(cs, day, start, end, null, null,
+                        new RoomCheckSpec(ClassSessionType.LAB, lab.getId(), lab.getRoom(), RoomMode.STRICT), null).violations());
                     checkCapacityFit(cs, lab.getCapacity()).ifPresent(violations::add);
                     applyRoom = () -> cs.setLab(lab);
                 }
                 case CLINICAL -> {
                     ClinicalVenue venue = requireCommittedClinicalVenue(cs);
-                    checkRoomFree(ClassSessionType.CLINICAL, venue.getId(), venue.getRoom(), cs, cs.getDayOfWeek(), start, end).ifPresent(violations::add);
+                    violations.addAll(validateAssignment(cs, day, start, end, null, null,
+                        new RoomCheckSpec(ClassSessionType.CLINICAL, venue.getId(), venue.getRoom(), RoomMode.STRICT), null).violations());
                     checkCapacityFit(cs, venue.getCapacity()).ifPresent(violations::add);
                     applyRoom = () -> cs.setClinicalVenue(venue);
                 }
@@ -180,6 +185,115 @@ public class TimetableStaffingService {
         applyRoom.run();
         cs.setFaculty(faculty);
         return toResponse(classScheduleRepository.save(cs));
+    }
+
+    /** OC-127 — the one shared validation entry point {@link TimetableSwapService#evaluateSlot} and
+     *  {@link FacultySessionSwapService} now funnel through instead of each reimplementing their own
+     *  combination of the checks below. {@code faculty}/{@code roomCheck}/{@code audienceId} are each
+     *  independently optional — null skips that whole category — which is what lets one method serve
+     *  {@code staffCell}'s faculty-then-room-resolution ordering (two calls, see above; room
+     *  resolution can throw and must never run before the faculty side is known clean), a staff-swap's
+     *  faculty-only recheck (one call, no room), and a draft-swap's full faculty+room+audience recheck
+     *  (one call) alike. Every check here has always been non-throwing/collect-all (OC-113) except the
+     *  room/audience scan, which is new here — {@code checkRoomFree}/{@code checkFacultyFree}'s
+     *  existing overloads are deliberately left untouched (still used directly by
+     *  {@code SpecialClassRequestService}, {@code RoomRelocationService},
+     *  {@code TimetableConflictInspectorService}, and {@code TimetableSkeletonService#moveCell}, none
+     *  of which need the extra swap-partner/audience/alsoExcludeId behavior below). */
+    public AssignmentValidationResult validateAssignment(ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end,
+                                                           Faculty faculty, Long alsoExcludeId,
+                                                           RoomCheckSpec roomCheck, Long audienceId) {
+        List<ConstraintViolation> violations = new ArrayList<>();
+        checkBlocked(day, start, end, cs.getTermInstance()).ifPresent(violations::add);
+
+        if (faculty != null) {
+            checkFacultyAvailable(faculty.getId(), day, start, end).ifPresent(violations::add);
+            checkFacultyFree(faculty.getId(), cs, day, start, end, alsoExcludeId).ifPresent(violations::add);
+            violations.addAll(checkWithinWorkloadCaps(faculty, cs, day, start, end));
+        }
+
+        ClassSchedule swapPartner = null;
+        if (roomCheck != null) {
+            RoomAudienceScanResult scan = scanRoomAndAudience(cs, day, start, end, roomCheck, audienceId, alsoExcludeId);
+            violations.addAll(scan.violations());
+            swapPartner = scan.swapPartnerOccupant();
+        }
+
+        return new AssignmentValidationResult(violations, swapPartner);
+    }
+
+    public record RoomCheckSpec(ClassSessionType type, Long venueId, Room physicalRoom, RoomMode mode) {}
+
+    public enum RoomMode {
+        /** Any occupant at all is a conflict — staffing/group-staffing use. */
+        STRICT,
+        /** Exactly one same-room DRAFT occupant is offered back as a swap partner instead of a
+         *  violation; a PUBLISHED occupant or a second DRAFT occupant is still a violation. */
+        ALLOW_SINGLE_DRAFT_SWAP_PARTNER
+    }
+
+    public record AssignmentValidationResult(List<ConstraintViolation> violations, ClassSchedule swapPartnerOccupant) {
+        public boolean isValid() {
+            return violations.isEmpty();
+        }
+    }
+
+    private record RoomAudienceScanResult(List<ConstraintViolation> violations, ClassSchedule swapPartnerOccupant) {}
+
+    /** One pass over every PUBLISHED+DRAFT row overlapping this day/time, checking room and (when
+     *  {@code audienceId} is given) audience conflicts together — a genuinely new combined
+     *  implementation (not a reuse of {@link #checkRoomFree}, which has no swap-partner/audience
+     *  concept and stays frozen for its own remaining direct callers). {@code alsoExcludeId} leaves
+     *  an additional row (besides {@code cs} itself, always excluded via {@code findOverlapping}'s
+     *  own exclude param) out of the scan — the reverse-swap partner's own still-unmutated row, which
+     *  must never count as a blocker against itself. Folds in the physical-room cross-check {@link
+     *  #conflictsOnRoom} already does for staffing (two different venues mapped to the same physical
+     *  {@link Room}) — previously invisible to {@link TimetableSwapService}, which only compared
+     *  virtual room ids. */
+    private RoomAudienceScanResult scanRoomAndAudience(ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end,
+                                                         RoomCheckSpec roomCheck, Long audienceId, Long alsoExcludeId) {
+        List<ConstraintViolation> violations = new ArrayList<>();
+        ClassSchedule swapPartner = null;
+        boolean roomConflictAlreadyFlagged = false;
+        String roomViolationCode = roomCheck.mode() == RoomMode.STRICT ? "STAFFING_ROOM_CONFLICT" : "SWAP_ROOM_CONFLICT";
+
+        for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
+            List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
+                day, cs.getTermInstance().getId(), start, end, status, cs.getId());
+            for (ClassSchedule other : overlapping) {
+                if (alsoExcludeId != null && other.getId().equals(alsoExcludeId)) {
+                    continue;
+                }
+                if (!roomConflictAlreadyFlagged && conflictsOnRoom(other, roomCheck.type(), roomCheck.venueId(), roomCheck.physicalRoom())) {
+                    if (roomCheck.mode() == RoomMode.ALLOW_SINGLE_DRAFT_SWAP_PARTNER
+                            && other.getStatus() == ClassScheduleStatus.DRAFT && swapPartner == null) {
+                        swapPartner = other;
+                    } else {
+                        violations.add(new ConstraintViolation(roomViolationCode,
+                            "This room is already occupied by another session at this exact day and time."));
+                        roomConflictAlreadyFlagged = true;
+                    }
+                }
+                if (audienceId != null && other.getSessionType() == cs.getSessionType()
+                        && audienceId.equals(resolveAudienceId(other))) {
+                    violations.add(new ConstraintViolation("SWAP_AUDIENCE_CONFLICT",
+                        "This slot is already occupied by another session for the same cohort/batch."));
+                }
+            }
+        }
+        return new RoomAudienceScanResult(violations, swapPartner);
+    }
+
+    /** THEORY audience is batch-scoped when a section was picked (R3 Phase 3), falling back to the
+     *  whole-cohort courseOffering for un-sectioned rows; LAB/CLINICAL are always batch-scoped.
+     *  Package-static so {@link TimetableSwapService} can resolve the *target* audience id it passes
+     *  into {@link #validateAssignment} with the same logic used here for every candidate row. */
+    static Long resolveAudienceId(ClassSchedule cs) {
+        if (cs.getSessionType() == ClassSessionType.THEORY) {
+            return cs.getBatch() != null ? cs.getBatch().getId()
+                : (cs.getCourseOffering() != null ? cs.getCourseOffering().getId() : null);
+        }
+        return cs.getBatch() != null ? cs.getBatch().getId() : null;
     }
 
     /** Non-throwing: returns a violation if this cell falls in a recurring institutional lock
@@ -322,7 +436,26 @@ public class TimetableStaffingService {
      *  rather than read from {@code cs.getDayOfWeek()} so {@link TimetableSkeletonService#moveCell}
      *  can re-check a *target* day for an already-staffed cell without first mutating it. */
     Optional<ConstraintViolation> checkFacultyFree(Long facultyId, ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end) {
-        return checkFacultyFree(facultyId, cs.getTermInstance().getId(), cs.getId(), day, start, end);
+        return checkFacultyFree(facultyId, cs, day, start, end, null);
+    }
+
+    /** Overload adding a second excluded row (besides {@code cs} itself) — used by {@link
+     *  #validateAssignment} for the reverse-swap-partner case, where that row must never count as a
+     *  blocker against itself. {@code alsoExcludeId} null reproduces the 5-arg overload above exactly. */
+    private Optional<ConstraintViolation> checkFacultyFree(Long facultyId, ClassSchedule cs, DayOfWeek day, LocalTime start,
+                                                            LocalTime end, Long alsoExcludeId) {
+        for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
+            List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
+                day, cs.getTermInstance().getId(), start, end, status, cs.getId());
+            boolean conflict = overlapping.stream()
+                .filter(other -> alsoExcludeId == null || !other.getId().equals(alsoExcludeId))
+                .anyMatch(other -> other.getFaculty() != null && other.getFaculty().getId().equals(facultyId));
+            if (conflict) {
+                return Optional.of(new ConstraintViolation("STAFFING_FACULTY_CONFLICT",
+                    "This faculty member is already scheduled for another session at this exact day and time."));
+            }
+        }
+        return Optional.empty();
     }
 
     /** Tuple-shaped overload of {@link #checkFacultyFree(Long, ClassSchedule, DayOfWeek, LocalTime, LocalTime)}

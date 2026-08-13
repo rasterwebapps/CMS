@@ -15,6 +15,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Period;
+import com.cms.model.Room;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
@@ -40,18 +41,18 @@ public class TimetableSwapService {
 
     private final ClassScheduleRepository classScheduleRepository;
     private final PeriodRepository periodRepository;
-    private final TimetableBlockedPeriodChecker blockedPeriodChecker;
     private final AuditLogService auditLogService;
     private final TimetableStaffingService timetableStaffingService;
 
+    /** OC-127: blocked-period checking for a candidate slot is now entirely delegated to {@link
+     *  TimetableStaffingService#validateAssignment} — no longer needs its own {@link
+     *  TimetableBlockedPeriodChecker} collaborator. */
     public TimetableSwapService(ClassScheduleRepository classScheduleRepository,
                                  PeriodRepository periodRepository,
-                                 TimetableBlockedPeriodChecker blockedPeriodChecker,
                                  AuditLogService auditLogService,
                                  TimetableStaffingService timetableStaffingService) {
         this.classScheduleRepository = classScheduleRepository;
         this.periodRepository = periodRepository;
-        this.blockedPeriodChecker = blockedPeriodChecker;
         this.auditLogService = auditLogService;
         this.timetableStaffingService = timetableStaffingService;
     }
@@ -147,92 +148,36 @@ public class TimetableSwapService {
      *                       out of the conflict scan — used for the reverse-swap check, where the
      *                       session vacating the slot must not count as a blocker.
      *
-     *  <p>Faculty-availability and workload-cap checks below delegate to {@link
-     *  TimetableStaffingService}'s shared, already-validated methods (same ones {@code staffCell}
-     *  uses) — a candidate slot a faculty member can't actually be staffed into shouldn't be
-     *  offered as swappable either. Faculty-conflict/room/audience detection stays hand-rolled
-     *  against one shared query, for two reasons neither shared method's contract covers: (1) an
-     *  occupied target slot in the *same room* can legitimately become a two-way swap partner here
-     *  (not "must be entirely free"), and (2) {@code alsoExcludeId} — the reverse-swap partner's own
-     *  still-unmutated row — must never count as a blocker against itself, which {@link
-     *  TimetableStaffingService#checkFacultyFree} has no way to express (single-excludeId contract). */
+     *  <p>OC-127: funnels entirely through {@link TimetableStaffingService#validateAssignment} —
+     *  blocked-period, faculty-availability, faculty-conflict, and workload-cap checks are the same
+     *  ones {@code staffCell} uses (a candidate slot a faculty member can't actually be staffed into
+     *  shouldn't be offered as swappable either); the room/audience scan is a swap-specific mode
+     *  ({@code RoomMode.ALLOW_SINGLE_DRAFT_SWAP_PARTNER}) of the same shared method, since an occupied
+     *  target slot in the *same room* can legitimately become a two-way swap partner here (not "must
+     *  be entirely free"). This also folds in the physical-room cross-check {@code checkRoomFree}
+     *  already had for staffing but this scan previously lacked (two different Classroom rows mapped
+     *  to the same physical Room). Collects every applicable violation in one pass rather than the
+     *  old first-found-wins short-circuit, matching the rest of the module's collect-all convention
+     *  (OC-113) — a candidate slot that's both room- and faculty-conflicted now reports both. */
     private SlotEvaluation evaluateSlot(ClassSchedule moving, DayOfWeek day, LocalTime start, LocalTime end,
                                          Long alsoExcludeId) {
-        List<ConstraintViolation> violations = new ArrayList<>();
-        blockedPeriodChecker.blockReason(day, start, end, moving.getTermInstance().getStartDate(), moving.getTermInstance().getEndDate())
-            .ifPresent(reason -> violations.add(new ConstraintViolation(
-                "SWAP_PERIOD_BLOCKED", "This day and period is blocked: " + reason)));
-
-        // Null for an unstaffed R3 Phase 4 skeleton row -- nothing to check faculty-availability,
-        // workload caps, or faculty-conflict against yet, so all three become no-ops for it.
-        Long facultyId = moving.getFaculty() != null ? moving.getFaculty().getId() : null;
-        if (facultyId != null) {
-            timetableStaffingService.checkFacultyAvailable(facultyId, day, start, end).ifPresent(violations::add);
-            violations.addAll(timetableStaffingService.checkWithinWorkloadCaps(moving.getFaculty(), moving, day, start, end));
-        }
-        if (!violations.isEmpty()) {
-            return SlotEvaluation.blocked(violations);
-        }
-
-        // Faculty/room/audience conflicts, checked against both PUBLISHED and other DRAFT rows in
-        // one shared query -- widened from the old DRAFT-only scan, closing a gap where a draft swap
-        // could otherwise land on a slot a live PUBLISHED session already occupies.
-        List<ClassSchedule> overlapping = new ArrayList<>();
-        for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
-            overlapping.addAll(classScheduleRepository.findOverlapping(
-                day, moving.getTermInstance().getId(), start, end, status, moving.getId()));
-        }
-        if (alsoExcludeId != null) {
-            overlapping = overlapping.stream().filter(cs -> !cs.getId().equals(alsoExcludeId)).toList();
-        }
-
         boolean isTheory = moving.getSessionType() == ClassSessionType.THEORY;
         Long roomId = isTheory
             ? (moving.getClassroom() != null ? moving.getClassroom().getId() : null)
             : (moving.getLab() != null ? moving.getLab().getId() : null);
-        Long audienceId = resolveAudienceId(moving);
+        Room physicalRoom = isTheory
+            ? (moving.getClassroom() != null ? moving.getClassroom().getRoom() : null)
+            : (moving.getLab() != null ? moving.getLab().getRoom() : null);
+        Long audienceId = TimetableStaffingService.resolveAudienceId(moving);
 
-        ClassSchedule roomOccupant = null;
-        for (ClassSchedule cs : overlapping) {
-            boolean sameSessionType = cs.getSessionType() == moving.getSessionType();
-            Long csRoomId = isTheory
-                ? (cs.getClassroom() != null ? cs.getClassroom().getId() : null)
-                : (cs.getLab() != null ? cs.getLab().getId() : null);
-            if (sameSessionType && roomId != null && roomId.equals(csRoomId)) {
-                // A PUBLISHED occupant can never be a swap partner -- this service only ever
-                // reschedules DRAFT rows, so silently moving a live session would be a real bug.
-                // More than one DRAFT occupant in the same room shouldn't happen structurally either.
-                if (cs.getStatus() != ClassScheduleStatus.DRAFT || roomOccupant != null) {
-                    violations.add(new ConstraintViolation("SWAP_ROOM_CONFLICT",
-                        "This room is already occupied by another session at this exact day and time."));
-                    return SlotEvaluation.blocked(violations);
-                }
-                roomOccupant = cs;
-                continue;
-            }
-            if (facultyId != null && cs.getFaculty() != null && cs.getFaculty().getId().equals(facultyId)) {
-                violations.add(new ConstraintViolation("SWAP_FACULTY_CONFLICT",
-                    "This faculty member is already scheduled for another session at this exact day and time."));
-                return SlotEvaluation.blocked(violations);
-            }
-            Long csAudienceId = resolveAudienceId(cs);
-            if (sameSessionType && audienceId != null && audienceId.equals(csAudienceId)) {
-                violations.add(new ConstraintViolation("SWAP_AUDIENCE_CONFLICT",
-                    "This slot is already occupied by another session for the same cohort/batch."));
-                return SlotEvaluation.blocked(violations);
-            }
-        }
-        return new SlotEvaluation(true, roomOccupant, List.of());
-    }
+        var roomCheck = new TimetableStaffingService.RoomCheckSpec(
+            moving.getSessionType(), roomId, physicalRoom, TimetableStaffingService.RoomMode.ALLOW_SINGLE_DRAFT_SWAP_PARTNER);
+        var result = timetableStaffingService.validateAssignment(
+            moving, day, start, end, moving.getFaculty(), alsoExcludeId, roomCheck, audienceId);
 
-    /** THEORY audience is batch-scoped when a section was picked (R3 Phase 3), falling back to
-     *  the whole-cohort courseOffering for un-sectioned rows; LAB/CLINICAL are always batch-scoped. */
-    private Long resolveAudienceId(ClassSchedule cs) {
-        if (cs.getSessionType() == ClassSessionType.THEORY) {
-            return cs.getBatch() != null ? cs.getBatch().getId()
-                : (cs.getCourseOffering() != null ? cs.getCourseOffering().getId() : null);
-        }
-        return cs.getBatch() != null ? cs.getBatch().getId() : null;
+        return result.isValid()
+            ? new SlotEvaluation(true, result.swapPartnerOccupant(), List.of())
+            : SlotEvaluation.blocked(result.violations());
     }
 
     private ClassSchedule requireDraftSession(Long termInstanceId, Long sessionId) {

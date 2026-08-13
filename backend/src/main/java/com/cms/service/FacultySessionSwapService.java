@@ -120,21 +120,18 @@ public class FacultySessionSwapService {
                 + a.getFaculty().getFullName() + " <-> " + b.getFaculty().getFullName());
     }
 
-    /** Non-throwing: reuses {@link TimetableStaffingService}'s shared, already-validated checks
-     *  (same ones {@code staffCell} uses) instead of this service's own former hand-rolled
-     *  availability/overlap query -- also closes a real gap where a single-date substitution never
-     *  rechecked workload caps. Passing {@code cs} directly (not raw id/exclude params) mirrors the
-     *  reuse pattern {@link TimetableSkeletonService#moveCell} already established for "re-check an
-     *  existing entity at a target day/time without mutating it first". Widens from this service's
-     *  old PUBLISHED-only scope to the shared checks' PUBLISHED+DRAFT scope -- a faculty member's own
-     *  not-yet-approved DRAFT row at this day/time in the same term now also blocks the swap. */
+    /** OC-127: funnels through {@link TimetableStaffingService#validateAssignment} (faculty-only —
+     *  no room/audience — a staff swap only ever trades faculty, never rooms) instead of calling the
+     *  three underlying checks individually. Passing {@code cs} directly (not raw id/exclude params)
+     *  mirrors the reuse pattern {@link TimetableSkeletonService#moveCell} already established for
+     *  "re-check an existing entity at a target day/time without mutating it first". Widens from this
+     *  service's old PUBLISHED-only scope to the shared checks' PUBLISHED+DRAFT scope -- a faculty
+     *  member's own not-yet-approved DRAFT row at this day/time in the same term now also blocks the
+     *  swap. Also now picks up a blocked-period check this service never had before (a genuinely new
+     *  guard, not previously covered here at all) -- a holiday/lock added after the original session
+     *  was published can now correctly block a same-date staff swap into that slot. */
     private List<ConstraintViolation> checkFacultyFreeToMove(ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end) {
-        List<ConstraintViolation> violations = new ArrayList<>();
-        Long facultyId = cs.getFaculty().getId();
-        timetableStaffingService.checkFacultyAvailable(facultyId, day, start, end).ifPresent(violations::add);
-        timetableStaffingService.checkFacultyFree(facultyId, cs, day, start, end).ifPresent(violations::add);
-        violations.addAll(timetableStaffingService.checkWithinWorkloadCaps(cs.getFaculty(), cs, day, start, end));
-        return violations;
+        return timetableStaffingService.validateAssignment(cs, day, start, end, cs.getFaculty(), null, null, null).violations();
     }
 
     private ClassSchedule requirePublishedRealOccurrence(Long classScheduleId, LocalDate date) {
