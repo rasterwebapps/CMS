@@ -216,6 +216,31 @@ class FacultyAbsenceServiceTest {
     }
 
     @Test
+    void shouldIncludeACourseOfferingsSecondaryFacultyAsAnEqualSubstituteCandidate() {
+        // OC-127 gap-closure follow-up: secondaryFacultyId reopened for substitute-matching. No
+        // code here reads secondaryFacultyId directly -- CourseOfferingServiceImpl's eligibility
+        // gate already guarantees a secondary shares the subject's speciality, so they surface
+        // through the same speciality-based candidate pool as any other faculty, undistinguished.
+        Faculty secondaryFaculty = new Faculty("EMP003", "Sam", "Lee", "sam@college.edu", "1234567892",
+            speciality, absentFaculty.getDesignation(), "Nursing", null, null, FacultyStatus.ACTIVE);
+        secondaryFaculty.setId(3L);
+
+        when(classScheduleRepository.findById(300L)).thenReturn(Optional.of(schedule));
+        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, LocalTime.of(9, 0), LocalTime.of(10, 0),
+            ClassScheduleStatus.PUBLISHED, 300L)).thenReturn(Collections.emptyList());
+        when(facultyRepository.findBySpecialityIdAndStatus(1L, FacultyStatus.ACTIVE))
+            .thenReturn(List.of(absentFaculty, eligibleFaculty, secondaryFaculty));
+        when(facultyAvailabilityRepository.findOverlapping(2L, DayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)))
+            .thenReturn(Collections.emptyList());
+        when(facultyAvailabilityRepository.findOverlapping(3L, DayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)))
+            .thenReturn(Collections.emptyList());
+
+        List<SubstituteCandidateResponse> candidates = service.findEligibleSubstitutes(300L, LocalDate.of(2024, 8, 5));
+
+        assertThat(candidates).extracting(SubstituteCandidateResponse::facultyId).containsExactlyInAnyOrder(2L, 3L);
+    }
+
+    @Test
     void shouldRejectFindingSubstitutesForAnUnstaffedSkeletonCell() {
         // R3 Phase 6 regression fix: an unstaffed skeleton cell (R3 Phase 4) has no faculty, so
         // "find a substitute for the absent teacher" is meaningless and must not NPE.

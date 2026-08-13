@@ -51,8 +51,11 @@ public class CourseOffering {
     @Column(name = "faculty_id")
     private Long facultyId;
 
-    /** Informational-only backup/co-instructor note — never eligible for staffing/substitution,
-     *  never gets its own ClassSchedule rows, no scheduling logic reads it. */
+    /** Co-instructor for this offering — same department-eligibility gate as {@link #facultyId}
+     *  (see {@code CourseOfferingServiceImpl.requireEligibleFaculty}), and eligible as a substitute
+     *  candidate ({@link com.cms.service.FacultyAbsenceService#findEligibleSubstitutes}). Still
+     *  never gets its own {@code ClassSchedule} rows and is never directly staffed onto one — only
+     *  offered as a substitute when the primary is absent. */
     @Column(name = "secondary_faculty_id")
     private Long secondaryFacultyId;
 

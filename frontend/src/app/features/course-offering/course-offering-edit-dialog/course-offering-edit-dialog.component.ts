@@ -45,6 +45,17 @@ export class CourseOfferingEditDialogComponent {
       f.specialityId === specialityId || f.id === this.data.offering.facultyId);
   })();
 
+  /** OC-127 gap-closure follow-up: secondaryFacultyId reopened from informational-only to a real
+   *  substitute-matching-eligible co-instructor, so it now needs the same department-eligibility
+   *  filter as the primary — grandfathered against its own current value (not the primary's) so an
+   *  existing secondary faculty predating this rule stays visible/selectable. */
+  protected readonly eligibleSecondaryFacultyOptions: FacultyOption[] = (() => {
+    const specialityId = this.data.offering.subjectSpecialityId;
+    if (!specialityId) return this.data.facultyOptions;
+    return this.data.facultyOptions.filter((f) =>
+      f.specialityId === specialityId || f.id === this.data.offering.secondaryFacultyId);
+  })();
+
   protected readonly form: FormGroup = this.fb.group({
     facultyId: [this.data.offering.facultyId],
     secondaryFacultyId: [this.data.offering.secondaryFacultyId],

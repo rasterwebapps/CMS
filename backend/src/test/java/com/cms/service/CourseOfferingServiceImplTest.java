@@ -521,6 +521,78 @@ class CourseOfferingServiceImplTest {
     }
 
     @Test
+    void updateOffering_blocksASecondaryFacultyFromADifferentSpecialityThanTheSubject() {
+        // OC-127 gap-closure follow-up: secondaryFacultyId now has the same department-eligibility
+        // gate as the primary, checked independently against its own prior value.
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
+        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
+        subject.setId(1L);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        Speciality csSpeciality = createSpeciality(2L, "Computer Science", "CS");
+        Faculty mismatchedFaculty = createFaculty(43L, csSpeciality);
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(facultyRepository.findById(43L)).thenReturn(Optional.of(mismatchedFaculty));
+
+        assertThatThrownBy(() -> service.updateOffering(1L, null, 43L, "Section A"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("not eligible to teach");
+
+        verify(courseOfferingRepository, never()).save(any());
+    }
+
+    @Test
+    void updateOffering_allowsASecondaryFacultyFromTheSameSpecialityAsTheSubject() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
+        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
+        subject.setId(1L);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        Faculty matchingFaculty = createFaculty(43L, nursingSpeciality);
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(facultyRepository.findById(43L)).thenReturn(Optional.of(matchingFaculty));
+        when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
+
+        service.updateOffering(1L, null, 43L, "Section A");
+
+        assertThat(offering.getSecondaryFacultyId()).isEqualTo(43L);
+    }
+
+    @Test
+    void updateOffering_grandfathersAnUnchangedMismatchedSecondaryFacultyIndependentlyOfThePrimary() {
+        // The secondary's own prior value is the grandfather baseline -- not the primary's --
+        // so an unrelated edit doesn't suddenly require the secondary to also match.
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
+        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
+        subject.setId(1L);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        offering.setSecondaryFacultyId(43L);
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
+
+        service.updateOffering(1L, null, 43L, "Section A - Renamed");
+
+        assertThat(offering.getSectionLabel()).isEqualTo("Section A - Renamed");
+        verify(facultyRepository, never()).findById(any());
+    }
+
+    @Test
     void deactivateOffering_setsIsActiveFalse() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);

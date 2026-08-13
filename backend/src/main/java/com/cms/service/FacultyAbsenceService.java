@@ -124,7 +124,11 @@ public class FacultyAbsenceService {
     /** Eligible substitutes: same speciality as the subject, active, not the absent faculty
      *  themselves, not themselves marked absent on this exact date, free of any recurring
      *  FacultyAvailability block at that day/time, and not already teaching another PUBLISHED
-     *  session at that exact day/time. */
+     *  session at that exact day/time. A {@code CourseOffering.secondaryFacultyId} co-instructor
+     *  needs no special-case inclusion here: {@code CourseOfferingServiceImpl.requireEligibleFaculty}
+     *  already enforces they share the subject's speciality, so they surface through the same
+     *  speciality-based candidate pool below as an equal, undistinguished candidate — never
+     *  prioritized over anyone else. */
     public List<SubstituteCandidateResponse> findEligibleSubstitutes(Long classScheduleId, LocalDate date) {
         ClassSchedule schedule = classScheduleRepository.findById(classScheduleId)
             .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + classScheduleId));

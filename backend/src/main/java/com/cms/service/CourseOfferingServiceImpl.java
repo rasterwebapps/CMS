@@ -198,9 +198,12 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
     public CourseOfferingDto updateOffering(Long id, Long facultyId, Long secondaryFacultyId, String sectionLabel) {
         CourseOffering offering = courseOfferingRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + id));
-        requireEligibleFaculty(offering, facultyId);
+        requireEligibleFaculty(offering, facultyId, offering.getFacultyId());
         offering.setFacultyId(facultyId);
-        // Informational only -- no eligibility gate, unlike the primary facultyId above.
+        // OC-127 gap-closure follow-up: secondaryFacultyId reopened from informational-only to a
+        // real substitute-matching-eligible co-instructor -- same department-eligibility gate as
+        // the primary, grandfathered against its own prior value independently of the primary's.
+        requireEligibleFaculty(offering, secondaryFacultyId, offering.getSecondaryFacultyId());
         offering.setSecondaryFacultyId(secondaryFacultyId);
         offering.setSectionLabel(sectionLabel);
         return toDto(courseOfferingRepository.save(offering));
@@ -210,12 +213,13 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
      * Department-level (Speciality) eligibility gate, mirroring {@code ClassScheduleService}'s
      * check for manually-edited sessions. Skipped when unassigning (facultyId null), when the
      * subject has no speciality set, and grandfathered when the requested faculty is already the
-     * one on the offering — blocks new/changed mismatched assignments without retroactively
-     * breaking a row saved before this rule existed on an otherwise-unrelated edit (e.g. section
-     * label).
+     * one previously on this slot — blocks new/changed mismatched assignments without
+     * retroactively breaking a row saved before this rule existed on an otherwise-unrelated edit
+     * (e.g. section label). Shared by both the primary and secondary faculty slots, each checked
+     * against its own prior value.
      */
-    private void requireEligibleFaculty(CourseOffering offering, Long facultyId) {
-        if (facultyId == null || facultyId.equals(offering.getFacultyId())) {
+    private void requireEligibleFaculty(CourseOffering offering, Long facultyId, Long previousFacultyId) {
+        if (facultyId == null || facultyId.equals(previousFacultyId)) {
             return;
         }
         Subject subject = offering.getSubject();
