@@ -5,17 +5,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../../environments';
 import { AttendanceService } from '../attendance.service';
-import { BulkAttendanceRequest } from '../attendance.model';
+import { AvailableSubject, BulkAttendanceRequest } from '../attendance.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
-
-interface Course {
-  id: number;
-  name: string;
-}
 
 interface StudentAttendanceRow {
   studentId: number;
@@ -40,28 +33,41 @@ interface StudentAttendanceRow {
 export class AttendanceMarkComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
-  private readonly http = inject(HttpClient);
   private readonly attendanceService = inject(AttendanceService);
   private readonly toast = inject(ToastService);
 
-  protected readonly courses = signal<Course[]>([]);
+  /** Day-mapping- and blocked-period-aware -- resolved from the selected date, not a flat
+   *  course list, so a compensatory working day correctly offers the borrowed weekday's
+   *  subjects instead of the date's own (usually empty) actual-weekday list. */
+  protected readonly availableSubjects = signal<AvailableSubject[]>([]);
+  protected readonly loadingSubjects = signal(false);
   protected readonly students = signal<StudentAttendanceRow[]>([]);
   protected readonly loadingStudents = signal(false);
   protected readonly saving = signal(false);
 
-  protected readonly typeOptions = ['THEORY', 'LAB'];
+  protected readonly typeOptions = ['THEORY', 'LAB', 'CLINICAL'];
 
   protected readonly form: FormGroup = this.fb.group({
-    courseId: [null, [Validators.required]],
     date: ['', [Validators.required]],
+    subjectId: [null, [Validators.required]],
     type: ['THEORY', [Validators.required]],
   });
 
   ngOnInit(): void {
-    this.loadCourses();
-    this.form.get('courseId')?.valueChanges.subscribe((courseId) => {
-      if (courseId) {
-        this.loadStudentsForCourse(courseId);
+    this.form.get('date')?.valueChanges.subscribe((date) => {
+      this.form.get('subjectId')?.setValue(null);
+      this.students.set([]);
+      if (date) {
+        this.loadAvailableSubjects(date);
+      } else {
+        this.availableSubjects.set([]);
+      }
+    });
+    this.form.get('subjectId')?.valueChanges.subscribe((subjectId) => {
+      if (subjectId) {
+        this.loadRosterForSubject(subjectId);
+      } else {
+        this.students.set([]);
       }
     });
   }
@@ -77,10 +83,10 @@ export class AttendanceMarkComponent implements OnInit {
     }
 
     const request: BulkAttendanceRequest = {
-      courseId: this.form.value.courseId,
+      subjectId: this.form.value.subjectId,
       date: this.form.value.date,
       type: this.form.value.type,
-      records: this.students().map((s) => ({
+      studentAttendances: this.students().map((s) => ({
         studentId: s.studentId,
         status: s.status,
       })),
@@ -109,54 +115,39 @@ export class AttendanceMarkComponent implements OnInit {
     );
   }
 
-  private loadCourses(): void {
-    this.http.get<Course[]>(`${environment.apiUrl}/courses`).subscribe({
-      next: (courses) => this.courses.set(courses),
-      error: () => this.toast.error('Failed to load courses'),
+  private loadAvailableSubjects(date: string): void {
+    this.loadingSubjects.set(true);
+    this.attendanceService.getAvailableSubjects(date).subscribe({
+      next: (subjects) => {
+        this.availableSubjects.set(subjects);
+        this.loadingSubjects.set(false);
+      },
+      error: () => {
+        this.toast.error('Failed to load subjects for this date');
+        this.availableSubjects.set([]);
+        this.loadingSubjects.set(false);
+      },
     });
   }
 
-  private loadStudentsForCourse(courseId: number): void {
+  private loadRosterForSubject(subjectId: number): void {
     this.loadingStudents.set(true);
-    this.http
-      .get<Array<{ id: number; fullName: string; rollNumber: string }>>(
-        `${environment.apiUrl}/students?courseId=${courseId}`
-      )
-      .subscribe({
-        next: (students) => {
-          this.students.set(
-            students.map((s) => ({
-              studentId: s.id,
-              studentName: s.fullName,
-              rollNumber: s.rollNumber,
-              status: 'PRESENT',
-            }))
-          );
-          this.loadingStudents.set(false);
-        },
-        error: () => {
-          this.http
-            .get<Array<{ id: number; fullName: string; rollNumber: string }>>(
-              `${environment.apiUrl}/students`
-            )
-            .subscribe({
-              next: (students) => {
-                this.students.set(
-                  students.map((s) => ({
-                    studentId: s.id,
-                    studentName: s.fullName,
-                    rollNumber: s.rollNumber,
-                    status: 'PRESENT',
-                  }))
-                );
-                this.loadingStudents.set(false);
-              },
-              error: () => {
-                this.toast.error('Failed to load students');
-                this.loadingStudents.set(false);
-              },
-            });
-        },
-      });
+    this.attendanceService.getSubjectRoster(subjectId).subscribe({
+      next: (roster) => {
+        this.students.set(
+          roster.map((s) => ({
+            studentId: s.id,
+            studentName: s.fullName,
+            rollNumber: s.rollNumber,
+            status: 'PRESENT',
+          }))
+        );
+        this.loadingStudents.set(false);
+      },
+      error: () => {
+        this.toast.error('Failed to load students');
+        this.loadingStudents.set(false);
+      },
+    });
   }
 }

@@ -30,11 +30,20 @@
       </div>
     }
 
-    <select class="mlp-filter-select" [ngModel]="dayOfWeek()" (ngModelChange)="onDayChange($event)" aria-label="Day of week">
-      @for (day of days; track day) {
-        <option [value]="day">{{ dayLabels[day] }}</option>
-      }
-    </select>
+    <div class="view-mode-toggle">
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'DATE'" (click)="setViewMode('DATE')">Date</button>
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'WEEKDAY'" (click)="setViewMode('WEEKDAY')">Weekday (planning)</button>
+    </div>
+
+    @if (viewMode() === 'DATE') {
+      <input type="date" class="field-input field-input--inline" [ngModel]="selectedDate" (ngModelChange)="onDateChange($event)" aria-label="Date" />
+    } @else {
+      <select class="mlp-filter-select" [ngModel]="dayOfWeek()" (ngModelChange)="onDayChange($event)" aria-label="Day of week">
+        @for (day of days; track day) {
+          <option [value]="day">{{ dayLabels[day] }}</option>
+        }
+      </select>
+    }
   </div>
 
   <div class="content-card resource-grid-card">

@@ -67,17 +67,21 @@ public class TimetableController {
     @GetMapping("/resource-grid/faculty")
     @PreAuthorize("@perm.has('TIMETABLE_FACULTY_GRID_VIEW')")
     public ResponseEntity<List<ResourceGridRowResponse>> getFacultyResourceGrid(
-            @RequestParam Long termInstanceId, @RequestParam DayOfWeek dayOfWeek) {
-        return ResponseEntity.ok(
-            resourceGridService.getResourceGrid(ResourceGridService.ResourceType.FACULTY, termInstanceId, dayOfWeek));
+            @RequestParam Long termInstanceId,
+            @RequestParam(required = false) DayOfWeek dayOfWeek,
+            @RequestParam(required = false) LocalDate date) {
+        return ResponseEntity.ok(resourceGridService.getResourceGrid(
+            ResourceGridService.ResourceType.FACULTY, termInstanceId, dayOfWeek, date));
     }
 
     @GetMapping("/resource-grid/classroom")
     @PreAuthorize("@perm.has('TIMETABLE_CLASSROOM_GRID_VIEW')")
     public ResponseEntity<List<ResourceGridRowResponse>> getClassroomResourceGrid(
-            @RequestParam Long termInstanceId, @RequestParam DayOfWeek dayOfWeek) {
-        return ResponseEntity.ok(
-            resourceGridService.getResourceGrid(ResourceGridService.ResourceType.CLASSROOM, termInstanceId, dayOfWeek));
+            @RequestParam Long termInstanceId,
+            @RequestParam(required = false) DayOfWeek dayOfWeek,
+            @RequestParam(required = false) LocalDate date) {
+        return ResponseEntity.ok(resourceGridService.getResourceGrid(
+            ResourceGridService.ResourceType.CLASSROOM, termInstanceId, dayOfWeek, date));
     }
 
     @GetMapping("/me")

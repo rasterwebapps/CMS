@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,6 +15,7 @@ import com.cms.dto.ResourceGridRowResponse;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.ClinicalVenue;
+import com.cms.model.DayMappingOverride;
 import com.cms.model.Faculty;
 import com.cms.model.Lab;
 import com.cms.model.enums.ClassScheduleStatus;
@@ -23,6 +25,7 @@ import com.cms.model.enums.LabStatus;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.ClinicalVenueRepository;
+import com.cms.repository.DayMappingOverrideRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabRepository;
 
@@ -45,24 +48,37 @@ public class ResourceGridService {
     private final ClassroomRepository classroomRepository;
     private final LabRepository labRepository;
     private final ClinicalVenueRepository clinicalVenueRepository;
+    private final DayMappingOverrideRepository dayMappingOverrideRepository;
 
     public ResourceGridService(ClassScheduleRepository classScheduleRepository,
                                 ClassScheduleService classScheduleService,
                                 FacultyRepository facultyRepository,
                                 ClassroomRepository classroomRepository,
                                 LabRepository labRepository,
-                                ClinicalVenueRepository clinicalVenueRepository) {
+                                ClinicalVenueRepository clinicalVenueRepository,
+                                DayMappingOverrideRepository dayMappingOverrideRepository) {
         this.classScheduleRepository = classScheduleRepository;
         this.classScheduleService = classScheduleService;
         this.facultyRepository = facultyRepository;
         this.classroomRepository = classroomRepository;
         this.labRepository = labRepository;
         this.clinicalVenueRepository = clinicalVenueRepository;
+        this.dayMappingOverrideRepository = dayMappingOverrideRepository;
     }
 
-    public List<ResourceGridRowResponse> getResourceGrid(ResourceType type, Long termInstanceId, DayOfWeek dayOfWeek) {
+    /** @param date when supplied, resolves the effective day-of-week through any {@link
+     *              DayMappingOverride} covering it (falling back to the date's own actual
+     *              weekday) and takes precedence over {@code dayOfWeek}; when null, behaves
+     *              exactly as before, using {@code dayOfWeek} directly (backward compatible with
+     *              the grid's existing Mon-Sat planning-mode toggle). */
+    public List<ResourceGridRowResponse> getResourceGrid(ResourceType type, Long termInstanceId,
+                                                           DayOfWeek dayOfWeek, LocalDate date) {
+        if (date == null && dayOfWeek == null) {
+            throw new IllegalArgumentException("Either date or dayOfWeek is required");
+        }
+        DayOfWeek effectiveDayOfWeek = date != null ? resolveEffectiveDayOfWeek(date) : dayOfWeek;
         List<ClassSchedule> daySchedules = classScheduleRepository
-            .findByTermInstanceIdAndStatusAndDayOfWeek(termInstanceId, ClassScheduleStatus.PUBLISHED, dayOfWeek);
+            .findByTermInstanceIdAndStatusAndDayOfWeek(termInstanceId, ClassScheduleStatus.PUBLISHED, effectiveDayOfWeek);
 
         Map<Long, ClassScheduleResponse> responseById = new HashMap<>();
         for (ClassScheduleResponse response : classScheduleService.toResponseList(daySchedules)) {
@@ -119,6 +135,15 @@ public class ResourceGridService {
             rows.add(new ResourceGridRowResponse(venue.getId(), venue.getName(), cells));
         }
         return rows;
+    }
+
+    private DayOfWeek resolveEffectiveDayOfWeek(LocalDate date) {
+        if (date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+            throw new IllegalArgumentException("No timetable data for Sunday");
+        }
+        return dayMappingOverrideRepository.findByMappedDate(date)
+            .map(DayMappingOverride::getBorrowedDayOfWeek)
+            .orElseGet(() -> DayOfWeek.valueOf(date.getDayOfWeek().name()));
     }
 
     private ResourceGridCellResponse toCell(ClassScheduleResponse r) {

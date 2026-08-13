@@ -15,6 +15,7 @@ import { ToastService } from '../../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../../shared/utils/scroll-to-invalid';
 import { AcademicYearService } from '../../academic-year.service';
 import { BlockedPeriodService } from '../../blocked-period.service';
+import { DayMappingService } from '../../day-mapping.service';
 import { Period } from '../../../period/period.model';
 import {
   AcademicYear,
@@ -25,13 +26,18 @@ import {
   CalendarEvent,
   CalendarEventRequest,
   CalendarEventType,
+  DayMapping,
+  DayMappingRequest,
   EventRecurrenceRequest,
   HolidayCategory,
   HolidayRecurrenceType,
+  TermInstance,
   WeekOfMonth,
 } from '../../academic-year.model';
 import { HolidayTemplateService } from '../../../holiday-template/holiday-template.service';
 import {
+  DAY_MAPPING_BADGE_CLASS,
+  DAY_MAPPING_ICON,
   DAY_OF_WEEK_LABELS,
   EVENT_TYPE_BADGE_CLASS,
   EVENT_TYPE_ICONS,
@@ -40,7 +46,7 @@ import {
 import { formatBlockSummary } from '../blocked-period-summary.util';
 import { FlyoutMiniCalendarComponent } from './flyout-mini-calendar/flyout-mini-calendar.component';
 
-export type DayDetailSection = 'EVENTS' | 'BLOCKS';
+export type DayDetailSection = 'EVENTS' | 'BLOCKS' | 'DAY_MAPPING';
 
 type EventFormMode = 'CLOSED' | 'ADD' | 'EDIT';
 type BlockStep = 'FORM' | 'RESULT';
@@ -89,10 +95,14 @@ export class DayDetailFlyoutComponent implements OnInit {
   readonly periods = input.required<Period[]>();
   readonly events = input.required<CalendarEvent[]>();
   readonly blockedPeriods = input.required<BlockedPeriod[]>();
+  readonly termInstances = input.required<TermInstance[]>();
+  readonly dayMappings = input.required<DayMapping[]>();
   readonly canManageEvents = input.required<boolean>();
   readonly canManageBlocks = input.required<boolean>();
+  readonly canManageDayMapping = input.required<boolean>();
   readonly focusEventId = input<number | null>(null);
   readonly focusBlockId = input<number | null>(null);
+  readonly focusMappingId = input<number | null>(null);
   readonly initialSection = input<DayDetailSection | null>(null);
 
   readonly closed = output<void>();
@@ -100,6 +110,7 @@ export class DayDetailFlyoutComponent implements OnInit {
 
   private readonly academicYearService = inject(AcademicYearService);
   private readonly blockedPeriodService = inject(BlockedPeriodService);
+  private readonly dayMappingService = inject(DayMappingService);
   private readonly holidayTemplateService = inject(HolidayTemplateService);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
@@ -348,16 +359,22 @@ export class DayDetailFlyoutComponent implements OnInit {
 
     const focusEventId = this.focusEventId();
     const focusBlockId = this.focusBlockId();
+    const focusMappingId = this.focusMappingId();
     if (focusEventId != null) {
       const evt = this.events().find((e) => e.id === focusEventId);
       if (evt) this.openEditEventForm(evt);
     } else if (focusBlockId != null) {
       const block = this.blockedPeriods().find((b) => b.id === focusBlockId);
       if (block) this.openEditBlockForm(block);
+    } else if (focusMappingId != null) {
+      const mapping = this.dayMappings().find((m) => m.id === focusMappingId);
+      if (mapping) this.openEditMappingForm(mapping);
     } else if (this.initialSection() === 'EVENTS') {
       this.openAddEventForm();
     } else if (this.initialSection() === 'BLOCKS') {
       this.blockFormOpen.set(true);
+    } else if (this.initialSection() === 'DAY_MAPPING') {
+      this.openAddMappingForm();
     }
   }
 
@@ -776,6 +793,112 @@ export class DayDetailFlyoutComponent implements OnInit {
         this.dataChanged.emit();
       },
       error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete blocked period'),
+    });
+  }
+
+  // ─── Day mapping override on this date ───
+  protected readonly dayMappingIcon = DAY_MAPPING_ICON;
+  protected readonly dayMappingBadgeClass = DAY_MAPPING_BADGE_CLASS;
+
+  /** Mappings are unique per date, so this is a single optional value rather than a list. */
+  protected readonly mappingOnDate = computed(() => {
+    const iso = this.selectedDateIso();
+    if (!iso) return null;
+    return this.dayMappings().find((m) => m.mappedDate === iso) ?? null;
+  });
+
+  /** The term instance the selected date falls in -- required to build a DayMappingRequest.
+   *  Null when the date sits outside every term this academic year has (e.g. a gap between an
+   *  ODD and EVEN term), in which case the Add action is disabled with an explanatory message. */
+  protected readonly termInstanceForSelectedDate = computed<TermInstance | null>(() => {
+    const iso = this.selectedDateIso();
+    if (!iso) return null;
+    return this.termInstances().find((t) => t.startDate <= iso && t.endDate >= iso) ?? null;
+  });
+
+  protected readonly mappingFormOpen = signal(false);
+  protected readonly editingMappingId = signal<number | null>(null);
+  protected readonly mappingBorrowedDay = signal<AppDayOfWeek | null>(null);
+  protected readonly mappingReason = signal('');
+  protected readonly mappingSaving = signal(false);
+
+  protected mappingBorrowedDayLabel(mapping: DayMapping): string {
+    return this.dayOfWeekLabels[mapping.borrowedDayOfWeek];
+  }
+
+  protected openAddMappingForm(): void {
+    this.editingMappingId.set(null);
+    this.mappingBorrowedDay.set(null);
+    this.mappingReason.set('');
+    this.mappingFormOpen.set(true);
+  }
+
+  protected openEditMappingForm(mapping: DayMapping): void {
+    this.editingMappingId.set(mapping.id);
+    this.mappingBorrowedDay.set(mapping.borrowedDayOfWeek);
+    this.mappingReason.set(mapping.reason);
+    this.mappingFormOpen.set(true);
+  }
+
+  protected cancelMappingForm(): void {
+    this.mappingFormOpen.set(false);
+    this.editingMappingId.set(null);
+    this.mappingBorrowedDay.set(null);
+    this.mappingReason.set('');
+  }
+
+  protected saveMapping(): void {
+    const term = this.termInstanceForSelectedDate();
+    const borrowedDay = this.mappingBorrowedDay();
+    const reason = this.mappingReason().trim();
+    if (!term) {
+      this.toast.error('This date does not fall within any term');
+      return;
+    }
+    if (!borrowedDay) {
+      this.toast.error('Select a day of week to borrow');
+      return;
+    }
+    if (!reason) {
+      this.toast.error('A reason is required');
+      return;
+    }
+
+    const request: DayMappingRequest = {
+      termInstanceId: term.id,
+      mappedDate: this.selectedDateIso(),
+      borrowedDayOfWeek: borrowedDay,
+      reason,
+    };
+
+    this.mappingSaving.set(true);
+    const editingId = this.editingMappingId();
+    const call$ = editingId
+      ? this.dayMappingService.update(editingId, request)
+      : this.dayMappingService.create(request);
+
+    call$.subscribe({
+      next: () => {
+        this.toast.success(editingId ? 'Day mapping updated' : 'Day mapping created');
+        this.mappingSaving.set(false);
+        this.cancelMappingForm();
+        this.dataChanged.emit();
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to save day mapping');
+        this.mappingSaving.set(false);
+      },
+    });
+  }
+
+  protected deleteMapping(mapping: DayMapping): void {
+    if (!confirm(`Delete this day mapping ("${mapping.reason}")?`)) return;
+    this.dayMappingService.delete(mapping.id).subscribe({
+      next: () => {
+        this.toast.success('Day mapping deleted');
+        this.dataChanged.emit();
+      },
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete day mapping'),
     });
   }
 }

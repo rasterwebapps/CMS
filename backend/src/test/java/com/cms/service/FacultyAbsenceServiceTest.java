@@ -3,6 +3,7 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -39,6 +40,7 @@ import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.DayMappingOverrideRepository;
 import com.cms.repository.FacultyAbsenceRepository;
 import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.FacultyRepository;
@@ -53,6 +55,7 @@ class FacultyAbsenceServiceTest {
     @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
     @Mock private SessionOccurrenceRepository sessionOccurrenceRepository;
     @Mock private AuditLogService auditLogService;
+    @Mock private DayMappingOverrideRepository dayMappingOverrideRepository;
 
     private FacultyAbsenceService service;
 
@@ -65,7 +68,9 @@ class FacultyAbsenceServiceTest {
     @BeforeEach
     void setUp() {
         service = new FacultyAbsenceService(facultyAbsenceRepository, classScheduleRepository,
-            facultyRepository, facultyAvailabilityRepository, sessionOccurrenceRepository, auditLogService);
+            facultyRepository, facultyAvailabilityRepository, sessionOccurrenceRepository, auditLogService,
+            dayMappingOverrideRepository);
+        lenient().when(dayMappingOverrideRepository.findByMappedDate(any())).thenReturn(Optional.empty());
 
         speciality = new Speciality("Nursing", "NUR", "Nursing Dept", null, null);
         speciality.setId(1L);
@@ -141,6 +146,32 @@ class FacultyAbsenceServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).classScheduleId()).isEqualTo(300L);
         assertThat(result.get(0).subjectName()).isEqualTo("Nursing Foundations");
+    }
+
+    @Test
+    void shouldResolveAffectedSessionsAgainstTheBorrowedWeekdayWhenAbsenceDateIsMapped() {
+        // 2024-08-10 is a Saturday, mapped to run Monday's schedule -- the absent faculty's only
+        // session is a MONDAY session, so it should be found even though the absence date itself
+        // is a Saturday (which the faculty has no schedule on at all).
+        LocalDate mappedSaturday = LocalDate.of(2024, 8, 10);
+        FacultyAbsence absence = new FacultyAbsence(absentFaculty, mappedSaturday, "Sick", "admin");
+        absence.setId(53L);
+
+        com.cms.model.DayMappingOverride mapping = new com.cms.model.DayMappingOverride();
+        mapping.setMappedDate(mappedSaturday);
+        mapping.setBorrowedDayOfWeek(DayOfWeek.MONDAY);
+
+        when(facultyAbsenceRepository.findById(53L)).thenReturn(Optional.of(absence));
+        when(dayMappingOverrideRepository.findByMappedDate(mappedSaturday)).thenReturn(Optional.of(mapping));
+        when(classScheduleRepository.findByFacultyIdAndStatusAndDayOfWeek(1L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
+            .thenReturn(List.of(schedule));
+        when(sessionOccurrenceRepository.findByClassScheduleIdAndOccurrenceDate(300L, mappedSaturday))
+            .thenReturn(Optional.empty());
+
+        List<AffectedSessionResponse> result = service.findAffectedSessions(53L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).classScheduleId()).isEqualTo(300L);
     }
 
     @Test

@@ -19,8 +19,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cms.dto.AttendanceReportResponse;
 import com.cms.dto.AttendanceRequest;
 import com.cms.dto.AttendanceResponse;
+import com.cms.dto.AvailableSubjectResponse;
 import com.cms.dto.BulkAttendanceRequest;
+import com.cms.dto.ProfileIdentity;
+import com.cms.dto.StudentRosterResponse;
 import com.cms.service.AttendanceService;
+import com.cms.service.ProfileService;
 
 import jakarta.validation.Valid;
 
@@ -29,9 +33,11 @@ import jakarta.validation.Valid;
 public class AttendanceController {
 
     private final AttendanceService attendanceService;
+    private final ProfileService profileService;
 
-    public AttendanceController(AttendanceService attendanceService) {
+    public AttendanceController(AttendanceService attendanceService, ProfileService profileService) {
         this.attendanceService = attendanceService;
+        this.profileService = profileService;
     }
 
     @PostMapping
@@ -67,6 +73,17 @@ public class AttendanceController {
             throw new IllegalArgumentException("At least one filter parameter is required");
         }
         return ResponseEntity.ok(attendances);
+    }
+
+    @GetMapping("/available-subjects")
+    public ResponseEntity<List<AvailableSubjectResponse>> findAvailableSubjects(@RequestParam LocalDate date) {
+        ProfileIdentity identity = profileService.resolveCurrentUser();
+        return ResponseEntity.ok(attendanceService.findAvailableSubjects(identity.entityId(), date));
+    }
+
+    @GetMapping("/subject-roster")
+    public ResponseEntity<List<StudentRosterResponse>> findRosterForSubject(@RequestParam Long subjectId) {
+        return ResponseEntity.ok(attendanceService.findRosterForSubject(subjectId));
     }
 
     @GetMapping("/reports")

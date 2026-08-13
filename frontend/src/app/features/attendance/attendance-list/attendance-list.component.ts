@@ -62,7 +62,7 @@ export class AttendanceListComponent implements OnInit {
     columns: [
       { key: 'date', label: 'Date', mandatory: true },
       { key: 'studentName', label: 'Student' },
-      { key: 'courseName', label: 'Course' },
+      { key: 'subjectName', label: 'Subject' },
       { key: 'type', label: 'Type' },
       { key: 'status', label: 'Status' },
       { key: 'actions', label: 'Actions', mandatory: true, pinnable: false },

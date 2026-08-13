@@ -48,6 +48,9 @@
       <button type="button" class="view-toggle__btn" [class.view-toggle__btn--active]="viewMode() === 'blocked-periods'" (click)="viewMode.set('blocked-periods')">
         <mat-icon>block</mat-icon> Blocked Periods
       </button>
+      <button type="button" class="view-toggle__btn" [class.view-toggle__btn--active]="viewMode() === 'day-mappings'" (click)="viewMode.set('day-mappings')">
+        <mat-icon>swap_horiz</mat-icon> Day Mappings
+      </button>
     </div>
   </div>
 
@@ -296,10 +299,13 @@
                   (click)="cell.isCurrentMonth && openDayDetail(cell.date)"
                   (keydown.enter)="cell.isCurrentMonth && openDayDetail(cell.date)">
                   <span class="day-num">{{ cell.isCurrentMonth ? cell.dayNum : '' }}</span>
-                  @if (cell.events.length > 0 && cell.isCurrentMonth) {
+                  @if ((cell.events.length > 0 || cell.dayMapping) && cell.isCurrentMonth) {
                     <div class="event-dots">
                       @for (ev of cell.events.slice(0, 3); track ev.id) {
                         <span class="dot dot-{{ ev.eventType.toLowerCase() }}" [title]="eventDotTitle(ev)"></span>
+                      }
+                      @if (cell.dayMapping; as mapping) {
+                        <span class="dot dot-daymapping" [title]="'Runs ' + dayOfWeekLabels[mapping.borrowedDayOfWeek] + '\'s schedule'"></span>
                       }
                     </div>
                   }
@@ -328,6 +334,10 @@
               {{ eventTypeLabels[type] }}
             </span>
           }
+          <span class="legend-item">
+            <span class="dot dot-daymapping"></span>
+            Day Mapping
+          </span>
         </div>
       </div>
     }
@@ -371,10 +381,44 @@
         }
       </div>
     }
+
+    <!-- ─────────── DAY MAPPINGS VIEW ─────────── -->
+    @if (viewMode() === 'day-mappings') {
+      <div class="content-card unassigned-events-card">
+        <div class="events-subtitle-row">
+          <h4 class="events-subtitle">Day Mappings</h4>
+          @if (canManageDayMapping()) {
+            <button class="btn-secondary" (click)="openAddDayMapping()">
+              <mat-icon>add</mat-icon> Map a Date
+            </button>
+          }
+        </div>
+        <p class="page-subtitle">Declares that a specific date runs a different weekday's timetable — e.g. a compensatory working Saturday running Monday's schedule. The mapped date always fully replaces its own weekday's sessions.</p>
+        @if (dayMappings().length === 0) {
+          <cms-empty-state icon="swap_horiz" title="No day mappings yet" subtitle="Map a compensatory working day to borrow another weekday's schedule." />
+        } @else {
+          @for (mapping of dayMappings(); track mapping.id) {
+            <div class="event-row">
+              <mat-icon class="ev-icon">swap_horiz</mat-icon>
+              <span class="ev-title">{{ mapping.reason }}</span>
+              <span class="ev-date">{{ mappingSummary(mapping) }}</span>
+              @if (canManageDayMapping()) {
+                <button class="btn-icon-action" (click)="openEditDayMapping(mapping)" matTooltip="Edit">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button class="btn-icon-action danger" (click)="deleteMapping(mapping)" matTooltip="Delete">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              }
+            </div>
+          }
+        }
+      </div>
+    }
   }
 </div>
 
-<!-- ─────────── DAY DETAIL FLYOUT (add/edit events + block periods) ─────────── -->
+<!-- ─────────── DAY DETAIL FLYOUT (add/edit events + block periods + day mappings) ─────────── -->
 @if (dayDetailTarget(); as targetDate) {
   <app-day-detail-flyout
     [date]="targetDate"
@@ -382,10 +426,14 @@
     [periods]="periods()"
     [events]="events()"
     [blockedPeriods]="blockedPeriods()"
+    [termInstances]="termInstances()"
+    [dayMappings]="dayMappings()"
     [canManageEvents]="canManage()"
     [canManageBlocks]="canManageBlocks()"
+    [canManageDayMapping]="canManageDayMapping()"
     [focusEventId]="dayDetailFocusEventId()"
     [focusBlockId]="dayDetailFocusBlockId()"
+    [focusMappingId]="dayDetailFocusMappingId()"
     [initialSection]="dayDetailSection()"
     (closed)="closeDayDetail()"
     (dataChanged)="onDayDetailDataChanged()" />

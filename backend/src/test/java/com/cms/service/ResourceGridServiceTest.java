@@ -28,6 +28,7 @@ import com.cms.model.enums.FacultyStatus;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.ClinicalVenueRepository;
+import com.cms.repository.DayMappingOverrideRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabRepository;
 
@@ -40,6 +41,7 @@ class ResourceGridServiceTest {
     @Mock private ClassroomRepository classroomRepository;
     @Mock private LabRepository labRepository;
     @Mock private ClinicalVenueRepository clinicalVenueRepository;
+    @Mock private DayMappingOverrideRepository dayMappingOverrideRepository;
 
     private ResourceGridService service;
     private Faculty faculty1;
@@ -48,7 +50,8 @@ class ResourceGridServiceTest {
     @BeforeEach
     void setUp() {
         service = new ResourceGridService(classScheduleRepository, classScheduleService,
-            facultyRepository, classroomRepository, labRepository, clinicalVenueRepository);
+            facultyRepository, classroomRepository, labRepository, clinicalVenueRepository,
+            dayMappingOverrideRepository);
 
         Speciality speciality = new Speciality("Nursing", "NUR", "Nursing Dept", null, null);
         speciality.setId(1L);
@@ -80,7 +83,7 @@ class ResourceGridServiceTest {
         when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of(faculty1, faculty2));
 
         List<ResourceGridRowResponse> rows = service.getResourceGrid(
-            ResourceGridService.ResourceType.FACULTY, 10L, DayOfWeek.MONDAY);
+            ResourceGridService.ResourceType.FACULTY, 10L, DayOfWeek.MONDAY, null);
 
         assertThat(rows).hasSize(2);
         ResourceGridRowResponse row1 = rows.stream().filter(r -> r.resourceId().equals(1L)).findFirst().orElseThrow();
@@ -110,7 +113,7 @@ class ResourceGridServiceTest {
         when(clinicalVenueRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of());
 
         List<ResourceGridRowResponse> rows = service.getResourceGrid(
-            ResourceGridService.ResourceType.CLASSROOM, 10L, DayOfWeek.MONDAY);
+            ResourceGridService.ResourceType.CLASSROOM, 10L, DayOfWeek.MONDAY, null);
 
         assertThat(rows).hasSize(2); // classroom + activeLab, maintenanceLab excluded
         assertThat(rows).noneMatch(r -> r.resourceId().equals(2L));
@@ -140,11 +143,41 @@ class ResourceGridServiceTest {
         when(clinicalVenueRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(venue));
 
         List<ResourceGridRowResponse> rows = service.getResourceGrid(
-            ResourceGridService.ResourceType.CLASSROOM, 10L, DayOfWeek.MONDAY);
+            ResourceGridService.ResourceType.CLASSROOM, 10L, DayOfWeek.MONDAY, null);
 
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).resourceId()).isEqualTo(1L);
         assertThat(rows.get(0).sessions()).hasSize(1);
         assertThat(rows.get(0).sessions().get(0).sessionId()).isEqualTo(100L);
+    }
+
+    @Test
+    void requestingByAMappedDateShouldResolveTheBorrowedWeekdaysSchedules() {
+        // 2024-08-10 is a Saturday mapped to run Monday's schedule.
+        java.time.LocalDate mappedSaturday = java.time.LocalDate.of(2024, 8, 10);
+        com.cms.model.DayMappingOverride mapping = new com.cms.model.DayMappingOverride();
+        mapping.setBorrowedDayOfWeek(DayOfWeek.MONDAY);
+        when(dayMappingOverrideRepository.findByMappedDate(mappedSaturday)).thenReturn(java.util.Optional.of(mapping));
+
+        com.cms.model.ClassSchedule cs1 = new com.cms.model.ClassSchedule();
+        cs1.setId(100L);
+        cs1.setFaculty(faculty1);
+
+        ClassScheduleResponse response1 = new ClassScheduleResponse(100L, ClassSessionType.THEORY,
+            ClassScheduleStatus.PUBLISHED, null, null, 1L, "Nursing Foundations", "NF101", 1L, "John Doe",
+            1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), null, null, 1L, null, "Room 101",
+            1L, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
+
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(10L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
+            .thenReturn(List.of(cs1));
+        when(classScheduleService.toResponseList(List.of(cs1))).thenReturn(List.of(response1));
+        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of(faculty1, faculty2));
+
+        List<ResourceGridRowResponse> rows = service.getResourceGrid(
+            ResourceGridService.ResourceType.FACULTY, 10L, null, mappedSaturday);
+
+        ResourceGridRowResponse row1 = rows.stream().filter(r -> r.resourceId().equals(1L)).findFirst().orElseThrow();
+        assertThat(row1.sessions()).hasSize(1);
+        assertThat(row1.sessions().get(0).sessionId()).isEqualTo(100L);
     }
 }

@@ -3,6 +3,7 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -20,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.model.AcademicYear;
 import com.cms.model.BlockedPeriod;
 import com.cms.model.ClassSchedule;
+import com.cms.model.DayMappingOverride;
 import com.cms.model.Period;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.BlockType;
@@ -27,12 +29,18 @@ import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.BlockedPeriodRepository;
+import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.DayMappingOverrideRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ClassScheduleOccurrenceServiceTest {
 
     @Mock
     private BlockedPeriodRepository blockedPeriodRepository;
+    @Mock
+    private DayMappingOverrideRepository dayMappingOverrideRepository;
+    @Mock
+    private ClassScheduleRepository classScheduleRepository;
 
     private ClassScheduleOccurrenceService service;
     private AcademicYear academicYear;
@@ -41,7 +49,8 @@ class ClassScheduleOccurrenceServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ClassScheduleOccurrenceService(blockedPeriodRepository);
+        service = new ClassScheduleOccurrenceService(blockedPeriodRepository, dayMappingOverrideRepository, classScheduleRepository);
+        lenient().when(dayMappingOverrideRepository.findByMappedDateBetween(any(), any())).thenReturn(Collections.emptyList());
 
         academicYear = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         academicYear.setId(1L);
@@ -206,5 +215,81 @@ class ClassScheduleOccurrenceServiceTest {
             LocalDate.of(2024, 8, 5), LocalDate.of(2024, 8, 12), LocalDate.of(2024, 8, 26));
         assertThat(cancelled.get(100L)).extracting(ClassScheduleOccurrenceService.CancelledOccurrence::date)
             .containsExactly(LocalDate.of(2024, 8, 19));
+    }
+
+    // ── DayMappingOverride two-directional resolution ──
+
+    @Test
+    void aSaturdayMappedToMondayShouldSuppressSaturdaysOwnSessionAndBorrowIntoMonday() {
+        // 2024-08-10 is a Saturday within the term (2024-08-05..2024-08-26).
+        DayMappingOverride mapping = new DayMappingOverride();
+        mapping.setMappedDate(LocalDate.of(2024, 8, 10));
+        mapping.setBorrowedDayOfWeek(DayOfWeek.MONDAY);
+        mapping.setTermInstance(termInstance);
+        when(dayMappingOverrideRepository.findByMappedDateBetween(any(), any())).thenReturn(List.of(mapping));
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(anyLong(), any(), any()))
+            .thenReturn(Collections.emptyList());
+
+        ClassSchedule saturdaySchedule = mondaySchedule();
+        saturdaySchedule.setDayOfWeek(DayOfWeek.SATURDAY);
+        saturdaySchedule.setId(300L);
+
+        List<LocalDate> saturdayDates = service.occurrenceDatesFor(
+            saturdaySchedule, LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+        List<LocalDate> mondayDates = service.occurrenceDatesFor(
+            mondaySchedule(), LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+
+        assertThat(saturdayDates).doesNotContain(LocalDate.of(2024, 8, 10));
+        assertThat(mondayDates).contains(LocalDate.of(2024, 8, 10));
+    }
+
+    @Test
+    void aBorrowedInDateThatIsAlsoIndependentlyBlockedStaysSuppressed() {
+        DayMappingOverride mapping = new DayMappingOverride();
+        mapping.setMappedDate(LocalDate.of(2024, 8, 10));
+        mapping.setBorrowedDayOfWeek(DayOfWeek.MONDAY);
+        mapping.setTermInstance(termInstance);
+        when(dayMappingOverrideRepository.findByMappedDateBetween(any(), any())).thenReturn(List.of(mapping));
+
+        BlockedPeriod unrelatedBlock = new BlockedPeriod();
+        unrelatedBlock.setPeriod(period);
+        unrelatedBlock.setBlockType(BlockType.ONE_OFF);
+        unrelatedBlock.setSpecificDate(LocalDate.of(2024, 8, 10));
+        unrelatedBlock.setReason("Unrelated staff meeting");
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(anyLong(), any(), any()))
+            .thenReturn(List.of(unrelatedBlock));
+
+        List<LocalDate> mondayDates = service.occurrenceDatesFor(
+            mondaySchedule(), LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+        assertThat(mondayDates).doesNotContain(LocalDate.of(2024, 8, 10));
+
+        Map<Long, List<ClassScheduleOccurrenceService.CancelledOccurrence>> cancelled =
+            service.cancelledDatesForSchedules(List.of(mondaySchedule()), LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+        assertThat(cancelled.get(100L)).extracting(ClassScheduleOccurrenceService.CancelledOccurrence::date)
+            .contains(LocalDate.of(2024, 8, 10));
+    }
+
+    @Test
+    void unrelatedWeekdaySchedulesAreUnaffectedByAnUnrelatedMapping() {
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(anyLong(), any(), any()))
+            .thenReturn(Collections.emptyList());
+
+        ClassSchedule wednesdaySchedule = mondaySchedule();
+        wednesdaySchedule.setDayOfWeek(DayOfWeek.WEDNESDAY);
+        wednesdaySchedule.setId(400L);
+
+        List<LocalDate> withoutMapping = service.occurrenceDatesFor(
+            wednesdaySchedule, LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+
+        DayMappingOverride unrelatedMapping = new DayMappingOverride();
+        unrelatedMapping.setMappedDate(LocalDate.of(2024, 8, 10)); // a Saturday
+        unrelatedMapping.setBorrowedDayOfWeek(DayOfWeek.FRIDAY);   // not Wednesday
+        unrelatedMapping.setTermInstance(termInstance);
+        when(dayMappingOverrideRepository.findByMappedDateBetween(any(), any())).thenReturn(List.of(unrelatedMapping));
+
+        List<LocalDate> withMapping = service.occurrenceDatesFor(
+            wednesdaySchedule, LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+
+        assertThat(withMapping).isEqualTo(withoutMapping);
     }
 }

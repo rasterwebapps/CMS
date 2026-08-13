@@ -23,6 +23,7 @@ import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.OccurrenceStatus;
 import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.DayMappingOverrideRepository;
 import com.cms.repository.FacultyAbsenceRepository;
 import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.FacultyRepository;
@@ -44,19 +45,22 @@ public class FacultyAbsenceService {
     private final FacultyAvailabilityRepository facultyAvailabilityRepository;
     private final SessionOccurrenceRepository sessionOccurrenceRepository;
     private final AuditLogService auditLogService;
+    private final DayMappingOverrideRepository dayMappingOverrideRepository;
 
     public FacultyAbsenceService(FacultyAbsenceRepository facultyAbsenceRepository,
                                   ClassScheduleRepository classScheduleRepository,
                                   FacultyRepository facultyRepository,
                                   FacultyAvailabilityRepository facultyAvailabilityRepository,
                                   SessionOccurrenceRepository sessionOccurrenceRepository,
-                                  AuditLogService auditLogService) {
+                                  AuditLogService auditLogService,
+                                  DayMappingOverrideRepository dayMappingOverrideRepository) {
         this.facultyAbsenceRepository = facultyAbsenceRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.facultyRepository = facultyRepository;
         this.facultyAvailabilityRepository = facultyAvailabilityRepository;
         this.sessionOccurrenceRepository = sessionOccurrenceRepository;
         this.auditLogService = auditLogService;
+        this.dayMappingOverrideRepository = dayMappingOverrideRepository;
     }
 
     @Transactional
@@ -76,8 +80,12 @@ public class FacultyAbsenceService {
         return toDto(findAbsenceOrThrow(absenceId));
     }
 
-    /** PUBLISHED sessions this faculty teaches on the absence date's weekday -- Sunday never has
-     *  any (com.cms.model.enums.DayOfWeek has no SUNDAY value), so an absence marked on a Sunday
+    /** PUBLISHED sessions this faculty teaches on the absence date's *effective* weekday -- the
+     *  borrowed weekday if a {@link com.cms.model.DayMappingOverride} maps this date away (e.g. an
+     *  absence marked on a compensatory Saturday running Monday's schedule resolves against
+     *  Monday's sessions, not Saturday's, since Saturday's own sessions don't run that day), else
+     *  the date's own actual weekday. Sunday never has any candidates
+     *  (com.cms.model.enums.DayOfWeek has no SUNDAY value), so an absence marked on a Sunday
      *  simply has no affected sessions. */
     public List<AffectedSessionResponse> findAffectedSessions(Long absenceId) {
         FacultyAbsence absence = findAbsenceOrThrow(absenceId);
@@ -85,7 +93,9 @@ public class FacultyAbsenceService {
         if (javaDay == java.time.DayOfWeek.SUNDAY) {
             return List.of();
         }
-        DayOfWeek dayOfWeek = DayOfWeek.valueOf(javaDay.name());
+        DayOfWeek dayOfWeek = dayMappingOverrideRepository.findByMappedDate(absence.getAbsenceDate())
+            .map(com.cms.model.DayMappingOverride::getBorrowedDayOfWeek)
+            .orElseGet(() -> DayOfWeek.valueOf(javaDay.name()));
 
         List<ClassSchedule> candidates = classScheduleRepository.findByFacultyIdAndStatusAndDayOfWeek(
             absence.getFaculty().getId(), ClassScheduleStatus.PUBLISHED, dayOfWeek);

@@ -494,12 +494,13 @@ $overview-bar-height: 64px;
   height: 5px;
   border-radius: 50%;
 
-  &.dot-holiday  { background: var(--cms-warning); }
-  &.dot-exam     { background: var(--cms-danger); }
-  &.dot-cultural { background: var(--cal-violet); }
-  &.dot-sports   { background: var(--cal-cyan); }
-  &.dot-workshop { background: var(--cal-blue); }
-  &.dot-other    { background: var(--cms-text-muted); }
+  &.dot-holiday    { background: var(--cms-warning); }
+  &.dot-exam       { background: var(--cms-danger); }
+  &.dot-cultural   { background: var(--cal-violet); }
+  &.dot-sports     { background: var(--cal-cyan); }
+  &.dot-workshop   { background: var(--cal-blue); }
+  &.dot-other      { background: var(--cms-text-muted); }
+  &.dot-daymapping { background: var(--cms-success); }
 }
 
 .grid-legend {

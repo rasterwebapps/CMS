@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
-import { Attendance, AttendanceRequest, AttendanceReport, BulkAttendanceRequest } from './attendance.model';
+import { Attendance, AttendanceRequest, AttendanceReport, AvailableSubject, BulkAttendanceRequest } from './attendance.model';
 
 @Injectable({
   providedIn: 'root',
@@ -19,15 +19,25 @@ export class AttendanceService {
     return this.http.get<Attendance[]>(`${this.baseUrl}?studentId=${studentId}`);
   }
 
-  getByCourse(courseId: number): Observable<Attendance[]> {
-    return this.http.get<Attendance[]>(`${this.baseUrl}?courseId=${courseId}`);
+  getBySubject(subjectId: number): Observable<Attendance[]> {
+    return this.http.get<Attendance[]>(`${this.baseUrl}?subjectId=${subjectId}`);
   }
 
-  getReports(courseId?: number): Observable<AttendanceReport[]> {
-    const url = courseId
-      ? `${this.baseUrl}/reports?courseId=${courseId}`
-      : `${this.baseUrl}/reports`;
-    return this.http.get<AttendanceReport[]>(url);
+  getReports(studentId: number, subjectId: number): Observable<AttendanceReport[]> {
+    return this.http.get<AttendanceReport[]>(`${this.baseUrl}/reports?studentId=${studentId}&subjectId=${subjectId}`);
+  }
+
+  /** Day-mapping- and blocked-period-aware: resolves through {@code DayMappingOverride} so a
+   *  compensatory working day correctly offers the borrowed weekday's subjects. Faculty is
+   *  resolved server-side from the authenticated caller (matches the `/timetables/me` pattern). */
+  getAvailableSubjects(date: string): Observable<AvailableSubject[]> {
+    return this.http.get<AvailableSubject[]>(`${this.baseUrl}/available-subjects?date=${date}`);
+  }
+
+  getSubjectRoster(subjectId: number): Observable<Array<{ id: number; fullName: string; rollNumber: string }>> {
+    return this.http.get<Array<{ id: number; fullName: string; rollNumber: string }>>(
+      `${this.baseUrl}/subject-roster?subjectId=${subjectId}`
+    );
   }
 
   markBulk(request: BulkAttendanceRequest): Observable<Attendance[]> {

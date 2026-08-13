@@ -1,28 +1,31 @@
 <div class="list-page">
-  <app-page-header title="Mark Attendance" subtitle="Select a course and date to mark attendance">
+  <app-page-header title="Mark Attendance" subtitle="Select a date and subject to mark attendance">
   </app-page-header>
 
   <div class="entry-form-card">
     <form [formGroup]="form" (ngSubmit)="onSubmit()">
       <div class="form-row">
         <div class="field-group">
-          <label for="am-course" class="field-label">Course <span class="field-required">*</span></label>
-          <select id="am-course" class="field-select" formControlName="courseId" [class.field-input--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched">
-            <option [ngValue]="null" disabled>Select a course</option>
-            @for (course of courses(); track course.id) {
-              <option [value]="course.id">{{ course.name }}</option>
-            }
-          </select>
-          @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
-            <p class="field-error">Course is required</p>
-          }
-        </div>
-
-        <div class="field-group">
           <label for="am-date" class="field-label">Date <span class="field-required">*</span></label>
           <input id="am-date" class="field-input" type="date" formControlName="date" [class.field-input--error]="form.get('date')?.invalid && form.get('date')?.touched" />
           @if (form.get('date')?.invalid && form.get('date')?.touched) {
             <p class="field-error">Date is required</p>
+          }
+        </div>
+
+        <div class="field-group">
+          <label for="am-subject" class="field-label">Subject <span class="field-required">*</span></label>
+          <select id="am-subject" class="field-select" formControlName="subjectId" [class.field-input--error]="form.get('subjectId')?.invalid && form.get('subjectId')?.touched" [disabled]="!form.get('date')?.value || loadingSubjects()">
+            <option [ngValue]="null" disabled>{{ loadingSubjects() ? 'Loading subjects…' : 'Select a subject' }}</option>
+            @for (subject of availableSubjects(); track subject.classScheduleId) {
+              <option [value]="subject.subjectId">{{ subject.subjectName }} @if (subject.slotName) { ({{ subject.slotName }}) }</option>
+            }
+          </select>
+          @if (form.get('subjectId')?.invalid && form.get('subjectId')?.touched) {
+            <p class="field-error">Subject is required</p>
+          }
+          @if (form.get('date')?.value && !loadingSubjects() && availableSubjects().length === 0) {
+            <p class="field-hint">No subjects scheduled for this date.</p>
           }
         </div>
 
@@ -65,8 +68,8 @@
             </div>
           }
         </div>
-      } @else if (form.get('courseId')?.value) {
-        <p class="no-students">No students found for this course.</p>
+      } @else if (form.get('subjectId')?.value) {
+        <p class="no-students">No students found for this subject.</p>
       }
 
       <div class="form-footer">

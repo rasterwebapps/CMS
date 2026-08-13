@@ -418,6 +418,66 @@
         }
       }
     </section>
+
+    <!-- ─────────── Day mapping override on this date ─────────── -->
+    <section class="ddf-section">
+      <div class="events-subtitle-row">
+        <h4 class="events-subtitle">Day mapping</h4>
+        @if (canManageDayMapping() && !mappingFormOpen() && !mappingOnDate()) {
+          <button class="btn-secondary" type="button" [disabled]="!termInstanceForSelectedDate()" (click)="openAddMappingForm()">
+            <mat-icon>swap_horiz</mat-icon> Map This Date
+          </button>
+        }
+      </div>
+
+      @if (mappingOnDate(); as mapping) {
+        @if (!mappingFormOpen()) {
+          <div class="ddf-row">
+            <mat-icon class="ddf-row-icon">{{ dayMappingIcon }}</mat-icon>
+            <span class="ddf-row-title">Runs {{ mappingBorrowedDayLabel(mapping) }}'s schedule</span>
+            <span class="cms-badge {{ dayMappingBadgeClass }}">{{ mapping.reason }}</span>
+            @if (canManageDayMapping()) {
+              <button class="btn-icon-action" type="button" (click)="openEditMappingForm(mapping)" matTooltip="Edit">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button class="btn-icon-action danger" type="button" (click)="deleteMapping(mapping)" matTooltip="Delete">
+                <mat-icon>delete</mat-icon>
+              </button>
+            }
+          </div>
+        }
+      } @else if (!mappingFormOpen()) {
+        <p class="ddf-empty-hint">
+          @if (termInstanceForSelectedDate()) {
+            This date runs its own weekday's schedule.
+          } @else {
+            This date does not fall within any term, so it can't be mapped.
+          }
+        </p>
+      }
+
+      @if (mappingFormOpen()) {
+        <div class="ddf-block-form">
+          <div class="form-field">
+            <label class="form-field-label">Runs this weekday's schedule <span class="required-star">*</span></label>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-select [ngModel]="mappingBorrowedDay()" [ngModelOptions]="{standalone: true}" (ngModelChange)="mappingBorrowedDay.set($event)">
+                @for (d of daysOfWeek; track d) {
+                  <mat-option [value]="d">{{ dayOfWeekLabels[d] }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="form-field">
+            <label class="form-field-label">Reason <span class="required-star">*</span></label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input matInput [ngModel]="mappingReason()" (ngModelChange)="mappingReason.set($event)" placeholder="e.g. Compensatory working day" />
+            </mat-form-field>
+          </div>
+        </div>
+      }
+    </section>
   </div>
 
   <div flyoutFooter>
@@ -439,6 +499,11 @@
       </button>
     } @else if (blockFormOpen() && blockStep() === 'RESULT') {
       <button mat-flat-button color="primary" type="button" (click)="finishBlockResult()">Done</button>
+    } @else if (mappingFormOpen()) {
+      <button mat-button type="button" (click)="cancelMappingForm()">Cancel</button>
+      <button mat-flat-button color="primary" type="button" [disabled]="mappingSaving()" (click)="saveMapping()">
+        @if (mappingSaving()) { <mat-spinner diameter="16" /> } @else { {{ editingMappingId() ? 'Update Mapping' : 'Create Mapping' }} }
+      </button>
     }
   </div>
 

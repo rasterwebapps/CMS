@@ -56,8 +56,13 @@ export class TimetableService {
     return this.http.get<MyTimetableResponse>(`${this.baseUrl}/me`, { params });
   }
 
-  getResourceGrid(type: ResourceGridType, termInstanceId: number, dayOfWeek: string): Observable<ResourceGridRow[]> {
-    const params = new HttpParams().set('termInstanceId', termInstanceId).set('dayOfWeek', dayOfWeek);
+  /** Either `date` (resolved server-side through any DayMappingOverride, e.g. a compensatory
+   *  working day) or `dayOfWeek` (the grid's plain Mon-Sat planning-mode toggle) must be
+   *  supplied; `date` takes precedence if both are. */
+  getResourceGrid(type: ResourceGridType, termInstanceId: number,
+                   opts: { date?: string; dayOfWeek?: string }): Observable<ResourceGridRow[]> {
+    let params = new HttpParams().set('termInstanceId', termInstanceId);
+    params = opts.date ? params.set('date', opts.date) : params.set('dayOfWeek', opts.dayOfWeek!);
     const path = type === 'FACULTY' ? 'resource-grid/faculty' : 'resource-grid/classroom';
     return this.http.get<ResourceGridRow[]>(`${this.baseUrl}/${path}`, { params });
   }

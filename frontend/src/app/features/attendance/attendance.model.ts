@@ -2,8 +2,8 @@ export interface Attendance {
   id: number;
   studentId: number;
   studentName: string;
-  courseId: number;
-  courseName: string;
+  subjectId: number;
+  subjectName: string;
   date: string;
   status: string;
   type: string;
@@ -13,17 +13,28 @@ export interface Attendance {
 
 export interface AttendanceRequest {
   studentId: number;
-  courseId: number;
+  subjectId: number;
   date: string;
   status: string;
   type: string;
 }
 
 export interface BulkAttendanceRequest {
-  courseId: number;
+  subjectId: number;
   date: string;
   type: string;
-  records: Array<{ studentId: number; status: string }>;
+  studentAttendances: Array<{ studentId: number; status: string }>;
+}
+
+export interface AvailableSubject {
+  classScheduleId: number;
+  subjectId: number;
+  subjectName: string;
+  subjectCode: string;
+  batchName: string | null;
+  slotName: string | null;
+  startTime: string | null;
+  endTime: string | null;
 }
 
 export interface AttendanceReport {

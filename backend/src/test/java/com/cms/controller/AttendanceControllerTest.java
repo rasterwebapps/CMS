@@ -34,6 +34,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.AttendanceStatus;
 import com.cms.model.enums.AttendanceType;
 import com.cms.service.AttendanceService;
+import com.cms.service.ProfileService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @WebMvcTest(controllers = AttendanceController.class)
@@ -48,6 +49,9 @@ class AttendanceControllerTest {
 
     @MockitoBean
     private AttendanceService attendanceService;
+
+    @MockitoBean
+    private ProfileService profileService;
 
     @Test
     void shouldMarkAttendance() throws Exception {

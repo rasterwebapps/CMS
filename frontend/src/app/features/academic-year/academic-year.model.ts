@@ -165,6 +165,27 @@ export interface BlockedPeriodRequest {
   reason: string;
 }
 
+/** Declares that a specific calendar date runs a DIFFERENT weekday's timetable than its own
+ *  actual weekday (a compensatory working day, e.g. "this Saturday runs Monday's schedule").
+ *  {@code mappedDate} is unique institution-wide; the mapped date always fully suppresses its
+ *  own actual-weekday sessions and substitutes the borrowed weekday's instead. */
+export interface DayMapping {
+  id: number;
+  termInstanceId: number;
+  mappedDate: string;
+  borrowedDayOfWeek: AppDayOfWeek;
+  reason: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DayMappingRequest {
+  termInstanceId: number;
+  mappedDate: string;
+  borrowedDayOfWeek: AppDayOfWeek;
+  reason: string;
+}
+
 export type TermType = 'ODD' | 'EVEN';
 export type TermInstanceStatus = 'PLANNED' | 'OPEN' | 'LOCKED';
 export type LateFeeType = 'FLAT' | 'PER_DAY';

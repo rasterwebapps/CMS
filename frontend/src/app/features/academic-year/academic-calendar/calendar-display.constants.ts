@@ -40,3 +40,10 @@ export const EVENT_TYPE_BADGE_CLASS: Record<CalendarEventType, string> = {
   WORKSHOP: 'cms-badge--blue',
   OTHER: 'cms-badge--gray',
 };
+
+/** Day-mapping override marker on the month grid -- same cms-badge--* color system as event
+ *  chips (not the separate CmsStatusBadge lifecycle-status system, since this marks an
+ *  event/annotation type on a date, not a workflow state). 'green' is verified defined in
+ *  styles.scss and not already claimed by any EVENT_TYPE_BADGE_CLASS value above. */
+export const DAY_MAPPING_ICON = 'swap_horiz';
+export const DAY_MAPPING_BADGE_CLASS = 'cms-badge--green';

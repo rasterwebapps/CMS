@@ -50,6 +50,8 @@ class AttendanceServiceTest {
     private CourseRegistrationRepository courseRegistrationRepository;
     @Mock
     private AttendanceThresholdService thresholdService;
+    @Mock
+    private ClassScheduleOccurrenceService classScheduleOccurrenceService;
 
     private AttendanceService attendanceService;
 
@@ -59,8 +61,8 @@ class AttendanceServiceTest {
 
     @BeforeEach
     void setUp() {
-        attendanceService = new AttendanceService(
-            attendanceRepository, studentRepository, subjectRepository, courseRegistrationRepository, thresholdService);
+        attendanceService = new AttendanceService(attendanceRepository, studentRepository, subjectRepository,
+            courseRegistrationRepository, thresholdService, classScheduleOccurrenceService);
 
         Speciality speciality = new Speciality("Computer Science", "CS", "CS Dept", null, "Dr. Smith");
         speciality.setId(1L);

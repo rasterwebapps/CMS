@@ -12,9 +12,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.AttendanceReportResponse;
 import com.cms.dto.AttendanceRequest;
 import com.cms.dto.AttendanceResponse;
+import com.cms.dto.AvailableSubjectResponse;
 import com.cms.dto.BulkAttendanceRequest;
+import com.cms.dto.StudentRosterResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Attendance;
+import com.cms.model.ClassSchedule;
 import com.cms.model.Subject;
 import com.cms.model.Student;
 import com.cms.model.enums.AttendanceStatus;
@@ -33,17 +36,49 @@ public class AttendanceService {
     private final SubjectRepository subjectRepository;
     private final CourseRegistrationRepository courseRegistrationRepository;
     private final AttendanceThresholdService thresholdService;
+    private final ClassScheduleOccurrenceService classScheduleOccurrenceService;
 
     public AttendanceService(AttendanceRepository attendanceRepository,
                               StudentRepository studentRepository,
                               SubjectRepository subjectRepository,
                               CourseRegistrationRepository courseRegistrationRepository,
-                              AttendanceThresholdService thresholdService) {
+                              AttendanceThresholdService thresholdService,
+                              ClassScheduleOccurrenceService classScheduleOccurrenceService) {
         this.attendanceRepository = attendanceRepository;
         this.studentRepository = studentRepository;
         this.subjectRepository = subjectRepository;
         this.courseRegistrationRepository = courseRegistrationRepository;
         this.thresholdService = thresholdService;
+        this.classScheduleOccurrenceService = classScheduleOccurrenceService;
+    }
+
+    /** Subjects a faculty member can mark attendance for on a specific date, resolved through
+     *  {@link ClassScheduleOccurrenceService#schedulesEffectiveOn} -- day-mapping- and
+     *  blocked-period-aware, so a compensatory working day correctly offers the borrowed weekday's
+     *  subjects rather than the date's own (usually empty) actual-weekday list. */
+    public List<AvailableSubjectResponse> findAvailableSubjects(Long facultyId, LocalDate date) {
+        List<ClassSchedule> schedules = classScheduleOccurrenceService.schedulesEffectiveOn(date, facultyId);
+        List<AvailableSubjectResponse> result = new ArrayList<>();
+        for (ClassSchedule cs : schedules) {
+            result.add(new AvailableSubjectResponse(
+                cs.getId(), cs.getSubject().getId(), cs.getSubject().getName(), cs.getSubject().getCode(),
+                cs.getBatchName(), cs.getPeriod() != null ? cs.getPeriod().getName() : null,
+                cs.getPeriod() != null ? cs.getPeriod().getStartTime() : null,
+                cs.getPeriod() != null ? cs.getPeriod().getEndTime() : null));
+        }
+        return result;
+    }
+
+    /** Students registered for a subject -- reuses the same roster query {@link
+     *  #getLowAttendanceAlerts} already relies on, so the attendance-mark screen's roster
+     *  matches exactly who low-attendance alerts are computed for. */
+    public List<StudentRosterResponse> findRosterForSubject(Long subjectId) {
+        if (!subjectRepository.existsById(subjectId)) {
+            throw new ResourceNotFoundException("Subject not found with id: " + subjectId);
+        }
+        return courseRegistrationRepository.findRegisteredStudentsBySubjectId(subjectId).stream()
+            .map(s -> new StudentRosterResponse(s.getId(), s.getFullName(), s.getRollNumber()))
+            .toList();
     }
 
     @Transactional

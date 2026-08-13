@@ -46,6 +46,13 @@ export class ResourceTimetableGridComponent implements OnInit {
   protected readonly days = WEEK_GRID_DAYS;
   protected readonly dayLabels = WEEK_GRID_DAY_LABELS;
 
+  /** DATE (default) resolves through any DayMappingOverride for a real calendar date, e.g. a
+   *  compensatory working day correctly shows the borrowed weekday's schedules. WEEKDAY is a
+   *  pure planning-mode fallback with no day-mapping awareness (the recurring weekly template,
+   *  not tied to any specific date). */
+  protected readonly viewMode = signal<'DATE' | 'WEEKDAY'>('DATE');
+  protected selectedDate: string = new Date().toISOString().slice(0, 10);
+
   protected readonly rows = signal<ResourceGridRow[]>([]);
 
   protected readonly timeColumns = computed<TimeColumn[]>(() => {
@@ -99,6 +106,16 @@ export class ResourceTimetableGridComponent implements OnInit {
     this.load();
   }
 
+  protected onDateChange(date: string): void {
+    this.selectedDate = date;
+    this.load();
+  }
+
+  protected setViewMode(mode: 'DATE' | 'WEEKDAY'): void {
+    this.viewMode.set(mode);
+    this.load();
+  }
+
   protected cellsFor(row: ResourceGridRow, column: TimeColumn) {
     return row.sessions.filter((s) => s.startTime === column.startTime && s.endTime === column.endTime);
   }
@@ -119,7 +136,8 @@ export class ResourceTimetableGridComponent implements OnInit {
   private load(): void {
     if (!this.selectedTermInstanceId) { this.rows.set([]); return; }
     this.loading.set(true);
-    this.timetableService.getResourceGrid(this.resourceType(), this.selectedTermInstanceId, this.dayOfWeek()).subscribe({
+    const opts = this.viewMode() === 'DATE' ? { date: this.selectedDate } : { dayOfWeek: this.dayOfWeek() };
+    this.timetableService.getResourceGrid(this.resourceType(), this.selectedTermInstanceId, opts).subscribe({
       next: (data) => { this.rows.set(data); this.loading.set(false); },
       error: () => { this.toast.error('Failed to load resource grid'); this.loading.set(false); },
     });

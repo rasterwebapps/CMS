@@ -16,6 +16,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { forkJoin } from 'rxjs';
 import { AcademicYearService } from '../academic-year.service';
 import { BlockedPeriodService } from '../blocked-period.service';
+import { DayMappingService } from '../day-mapping.service';
 import { PeriodService } from '../../period/period.service';
 import { Period } from '../../period/period.model';
 import {
@@ -23,6 +24,7 @@ import {
   BlockedPeriod,
   CalendarEvent,
   CalendarEventType,
+  DayMapping,
   HolidayCategory,
   TermInstance,
   TermType,
@@ -47,7 +49,7 @@ import {
 import { DayDetailFlyoutComponent, DayDetailSection } from './day-detail-flyout/day-detail-flyout.component';
 import { buildMonthGrids, MonthGrid, toIso } from './month-grid.util';
 
-export type CalendarViewMode = 'timeline' | 'grid' | 'blocked-periods';
+export type CalendarViewMode = 'timeline' | 'grid' | 'blocked-periods' | 'day-mappings';
 
 @Component({
   selector: 'app-academic-calendar',
@@ -71,6 +73,7 @@ export type CalendarViewMode = 'timeline' | 'grid' | 'blocked-periods';
 export class AcademicCalendarComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly blockedPeriodService = inject(BlockedPeriodService);
+  private readonly dayMappingService = inject(DayMappingService);
   private readonly periodService = inject(PeriodService);
   private readonly toast = inject(ToastService);
   private readonly printService = inject(PrintService);
@@ -93,6 +96,7 @@ export class AcademicCalendarComponent implements OnInit {
   protected readonly termInstances = signal<TermInstance[]>([]);
   protected readonly events = signal<CalendarEvent[]>([]);
   protected readonly blockedPeriods = signal<BlockedPeriod[]>([]);
+  protected readonly dayMappings = signal<DayMapping[]>([]);
   protected readonly periods = signal<Period[]>([]);
 
   // ─── View mode ───
@@ -102,6 +106,7 @@ export class AcademicCalendarComponent implements OnInit {
   protected readonly dayDetailTarget = signal<Date | null>(null);
   protected readonly dayDetailFocusEventId = signal<number | null>(null);
   protected readonly dayDetailFocusBlockId = signal<number | null>(null);
+  protected readonly dayDetailFocusMappingId = signal<number | null>(null);
   protected readonly dayDetailSection = signal<DayDetailSection | null>(null);
 
   // ─── Event types for template ───
@@ -122,6 +127,7 @@ export class AcademicCalendarComponent implements OnInit {
   // ─── Role helpers ───
   protected readonly canManage = computed(() => this.permissionService.has('ACADEMIC_YEAR_MANAGE'));
   protected readonly canManageBlocks = computed(() => this.permissionService.has('BLOCKED_PERIOD_MANAGE'));
+  protected readonly canManageDayMapping = computed(() => this.permissionService.has('TIMETABLE_DAY_MAPPING_MANAGE'));
 
   protected readonly dayOfWeekLabels = DAY_OF_WEEK_LABELS;
 
@@ -199,13 +205,17 @@ export class AcademicCalendarComponent implements OnInit {
     const ay = this.selectedAcademicYear();
     if (!ay) return [];
     return buildMonthGrids(
-      ay, this.termInstances(), this.events(),
+      ay, this.termInstances(), this.events(), this.dayMappings(),
       (term) => this.getTermStatus(term), (term) => this.getTermLabel(term),
     );
   });
 
   protected blockSummary(block: BlockedPeriod): string {
     return formatBlockSummary(block, this.dayOfWeekLabels);
+  }
+
+  protected mappingSummary(mapping: DayMapping): string {
+    return `${this.formatDisplayDate(mapping.mappedDate)} runs ${this.dayOfWeekLabels[mapping.borrowedDayOfWeek]}'s schedule`;
   }
 
   ngOnInit(): void {
@@ -216,6 +226,7 @@ export class AcademicCalendarComponent implements OnInit {
       error: () => this.toast.error('Failed to load periods'),
     });
     this.reloadBlockedPeriods();
+    this.reloadDayMappings();
   }
 
   // ─── Load helpers ───
@@ -380,6 +391,7 @@ export class AcademicCalendarComponent implements OnInit {
     this.dayDetailTarget.set(date);
     this.dayDetailFocusEventId.set(null);
     this.dayDetailFocusBlockId.set(null);
+    this.dayDetailFocusMappingId.set(null);
     this.dayDetailSection.set(null);
   }
 
@@ -388,6 +400,7 @@ export class AcademicCalendarComponent implements OnInit {
     this.dayDetailTarget.set(new Date());
     this.dayDetailFocusEventId.set(null);
     this.dayDetailFocusBlockId.set(null);
+    this.dayDetailFocusMappingId.set(null);
     this.dayDetailSection.set('EVENTS');
   }
 
@@ -395,6 +408,7 @@ export class AcademicCalendarComponent implements OnInit {
     this.dayDetailTarget.set(new Date(`${event.startDate}T00:00:00`));
     this.dayDetailFocusEventId.set(event.id);
     this.dayDetailFocusBlockId.set(null);
+    this.dayDetailFocusMappingId.set(null);
     this.dayDetailSection.set('EVENTS');
   }
 
@@ -402,6 +416,7 @@ export class AcademicCalendarComponent implements OnInit {
     this.dayDetailTarget.set(new Date());
     this.dayDetailFocusEventId.set(null);
     this.dayDetailFocusBlockId.set(null);
+    this.dayDetailFocusMappingId.set(null);
     this.dayDetailSection.set('BLOCKS');
   }
 
@@ -410,7 +425,24 @@ export class AcademicCalendarComponent implements OnInit {
     this.dayDetailTarget.set(new Date(`${anchor}T00:00:00`));
     this.dayDetailFocusEventId.set(null);
     this.dayDetailFocusBlockId.set(block.id);
+    this.dayDetailFocusMappingId.set(null);
     this.dayDetailSection.set('BLOCKS');
+  }
+
+  protected openAddDayMapping(): void {
+    this.dayDetailTarget.set(new Date());
+    this.dayDetailFocusEventId.set(null);
+    this.dayDetailFocusBlockId.set(null);
+    this.dayDetailFocusMappingId.set(null);
+    this.dayDetailSection.set('DAY_MAPPING');
+  }
+
+  protected openEditDayMapping(mapping: DayMapping): void {
+    this.dayDetailTarget.set(new Date(`${mapping.mappedDate}T00:00:00`));
+    this.dayDetailFocusEventId.set(null);
+    this.dayDetailFocusBlockId.set(null);
+    this.dayDetailFocusMappingId.set(mapping.id);
+    this.dayDetailSection.set(null);
   }
 
   protected closeDayDetail(): void {
@@ -420,6 +452,7 @@ export class AcademicCalendarComponent implements OnInit {
   protected onDayDetailDataChanged(): void {
     this.reloadEvents();
     this.reloadBlockedPeriods();
+    this.reloadDayMappings();
   }
 
   // ─── Event CRUD (delete only -- add/edit lives in the day-detail flyout) ───
@@ -474,6 +507,25 @@ export class AcademicCalendarComponent implements OnInit {
     this.blockedPeriodService.getAll().subscribe({
       next: (data) => this.blockedPeriods.set(data),
       error: () => this.toast.error('Failed to load blocked periods'),
+    });
+  }
+
+  // ─── Day mapping CRUD (delete only -- add/edit lives in the day-detail flyout) ───
+  protected deleteMapping(mapping: DayMapping): void {
+    if (!confirm(`Delete this day mapping ("${mapping.reason}")?`)) return;
+    this.dayMappingService.delete(mapping.id).subscribe({
+      next: () => {
+        this.toast.success('Day mapping deleted');
+        this.reloadDayMappings();
+      },
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete day mapping'),
+    });
+  }
+
+  private reloadDayMappings(): void {
+    this.dayMappingService.getAll().subscribe({
+      next: (data) => this.dayMappings.set(data),
+      error: () => this.toast.error('Failed to load day mappings'),
     });
   }
 

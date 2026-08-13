@@ -71,9 +71,9 @@
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="courseName" [sticky]="colState.isSticky('courseName')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
-            <td mat-cell *matCellDef="let record">{{ record.courseName }}</td>
+          <ng-container matColumnDef="subjectName" [sticky]="colState.isSticky('subjectName')">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Subject</th>
+            <td mat-cell *matCellDef="let record">{{ record.subjectName }}</td>
           </ng-container>
 
           <ng-container matColumnDef="type" [sticky]="colState.isSticky('type')">

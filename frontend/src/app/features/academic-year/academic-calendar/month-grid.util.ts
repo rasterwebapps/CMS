@@ -1,4 +1,4 @@
-import { AcademicYear, CalendarEvent, TermInstance } from '../academic-year.model';
+import { AcademicYear, CalendarEvent, DayMapping, TermInstance } from '../academic-year.model';
 
 export interface MonthGrid {
   year: number;
@@ -14,6 +14,7 @@ export interface DayCell {
   termStatus: 'UPCOMING' | 'ONGOING' | 'COMPLETED' | null;
   termName: string | null;
   events: CalendarEvent[];
+  dayMapping: DayMapping | null;
   isToday: boolean;
 }
 
@@ -38,6 +39,7 @@ export function buildMonthGrids(
   ay: AcademicYear,
   termInstances: TermInstance[],
   events: CalendarEvent[],
+  dayMappings: DayMapping[],
   getTermStatus: (term: TermInstance, today: Date) => 'UPCOMING' | 'ONGOING' | 'COMPLETED',
   getTermLabel: (term: TermInstance) => string,
 ): MonthGrid[] {
@@ -61,15 +63,15 @@ export function buildMonthGrids(
 
     for (let pad = 0; pad < startDow; pad++) {
       const d = new Date(year, month, -startDow + pad + 1);
-      days.push(buildDayCell(d, false, termInstances, events, today, getTermStatus, getTermLabel));
+      days.push(buildDayCell(d, false, termInstances, events, dayMappings, today, getTermStatus, getTermLabel));
     }
     for (let d = 1; d <= lastDay.getDate(); d++) {
       const date = new Date(year, month, d);
-      days.push(buildDayCell(date, true, termInstances, events, today, getTermStatus, getTermLabel));
+      days.push(buildDayCell(date, true, termInstances, events, dayMappings, today, getTermStatus, getTermLabel));
     }
     while (days.length % 7 !== 0) {
       const date = new Date(year, month + 1, days.length - lastDay.getDate() - startDow + 1);
-      days.push(buildDayCell(date, false, termInstances, events, today, getTermStatus, getTermLabel));
+      days.push(buildDayCell(date, false, termInstances, events, dayMappings, today, getTermStatus, getTermLabel));
     }
 
     grids.push({ year, month, label: `${MONTH_NAMES[month]} ${year}`, days });
@@ -83,6 +85,7 @@ function buildDayCell(
   isCurrentMonth: boolean,
   termInstances: TermInstance[],
   events: CalendarEvent[],
+  dayMappings: DayMapping[],
   today: Date,
   getTermStatus: (term: TermInstance, today: Date) => 'UPCOMING' | 'ONGOING' | 'COMPLETED',
   getTermLabel: (term: TermInstance) => string,
@@ -90,6 +93,7 @@ function buildDayCell(
   const iso = toIso(date);
   const term = termInstances.find((item) => item.startDate <= iso && item.endDate >= iso);
   const dayEvents = events.filter((e) => e.startDate <= iso && e.endDate >= iso);
+  const dayMapping = dayMappings.find((m) => m.mappedDate === iso) ?? null;
   return {
     date,
     dayNum: date.getDate(),
@@ -97,6 +101,7 @@ function buildDayCell(
     termStatus: term ? getTermStatus(term, today) : null,
     termName: term ? getTermLabel(term) : null,
     events: dayEvents,
+    dayMapping,
     isToday: date.getTime() === today.getTime(),
   };
 }
