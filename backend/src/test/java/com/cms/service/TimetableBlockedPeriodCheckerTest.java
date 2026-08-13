@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +30,8 @@ class TimetableBlockedPeriodCheckerTest {
 
     private final LocalDate termStart = LocalDate.of(2024, 6, 1);
     private final LocalDate termEnd = LocalDate.of(2024, 11, 30);
+    private final LocalTime slotStart = LocalTime.of(9, 0);
+    private final LocalTime slotEnd = LocalTime.of(10, 0);
 
     @BeforeEach
     void setUp() {
@@ -37,12 +40,12 @@ class TimetableBlockedPeriodCheckerTest {
 
     @Test
     void shouldReturnEmptyWhenNothingBlocksThisSlot() {
-        when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.MONDAY, 1L, termStart, termEnd))
+        when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.MONDAY, slotStart, slotEnd, termStart, termEnd))
             .thenReturn(Collections.emptyList());
-        when(blockedPeriodRepository.findHolidayOneOffBlocksInRange(1L, termStart, termEnd))
+        when(blockedPeriodRepository.findHolidayOneOffBlocksInRange(slotStart, slotEnd, termStart, termEnd))
             .thenReturn(Collections.emptyList());
 
-        assertThat(checker.blockReason(DayOfWeek.MONDAY, 1L, termStart, termEnd)).isEmpty();
+        assertThat(checker.blockReason(DayOfWeek.MONDAY, slotStart, slotEnd, termStart, termEnd)).isEmpty();
     }
 
     @Test
@@ -50,10 +53,10 @@ class TimetableBlockedPeriodCheckerTest {
         BlockedPeriod block = new BlockedPeriod();
         block.setBlockType(BlockType.RECURRING);
         block.setReason("Staff meeting");
-        when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.MONDAY, 1L, termStart, termEnd))
+        when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.MONDAY, slotStart, slotEnd, termStart, termEnd))
             .thenReturn(List.of(block));
 
-        assertThat(checker.blockReason(DayOfWeek.MONDAY, 1L, termStart, termEnd)).contains("Staff meeting");
+        assertThat(checker.blockReason(DayOfWeek.MONDAY, slotStart, slotEnd, termStart, termEnd)).contains("Staff meeting");
     }
 
     @Test
@@ -66,12 +69,12 @@ class TimetableBlockedPeriodCheckerTest {
         block.setReason("Auto-blocked — Independence Day");
         block.setSourceCalendarEvent(holiday);
 
-        when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.MONDAY, 1L, termStart, termEnd))
+        when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.MONDAY, slotStart, slotEnd, termStart, termEnd))
             .thenReturn(Collections.emptyList());
-        when(blockedPeriodRepository.findHolidayOneOffBlocksInRange(1L, termStart, termEnd))
+        when(blockedPeriodRepository.findHolidayOneOffBlocksInRange(slotStart, slotEnd, termStart, termEnd))
             .thenReturn(List.of(block));
 
-        assertThat(checker.blockReason(DayOfWeek.MONDAY, 1L, termStart, termEnd))
+        assertThat(checker.blockReason(DayOfWeek.MONDAY, slotStart, slotEnd, termStart, termEnd))
             .contains("Auto-blocked — Independence Day");
     }
 
@@ -84,12 +87,12 @@ class TimetableBlockedPeriodCheckerTest {
         block.setReason("Auto-blocked");
         block.setSourceCalendarEvent(holiday);
 
-        when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.TUESDAY, 1L, termStart, termEnd))
+        when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.TUESDAY, slotStart, slotEnd, termStart, termEnd))
             .thenReturn(Collections.emptyList());
-        when(blockedPeriodRepository.findHolidayOneOffBlocksInRange(1L, termStart, termEnd))
+        when(blockedPeriodRepository.findHolidayOneOffBlocksInRange(slotStart, slotEnd, termStart, termEnd))
             .thenReturn(List.of(block));
 
-        assertThat(checker.blockReason(DayOfWeek.TUESDAY, 1L, termStart, termEnd)).isEmpty();
+        assertThat(checker.blockReason(DayOfWeek.TUESDAY, slotStart, slotEnd, termStart, termEnd)).isEmpty();
     }
 
     @Test
@@ -97,9 +100,26 @@ class TimetableBlockedPeriodCheckerTest {
         BlockedPeriod recurring = new BlockedPeriod();
         recurring.setBlockType(BlockType.RECURRING);
         recurring.setReason("Recurring lock");
-        when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.MONDAY, 1L, termStart, termEnd))
+        when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.MONDAY, slotStart, slotEnd, termStart, termEnd))
             .thenReturn(List.of(recurring));
 
-        assertThat(checker.blockReason(DayOfWeek.MONDAY, 1L, termStart, termEnd)).contains("Recurring lock");
+        assertThat(checker.blockReason(DayOfWeek.MONDAY, slotStart, slotEnd, termStart, termEnd)).contains("Recurring lock");
+    }
+
+    @Test
+    void shouldDetectAConflictWhenACandidateWindowOverlapsAWiderBlockedPeriod() {
+        // A "combined double-period" session running 9:00-11:00 must still be caught by a
+        // BlockedPeriod tied to a plain 10:00-10:50 Period row it merely overlaps — this is the
+        // whole point of matching by clock-time overlap rather than period-id equality.
+        LocalTime combinedStart = LocalTime.of(9, 0);
+        LocalTime combinedEnd = LocalTime.of(11, 0);
+        BlockedPeriod block = new BlockedPeriod();
+        block.setBlockType(BlockType.RECURRING);
+        block.setReason("Assembly");
+        when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.MONDAY, combinedStart, combinedEnd, termStart, termEnd))
+            .thenReturn(List.of(block));
+
+        assertThat(checker.blockReason(DayOfWeek.MONDAY, combinedStart, combinedEnd, termStart, termEnd))
+            .contains("Assembly");
     }
 }

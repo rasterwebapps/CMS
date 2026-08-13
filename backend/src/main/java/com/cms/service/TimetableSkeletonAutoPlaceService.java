@@ -178,7 +178,7 @@ public class TimetableSkeletonAutoPlaceService {
                 continue;
             }
             for (Period period : periods) {
-                if (blockedPeriodChecker.blockReason(day, period.getId(),
+                if (blockedPeriodChecker.blockReason(day, period.getStartTime(), period.getEndTime(),
                         termInstance.getStartDate(), termInstance.getEndDate()).isPresent()) {
                     continue;
                 }

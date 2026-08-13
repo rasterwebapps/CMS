@@ -107,7 +107,7 @@ class TimetableConflictInspectorServiceTest {
         classroom.setId(1L);
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
-        lenient().when(blockedPeriodChecker.blockReason(any(), any(), any(), any())).thenReturn(Optional.empty());
+        lenient().when(blockedPeriodChecker.blockReason(any(), any(), any(), any(), any())).thenReturn(Optional.empty());
         lenient().when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
             .thenReturn(Collections.emptyList());
     }
@@ -149,7 +149,8 @@ class TimetableConflictInspectorServiceTest {
     void shouldFlagACellSittingInABlockedPeriod() {
         ClassSchedule cell = staffedCell(100L);
         when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(cell));
-        when(blockedPeriodChecker.blockReason(DayOfWeek.MONDAY, 1L, termInstance.getStartDate(), termInstance.getEndDate()))
+        when(blockedPeriodChecker.blockReason(DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(),
+                termInstance.getStartDate(), termInstance.getEndDate()))
             .thenReturn(Optional.of("Staff meeting"));
 
         ConflictScanResponse result = service.scanTerm(10L);

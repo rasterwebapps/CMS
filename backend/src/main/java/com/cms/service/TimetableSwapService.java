@@ -82,7 +82,7 @@ public class TimetableSwapService {
 
     private void addIfCandidate(List<SwapCandidateResponse> out, ClassSchedule source, DayOfWeek day,
                                  LocalTime start, LocalTime end, Long periodId) {
-        SlotEvaluation eval = evaluateSlot(source, day, start, end, periodId, null);
+        SlotEvaluation eval = evaluateSlot(source, day, start, end, null);
         if (!eval.valid()) {
             return;
         }
@@ -112,7 +112,7 @@ public class TimetableSwapService {
         }
 
         // Never trust a stale candidate list — re-evaluate from scratch.
-        SlotEvaluation eval = evaluateSlot(source, request.dayOfWeek(), start, end, targetPeriod.getId(), null);
+        SlotEvaluation eval = evaluateSlot(source, request.dayOfWeek(), start, end, null);
         if (!eval.valid()) {
             throw new TimetableConstraintViolationException(eval.violations());
         }
@@ -140,7 +140,7 @@ public class TimetableSwapService {
      *  swap, not just a move into an empty slot. */
     private SlotEvaluation evaluateReverse(ClassSchedule source, ClassSchedule occupant) {
         return evaluateSlot(occupant, source.getDayOfWeek(),
-            source.getPeriod().getStartTime(), source.getPeriod().getEndTime(), source.getPeriod().getId(), source.getId());
+            source.getPeriod().getStartTime(), source.getPeriod().getEndTime(), source.getId());
     }
 
     /** @param alsoExcludeId an additional row (besides `moving` itself, always excluded) to leave
@@ -157,9 +157,9 @@ public class TimetableSwapService {
      *  still-unmutated row — must never count as a blocker against itself, which {@link
      *  TimetableStaffingService#checkFacultyFree} has no way to express (single-excludeId contract). */
     private SlotEvaluation evaluateSlot(ClassSchedule moving, DayOfWeek day, LocalTime start, LocalTime end,
-                                         Long periodId, Long alsoExcludeId) {
+                                         Long alsoExcludeId) {
         List<ConstraintViolation> violations = new ArrayList<>();
-        blockedPeriodChecker.blockReason(day, periodId, moving.getTermInstance().getStartDate(), moving.getTermInstance().getEndDate())
+        blockedPeriodChecker.blockReason(day, start, end, moving.getTermInstance().getStartDate(), moving.getTermInstance().getEndDate())
             .ifPresent(reason -> violations.add(new ConstraintViolation(
                 "SWAP_PERIOD_BLOCKED", "This day and period is blocked: " + reason)));
 

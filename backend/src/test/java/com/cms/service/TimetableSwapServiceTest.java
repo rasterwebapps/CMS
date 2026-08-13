@@ -241,7 +241,8 @@ class TimetableSwapServiceTest {
         // excluded as the session's own current slot, so this isolates the effect to p2's rows.
         // lenient(): findCandidates scans every (day, period) combination, most of which have
         // periodId=1L and would otherwise trip strict-stubbing's "unmatched invocation" guard.
-        lenient().when(blockedPeriodChecker.blockReason(any(), eq(2L), eq(termInstance.getStartDate()), eq(termInstance.getEndDate())))
+        lenient().when(blockedPeriodChecker.blockReason(any(), eq(p2.getStartTime()), eq(p2.getEndTime()),
+                eq(termInstance.getStartDate()), eq(termInstance.getEndDate())))
             .thenReturn(Optional.of("Staff meeting"));
 
         List<SwapCandidateResponse> candidates = service.findCandidates(10L, 100L);
@@ -255,7 +256,7 @@ class TimetableSwapServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(p2));
         when(blockedPeriodChecker.blockReason(
-            DayOfWeek.TUESDAY, 2L, termInstance.getStartDate(), termInstance.getEndDate()))
+            DayOfWeek.TUESDAY, p2.getStartTime(), p2.getEndTime(), termInstance.getStartDate(), termInstance.getEndDate()))
             .thenReturn(Optional.of("Staff meeting"));
 
         assertThatThrownBy(() -> service.swap(10L, 100L, new SwapRequest(DayOfWeek.TUESDAY, 2L), "admin"))

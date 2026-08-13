@@ -313,8 +313,9 @@ public class TimetableSkeletonService {
      *  lock or a holiday-derived one-off block — backed by the shared {@link
      *  TimetableBlockedPeriodChecker} {@link TimetableStaffingService} and {@link
      *  TimetableSwapService} also use. */
-    private Optional<ConstraintViolation> checkBlocked(DayOfWeek dayOfWeek, Long periodId, TermInstance termInstance) {
-        return blockedPeriodChecker.blockReason(dayOfWeek, periodId, termInstance.getStartDate(), termInstance.getEndDate())
+    private Optional<ConstraintViolation> checkBlocked(DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
+        return blockedPeriodChecker.blockReason(dayOfWeek, period.getStartTime(), period.getEndTime(),
+                termInstance.getStartDate(), termInstance.getEndDate())
             .map(reason -> new ConstraintViolation("SKELETON_CELL_PERIOD_BLOCKED", "This day and period is blocked: " + reason));
     }
 
@@ -322,7 +323,8 @@ public class TimetableSkeletonService {
      *  distinct violation — there's no per-candidate UI affordance to explain "why" a slot didn't
      *  appear. Returns the block reason, or null if the slot is free. */
     private String blockReason(DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
-        return blockedPeriodChecker.blockReason(dayOfWeek, period.getId(), termInstance.getStartDate(), termInstance.getEndDate())
+        return blockedPeriodChecker.blockReason(dayOfWeek, period.getStartTime(), period.getEndTime(),
+                termInstance.getStartDate(), termInstance.getEndDate())
             .orElse(null);
     }
 
@@ -417,7 +419,7 @@ public class TimetableSkeletonService {
             checkCohortExclusivity(request, offering, batch, cohortSection).ifPresent(violations::add);
         }
 
-        checkBlocked(request.dayOfWeek(), period.getId(), offering.getTermInstance()).ifPresent(violations::add);
+        checkBlocked(request.dayOfWeek(), period, offering.getTermInstance()).ifPresent(violations::add);
 
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
@@ -492,7 +494,7 @@ public class TimetableSkeletonService {
         } else {
             checkCohortExclusivity(asPlacementRequest, offering, cs.getBatch(), cs.getCohortSection()).ifPresent(violations::add);
         }
-        checkBlocked(request.dayOfWeek(), targetPeriod.getId(), offering.getTermInstance()).ifPresent(violations::add);
+        checkBlocked(request.dayOfWeek(), targetPeriod, offering.getTermInstance()).ifPresent(violations::add);
 
         if (cs.getFaculty() != null) {
             LocalTime start = targetPeriod.getStartTime();
@@ -721,7 +723,7 @@ public class TimetableSkeletonService {
             }
 
             checkAlreadyPlaced(offering, asPlacementRequest).ifPresent(violations::add);
-            checkBlocked(request.dayOfWeek(), period.getId(), offering.getTermInstance()).ifPresent(violations::add);
+            checkBlocked(request.dayOfWeek(), period, offering.getTermInstance()).ifPresent(violations::add);
 
             ClassSchedule cs = new ClassSchedule();
             cs.setSessionType(member.sessionType());

@@ -557,7 +557,7 @@ class TimetableSkeletonServiceTest {
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
         when(blockedPeriodChecker.blockReason(
-            DayOfWeek.MONDAY, 1L, termInstance.getStartDate(), termInstance.getEndDate()))
+            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance.getStartDate(), termInstance.getEndDate()))
             .thenReturn(Optional.of("Staff meeting"));
 
         assertThatThrownBy(() -> service.placeCell(request))
@@ -572,7 +572,7 @@ class TimetableSkeletonServiceTest {
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
         when(blockedPeriodChecker.blockReason(
-            DayOfWeek.MONDAY, 1L, termInstance.getStartDate(), termInstance.getEndDate()))
+            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance.getStartDate(), termInstance.getEndDate()))
             .thenReturn(Optional.of("Auto-blocked — Independence Day"));
 
         assertThatThrownBy(() -> service.placeCell(request))
@@ -939,7 +939,8 @@ class TimetableSkeletonServiceTest {
         SkeletonCellMoveRequest request = new SkeletonCellMoveRequest(DayOfWeek.TUESDAY, 2L, 5L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
-        when(blockedPeriodChecker.blockReason(DayOfWeek.TUESDAY, 2L, termInstance.getStartDate(), termInstance.getEndDate()))
+        when(blockedPeriodChecker.blockReason(DayOfWeek.TUESDAY, period2.getStartTime(), period2.getEndTime(),
+                termInstance.getStartDate(), termInstance.getEndDate()))
             .thenReturn(Optional.of("Staff meeting"));
 
         assertThatThrownBy(() -> service.moveCell(100L, request))

@@ -142,7 +142,7 @@ public class TimetableStaffingService {
         LocalTime end = cs.getPeriod().getEndTime();
 
         List<ConstraintViolation> violations = new ArrayList<>();
-        checkBlocked(cs.getDayOfWeek(), cs.getPeriod().getId(), cs.getTermInstance()).ifPresent(violations::add);
+        checkBlocked(cs.getDayOfWeek(), start, end, cs.getTermInstance()).ifPresent(violations::add);
         checkFacultyAvailable(faculty.getId(), cs.getDayOfWeek(), start, end).ifPresent(violations::add);
         checkFacultyFree(faculty.getId(), cs, cs.getDayOfWeek(), start, end).ifPresent(violations::add);
         violations.addAll(checkWithinWorkloadCaps(faculty, cs, cs.getDayOfWeek(), start, end));
@@ -187,8 +187,8 @@ public class TimetableStaffingService {
      *  {@link TimetableBlockedPeriodChecker} {@link TimetableSkeletonService#placeCell} and {@link
      *  TimetableSwapService} use — re-checked here separately (not just at placement time) since a
      *  skeleton cell can sit unstaffed for a while and a block could be added/changed in between. */
-    private Optional<ConstraintViolation> checkBlocked(DayOfWeek dayOfWeek, Long periodId, TermInstance termInstance) {
-        return blockedPeriodChecker.blockReason(dayOfWeek, periodId, termInstance.getStartDate(), termInstance.getEndDate())
+    private Optional<ConstraintViolation> checkBlocked(DayOfWeek dayOfWeek, LocalTime start, LocalTime end, TermInstance termInstance) {
+        return blockedPeriodChecker.blockReason(dayOfWeek, start, end, termInstance.getStartDate(), termInstance.getEndDate())
             .map(reason -> new ConstraintViolation("STAFFING_PERIOD_BLOCKED", "This day and period is blocked: " + reason));
     }
 
