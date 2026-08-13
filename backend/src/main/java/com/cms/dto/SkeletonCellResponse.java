@@ -2,6 +2,7 @@ package com.cms.dto;
 
 import java.time.LocalTime;
 import java.util.List;
+import java.util.UUID;
 
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
@@ -33,5 +34,9 @@ public record SkeletonCellResponse(
     String subjectName,
     String subjectCode,
     Long electiveGroupId,
-    String electiveGroupName
+    String electiveGroupName,
+
+    /** OC-127 periodSpan: non-null only for a cell that's part of a multi-period session — every
+     *  sibling row sharing this id is placed/staffed/removed together as one atomic unit. */
+    UUID sessionGroupId
 ) {}

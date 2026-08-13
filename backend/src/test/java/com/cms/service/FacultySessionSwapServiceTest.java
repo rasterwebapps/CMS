@@ -128,7 +128,7 @@ class FacultySessionSwapServiceTest {
         when(occurrenceService.occurrenceDatesFor(sessionA, date, date)).thenReturn(List.of(date));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(10L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
             .thenReturn(List.of(sessionA, sessionB));
-        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(CLEAN);
 
         List<StaffSwapCandidateResponse> candidates = service.findSwapCandidates(300L, date);
@@ -144,11 +144,11 @@ class FacultySessionSwapServiceTest {
         when(occurrenceService.occurrenceDatesFor(sessionA, date, date)).thenReturn(List.of(date));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(10L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
             .thenReturn(List.of(sessionA, sessionB));
-        lenient().when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any()))
+        lenient().when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(CLEAN);
         // Faculty A is blocked at B's slot (10-11) -- mutual check fails.
         when(timetableStaffingService.validateAssignment(eq(sessionA), eq(DayOfWeek.MONDAY),
-            eq(LocalTime.of(10, 0)), eq(LocalTime.of(11, 0)), eq(facultyA), isNull(), isNull(), isNull()))
+            eq(LocalTime.of(10, 0)), eq(LocalTime.of(11, 0)), eq(facultyA), isNull(), isNull(), isNull(), any()))
             .thenReturn(new AssignmentValidationResult(
                 List.of(new ConstraintViolation("STAFFING_FACULTY_UNAVAILABLE", "On leave")), null));
 
@@ -163,10 +163,10 @@ class FacultySessionSwapServiceTest {
         when(occurrenceService.occurrenceDatesFor(sessionA, date, date)).thenReturn(List.of(date));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(10L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
             .thenReturn(List.of(sessionA, sessionB));
-        lenient().when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any()))
+        lenient().when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(CLEAN);
         when(timetableStaffingService.validateAssignment(eq(sessionA), eq(DayOfWeek.MONDAY),
-            eq(LocalTime.of(10, 0)), eq(LocalTime.of(11, 0)), eq(facultyA), isNull(), isNull(), isNull()))
+            eq(LocalTime.of(10, 0)), eq(LocalTime.of(11, 0)), eq(facultyA), isNull(), isNull(), isNull(), any()))
             .thenReturn(new AssignmentValidationResult(
                 List.of(new ConstraintViolation("STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED", "Over the daily cap")), null));
 
@@ -208,7 +208,7 @@ class FacultySessionSwapServiceTest {
             if (occ.getId() == null) occ.setId(occ.getClassSchedule().getId() + 1000);
             return occ;
         });
-        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(CLEAN);
 
         service.applySwap(300L, 301L, date, "admin");
@@ -236,10 +236,10 @@ class FacultySessionSwapServiceTest {
         when(classScheduleRepository.findById(301L)).thenReturn(Optional.of(sessionB));
         when(occurrenceService.occurrenceDatesFor(sessionA, date, date)).thenReturn(List.of(date));
         when(occurrenceService.occurrenceDatesFor(sessionB, date, date)).thenReturn(List.of(date));
-        lenient().when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any()))
+        lenient().when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(CLEAN);
         when(timetableStaffingService.validateAssignment(eq(sessionA), eq(DayOfWeek.MONDAY),
-            eq(LocalTime.of(10, 0)), eq(LocalTime.of(11, 0)), eq(facultyA), isNull(), isNull(), isNull()))
+            eq(LocalTime.of(10, 0)), eq(LocalTime.of(11, 0)), eq(facultyA), isNull(), isNull(), isNull(), any()))
             .thenReturn(new AssignmentValidationResult(
                 List.of(new ConstraintViolation("STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED", "Over the daily cap")), null));
 

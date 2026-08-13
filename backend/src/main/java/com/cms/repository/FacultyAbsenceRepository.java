@@ -10,4 +10,6 @@ import com.cms.model.FacultyAbsence;
 public interface FacultyAbsenceRepository extends JpaRepository<FacultyAbsence, Long> {
 
     Optional<FacultyAbsence> findByFacultyIdAndAbsenceDate(Long facultyId, LocalDate absenceDate);
+
+    boolean existsByFacultyIdAndAbsenceDate(Long facultyId, LocalDate absenceDate);
 }

@@ -86,7 +86,7 @@ class TimetableSkeletonAutoPlaceServiceTest {
     private SkeletonCellResponse cellResponse(Long id, Long offeringId, DayOfWeek day, String subjectName) {
         return new SkeletonCellResponse(id, ClassSessionType.THEORY, day, 1L, "1st Period",
             LocalTime.of(9, 0), LocalTime.of(9, 50), null, null, null, null, false, null, null, List.of(),
-            offeringId, subjectName, subjectName.substring(0, 4).toUpperCase(), null, null);
+            offeringId, subjectName, subjectName.substring(0, 4).toUpperCase(), null, null, null);
     }
 
     @Test
@@ -105,7 +105,7 @@ class TimetableSkeletonAutoPlaceServiceTest {
         assertThat(result.placedCount()).isEqualTo(1);
         assertThat(result.unplaced()).isEmpty();
         verify(timetableSkeletonService).placeCell(new SkeletonCellPlacementRequest(
-            100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null));
+            100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null));
     }
 
     @Test
@@ -188,7 +188,7 @@ class TimetableSkeletonAutoPlaceServiceTest {
         verify(timetableSkeletonService).removeCell(900L);
         // Anatomy's exact-slot restore attempt after Physiology's successful retry.
         verify(timetableSkeletonService, times(2)).placeCell(new SkeletonCellPlacementRequest(
-            100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null));
+            100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null));
     }
 
     @Test
@@ -221,6 +221,6 @@ class TimetableSkeletonAutoPlaceServiceTest {
         verify(timetableSkeletonService).removeCell(900L);
         // Placed once initially, then restored once after the failed backtrack retry.
         verify(timetableSkeletonService, times(2)).placeCell(new SkeletonCellPlacementRequest(
-            100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null));
+            100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null));
     }
 }

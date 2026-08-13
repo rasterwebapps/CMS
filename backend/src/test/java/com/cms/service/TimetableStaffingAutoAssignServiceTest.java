@@ -45,7 +45,7 @@ class TimetableStaffingAutoAssignServiceTest {
     private UnstaffedCellResponse cell(Long id, Long offeringId, String subjectName, Long specialityId, Long venueId, boolean elective) {
         return new UnstaffedCellResponse(id, offeringId, subjectName, subjectName.substring(0, 4).toUpperCase(),
             specialityId, "Nursing", ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",
-            LocalTime.of(9, 0), LocalTime.of(9, 50), null, 40, venueId, "Room 101", 60, elective, List.of());
+            LocalTime.of(9, 0), LocalTime.of(9, 50), null, 40, venueId, "Room 101", 60, elective, List.of(), null);
     }
 
     private Faculty faculty(Long id) {

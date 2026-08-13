@@ -41,6 +41,7 @@ import com.cms.repository.ClassroomRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseRegistrationRepository;
+import com.cms.repository.FacultyAbsenceRepository;
 import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
@@ -64,6 +65,7 @@ class TimetableConflictInspectorServiceTest {
     @Mock private RotationResolverService rotationResolverService;
     @Mock private TimetableBlockedPeriodChecker blockedPeriodChecker;
     @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
+    @Mock private FacultyAbsenceRepository facultyAbsenceRepository;
     @Mock private SystemConfigurationService systemConfigurationService;
 
     private TimetableConflictInspectorService service;
@@ -80,7 +82,7 @@ class TimetableConflictInspectorServiceTest {
             facultyRepository, classroomRepository, batchRepository, courseRegistrationRepository,
             studentTermEnrollmentRepository, cohortRoomAllocationRepository, cohortSectionRepository,
             rotationResolverService, blockedPeriodChecker, facultyAvailabilityRepository,
-            systemConfigurationService);
+            facultyAbsenceRepository, systemConfigurationService);
         service = new TimetableConflictInspectorService(classScheduleRepository, termInstanceRepository,
             staffingService, blockedPeriodChecker);
 

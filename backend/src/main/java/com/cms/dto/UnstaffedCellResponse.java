@@ -2,6 +2,7 @@ package com.cms.dto;
 
 import java.time.LocalTime;
 import java.util.List;
+import java.util.UUID;
 
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
@@ -34,5 +35,9 @@ public record UnstaffedCellResponse(
     String venueName,
     Integer venueCapacity,
     boolean isElective,
-    List<String> rotatingBatchNames
+    List<String> rotatingBatchNames,
+
+    /** OC-127 periodSpan: non-null only for a cell that's part of a multi-period session — every
+     *  sibling row sharing this id is staffed/removed together as one atomic unit. */
+    UUID sessionGroupId
 ) {}

@@ -1,6 +1,7 @@
 package com.cms.model;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -109,6 +110,13 @@ public class ClassSchedule {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cohort_section_id")
     private CohortSection cohortSection;
+
+    /** OC-127 periodSpan: links N consecutive-period rows that together represent one multi-period
+     *  session (e.g. a 2-period lab), placed/staffed/removed atomically as one unit. Null for every
+     *  ordinary single-period session -- conflict checks stay unchanged, always operating per-row
+     *  against each row's own {@link Period}. */
+    @Column(name = "session_group_id")
+    private UUID sessionGroupId;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -263,6 +271,14 @@ public class ClassSchedule {
 
     public void setCohortSection(CohortSection cohortSection) {
         this.cohortSection = cohortSection;
+    }
+
+    public UUID getSessionGroupId() {
+        return sessionGroupId;
+    }
+
+    public void setSessionGroupId(UUID sessionGroupId) {
+        this.sessionGroupId = sessionGroupId;
     }
 
     public Instant getCreatedAt() {

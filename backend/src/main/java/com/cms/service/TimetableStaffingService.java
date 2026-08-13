@@ -1,6 +1,7 @@
 package com.cms.service;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -45,6 +46,7 @@ import com.cms.repository.ClassroomRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseRegistrationRepository;
+import com.cms.repository.FacultyAbsenceRepository;
 import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
@@ -78,6 +80,7 @@ public class TimetableStaffingService {
     private final RotationResolverService rotationResolverService;
     private final TimetableBlockedPeriodChecker blockedPeriodChecker;
     private final FacultyAvailabilityRepository facultyAvailabilityRepository;
+    private final FacultyAbsenceRepository facultyAbsenceRepository;
     private final SystemConfigurationService systemConfigurationService;
 
     public TimetableStaffingService(ClassScheduleRepository classScheduleRepository,
@@ -91,6 +94,7 @@ public class TimetableStaffingService {
                                      RotationResolverService rotationResolverService,
                                      TimetableBlockedPeriodChecker blockedPeriodChecker,
                                      FacultyAvailabilityRepository facultyAvailabilityRepository,
+                                     FacultyAbsenceRepository facultyAbsenceRepository,
                                      SystemConfigurationService systemConfigurationService) {
         this.classScheduleRepository = classScheduleRepository;
         this.facultyRepository = facultyRepository;
@@ -103,6 +107,7 @@ public class TimetableStaffingService {
         this.rotationResolverService = rotationResolverService;
         this.blockedPeriodChecker = blockedPeriodChecker;
         this.facultyAvailabilityRepository = facultyAvailabilityRepository;
+        this.facultyAbsenceRepository = facultyAbsenceRepository;
         this.systemConfigurationService = systemConfigurationService;
     }
 
@@ -138,16 +143,48 @@ public class TimetableStaffingService {
             .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + request.facultyId()));
         ClassScheduleService.requireEligibleFaculty(cs.getSubject(), faculty, cs.getFaculty());
 
+        // OC-127 periodSpan: a multi-period session's rows are staffed as one atomic unit -- same
+        // faculty, same resolved room, every sibling's own checks must all pass before any of them
+        // are applied. Ordinary single-period cells are just a one-element group.
+        List<ClassSchedule> group = cs.getSessionGroupId() != null
+            ? classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(cs.getSessionGroupId())
+            : List.of(cs);
+
+        List<ConstraintViolation> violations = new ArrayList<>();
+        List<CellStaging> stagings = new ArrayList<>();
+        for (ClassSchedule member : group) {
+            CellStaging staging = stageCell(member, faculty, request);
+            violations.addAll(staging.violations());
+            stagings.add(staging);
+        }
+
+        if (!violations.isEmpty()) {
+            throw new TimetableConstraintViolationException(violations);
+        }
+
+        for (int i = 0; i < group.size(); i++) {
+            ClassSchedule member = group.get(i);
+            stagings.get(i).applyRoom().run();
+            member.setFaculty(faculty);
+            classScheduleRepository.save(member);
+        }
+        return toResponse(cs);
+    }
+
+    private record CellStaging(List<ConstraintViolation> violations, Runnable applyRoom) {}
+
+    /** Faculty-then-room-resolution ordering guarantee for exactly one row: both passes funnel
+     *  through {@link #validateAssignment} (OC-127), kept as two calls (not one) specifically because
+     *  room resolution can throw ({@code STAFFING_VENUE_NOT_COMMITTED}) and must never run before the
+     *  faculty side is known clean. Reused per-sibling by a periodSpan group (OC-127) so every row's
+     *  own checks are collected before any of them are applied. */
+    private CellStaging stageCell(ClassSchedule cs, Faculty faculty, StaffingAssignmentRequest request) {
         LocalTime start = cs.getPeriod().getStartTime();
         LocalTime end = cs.getPeriod().getEndTime();
         DayOfWeek day = cs.getDayOfWeek();
 
-        // Faculty-side pass first, room-side pass second -- both funnel through the same
-        // validateAssignment() entry point (OC-127), kept as two calls (not one) specifically to
-        // preserve the ordering guarantee below: room resolution can throw (STAFFING_VENUE_NOT_COMMITTED)
-        // and must never run before we know the faculty side is clean.
         List<ConstraintViolation> violations = new ArrayList<>(
-            validateAssignment(cs, day, start, end, faculty, null, null, null).violations());
+            validateAssignment(cs, day, start, end, faculty, null, null, null, null).violations());
 
         Runnable applyRoom = null;
         if (violations.isEmpty()) {
@@ -157,34 +194,27 @@ public class TimetableStaffingService {
                         ? requireRequestedClassroom(request)
                         : requireCommittedTheoryClassroom(cs);
                     violations.addAll(validateAssignment(cs, day, start, end, null, null,
-                        new RoomCheckSpec(ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), RoomMode.STRICT), null).violations());
+                        new RoomCheckSpec(ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), RoomMode.STRICT), null, null).violations());
                     checkCapacityFit(cs, classroom.getCapacity()).ifPresent(violations::add);
                     applyRoom = () -> cs.setClassroom(classroom);
                 }
                 case LAB -> {
                     Lab lab = requireCommittedLab(cs);
                     violations.addAll(validateAssignment(cs, day, start, end, null, null,
-                        new RoomCheckSpec(ClassSessionType.LAB, lab.getId(), lab.getRoom(), RoomMode.STRICT), null).violations());
+                        new RoomCheckSpec(ClassSessionType.LAB, lab.getId(), lab.getRoom(), RoomMode.STRICT), null, null).violations());
                     checkCapacityFit(cs, lab.getCapacity()).ifPresent(violations::add);
                     applyRoom = () -> cs.setLab(lab);
                 }
                 case CLINICAL -> {
                     ClinicalVenue venue = requireCommittedClinicalVenue(cs);
                     violations.addAll(validateAssignment(cs, day, start, end, null, null,
-                        new RoomCheckSpec(ClassSessionType.CLINICAL, venue.getId(), venue.getRoom(), RoomMode.STRICT), null).violations());
+                        new RoomCheckSpec(ClassSessionType.CLINICAL, venue.getId(), venue.getRoom(), RoomMode.STRICT), null, null).violations());
                     checkCapacityFit(cs, venue.getCapacity()).ifPresent(violations::add);
                     applyRoom = () -> cs.setClinicalVenue(venue);
                 }
             }
         }
-
-        if (!violations.isEmpty()) {
-            throw new TimetableConstraintViolationException(violations);
-        }
-
-        applyRoom.run();
-        cs.setFaculty(faculty);
-        return toResponse(classScheduleRepository.save(cs));
+        return new CellStaging(violations, applyRoom);
     }
 
     /** OC-127 — the one shared validation entry point {@link TimetableSwapService#evaluateSlot} and
@@ -199,15 +229,24 @@ public class TimetableStaffingService {
      *  existing overloads are deliberately left untouched (still used directly by
      *  {@code SpecialClassRequestService}, {@code RoomRelocationService},
      *  {@code TimetableConflictInspectorService}, and {@code TimetableSkeletonService#moveCell}, none
-     *  of which need the extra swap-partner/audience/alsoExcludeId behavior below). */
+     *  of which need the extra swap-partner/audience/alsoExcludeId behavior below). {@code date} is
+     *  the one genuinely optional argument here (unlike the others, which are simply "not applicable"
+     *  when null): only single-date callers like {@code FacultySessionSwapService} know it — the
+     *  recurring-placement callers ({@code stageCell}, {@code TimetableSwapService}, which move a
+     *  DRAFT row's day/period rather than trading a specific calendar date) pass null and skip the
+     *  {@link com.cms.model.FacultyAbsence} check, since a one-off date absence has no bearing on a
+     *  weekly recurring slot. */
     public AssignmentValidationResult validateAssignment(ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end,
                                                            Faculty faculty, Long alsoExcludeId,
-                                                           RoomCheckSpec roomCheck, Long audienceId) {
+                                                           RoomCheckSpec roomCheck, Long audienceId, LocalDate date) {
         List<ConstraintViolation> violations = new ArrayList<>();
         checkBlocked(day, start, end, cs.getTermInstance()).ifPresent(violations::add);
 
         if (faculty != null) {
             checkFacultyAvailable(faculty.getId(), day, start, end).ifPresent(violations::add);
+            if (date != null) {
+                checkFacultyAbsent(faculty.getId(), date).ifPresent(violations::add);
+            }
             checkFacultyFree(faculty.getId(), cs, day, start, end, alsoExcludeId).ifPresent(violations::add);
             violations.addAll(checkWithinWorkloadCaps(faculty, cs, day, start, end));
         }
@@ -428,6 +467,19 @@ public class TimetableStaffingService {
         }
         return Optional.of(new ConstraintViolation("STAFFING_FACULTY_UNAVAILABLE",
             "This faculty member is unavailable at this day and time: " + blocks.get(0).getReason()));
+    }
+
+    /** Non-throwing: returns a violation if this faculty member has a {@link
+     *  com.cms.model.FacultyAbsence} marked for this exact calendar date — a one-off, date-specific
+     *  check distinct from {@link #checkFacultyAvailable}'s recurring weekly block. Only meaningful
+     *  to callers that know a specific date (single-date staff swaps); recurring placement has no
+     *  date to check against. */
+    Optional<ConstraintViolation> checkFacultyAbsent(Long facultyId, LocalDate date) {
+        if (!facultyAbsenceRepository.existsByFacultyIdAndAbsenceDate(facultyId, date)) {
+            return Optional.empty();
+        }
+        return Optional.of(new ConstraintViolation("STAFFING_FACULTY_ABSENT",
+            "This faculty member is marked absent on " + date + "."));
     }
 
     /** Non-throwing: returns a violation if this faculty member is already committed elsewhere at
@@ -763,7 +815,8 @@ public class TimetableStaffingService {
             venueName,
             venueCapacity,
             elective,
-            rotatingBatchNames
+            rotatingBatchNames,
+            cs.getSessionGroupId()
         );
     }
 }

@@ -173,7 +173,7 @@ public class TimetableSwapService {
         var roomCheck = new TimetableStaffingService.RoomCheckSpec(
             moving.getSessionType(), roomId, physicalRoom, TimetableStaffingService.RoomMode.ALLOW_SINGLE_DRAFT_SWAP_PARTNER);
         var result = timetableStaffingService.validateAssignment(
-            moving, day, start, end, moving.getFaculty(), alsoExcludeId, roomCheck, audienceId);
+            moving, day, start, end, moving.getFaculty(), alsoExcludeId, roomCheck, audienceId, null);
 
         return result.isValid()
             ? new SlotEvaluation(true, result.swapPartnerOccupant(), List.of())

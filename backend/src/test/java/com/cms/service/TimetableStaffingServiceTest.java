@@ -59,6 +59,7 @@ import com.cms.repository.ClassroomRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseRegistrationRepository;
+import com.cms.repository.FacultyAbsenceRepository;
 import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
@@ -77,6 +78,7 @@ class TimetableStaffingServiceTest {
     @Mock private RotationResolverService rotationResolverService;
     @Mock private TimetableBlockedPeriodChecker blockedPeriodChecker;
     @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
+    @Mock private FacultyAbsenceRepository facultyAbsenceRepository;
     @Mock private SystemConfigurationService systemConfigurationService;
 
     private TimetableStaffingService service;
@@ -95,7 +97,7 @@ class TimetableStaffingServiceTest {
             classroomRepository, batchRepository, courseRegistrationRepository,
             studentTermEnrollmentRepository, cohortRoomAllocationRepository, cohortSectionRepository,
             rotationResolverService, blockedPeriodChecker, facultyAvailabilityRepository,
-            systemConfigurationService);
+            facultyAbsenceRepository, systemConfigurationService);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);
@@ -756,6 +758,84 @@ class TimetableStaffingServiceTest {
         assertThat(cell.getFaculty()).isEqualTo(eligibleFaculty);
     }
 
+    // ---- OC-127 periodSpan: group-aware staffCell ----
+
+    @Test
+    void shouldStaffEverySiblingInASessionGroupWithTheSameFacultyAndRoom() {
+        java.util.UUID groupId = java.util.UUID.randomUUID();
+        cell.setSessionGroupId(groupId);
+
+        Period period2 = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(10, 50), 2);
+        period2.setId(2L);
+        ClassSchedule sibling = new ClassSchedule();
+        sibling.setId(101L);
+        sibling.setSessionType(ClassSessionType.THEORY);
+        sibling.setStatus(ClassScheduleStatus.DRAFT);
+        sibling.setSubject(subject);
+        sibling.setDayOfWeek(DayOfWeek.MONDAY);
+        sibling.setTermInstance(termInstance);
+        sibling.setPeriod(period2);
+        sibling.setCourseOffering(cell.getCourseOffering());
+        sibling.setSessionGroupId(groupId);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
+        when(classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(groupId))
+            .thenReturn(List.of(cell, sibling));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.staffCell(100L, request);
+
+        assertThat(cell.getFaculty()).isEqualTo(eligibleFaculty);
+        assertThat(cell.getClassroom()).isEqualTo(classroom);
+        assertThat(sibling.getFaculty()).isEqualTo(eligibleFaculty);
+        assertThat(sibling.getClassroom()).isEqualTo(classroom);
+    }
+
+    @Test
+    void shouldNotStaffAnySiblingWhenOneSiblingInTheGroupFails() {
+        java.util.UUID groupId = java.util.UUID.randomUUID();
+        cell.setSessionGroupId(groupId);
+
+        Period period2 = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(10, 50), 2);
+        period2.setId(2L);
+        ClassSchedule sibling = new ClassSchedule();
+        sibling.setId(101L);
+        sibling.setSessionType(ClassSessionType.THEORY);
+        sibling.setStatus(ClassScheduleStatus.DRAFT);
+        sibling.setSubject(subject);
+        sibling.setDayOfWeek(DayOfWeek.MONDAY);
+        sibling.setTermInstance(termInstance);
+        sibling.setPeriod(period2);
+        sibling.setCourseOffering(cell.getCourseOffering());
+        sibling.setSessionGroupId(groupId);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
+        when(classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(groupId))
+            .thenReturn(List.of(cell, sibling));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(blockedPeriodChecker.blockReason(
+            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance.getStartDate(), termInstance.getEndDate()))
+            .thenReturn(Optional.empty());
+        when(blockedPeriodChecker.blockReason(
+            DayOfWeek.MONDAY, period2.getStartTime(), period2.getEndTime(), termInstance.getStartDate(), termInstance.getEndDate()))
+            .thenReturn(Optional.of("Staff meeting"));
+
+        assertThatThrownBy(() -> service.staffCell(100L, request))
+            .isInstanceOf(TimetableConstraintViolationException.class);
+
+        assertThat(cell.getFaculty()).isNull();
+        assertThat(sibling.getFaculty()).isNull();
+    }
+
     // ---- OC-127: validateAssignment()'s new room/audience scan (used directly by
     // TimetableSwapService, not just via staffCell's STRICT-mode path above) ----
 
@@ -775,7 +855,7 @@ class TimetableStaffingServiceTest {
         var roomCheck = new TimetableStaffingService.RoomCheckSpec(
             ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), TimetableStaffingService.RoomMode.ALLOW_SINGLE_DRAFT_SWAP_PARTNER);
         var result = service.validateAssignment(cell, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(),
-            null, null, roomCheck, null);
+            null, null, roomCheck, null, null);
 
         assertThat(result.isValid()).isTrue();
         assertThat(result.swapPartnerOccupant()).isEqualTo(draftOccupant);
@@ -797,7 +877,7 @@ class TimetableStaffingServiceTest {
         var roomCheck = new TimetableStaffingService.RoomCheckSpec(
             ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), TimetableStaffingService.RoomMode.ALLOW_SINGLE_DRAFT_SWAP_PARTNER);
         var result = service.validateAssignment(cell, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(),
-            null, null, roomCheck, null);
+            null, null, roomCheck, null, null);
 
         assertThat(result.isValid()).isFalse();
         assertThat(result.swapPartnerOccupant()).isNull();
@@ -828,7 +908,7 @@ class TimetableStaffingServiceTest {
         var roomCheck = new TimetableStaffingService.RoomCheckSpec(
             ClassSessionType.LAB, 999L, null, TimetableStaffingService.RoomMode.ALLOW_SINGLE_DRAFT_SWAP_PARTNER);
         var result = service.validateAssignment(cell, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(),
-            null, null, roomCheck, 400L);
+            null, null, roomCheck, 400L, null);
 
         assertThat(result.isValid()).isFalse();
         assertThat(result.violations()).extracting(com.cms.dto.ConstraintViolation::code).contains("SWAP_AUDIENCE_CONFLICT");
@@ -853,7 +933,7 @@ class TimetableStaffingServiceTest {
         var roomCheck = new TimetableStaffingService.RoomCheckSpec(
             ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), TimetableStaffingService.RoomMode.ALLOW_SINGLE_DRAFT_SWAP_PARTNER);
         var result = service.validateAssignment(cell, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(),
-            eligibleFaculty, 300L, roomCheck, null);
+            eligibleFaculty, 300L, roomCheck, null, null);
 
         assertThat(result.isValid()).isTrue();
         assertThat(result.swapPartnerOccupant()).isNull();

@@ -2,6 +2,7 @@ package com.cms.repository;
 
 import java.time.LocalTime;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -56,6 +57,10 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
 
     List<ClassSchedule> findByTermInstanceIdAndStatusAndBatchIdIn(
         Long termInstanceId, ClassScheduleStatus status, List<Long> batchIds);
+
+    /** OC-127 periodSpan: fetches every row of a multi-period session's linked group, in period
+     *  order, so callers (staffing/removal) can treat them as one atomic unit. */
+    List<ClassSchedule> findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(UUID sessionGroupId);
 
     boolean existsByTermInstanceId(Long termInstanceId);
 

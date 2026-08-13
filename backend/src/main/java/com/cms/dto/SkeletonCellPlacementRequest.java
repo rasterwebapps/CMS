@@ -1,5 +1,7 @@
 package com.cms.dto;
 
+import java.util.List;
+
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 
@@ -35,5 +37,11 @@ public record SkeletonCellPlacementRequest(
      *  exist, even the trivial single-section case, so Staffing can resolve the room directly
      *  later). Ignored for LAB/CLINICAL — their section scope is derived from the chosen
      *  batchId's own Batch.cohortSection instead. */
-    Long cohortSectionId
+    Long cohortSectionId,
+
+    /** OC-127 periodSpan: additional periods (beyond {@code periodId}) this one session also
+     *  occupies, e.g. a 2-period lab -- must be immediately consecutive with {@code periodId} by
+     *  {@code Period.periodOrder}. Null/empty means an ordinary single-period session (the default,
+     *  unchanged behavior). */
+    List<Long> spanPeriodIds
 ) {}

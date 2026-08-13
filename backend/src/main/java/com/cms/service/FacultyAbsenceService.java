@@ -122,8 +122,9 @@ public class FacultyAbsenceService {
     }
 
     /** Eligible substitutes: same speciality as the subject, active, not the absent faculty
-     *  themselves, free of any recurring FacultyAvailability block at that day/time, and not
-     *  already teaching another PUBLISHED session at that exact day/time. */
+     *  themselves, not themselves marked absent on this exact date, free of any recurring
+     *  FacultyAvailability block at that day/time, and not already teaching another PUBLISHED
+     *  session at that exact day/time. */
     public List<SubstituteCandidateResponse> findEligibleSubstitutes(Long classScheduleId, LocalDate date) {
         ClassSchedule schedule = classScheduleRepository.findById(classScheduleId)
             .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + classScheduleId));
@@ -146,6 +147,7 @@ public class FacultyAbsenceService {
 
         return facultyRepository.findBySpecialityIdAndStatus(speciality.getId(), FacultyStatus.ACTIVE).stream()
             .filter(f -> !f.getId().equals(schedule.getFaculty().getId()))
+            .filter(f -> !facultyAbsenceRepository.existsByFacultyIdAndAbsenceDate(f.getId(), date))
             .filter(f -> facultyAvailabilityRepository.findOverlapping(f.getId(), day, times[0], times[1]).isEmpty())
             .filter(f -> overlapping.stream().noneMatch(cs -> cs.getFaculty().getId().equals(f.getId())))
             .map(f -> new SubstituteCandidateResponse(f.getId(), f.getFullName()))

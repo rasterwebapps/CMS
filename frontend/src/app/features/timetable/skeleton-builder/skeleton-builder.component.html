@@ -249,6 +249,15 @@
                   }
                 </select>
               }
+
+              @if (spanOptions().length > 0) {
+                <select class="mlp-filter-select" [(ngModel)]="selectedSpanThroughPeriodId" aria-label="Also occupies through period">
+                  <option [ngValue]="null">Single period</option>
+                  @for (spanPeriod of spanOptions(); track spanPeriod.id) {
+                    <option [ngValue]="spanPeriod.id">Also occupies through {{ spanPeriod.name }}</option>
+                  }
+                </select>
+              }
             </div>
             <div class="skeleton-placement-panel__actions">
               <button type="button" class="btn-secondary" (click)="cancelPlacement()">Cancel</button>

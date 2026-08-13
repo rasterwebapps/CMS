@@ -164,7 +164,7 @@ public class TimetableSkeletonAutoPlaceService {
         try {
             SkeletonCellResponse restored = timetableSkeletonService.placeCell(new SkeletonCellPlacementRequest(
                 placement.courseOfferingId(), placement.sessionType(), placement.dayOfWeek(), placement.periodId(),
-                placement.batchId(), cohortId, placement.cohortSectionId()));
+                placement.batchId(), cohortId, placement.cohortSectionId(), null));
             return Optional.of(toPlacement(restored, placement.subjectName(), placement.occupantLabel()));
         } catch (TimetableConstraintViolationException ex) {
             return Optional.empty();
@@ -185,7 +185,7 @@ public class TimetableSkeletonAutoPlaceService {
                 try {
                     SkeletonCellResponse placed = timetableSkeletonService.placeCell(new SkeletonCellPlacementRequest(
                         row.courseOfferingId(), row.sessionType(), day, period.getId(),
-                        row.batchId(), cohortId, row.cohortSectionId()));
+                        row.batchId(), cohortId, row.cohortSectionId(), null));
                     return Optional.of(toPlacement(placed, row.subjectName(), row.occupantLabel()));
                 } catch (TimetableConstraintViolationException ex) {
                     // try the next candidate

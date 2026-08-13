@@ -127,7 +127,7 @@ class TimetableSwapServiceTest {
     void shouldOfferEmptySlotAsCandidateWhenNothingElseScheduled() {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(p1, p2));
-        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(CLEAN);
 
         List<SwapCandidateResponse> candidates = service.findCandidates(10L, 100L);
@@ -141,7 +141,7 @@ class TimetableSwapServiceTest {
     void shouldExcludeSlotsBlockedByFacultyAvailability() {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(p1, p2));
-        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new AssignmentValidationResult(
                 List.of(new ConstraintViolation("STAFFING_FACULTY_UNAVAILABLE", "On leave")), null));
 
@@ -154,7 +154,7 @@ class TimetableSwapServiceTest {
     void shouldExcludeSlotsThatWouldExceedAWorkloadCap() {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(p1, p2));
-        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new AssignmentValidationResult(
                 List.of(new ConstraintViolation("STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED", "Over the daily cap")), null));
 
@@ -168,7 +168,7 @@ class TimetableSwapServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(p2));
         when(timetableStaffingService.validateAssignment(eq(source), eq(DayOfWeek.TUESDAY),
-            eq(p2.getStartTime()), eq(p2.getEndTime()), eq(faculty), isNull(), any(), any()))
+            eq(p2.getStartTime()), eq(p2.getEndTime()), eq(faculty), isNull(), any(), any(), any()))
             .thenReturn(CLEAN);
 
         service.swap(10L, 100L, new SwapRequest(DayOfWeek.TUESDAY, 2L), "admin");
@@ -199,10 +199,10 @@ class TimetableSwapServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(p2));
         when(timetableStaffingService.validateAssignment(eq(source), eq(DayOfWeek.TUESDAY),
-            eq(p2.getStartTime()), eq(p2.getEndTime()), eq(faculty), isNull(), any(), any()))
+            eq(p2.getStartTime()), eq(p2.getEndTime()), eq(faculty), isNull(), any(), any(), any()))
             .thenReturn(new AssignmentValidationResult(List.of(), occupant));
         when(timetableStaffingService.validateAssignment(eq(occupant), eq(DayOfWeek.MONDAY),
-            eq(p1.getStartTime()), eq(p1.getEndTime()), eq(otherFaculty), eq(source.getId()), any(), any()))
+            eq(p1.getStartTime()), eq(p1.getEndTime()), eq(otherFaculty), eq(source.getId()), any(), any(), any()))
             .thenReturn(CLEAN);
 
         service.swap(10L, 100L, new SwapRequest(DayOfWeek.TUESDAY, 2L), "admin");
@@ -222,7 +222,7 @@ class TimetableSwapServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(p2));
         when(timetableStaffingService.validateAssignment(eq(source), eq(DayOfWeek.TUESDAY),
-            eq(p2.getStartTime()), eq(p2.getEndTime()), eq(faculty), isNull(), any(), any()))
+            eq(p2.getStartTime()), eq(p2.getEndTime()), eq(faculty), isNull(), any(), any(), any()))
             .thenReturn(new AssignmentValidationResult(List.of(new ConstraintViolation("SWAP_ROOM_CONFLICT",
                 "This room is already occupied by another session at this exact day and time.")), null));
 
@@ -235,12 +235,12 @@ class TimetableSwapServiceTest {
     void shouldExcludeARecurringBlockedPeriodFromCandidates() {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(p1, p2));
-        lenient().when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any()))
+        lenient().when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(CLEAN);
         // Block every day for p2 specifically -- p1's only candidate day (MONDAY) is already
         // excluded as the session's own current slot, so this isolates the effect to p2's rows.
         when(timetableStaffingService.validateAssignment(eq(source), any(),
-            eq(p2.getStartTime()), eq(p2.getEndTime()), eq(faculty), isNull(), any(), any()))
+            eq(p2.getStartTime()), eq(p2.getEndTime()), eq(faculty), isNull(), any(), any(), any()))
             .thenReturn(new AssignmentValidationResult(
                 List.of(new ConstraintViolation("SWAP_PERIOD_BLOCKED", "This day and period is blocked: Staff meeting")), null));
 
@@ -255,7 +255,7 @@ class TimetableSwapServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(source));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(p2));
         when(timetableStaffingService.validateAssignment(eq(source), eq(DayOfWeek.TUESDAY),
-            eq(p2.getStartTime()), eq(p2.getEndTime()), eq(faculty), isNull(), any(), any()))
+            eq(p2.getStartTime()), eq(p2.getEndTime()), eq(faculty), isNull(), any(), any(), any()))
             .thenReturn(new AssignmentValidationResult(
                 List.of(new ConstraintViolation("SWAP_PERIOD_BLOCKED", "This day and period is blocked: Staff meeting")), null));
 

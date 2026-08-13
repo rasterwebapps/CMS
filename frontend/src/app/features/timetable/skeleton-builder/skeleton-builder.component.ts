@@ -63,6 +63,10 @@ export class SkeletonBuilderComponent implements OnInit {
   protected selectedSessionType: SkeletonSessionType = 'THEORY';
   protected selectedBatchId: number | null = null;
   protected selectedCohortSectionId: number | null = null;
+  /** OC-127 periodSpan: null means an ordinary single-period session; otherwise the id of the last
+   *  period this one session also occupies (every period between the selected cell's own period
+   *  and this one, inclusive, per {@link spanPeriodIds}). */
+  protected selectedSpanThroughPeriodId: number | null = null;
 
   protected readonly candidates = signal<SkeletonPlacementCandidate[]>([]);
 
@@ -72,6 +76,17 @@ export class SkeletonBuilderComponent implements OnInit {
     const cell = this.selectedCell();
     if (!cell) return null;
     return this.periods().find((p) => p.id === cell.periodId) ?? null;
+  });
+  /** OC-127 periodSpan: the periods immediately after the selected cell's own period, offered as
+   *  "spans through period X" choices — picking one implicitly spans every period in between too,
+   *  so the placement panel never asks the user to hand-pick a set of periods that could contain
+   *  a gap. */
+  protected readonly spanOptions = computed<Period[]>(() => {
+    const cell = this.selectedCell();
+    if (!cell) return [];
+    const periods = this.periods();
+    const idx = periods.findIndex((p) => p.id === cell.periodId);
+    return idx === -1 ? [] : periods.slice(idx + 1);
   });
   protected readonly activeSubject = computed<SkeletonSubject | null>(() => {
     const id = this.activeOfferingId;
@@ -316,6 +331,7 @@ export class SkeletonBuilderComponent implements OnInit {
     this.selectedCell.set({ day, periodId });
     this.selectedSessionType = 'THEORY';
     this.selectedBatchId = null;
+    this.selectedSpanThroughPeriodId = null;
     this.autoSelectSoleSection();
   }
 
@@ -331,6 +347,18 @@ export class SkeletonBuilderComponent implements OnInit {
   private autoSelectSoleSection(): void {
     const sections = this.activeSections();
     this.selectedCohortSectionId = sections.length === 1 ? sections[0].id : null;
+  }
+
+  /** OC-127 periodSpan: every period strictly between {@code fromPeriodId} and the chosen
+   *  "spans through" period, inclusive of the latter — null when no span was chosen. */
+  private spanPeriodIds(fromPeriodId: number): number[] | null {
+    const throughId = this.selectedSpanThroughPeriodId;
+    if (!throughId) return null;
+    const periods = this.periods();
+    const fromIdx = periods.findIndex((p) => p.id === fromPeriodId);
+    const throughIdx = periods.findIndex((p) => p.id === throughId);
+    if (fromIdx === -1 || throughIdx === -1 || throughIdx <= fromIdx) return null;
+    return periods.slice(fromIdx + 1, throughIdx + 1).map((p) => p.id);
   }
 
   protected cancelPlacement(): void {
@@ -359,6 +387,7 @@ export class SkeletonBuilderComponent implements OnInit {
       batchId: this.selectedBatchId,
       cohortId,
       cohortSectionId: this.selectedSessionType === 'THEORY' ? this.selectedCohortSectionId : null,
+      spanPeriodIds: this.spanPeriodIds(cell.periodId),
     }).subscribe({
       next: () => {
         this.toast.success('Placed');

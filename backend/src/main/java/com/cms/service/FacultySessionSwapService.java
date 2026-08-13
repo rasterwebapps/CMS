@@ -64,9 +64,9 @@ public class FacultySessionSwapService {
 
             LocalTime[] candidateTimes = resolveTimes(candidate);
             boolean sourceFacultyFreeAtCandidateSlot =
-                checkFacultyFreeToMove(source, source.getDayOfWeek(), candidateTimes[0], candidateTimes[1]).isEmpty();
+                checkFacultyFreeToMove(source, source.getDayOfWeek(), candidateTimes[0], candidateTimes[1], date).isEmpty();
             boolean candidateFacultyFreeAtSourceSlot =
-                checkFacultyFreeToMove(candidate, source.getDayOfWeek(), sourceTimes[0], sourceTimes[1]).isEmpty();
+                checkFacultyFreeToMove(candidate, source.getDayOfWeek(), sourceTimes[0], sourceTimes[1], date).isEmpty();
 
             if (sourceFacultyFreeAtCandidateSlot && candidateFacultyFreeAtSourceSlot) {
                 results.add(new StaffSwapCandidateResponse(candidate.getId(), candidate.getSubject().getName(),
@@ -93,8 +93,8 @@ public class FacultySessionSwapService {
         LocalTime[] aTimes = resolveTimes(a);
         LocalTime[] bTimes = resolveTimes(b);
         List<ConstraintViolation> violations = new ArrayList<>();
-        violations.addAll(checkFacultyFreeToMove(a, a.getDayOfWeek(), bTimes[0], bTimes[1]));
-        violations.addAll(checkFacultyFreeToMove(b, b.getDayOfWeek(), aTimes[0], aTimes[1]));
+        violations.addAll(checkFacultyFreeToMove(a, a.getDayOfWeek(), bTimes[0], bTimes[1], date));
+        violations.addAll(checkFacultyFreeToMove(b, b.getDayOfWeek(), aTimes[0], aTimes[1], date));
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
         }
@@ -129,9 +129,12 @@ public class FacultySessionSwapService {
      *  member's own not-yet-approved DRAFT row at this day/time in the same term now also blocks the
      *  swap. Also now picks up a blocked-period check this service never had before (a genuinely new
      *  guard, not previously covered here at all) -- a holiday/lock added after the original session
-     *  was published can now correctly block a same-date staff swap into that slot. */
-    private List<ConstraintViolation> checkFacultyFreeToMove(ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end) {
-        return timetableStaffingService.validateAssignment(cs, day, start, end, cs.getFaculty(), null, null, null).violations();
+     *  was published can now correctly block a same-date staff swap into that slot. {@code date} is
+     *  passed through so a candidate marked {@link com.cms.model.FacultyAbsence} on this exact date
+     *  is also blocked -- previously unchecked here, so a swap could land a session on someone
+     *  already marked absent that day. */
+    private List<ConstraintViolation> checkFacultyFreeToMove(ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end, LocalDate date) {
+        return timetableStaffingService.validateAssignment(cs, day, start, end, cs.getFaculty(), null, null, null, date).violations();
     }
 
     private ClassSchedule requirePublishedRealOccurrence(Long classScheduleId, LocalDate date) {

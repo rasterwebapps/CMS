@@ -22,9 +22,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-/** A single BLOCKED/UNAVAILABLE window for a faculty member (table faculty_availability, V313).
- *  A faculty member with no rows is assumed fully available — this table only records exceptions
- *  (leave, external duty, etc), consumed by TimetableGenerationService and TimetableSwapService. */
+/** A single recurring weekly BLOCKED/UNAVAILABLE window for a faculty member (table faculty_availability, V313).
+ *  A faculty member with no rows is assumed fully available — this table only records recurring
+ *  exceptions (external duty, prep time, etc), not one-off date absences (see {@link FacultyAbsence}).
+ *  Consumed by TimetableStaffingService (blocks placement into the slot) and FacultyWorkloadCapacityService
+ *  (nets blocked hours off weekly capacity); also checked by FacultyAbsenceService when filtering substitute
+ *  candidates. */
 @Entity
 @Table(name = "faculty_availability")
 @EntityListeners(AuditingEntityListener.class)

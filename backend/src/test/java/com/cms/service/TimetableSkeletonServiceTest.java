@@ -434,7 +434,7 @@ class TimetableSkeletonServiceTest {
 
     @Test
     void shouldPlaceATheoryCellWithNoFacultyOrRoom() {
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
@@ -450,7 +450,7 @@ class TimetableSkeletonServiceTest {
 
     @Test
     void shouldRequireBatchForLabPlacement() {
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, null, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
 
@@ -467,7 +467,7 @@ class TimetableSkeletonServiceTest {
         foreignBatch.setId(500L);
         foreignBatch.setCourseOffering(otherOff);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, 500L, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, 500L, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(batchRepository.findById(500L)).thenReturn(Optional.of(foreignBatch));
@@ -482,7 +482,7 @@ class TimetableSkeletonServiceTest {
         ClassSchedule existing = existingRow(ClassSessionType.THEORY, null, false);
         existing.setPeriod(period);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(existing));
@@ -492,8 +492,65 @@ class TimetableSkeletonServiceTest {
     }
 
     @Test
+    void shouldPlaceATwoPeriodSpanAsLinkedRowsSharingOneGroupId() {
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(
+            100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, List.of(2L));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SkeletonCellResponse response = service.placeCell(request);
+
+        assertThat(response.sessionGroupId()).isNotNull();
+        org.mockito.ArgumentCaptor<ClassSchedule> captor = org.mockito.ArgumentCaptor.forClass(ClassSchedule.class);
+        verify(classScheduleRepository, org.mockito.Mockito.times(2)).save(captor.capture());
+        List<ClassSchedule> saved = captor.getAllValues();
+        assertThat(saved).extracting(ClassSchedule::getPeriod).containsExactly(period, period2);
+        assertThat(saved.get(0).getSessionGroupId()).isEqualTo(saved.get(1).getSessionGroupId());
+    }
+
+    @Test
+    void shouldRejectNonConsecutiveSpanPeriods() {
+        Period period3 = new Period("3rd Period", LocalTime.of(11, 0), LocalTime.of(11, 50), 3);
+        period3.setId(3L);
+        // Spans period (order 1) + period3 (order 3) -- a gap at order 2 -- must be rejected
+        // rather than silently placing across a period nobody selected.
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(
+            100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, List.of(3L));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(periodRepository.findById(3L)).thenReturn(Optional.of(period3));
+
+        assertThatThrownBy(() -> service.placeCell(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("consecutive");
+    }
+
+    @Test
+    void shouldNotCreateAnySpanRowsWhenOnlyOnePeriodInTheSpanHasAConflict() {
+        // Atomicity: period 1 is clean but period 2 is already occupied -- the whole placement
+        // must fail, not create a dangling single-period row for period 1 alone.
+        ClassSchedule existingAtPeriod2 = existingRow(ClassSessionType.THEORY, null, false);
+        existingAtPeriod2.setPeriod(period2);
+
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(
+            100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, List.of(2L));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(existingAtPeriod2));
+
+        assertThatThrownBy(() -> service.placeCell(request))
+            .isInstanceOf(TimetableConstraintViolationException.class);
+
+        verify(classScheduleRepository, never()).save(any());
+    }
+
+    @Test
     void shouldBlockTheoryPlacementWhenAnotherSubjectAlreadyOccupiesThatCohortSlot() {
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
@@ -513,7 +570,7 @@ class TimetableSkeletonServiceTest {
         batchA.setId(400L);
         batchA.setCourseOffering(offering);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, 400L, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, 400L, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(batchRepository.findById(400L)).thenReturn(Optional.of(batchA));
@@ -534,7 +591,7 @@ class TimetableSkeletonServiceTest {
         batchA.setId(400L);
         batchA.setCourseOffering(offering);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, 400L, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, 400L, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(batchRepository.findById(400L)).thenReturn(Optional.of(batchA));
@@ -552,7 +609,7 @@ class TimetableSkeletonServiceTest {
 
     @Test
     void shouldRejectPlacementAtARecurringBlockedPeriod() {
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
@@ -567,7 +624,7 @@ class TimetableSkeletonServiceTest {
 
     @Test
     void shouldRejectPlacementAtAHolidayDerivedOneOffBlock() {
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
@@ -586,7 +643,7 @@ class TimetableSkeletonServiceTest {
         // findHolidayOneOffBlocksInRange's result set -- the repository query itself filters to
         // sourceCalendarEventId IS NOT NULL, so this simulates that by returning empty here even
         // though a manual ONE_OFF block for this exact period/date exists in the DB.
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
@@ -602,7 +659,7 @@ class TimetableSkeletonServiceTest {
         // The cohort-section check runs before the self-duplicate lookup, so
         // findByCourseOfferingId is never reached here -- not stubbed, matching that.
         stubSections(List.of(section(700L, "Section A"), section(701L, "Section B")));
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
 
@@ -615,7 +672,7 @@ class TimetableSkeletonServiceTest {
     void shouldRejectUnknownCohortSectionId() {
         // Same as above -- this throws before the self-duplicate lookup runs.
         stubSections(List.of(section(700L, "Section A")));
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, 999L);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, 999L, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
 
@@ -632,7 +689,7 @@ class TimetableSkeletonServiceTest {
         ClassSchedule theoryForA = rowFor(offering, ClassSessionType.THEORY, null, DayOfWeek.MONDAY, period);
         theoryForA.setCohortSection(sectionA);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, 701L);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, 701L, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
@@ -657,7 +714,7 @@ class TimetableSkeletonServiceTest {
         ClassSchedule theoryForA = rowFor(otherOffering, ClassSessionType.THEORY, null, DayOfWeek.MONDAY, period);
         theoryForA.setCohortSection(sectionA);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, 700L);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, 700L, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
@@ -688,7 +745,7 @@ class TimetableSkeletonServiceTest {
         ClassSchedule theoryForA = rowFor(otherOffering, ClassSessionType.THEORY, null, DayOfWeek.MONDAY, period);
         theoryForA.setCohortSection(sectionA);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, 400L, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, 400L, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(batchRepository.findById(400L)).thenReturn(Optional.of(batchScopedToB));
@@ -713,7 +770,7 @@ class TimetableSkeletonServiceTest {
         ClassSchedule theoryForA = existingRow(ClassSessionType.THEORY, null, false);
         theoryForA.setCohortSection(sectionA);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, 701L);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, 701L, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         // The alreadyPlaced dedupe check queries findByCourseOfferingId -- must include section A's
@@ -735,7 +792,7 @@ class TimetableSkeletonServiceTest {
         group.setId(950L);
         CourseOffering electiveOff = electiveOffering(300L, group);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(300L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(300L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(300L)).thenReturn(Optional.of(electiveOff));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(300L)).thenReturn(Collections.emptyList());
@@ -758,7 +815,7 @@ class TimetableSkeletonServiceTest {
         CourseOffering electiveB = electiveOffering(301L, group);
         ClassSchedule existingForA = rowFor(electiveA, ClassSessionType.THEORY, null, DayOfWeek.MONDAY, period);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(301L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(301L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(301L)).thenReturn(Optional.of(electiveB));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(301L)).thenReturn(Collections.emptyList());
@@ -781,7 +838,7 @@ class TimetableSkeletonServiceTest {
         CourseOffering electiveB = electiveOffering(301L, group);
         ClassSchedule existingForA = rowFor(electiveA, ClassSessionType.THEORY, null, DayOfWeek.MONDAY, period);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(301L, ClassSessionType.THEORY, DayOfWeek.TUESDAY, 1L, null, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(301L, ClassSessionType.THEORY, DayOfWeek.TUESDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(301L)).thenReturn(Optional.of(electiveB));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(301L)).thenReturn(Collections.emptyList());
@@ -807,7 +864,7 @@ class TimetableSkeletonServiceTest {
         ungroupedOffering.setTermInstance(termInstance);
         ungroupedOffering.setCurriculumSemesterCourse(ungroupedCsc);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(400L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(400L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(400L)).thenReturn(Optional.of(ungroupedOffering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(400L)).thenReturn(Collections.emptyList());
@@ -824,7 +881,7 @@ class TimetableSkeletonServiceTest {
         group.setId(950L);
         CourseOffering electiveA = electiveOffering(300L, group);
 
-        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(300L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null);
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(300L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(300L)).thenReturn(Optional.of(electiveA));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(300L)).thenReturn(Collections.emptyList());
@@ -1144,5 +1201,25 @@ class TimetableSkeletonServiceTest {
 
         assertThatThrownBy(() -> service.removeCell(999L))
             .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void shouldRemoveEverySiblingInASessionGroupTogether() {
+        java.util.UUID groupId = java.util.UUID.randomUUID();
+        ClassSchedule first = existingRow(ClassSessionType.THEORY, null, false);
+        first.setId(100L);
+        first.setSessionGroupId(groupId);
+        ClassSchedule second = existingRow(ClassSessionType.THEORY, null, false);
+        second.setId(101L);
+        second.setSessionGroupId(groupId);
+
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(first));
+        when(classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(groupId))
+            .thenReturn(List.of(first, second));
+
+        service.removeCell(100L);
+
+        verify(classScheduleRepository).deleteById(100L);
+        verify(classScheduleRepository).deleteById(101L);
     }
 }

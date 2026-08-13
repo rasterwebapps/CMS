@@ -368,7 +368,8 @@ public class TimetableSkeletonService {
             cs.getSubject() != null ? cs.getSubject().getName() : null,
             cs.getSubject() != null ? cs.getSubject().getCode() : null,
             electiveGroup != null ? electiveGroup.getId() : null,
-            electiveGroup != null ? electiveGroup.getGroupName() : null
+            electiveGroup != null ? electiveGroup.getGroupName() : null,
+            cs.getSessionGroupId()
         );
     }
 
@@ -409,36 +410,84 @@ public class TimetableSkeletonService {
             }
         }
 
+        List<Period> spanPeriods = resolveSpanPeriods(period, request.spanPeriodIds());
+
         List<ConstraintViolation> violations = new ArrayList<>();
+        for (Period spanPeriod : spanPeriods) {
+            SkeletonCellPlacementRequest perPeriodRequest = spanPeriod.getId().equals(period.getId())
+                ? request
+                : requestForPeriod(request, spanPeriod.getId());
 
-        checkAlreadyPlaced(offering, request).ifPresent(violations::add);
+            checkAlreadyPlaced(offering, perPeriodRequest).ifPresent(violations::add);
 
-        if (isElectiveOffering(offering)) {
-            checkElectiveGroupSlot(offering, request).ifPresent(violations::add);
-        } else {
-            checkCohortExclusivity(request, offering, batch, cohortSection).ifPresent(violations::add);
+            if (isElectiveOffering(offering)) {
+                checkElectiveGroupSlot(offering, perPeriodRequest).ifPresent(violations::add);
+            } else {
+                checkCohortExclusivity(perPeriodRequest, offering, batch, cohortSection).ifPresent(violations::add);
+            }
+
+            checkBlocked(request.dayOfWeek(), spanPeriod, offering.getTermInstance()).ifPresent(violations::add);
         }
-
-        checkBlocked(request.dayOfWeek(), period, offering.getTermInstance()).ifPresent(violations::add);
 
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
         }
 
-        ClassSchedule cs = new ClassSchedule();
-        cs.setSessionType(request.sessionType());
-        cs.setStatus(ClassScheduleStatus.DRAFT);
-        cs.setSubject(offering.getSubject());
-        cs.setDayOfWeek(request.dayOfWeek());
-        cs.setTermInstance(offering.getTermInstance());
-        cs.setCourseOffering(offering);
-        cs.setPeriod(period);
-        cs.setBatch(batch);
-        cs.setBatchName(batch != null ? batch.getName() : null);
-        cs.setCohortSection(cohortSection);
-        cs.setIsActive(true);
+        // OC-127 periodSpan: every row in the span shares one groupId so staffing/removal can treat
+        // them as one atomic unit -- null (not generated) for the ordinary single-period case, so
+        // existing single-period rows/queries see no behavior change at all.
+        java.util.UUID sessionGroupId = spanPeriods.size() > 1 ? java.util.UUID.randomUUID() : null;
+        ClassSchedule primary = null;
+        for (Period spanPeriod : spanPeriods) {
+            ClassSchedule cs = new ClassSchedule();
+            cs.setSessionType(request.sessionType());
+            cs.setStatus(ClassScheduleStatus.DRAFT);
+            cs.setSubject(offering.getSubject());
+            cs.setDayOfWeek(request.dayOfWeek());
+            cs.setTermInstance(offering.getTermInstance());
+            cs.setCourseOffering(offering);
+            cs.setPeriod(spanPeriod);
+            cs.setBatch(batch);
+            cs.setBatchName(batch != null ? batch.getName() : null);
+            cs.setCohortSection(cohortSection);
+            cs.setIsActive(true);
+            cs.setSessionGroupId(sessionGroupId);
+            ClassSchedule saved = classScheduleRepository.save(cs);
+            if (primary == null) {
+                primary = saved;
+            }
+        }
 
-        return toCellResponse(classScheduleRepository.save(cs));
+        return toCellResponse(primary);
+    }
+
+    /** OC-127 periodSpan: resolves {@code primary} + every {@code spanPeriodIds} period into one
+     *  periodOrder-sorted list, hard-requiring they form an unbroken consecutive run starting at
+     *  {@code primary} -- a gap (e.g. periods 2 and 4 without 3) would silently place a session
+     *  across a period nobody selected, so it's rejected rather than guessed. Empty/null
+     *  {@code spanPeriodIds} returns just {@code primary} (the ordinary single-period case). */
+    private List<Period> resolveSpanPeriods(Period primary, List<Long> spanPeriodIds) {
+        if (spanPeriodIds == null || spanPeriodIds.isEmpty()) {
+            return List.of(primary);
+        }
+        List<Period> all = new ArrayList<>();
+        all.add(primary);
+        for (Long id : spanPeriodIds) {
+            all.add(periodRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Period not found with id: " + id)));
+        }
+        all.sort(Comparator.comparing(Period::getPeriodOrder));
+        for (int i = 1; i < all.size(); i++) {
+            if (!all.get(i).getPeriodOrder().equals(all.get(i - 1).getPeriodOrder() + 1)) {
+                throw new IllegalArgumentException("Spanned periods must be immediately consecutive");
+            }
+        }
+        return all;
+    }
+
+    private SkeletonCellPlacementRequest requestForPeriod(SkeletonCellPlacementRequest request, Long periodId) {
+        return new SkeletonCellPlacementRequest(request.courseOfferingId(), request.sessionType(), request.dayOfWeek(),
+            periodId, request.batchId(), request.cohortId(), request.cohortSectionId(), null);
     }
 
     /** Non-throwing: returns a violation if this course offering already has another session of
@@ -480,12 +529,19 @@ public class TimetableSkeletonService {
         Period targetPeriod = periodRepository.findById(request.periodId())
             .orElseThrow(() -> new ResourceNotFoundException("Period not found with id: " + request.periodId()));
 
+        if (cs.getSessionGroupId() != null) {
+            // OC-127 periodSpan: group-aware moving is out of scope for this pass -- a spanned
+            // session's drag handle is disabled in the frontend, this is the server-side backstop.
+            throw new IllegalArgumentException("A multi-period session can't be moved here yet — remove and re-place it instead");
+        }
+
         CourseOffering offering = cs.getCourseOffering();
         SkeletonCellPlacementRequest asPlacementRequest = new SkeletonCellPlacementRequest(
             offering.getId(), cs.getSessionType(), request.dayOfWeek(), targetPeriod.getId(),
             cs.getBatch() != null ? cs.getBatch().getId() : null,
             request.cohortId(),
-            cs.getCohortSection() != null ? cs.getCohortSection().getId() : null);
+            cs.getCohortSection() != null ? cs.getCohortSection().getId() : null,
+            null);
 
         List<ConstraintViolation> violations = new ArrayList<>();
         checkAlreadyPlaced(offering, asPlacementRequest).ifPresent(violations::add);
@@ -695,7 +751,7 @@ public class TimetableSkeletonService {
 
             SkeletonCellPlacementRequest asPlacementRequest = new SkeletonCellPlacementRequest(
                 member.courseOfferingId(), member.sessionType(), request.dayOfWeek(), request.periodId(),
-                member.batchId(), request.cohortId(), member.cohortSectionId());
+                member.batchId(), request.cohortId(), member.cohortSectionId(), null);
 
             Batch batch = null;
             if (member.sessionType() == ClassSessionType.LAB || member.sessionType() == ClassSessionType.CLINICAL) {
@@ -834,6 +890,13 @@ public class TimetableSkeletonService {
             throw new LifecycleConflictException(
                 "Only an unstaffed draft skeleton cell can be removed here — edit or delete a staffed session from the Class Schedule screen instead",
                 "SKELETON_CELL_NOT_REMOVABLE", "ClassSchedule", classScheduleId, null);
+        }
+        // OC-127 periodSpan: a multi-period session's rows are one atomic unit -- removing any one
+        // of them removes every sibling sharing the same groupId.
+        if (cs.getSessionGroupId() != null) {
+            classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(cs.getSessionGroupId())
+                .forEach(sibling -> classScheduleRepository.deleteById(sibling.getId()));
+            return;
         }
         classScheduleRepository.deleteById(classScheduleId);
     }

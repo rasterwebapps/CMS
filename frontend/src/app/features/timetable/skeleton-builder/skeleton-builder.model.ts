@@ -51,6 +51,9 @@ export interface SkeletonCell {
   subjectCode: string;
   electiveGroupId: number | null;
   electiveGroupName: string | null;
+  /** Non-null only for a cell that's part of a multi-period session (periodSpan) — every sibling
+   *  cell sharing this id was placed/staffed/removed together as one atomic unit. */
+  sessionGroupId: string | null;
 }
 
 export interface SkeletonBatchOption {
@@ -97,6 +100,10 @@ export interface SkeletonCellPlacementRequest {
   /** THEORY only — required whenever the cohort has one or more active sections; null/ignored
    *  for LAB/CLINICAL (their section scope comes from the chosen batch instead). */
   cohortSectionId: number | null;
+  /** Additional periods (beyond periodId) this one session also occupies, e.g. a 2-period lab —
+   *  must be immediately consecutive with periodId. Null/empty means an ordinary single-period
+   *  session (the default). */
+  spanPeriodIds: number[] | null;
 }
 
 export interface SkeletonPlacementCandidate {
