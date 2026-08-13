@@ -125,7 +125,7 @@ export class AcademicCalendarComponent implements OnInit {
   };
 
   // ─── Role helpers ───
-  protected readonly canManage = computed(() => this.permissionService.has('ACADEMIC_YEAR_MANAGE'));
+  protected readonly canManage = computed(() => this.permissionService.has('ACADEMIC_CALENDAR_MANAGE'));
   protected readonly canManageBlocks = computed(() => this.permissionService.has('BLOCKED_PERIOD_MANAGE'));
   protected readonly canManageDayMapping = computed(() => this.permissionService.has('TIMETABLE_DAY_MAPPING_MANAGE'));
 
