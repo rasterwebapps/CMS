@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -23,8 +25,17 @@ import com.cms.config.PermSecurityBean;
 import com.cms.dto.DashboardSummaryResponse;
 import com.cms.dto.DashboardTrendPoint;
 import com.cms.dto.DashboardTrendsResponse;
+import com.cms.dto.ProfileIdentity;
 import com.cms.model.AppRole;
 import com.cms.model.AppUser;
+import com.cms.model.ClassSchedule;
+import com.cms.model.DayMappingOverride;
+import com.cms.model.Period;
+import com.cms.model.Subject;
+import com.cms.model.TermInstance;
+import com.cms.model.enums.ClassScheduleStatus;
+import com.cms.model.enums.ClassSessionType;
+import com.cms.model.enums.DayOfWeek;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AgentRepository;
@@ -32,6 +43,7 @@ import com.cms.repository.AppUserRepository;
 import com.cms.repository.AuditLogRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.ComplianceDocumentRepository;
+import com.cms.repository.DayMappingOverrideRepository;
 import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FacultyRepository;
@@ -41,11 +53,13 @@ import com.cms.repository.FeeRefundRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.ProgramRepository;
+import com.cms.repository.SessionOccurrenceRepository;
 import com.cms.repository.SpecialityRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.service.DashboardService;
+import com.cms.service.ProfileService;
 
 @WebMvcTest(controllers = WidgetDataController.class)
 class WidgetDataControllerTest {
@@ -115,6 +129,15 @@ class WidgetDataControllerTest {
 
     @MockitoBean
     private AcademicYearRepository academicYearRepository;
+
+    @MockitoBean
+    private ProfileService profileService;
+
+    @MockitoBean
+    private DayMappingOverrideRepository dayMappingOverrideRepository;
+
+    @MockitoBean
+    private SessionOccurrenceRepository sessionOccurrenceRepository;
 
     @MockitoBean(name = "perm")
     private PermSecurityBean perm;
@@ -578,10 +601,90 @@ class WidgetDataControllerTest {
     // ─── /classes-today ──────────────────────────────────────────────────────
 
     @Test
-    void getClassesTodayReturnsStubMessage() throws Exception {
+    void getClassesTodayReturnsFacultysPublishedSessionsForToday() throws Exception {
+        when(profileService.resolveCurrentUser()).thenReturn(
+            new ProfileIdentity("FACULTY", 7L, null, null, "Jane Doe", "jane@college.edu", null, null, null));
+
+        // Routed through a DayMappingOverride to a fixed MONDAY so this test is stable regardless
+        // of which real weekday it runs on (including Sunday, which would otherwise short-circuit).
+        LocalDate today = LocalDate.now();
+        DayMappingOverride mapping = new DayMappingOverride();
+        mapping.setMappedDate(today);
+        mapping.setBorrowedDayOfWeek(DayOfWeek.MONDAY);
+        when(dayMappingOverrideRepository.findByMappedDate(today)).thenReturn(Optional.of(mapping));
+
+        TermInstance termInstance = new TermInstance();
+        termInstance.setStartDate(today.minusDays(30));
+        termInstance.setEndDate(today.plusDays(30));
+
+        Subject subject = new Subject("Anatomy", "ANAT101", 4, 3, 1, null, 1);
+        Period period = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50), 1);
+
+        ClassSchedule cs = new ClassSchedule();
+        cs.setId(500L);
+        cs.setSubject(subject);
+        cs.setSessionType(ClassSessionType.THEORY);
+        cs.setPeriod(period);
+        cs.setTermInstance(termInstance);
+        cs.setStatus(ClassScheduleStatus.PUBLISHED);
+
+        when(labScheduleRepository.findByFacultyIdAndStatusAndDayOfWeek(7L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
+            .thenReturn(List.of(cs));
+        when(sessionOccurrenceRepository.findByClassScheduleIdAndOccurrenceDate(500L, today)).thenReturn(Optional.empty());
+
         mockMvc.perform(get("/dashboard/data/classes-today").with(jwt()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.message").exists());
+            .andExpect(jsonPath("$.classes[0].classScheduleId").value(500))
+            .andExpect(jsonPath("$.classes[0].subjectName").value("Anatomy"))
+            .andExpect(jsonPath("$.classes[0].sessionType").value("THEORY"));
+    }
+
+    @Test
+    void getClassesTodayReturnsEmptyForANonFacultyCaller() throws Exception {
+        when(profileService.resolveCurrentUser()).thenReturn(
+            new ProfileIdentity("STUDENT", 1L, null, null, "Sam Lee", "sam@college.edu", null, null, null));
+
+        mockMvc.perform(get("/dashboard/data/classes-today").with(jwt()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.classes").isEmpty());
+    }
+
+    @Test
+    void getClassesTodayExcludesASessionCancelledForToday() throws Exception {
+        when(profileService.resolveCurrentUser()).thenReturn(
+            new ProfileIdentity("FACULTY", 7L, null, null, "Jane Doe", "jane@college.edu", null, null, null));
+
+        LocalDate today = LocalDate.now();
+        DayMappingOverride mapping = new DayMappingOverride();
+        mapping.setMappedDate(today);
+        mapping.setBorrowedDayOfWeek(DayOfWeek.MONDAY);
+        when(dayMappingOverrideRepository.findByMappedDate(today)).thenReturn(Optional.of(mapping));
+
+        TermInstance termInstance = new TermInstance();
+        termInstance.setStartDate(today.minusDays(30));
+        termInstance.setEndDate(today.plusDays(30));
+
+        Subject subject = new Subject("Anatomy", "ANAT101", 4, 3, 1, null, 1);
+        Period period = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50), 1);
+
+        ClassSchedule cs = new ClassSchedule();
+        cs.setId(501L);
+        cs.setSubject(subject);
+        cs.setSessionType(ClassSessionType.THEORY);
+        cs.setPeriod(period);
+        cs.setTermInstance(termInstance);
+        cs.setStatus(ClassScheduleStatus.PUBLISHED);
+
+        com.cms.model.SessionOccurrence occurrence = new com.cms.model.SessionOccurrence(cs, today);
+        occurrence.setOccurrenceStatus(com.cms.model.enums.OccurrenceStatus.CANCELLED);
+
+        when(labScheduleRepository.findByFacultyIdAndStatusAndDayOfWeek(7L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
+            .thenReturn(List.of(cs));
+        when(sessionOccurrenceRepository.findByClassScheduleIdAndOccurrenceDate(501L, today)).thenReturn(Optional.of(occurrence));
+
+        mockMvc.perform(get("/dashboard/data/classes-today").with(jwt()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.classes").isEmpty());
     }
 
     // ─── /doc-stats ──────────────────────────────────────────────────────────

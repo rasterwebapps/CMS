@@ -1,0 +1,51 @@
+<div class="widget-shell">
+  <div class="widget-header">
+    <div class="widget-icon" style="background:rgba(99,102,241,.16);color:#6366F1">
+      <mat-icon>calendar_today</mat-icon>
+    </div>
+    <span class="widget-title">Classes Today</span>
+    @if (classes().length > 0) {
+      <span class="count-badge">{{ classes().length }}</span>
+    }
+  </div>
+
+  <div class="widget-body">
+    @if (loading()) {
+      <div class="widget-loading">
+        @for (n of [1,2,3]; track n) {
+          <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+            <div class="sk-block" style="width:44px;height:14px;border-radius:6px;flex-shrink:0"></div>
+            <div style="flex:1">
+              <div class="sk-line sk-line--75"></div>
+              <div class="sk-line sk-line--40" style="margin-top:6px"></div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (error()) {
+      <div class="widget-error"><mat-icon>error_outline</mat-icon><span>No data</span></div>
+    } @else if (classes().length === 0) {
+      <div class="all-clear">
+        <mat-icon>event_available</mat-icon>
+        No classes scheduled today
+      </div>
+    } @else {
+      @for (item of classes(); track item.classScheduleId) {
+        <div class="ct-item">
+          <div class="ct-time">
+            @if (item.startTime) { <span>{{ item.startTime }}</span> }
+            @if (item.slotName) { <span class="ct-slot">{{ item.slotName }}</span> }
+          </div>
+          <div class="ct-text">
+            <div class="ct-title">{{ item.subjectName }}</div>
+            <div class="ct-sub">
+              <span class="ct-type" [attr.data-type]="item.sessionType">{{ sessionTypeLabel(item.sessionType) }}</span>
+              @if (item.roomName) { <span>· {{ item.roomName }}</span> }
+              @if (item.batchName) { <span>· {{ item.batchName }}</span> }
+            </div>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>

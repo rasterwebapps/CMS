@@ -3,6 +3,7 @@ package com.cms.controller;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.DashboardSummaryResponse;
+import com.cms.dto.ProfileIdentity;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AppRole;
 import com.cms.model.AppUser;
@@ -35,16 +37,20 @@ import com.cms.model.Faculty;
 import com.cms.model.ClassSchedule;
 import com.cms.model.PaymentReceipt;
 import com.cms.model.Program;
+import com.cms.model.SessionOccurrence;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.FeeInstallment;
 import com.cms.model.enums.AdmissionCategory;
+import com.cms.model.enums.ClassScheduleStatus;
+import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.DocumentVerificationStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.EnquiryStatus;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.Gender;
+import com.cms.model.enums.OccurrenceStatus;
 import com.cms.model.enums.PaymentMode;
 import com.cms.model.enums.ProgramStatus;
 import com.cms.model.enums.StudentStatus;
@@ -55,6 +61,7 @@ import com.cms.repository.CohortRepository;
 import com.cms.repository.AppUserRepository;
 import com.cms.repository.AuditLogRepository;
 import com.cms.repository.ComplianceDocumentRepository;
+import com.cms.repository.DayMappingOverrideRepository;
 import com.cms.repository.SpecialityRepository;
 import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.EnquiryRepository;
@@ -64,11 +71,13 @@ import com.cms.repository.FeeRefundRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.ProgramRepository;
+import com.cms.repository.SessionOccurrenceRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.service.DashboardService;
+import com.cms.service.ProfileService;
 
 /**
  * Widget-specific data endpoints for the dynamic dashboard.
@@ -105,6 +114,9 @@ public class WidgetDataController {
     private final AuditLogRepository                auditLogRepository;
     private final CohortRepository                  cohortRepository;
     private final AcademicYearRepository             academicYearRepository;
+    private final ProfileService                    profileService;
+    private final DayMappingOverrideRepository      dayMappingOverrideRepository;
+    private final SessionOccurrenceRepository       sessionOccurrenceRepository;
 
     public WidgetDataController(DashboardService dashboardService,
                                 AppUserRepository appUserRepository,
@@ -126,7 +138,10 @@ public class WidgetDataController {
                                 ComplianceDocumentRepository complianceDocumentRepository,
                                 AuditLogRepository auditLogRepository,
                                 CohortRepository cohortRepository,
-                                AcademicYearRepository academicYearRepository) {
+                                AcademicYearRepository academicYearRepository,
+                                ProfileService profileService,
+                                DayMappingOverrideRepository dayMappingOverrideRepository,
+                                SessionOccurrenceRepository sessionOccurrenceRepository) {
         this.dashboardService    = dashboardService;
         this.appUserRepository   = appUserRepository;
         this.admissionRepository = admissionRepository;
@@ -148,6 +163,9 @@ public class WidgetDataController {
         this.auditLogRepository               = auditLogRepository;
         this.cohortRepository                 = cohortRepository;
         this.academicYearRepository           = academicYearRepository;
+        this.profileService                   = profileService;
+        this.dayMappingOverrideRepository     = dayMappingOverrideRepository;
+        this.sessionOccurrenceRepository      = sessionOccurrenceRepository;
     }
 
     // ─── Response records ────────────────────────────────────────────────────
@@ -206,7 +224,19 @@ public class WidgetDataController {
 
     public record HealthCheck(String name, String status, String detail) {}
 
-    public record ClassesTodayData(String message) {} // stub — Phase 4
+    public record ClassesTodayItem(
+        Long classScheduleId,
+        String subjectName,
+        String subjectCode,
+        String sessionType,
+        String slotName,
+        LocalTime startTime,
+        LocalTime endTime,
+        String roomName,
+        String batchName
+    ) {}
+
+    public record ClassesTodayData(List<ClassesTodayItem> classes) {}
 
     public record DocStatsData(String message) {}     // stub — Phase 4
 
@@ -657,11 +687,58 @@ public class WidgetDataController {
     }
 
     /**
-     * Faculty: today's classes — stub until Phase 4 builds the full widget component.
+     * Faculty: today's PUBLISHED classes, resolved against today's *effective* weekday (the
+     * borrowed weekday if a {@link com.cms.model.DayMappingOverride} maps today away — same
+     * resolution {@link com.cms.service.FacultyAbsenceService#findAffectedSessions} already uses),
+     * filtered to the row's own term date bounds, and excluding any session cancelled for today
+     * via {@link SessionOccurrence}. Empty for a non-faculty caller (admin/student dashboards don't
+     * show this widget, but the endpoint stays safe either way rather than erroring).
      */
     @GetMapping("/classes-today")
     public ResponseEntity<ClassesTodayData> getClassesToday() {
-        return ResponseEntity.ok(new ClassesTodayData("Phase 4 — full implementation pending"));
+        ProfileIdentity identity = profileService.resolveCurrentUser();
+        if (!"FACULTY".equals(identity.entityType()) || identity.entityId() == null) {
+            return ResponseEntity.ok(new ClassesTodayData(List.of()));
+        }
+
+        LocalDate today = LocalDate.now();
+        DayOfWeek dayOfWeek = dayMappingOverrideRepository.findByMappedDate(today)
+            .map(com.cms.model.DayMappingOverride::getBorrowedDayOfWeek)
+            .orElseGet(() -> {
+                java.time.DayOfWeek javaDay = today.getDayOfWeek();
+                return javaDay == java.time.DayOfWeek.SUNDAY ? null : DayOfWeek.valueOf(javaDay.name());
+            });
+        if (dayOfWeek == null) {
+            return ResponseEntity.ok(new ClassesTodayData(List.of()));
+        }
+
+        List<ClassSchedule> candidates = labScheduleRepository.findByFacultyIdAndStatusAndDayOfWeek(
+            identity.entityId(), ClassScheduleStatus.PUBLISHED, dayOfWeek);
+
+        List<ClassesTodayItem> items = new ArrayList<>();
+        for (ClassSchedule cs : candidates) {
+            if (today.isBefore(cs.getTermInstance().getStartDate()) || today.isAfter(cs.getTermInstance().getEndDate())) {
+                continue;
+            }
+            Optional<SessionOccurrence> occurrence = sessionOccurrenceRepository
+                .findByClassScheduleIdAndOccurrenceDate(cs.getId(), today);
+            if (occurrence.isPresent() && occurrence.get().getOccurrenceStatus() == OccurrenceStatus.CANCELLED) {
+                continue;
+            }
+            String roomName = switch (cs.getSessionType()) {
+                case THEORY -> cs.getClassroom() != null ? cs.getClassroom().getName() : null;
+                case LAB -> cs.getLab() != null ? cs.getLab().getName() : null;
+                case CLINICAL -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getName() : null;
+            };
+            items.add(new ClassesTodayItem(cs.getId(), cs.getSubject().getName(), cs.getSubject().getCode(),
+                cs.getSessionType().name(), cs.getPeriod() != null ? cs.getPeriod().getName() : null,
+                cs.getPeriod() != null ? cs.getPeriod().getStartTime() : null,
+                cs.getPeriod() != null ? cs.getPeriod().getEndTime() : null,
+                roomName, cs.getBatchName()));
+        }
+        items.sort(Comparator.comparing(ClassesTodayItem::startTime, Comparator.nullsLast(Comparator.naturalOrder())));
+
+        return ResponseEntity.ok(new ClassesTodayData(items));
     }
 
     /**

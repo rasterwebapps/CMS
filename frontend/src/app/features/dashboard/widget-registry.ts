@@ -25,6 +25,7 @@ import { DocVerificationBacklogWidgetComponent } from './widgets/doc-verificatio
 import { Tier3StrategicWidgetComponent }       from './widgets/tier3-strategic/tier3-strategic-widget.component';
 import { Tier4AlertWidgetComponent }           from './widgets/tier4-alert/tier4-alert-widget.component';
 import { GovtLapsedSeatsWidgetComponent }      from './widgets/govt-lapsed-seats/govt-lapsed-seats-widget.component';
+import { ClassesTodayWidgetComponent }         from './widgets/classes-today/classes-today-widget.component';
 
 const PH = WidgetPlaceholderComponent;
 
@@ -94,7 +95,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   { key: 'recent-activity',    label: 'Recent Activity',    description: 'Recent system activity feed',                          icon: 'history',          category: 'lists',       component: RecentActivityComponent,         defaultColSpan: 2, defaultRowSpan: 1 },
   { key: 'colleagues',         label: 'Colleagues',         description: 'Connected faculty members or peers',                   icon: 'group',            category: 'lists',       component: ConnectionsCardComponent,        defaultColSpan: 2, defaultRowSpan: 1 },
   // ── Faculty-specific ──────────────────────────────────────────────────────
-  { key: 'classes-today',      label: 'Classes & Schedule', description: "Today's classes, pending attendance, lab slots",      icon: 'calendar_today',   category: 'operational', component: PH,                              defaultColSpan: 4, defaultRowSpan: 2 },
+  { key: 'classes-today',      label: 'Classes & Schedule', description: "Today's classes, pending attendance, lab slots",      icon: 'calendar_today',   category: 'operational', component: ClassesTodayWidgetComponent,     defaultColSpan: 4, defaultRowSpan: 2 },
   // ── Student-specific ──────────────────────────────────────────────────────
   { key: 'student-quicklinks', label: 'Quick Links',        description: 'Student quick-navigation shortcuts',                   icon: 'flash_on',         category: 'layout',      component: StudentQuickLinksWidgetComponent, defaultColSpan: 4, defaultRowSpan: 1 },
 ];
