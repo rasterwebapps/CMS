@@ -71,15 +71,15 @@
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="courseName" [sticky]="colState.isSticky('courseName')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Course</th>
-            <td mat-cell *matCellDef="let row">{{ row.courseName }}</td>
+          <ng-container matColumnDef="subjectName" [sticky]="colState.isSticky('subjectName')">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Subject</th>
+            <td mat-cell *matCellDef="let row">{{ row.subjectName }}</td>
           </ng-container>
 
-          <ng-container matColumnDef="courseCode" [sticky]="colState.isSticky('courseCode')">
+          <ng-container matColumnDef="subjectCode" [sticky]="colState.isSticky('subjectCode')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
             <td mat-cell *matCellDef="let row">
-              <span class="cell-code">{{ row.courseCode }}</span>
+              <span class="cell-code">{{ row.subjectCode }}</span>
             </td>
           </ng-container>
 

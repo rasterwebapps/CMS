@@ -59,6 +59,14 @@ public class ExperimentController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/name-exists")
+    public ResponseEntity<Boolean> nameExists(
+            @RequestParam Long subjectId,
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(experimentService.nameExists(subjectId, value, excludeId));
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("@perm.has('EXPERIMENT_MANAGE')")
     public ResponseEntity<ExperimentResponse> update(

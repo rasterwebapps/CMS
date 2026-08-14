@@ -75,6 +75,53 @@ class ExperimentServiceTest {
     }
 
     @Test
+    void shouldThrowExceptionWhenCreatingExperimentWithDuplicateName() {
+        ExperimentRequest request = new ExperimentRequest(
+            1L, 2, "Stack Implementation",
+            "Implement stack using arrays",
+            "To understand stack operations",
+            "Computer with IDE",
+            "1. Create stack class...",
+            "Working stack implementation",
+            "CO1, CO2",
+            120, true
+        );
+
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(experimentRepository.existsBySubjectAndName(1L, "Stack Implementation", null)).thenReturn(true);
+
+        assertThatThrownBy(() -> experimentService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("An experiment named 'Stack Implementation' already exists for this subject");
+
+        verify(experimentRepository, never()).save(any(Experiment.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenCreatingExperimentWithDuplicateNumber() {
+        ExperimentRequest request = new ExperimentRequest(
+            1L, 1, "A Different Name",
+            "Implement stack using arrays",
+            "To understand stack operations",
+            "Computer with IDE",
+            "1. Create stack class...",
+            "Working stack implementation",
+            "CO1, CO2",
+            120, true
+        );
+
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(experimentRepository.existsBySubjectAndName(1L, "A Different Name", null)).thenReturn(false);
+        when(experimentRepository.existsBySubjectAndExperimentNumber(1L, 1, null)).thenReturn(true);
+
+        assertThatThrownBy(() -> experimentService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Experiment number 1 already exists for this subject");
+
+        verify(experimentRepository, never()).save(any(Experiment.class));
+    }
+
+    @Test
     void shouldThrowExceptionWhenCreatingExperimentWithNonExistentCourse() {
         ExperimentRequest request = new ExperimentRequest(
             999L, 1, "Test", "Desc", "Aim", "App", "Proc", "Out", "LO", 60, true

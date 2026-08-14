@@ -41,9 +41,9 @@ export interface SyllabusActivationRequest {
 
 export interface Experiment {
   id: number;
-  courseId: number;
-  courseName: string;
-  courseCode: string;
+  subjectId: number;
+  subjectName: string;
+  subjectCode: string;
   experimentNumber: number;
   name: string;
   description?: string;
@@ -59,7 +59,7 @@ export interface Experiment {
 }
 
 export interface ExperimentRequest {
-  courseId: number;
+  subjectId: number;
   experimentNumber: number;
   name: string;
   description?: string;

@@ -65,8 +65,8 @@ export class ExperimentListComponent implements OnInit {
     columns: [
       { key: 'experimentNumber', label: '#', mandatory: true },
       { key: 'name', label: 'Name' },
-      { key: 'courseName', label: 'Course' },
-      { key: 'courseCode', label: 'Code' },
+      { key: 'subjectName', label: 'Subject' },
+      { key: 'subjectCode', label: 'Code' },
       { key: 'estimatedDurationMinutes', label: 'Duration' },
       { key: 'isActive', label: 'Status' },
       { key: 'actions', label: 'Actions', mandatory: true, pinnable: false },

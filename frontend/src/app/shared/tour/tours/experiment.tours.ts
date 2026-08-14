@@ -6,7 +6,7 @@ export const EXPERIMENT_LIST_TOUR: TourDefinition = {
       popover: {
         title: '🧪 Welcome to Experiments',
         description:
-          'This screen lets you define lab experiments — number them within a course, capture procedure, apparatus, and learning outcomes. Let\'s walk through it.',
+          'This screen lets you define lab experiments — number them within a subject, capture procedure, apparatus, and learning outcomes. Let\'s walk through it.',
         side: 'over',
         align: 'center',
       },
@@ -16,7 +16,7 @@ export const EXPERIMENT_LIST_TOUR: TourDefinition = {
       popover: {
         title: 'Add Experiment',
         description:
-          'Click here to define a new lab experiment with course, sequence number, and procedure.',
+          'Click here to define a new lab experiment with subject, sequence number, and procedure.',
         side: 'bottom',
         align: 'end',
       },
@@ -25,7 +25,7 @@ export const EXPERIMENT_LIST_TOUR: TourDefinition = {
       element: '#tour-exp-search',
       popover: {
         title: 'Search Experiments',
-        description: 'Quickly filter by name, course, or apparatus.',
+        description: 'Quickly filter by name, subject, or apparatus.',
         side: 'bottom',
         align: 'start',
       },
@@ -69,8 +69,8 @@ export const EXPERIMENT_FORM_TOUR: TourDefinition = {
         align: 'center',
       },
     },
-    { element: '#exp-course', popover: { title: 'Course', description: 'The course this experiment belongs to.', side: 'bottom', align: 'start' } },
-    { element: '#exp-number', popover: { title: 'Experiment Number', description: 'Sequence number within the course (1, 2, 3, …).', side: 'bottom', align: 'start' } },
+    { element: '#exp-subject', popover: { title: 'Subject', description: 'The subject this experiment belongs to.', side: 'bottom', align: 'start' } },
+    { element: '#exp-number', popover: { title: 'Experiment Number', description: 'Sequence number within the subject (1, 2, 3, …).', side: 'bottom', align: 'start' } },
     { element: '#exp-name', popover: { title: 'Name', description: 'Short title of the experiment.', side: 'bottom', align: 'start' } },
     { element: '#exp-description', popover: { title: 'Description', description: 'High-level summary of what the experiment is about.', side: 'bottom', align: 'start' } },
     { element: '#exp-aim', popover: { title: 'Aim', description: 'Stated objective of the experiment.', side: 'bottom', align: 'start' } },

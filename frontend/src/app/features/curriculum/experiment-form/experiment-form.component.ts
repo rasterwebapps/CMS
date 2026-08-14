@@ -17,6 +17,7 @@ import { EXPERIMENT_FORM_TOUR } from '../../../shared/tour/tours/experiment.tour
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 
 @Component({
   selector: 'app-experiment-form',
@@ -49,17 +50,17 @@ export class ExperimentFormComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Experiment');
-  protected readonly courses = signal<{ id: number; name: string; code: string }[]>([]);
+  protected readonly subjects = signal<{ id: number; name: string; code: string }[]>([]);
 
   // Preview signals
-  protected readonly previewCourseId = signal<number | null>(null);
+  protected readonly previewSubjectId = signal<number | null>(null);
   protected readonly previewNumber   = signal<number | null>(null);
   protected readonly previewName     = signal('');
   protected readonly previewDuration = signal<number | null>(null);
   protected readonly previewActive   = signal(true);
-  protected readonly previewCourseName = computed(() => {
-    const c = this.courses().find(x => x.id === this.previewCourseId());
-    return c ? c.name : '';
+  protected readonly previewSubjectName = computed(() => {
+    const s = this.subjects().find(x => x.id === this.previewSubjectId());
+    return s ? s.name : '';
   });
 
   protected readonly TIPS: CmsTip[] = [
@@ -69,9 +70,10 @@ export class ExperimentFormComponent implements OnInit {
   ];
 
   private itemId: number | null = null;
+  private lastNameScopeSubjectId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
-    courseId: [null, Validators.required],
+    subjectId: [null, Validators.required],
     experimentNumber: [null, [Validators.required, Validators.min(1)]],
     name: ['', [Validators.required, Validators.maxLength(255)]],
     description: [''],
@@ -88,22 +90,38 @@ export class ExperimentFormComponent implements OnInit {
     this.form.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(v => {
-        this.previewCourseId.set(v.courseId ?? null);
+        this.previewSubjectId.set(v.subjectId ?? null);
         this.previewNumber.set(v.experimentNumber ? Number(v.experimentNumber) : null);
         this.previewName.set((v.name ?? '').trim());
         this.previewDuration.set(v.estimatedDurationMinutes != null && v.estimatedDurationMinutes !== '' ? Number(v.estimatedDurationMinutes) : null);
         this.previewActive.set(!!v.isActive);
+
+        const subjectId = v.subjectId ? Number(v.subjectId) : null;
+        if (subjectId !== this.lastNameScopeSubjectId) {
+          this.lastNameScopeSubjectId = subjectId;
+          this.form.get('name')?.updateValueAndValidity({ emitEvent: false });
+        }
       });
   }
 
   ngOnInit(): void {
     this.tourService.register('experiment-form', EXPERIMENT_FORM_TOUR);
+
+    this.form.get('name')?.setAsyncValidators(
+      uniqueFieldValidator(this.http, `${environment.apiUrl}/experiments/name-exists`,
+        () => this.itemId,
+        () => {
+          const subjectId = this.form.value.subjectId ? Number(this.form.value.subjectId) : null;
+          return subjectId ? { subjectId } : null;
+        }),
+    );
+
     this.http
-      .get<{ id: number; name: string; code: string }[]>(`${environment.apiUrl}/courses`)
+      .get<{ id: number; name: string; code: string }[]>(`${environment.apiUrl}/subjects`)
       .subscribe({
-        next: (data) => this.courses.set(data),
+        next: (data) => this.subjects.set(data),
         error: () => {
-          this.toast.error('Failed to load courses');
+          this.toast.error('Failed to load subjects');
         },
       });
     const id = this.route.snapshot.paramMap.get('id');
@@ -115,7 +133,7 @@ export class ExperimentFormComponent implements OnInit {
       this.curriculumService.getExperimentById(this.itemId).subscribe({
         next: (item) => {
           this.form.patchValue({
-            courseId: item.courseId,
+            subjectId: item.subjectId,
             experimentNumber: item.experimentNumber,
             name: item.name,
             description: item.description || '',
@@ -144,7 +162,7 @@ export class ExperimentFormComponent implements OnInit {
     }
     const v = this.form.value;
     const request: ExperimentRequest = {
-      courseId: v.courseId,
+      subjectId: v.subjectId,
       experimentNumber: v.experimentNumber,
       name: v.name.trim(),
       description: v.description?.trim() || undefined,

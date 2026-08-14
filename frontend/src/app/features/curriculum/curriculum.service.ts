@@ -49,8 +49,8 @@ export class CurriculumService {
     return this.http.get<Experiment>(`${this.experimentsUrl}/${id}`);
   }
 
-  getExperimentsByCourseId(courseId: number): Observable<Experiment[]> {
-    return this.http.get<Experiment[]>(`${this.experimentsUrl}?courseId=${courseId}`);
+  getExperimentsBySubjectId(subjectId: number): Observable<Experiment[]> {
+    return this.http.get<Experiment[]>(`${this.experimentsUrl}?subjectId=${subjectId}`);
   }
 
   createExperiment(request: ExperimentRequest): Observable<Experiment> {

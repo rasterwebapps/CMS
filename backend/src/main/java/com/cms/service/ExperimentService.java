@@ -25,10 +25,25 @@ public class ExperimentService {
         this.subjectRepository = subjectRepository;
     }
 
+    public boolean nameExists(Long subjectId, String name, Long excludeId) {
+        return experimentRepository.existsBySubjectAndName(
+            subjectId, name == null ? "" : name.trim(), excludeId);
+    }
+
     @Transactional
     public ExperimentResponse create(ExperimentRequest request) {
         Subject subject = subjectRepository.findById(request.subjectId())
             .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
+
+        if (experimentRepository.existsBySubjectAndName(request.subjectId(), request.name().trim(), null)) {
+            throw new IllegalArgumentException(
+                "An experiment named '" + request.name() + "' already exists for this subject");
+        }
+        if (experimentRepository.existsBySubjectAndExperimentNumber(
+                request.subjectId(), request.experimentNumber(), null)) {
+            throw new IllegalArgumentException(
+                "Experiment number " + request.experimentNumber() + " already exists for this subject");
+        }
 
         Boolean isActive = request.isActive() != null ? request.isActive() : true;
 
@@ -87,6 +102,16 @@ public class ExperimentService {
 
         Subject subject = subjectRepository.findById(request.subjectId())
             .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
+
+        if (experimentRepository.existsBySubjectAndName(request.subjectId(), request.name().trim(), id)) {
+            throw new IllegalArgumentException(
+                "An experiment named '" + request.name() + "' already exists for this subject");
+        }
+        if (experimentRepository.existsBySubjectAndExperimentNumber(
+                request.subjectId(), request.experimentNumber(), id)) {
+            throw new IllegalArgumentException(
+                "Experiment number " + request.experimentNumber() + " already exists for this subject");
+        }
 
         experiment.setSubject(subject);
         experiment.setExperimentNumber(request.experimentNumber());

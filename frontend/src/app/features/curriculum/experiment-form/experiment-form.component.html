@@ -35,16 +35,16 @@
 
             <div class="field-row">
               <div class="field-group">
-                <label for="exp-course" class="field-label">Course <span class="required-star">*</span></label>
-                <select id="exp-course" class="field-select" formControlName="courseId"
-                  [class.field-select--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched">
-                  <option [ngValue]="null" disabled>Select a course</option>
-                  @for (course of courses(); track course.id) {
-                    <option [ngValue]="course.id">{{ course.name }}</option>
+                <label for="exp-subject" class="field-label">Subject <span class="required-star">*</span></label>
+                <select id="exp-subject" class="field-select" formControlName="subjectId"
+                  [class.field-select--error]="form.get('subjectId')?.invalid && form.get('subjectId')?.touched">
+                  <option [ngValue]="null" disabled>Select a subject</option>
+                  @for (subject of subjects(); track subject.id) {
+                    <option [ngValue]="subject.id">{{ subject.name }}</option>
                   }
                 </select>
-                @if (form.get('courseId')?.invalid && form.get('courseId')?.touched) {
-                  <p class="field-error">Course is required</p>
+                @if (form.get('subjectId')?.invalid && form.get('subjectId')?.touched) {
+                  <p class="field-error">Subject is required</p>
                 }
               </div>
 
@@ -64,8 +64,11 @@
               <input id="exp-name" class="field-input" formControlName="name"
                 placeholder="e.g., Gram Staining Technique"
                 [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
-              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
                 <p class="field-error">Name is required</p>
+              }
+              @if (form.get('name')?.hasError('duplicate') && form.get('name')?.touched) {
+                <p class="field-error">An experiment with this name already exists for this subject</p>
               }
             </div>
 
@@ -128,7 +131,7 @@
             @if (previewNumber()) { <span style="opacity: 0.6;">#{{ previewNumber() }}: </span> }
             {{ previewName() || 'Experiment name will appear here' }}
           </div>
-          @if (previewCourseName()) { <div class="prev-sub">{{ previewCourseName() }}</div> }
+          @if (previewSubjectName()) { <div class="prev-sub">{{ previewSubjectName() }}</div> }
           <div class="prev-meta-row">
             @if (previewDuration()) { <span class="prev-pill">{{ previewDuration() }} min</span> }
             <span class="prev-pill" [class.prev-pill--green]="previewActive()" [class.prev-pill--muted]="!previewActive()">
