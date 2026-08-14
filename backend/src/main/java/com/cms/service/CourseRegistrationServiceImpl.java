@@ -175,7 +175,13 @@ public class CourseRegistrationServiceImpl implements CourseRegistrationService 
                     alreadyOnThisOffering = true;
                 } else {
                     existing.setStatus(RegistrationStatus.DROPPED);
-                    courseRegistrationRepository.save(existing);
+                    // saveAndFlush, not save: Hibernate's flush-action ordering always runs queued
+                    // inserts before queued updates regardless of code order, so a deferred save()
+                    // here would let this student's new REGISTERED insert (below) hit the DB before
+                    // this drop does -- transiently violating V385's one-active-registration-per-
+                    // elective-group unique index even though this method never intends both rows
+                    // to be active at once.
+                    courseRegistrationRepository.saveAndFlush(existing);
                 }
             }
             if (!alreadyOnThisOffering) {
