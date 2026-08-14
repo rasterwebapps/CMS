@@ -327,6 +327,10 @@ export interface CourseOfferingUpdateRequest {
 
 export interface GenerateCourseOfferingsResponse {
   offeringsCreated: number;
+  activeCohortCount: number;
+  cohortsWithoutCurriculumVersion: string[];
+  cohortsWithoutProgramTotalTerms: number;
+  offeringsAlreadyExisting: number;
 }
 
 export interface CourseRegistration {

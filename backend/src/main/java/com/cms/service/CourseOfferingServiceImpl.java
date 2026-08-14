@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.CourseOfferingDto;
+import com.cms.dto.GenerateOfferingsResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Cohort;
 import com.cms.model.CourseOffering;
@@ -60,21 +62,26 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
 
     @Override
     @Transactional
-    public int generateOfferingsForTermInstance(Long termInstanceId) {
+    public GenerateOfferingsResponse generateOfferingsForTermInstance(Long termInstanceId) {
         TermInstance termInstance = termInstanceRepository.findById(termInstanceId)
             .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
 
         List<Cohort> activeCohorts = cohortRepository.findByStatus(CohortStatus.ACTIVE);
         int count = 0;
+        int alreadyExisting = 0;
+        int cohortsWithoutTotalTerms = 0;
+        List<String> cohortsWithoutCurriculumVersion = new ArrayList<>();
 
         for (Cohort cohort : activeCohorts) {
             CurriculumVersion cv = resolveActiveCurriculumVersion(cohort);
             if (cv == null) {
+                cohortsWithoutCurriculumVersion.add(cohort.getDisplayName());
                 continue;
             }
 
             Integer totalSemesters = cohort.getProgram().getTotalTerms();
             if (totalSemesters == null) {
+                cohortsWithoutTotalTerms++;
                 continue;
             }
 
@@ -104,10 +111,13 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
                     offering.setIsActive(true);
                     courseOfferingRepository.save(offering);
                     count++;
+                } else {
+                    alreadyExisting++;
                 }
             }
         }
-        return count;
+        return new GenerateOfferingsResponse(
+            count, activeCohorts.size(), cohortsWithoutCurriculumVersion, cohortsWithoutTotalTerms, alreadyExisting);
     }
 
     /**

@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.CourseOfferingDto;
+import com.cms.dto.GenerateOfferingsResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Cohort;
@@ -189,9 +190,9 @@ class CourseOfferingServiceImplTest {
             return o;
         });
 
-        int count = service.generateOfferingsForTermInstance(1L);
+        GenerateOfferingsResponse result = service.generateOfferingsForTermInstance(1L);
 
-        assertThat(count).isEqualTo(1);
+        assertThat(result.offeringsCreated()).isEqualTo(1);
         verify(courseOfferingRepository).save(any(CourseOffering.class));
     }
 
@@ -212,9 +213,9 @@ class CourseOfferingServiceImplTest {
         when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of(cv));
         when(curriculumSemesterCourseRepository.findByCurriculumVersionId(1L)).thenReturn(List.of(csc));
 
-        int count = service.generateOfferingsForTermInstance(1L);
+        GenerateOfferingsResponse result = service.generateOfferingsForTermInstance(1L);
 
-        assertThat(count).isEqualTo(0);
+        assertThat(result.offeringsCreated()).isEqualTo(0);
         verify(courseOfferingRepository, never()).save(any());
     }
 
@@ -238,9 +239,10 @@ class CourseOfferingServiceImplTest {
             .findByTermInstanceIdAndCurriculumVersionIdAndSubjectIdAndSemesterNumber(1L, 1L, 1L, 1))
             .thenReturn(Optional.of(existing));
 
-        int count = service.generateOfferingsForTermInstance(1L);
+        GenerateOfferingsResponse result = service.generateOfferingsForTermInstance(1L);
 
-        assertThat(count).isEqualTo(0);
+        assertThat(result.offeringsCreated()).isEqualTo(0);
+        assertThat(result.offeringsAlreadyExisting()).isEqualTo(1);
         verify(courseOfferingRepository, never()).save(any());
     }
 
@@ -256,9 +258,10 @@ class CourseOfferingServiceImplTest {
         when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
         when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of());
 
-        int count = service.generateOfferingsForTermInstance(1L);
+        GenerateOfferingsResponse result = service.generateOfferingsForTermInstance(1L);
 
-        assertThat(count).isEqualTo(0);
+        assertThat(result.offeringsCreated()).isEqualTo(0);
+        assertThat(result.cohortsWithoutCurriculumVersion()).containsExactly(cohort.getDisplayName());
         verify(courseOfferingRepository, never()).save(any());
     }
 
@@ -291,9 +294,9 @@ class CourseOfferingServiceImplTest {
             return o;
         });
 
-        int count = service.generateOfferingsForTermInstance(1L);
+        GenerateOfferingsResponse result = service.generateOfferingsForTermInstance(1L);
 
-        assertThat(count).isEqualTo(1);
+        assertThat(result.offeringsCreated()).isEqualTo(1);
     }
 
     @Test

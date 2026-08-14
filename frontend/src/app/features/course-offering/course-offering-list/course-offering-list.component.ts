@@ -10,7 +10,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { environment } from '../../../../environments/environment';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
-import { AcademicYear, CourseOffering, TermInstance } from '../../academic-year/academic-year.model';
+import { AcademicYear, CourseOffering, GenerateCourseOfferingsResponse, TermInstance } from '../../academic-year/academic-year.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
@@ -72,6 +72,11 @@ export class CourseOfferingListComponent implements OnInit {
 
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
+  /** Only true when this screen was navigated to from the Academic Year detail/edit
+   *  screen's "View Course Offerings" link (which passes academicYearId as a query param) —
+   *  the back-to-academic-year button only makes sense in that context, not when the user
+   *  opened Course Offerings directly from the Academics nav menu. */
+  protected readonly cameFromAcademicYear = signal(false);
 
   protected readonly selectedTerm = computed(() =>
     this.termInstances().find((t) => t.id === this.selectedTermInstanceId) ?? null);
@@ -97,6 +102,7 @@ export class CourseOfferingListComponent implements OnInit {
       error: () => { this.toast.error('Failed to load faculty'); },
     });
 
+    this.cameFromAcademicYear.set(this.route.snapshot.queryParamMap.has('academicYearId'));
     const qpAcademicYearId = Number(this.route.snapshot.queryParamMap.get('academicYearId')) || null;
     const qpTermInstanceId = Number(this.route.snapshot.queryParamMap.get('termInstanceId')) || null;
 
@@ -145,7 +151,7 @@ export class CourseOfferingListComponent implements OnInit {
     this.generating.set(true);
     this.academicYearService.generateCourseOfferings(termInstanceId).subscribe({
       next: (res) => {
-        this.toast.success(`${res.offeringsCreated} offering(s) generated`);
+        this.reportGenerateResult(res);
         this.generating.set(false);
         this.loadOfferings(termInstanceId);
       },
@@ -154,6 +160,48 @@ export class CourseOfferingListComponent implements OnInit {
         this.generating.set(false);
       },
     });
+  }
+
+  /** "0 offering(s) generated" alone doesn't tell the user what to do next — surface the actual
+   *  blocker(s) the backend detected (no active cohorts, cohorts missing a curriculum version,
+   *  programs missing a total-terms value) or, if none of those apply, that everything already
+   *  exists for this term. */
+  private reportGenerateResult(res: GenerateCourseOfferingsResponse): void {
+    if (res.activeCohortCount === 0) {
+      this.toast.warning('No offerings generated — there are no active cohorts for this term.', { durationMs: 0 });
+      return;
+    }
+
+    const blockers: string[] = [];
+    if (res.cohortsWithoutCurriculumVersion.length > 0) {
+      blockers.push(
+        `${res.cohortsWithoutCurriculumVersion.length} cohort(s) have no active curriculum version assigned: ` +
+        `${res.cohortsWithoutCurriculumVersion.join(', ')}. Assign one under Curriculum Versions first.`
+      );
+    }
+    if (res.cohortsWithoutProgramTotalTerms > 0) {
+      blockers.push(
+        `${res.cohortsWithoutProgramTotalTerms} cohort(s)' programs have no total-terms/semesters value set.`
+      );
+    }
+
+    if (blockers.length > 0) {
+      const prefix = res.offeringsCreated > 0 ? `${res.offeringsCreated} offering(s) generated, but: ` : 'No offerings generated — ';
+      this.toast.warning(prefix + blockers.join(' '), { durationMs: 0 });
+      return;
+    }
+
+    if (res.offeringsCreated > 0) {
+      this.toast.success(`${res.offeringsCreated} offering(s) generated`);
+      return;
+    }
+
+    if (res.offeringsAlreadyExisting > 0) {
+      this.toast.info(`No new offerings — all ${res.offeringsAlreadyExisting} offering(s) for this term already exist.`);
+      return;
+    }
+
+    this.toast.warning('No offerings generated — the assigned curriculum has no subjects mapped for this semester.', { durationMs: 0 });
   }
 
   protected edit(row: CourseOffering): void {

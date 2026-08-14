@@ -25,6 +25,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.cms.dto.CourseOfferingDto;
+import com.cms.dto.GenerateOfferingsResponse;
 import com.cms.service.CourseOfferingService;
 
 @WebMvcTest(controllers = CourseOfferingController.class)
@@ -93,7 +94,8 @@ class CourseOfferingControllerTest {
 
     @Test
     void generate() throws Exception {
-        when(service.generateOfferingsForTermInstance(1L)).thenReturn(3);
+        when(service.generateOfferingsForTermInstance(1L))
+            .thenReturn(new GenerateOfferingsResponse(3, 2, List.of(), 0, 0));
 
         mockMvc.perform(post("/course-offerings/generate").param("termInstanceId", "1"))
             .andExpect(status().isOk())

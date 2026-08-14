@@ -1,7 +1,6 @@
 package com.cms.controller;
 
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.CourseOfferingUpdateRequest;
+import com.cms.dto.GenerateOfferingsResponse;
 import com.cms.service.CourseOfferingService;
 
 @RestController
@@ -65,9 +65,8 @@ public class CourseOfferingController {
 
     @PostMapping("/generate")
     @PreAuthorize("@perm.has('COURSE_MANAGE')")
-    public ResponseEntity<Map<String, Integer>> generate(@RequestParam Long termInstanceId) {
-        int count = courseOfferingService.generateOfferingsForTermInstance(termInstanceId);
-        return ResponseEntity.ok(Map.of("offeringsCreated", count));
+    public ResponseEntity<GenerateOfferingsResponse> generate(@RequestParam Long termInstanceId) {
+        return ResponseEntity.ok(courseOfferingService.generateOfferingsForTermInstance(termInstanceId));
     }
 
     @PutMapping("/{id}")

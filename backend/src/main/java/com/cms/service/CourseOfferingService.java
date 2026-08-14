@@ -3,10 +3,11 @@ package com.cms.service;
 import java.util.List;
 
 import com.cms.dto.CourseOfferingDto;
+import com.cms.dto.GenerateOfferingsResponse;
 import com.cms.model.Cohort;
 
 public interface CourseOfferingService {
-    int generateOfferingsForTermInstance(Long termInstanceId);
+    GenerateOfferingsResponse generateOfferingsForTermInstance(Long termInstanceId);
     /** Every ACTIVE cohort {@link #generateOfferingsForTermInstance} would silently skip (zero
      *  offerings generated for it) because it has no active curriculum version mapped to its
      *  course — surfaced ahead of time by the term-advance checklist rather than discovered after
