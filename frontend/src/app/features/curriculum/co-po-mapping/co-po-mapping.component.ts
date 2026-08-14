@@ -64,7 +64,7 @@ export class CoPoMappingComponent implements OnInit {
     columns: [
       { key: 'experimentName', label: 'Experiment', mandatory: true },
       { key: 'experimentNumber', label: '#' },
-      { key: 'courseName', label: 'Course' },
+      { key: 'subjectName', label: 'Subject' },
       { key: 'outcomeType', label: 'Type' },
       { key: 'outcomeCode', label: 'Code' },
       { key: 'outcomeDescription', label: 'Outcome' },

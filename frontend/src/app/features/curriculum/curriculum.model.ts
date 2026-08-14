@@ -77,8 +77,8 @@ export interface LabCurriculumMapping {
   experimentId: number;
   experimentName: string;
   experimentNumber: number;
-  courseId: number;
-  courseName: string;
+  subjectId: number;
+  subjectName: string;
   outcomeType: string;
   outcomeCode: string;
   outcomeDescription?: string;

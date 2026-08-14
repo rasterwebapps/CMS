@@ -775,6 +775,54 @@ EXPERIMENT_LIBRARY = [
     ('Preoperative & Postoperative Care', 'Demonstrate preoperative checklist and postoperative monitoring', 'Checklist form, vital signs equipment, surgical gown', 60),
 ]
 
+# CO-PO mapping per experiment — one COURSE_OUTCOME + one PROGRAM_OUTCOME each,
+# matching NBA/NAAC-style accreditation matrices. Keyed by experiment name so it
+# stays correct regardless of which subject an experiment landed on (see
+# EXPERIMENT_LIBRARY above, cycled across subjects with lab credits by index).
+# (outcomeType, outcomeCode, outcomeDescription, mappingLevel, justification)
+EXPERIMENT_OUTCOME_MAPPINGS: dict[str, list[tuple[str, str, str, str, str]]] = {
+    'Vital Signs Assessment': [
+        ('COURSE_OUTCOME', 'CO1', 'Demonstrate accurate measurement and recording of vital signs', 'HIGH', 'Direct hands-on skill assessed in lab'),
+        ('PROGRAM_OUTCOME', 'PO2', 'Demonstrate patient assessment and monitoring skills', 'HIGH', 'Vital signs are the foundation of patient monitoring'),
+    ],
+    'Bed Making — Occupied & Unoccupied': [
+        ('COURSE_OUTCOME', 'CO1', 'Perform bed-making procedures maintaining patient comfort and safety', 'HIGH', 'Core fundamentals-of-nursing skill practiced hands-on'),
+        ('PROGRAM_OUTCOME', 'PO2', 'Demonstrate infection control and patient safety practices', 'MEDIUM', 'Correct bed making reduces cross-contamination risk'),
+    ],
+    'Injection Administration (IM/IV/SC)': [
+        ('COURSE_OUTCOME', 'CO1', 'Demonstrate safe medication administration technique', 'HIGH', 'Direct psychomotor skill assessed in lab'),
+        ('PROGRAM_OUTCOME', 'PO3', 'Apply aseptic and infection-control principles in clinical procedures', 'HIGH', 'Injection technique requires strict asepsis'),
+    ],
+    'Wound Dressing Technique': [
+        ('COURSE_OUTCOME', 'CO1', 'Perform aseptic wound dressing technique', 'HIGH', 'Direct procedural skill assessed in lab'),
+        ('PROGRAM_OUTCOME', 'PO2', 'Demonstrate infection control practices in patient care', 'HIGH', 'Aseptic technique is central to infection prevention'),
+    ],
+    'Catheterization Technique': [
+        ('COURSE_OUTCOME', 'CO1', 'Demonstrate safe urinary catheterization using aseptic technique', 'HIGH', 'Direct procedural skill assessed in lab'),
+        ('PROGRAM_OUTCOME', 'PO3', 'Apply clinical nursing skills in patient care procedures', 'HIGH', 'Core invasive-procedure competency'),
+    ],
+    'CPR & Basic Life Support': [
+        ('COURSE_OUTCOME', 'CO1', 'Demonstrate CPR and basic life support skills', 'HIGH', 'Direct hands-on skill assessed on a manikin'),
+        ('PROGRAM_OUTCOME', 'PO1', 'Apply emergency and life-saving nursing interventions', 'HIGH', 'CPR is a core emergency-response competency'),
+    ],
+    'Specimen Collection': [
+        ('COURSE_OUTCOME', 'CO1', 'Demonstrate correct specimen collection technique', 'MEDIUM', 'Procedural skill with moderate complexity'),
+        ('PROGRAM_OUTCOME', 'PO4', 'Apply laboratory and diagnostic support procedures correctly', 'MEDIUM', 'Specimen quality directly affects diagnostic accuracy'),
+    ],
+    'Personal Hygiene Care': [
+        ('COURSE_OUTCOME', 'CO1', 'Perform personal hygiene care for a bedridden patient', 'HIGH', 'Core fundamentals-of-nursing skill practiced hands-on'),
+        ('PROGRAM_OUTCOME', 'PO2', 'Demonstrate holistic, patient-centered care practices', 'MEDIUM', 'Hygiene care reflects dignity and comfort-focused care'),
+    ],
+    'Nasogastric Tube Feeding': [
+        ('COURSE_OUTCOME', 'CO1', 'Demonstrate NG tube insertion and feeding procedure safely', 'HIGH', 'Direct invasive-procedure skill assessed in lab'),
+        ('PROGRAM_OUTCOME', 'PO3', 'Apply clinical nursing skills in nutritional support', 'HIGH', 'NG feeding is a core nutritional-support competency'),
+    ],
+    'Preoperative & Postoperative Care': [
+        ('COURSE_OUTCOME', 'CO1', 'Demonstrate preoperative preparation and postoperative monitoring', 'HIGH', 'Direct clinical-checklist skill assessed in lab'),
+        ('PROGRAM_OUTCOME', 'PO2', 'Demonstrate patient safety and monitoring practices across the care continuum', 'HIGH', 'Peri-operative care is a core patient-safety competency'),
+    ],
+}
+
 HOLIDAY_TEMPLATES = [
     # YEARLY — national holidays
     {'name': 'Republic Day', 'recurrenceType': 'YEARLY', 'eventType': 'HOLIDAY', 'holidayCategory': 'GOVERNMENT', 'month': 1, 'dayOfMonth': 26, 'description': 'National holiday'},
@@ -887,6 +935,32 @@ def seed_academics_core_infra_gaps() -> int:
         if try_request(token, 'POST', '/experiments', payload, f"experiment '{payload['name']}'") is not None:
             experiments_created += 1
     print(f'  ✅ Created {experiments_created}/{len(experiment_payloads)} experiments')
+
+    # -------------------------------------------------------------------
+    # 1b. CO-PO Mappings — one COURSE_OUTCOME + one PROGRAM_OUTCOME per experiment
+    # -------------------------------------------------------------------
+    experiment_id_by_name = {e['name']: e['id'] for e in get_list(token, '/experiments')}
+    mapping_payloads = []
+    for exp_name, outcomes in EXPERIMENT_OUTCOME_MAPPINGS.items():
+        exp_id = experiment_id_by_name.get(exp_name)
+        if exp_id is None:
+            print(f"  ⚠️  Skipped mappings for '{exp_name}': experiment not found")
+            continue
+        for outcome_type, outcome_code, description, level, justification in outcomes:
+            mapping_payloads.append({
+                'experimentId': exp_id,
+                'outcomeType': outcome_type,
+                'outcomeCode': outcome_code,
+                'outcomeDescription': description,
+                'mappingLevel': level,
+                'justification': justification,
+            })
+    mappings_created = 0
+    for payload in mapping_payloads:
+        label = f"mapping {payload['outcomeCode']} for experiment {payload['experimentId']}"
+        if try_request(token, 'POST', '/curriculum-mappings', payload, label) is not None:
+            mappings_created += 1
+    print(f'  ✅ Created {mappings_created}/{len(mapping_payloads)} CO-PO mappings')
 
     # -------------------------------------------------------------------
     # 2. Holiday Templates
