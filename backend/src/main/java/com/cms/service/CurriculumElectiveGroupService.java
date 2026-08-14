@@ -10,6 +10,7 @@ import com.cms.dto.CurriculumElectiveGroupRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.CurriculumElectiveGroup;
 import com.cms.model.CurriculumVersion;
+import com.cms.model.enums.ElectiveSelectionMode;
 import com.cms.repository.CurriculumElectiveGroupRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
@@ -49,6 +50,15 @@ public class CurriculumElectiveGroupService {
     }
 
     @Transactional
+    public CurriculumElectiveGroupDto updateSelectionMode(Long id, ElectiveSelectionMode mode) {
+        CurriculumElectiveGroup group = groupRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Curriculum elective group not found with id: " + id));
+        group.setSelectionMode(mode);
+        return toDto(groupRepository.save(group));
+    }
+
+    @Transactional
     public void deleteGroup(Long id) {
         CurriculumElectiveGroup group = groupRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException(
@@ -67,6 +77,7 @@ public class CurriculumElectiveGroupService {
             g.getTermNumber(),
             g.getGroupName(),
             g.getGroupCode(),
+            g.getSelectionMode(),
             g.getCreatedAt(),
             g.getUpdatedAt()
         );

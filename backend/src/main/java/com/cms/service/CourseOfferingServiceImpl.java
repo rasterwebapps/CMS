@@ -303,6 +303,7 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
             csc != null ? csc.getSubjectType() : null,
             csc != null && csc.getElectiveGroup() != null ? csc.getElectiveGroup().getId() : null,
             csc != null && csc.getElectiveGroup() != null ? csc.getElectiveGroup().getGroupName() : null,
+            csc != null && csc.getElectiveGroup() != null ? csc.getElectiveGroup().getSelectionMode() : null,
             csc != null ? csc.getLabHours() : 0,
             csc != null ? csc.getClinicalHours() : 0,
             o.getCreatedAt(),

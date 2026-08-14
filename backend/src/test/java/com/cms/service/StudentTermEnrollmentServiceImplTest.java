@@ -32,6 +32,7 @@ import com.cms.model.enums.StudentStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.CohortRepository;
+import com.cms.repository.CurriculumElectiveGroupRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -47,13 +48,15 @@ class StudentTermEnrollmentServiceImplTest {
     private CohortRepository cohortRepository;
     @Mock
     private StudentRepository studentRepository;
+    @Mock
+    private CurriculumElectiveGroupRepository electiveGroupRepository;
 
     private StudentTermEnrollmentServiceImpl service;
 
     @BeforeEach
     void setUp() {
         service = new StudentTermEnrollmentServiceImpl(
-            enrollmentRepository, termInstanceRepository, cohortRepository, studentRepository);
+            enrollmentRepository, termInstanceRepository, cohortRepository, studentRepository, electiveGroupRepository);
     }
 
     private AcademicYear createAY(Long id, String name) {
@@ -83,6 +86,18 @@ class StudentTermEnrollmentServiceImplTest {
         c.setDisplayName(program.getName() + " (2024-2027)");
         c.setStatus(CohortStatus.ACTIVE);
         return c;
+    }
+
+    private com.cms.model.Course createCourse(Long id, String name, String code, Program program) {
+        com.cms.model.Course course = new com.cms.model.Course(name, code, null, program);
+        course.setId(id);
+        return course;
+    }
+
+    private com.cms.model.CurriculumVersion createCV(Long id, Program program, com.cms.model.Course course, AcademicYear ay) {
+        com.cms.model.CurriculumVersion cv = new com.cms.model.CurriculumVersion(program, course, "CV-2024", ay, true);
+        cv.setId(id);
+        return cv;
     }
 
     private TermInstance createTermInstance(Long id, AcademicYear ay, TermType termType) {
@@ -286,6 +301,39 @@ class StudentTermEnrollmentServiceImplTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).termNumber()).isEqualTo(1);
+    }
+
+    @Test
+    void getEnrollmentsByElectiveGroup_scopesByCourseNotJustTermNumber() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA", 3);
+        com.cms.model.Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        com.cms.model.CurriculumVersion cv = createCV(1L, program, course, ay);
+        com.cms.model.CurriculumElectiveGroup group =
+            new com.cms.model.CurriculumElectiveGroup(cv, 1, "Term 1 Electives", "T1E");
+        group.setId(5L);
+
+        Cohort cohort = createCohort(1L, program, ay);
+        TermInstance termInstance = createTermInstance(1L, ay, TermType.ODD);
+        Student student = createStudent(1L, program, cohort);
+        StudentTermEnrollment enrollment = new StudentTermEnrollment();
+        enrollment.setId(1L);
+        enrollment.setStudent(student);
+        enrollment.setTermInstance(termInstance);
+        enrollment.setCohort(cohort);
+        enrollment.setSemesterNumber(1);
+        enrollment.setYearOfStudy(1);
+        enrollment.setStatus(com.cms.model.enums.EnrollmentStatus.ENROLLED);
+
+        when(electiveGroupRepository.findById(5L)).thenReturn(Optional.of(group));
+        when(enrollmentRepository.findByTermInstanceIdAndSemesterNumberAndCohortCourseIdAndStatus(
+                1L, 1, 1L, com.cms.model.enums.EnrollmentStatus.ENROLLED))
+            .thenReturn(List.of(enrollment));
+
+        var result = service.getEnrollmentsByElectiveGroup(1L, 5L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).studentId()).isEqualTo(1L);
     }
 
     @Test

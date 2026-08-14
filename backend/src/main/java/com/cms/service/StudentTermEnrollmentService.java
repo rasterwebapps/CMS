@@ -11,6 +11,7 @@ public interface StudentTermEnrollmentService {
     List<StudentTermEnrollmentDto> getEnrollmentsByTermInstance(Long termInstanceId);
     List<StudentTermEnrollmentDto> getEnrollmentsByStudent(Long studentId);
     List<StudentTermEnrollmentDto> getEnrollmentsByTermInstanceAndSemester(Long termInstanceId, Integer semesterNumber);
+    List<StudentTermEnrollmentDto> getEnrollmentsByElectiveGroup(Long termInstanceId, Long electiveGroupId);
     StudentTermEnrollmentDto getById(Long id);
     Integer computeSemesterNumber(Cohort cohort, TermInstance termInstance);
 }

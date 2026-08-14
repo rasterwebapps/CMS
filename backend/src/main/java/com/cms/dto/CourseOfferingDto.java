@@ -2,6 +2,7 @@ package com.cms.dto;
 
 import java.time.Instant;
 
+import com.cms.model.enums.ElectiveSelectionMode;
 import com.cms.model.enums.SubjectType;
 
 public record CourseOfferingDto(
@@ -26,6 +27,7 @@ public record CourseOfferingDto(
     SubjectType subjectType,
     Long electiveGroupId,
     String electiveGroupName,
+    ElectiveSelectionMode electiveGroupSelectionMode,
     Integer labHours,
     Integer clinicalHours,
     Instant createdAt,

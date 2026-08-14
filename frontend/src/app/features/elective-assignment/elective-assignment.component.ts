@@ -5,15 +5,19 @@ import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AcademicYearService } from '../academic-year/academic-year.service';
 import {
   AcademicYear,
   TermInstance,
   StudentTermEnrollment,
   CourseOffering,
+  ElectiveSelectionMode,
 } from '../academic-year/academic-year.model';
 import { CmsEmptyStateComponent } from '../../shared/empty-state/empty-state.component';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { ToastService } from '../../core/toast/toast.service';
+import { PermissionService } from '../../core/permissions/permission.service';
 import { SkeletonBuilderService } from '../timetable/skeleton-builder/skeleton-builder.service';
 import { ElectiveGroupScheduleResponse } from '../timetable/skeleton-builder/skeleton-builder.model';
 
@@ -22,6 +26,7 @@ interface ElectiveGroupOption {
   electiveGroupName: string;
   curriculumVersionId: number;
   termNumber: number;
+  selectionMode: ElectiveSelectionMode;
 }
 
 interface AssignmentRow {
@@ -35,7 +40,7 @@ interface AssignmentRow {
   standalone: true,
   imports: [
     FormsModule, RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
-    MatProgressSpinnerModule, CmsEmptyStateComponent,
+    MatProgressSpinnerModule, MatDialogModule, CmsEmptyStateComponent,
   ],
   templateUrl: './elective-assignment.component.html',
   styleUrl: './elective-assignment.component.scss',
@@ -45,6 +50,8 @@ export class ElectiveAssignmentComponent implements OnInit {
   private readonly skeletonBuilderService = inject(SkeletonBuilderService);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
+  private readonly permissionService = inject(PermissionService);
+  private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -65,12 +72,23 @@ export class ElectiveAssignmentComponent implements OnInit {
   protected readonly selectedOfferingByEnrollment = new Map<number, number>();
   protected readonly scheduleStatus = signal<ElectiveGroupScheduleResponse | null>(null);
 
+  protected readonly bulkOfferingId = signal<number | null>(null);
+  protected readonly bulkAssigning = signal(false);
+  protected readonly modeSaving = signal(false);
+
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
   protected selectedElectiveGroupId: number | null = null;
 
   protected readonly selectedGroup = computed(() =>
     this.electiveGroupOptions().find((g) => g.electiveGroupId === this.selectedElectiveGroupId) ?? null);
+
+  protected readonly isInstitutionDecided = computed(() =>
+    this.selectedGroup()?.selectionMode === 'INSTITUTION_DECIDED');
+
+  protected canManageElectiveGroups(): boolean {
+    return this.permissionService.has('CURRICULUM_ELECTIVE_GROUP_MANAGE');
+  }
 
   ngOnInit(): void {
     // AssignmentRow nests the real values under `enrollment` — MatTableDataSource's default
@@ -114,6 +132,7 @@ export class ElectiveAssignmentComponent implements OnInit {
   protected onGroupChange(): void {
     this.dataSource.data = [];
     this.scheduleStatus.set(null);
+    this.bulkOfferingId.set(null);
     const termInstanceId = this.selectedTermInstanceId;
     const group = this.selectedGroup();
     if (!termInstanceId || !group) return;
@@ -158,12 +177,74 @@ export class ElectiveAssignmentComponent implements OnInit {
     else this.selectedOfferingByEnrollment.delete(enrollmentId);
   }
 
+  protected onBulkOfferingSelect(event: Event): void {
+    const value = Number((event.target as HTMLSelectElement).value);
+    this.bulkOfferingId.set(value || null);
+  }
+
+  protected applyToAll(): void {
+    const termInstanceId = this.selectedTermInstanceId;
+    const group = this.selectedGroup();
+    const offeringId = this.bulkOfferingId();
+    if (!termInstanceId || !group || !offeringId) return;
+    const offering = this.offeringOptions().find((o) => o.id === offeringId);
+    const offeringLabel = offering ? `${offering.subjectCode} — ${offering.subjectName}` : 'the selected offering';
+
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Apply to All Students',
+        message: `Assign every eligible student in "${group.electiveGroupName}" to "${offeringLabel}"? ` +
+          `This overwrites any choice a student already has in this group — it cannot be undone from here.`,
+        confirmText: 'Apply to All',
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe((confirmed) => {
+      if (confirmed) this.doApplyToAll(termInstanceId, group.electiveGroupId, offeringId);
+    });
+  }
+
+  private doApplyToAll(termInstanceId: number, electiveGroupId: number, offeringId: number): void {
+    this.bulkAssigning.set(true);
+    this.academicYearService.bulkAssignElectiveChoice(termInstanceId, electiveGroupId, offeringId).subscribe({
+      next: (res) => {
+        this.toast.success(`Assigned ${res.assignedCount} of ${res.eligibleStudentCount} eligible student(s)`);
+        this.bulkAssigning.set(false);
+        const group = this.selectedGroup();
+        if (group) this.loadEnrollments(termInstanceId, group);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to apply to all');
+        this.bulkAssigning.set(false);
+      },
+    });
+  }
+
+  protected setSelectionMode(mode: ElectiveSelectionMode): void {
+    const group = this.selectedGroup();
+    if (!group || group.selectionMode === mode) return;
+    this.modeSaving.set(true);
+    this.academicYearService.updateElectiveGroupSelectionMode(group.electiveGroupId, mode).subscribe({
+      next: () => {
+        this.electiveGroupOptions.update((groups) =>
+          groups.map((g) => g.electiveGroupId === group.electiveGroupId ? { ...g, selectionMode: mode } : g));
+        this.bulkOfferingId.set(null);
+        this.toast.success('Selection mode updated');
+        this.modeSaving.set(false);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to update selection mode');
+        this.modeSaving.set(false);
+      },
+    });
+  }
+
   private resetGroupState(): void {
     this.selectedElectiveGroupId = null;
     this.electiveGroupOptions.set([]);
     this.offeringOptions.set([]);
     this.dataSource.data = [];
     this.scheduleStatus.set(null);
+    this.bulkOfferingId.set(null);
   }
 
   private loadTermInstances(academicYearId: number, preselectTermInstanceId?: number): void {
@@ -193,6 +274,7 @@ export class ElectiveAssignmentComponent implements OnInit {
               electiveGroupName: o.electiveGroupName ?? `Group ${o.electiveGroupId}`,
               curriculumVersionId: o.curriculumVersionId,
               termNumber: o.termNumber,
+              selectionMode: o.electiveGroupSelectionMode ?? 'STUDENT_CHOICE',
             });
           }
         }
@@ -205,9 +287,8 @@ export class ElectiveAssignmentComponent implements OnInit {
 
   private loadEnrollments(termInstanceId: number, group: ElectiveGroupOption): void {
     this.loading.set(true);
-    this.academicYearService.getEnrollmentsByTermInstance(termInstanceId).subscribe({
-      next: (enrollments) => {
-        const relevant = enrollments.filter((e) => e.termNumber === group.termNumber);
+    this.academicYearService.getEnrollmentsByElectiveGroup(termInstanceId, group.electiveGroupId).subscribe({
+      next: (relevant) => {
         if (relevant.length === 0) {
           this.dataSource.data = [];
           this.loading.set(false);

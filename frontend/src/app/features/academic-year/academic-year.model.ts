@@ -291,6 +291,13 @@ export interface GenerateEnrollmentsResponse {
 
 export type RegistrationStatus = 'REGISTERED' | 'DROPPED' | 'COMPLETED';
 
+export type ElectiveSelectionMode = 'STUDENT_CHOICE' | 'INSTITUTION_DECIDED';
+
+export interface ElectiveBulkAssignmentResponse {
+  eligibleStudentCount: number;
+  assignedCount: number;
+}
+
 export interface CourseOffering {
   id: number;
   termInstanceId: number;
@@ -313,6 +320,7 @@ export interface CourseOffering {
   subjectType: 'CORE' | 'FOUNDATIONAL' | 'ELECTIVE';
   electiveGroupId: number | null;
   electiveGroupName: string | null;
+  electiveGroupSelectionMode: ElectiveSelectionMode | null;
   labHours: number;
   clinicalHours: number;
   createdAt: string;

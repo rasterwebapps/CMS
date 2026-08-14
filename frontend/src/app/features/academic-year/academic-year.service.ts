@@ -15,6 +15,8 @@ import {
   CourseOffering,
   CourseOfferingUpdateRequest,
   CourseRegistration,
+  ElectiveBulkAssignmentResponse,
+  ElectiveSelectionMode,
   FeeDemand,
   GenerateCourseOfferingsResponse,
   GenerateCourseRegistrationsResponse,
@@ -208,6 +210,15 @@ export class AcademicYearService {
     );
   }
 
+  /** Scoped by the elective group's own course (server-side) so it never mixes in another
+   *  program/course's students who happen to share the same termInstance+semesterNumber --
+   *  the correct filter for Elective Assignment, unlike getEnrollmentsByTermInstance alone. */
+  getEnrollmentsByElectiveGroup(termInstanceId: number, electiveGroupId: number): Observable<StudentTermEnrollment[]> {
+    return this.http.get<StudentTermEnrollment[]>(`${environment.apiUrl}/student-term-enrollments`, {
+      params: { termInstanceId: termInstanceId.toString(), electiveGroupId: electiveGroupId.toString() },
+    });
+  }
+
   generateEnrollments(termInstanceId: number): Observable<GenerateEnrollmentsResponse> {
     return this.http.post<GenerateEnrollmentsResponse>(
       `${environment.apiUrl}/student-term-enrollments/generate?termInstanceId=${termInstanceId}`,
@@ -283,6 +294,26 @@ export class AcademicYearService {
     return this.http.get<CourseOffering[]>(`${environment.apiUrl}/course-offerings/elective-options`, {
       params: { termInstanceId: termInstanceId.toString(), electiveGroupId: electiveGroupId.toString() }
     });
+  }
+
+  /** Institution-decided mode: assigns every eligible student in the group to the same offering,
+   *  overwriting any existing choice they already had in that group. */
+  bulkAssignElectiveChoice(
+    termInstanceId: number, electiveGroupId: number, courseOfferingId: number,
+  ): Observable<ElectiveBulkAssignmentResponse> {
+    return this.http.post<ElectiveBulkAssignmentResponse>(
+      `${environment.apiUrl}/course-registrations/elective-assignment/bulk`,
+      { termInstanceId, electiveGroupId, courseOfferingId },
+    );
+  }
+
+  updateElectiveGroupSelectionMode(
+    electiveGroupId: number, selectionMode: ElectiveSelectionMode,
+  ): Observable<{ id: number; selectionMode: ElectiveSelectionMode }> {
+    return this.http.put<{ id: number; selectionMode: ElectiveSelectionMode }>(
+      `${environment.apiUrl}/curriculum-elective-groups/${electiveGroupId}/selection-mode`,
+      { selectionMode },
+    );
   }
 
   // FeeDemand methods

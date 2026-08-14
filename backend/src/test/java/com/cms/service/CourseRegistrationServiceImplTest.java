@@ -3,7 +3,9 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -519,6 +521,112 @@ class CourseRegistrationServiceImplTest {
         CourseRegistrationDto dto = service.assignElectiveChoice(1L, 1L);
 
         assertThat(dto.id()).isEqualTo(50L);
+        verify(courseRegistrationRepository, never()).save(any());
+    }
+
+    @Test
+    void bulkAssignElectiveChoice_rejectsOfferingNotInGroup() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA");
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        Subject subject = createSubject(1L, "Math", "MATH101");
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1); // no curriculumSemesterCourse
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+
+        assertThatThrownBy(() -> service.bulkAssignElectiveChoice(1L, 99L, 1L))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("does not belong to elective group");
+
+        verify(courseRegistrationRepository, never()).save(any());
+    }
+
+    @Test
+    void bulkAssignElectiveChoice_assignsUnassignedAndOverwritesConflicting() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA");
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Student studentA = createStudent(1L, program, cohort);
+        Student studentB = createStudent(2L, program, cohort);
+        StudentTermEnrollment enrollmentA = createEnrollment(1L, studentA, ti, cohort, 1);
+        StudentTermEnrollment enrollmentB = createEnrollment(2L, studentB, ti, cohort, 1);
+
+        Subject subjectChosen = createSubject(1L, "Community Health Elective", "ELECA");
+        Subject subjectOther = createSubject(2L, "School Health Elective", "ELECB");
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CurriculumElectiveGroup group = new CurriculumElectiveGroup(cv, 1, "Term 1 Electives", "T1E");
+        group.setId(1L);
+        CurriculumSemesterCourse cscChosen = createElectiveCsc(1L, cv, 1, subjectChosen, group);
+        CurriculumSemesterCourse cscOther = createElectiveCsc(2L, cv, 1, subjectOther, group);
+        CourseOffering chosenOffering = createOffering(1L, ti, cv, subjectChosen, 1);
+        chosenOffering.setCurriculumSemesterCourse(cscChosen);
+        CourseOffering otherOffering = createOffering(2L, ti, cv, subjectOther, 1);
+        otherOffering.setCurriculumSemesterCourse(cscOther);
+
+        // studentB already has a choice in this group, but for the *other* offering -- bulk-assign
+        // must drop it and reassign to the chosen offering ("overwrite everyone").
+        CourseRegistration existingForB = new CourseRegistration();
+        existingForB.setId(50L);
+        existingForB.setStudentTermEnrollment(enrollmentB);
+        existingForB.setCourseOffering(otherOffering);
+        existingForB.setStatus(RegistrationStatus.REGISTERED);
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(chosenOffering));
+        when(enrollmentRepository.findByTermInstanceIdAndSemesterNumberAndCohortCourseIdAndStatus(
+                1L, 1, 1L, EnrollmentStatus.ENROLLED))
+            .thenReturn(List.of(enrollmentA, enrollmentB));
+        when(courseRegistrationRepository.findByStudentTermEnrollmentId(1L)).thenReturn(List.of());
+        when(courseRegistrationRepository.findByStudentTermEnrollmentId(2L)).thenReturn(List.of(existingForB));
+        when(courseRegistrationRepository.save(any(CourseRegistration.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var response = service.bulkAssignElectiveChoice(1L, 1L, 1L);
+
+        assertThat(response.eligibleStudentCount()).isEqualTo(2);
+        assertThat(response.assignedCount()).isEqualTo(2);
+        assertThat(existingForB.getStatus()).isEqualTo(RegistrationStatus.DROPPED);
+        verify(courseRegistrationRepository, times(2))
+            .save(argThat(r ->
+                r.getStatus() == RegistrationStatus.REGISTERED && r.getCourseOffering().getId().equals(1L)));
+    }
+
+    @Test
+    void bulkAssignElectiveChoice_skipsStudentAlreadyOnChosenOffering() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA");
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        Cohort cohort = createCohort(1L, course, ay);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Student student = createStudent(1L, program, cohort);
+        StudentTermEnrollment enrollment = createEnrollment(1L, student, ti, cohort, 1);
+
+        Subject subject = createSubject(1L, "Community Health Elective", "ELECA");
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CurriculumElectiveGroup group = new CurriculumElectiveGroup(cv, 1, "Term 1 Electives", "T1E");
+        group.setId(1L);
+        CurriculumSemesterCourse csc = createElectiveCsc(1L, cv, 1, subject, group);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        offering.setCurriculumSemesterCourse(csc);
+
+        CourseRegistration existing = new CourseRegistration();
+        existing.setId(50L);
+        existing.setStudentTermEnrollment(enrollment);
+        existing.setCourseOffering(offering);
+        existing.setStatus(RegistrationStatus.REGISTERED);
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(enrollmentRepository.findByTermInstanceIdAndSemesterNumberAndCohortCourseIdAndStatus(
+                1L, 1, 1L, EnrollmentStatus.ENROLLED))
+            .thenReturn(List.of(enrollment));
+        when(courseRegistrationRepository.findByStudentTermEnrollmentId(1L)).thenReturn(List.of(existing));
+
+        var response = service.bulkAssignElectiveChoice(1L, 1L, 1L);
+
+        assertThat(response.eligibleStudentCount()).isEqualTo(1);
+        assertThat(response.assignedCount()).isEqualTo(0);
         verify(courseRegistrationRepository, never()).save(any());
     }
 }

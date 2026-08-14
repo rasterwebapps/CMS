@@ -7,9 +7,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.CourseRegistrationDto;
+import com.cms.dto.ElectiveBulkAssignmentResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.CourseOffering;
 import com.cms.model.CourseRegistration;
+import com.cms.model.CurriculumElectiveGroup;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.enums.EnrollmentStatus;
@@ -134,6 +136,58 @@ public class CourseRegistrationServiceImpl implements CourseRegistrationService 
         registration.setCourseOffering(offering);
         registration.setStatus(RegistrationStatus.REGISTERED);
         return toDto(courseRegistrationRepository.save(registration));
+    }
+
+    @Override
+    @Transactional
+    public ElectiveBulkAssignmentResponse bulkAssignElectiveChoice(
+            Long termInstanceId, Long electiveGroupId, Long courseOfferingId) {
+        CourseOffering offering = courseOfferingRepository.findById(courseOfferingId)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Course offering not found with id: " + courseOfferingId));
+
+        CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
+        if (csc == null || !Boolean.TRUE.equals(csc.getIsElective()) || csc.getElectiveGroup() == null
+                || !csc.getElectiveGroup().getId().equals(electiveGroupId)) {
+            throw new IllegalArgumentException(
+                "Course offering " + courseOfferingId + " does not belong to elective group " + electiveGroupId);
+        }
+        CurriculumElectiveGroup group = csc.getElectiveGroup();
+        Long courseId = group.getCurriculumVersion().getCourse().getId();
+
+        List<StudentTermEnrollment> eligibleEnrollments = enrollmentRepository
+            .findByTermInstanceIdAndSemesterNumberAndCohortCourseIdAndStatus(
+                termInstanceId, group.getTermNumber(), courseId, EnrollmentStatus.ENROLLED);
+
+        int assigned = 0;
+        for (StudentTermEnrollment enrollment : eligibleEnrollments) {
+            boolean alreadyOnThisOffering = false;
+            for (CourseRegistration existing : courseRegistrationRepository.findByStudentTermEnrollmentId(enrollment.getId())) {
+                if (existing.getStatus() == RegistrationStatus.DROPPED) {
+                    continue;
+                }
+                CurriculumSemesterCourse otherCsc = existing.getCourseOffering().getCurriculumSemesterCourse();
+                if (otherCsc == null || otherCsc.getElectiveGroup() == null
+                        || !otherCsc.getElectiveGroup().getId().equals(electiveGroupId)) {
+                    continue;
+                }
+                if (existing.getCourseOffering().getId().equals(courseOfferingId)) {
+                    alreadyOnThisOffering = true;
+                } else {
+                    existing.setStatus(RegistrationStatus.DROPPED);
+                    courseRegistrationRepository.save(existing);
+                }
+            }
+            if (!alreadyOnThisOffering) {
+                CourseRegistration registration = new CourseRegistration();
+                registration.setStudentTermEnrollment(enrollment);
+                registration.setCourseOffering(offering);
+                registration.setStatus(RegistrationStatus.REGISTERED);
+                courseRegistrationRepository.save(registration);
+                assigned++;
+            }
+        }
+        return new ElectiveBulkAssignmentResponse(eligibleEnrollments.size(), assigned);
     }
 
     @Override

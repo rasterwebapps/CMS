@@ -26,12 +26,18 @@ public class StudentTermEnrollmentController {
     }
 
     @GetMapping
-    @PreAuthorize("@perm.has('ADMISSION_VIEW')")
+    @PreAuthorize("@perm.hasAny('ADMISSION_VIEW', 'COURSE_REGISTRATION_ELECTIVE_ASSIGN')")
     public ResponseEntity<?> getEnrollments(
             @RequestParam(required = false) Long termInstanceId,
             @RequestParam(required = false) Long studentId,
-            @RequestParam(required = false) Integer termNumber) {
-        if (termInstanceId != null && termNumber != null) {
+            @RequestParam(required = false) Integer termNumber,
+            @RequestParam(required = false) Long electiveGroupId) {
+        // electiveGroupId takes precedence -- it's the only filter that also pins the group's own
+        // curriculum version (via its course), so it never mixes in another program/course's
+        // students sharing the same term+semesterNumber (see getEnrollmentsByElectiveGroup).
+        if (termInstanceId != null && electiveGroupId != null) {
+            return ResponseEntity.ok(service.getEnrollmentsByElectiveGroup(termInstanceId, electiveGroupId));
+        } else if (termInstanceId != null && termNumber != null) {
             return ResponseEntity.ok(service.getEnrollmentsByTermInstanceAndSemester(termInstanceId, termNumber));
         } else if (termInstanceId != null) {
             return ResponseEntity.ok(service.getEnrollmentsByTermInstance(termInstanceId));
@@ -42,7 +48,7 @@ public class StudentTermEnrollmentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("@perm.has('ADMISSION_VIEW')")
+    @PreAuthorize("@perm.hasAny('ADMISSION_VIEW', 'COURSE_REGISTRATION_ELECTIVE_ASSIGN')")
     public ResponseEntity<StudentTermEnrollmentDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }

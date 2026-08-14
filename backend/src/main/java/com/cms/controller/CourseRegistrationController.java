@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.CourseRegistrationDto;
 import com.cms.dto.ElectiveAssignmentRequest;
+import com.cms.dto.ElectiveBulkAssignmentRequest;
+import com.cms.dto.ElectiveBulkAssignmentResponse;
 import com.cms.service.CourseRegistrationService;
 
 import jakarta.validation.Valid;
@@ -68,5 +70,13 @@ public class CourseRegistrationController {
             @Valid @RequestBody ElectiveAssignmentRequest request) {
         return ResponseEntity.ok(
             courseRegistrationService.assignElectiveChoice(request.enrollmentId(), request.courseOfferingId()));
+    }
+
+    @PostMapping("/elective-assignment/bulk")
+    @PreAuthorize("@perm.has('COURSE_REGISTRATION_ELECTIVE_ASSIGN')")
+    public ResponseEntity<ElectiveBulkAssignmentResponse> bulkAssignElectiveChoice(
+            @Valid @RequestBody ElectiveBulkAssignmentRequest request) {
+        return ResponseEntity.ok(courseRegistrationService.bulkAssignElectiveChoice(
+            request.termInstanceId(), request.electiveGroupId(), request.courseOfferingId()));
     }
 }

@@ -45,7 +45,7 @@ class CourseOfferingControllerTest {
             1L, "Mathematics", "MATH101", null, null,
             semNum, null, null, null, true,
             null, false, com.cms.model.enums.SubjectType.CORE,
-            null, null,
+            null, null, null,
             0, 0,
             Instant.now(), Instant.now()
         );

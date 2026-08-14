@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.StudentTermEnrollmentDto;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Cohort;
+import com.cms.model.CurriculumElectiveGroup;
 import com.cms.model.Student;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.TermInstance;
@@ -18,6 +19,7 @@ import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.StudentStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.CohortRepository;
+import com.cms.repository.CurriculumElectiveGroupRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -30,15 +32,18 @@ public class StudentTermEnrollmentServiceImpl implements StudentTermEnrollmentSe
     private final TermInstanceRepository termInstanceRepository;
     private final CohortRepository cohortRepository;
     private final StudentRepository studentRepository;
+    private final CurriculumElectiveGroupRepository electiveGroupRepository;
 
     public StudentTermEnrollmentServiceImpl(StudentTermEnrollmentRepository enrollmentRepository,
                                              TermInstanceRepository termInstanceRepository,
                                              CohortRepository cohortRepository,
-                                             StudentRepository studentRepository) {
+                                             StudentRepository studentRepository,
+                                             CurriculumElectiveGroupRepository electiveGroupRepository) {
         this.enrollmentRepository = enrollmentRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.cohortRepository = cohortRepository;
         this.studentRepository = studentRepository;
+        this.electiveGroupRepository = electiveGroupRepository;
     }
 
     @Override
@@ -126,6 +131,19 @@ public class StudentTermEnrollmentServiceImpl implements StudentTermEnrollmentSe
     public List<StudentTermEnrollmentDto> getEnrollmentsByTermInstanceAndSemester(Long termInstanceId,
                                                                                    Integer semesterNumber) {
         return enrollmentRepository.findByTermInstanceIdAndSemesterNumber(termInstanceId, semesterNumber)
+            .stream()
+            .map(this::toDto)
+            .toList();
+    }
+
+    @Override
+    public List<StudentTermEnrollmentDto> getEnrollmentsByElectiveGroup(Long termInstanceId, Long electiveGroupId) {
+        CurriculumElectiveGroup group = electiveGroupRepository.findById(electiveGroupId)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Curriculum elective group not found with id: " + electiveGroupId));
+        Long courseId = group.getCurriculumVersion().getCourse().getId();
+        return enrollmentRepository.findByTermInstanceIdAndSemesterNumberAndCohortCourseIdAndStatus(
+                termInstanceId, group.getTermNumber(), courseId, EnrollmentStatus.ENROLLED)
             .stream()
             .map(this::toDto)
             .toList();
