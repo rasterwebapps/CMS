@@ -340,6 +340,27 @@ class ClassScheduleServiceTest {
     }
 
     @Test
+    void shouldRejectCreateWhenRoomConflictExists() {
+        ClassScheduleRequest request = labRequest(1L, 1L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L);
+        ClassSchedule conflict = createLabSchedule(2L, testLab, testCourse, testFaculty,
+            testPeriod, "Batch-B", DayOfWeek.MONDAY, testTermInstance, true);
+
+        when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(testFaculty));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(testPeriod));
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(testTermInstance));
+        when(classScheduleRepository.findOverlapping(any(), anyLong(), any(), any(), any(), any()))
+            .thenReturn(List.of(conflict));
+
+        assertThatThrownBy(() -> classScheduleService.create(request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Room is already scheduled");
+
+        verify(classScheduleRepository, never()).save(any());
+    }
+
+    @Test
     void shouldUpdateClassSchedule() {
         ClassSchedule existing = createLabSchedule(1L, testLab, testCourse, testFaculty,
             testPeriod, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);

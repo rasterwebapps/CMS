@@ -76,9 +76,30 @@ public class ClassScheduleService {
     public ClassScheduleResponse create(ClassScheduleRequest request) {
         ClassSchedule cs = new ClassSchedule();
         applyRequest(cs, request);
+        enforceNoConflicts(request, null);
         cs.setIsActive(request.isActive() != null ? request.isActive() : true);
         cs.setStatus(ClassScheduleStatus.PUBLISHED);
         return toResponse(classScheduleRepository.save(cs));
+    }
+
+    /**
+     * {@link #checkConflicts} was built as a real room/faculty/audience overlap check but was
+     * never actually wired into create/update -- a schedule created directly here (unlike the
+     * Skeleton Builder / Staffing path, which centralizes its own conflict validation) published
+     * immediately with zero enforcement. Every row this form creates is PUBLISHED status, exactly
+     * what checkConflicts scopes its overlap search to, so this closes that gap rather than
+     * duplicating a second, divergent check.
+     */
+    private void enforceNoConflicts(ClassScheduleRequest request, Long excludeId) {
+        ScheduleConflictResponse result = checkConflicts(request, excludeId);
+        if (!result.hasConflict()) {
+            return;
+        }
+        List<String> allConflicts = new ArrayList<>();
+        allConflicts.addAll(result.roomConflicts());
+        allConflicts.addAll(result.facultyConflicts());
+        allConflicts.addAll(result.audienceConflicts());
+        throw new IllegalStateException(String.join("; ", allConflicts));
     }
 
     private void applyRequest(ClassSchedule cs, ClassScheduleRequest request) {
@@ -289,6 +310,7 @@ public class ClassScheduleService {
     public ClassScheduleResponse update(Long id, ClassScheduleRequest request) {
         ClassSchedule cs = findOrThrow(id);
         applyRequest(cs, request);
+        enforceNoConflicts(request, id);
         if (request.isActive() != null) {
             cs.setIsActive(request.isActive());
         }
