@@ -13,18 +13,17 @@
       </div>
     } @else {
       <p class="field-hint fwr-intro">
-        A faculty member's own
-        <a routerLink="/faculty">Weekly Teaching Hours Override</a>, or their
-        <a routerLink="/designations">designation's default</a>, always takes priority over the
-        weekly value below. These three fields are the institution-wide fallback used when neither
-        is set (daily and continuous caps are always institution-wide only).
+        For each of the three caps below, a faculty member's own override on the
+        <a routerLink="/faculty">Faculty</a> screen wins first, then their
+        <a routerLink="/designations">designation's default</a>, then the institution-wide value
+        set here. These three fields are only the last, institution-wide fallback tier.
       </p>
 
       <div class="field-group">
         <label class="field-label" for="fwr-daily">Max Daily Teaching Hours</label>
         <input id="fwr-daily" type="number" min="0" step="0.5" class="field-input"
                [(ngModel)]="maxDailyHours" />
-        <p class="field-hint">Leave blank for no daily cap.</p>
+        <p class="field-hint">Fallback only — a per-faculty or per-designation daily cap overrides this. Leave blank for no fallback cap.</p>
         @if (maxDailyHours != null && maxDailyHours < 0) {
           <p class="field-error">Cannot be negative</p>
         }
@@ -44,7 +43,7 @@
         <label class="field-label" for="fwr-continuous">Max Continuous Teaching Hours</label>
         <input id="fwr-continuous" type="number" min="0" step="0.5" class="field-input"
                [(ngModel)]="maxContinuousHours" />
-        <p class="field-hint">Longest unbroken back-to-back run of sessions in one day. Leave blank for no cap.</p>
+        <p class="field-hint">Longest unbroken back-to-back run of sessions in one day. Fallback only — a per-faculty or per-designation continuous-hours cap overrides this. Leave blank for no fallback cap.</p>
         @if (maxContinuousHours != null && maxContinuousHours < 0) {
           <p class="field-error">Cannot be negative</p>
         }

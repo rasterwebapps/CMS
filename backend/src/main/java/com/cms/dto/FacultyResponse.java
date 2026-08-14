@@ -59,5 +59,7 @@ public record FacultyResponse(
     Instant updatedAt,
     FacultyDocumentReviewSummary documentReview,
     BigDecimal commissionAmount,
-    Integer plannedWeeklyHoursOverride
+    Integer plannedWeeklyHoursOverride,
+    Integer plannedDailyHoursOverride,
+    Integer plannedContinuousHoursOverride
 ) {}

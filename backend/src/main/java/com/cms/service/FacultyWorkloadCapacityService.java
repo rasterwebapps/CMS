@@ -141,11 +141,30 @@ public class FacultyWorkloadCapacityService {
     }
 
     static Integer resolveEffectiveCapacity(Faculty faculty) {
-        if (faculty.getPlannedWeeklyHoursOverride() != null) {
-            return faculty.getPlannedWeeklyHoursOverride();
+        return resolveEffective(faculty, Faculty::getPlannedWeeklyHoursOverride, DesignationMaster::getDefaultWeeklyTeachingHours);
+    }
+
+    /** Same per-faculty-then-designation precedence as {@link #resolveEffectiveCapacity}, feeding
+     *  {@link TimetableStaffingService}'s daily hard-cap gate instead of the weekly report. */
+    static Integer resolveEffectiveDailyCapacity(Faculty faculty) {
+        return resolveEffective(faculty, Faculty::getPlannedDailyHoursOverride, DesignationMaster::getDefaultDailyTeachingHours);
+    }
+
+    /** Same per-faculty-then-designation precedence as {@link #resolveEffectiveCapacity}, feeding
+     *  {@link TimetableStaffingService}'s continuous (unbroken run) hard-cap gate. */
+    static Integer resolveEffectiveContinuousCapacity(Faculty faculty) {
+        return resolveEffective(faculty, Faculty::getPlannedContinuousHoursOverride, DesignationMaster::getDefaultContinuousTeachingHours);
+    }
+
+    private static Integer resolveEffective(Faculty faculty,
+                                              java.util.function.Function<Faculty, Integer> facultyOverride,
+                                              java.util.function.Function<DesignationMaster, Integer> designationDefault) {
+        Integer override = facultyOverride.apply(faculty);
+        if (override != null) {
+            return override;
         }
         DesignationMaster designation = faculty.getDesignation();
-        return designation != null ? designation.getDefaultWeeklyTeachingHours() : null;
+        return designation != null ? designationDefault.apply(designation) : null;
     }
 
     private static String designationName(Faculty faculty) {

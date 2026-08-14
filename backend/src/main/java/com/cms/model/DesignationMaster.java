@@ -40,6 +40,16 @@ public class DesignationMaster {
     @Column(name = "default_weekly_teaching_hours")
     private Integer defaultWeeklyTeachingHours;
 
+    /** Same override precedence as {@link #defaultWeeklyTeachingHours}, but feeds the daily hard
+     *  cap ({@code timetable.faculty_max_daily_hours}) instead of the advisory weekly report. */
+    @Column(name = "default_daily_teaching_hours")
+    private Integer defaultDailyTeachingHours;
+
+    /** Same override precedence as {@link #defaultWeeklyTeachingHours}, but feeds the continuous
+     *  (unbroken run) hard cap ({@code timetable.faculty_max_continuous_hours}). */
+    @Column(name = "default_continuous_teaching_hours")
+    private Integer defaultContinuousTeachingHours;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -73,6 +83,12 @@ public class DesignationMaster {
 
     public Integer getDefaultWeeklyTeachingHours() { return defaultWeeklyTeachingHours; }
     public void setDefaultWeeklyTeachingHours(Integer defaultWeeklyTeachingHours) { this.defaultWeeklyTeachingHours = defaultWeeklyTeachingHours; }
+
+    public Integer getDefaultDailyTeachingHours() { return defaultDailyTeachingHours; }
+    public void setDefaultDailyTeachingHours(Integer defaultDailyTeachingHours) { this.defaultDailyTeachingHours = defaultDailyTeachingHours; }
+
+    public Integer getDefaultContinuousTeachingHours() { return defaultContinuousTeachingHours; }
+    public void setDefaultContinuousTeachingHours(Integer defaultContinuousTeachingHours) { this.defaultContinuousTeachingHours = defaultContinuousTeachingHours; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

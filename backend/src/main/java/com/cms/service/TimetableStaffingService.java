@@ -558,9 +558,9 @@ public class TimetableStaffingService {
      *  (same cell, different or same faculty) doesn't double-count its own slot. {@code day} is
      *  passed explicitly for the same reason as {@link #checkFacultyFree}. */
     List<ConstraintViolation> checkWithinWorkloadCaps(Faculty faculty, ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end) {
-        Optional<Double> dailyCap = resolveCapHours("timetable.faculty_max_daily_hours");
+        Optional<Double> dailyCap = resolveDailyCap(faculty);
         Optional<Double> weeklyCap = resolveWeeklyCap(faculty);
-        Optional<Double> continuousCap = resolveCapHours("timetable.faculty_max_continuous_hours");
+        Optional<Double> continuousCap = resolveContinuousCap(faculty);
         if (dailyCap.isEmpty() && weeklyCap.isEmpty() && continuousCap.isEmpty()) {
             return List.of();
         }
@@ -662,6 +662,24 @@ public class TimetableStaffingService {
             return Optional.of(perFacultyOrDesignation.doubleValue());
         }
         return resolveCapHours("timetable.faculty_max_weekly_hours");
+    }
+
+    /** Same per-faculty-then-designation-then-global precedence as {@link #resolveWeeklyCap}. */
+    private Optional<Double> resolveDailyCap(Faculty faculty) {
+        Integer perFacultyOrDesignation = FacultyWorkloadCapacityService.resolveEffectiveDailyCapacity(faculty);
+        if (perFacultyOrDesignation != null && perFacultyOrDesignation > 0) {
+            return Optional.of(perFacultyOrDesignation.doubleValue());
+        }
+        return resolveCapHours("timetable.faculty_max_daily_hours");
+    }
+
+    /** Same per-faculty-then-designation-then-global precedence as {@link #resolveWeeklyCap}. */
+    private Optional<Double> resolveContinuousCap(Faculty faculty) {
+        Integer perFacultyOrDesignation = FacultyWorkloadCapacityService.resolveEffectiveContinuousCapacity(faculty);
+        if (perFacultyOrDesignation != null && perFacultyOrDesignation > 0) {
+            return Optional.of(perFacultyOrDesignation.doubleValue());
+        }
+        return resolveCapHours("timetable.faculty_max_continuous_hours");
     }
 
     private Optional<Double> resolveCapHours(String configKey) {

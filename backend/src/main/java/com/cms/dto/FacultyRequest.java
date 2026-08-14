@@ -110,5 +110,11 @@ public record FacultyRequest(
     BigDecimal commissionAmount,
 
     @Min(value = 0, message = "Planned weekly hours cannot be negative")
-    Integer plannedWeeklyHoursOverride
+    Integer plannedWeeklyHoursOverride,
+
+    @Min(value = 0, message = "Planned daily hours cannot be negative")
+    Integer plannedDailyHoursOverride,
+
+    @Min(value = 0, message = "Planned continuous hours cannot be negative")
+    Integer plannedContinuousHoursOverride
 ) {}

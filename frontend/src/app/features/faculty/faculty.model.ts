@@ -106,6 +106,10 @@ export interface Faculty {
   /** Advisory-only, for the faculty capacity-planning report. Wins over the designation's default
    *  when set; undefined means "use the designation default", not zero. */
   plannedWeeklyHoursOverride?: number | null;
+  /** Same override precedence as {@link plannedWeeklyHoursOverride}, feeds the daily hard cap. */
+  plannedDailyHoursOverride?: number | null;
+  /** Same override precedence as {@link plannedWeeklyHoursOverride}, feeds the continuous hard cap. */
+  plannedContinuousHoursOverride?: number | null;
 }
 
 export interface FacultyRequest {
@@ -146,6 +150,8 @@ export interface FacultyRequest {
   clinicalExperiencePhdYears?: number;
   commissionAmount?: number;
   plannedWeeklyHoursOverride?: number;
+  plannedDailyHoursOverride?: number;
+  plannedContinuousHoursOverride?: number;
 }
 
 export interface FacultyDocument {

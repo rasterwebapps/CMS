@@ -425,7 +425,7 @@ class FacultyServiceTest {
             specialization, labExpertise, joiningDate, status,
             facultyType, highestQualification, null, null, null, null, gender, maritalStatus,
             null, null, null, null, null, null, null, null, bankAccountType, address,
-            years, years, years, years, years, years, years, null
+            years, years, years, years, years, years, years, null, null, null
         );
     }
 
@@ -445,7 +445,7 @@ class FacultyServiceTest {
             specialization, labExpertise, joiningDate, status,
             facultyType, highestQualification, null, null, null, null, gender, maritalStatus,
             null, null, null, null, null, null, null, null, bankAccountType, address,
-            years, years, years, years, years, years, years, plannedWeeklyHoursOverride
+            years, years, years, years, years, years, years, plannedWeeklyHoursOverride, null, null
         );
     }
 

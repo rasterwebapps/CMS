@@ -168,6 +168,16 @@ public class Faculty {
     @Column(name = "planned_weekly_hours_override")
     private Integer plannedWeeklyHoursOverride;
 
+    /** Same override precedence as {@link #plannedWeeklyHoursOverride}, but feeds the daily hard
+     *  cap ({@code timetable.faculty_max_daily_hours}) instead of the advisory weekly report. */
+    @Column(name = "planned_daily_hours_override")
+    private Integer plannedDailyHoursOverride;
+
+    /** Same override precedence as {@link #plannedWeeklyHoursOverride}, but feeds the continuous
+     *  (unbroken run) hard cap ({@code timetable.faculty_max_continuous_hours}). */
+    @Column(name = "planned_continuous_hours_override")
+    private Integer plannedContinuousHoursOverride;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -322,6 +332,12 @@ public class Faculty {
 
     public Integer getPlannedWeeklyHoursOverride() { return plannedWeeklyHoursOverride; }
     public void setPlannedWeeklyHoursOverride(Integer plannedWeeklyHoursOverride) { this.plannedWeeklyHoursOverride = plannedWeeklyHoursOverride; }
+
+    public Integer getPlannedDailyHoursOverride() { return plannedDailyHoursOverride; }
+    public void setPlannedDailyHoursOverride(Integer plannedDailyHoursOverride) { this.plannedDailyHoursOverride = plannedDailyHoursOverride; }
+
+    public Integer getPlannedContinuousHoursOverride() { return plannedContinuousHoursOverride; }
+    public void setPlannedContinuousHoursOverride(Integer plannedContinuousHoursOverride) { this.plannedContinuousHoursOverride = plannedContinuousHoursOverride; }
 
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }

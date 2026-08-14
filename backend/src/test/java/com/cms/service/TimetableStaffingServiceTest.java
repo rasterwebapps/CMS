@@ -727,6 +727,79 @@ class TimetableStaffingServiceTest {
     }
 
     @Test
+    void shouldRejectStaffingWhenDesignationDailyCapWouldBeExceededWithNoGlobalCapConfigured() {
+        // No institution-wide daily-hours config at all -- the designation-tier default alone
+        // must still be enough to hard-block, proving the same per-faculty-then-designation
+        // precedence OC-119 already gave the weekly cap now also applies to daily.
+        eligibleFaculty.getDesignation().setDefaultDailyTeachingHours(1);
+
+        Period newCellPeriod = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(11, 0), 2);
+        newCellPeriod.setId(2L);
+        cell.setPeriod(newCellPeriod);
+
+        ClassSchedule existingSameDay = new ClassSchedule();
+        existingSameDay.setId(400L);
+        existingSameDay.setFaculty(eligibleFaculty);
+        existingSameDay.setDayOfWeek(DayOfWeek.MONDAY);
+        Period existingPeriod = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 30), 1);
+        existingPeriod.setId(1L);
+        existingSameDay.setPeriod(existingPeriod);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 1L))
+            .thenReturn(List.of(existingSameDay));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.DRAFT, 1L))
+            .thenReturn(Collections.emptyList());
+
+        assertThatThrownBy(() -> service.staffCell(100L, request))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("daily cap");
+    }
+
+    @Test
+    void shouldAllowStaffingWhenFacultyContinuousOverrideRaisesCapAboveDesignationDefault() {
+        // Designation default alone (1 hour) would reject this 2-hour continuous run, but a
+        // per-faculty override always wins over the designation tier -- same precedence as the
+        // weekly cap already had, now extended to continuous.
+        eligibleFaculty.getDesignation().setDefaultContinuousTeachingHours(1);
+        eligibleFaculty.setPlannedContinuousHoursOverride(5);
+
+        Period newCellPeriod = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(11, 0), 2);
+        newCellPeriod.setId(2L);
+        cell.setPeriod(newCellPeriod);
+
+        ClassSchedule precedingSameDay = new ClassSchedule();
+        precedingSameDay.setId(400L);
+        precedingSameDay.setFaculty(eligibleFaculty);
+        precedingSameDay.setDayOfWeek(DayOfWeek.MONDAY);
+        Period precedingPeriod = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), 1);
+        precedingPeriod.setId(1L);
+        precedingSameDay.setPeriod(precedingPeriod);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_hours"))
+            .thenReturn(Optional.empty());
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 1L))
+            .thenReturn(List.of(precedingSameDay));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.DRAFT, 1L))
+            .thenReturn(Collections.emptyList());
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.staffCell(100L, request);
+
+        assertThat(cell.getFaculty()).isEqualTo(eligibleFaculty);
+    }
+
+    @Test
     void shouldReportEveryViolationTogetherWhenMultipleChecksFailAtOnce() {
         ClassSchedule alreadyBusyElsewhere = new ClassSchedule();
         alreadyBusyElsewhere.setId(200L);

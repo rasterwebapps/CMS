@@ -158,7 +158,34 @@
                 @if (form.get('plannedWeeklyHoursOverride')?.invalid && form.get('plannedWeeklyHoursOverride')?.touched) {
                   <p class="field-error">{{ getErrorMessage('plannedWeeklyHoursOverride') }}</p>
                 } @else {
-                  <p class="field-hint">Advisory only, used by the Faculty Workload capacity report.</p>
+                  <p class="field-hint">Wins over the designation default and the institution-wide weekly cap.</p>
+                }
+              </div>
+              <div class="field-group">
+                <label for="fac-daily-hours" class="field-label">Daily Teaching Hours Override</label>
+                <input id="fac-daily-hours" type="number" min="0" class="field-input"
+                  formControlName="plannedDailyHoursOverride"
+                  placeholder="Leave blank to use the designation default"
+                  [class.field-input--error]="form.get('plannedDailyHoursOverride')?.invalid && form.get('plannedDailyHoursOverride')?.touched" />
+                @if (form.get('plannedDailyHoursOverride')?.invalid && form.get('plannedDailyHoursOverride')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('plannedDailyHoursOverride') }}</p>
+                } @else {
+                  <p class="field-hint">Wins over the designation default and the institution-wide daily cap.</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group">
+                <label for="fac-continuous-hours" class="field-label">Continuous Teaching Hours Override</label>
+                <input id="fac-continuous-hours" type="number" min="0" class="field-input"
+                  formControlName="plannedContinuousHoursOverride"
+                  placeholder="Leave blank to use the designation default"
+                  [class.field-input--error]="form.get('plannedContinuousHoursOverride')?.invalid && form.get('plannedContinuousHoursOverride')?.touched" />
+                @if (form.get('plannedContinuousHoursOverride')?.invalid && form.get('plannedContinuousHoursOverride')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('plannedContinuousHoursOverride') }}</p>
+                } @else {
+                  <p class="field-hint">Wins over the designation default and the institution-wide continuous-hours cap.</p>
                 }
               </div>
               <div class="field-group"></div>

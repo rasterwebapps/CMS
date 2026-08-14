@@ -45,6 +45,8 @@ public class DesignationService {
             designation.setIsActive(request.isActive());
         }
         designation.setDefaultWeeklyTeachingHours(request.defaultWeeklyTeachingHours());
+        designation.setDefaultDailyTeachingHours(request.defaultDailyTeachingHours());
+        designation.setDefaultContinuousTeachingHours(request.defaultContinuousTeachingHours());
         return toResponse(designationRepository.save(designation));
     }
 
@@ -99,6 +101,8 @@ public class DesignationService {
             designation.setIsActive(request.isActive());
         }
         designation.setDefaultWeeklyTeachingHours(request.defaultWeeklyTeachingHours());
+        designation.setDefaultDailyTeachingHours(request.defaultDailyTeachingHours());
+        designation.setDefaultContinuousTeachingHours(request.defaultContinuousTeachingHours());
         return toResponse(designationRepository.save(designation));
     }
 
@@ -137,7 +141,8 @@ public class DesignationService {
 
     private DesignationResponse toResponse(DesignationMaster d) {
         return new DesignationResponse(d.getId(), d.getName(), d.getCode(), d.getDescription(),
-            d.getIsActive(), d.getDefaultWeeklyTeachingHours(), d.getCreatedAt(), d.getUpdatedAt());
+            d.getIsActive(), d.getDefaultWeeklyTeachingHours(), d.getDefaultDailyTeachingHours(),
+            d.getDefaultContinuousTeachingHours(), d.getCreatedAt(), d.getUpdatedAt());
     }
 
     private static String trim(String s) {

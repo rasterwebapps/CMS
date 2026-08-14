@@ -58,7 +58,7 @@ class FacultyControllerTest {
             specialization, labExpertise, joiningDate, status,
             facultyType, highestQualification, null, null, null, null, gender, maritalStatus,
             null, null, null, null, null, null, null, null, bankAccountType, address,
-            years, years, years, years, years, years, years, null
+            years, years, years, years, years, years, years, null, null, null
         );
     }
 
@@ -82,7 +82,7 @@ class FacultyControllerTest {
             null, null, null, null, null, null, null, null, bankAccountType, address, null,
             null, null, null,
             years, years, years, years, years, years,
-            createdAt, updatedAt, null, null, null
+            createdAt, updatedAt, null, null, null, null, null
         );
     }
 

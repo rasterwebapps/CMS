@@ -132,6 +132,8 @@ export class FacultyFormComponent implements OnInit {
     specialityId: [null as number | null, [Validators.required]],
     designationId: [null as number | null, [Validators.required]],
     plannedWeeklyHoursOverride: [null as number | null, [Validators.min(0)]],
+    plannedDailyHoursOverride: [null as number | null, [Validators.min(0)]],
+    plannedContinuousHoursOverride: [null as number | null, [Validators.min(0)]],
     facultyType: [null as string | null],
     highestQualification: [null as FacultyQualification | null],
     nrtsNumber: ['', [Validators.maxLength(50)]],
@@ -279,6 +281,8 @@ export class FacultyFormComponent implements OnInit {
       clinicalExperiencePhdYears: this.numberOrUndefined(v.clinicalExperiencePhdYears),
       commissionAmount: this.numberOrUndefined(v.commissionAmount),
       plannedWeeklyHoursOverride: this.numberOrUndefined(v.plannedWeeklyHoursOverride),
+      plannedDailyHoursOverride: this.numberOrUndefined(v.plannedDailyHoursOverride),
+      plannedContinuousHoursOverride: this.numberOrUndefined(v.plannedContinuousHoursOverride),
     };
 
     this.saving.set(true);
@@ -433,6 +437,8 @@ export class FacultyFormComponent implements OnInit {
       specialityId: 'Speciality',
       designationId: 'Designation',
       plannedWeeklyHoursOverride: 'Weekly Teaching Hours Override',
+      plannedDailyHoursOverride: 'Daily Teaching Hours Override',
+      plannedContinuousHoursOverride: 'Continuous Teaching Hours Override',
       specialization: 'Specialization',
       labExpertise: 'Lab Expertise',
       joiningDate: 'Joining Date',
@@ -521,6 +527,8 @@ export class FacultyFormComponent implements OnInit {
           clinicalExperiencePhdYears: faculty.clinicalExperiencePhdYears ?? null,
           commissionAmount: faculty.commissionAmount ?? null,
           plannedWeeklyHoursOverride: faculty.plannedWeeklyHoursOverride ?? null,
+          plannedDailyHoursOverride: faculty.plannedDailyHoursOverride ?? null,
+          plannedContinuousHoursOverride: faculty.plannedContinuousHoursOverride ?? null,
         });
         this.loading.set(false);
       },

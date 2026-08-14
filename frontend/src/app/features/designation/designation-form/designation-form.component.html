@@ -114,7 +114,45 @@
               @if (form.get('defaultWeeklyTeachingHours')?.invalid && form.get('defaultWeeklyTeachingHours')?.touched) {
                 <p class="field-error">{{ getErrorMessage('defaultWeeklyTeachingHours') }}</p>
               } @else {
-                <p class="field-hint">Advisory only — used by the Faculty Workload capacity report. Leave blank if not yet configured.</p>
+                <p class="field-hint">Fallback tier for the Faculty Workload weekly hard cap — a per-faculty override wins over this. Leave blank if not yet configured.</p>
+              }
+            </div>
+
+            <!-- Default daily teaching hours (designation-tier override for the daily hard cap) -->
+            <div class="field-group">
+              <label for="dsg-daily-hours" class="field-label">Default Daily Teaching Hours</label>
+              <input
+                id="dsg-daily-hours"
+                type="number"
+                min="0"
+                class="field-input"
+                formControlName="defaultDailyTeachingHours"
+                placeholder="e.g., 6"
+                [class.field-input--error]="form.get('defaultDailyTeachingHours')?.invalid && form.get('defaultDailyTeachingHours')?.touched"
+              />
+              @if (form.get('defaultDailyTeachingHours')?.invalid && form.get('defaultDailyTeachingHours')?.touched) {
+                <p class="field-error">{{ getErrorMessage('defaultDailyTeachingHours') }}</p>
+              } @else {
+                <p class="field-hint">Designation-tier override for the Faculty Workload daily hard cap — a per-faculty override wins over this. Leave blank to use the institution-wide value.</p>
+              }
+            </div>
+
+            <!-- Default continuous teaching hours (designation-tier override for the continuous hard cap) -->
+            <div class="field-group">
+              <label for="dsg-continuous-hours" class="field-label">Default Continuous Teaching Hours</label>
+              <input
+                id="dsg-continuous-hours"
+                type="number"
+                min="0"
+                class="field-input"
+                formControlName="defaultContinuousTeachingHours"
+                placeholder="e.g., 3"
+                [class.field-input--error]="form.get('defaultContinuousTeachingHours')?.invalid && form.get('defaultContinuousTeachingHours')?.touched"
+              />
+              @if (form.get('defaultContinuousTeachingHours')?.invalid && form.get('defaultContinuousTeachingHours')?.touched) {
+                <p class="field-error">{{ getErrorMessage('defaultContinuousTeachingHours') }}</p>
+              } @else {
+                <p class="field-hint">Designation-tier override for the Faculty Workload continuous-hours hard cap — a per-faculty override wins over this. Leave blank to use the institution-wide value.</p>
               }
             </div>
 
