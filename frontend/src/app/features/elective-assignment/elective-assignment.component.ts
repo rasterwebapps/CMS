@@ -73,6 +73,18 @@ export class ElectiveAssignmentComponent implements OnInit {
     this.electiveGroupOptions().find((g) => g.electiveGroupId === this.selectedElectiveGroupId) ?? null);
 
   ngOnInit(): void {
+    // AssignmentRow nests the real values under `enrollment` — MatTableDataSource's default
+    // sortingDataAccessor only reads a shallow row[sortHeaderId], so without this override
+    // clicking the Student/Cohort column headers silently sorts nothing (every row reads as
+    // the same undefined value).
+    this.dataSource.sortingDataAccessor = (row, sortHeaderId) => {
+      switch (sortHeaderId) {
+        case 'studentName': return row.enrollment.studentName;
+        case 'cohortCode': return row.enrollment.cohortCode;
+        default: return '';
+      }
+    };
+
     const qpTermInstanceId = Number(this.route.snapshot.queryParamMap.get('termInstanceId')) || null;
 
     this.academicYearService.getAllAcademicYears().subscribe({

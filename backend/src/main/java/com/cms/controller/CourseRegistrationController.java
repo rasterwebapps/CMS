@@ -31,7 +31,7 @@ public class CourseRegistrationController {
     }
 
     @GetMapping
-    @PreAuthorize("@perm.has('ADMISSION_VIEW')")
+    @PreAuthorize("@perm.hasAny('ADMISSION_VIEW', 'COURSE_REGISTRATION_ELECTIVE_ASSIGN')")
     public ResponseEntity<?> getRegistrations(
             @RequestParam(required = false) Long enrollmentId,
             @RequestParam(required = false) Long courseOfferingId) {
@@ -44,7 +44,7 @@ public class CourseRegistrationController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("@perm.has('ADMISSION_VIEW')")
+    @PreAuthorize("@perm.hasAny('ADMISSION_VIEW', 'COURSE_REGISTRATION_ELECTIVE_ASSIGN')")
     public ResponseEntity<CourseRegistrationDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(courseRegistrationService.getById(id));
     }
