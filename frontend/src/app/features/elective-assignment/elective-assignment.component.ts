@@ -21,7 +21,7 @@ interface ElectiveGroupOption {
   electiveGroupId: number;
   electiveGroupName: string;
   curriculumVersionId: number;
-  semesterNumber: number;
+  termNumber: number;
 }
 
 interface AssignmentRow {
@@ -180,7 +180,7 @@ export class ElectiveAssignmentComponent implements OnInit {
               electiveGroupId: o.electiveGroupId!,
               electiveGroupName: o.electiveGroupName ?? `Group ${o.electiveGroupId}`,
               curriculumVersionId: o.curriculumVersionId,
-              semesterNumber: o.semesterNumber,
+              termNumber: o.termNumber,
             });
           }
         }
@@ -195,7 +195,7 @@ export class ElectiveAssignmentComponent implements OnInit {
     this.loading.set(true);
     this.academicYearService.getEnrollmentsByTermInstance(termInstanceId).subscribe({
       next: (enrollments) => {
-        const relevant = enrollments.filter((e) => e.semesterNumber === group.semesterNumber);
+        const relevant = enrollments.filter((e) => e.termNumber === group.termNumber);
         if (relevant.length === 0) {
           this.dataSource.data = [];
           this.loading.set(false);

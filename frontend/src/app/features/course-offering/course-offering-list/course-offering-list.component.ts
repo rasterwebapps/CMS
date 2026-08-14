@@ -57,7 +57,7 @@ export class CourseOfferingListComponent implements OnInit {
   }
 
   protected readonly displayedColumns = [
-    'subjectCode', 'subjectName', 'semesterNumber', 'faculty', 'secondaryFaculty', 'sectionLabel', 'status', 'actions',
+    'subjectCode', 'subjectName', 'termNumber', 'faculty', 'secondaryFaculty', 'sectionLabel', 'status', 'actions',
   ];
   protected readonly dataSource = new MatTableDataSource<CourseOffering>([]);
   protected readonly loading = signal(false);
@@ -179,7 +179,7 @@ export class CourseOfferingListComponent implements OnInit {
     this.dialog.open(ConfirmDialogComponent, {
       data: {
         title: 'Deactivate Course Offering',
-        message: `Deactivate "${row.subjectName}" (Semester ${row.semesterNumber}) for this term? Existing student registrations are unaffected, but no further exam events can be scheduled against it.`,
+        message: `Deactivate "${row.subjectName}" (Semester ${row.termNumber}) for this term? Existing student registrations are unaffected, but no further exam events can be scheduled against it.`,
         confirmText: 'Deactivate',
         cancelText: 'Cancel',
       },

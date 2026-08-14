@@ -280,7 +280,7 @@ export interface StudentTermEnrollment {
   cohortCode: string;
   termInstanceId: number;
   termInstanceLabel: string;
-  semesterNumber: number;
+  termNumber: number;
   yearOfStudy: number;
   status: EnrollmentStatus;
 }
@@ -302,7 +302,7 @@ export interface CourseOffering {
   subjectCode: string;
   subjectSpecialityId: number | null;
   subjectSpecialityName: string | null;
-  semesterNumber: number;
+  termNumber: number;
   facultyId: number | null;
   /** Informational-only backup/co-instructor note — never eligible for staffing/substitution. */
   secondaryFacultyId: number | null;
@@ -338,7 +338,7 @@ export interface CourseRegistration {
   courseOfferingId: number;
   subjectName: string;
   subjectCode: string;
-  semesterNumber: number;
+  termNumber: number;
   status: RegistrationStatus;
   createdAt: string;
   updatedAt: string;
