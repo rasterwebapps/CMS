@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -80,11 +80,16 @@ export class ElectiveAssignmentComponent implements OnInit {
   protected selectedTermInstanceId: number | null = null;
   protected selectedElectiveGroupId: number | null = null;
 
-  protected readonly selectedGroup = computed(() =>
-    this.electiveGroupOptions().find((g) => g.electiveGroupId === this.selectedElectiveGroupId) ?? null);
+  // Plain methods, not computed() — computed() only re-evaluates on signal-dependency
+  // changes, but selectedElectiveGroupId is a plain field driven by [(ngModel)], so a
+  // computed() here would cache its first result and never notice the field changing.
+  protected selectedGroup(): ElectiveGroupOption | null {
+    return this.electiveGroupOptions().find((g) => g.electiveGroupId === this.selectedElectiveGroupId) ?? null;
+  }
 
-  protected readonly isInstitutionDecided = computed(() =>
-    this.selectedGroup()?.selectionMode === 'INSTITUTION_DECIDED');
+  protected isInstitutionDecided(): boolean {
+    return this.selectedGroup()?.selectionMode === 'INSTITUTION_DECIDED';
+  }
 
   protected canManageElectiveGroups(): boolean {
     return this.permissionService.has('CURRICULUM_ELECTIVE_GROUP_MANAGE');
