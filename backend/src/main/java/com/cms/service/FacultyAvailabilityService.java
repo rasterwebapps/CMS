@@ -43,11 +43,27 @@ public class FacultyAvailabilityService {
         if (!request.endTime().isAfter(request.startTime())) {
             throw new IllegalArgumentException("End time must be after start time");
         }
+        boolean hasStart = request.startDate() != null;
+        boolean hasEnd = request.endDate() != null;
+        if (hasStart != hasEnd) {
+            throw new IllegalArgumentException("Start date and end date must be provided together, or not at all");
+        }
+        if (hasStart && request.endDate().isBefore(request.startDate())) {
+            throw new IllegalArgumentException("End date must not be before start date");
+        }
         Faculty faculty = facultyRepository.findById(request.facultyId())
             .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + request.facultyId()));
 
-        List<ClassSchedule> conflicting = classScheduleRepository.findActiveConflictingForFaculty(
+        List<ClassSchedule> allOverlapping = classScheduleRepository.findActiveConflictingForFaculty(
             request.facultyId(), request.dayOfWeek(), request.startTime(), request.endTime());
+        // A block with no date range is indefinite -- it covers a class's whole term regardless.
+        // A ranged block only actually conflicts with classes in terms whose own date range
+        // overlaps the block's -- e.g. blocking only Aug-Oct doesn't conflict with a class that
+        // only ever meets in a term that runs Jan-May.
+        List<ClassSchedule> conflicting = !hasStart ? allOverlapping : allOverlapping.stream()
+            .filter(cs -> !request.startDate().isAfter(cs.getTermInstance().getEndDate())
+                && !request.endDate().isBefore(cs.getTermInstance().getStartDate()))
+            .toList();
         if (!conflicting.isEmpty()) {
             String details = conflicting.stream()
                 .map(cs -> cs.getSubject().getName() + " ("
@@ -67,6 +83,8 @@ public class FacultyAvailabilityService {
         block.setStartTime(request.startTime());
         block.setEndTime(request.endTime());
         block.setReason(request.reason());
+        block.setStartDate(request.startDate());
+        block.setEndDate(request.endDate());
         return toResponse(facultyAvailabilityRepository.save(block));
     }
 
@@ -87,6 +105,8 @@ public class FacultyAvailabilityService {
             fa.getStartTime(),
             fa.getEndTime(),
             fa.getReason(),
+            fa.getStartDate(),
+            fa.getEndDate(),
             fa.getCreatedAt(),
             fa.getUpdatedAt()
         );

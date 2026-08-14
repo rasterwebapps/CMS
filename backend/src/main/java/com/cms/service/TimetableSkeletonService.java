@@ -556,7 +556,7 @@ public class TimetableSkeletonService {
             LocalTime start = targetPeriod.getStartTime();
             LocalTime end = targetPeriod.getEndTime();
             Long facultyId = cs.getFaculty().getId();
-            timetableStaffingService.checkFacultyAvailable(facultyId, request.dayOfWeek(), start, end).ifPresent(violations::add);
+            timetableStaffingService.checkFacultyAvailable(facultyId, request.dayOfWeek(), start, end, null).ifPresent(violations::add);
             timetableStaffingService.checkFacultyFree(facultyId, cs, request.dayOfWeek(), start, end).ifPresent(violations::add);
             violations.addAll(timetableStaffingService.checkWithinWorkloadCaps(cs.getFaculty(), cs, request.dayOfWeek(), start, end));
             Long venueId = TimetableStaffingService.venueIdOf(cs);

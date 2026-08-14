@@ -96,7 +96,7 @@ public class TimetableConflictInspectorService {
 
         Faculty faculty = cs.getFaculty();
         if (faculty != null) {
-            timetableStaffingService.checkFacultyAvailable(faculty.getId(), cs.getDayOfWeek(), start, end)
+            timetableStaffingService.checkFacultyAvailable(faculty.getId(), cs.getDayOfWeek(), start, end, null)
                 .ifPresent(violations::add);
             timetableStaffingService.checkFacultyFree(faculty.getId(), cs, cs.getDayOfWeek(), start, end)
                 .ifPresent(violations::add);

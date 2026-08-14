@@ -243,7 +243,7 @@ public class TimetableStaffingService {
         checkBlocked(day, start, end, cs.getTermInstance()).ifPresent(violations::add);
 
         if (faculty != null) {
-            checkFacultyAvailable(faculty.getId(), day, start, end).ifPresent(violations::add);
+            checkFacultyAvailable(faculty.getId(), day, start, end, date).ifPresent(violations::add);
             if (date != null) {
                 checkFacultyAbsent(faculty.getId(), date).ifPresent(violations::add);
             }
@@ -459,9 +459,23 @@ public class TimetableStaffingService {
      *  unavailable at this slot (leave, external duty, a visiting lecturer's fixed weekly window,
      *  etc) — the same {@link FacultyAvailability} check {@link TimetableSwapService} and {@code
      *  FacultySessionSwapService} already apply, closing the one staffing path that skipped it. A
-     *  faculty member with no rows in this table is assumed fully available. */
-    Optional<ConstraintViolation> checkFacultyAvailable(Long facultyId, DayOfWeek dayOfWeek, LocalTime start, LocalTime end) {
+     *  faculty member with no rows in this table is assumed fully available.
+     *
+     *  <p>{@code date}, when known (single-date callers only — mirrors {@link #checkFacultyAbsent}'s
+     *  own null-means-recurring convention), narrows a date-ranged {@link FacultyAvailability} row
+     *  to only actually block dates that fall inside its range. When {@code date} is null (recurring
+     *  placement, which has no single date to compare against), every matching row still blocks
+     *  regardless of whether it's ranged or indefinite — deliberately conservative, since a
+     *  date-ranged block can't be perfectly represented against a term-long recurring slot; the
+     *  admin resolves any real gap once concrete dates are involved (Staff Swap). */
+    Optional<ConstraintViolation> checkFacultyAvailable(Long facultyId, DayOfWeek dayOfWeek, LocalTime start, LocalTime end, LocalDate date) {
         List<FacultyAvailability> blocks = facultyAvailabilityRepository.findOverlapping(facultyId, dayOfWeek, start, end);
+        if (date != null) {
+            blocks = blocks.stream()
+                .filter(b -> b.getStartDate() == null
+                    || (!date.isBefore(b.getStartDate()) && !date.isAfter(b.getEndDate())))
+                .toList();
+        }
         if (blocks.isEmpty()) {
             return Optional.empty();
         }

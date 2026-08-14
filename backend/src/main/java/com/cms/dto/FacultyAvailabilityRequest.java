@@ -1,5 +1,6 @@
 package com.cms.dto;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 import com.cms.model.enums.DayOfWeek;
@@ -24,5 +25,11 @@ public record FacultyAvailabilityRequest(
 
     @NotBlank(message = "A reason is required when blocking a period")
     @Size(max = 255, message = "Reason must not exceed 255 characters")
-    String reason
+    String reason,
+
+    /** Both null (the default) means "recurs indefinitely" -- pass both together to instead scope
+     *  the block to a set of weeks, or neither at all. */
+    LocalDate startDate,
+
+    LocalDate endDate
 ) {}

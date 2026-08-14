@@ -12,7 +12,7 @@ import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../shared/week-grid/wee
 import { PermissionService } from '../../core/permissions/permission.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
-import { BlockAvailabilityDialogComponent, BlockAvailabilityDialogData } from './block-availability-dialog/block-availability-dialog.component';
+import { BlockAvailabilityDialogComponent, BlockAvailabilityDialogData, BlockAvailabilityDialogResult } from './block-availability-dialog/block-availability-dialog.component';
 
 interface AvailabilityRow {
   key: string;
@@ -87,7 +87,8 @@ export class FacultyAvailabilityComponent implements OnInit {
   protected cellTooltip(day: string, row: AvailabilityRow): string {
     const block = this.blockFor(day, row);
     if (!block) return `Mark ${this.dayLabels[day]} ${row.label} as blocked`;
-    return block.reason ? `Blocked: ${block.reason}` : 'Blocked (no reason given)';
+    const base = block.reason ? `Blocked: ${block.reason}` : 'Blocked (no reason given)';
+    return block.startDate && block.endDate ? `${base} (${block.startDate} – ${block.endDate})` : base;
   }
 
   protected toggleCell(day: string, row: AvailabilityRow): void {
@@ -106,14 +107,15 @@ export class FacultyAvailabilityComponent implements OnInit {
       facultyName, dayLabel: this.dayLabels[day], periodLabel: row.label,
     };
     this.dialog.open(BlockAvailabilityDialogComponent, { data, width: '420px' })
-      .afterClosed().subscribe((reason: string | null) => {
-        if (reason) this.doAddBlock(day, row, reason);
+      .afterClosed().subscribe((result: BlockAvailabilityDialogResult | null) => {
+        if (result) this.doAddBlock(day, row, result);
       });
   }
 
   private confirmUnblock(day: string, row: AvailabilityRow, existing: FacultyAvailabilityBlock): void {
     const facultyName = this.faculties().find((f) => f.id === this.selectedFacultyId)?.fullName ?? 'This faculty member';
-    const reasonNote = existing.reason ? ` It was originally blocked because: "${existing.reason}"` : '';
+    const rangeNote = existing.startDate && existing.endDate ? ` (${existing.startDate} – ${existing.endDate})` : '';
+    const reasonNote = existing.reason ? ` It was originally blocked because: "${existing.reason}"${rangeNote}` : rangeNote;
     this.dialog.open(ConfirmDialogComponent, {
       data: {
         title: 'Unblock This Period',
@@ -126,7 +128,7 @@ export class FacultyAvailabilityComponent implements OnInit {
     });
   }
 
-  private doAddBlock(day: string, row: AvailabilityRow, reason: string): void {
+  private doAddBlock(day: string, row: AvailabilityRow, result: BlockAvailabilityDialogResult): void {
     if (!this.selectedFacultyId) return;
     const cellKey = `${row.key}-${day}`;
     this.toggling.set(cellKey);
@@ -135,7 +137,9 @@ export class FacultyAvailabilityComponent implements OnInit {
       dayOfWeek: day,
       startTime: row.startTime,
       endTime: row.endTime,
-      reason,
+      reason: result.reason,
+      startDate: result.startDate,
+      endDate: result.endDate,
     }).subscribe({
       next: (block) => {
         this.blocks.update((list) => [...list, block]);

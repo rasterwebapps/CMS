@@ -1,6 +1,7 @@
 package com.cms.model;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 import org.springframework.data.annotation.CreatedDate;
@@ -53,6 +54,17 @@ public class FacultyAvailability {
 
     @Column(name = "reason")
     private String reason;
+
+    /** Both null (the default) means "recurs indefinitely" -- today's original behavior, and still
+     *  what a date-less availability check (e.g. Skeleton Builder placing a recurring weekly slot,
+     *  which has no single date to compare against) always treats every row as, regardless of
+     *  whether it has a range or not. Only a date-aware check (Staff Swap, Special Class Requests --
+     *  anything with a concrete calendar date in hand) narrows to "does this date fall in range". */
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
+    @Column(name = "end_date")
+    private LocalDate endDate;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -111,6 +123,22 @@ public class FacultyAvailability {
 
     public void setReason(String reason) {
         this.reason = reason;
+    }
+
+    public LocalDate getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
     }
 
     public Instant getCreatedAt() {

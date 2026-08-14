@@ -400,7 +400,7 @@ public class SpecialClassRequestService {
         var end = period.getEndTime();
 
         if (facultyId != null) {
-            timetableStaffingService.checkFacultyAvailable(facultyId, day, start, end).ifPresent(violations::add);
+            timetableStaffingService.checkFacultyAvailable(facultyId, day, start, end, date).ifPresent(violations::add);
             timetableStaffingService.checkFacultyFree(facultyId, term.getId(), null, day, start, end).ifPresent(violations::add);
         }
         if (venueId != null) {

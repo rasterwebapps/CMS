@@ -582,6 +582,54 @@ class TimetableStaffingServiceTest {
     }
 
     @Test
+    void checkFacultyAvailable_dateOutsideRangedBlockDoesNotBlock() {
+        FacultyAvailability ranged = new FacultyAvailability();
+        ranged.setReason("External duty");
+        ranged.setStartDate(LocalDate.of(2026, 11, 1));
+        ranged.setEndDate(LocalDate.of(2026, 12, 1));
+        when(facultyAvailabilityRepository.findOverlapping(1L, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime()))
+            .thenReturn(List.of(ranged));
+
+        Optional<com.cms.dto.ConstraintViolation> result = service.checkFacultyAvailable(
+            1L, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), LocalDate.of(2026, 6, 15));
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void checkFacultyAvailable_dateInsideRangedBlockBlocks() {
+        FacultyAvailability ranged = new FacultyAvailability();
+        ranged.setReason("External duty");
+        ranged.setStartDate(LocalDate.of(2026, 11, 1));
+        ranged.setEndDate(LocalDate.of(2026, 12, 1));
+        when(facultyAvailabilityRepository.findOverlapping(1L, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime()))
+            .thenReturn(List.of(ranged));
+
+        Optional<com.cms.dto.ConstraintViolation> result = service.checkFacultyAvailable(
+            1L, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), LocalDate.of(2026, 11, 15));
+
+        assertThat(result).isPresent();
+        assertThat(result.get().message()).contains("External duty");
+    }
+
+    @Test
+    void checkFacultyAvailable_noDateStillBlocksRegardlessOfRange() {
+        FacultyAvailability ranged = new FacultyAvailability();
+        ranged.setReason("External duty");
+        ranged.setStartDate(LocalDate.of(2026, 11, 1));
+        ranged.setEndDate(LocalDate.of(2026, 12, 1));
+        when(facultyAvailabilityRepository.findOverlapping(1L, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime()))
+            .thenReturn(List.of(ranged));
+
+        // No date in hand (recurring placement) -- conservative: still blocks even though the
+        // range wouldn't cover every occurrence.
+        Optional<com.cms.dto.ConstraintViolation> result = service.checkFacultyAvailable(
+            1L, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), null);
+
+        assertThat(result).isPresent();
+    }
+
+    @Test
     void shouldRejectStaffingWhenDailyCapWouldBeExceeded() {
         Period newCellPeriod = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(11, 0), 2);
         newCellPeriod.setId(2L);
