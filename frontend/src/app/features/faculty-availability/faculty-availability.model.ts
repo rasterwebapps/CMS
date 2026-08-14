@@ -15,5 +15,6 @@ export interface FacultyAvailabilityRequest {
   dayOfWeek: string;
   startTime: string;
   endTime: string;
-  reason?: string | null;
+  /** Required — backend rejects a blank reason. */
+  reason: string;
 }

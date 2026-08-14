@@ -25,20 +25,21 @@
   }
 
   <div class="content-card availability-grid-card">
-    <h2 class="availability-grid-card__title">Periods</h2>
-    <div class="availability-grid" [style.grid-template-columns]="'120px repeat(' + days.length + ', 1fr)'">
+    <h2 class="availability-grid-card__title">Days</h2>
+    <div class="availability-grid" [style.grid-template-columns]="'120px repeat(' + periodRows().length + ', 1fr)'">
       <div class="availability-grid__corner"></div>
-      @for (day of days; track day) {
-        <div class="availability-grid__day-hdr">{{ dayLabels[day] }}</div>
-      }
       @for (row of periodRows(); track row.key) {
-        <div class="availability-grid__time-cell">{{ row.label }}</div>
-        @for (day of days; track day) {
+        <div class="availability-grid__day-hdr">{{ row.label }}</div>
+      }
+      @for (day of days; track day) {
+        <div class="availability-grid__time-cell">{{ dayLabels[day] }}</div>
+        @for (row of periodRows(); track row.key) {
           <button type="button"
             class="availability-cell"
             [class.availability-cell--blocked]="blockFor(day, row)"
             [class.availability-cell--busy]="toggling() === (row.key + '-' + day)"
             [disabled]="!canManage() || toggling() === (row.key + '-' + day)"
+            [matTooltip]="cellTooltip(day, row)"
             (click)="toggleCell(day, row)">
             {{ blockFor(day, row) ? 'Blocked' : 'Free' }}
           </button>

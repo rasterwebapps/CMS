@@ -4,6 +4,7 @@ import java.time.LocalTime;
 
 import com.cms.model.enums.DayOfWeek;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -21,6 +22,7 @@ public record FacultyAvailabilityRequest(
     @NotNull(message = "End time is required")
     LocalTime endTime,
 
+    @NotBlank(message = "A reason is required when blocking a period")
     @Size(max = 255, message = "Reason must not exceed 255 characters")
     String reason
 ) {}

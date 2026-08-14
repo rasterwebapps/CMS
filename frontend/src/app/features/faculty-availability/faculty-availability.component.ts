@@ -1,5 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { FacultyService } from '../faculty/faculty.service';
 import { Faculty } from '../faculty/faculty.model';
 import { PeriodService } from '../period/period.service';
@@ -9,6 +11,8 @@ import { FacultyAvailabilityBlock } from './faculty-availability.model';
 import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../shared/week-grid/week-grid.model';
 import { PermissionService } from '../../core/permissions/permission.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { BlockAvailabilityDialogComponent, BlockAvailabilityDialogData } from './block-availability-dialog/block-availability-dialog.component';
 
 interface AvailabilityRow {
   key: string;
@@ -20,7 +24,7 @@ interface AvailabilityRow {
 @Component({
   selector: 'app-faculty-availability',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, MatDialogModule, MatTooltipModule],
   templateUrl: './faculty-availability.component.html',
   styleUrl: './faculty-availability.component.scss',
 })
@@ -30,6 +34,7 @@ export class FacultyAvailabilityComponent implements OnInit {
   private readonly facultyAvailabilityService = inject(FacultyAvailabilityService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly faculties = signal<Faculty[]>([]);
   protected readonly periods = signal<Period[]>([]);
@@ -79,38 +84,82 @@ export class FacultyAvailabilityComponent implements OnInit {
     return this.blocks().find((b) => b.dayOfWeek === day && b.startTime === row.startTime && b.endTime === row.endTime);
   }
 
+  protected cellTooltip(day: string, row: AvailabilityRow): string {
+    const block = this.blockFor(day, row);
+    if (!block) return `Mark ${this.dayLabels[day]} ${row.label} as blocked`;
+    return block.reason ? `Blocked: ${block.reason}` : 'Blocked (no reason given)';
+  }
+
   protected toggleCell(day: string, row: AvailabilityRow): void {
     if (!this.selectedFacultyId || !this.canManage()) return;
-    const cellKey = `${row.key}-${day}`;
     const existing = this.blockFor(day, row);
-    this.toggling.set(cellKey);
     if (existing) {
-      this.facultyAvailabilityService.removeBlock(existing.id).subscribe({
-        next: () => {
-          this.blocks.update((list) => list.filter((b) => b.id !== existing.id));
-          this.toggling.set(null);
-        },
-        error: (err) => {
-          this.toast.error(err?.error?.message ?? 'Failed to clear block');
-          this.toggling.set(null);
-        },
-      });
+      this.confirmUnblock(day, row, existing);
     } else {
-      this.facultyAvailabilityService.addBlock({
-        facultyId: this.selectedFacultyId,
-        dayOfWeek: day,
-        startTime: row.startTime,
-        endTime: row.endTime,
-      }).subscribe({
-        next: (block) => {
-          this.blocks.update((list) => [...list, block]);
-          this.toggling.set(null);
-        },
-        error: (err) => {
-          this.toast.error(err?.error?.message ?? 'Failed to mark unavailable');
-          this.toggling.set(null);
-        },
-      });
+      this.confirmBlock(day, row);
     }
+  }
+
+  private confirmBlock(day: string, row: AvailabilityRow): void {
+    const facultyName = this.faculties().find((f) => f.id === this.selectedFacultyId)?.fullName ?? 'This faculty member';
+    const data: BlockAvailabilityDialogData = {
+      facultyName, dayLabel: this.dayLabels[day], periodLabel: row.label,
+    };
+    this.dialog.open(BlockAvailabilityDialogComponent, { data, width: '420px' })
+      .afterClosed().subscribe((reason: string | null) => {
+        if (reason) this.doAddBlock(day, row, reason);
+      });
+  }
+
+  private confirmUnblock(day: string, row: AvailabilityRow, existing: FacultyAvailabilityBlock): void {
+    const facultyName = this.faculties().find((f) => f.id === this.selectedFacultyId)?.fullName ?? 'This faculty member';
+    const reasonNote = existing.reason ? ` It was originally blocked because: "${existing.reason}"` : '';
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Unblock This Period',
+        message: `Mark ${facultyName} as available again for ${this.dayLabels[day]}, ${row.label}?${reasonNote}`,
+        confirmText: 'Unblock',
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe((confirmed) => {
+      if (confirmed) this.doRemoveBlock(day, row, existing);
+    });
+  }
+
+  private doAddBlock(day: string, row: AvailabilityRow, reason: string): void {
+    if (!this.selectedFacultyId) return;
+    const cellKey = `${row.key}-${day}`;
+    this.toggling.set(cellKey);
+    this.facultyAvailabilityService.addBlock({
+      facultyId: this.selectedFacultyId,
+      dayOfWeek: day,
+      startTime: row.startTime,
+      endTime: row.endTime,
+      reason,
+    }).subscribe({
+      next: (block) => {
+        this.blocks.update((list) => [...list, block]);
+        this.toggling.set(null);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to mark unavailable');
+        this.toggling.set(null);
+      },
+    });
+  }
+
+  private doRemoveBlock(day: string, row: AvailabilityRow, existing: FacultyAvailabilityBlock): void {
+    const cellKey = `${row.key}-${day}`;
+    this.toggling.set(cellKey);
+    this.facultyAvailabilityService.removeBlock(existing.id).subscribe({
+      next: () => {
+        this.blocks.update((list) => list.filter((b) => b.id !== existing.id));
+        this.toggling.set(null);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to clear block');
+        this.toggling.set(null);
+      },
+    });
   }
 }
