@@ -9,10 +9,12 @@
       </div>
       <p class="mlp-sub">Manage curriculum versions across programs</p>
     </div>
-    <button id="tour-cv-add-btn" class="btn-primary" (click)="navigateToNew()" aria-label="Add new curriculum version">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      New Version
-    </button>
+    @if (canManage()) {
+      <button id="tour-cv-add-btn" class="btn-primary" (click)="navigateToNew()" aria-label="Add new curriculum version">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Version
+      </button>
+    }
   </div>
 
   <!-- ── Toolbar ─────────────────────────────────────────────── -->
@@ -90,23 +92,25 @@
       <div id="tour-cv-content" class="mlp-cards-grid">
         @for (version of dataSource.data; track version.id; let i = $index) {
           <div class="mlp-card cv-card" [style.animation-delay]="(i * 0.05) + 's'">
-            <div class="mlp-card__actions">
-              <cms-row-action-btn
-                variant="danger" [iconOnly]="true"
-                [tooltip]="deleteTooltip(version)"
-                ariaLabel="Delete curriculum version"
-                [disabled]="!version.deletable"
-                (clicked)="deleteVersion(version)"
-              >
-                <cms-icon-delete [size]="13" />
-              </cms-row-action-btn>
-              <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Clone" ariaLabel="Clone" (clicked)="openCloneDialog(version)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-              </cms-row-action-btn>
-              <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit" (clicked)="editVersion(version)">
-                <cms-icon-edit [size]="13" />
-              </cms-row-action-btn>
-            </div>
+            @if (canManage()) {
+              <div class="mlp-card__actions">
+                <cms-row-action-btn
+                  variant="danger" [iconOnly]="true"
+                  [tooltip]="deleteTooltip(version)"
+                  ariaLabel="Delete curriculum version"
+                  [disabled]="!version.deletable"
+                  (clicked)="deleteVersion(version)"
+                >
+                  <cms-icon-delete [size]="13" />
+                </cms-row-action-btn>
+                <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Clone" ariaLabel="Clone" (clicked)="openCloneDialog(version)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </cms-row-action-btn>
+                <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit" (clicked)="editVersion(version)">
+                  <cms-icon-edit [size]="13" />
+                </cms-row-action-btn>
+              </div>
+            }
             <div class="mlp-card__icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
             </div>
@@ -183,21 +187,23 @@
           <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
           <td mat-cell *matCellDef="let version">
             <div class="row-actions">
-              <cms-row-action-btn
-                variant="danger" [iconOnly]="true"
-                [tooltip]="deleteTooltip(version)"
-                ariaLabel="Delete curriculum version"
-                [disabled]="!version.deletable"
-                (clicked)="deleteVersion(version)"
-              >
-                <cms-icon-delete />
-              </cms-row-action-btn>
-              <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Clone" ariaLabel="Clone" (clicked)="openCloneDialog(version)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-              </cms-row-action-btn>
-              <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit" (clicked)="editVersion(version)">
-                <cms-icon-edit />
-              </cms-row-action-btn>
+              @if (canManage()) {
+                <cms-row-action-btn
+                  variant="danger" [iconOnly]="true"
+                  [tooltip]="deleteTooltip(version)"
+                  ariaLabel="Delete curriculum version"
+                  [disabled]="!version.deletable"
+                  (clicked)="deleteVersion(version)"
+                >
+                  <cms-icon-delete />
+                </cms-row-action-btn>
+                <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Clone" ariaLabel="Clone" (clicked)="openCloneDialog(version)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </cms-row-action-btn>
+                <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit" (clicked)="editVersion(version)">
+                  <cms-icon-edit />
+                </cms-row-action-btn>
+              }
               <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="View Curriculum Map" ariaLabel="View curriculum map" (clicked)="viewCurriculum(version)">
                 <cms-icon-view />
               </cms-row-action-btn>

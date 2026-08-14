@@ -18,6 +18,7 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
+import { PermissionService } from '../../../core/permissions/permission.service';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 
@@ -50,6 +51,7 @@ export class CoPoMappingComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly permissionService = inject(PermissionService);
 
   @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -78,6 +80,10 @@ export class CoPoMappingComponent implements OnInit {
   protected readonly searchValue = signal('');
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
+
+  protected canManage(): boolean {
+    return this.permissionService.hasAny('COPO_MANAGE', 'CURRICULUM_MANAGE');
+  }
 
   ngOnInit(): void {
     this.load();

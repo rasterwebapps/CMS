@@ -22,6 +22,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { CURRICULUM_VERSION_LIST_TOUR } from '../../../shared/tour/tours/curriculum-version.tours';
 import { CmsIconEditComponent, CmsIconDeleteComponent, CmsIconViewComponent } from '../../../shared/icons';
 import { CurriculumVersionCloneDialogComponent, CurriculumVersionCloneDialogData } from '../curriculum-version-clone-dialog/curriculum-version-clone-dialog.component';
+import { PermissionService } from '../../../core/permissions/permission.service';
 
 @Component({
   selector: 'app-curriculum-version-list',
@@ -53,6 +54,7 @@ export class CurriculumVersionListComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly dialog = inject(MatDialog);
   private readonly tourService = inject(TourService);
+  private readonly permissionService = inject(PermissionService);
 
   private readonly VIEW_MODE_KEY = 'curriculum-version-view-mode';
   private readonly destroy$ = new Subject<void>();
@@ -116,6 +118,10 @@ export class CurriculumVersionListComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this._paginatorSub?.unsubscribe();
+  }
+
+  protected canManage(): boolean {
+    return this.permissionService.has('CURRICULUM_MANAGE');
   }
 
   protected setViewMode(mode: 'card' | 'table'): void {

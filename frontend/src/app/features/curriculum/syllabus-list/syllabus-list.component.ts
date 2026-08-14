@@ -19,6 +19,7 @@ import { SYLLABUS_LIST_TOUR } from '../../../shared/tour/tours/syllabus.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconToggleStatusComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
+import { PermissionService } from '../../../core/permissions/permission.service';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 
@@ -49,6 +50,7 @@ export class SyllabusListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly tourService = inject(TourService);
+  private readonly permissionService = inject(PermissionService);
 
   @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -133,6 +135,10 @@ export class SyllabusListComponent implements OnInit {
   }
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
+
+  protected canManage(): boolean {
+    return this.permissionService.has('SYLLABUS_MANAGE');
+  }
 
   ngOnInit(): void {
     this.tourService.register('syllabus-list', SYLLABUS_LIST_TOUR);

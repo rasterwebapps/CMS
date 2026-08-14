@@ -19,6 +19,7 @@ import { EXPERIMENT_LIST_TOUR } from '../../../shared/tour/tours/experiment.tour
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
+import { PermissionService } from '../../../core/permissions/permission.service';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 
@@ -51,6 +52,7 @@ export class ExperimentListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly tourService = inject(TourService);
+  private readonly permissionService = inject(PermissionService);
 
   @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -78,6 +80,10 @@ export class ExperimentListComponent implements OnInit {
   protected readonly searchValue = signal('');
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
+
+  protected canManage(): boolean {
+    return this.permissionService.has('EXPERIMENT_MANAGE');
+  }
 
   ngOnInit(): void {
     this.tourService.register('experiment-list', EXPERIMENT_LIST_TOUR);
