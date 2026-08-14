@@ -95,4 +95,28 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
                                          @Param("endTime") LocalTime endTime,
                                          @Param("status") ClassScheduleStatus status,
                                          @Param("excludeId") Long excludeId);
+
+    /**
+     * Used to hard-block a new FacultyAvailability block when it would collide with a class the
+     * faculty member is already scheduled to teach. FacultyAvailability itself isn't term-scoped
+     * (it's a standing weekly rule), so this checks across every non-LOCKED term instance -- a
+     * PLANNED term (not yet open) can already have a fully-staffed skeleton, same as an OPEN one;
+     * LOCKED is the only status the rest of the timetable engine already treats as frozen/immutable
+     * (see TimetableGenerationService#requireNotLocked). Status-agnostic (DRAFT rows count too, not
+     * just PUBLISHED) since an unreviewed DRAFT would still surface as a real conflict once
+     * published.
+     */
+    @Query("""
+        SELECT cs FROM ClassSchedule cs
+        WHERE cs.faculty.id = :facultyId
+          AND cs.dayOfWeek = :dayOfWeek
+          AND cs.isActive = true
+          AND cs.termInstance.status <> com.cms.model.enums.TermInstanceStatus.LOCKED
+          AND cs.period IS NOT NULL
+          AND cs.period.startTime < :endTime AND cs.period.endTime > :startTime
+        """)
+    List<ClassSchedule> findActiveConflictingForFaculty(@Param("facultyId") Long facultyId,
+                                                          @Param("dayOfWeek") DayOfWeek dayOfWeek,
+                                                          @Param("startTime") LocalTime startTime,
+                                                          @Param("endTime") LocalTime endTime);
 }

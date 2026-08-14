@@ -142,7 +142,9 @@ export class FacultyAvailabilityComponent implements OnInit {
         this.toggling.set(null);
       },
       error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to mark unavailable');
+        // Hard-block conflict messages list every affected class -- can run long, so keep the
+        // toast open until dismissed rather than the default 6s auto-dismiss.
+        this.toast.error(err?.error?.message ?? 'Failed to mark unavailable', { durationMs: 0 });
         this.toggling.set(null);
       },
     });
