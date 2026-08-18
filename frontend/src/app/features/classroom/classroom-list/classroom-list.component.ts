@@ -16,6 +16,9 @@ import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CLASSROOM_LIST_TOUR, CLASSROOM_LIST_FLOW_MAP } from '../../../shared/tour/tours/preferences-remainder.tours';
 
 @Component({
   selector: 'app-classroom-list',
@@ -33,6 +36,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './classroom-list.component.html',
   styleUrl: './classroom-list.component.scss',
@@ -43,6 +47,7 @@ export class ClassroomListComponent implements OnInit, OnDestroy {
   private readonly route            = inject(ActivatedRoute);
   private readonly toast            = inject(ToastService);
   private readonly dialog           = inject(MatDialog);
+  private readonly tourService      = inject(TourService);
 
   private readonly VIEW_MODE_KEY = 'classroom-view-mode';
   private readonly destroy$ = new Subject<void>();
@@ -76,6 +81,9 @@ export class ClassroomListComponent implements OnInit, OnDestroy {
   protected sortDirection: 'asc' | 'desc' = 'asc';
 
   ngOnInit(): void {
+    this.tourService.register('classroom-list', CLASSROOM_LIST_TOUR);
+    this.tourService.registerFlowMap('classroom-list', CLASSROOM_LIST_FLOW_MAP);
+
     const snap = this.route.snapshot.queryParams;
     if (snap['sortField']) this.sortActive    = snap['sortField'];
     if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';

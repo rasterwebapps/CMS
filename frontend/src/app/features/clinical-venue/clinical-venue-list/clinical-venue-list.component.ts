@@ -16,6 +16,9 @@ import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CLINICAL_VENUE_LIST_TOUR, CLINICAL_VENUE_LIST_FLOW_MAP } from '../../../shared/tour/tours/preferences-remainder.tours';
 
 @Component({
   selector: 'app-clinical-venue-list',
@@ -33,6 +36,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './clinical-venue-list.component.html',
   styleUrl: './clinical-venue-list.component.scss',
@@ -43,6 +47,7 @@ export class ClinicalVenueListComponent implements OnInit, OnDestroy {
   private readonly route                = inject(ActivatedRoute);
   private readonly toast                = inject(ToastService);
   private readonly dialog               = inject(MatDialog);
+  private readonly tourService          = inject(TourService);
 
   private readonly VIEW_MODE_KEY = 'clinical-venue-view-mode';
   private readonly destroy$ = new Subject<void>();
@@ -76,6 +81,9 @@ export class ClinicalVenueListComponent implements OnInit, OnDestroy {
   protected sortDirection: 'asc' | 'desc' = 'asc';
 
   ngOnInit(): void {
+    this.tourService.register('clinical-venue-list', CLINICAL_VENUE_LIST_TOUR);
+    this.tourService.registerFlowMap('clinical-venue-list', CLINICAL_VENUE_LIST_FLOW_MAP);
+
     const snap = this.route.snapshot.queryParams;
     if (snap['sortField']) this.sortActive    = snap['sortField'];
     if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';

@@ -18,6 +18,9 @@ import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { HOLIDAY_TEMPLATE_LIST_TOUR, HOLIDAY_TEMPLATE_LIST_FLOW_MAP } from '../../../shared/tour/tours/preferences-remainder.tours';
 
 @Component({
   selector: 'app-holiday-template-list',
@@ -35,6 +38,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './holiday-template-list.component.html',
   styleUrl: './holiday-template-list.component.scss',
@@ -46,6 +50,7 @@ export class HolidayTemplateListComponent implements OnInit, OnDestroy {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly permissionService = inject(PermissionService);
+  private readonly tourService = inject(TourService);
 
   private readonly VIEW_MODE_KEY = 'holiday-template-view-mode';
   private readonly destroy$ = new Subject<void>();
@@ -86,6 +91,9 @@ export class HolidayTemplateListComponent implements OnInit, OnDestroy {
   protected readonly recurrenceSummary = formatRecurrenceSummary;
 
   ngOnInit(): void {
+    this.tourService.register('holiday-template-list', HOLIDAY_TEMPLATE_LIST_TOUR);
+    this.tourService.registerFlowMap('holiday-template-list', HOLIDAY_TEMPLATE_LIST_FLOW_MAP);
+
     const snap = this.route.snapshot.queryParams;
     if (snap['sortField']) this.sortActive = snap['sortField'];
     if (snap['sortDir']) this.sortDirection = snap['sortDir'] as 'asc' | 'desc';

@@ -3,8 +3,9 @@
   <!-- ── Page Header ─────────────────────────────────────────── -->
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <div class="page-title-row">
+      <div class="page-title-row" style="display: flex; align-items: center; gap: 12px;">
         <h1 class="dept-pg-title">Holiday Template<em>s</em></h1>
+        <cms-tour-button tourKey="holiday-template-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="dept-pg-sub">Recurring holidays (yearly or monthly) that auto-seed into every new academic year's calendar</p>
     </div>
@@ -19,7 +20,7 @@
   </div>
 
   <!-- ── Toolbar ───────────────────────────────────────────────── -->
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-ht-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <div class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input

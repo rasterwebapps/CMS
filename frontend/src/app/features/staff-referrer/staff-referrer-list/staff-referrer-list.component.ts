@@ -23,6 +23,9 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../sha
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { STAFF_REFERRER_LIST_TOUR, STAFF_REFERRER_LIST_FLOW_MAP } from '../../../shared/tour/tours/preferences-remainder.tours';
 
 @Component({
   selector: 'app-staff-referrer-list',
@@ -42,7 +45,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
-    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent,
   ],
   templateUrl: './staff-referrer-list.component.html',
   styleUrl: './staff-referrer-list.component.scss',
@@ -53,6 +56,7 @@ export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDest
   private readonly route             = inject(ActivatedRoute);
   private readonly toast             = inject(ToastService);
   private readonly dialog            = inject(MatDialog);
+  private readonly tourService       = inject(TourService);
   private readonly permissionService = inject(PermissionService);
 
   private readonly VIEW_MODE_KEY = 'staff-referrer-view-mode';
@@ -107,6 +111,9 @@ export class StaffReferrerListComponent implements OnInit, AfterViewInit, OnDest
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
+    this.tourService.register('staff-referrer-list', STAFF_REFERRER_LIST_TOUR);
+    this.tourService.registerFlowMap('staff-referrer-list', STAFF_REFERRER_LIST_FLOW_MAP);
+
     const snap = this.route.snapshot.queryParams;
     if (snap['sortField']) this.sortActive    = snap['sortField'];
     if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';

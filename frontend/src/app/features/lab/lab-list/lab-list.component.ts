@@ -20,6 +20,8 @@ import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.com
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
+import { TourService } from '../../../shared/tour/tour.service';
+import { LAB_LIST_TOUR, LAB_LIST_FLOW_MAP } from '../../../shared/tour/tours/lab.tours';
 
 @Component({
   selector: 'app-lab-list',
@@ -49,6 +51,7 @@ export class LabListComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   private readonly VIEW_MODE_KEY = 'lab-view-mode';
   private readonly destroy$ = new Subject<void>();
@@ -99,6 +102,9 @@ export class LabListComponent implements OnInit, OnDestroy {
   };
 
   ngOnInit(): void {
+    this.tourService.register('lab-list', LAB_LIST_TOUR);
+    this.tourService.registerFlowMap('lab-list', LAB_LIST_FLOW_MAP);
+
     this.loadSpecialities();
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });
