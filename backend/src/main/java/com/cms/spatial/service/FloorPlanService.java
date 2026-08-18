@@ -2,7 +2,10 @@ package com.cms.spatial.service;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,6 +79,9 @@ public class FloorPlanService {
         plan.setViewboxHeight(request.viewboxHeight());
 
         storeFile(plan, file);
+        if (request.viewboxWidth() == null && request.viewboxHeight() == null) {
+            applyParsedSvgViewBox(plan, file);
+        }
 
         return toResponse(floorPlanRepository.save(plan));
     }
@@ -100,6 +106,7 @@ public class FloorPlanService {
         FloorPlan plan = getOrThrow(id);
         validateFile(file);
         storeFile(plan, file);
+        applyParsedSvgViewBox(plan, file);
         return toResponse(floorPlanRepository.save(plan));
     }
 
@@ -160,6 +167,41 @@ public class FloorPlanService {
         plan.setStorageKey(objectKey);
         plan.setOriginalFileName(sanitizedName);
         plan.setOriginalContentType(contentType);
+    }
+
+    private static final Pattern SVG_VIEWBOX_PATTERN = Pattern.compile(
+        "viewBox\\s*=\\s*[\"']\\s*[-\\d.eE]+\\s+[-\\d.eE]+\\s+([-\\d.eE]+)\\s+([-\\d.eE]+)\\s*[\"']",
+        Pattern.CASE_INSENSITIVE);
+
+    /** Best-effort: only sets viewbox_width/height when the uploaded asset is an SVG with a
+     *  parseable viewBox attribute. Leaves existing values untouched otherwise (e.g. raster images,
+     *  or an SVG with no viewBox — admin can still set these manually via update). */
+    private void applyParsedSvgViewBox(FloorPlan plan, MultipartFile file) {
+        String contentType = file.getContentType();
+        String fileName = file.getOriginalFilename();
+        boolean looksLikeSvg = (contentType != null && contentType.toLowerCase().contains("svg"))
+            || (fileName != null && fileName.toLowerCase().endsWith(".svg"));
+        if (!looksLikeSvg) {
+            return;
+        }
+
+        String svgText;
+        try {
+            svgText = new String(file.getBytes(), StandardCharsets.UTF_8);
+        } catch (IOException ex) {
+            return;
+        }
+
+        Matcher matcher = SVG_VIEWBOX_PATTERN.matcher(svgText);
+        if (!matcher.find()) {
+            return;
+        }
+        try {
+            plan.setViewboxWidth(Double.parseDouble(matcher.group(1)));
+            plan.setViewboxHeight(Double.parseDouble(matcher.group(2)));
+        } catch (NumberFormatException ignored) {
+            // malformed viewBox values — leave whatever was already on the plan
+        }
     }
 
     private void validateFile(MultipartFile file) {

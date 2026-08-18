@@ -1,0 +1,53 @@
+<cms-flyout-panel width="640px" ariaLabel="Import floor plan from DXF" (closed)="onClose()">
+  <div flyoutHeader>Import from DXF</div>
+
+  <div flyoutBody>
+    <div class="field-group">
+      <label class="field-label" for="dxf-file">DXF File</label>
+      <input id="dxf-file" type="file" class="field-input" accept=".dxf" (change)="onFileSelected($event)" />
+      <p class="field-hint">Parsed entirely in your browser. Renders lines, polylines, circles, arcs, and text — hatches, splines, dimension leaders, and blocks are skipped.</p>
+    </div>
+
+    @if (loading()) {
+      <div class="sp-import-loading">Reading DXF…</div>
+    } @else if (previewSvg(); as svg) {
+      <div class="sp-dxf-layout">
+        <div class="sp-dxf-preview" [innerHTML]="svg"></div>
+
+        <div class="sp-dxf-side">
+          @if (detectedShapeCount() > 0) {
+            <div class="sp-dxf-unit-hint sp-dxf-unit-hint--ok">
+              {{ detectedShapeCount() }} candidate sub-component{{ detectedShapeCount() === 1 ? '' : 's' }} detected — you'll review and confirm them after import.
+            </div>
+          }
+          @if (hasReliableUnits()) {
+            <div class="sp-dxf-unit-hint sp-dxf-unit-hint--ok">
+              This file has real-world units — the floor plan will be auto-calibrated on import, no manual calibration needed.
+            </div>
+          } @else {
+            <div class="sp-dxf-unit-hint sp-dxf-unit-hint--warn">
+              This file has no reliable unit info — you'll still need to calibrate it manually after import.
+            </div>
+          }
+
+          <div class="field-group">
+            <label class="field-label">Layers ({{ layers().length }}) — {{ entityCount() }} entities</label>
+            <div class="sp-dxf-layer-list">
+              @for (layer of layers(); track layer) {
+                <label class="sp-dxf-layer-item">
+                  <input type="checkbox" [checked]="visibleLayers().has(layer)" (change)="toggleLayer(layer)" />
+                  <span>{{ layer }}</span>
+                </label>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div flyoutFooter>
+    <button type="button" class="btn-cancel" (click)="onClose()">Cancel</button>
+    <button type="button" class="btn-primary" [disabled]="!previewSvg()" (click)="onImport()">Use This Drawing</button>
+  </div>
+</cms-flyout-panel>

@@ -3108,4 +3108,62 @@ Auto-assigned at seed time to every role already holding `ACADEMIC_YEAR_VIEW`/`A
 
 ---
 
+## BR-60: Core Physical Infrastructure & Spatial Visualization Engine
+
+> Schema + service/controller layer (Phase 1/2) shipped 2026-08-18 under OC-136. The frontend (Phase 3), PDF/DXF import, and multi-level diagrams + asset/stock linking (Phase 1 of a second round, same ticket) shipped the same day in follow-on passes once real office floor plans were used to test the module. Live-push updates (WebSocket) are the one piece still explicitly deferred — see Explicitly Out of Scope.
+
+### Business Rule
+
+The college hierarchy (Organization→Branch→Block→Floor→Zone→Room, BR-54) describes physical spaces structurally but has no way to answer "show me a picture of this floor with beds/desks/equipment marked on it." This module adds that as a **generic, domain-agnostic layer** bolted on top of any existing entity, not welded to the college hierarchy: a `FloorPlan` is an admin-uploaded image/SVG asset (stored in MinIO, matching the `FacultyDocument` pattern from BR-42) attached to one entity via a generic `(entityType, entityId)` pair — never a direct foreign key. A `VirtualLocation` is a named, shaped marker placed on a calibrated `FloorPlan`, optionally also tagged to its own `(entityType, entityId)`.
+
+**Diagrams exist at two levels of the hierarchy, not one.** A **Branch**-level diagram (`entityType='BRANCH'`) shows markers linked to that Branch's **Blocks**. A **Floor**-level diagram (`entityType='FLOOR'`, the original Phase 3 scope) shows markers linked to **Zones**, **Rooms**, **Equipment**, or **Inventory Items**. **Block deliberately has no diagram of its own** — clicking a Block marker on a Branch diagram navigates to that Block's existing vertical Skyline view inside Campus Setup (`campus-skyline.component.ts`, pre-existing, unchanged in its own rendering — only a new `viewFloorDiagram` output and a `branchId`/`blockId` query-param entry point were added to `CampusSetupComponent`), and clicking a Floor row inside that Skyline (a new "View Diagram" icon, additive alongside the pre-existing Grid-view click) opens that Floor's diagram — one connected click-through path: Branch diagram → Block → Skyline → Floor diagram. This needed **zero backend schema change**: `FloorPlan`/`VirtualLocation.entityType` were already free-form strings.
+
+**Five link kinds, backend-identical.** `VirtualLocation.entityType` now takes `BLOCK` (Branch diagrams only), or `ZONE`/`ROOM`/`EQUIPMENT`/`INVENTORY_ITEM` (Floor diagrams only) — which kinds a diagram offers is purely a frontend concern (`LINK_TYPES_BY_LEVEL` in `spatial.model.ts`); the backend validation/storage path is identical regardless of `entityType`'s value, unchanged since Phase 2. Equipment/InventoryItem status (`AVAILABLE/IN_USE/UNDER_MAINTENANCE/OUT_OF_ORDER/DISPOSED`, and InventoryItem's server-computed `lowStock`) is fetched fresh from their existing `/equipment`/`/inventory` endpoints every time a diagram loads and rendered as a colored status dot on the marker — "real-time" in the sense of always-current-on-load, not pushed; see Explicitly Out of Scope.
+
+**Room/Zone/Block/Equipment/InventoryItem still need one hand-drawn marker each** — none of those entities carry coordinate/dimension data (confirmed absent from `Room`/`Zone`/`Block`/`Floor` before building this), so there's no automatic layout. An admin places one marker per real entity once, the same click-then-fill-a-form flow as any other marker; only what a marker can point *at* changed, not how it's placed.
+
+**PDF and DXF import are both entirely client-side**, adding no backend surface at all:
+- **PDF** (`pdf-import-flyout/`, `pdfjs-dist`): renders every page of an uploaded PDF as a thumbnail in-browser, the admin picks the one page that's the actual top-down plan (architect PDFs routinely bundle a title slide, the 2D plan, and several 3D render pages in one file), and that page is rasterized to a PNG `File` — handed to the *existing* multipart create/replace endpoints exactly as if picked from disk.
+- **DXF** (`dxf-import-flyout/`, `dxf-render.util.ts`, `dxf-parser`): parses the common architectural entity subset (`LINE`/`LWPOLYLINE`/`POLYLINE`/`CIRCLE`/`ARC`/`TEXT`/`MTEXT` — HATCH/SPLINE/DIMENSION/INSERT blocks are silently skipped, not failed), renders a layer-togglable SVG preview, and on import builds a final SVG `File` from only the visible layers. Because a DXF's `$INSUNITS` header gives an exact real-world-units-per-drawing-unit ratio, import can **auto-calibrate**: it computes `metersPerUnit` client-side and calls the *existing* `POST /{id}/calibrate` with synthetic points 1 SVG-unit apart, so `physicalLength` directly equals the real-world scale — no new calibration endpoint, no manual two-point step, for DXF-sourced plans specifically. Falls back to the normal manual flow when `$INSUNITS` is absent/unitless.
+
+### Scope
+
+- **Entities/tables (V388, unchanged):** `floor_plans`, `virtual_locations` — see original Phase 1/2 notes below.
+- **Backend (V388/V389, unchanged):** `FloorPlanController`/`VirtualLocationController`, `FloorPlanService`/`VirtualLocationService`, `SpatialTransform`/`SpatialPoint`.
+- **Frontend (`frontend/src/app/features/spatial/`):**
+  - `floor-plan-list/` — generalized via route `data.level: 'BRANCH'|'FLOOR'` to serve both `/branch-diagrams` and `/floor-plans`; supports a `?floorId=` query param that reverse-walks Floor→Block→Branch→Organization to pre-populate the picker.
+  - `floor-plan-form-flyout/`, `floor-plan-calibration-flyout/` — upload/edit/calibrate, unchanged in shape from Phase 3, now also embed the PDF/DXF import entry points.
+  - `pdf-import-flyout/`, `dxf-import-flyout/` (+ `dxf-render.util.ts`) — the two importers described above.
+  - `virtual-location-canvas/` — the SVG placement canvas; derives `diagramLevel` from the loaded `FloorPlan.entityType` (not a route param), fetches and renders live Equipment/InventoryItem status dots, and adds a "View Skyline" action on `BLOCK`-linked markers.
+  - `virtual-location-form-flyout/` — the marker create/edit form; link-type picker offered depends on `diagramLevel` (`LINK_TYPES_BY_LEVEL`), self-fetches its own Block/Zone/Room/Equipment/InventoryItem option lists rather than receiving them from the canvas.
+  - `spatial.service.ts` gained `getEquipmentSummaries()`/`getEquipmentSummaryById()`/`getInventoryItemSummaries()`/`getInventoryItemSummaryById()`, hitting `/equipment` and `/inventory` directly with locally-defined `SpatialEquipmentSummary`/`SpatialInventoryItemSummary` types — **deliberately not** reusing `features/equipment`/`features/inventory`'s own models/services, which were found to have drifted from their real backend DTOs (missing `lowStock`/`assetCode`/`itemCode`, wrong field names like `purchaseCost` vs `purchasePrice`) — fixing those is a separate, unrelated concern.
+  - `campus-skyline.component.ts`/`campus-setup.component.ts` (pre-existing, Campus Setup module) — one new additive output (`viewFloorDiagram`) and one new query-param entry point (`branchId`/`blockId`), no change to existing Grid-view/drag-reorder behavior.
+- **Nav:** "Branch Diagrams" added alongside the existing "Floor Plans" under Core Infrastructure, same permissions.
+
+### Permissions
+
+| Code | Gates | Seeded |
+|---|---|---|
+| `SPATIAL_FLOOR_PLAN_VIEW` | Read floor plans/diagrams, download the asset | V389 |
+| `SPATIAL_FLOOR_PLAN_MANAGE` | Create/update/delete a diagram, replace its file, calibrate it (incl. PDF/DXF import, which reduces to the same create/replace/calibrate calls) | V389 |
+| `SPATIAL_VIRTUAL_LOCATION_VIEW` | Read virtual locations, see live Equipment/InventoryItem status on markers | V389 |
+| `SPATIAL_VIRTUAL_LOCATION_MANAGE` | Create/update/delete a virtual location (of any of the 5 link kinds) | V389 |
+
+No new permission codes for Branch-level diagrams or the wider link types — same module, same 4 codes. Placing an Equipment/InventoryItem-linked marker only requires the Spatial module's own `MANAGE` permission, not `EQUIPMENT_MANAGE`/`INVENTORY_MANAGE` (the marker is a reference to the asset, not an edit of it).
+
+### Migration Notes
+
+- V388 — creates `floor_plans` + `virtual_locations`.
+- V389 — seeds the 4 permissions + DEV_ADMIN/SUPPORT_ADMIN/`collegeadmin` grants.
+- No migrations added for the Phase 3 frontend, PDF/DXF import, or the multi-level/asset-linking round — all of it reuses the same two tables and four permissions unchanged.
+
+### Explicitly Out of Scope
+
+- **Live push (WebSocket).** Equipment/InventoryItem status on a marker is fetched fresh every time a diagram loads (or a marker is saved) — accurate right now, not pushed live to an already-open canvas when the underlying record changes elsewhere. Flagged as a distinct follow-up: this codebase has no WebSocket/SSE/STOMP infrastructure anywhere yet, and the security config (`SecurityConfig`, OAuth2 Resource Server + `NimbusJwtDecoder`, no custom JWT filter) would need a handshake interceptor built from scratch.
+- **Backend scoping for the Equipment/InventoryItem picker.** The link picker on a Floor diagram lists *all* Equipment/InventoryItem rows (client-side searchable), not just ones whose Lab happens to be on that floor — that would need a new backend join query (`Equipment`/`InventoryItem` → `Lab` → `Room` → `Floor`). Same trust model as the pre-existing Room picker.
+- **Physical-coordinate endpoints.** `SpatialTransform.physicalToSvg`/`svgToPhysical` remain unit-tested but uncalled — every DTO/endpoint still works purely in SVG-space.
+- **No automatic Room/Zone/Block layout.** These entities carry no coordinate/dimension data at all (confirmed while scoping this round) — every marker, including Room/Zone/Block ones, is still placed by hand once.
+
+---
+
 > **⚠️ Documentation Policy:** Any changes to business rules, workflows, status transitions, fee logic, or operational processes described in this document must be reflected here **before** the corresponding code change is merged. This document, along with the milestone trackers and manual test cases, must always remain in sync with the implementation.

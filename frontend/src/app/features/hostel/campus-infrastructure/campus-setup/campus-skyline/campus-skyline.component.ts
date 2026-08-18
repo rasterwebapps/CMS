@@ -133,6 +133,16 @@ export class CampusSkylineComponent {
     this.floorEditRequested.emit({ block: sb, floor: sf });
   }
 
+  /** New, additive alongside `floorOpened` (which switches this same screen to the Grid view) —
+   *  this instead navigates to that Floor's spatial diagram (BR-60 Phase 1). Only rendered where
+   *  `floorsClickable` (the zoomed single-Block view), same gating as the edit pencil. */
+  readonly viewFloorDiagram = output<{ block: SkylineBlock; floor: SkylineFloor }>();
+
+  protected onViewFloorDiagramClick(event: Event, sb: SkylineBlock, sf: SkylineFloor): void {
+    event.stopPropagation();
+    this.viewFloorDiagram.emit({ block: sb, floor: sf });
+  }
+
   protected readonly gradientFor = computed(() => {
     const map = new Map<number, string>();
     this.blocks().forEach((b, i) => map.set(b.block.id, `building--${BUILDING_GRADIENTS[i % BUILDING_GRADIENTS.length]}`));

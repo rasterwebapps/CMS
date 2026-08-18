@@ -1,0 +1,87 @@
+<cms-flyout-panel width="440px" [ariaLabel]="isEditMode() ? 'Edit floor plan' : 'Add floor plan'" (closed)="onClose()">
+  <div flyoutHeader>{{ isEditMode() ? 'Edit Floor Plan' : 'Add Floor Plan' }}</div>
+
+  <div flyoutBody>
+    <div class="field-group">
+      <label class="field-label" for="fp-name">Name <span class="field-required">*</span></label>
+      <input id="fp-name" type="text" class="field-input" [(ngModel)]="name" placeholder="e.g. Ground Floor Plan" />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="fp-file">
+        {{ isEditMode() ? 'Replace File (optional)' : 'File' }} @if (!isEditMode()) { <span class="field-required">*</span> }
+      </label>
+      <input id="fp-file" type="file" class="field-input" [accept]="acceptedTypes" (change)="onFileSelected($event)" />
+      <p class="field-hint">Image or SVG, up to 10 MB. If it's an SVG with a viewBox, the plan's pixel dimensions are auto-detected.</p>
+
+      <div class="sp-import-buttons">
+        <button type="button" class="btn-cancel sp-btn-sm" (click)="openPdfImport()">Import from PDF</button>
+        <button type="button" class="btn-cancel sp-btn-sm" (click)="openDxfImport()">Import from DXF</button>
+      </div>
+
+      @if (selectedFile && selectedFileSource !== 'picked') {
+        <p class="sp-selected-file-hint">
+          Using <strong>{{ selectedFile.name }}</strong>
+          {{ selectedFileSource === 'pdf' ? '(rasterized from PDF)' : '(rendered from DXF' + (pendingAutoCalibrateMetersPerUnit != null ? ', will auto-calibrate' : '') + ')' }}
+          @if (pendingDetectedShapes.length > 0) {
+            — {{ pendingDetectedShapes.length }} candidate sub-component{{ pendingDetectedShapes.length === 1 ? '' : 's' }} detected, review after saving
+          }
+        </p>
+      }
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="fp-unit">Unit System</label>
+      <select id="fp-unit" class="field-select" [(ngModel)]="unitSystem">
+        <option value="METERS">Meters</option>
+        <option value="FEET">Feet</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="fp-anchor">Origin Anchor</label>
+      <select id="fp-anchor" class="field-select" [(ngModel)]="originAnchor">
+        <option value="TOP_LEFT">Top Left</option>
+        <option value="BOTTOM_LEFT">Bottom Left</option>
+        <option value="CENTER">Center</option>
+      </select>
+      <p class="field-hint">Where the physical-space origin sits within the rendered plan.</p>
+    </div>
+
+    <div class="sp-field-row">
+      <div class="field-group">
+        <label class="field-label" for="fp-origin-x">Origin X</label>
+        <input id="fp-origin-x" type="number" class="field-input" [(ngModel)]="originX" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="fp-origin-y">Origin Y</label>
+        <input id="fp-origin-y" type="number" class="field-input" [(ngModel)]="originY" />
+      </div>
+    </div>
+  </div>
+
+  <div flyoutFooter>
+    <button type="button" class="btn-cancel" (click)="onClose()" [disabled]="saving() || showShapeReview()">Cancel</button>
+    <button type="button" class="btn-primary" [disabled]="!canSubmit() || saving() || showShapeReview()" (click)="onSubmit()">
+      @if (saving()) { <span class="btn-spinner"></span> Saving… } @else { Save }
+    </button>
+  </div>
+</cms-flyout-panel>
+
+@if (showPdfImport()) {
+  <app-pdf-import-flyout (closed)="closePdfImport()" (imported)="onPdfImported($event)" />
+}
+
+@if (showDxfImport()) {
+  <app-dxf-import-flyout (closed)="closeDxfImport()" (imported)="onDxfImported($event)" />
+}
+
+@if (showShapeReview() && savedFloorPlanId != null) {
+  <app-detected-shapes-review-flyout
+    [floorPlanId]="savedFloorPlanId"
+    [diagramLevel]="reviewDiagramLevel()"
+    [parentEntityId]="entityId"
+    [detectedShapes]="pendingDetectedShapes"
+    (closed)="onShapeReviewClosed()"
+  />
+}

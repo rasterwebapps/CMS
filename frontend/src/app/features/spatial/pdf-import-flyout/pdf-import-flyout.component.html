@@ -1,0 +1,45 @@
+<cms-flyout-panel width="560px" ariaLabel="Import floor plan from PDF" (closed)="onClose()">
+  <div flyoutHeader>Import from PDF</div>
+
+  <div flyoutBody>
+    <div class="field-group">
+      <label class="field-label" for="pdf-file">PDF File</label>
+      <input id="pdf-file" type="file" class="field-input" accept=".pdf" (change)="onFileSelected($event)" />
+      <p class="field-hint">Rendered entirely in your browser — nothing is uploaded until you pick a page and confirm. Architect PDFs often bundle a title slide, the 2D plan, and 3D renders in one file — pick the top-down plan page.</p>
+    </div>
+
+    @if (loading()) {
+      <div class="sp-import-loading">Reading PDF pages…</div>
+    } @else if (pages().length > 0) {
+      <div class="field-group">
+        <label class="field-label">Pick the page to import ({{ pages().length }} pages)</label>
+        <div class="sp-pdf-page-grid">
+          @for (page of pages(); track page.pageNumber) {
+            <button
+              type="button"
+              class="sp-pdf-page-thumb"
+              [class.sp-pdf-page-thumb--selected]="selectedPage() === page.pageNumber"
+              (click)="selectPage(page.pageNumber)"
+            >
+              <img [src]="page.dataUrl" [alt]="'Page ' + page.pageNumber" />
+              <span class="sp-pdf-page-thumb__num">Page {{ page.pageNumber }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    @if (detecting()) {
+      <div class="sp-import-loading">Detecting sub-components on this page (may take a few seconds the first time)…</div>
+    }
+  </div>
+
+  <div flyoutFooter>
+    <button type="button" class="btn-cancel" (click)="onClose()" [disabled]="exporting() || detecting()">Cancel</button>
+    <button type="button" class="btn-primary" [disabled]="!selectedPage() || exporting() || detecting()" (click)="onImport()">
+      @if (exporting()) { <span class="btn-spinner"></span> Importing… }
+      @else if (detecting()) { <span class="btn-spinner"></span> Detecting… }
+      @else { Use This Page }
+    </button>
+  </div>
+</cms-flyout-panel>

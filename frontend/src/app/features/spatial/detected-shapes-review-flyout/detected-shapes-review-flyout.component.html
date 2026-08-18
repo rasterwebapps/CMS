@@ -1,0 +1,107 @@
+<cms-flyout-panel width="760px" ariaLabel="Review detected sub-components" (closed)="onDone()">
+  <div flyoutHeader>Review Detected Sub-Components</div>
+
+  <div flyoutBody>
+    <p class="field-hint">
+      {{ detectedShapes.length }} candidate{{ detectedShapes.length === 1 ? '' : 's' }} detected from the drawing.
+      Nothing is created until you confirm a row — uncheck or just leave a row unconfirmed to skip it.
+    </p>
+
+    <div class="dsr-rows">
+      @for (row of rows(); track row.candidate.tempId) {
+        <div class="dsr-row" [class.dsr-row--confirmed]="row.confirmed" [class.dsr-row--excluded]="!row.included">
+          <div class="dsr-row__head">
+            <input
+              type="checkbox"
+              class="dsr-row__checkbox"
+              [checked]="row.included"
+              [disabled]="row.confirmed"
+              (change)="onExcludeToggle(row, $any($event.target).checked)"
+            />
+            <input
+              type="text"
+              class="field-input"
+              placeholder="Name"
+              [ngModel]="row.name"
+              (ngModelChange)="onNameChange(row, $event)"
+              [disabled]="row.confirmed || !row.included"
+            />
+            @if (row.confirmed) {
+              <span class="prev-pill prev-pill--green">Confirmed</span>
+            }
+          </div>
+
+          @if (row.included && !row.confirmed) {
+            <div class="dsr-row__fields">
+              @if (diagramLevel === 'BRANCH') {
+                <input type="text" class="field-input dsr-row__field--sm" placeholder="Code" [(ngModel)]="row.code" />
+                <label class="dsr-row__check-inline">
+                  <input type="checkbox" [(ngModel)]="row.isHostel" />
+                  Hostel
+                </label>
+                @if (row.isHostel) {
+                  <select class="field-select dsr-row__field--sm" [(ngModel)]="row.genderRestriction">
+                    <option [ngValue]="null">— None —</option>
+                    <option value="BOYS">Boys</option>
+                    <option value="GIRLS">Girls</option>
+                  </select>
+                }
+              }
+
+              @if (diagramLevel === 'ZONE') {
+                <select class="field-select" [ngModel]="row.purposeCategoryId" (ngModelChange)="onPurposeCategoryChange(row, $event)">
+                  <option [ngValue]="null">Select Purpose Category</option>
+                  @for (c of purposeCategories(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
+                </select>
+                <select class="field-select" [(ngModel)]="row.subTypeId" [disabled]="!row.purposeCategoryId">
+                  <option [ngValue]="null">Select Sub-Type</option>
+                  @for (s of row.subTypes; track s.id) { <option [ngValue]="s.id">{{ s.name }}</option> }
+                </select>
+              }
+
+              @if (diagramLevel === 'ROOM') {
+                <select class="field-select" [ngModel]="row.linkKind" (ngModelChange)="onLinkKindChange(row, $event)">
+                  <option [ngValue]="null">Skip (no link)</option>
+                  <option value="EQUIPMENT">Equipment</option>
+                  <option value="INVENTORY_ITEM">Inventory Item</option>
+                </select>
+                @if (row.linkKind === 'EQUIPMENT') {
+                  <select class="field-select" [(ngModel)]="row.linkedEntityId">
+                    <option [ngValue]="null">Select Equipment</option>
+                    @for (e of equipmentList(); track e.id) { <option [ngValue]="e.id">{{ e.name }} ({{ e.assetCode }})</option> }
+                  </select>
+                } @else if (row.linkKind === 'INVENTORY_ITEM') {
+                  <select class="field-select" [(ngModel)]="row.linkedEntityId">
+                    <option [ngValue]="null">Select Inventory Item</option>
+                    @for (i of inventoryList(); track i.id) { <option [ngValue]="i.id">{{ i.name }} ({{ i.itemCode }})</option> }
+                  </select>
+                }
+              }
+
+              <button
+                type="button"
+                class="btn-primary sp-btn-sm"
+                [disabled]="!canConfirm(row) || row.submitting"
+                (click)="confirmRow(row)"
+              >
+                {{ row.submitting ? 'Confirming…' : 'Confirm' }}
+              </button>
+            </div>
+          }
+
+          @if (row.error) {
+            <p class="dsr-row__error">{{ row.error }}</p>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <div flyoutFooter>
+    <span class="dsr-footer__count">{{ confirmedCount() }} of {{ rows().length }} confirmed</span>
+    <button type="button" class="btn-cancel" (click)="onDone()">Done</button>
+    <button type="button" class="btn-primary" [disabled]="confirmingAll()" (click)="confirmAll()">
+      {{ confirmingAll() ? 'Confirming…' : 'Confirm All' }}
+    </button>
+  </div>
+</cms-flyout-panel>

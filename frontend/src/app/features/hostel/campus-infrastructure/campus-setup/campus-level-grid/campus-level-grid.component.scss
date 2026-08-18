@@ -254,6 +254,12 @@
   opacity: 1;
 }
 
+// Same idiom as Skyline's `.floor-row__edit--diagram` — two icon buttons would otherwise both
+// absolutely-position to the same top-right corner and stack exactly on top of each other.
+.level-card__edit--diagram {
+  right: 40px;
+}
+
 .level-grid__loading,
 .level-grid__empty {
   padding: 24px 4px;

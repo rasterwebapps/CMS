@@ -10,9 +10,12 @@ import com.cms.spatial.dto.VirtualLocationRequest;
 import com.cms.spatial.dto.VirtualLocationResponse;
 import com.cms.spatial.model.FloorPlan;
 import com.cms.spatial.model.VirtualLocation;
+import com.cms.spatial.model.enums.ShapeType;
 import com.cms.spatial.model.enums.VirtualLocationStatus;
 import com.cms.spatial.repository.FloorPlanRepository;
 import com.cms.spatial.repository.VirtualLocationRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 @Transactional(readOnly = true)
@@ -20,11 +23,14 @@ public class VirtualLocationService {
 
     private final VirtualLocationRepository virtualLocationRepository;
     private final FloorPlanRepository floorPlanRepository;
+    private final ObjectMapper objectMapper;
 
     public VirtualLocationService(VirtualLocationRepository virtualLocationRepository,
-                                   FloorPlanRepository floorPlanRepository) {
+                                   FloorPlanRepository floorPlanRepository,
+                                   ObjectMapper objectMapper) {
         this.virtualLocationRepository = virtualLocationRepository;
         this.floorPlanRepository = floorPlanRepository;
+        this.objectMapper = objectMapper;
     }
 
     public List<VirtualLocationResponse> findByFloorPlan(Long floorPlanId) {
@@ -80,6 +86,8 @@ public class VirtualLocationService {
     }
 
     private void applyRequest(VirtualLocation location, VirtualLocationRequest request) {
+        validateGeometry(request.shapeType(), request.geometryJson());
+
         location.setEntityType(request.entityType());
         location.setEntityId(request.entityId());
         location.setName(request.name());
@@ -90,6 +98,49 @@ public class VirtualLocationService {
         location.setCapacity(request.capacity());
         location.setStatus(request.status() != null ? request.status() : VirtualLocationStatus.ACTIVE);
         location.setDescription(request.description());
+    }
+
+    /**
+     * geometryJson is flat SVG-style coordinates, not GeoJSON:
+     * POINT {x,y} · RECTANGLE {x,y,width,height} (x,y = top-left) · POLYGON {points:[{x,y},...]} (min 3).
+     */
+    private void validateGeometry(ShapeType shapeType, String geometryJson) {
+        JsonNode node;
+        try {
+            node = objectMapper.readTree(geometryJson);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("geometryJson is not valid JSON");
+        }
+        if (node == null || !node.isObject()) {
+            throw new IllegalArgumentException("geometryJson must be a JSON object");
+        }
+
+        switch (shapeType) {
+            case POINT -> requireNumericFields(node, "x", "y");
+            case RECTANGLE -> requireNumericFields(node, "x", "y", "width", "height");
+            case POLYGON -> {
+                JsonNode points = node.get("points");
+                if (points == null || !points.isArray() || points.size() < 3) {
+                    throw new IllegalArgumentException(
+                        "POLYGON geometryJson must have a 'points' array with at least 3 entries");
+                }
+                for (JsonNode point : points) {
+                    if (point == null || !point.isObject()) {
+                        throw new IllegalArgumentException("Each POLYGON point must be a JSON object with x, y");
+                    }
+                    requireNumericFields(point, "x", "y");
+                }
+            }
+        }
+    }
+
+    private void requireNumericFields(JsonNode node, String... fields) {
+        for (String field : fields) {
+            JsonNode value = node.get(field);
+            if (value == null || !value.isNumber()) {
+                throw new IllegalArgumentException("geometryJson field '" + field + "' must be a number");
+            }
+        }
     }
 
     private VirtualLocation getOrThrow(Long id) {

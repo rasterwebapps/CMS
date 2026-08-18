@@ -116,7 +116,9 @@
             [items]="roomItems()"
             [loading]="loadingRooms()"
             [emptyLabel]="emptyLabelFor('No rooms in this zone yet.')"
+            [showViewDiagram]="true"
             (select)="selectRoom($event)"
+            (viewDiagram)="viewRoomDiagram($event)"
           />
         } @else if (selectedFloor(); as floor) {
           <app-campus-level-grid
@@ -124,8 +126,10 @@
             [items]="zoneItems()"
             [loading]="loadingZones()"
             [emptyLabel]="emptyLabelFor('No zones on this floor yet.')"
+            [showViewDiagram]="true"
             (select)="selectZone($event)"
             (edit)="editZone($event)"
+            (viewDiagram)="viewZoneDiagram($event)"
           />
         } @else if (selectedBlock(); as block) {
           <app-campus-skyline
@@ -138,6 +142,7 @@
             (floorOpened)="openFloorFromSkyline($event.block, $event.floor)"
             (blockEditRequested)="editBlock($event.block.id)"
             (floorEditRequested)="editFloor($event.floor.floor.id)"
+            (viewFloorDiagram)="viewFloorDiagram($event.floor.floor.id)"
           />
         } @else {
           <app-campus-skyline

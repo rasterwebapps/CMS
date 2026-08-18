@@ -405,6 +405,12 @@
   cursor: pointer;
   transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
 
+  // Two `.floor-row__edit`-classed buttons now share a row (View Diagram + Edit) — without this,
+  // both absolutely-position to the same top-right corner and stack exactly on top of each other.
+  &--diagram {
+    right: 24px;
+  }
+
   mat-icon {
     font-size: 11px;
     width: 11px;

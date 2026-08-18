@@ -108,6 +108,74 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'floor-plans',
+    canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),
+    data: { level: 'FLOOR' },
+    loadComponent: () =>
+      import('./features/spatial/floor-plan-list/floor-plan-list.component').then(
+        (m) => m.FloorPlanListComponent
+      ),
+  },
+  {
+    path: 'floor-plans/:id/locations',
+    canActivate: withPermission('SPATIAL_VIRTUAL_LOCATION_VIEW', 'SPATIAL_VIRTUAL_LOCATION_MANAGE'),
+    loadComponent: () =>
+      import('./features/spatial/virtual-location-canvas/virtual-location-canvas.component').then(
+        (m) => m.VirtualLocationCanvasComponent
+      ),
+  },
+  {
+    path: 'branch-diagrams',
+    canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),
+    data: { level: 'BRANCH' },
+    loadComponent: () =>
+      import('./features/spatial/floor-plan-list/floor-plan-list.component').then(
+        (m) => m.FloorPlanListComponent
+      ),
+  },
+  {
+    path: 'branch-diagrams/:id/locations',
+    canActivate: withPermission('SPATIAL_VIRTUAL_LOCATION_VIEW', 'SPATIAL_VIRTUAL_LOCATION_MANAGE'),
+    loadComponent: () =>
+      import('./features/spatial/virtual-location-canvas/virtual-location-canvas.component').then(
+        (m) => m.VirtualLocationCanvasComponent
+      ),
+  },
+  {
+    path: 'zone-diagrams',
+    canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),
+    data: { level: 'ZONE' },
+    loadComponent: () =>
+      import('./features/spatial/floor-plan-list/floor-plan-list.component').then(
+        (m) => m.FloorPlanListComponent
+      ),
+  },
+  {
+    path: 'zone-diagrams/:id/locations',
+    canActivate: withPermission('SPATIAL_VIRTUAL_LOCATION_VIEW', 'SPATIAL_VIRTUAL_LOCATION_MANAGE'),
+    loadComponent: () =>
+      import('./features/spatial/virtual-location-canvas/virtual-location-canvas.component').then(
+        (m) => m.VirtualLocationCanvasComponent
+      ),
+  },
+  {
+    path: 'room-diagrams',
+    canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),
+    data: { level: 'ROOM' },
+    loadComponent: () =>
+      import('./features/spatial/floor-plan-list/floor-plan-list.component').then(
+        (m) => m.FloorPlanListComponent
+      ),
+  },
+  {
+    path: 'room-diagrams/:id/locations',
+    canActivate: withPermission('SPATIAL_VIRTUAL_LOCATION_VIEW', 'SPATIAL_VIRTUAL_LOCATION_MANAGE'),
+    loadComponent: () =>
+      import('./features/spatial/virtual-location-canvas/virtual-location-canvas.component').then(
+        (m) => m.VirtualLocationCanvasComponent
+      ),
+  },
+  {
     path: 'room-preferences',
     canActivate: withPermission('HOSTEL_ROOM_PREFERENCE_VIEW', 'HOSTEL_ROOM_PREFERENCE_MANAGE'),
     loadComponent: () =>

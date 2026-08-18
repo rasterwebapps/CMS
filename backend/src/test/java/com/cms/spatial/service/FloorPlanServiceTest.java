@@ -89,6 +89,51 @@ class FloorPlanServiceTest {
     }
 
     @Test
+    void createShouldAutoParseSvgViewBoxWhenNotExplicitlyProvided() {
+        when(floorPlanRepository.save(any(FloorPlan.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        FloorPlanCreateRequest request = new FloorPlanCreateRequest(
+            "ROOM", 7L, "Ground Floor", UnitSystem.METERS, OriginAnchor.TOP_LEFT, 0.0, 0.0, null, null);
+        MultipartFile file = new MockMultipartFile("file", "plan.svg", "image/svg+xml",
+            "<svg viewBox=\"0 0 1200 900\"></svg>".getBytes());
+
+        FloorPlanResponse out = service.create(request, file);
+
+        assertThat(out.viewboxWidth()).isEqualTo(1200.0);
+        assertThat(out.viewboxHeight()).isEqualTo(900.0);
+    }
+
+    @Test
+    void createShouldNotOverrideExplicitViewboxWithSvgParse() {
+        when(floorPlanRepository.save(any(FloorPlan.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        FloorPlanCreateRequest request = new FloorPlanCreateRequest(
+            "ROOM", 7L, "Ground Floor", UnitSystem.METERS, OriginAnchor.TOP_LEFT, 0.0, 0.0, 1000.0, 800.0);
+        MultipartFile file = new MockMultipartFile("file", "plan.svg", "image/svg+xml",
+            "<svg viewBox=\"0 0 1200 900\"></svg>".getBytes());
+
+        FloorPlanResponse out = service.create(request, file);
+
+        assertThat(out.viewboxWidth()).isEqualTo(1000.0);
+        assertThat(out.viewboxHeight()).isEqualTo(800.0);
+    }
+
+    @Test
+    void replaceFileShouldAutoParseSvgViewBox() {
+        FloorPlan existing = plan(1L);
+        when(floorPlanRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(floorPlanRepository.save(any(FloorPlan.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        MultipartFile file = new MockMultipartFile("file", "plan2.svg", "image/svg+xml",
+            "<svg viewBox=\"0 0 500 250\"></svg>".getBytes());
+
+        FloorPlanResponse out = service.replaceFile(1L, file);
+
+        assertThat(out.viewboxWidth()).isEqualTo(500.0);
+        assertThat(out.viewboxHeight()).isEqualTo(250.0);
+    }
+
+    @Test
     void createShouldRejectNonImageFile() {
         FloorPlanCreateRequest request = new FloorPlanCreateRequest(
             "ROOM", 7L, "Ground Floor", UnitSystem.METERS, OriginAnchor.TOP_LEFT, 0.0, 0.0, null, null);

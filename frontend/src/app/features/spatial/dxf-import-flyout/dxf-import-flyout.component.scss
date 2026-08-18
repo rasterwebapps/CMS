@@ -1,0 +1,81 @@
+.sp-import-loading {
+  padding: 30px 0;
+  text-align: center;
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-sm);
+}
+
+.sp-dxf-layout {
+  display: flex;
+  gap: 14px;
+}
+
+.sp-dxf-preview {
+  flex: 1;
+  min-width: 0;
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  background: #fff;
+
+  ::ng-deep svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+}
+
+.sp-dxf-side {
+  width: 200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sp-dxf-unit-hint {
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: var(--cms-text-xs);
+  line-height: 1.4;
+
+  &--ok {
+    background: rgba(16, 185, 129, 0.10);
+    color: var(--cms-success);
+    border: 1px solid var(--cms-success);
+  }
+
+  &--warn {
+    background: rgba(245, 158, 11, 0.10);
+    color: var(--cms-warning);
+    border: 1px solid var(--cms-warning);
+  }
+}
+
+.sp-dxf-layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.sp-dxf-layer-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-primary);
+  cursor: pointer;
+
+  input {
+    flex-shrink: 0;
+  }
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
@@ -51,6 +51,8 @@ export class CampusSetupComponent implements OnInit {
   private readonly service = inject(CampusInfrastructureService);
   private readonly toast = inject(ToastService);
   private readonly permissionService = inject(PermissionService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   protected readonly canManage = computed(() => this.permissionService.has('CAMPUS_INFRASTRUCTURE_MANAGE'));
 
   protected readonly organizations = signal<Organization[]>([]);
@@ -300,13 +302,53 @@ export class CampusSetupComponent implements OnInit {
       next: (organizations) => {
         this.organizations.set(organizations);
         this.loadingOrgs.set(false);
-        if (organizations.length > 0) this.selectOrganization(organizations[0].id);
+        this.initializeFromQueryParamsOrDefault(organizations);
       },
       error: () => {
         this.loadingOrgs.set(false);
         this.toast.error('Failed to load organizations');
       },
     });
+  }
+
+  /** Lets a "View Skyline" link elsewhere in the app (the Branch Diagram canvas, BR-60 Phase 1)
+   *  land directly on a specific Block's zoomed floor-stack, instead of always defaulting to the
+   *  first Organization's Branches-level view. */
+  private initializeFromQueryParamsOrDefault(organizations: Organization[]): void {
+    const branchId = Number(this.route.snapshot.queryParamMap.get('branchId')) || null;
+    const blockId = Number(this.route.snapshot.queryParamMap.get('blockId')) || null;
+
+    if (branchId) {
+      this.service.getBranchById(branchId).subscribe({
+        next: (branch) => {
+          this.selectOrganization(branch.organizationId);
+          this.selectBranch(branchId);
+          if (blockId) this.selectBlock(blockId);
+        },
+        error: () => {
+          if (organizations.length > 0) this.selectOrganization(organizations[0].id);
+        },
+      });
+      return;
+    }
+
+    if (organizations.length > 0) this.selectOrganization(organizations[0].id);
+  }
+
+  /** New, additive entry point from the Skyline's floor rows (BR-60 Phase 1) — opens that Floor's
+   *  spatial diagram in a separate screen rather than switching this page's own Grid view. */
+  protected viewFloorDiagram(floorId: number): void {
+    void this.router.navigate(['/floor-plans'], { queryParams: { floorId } });
+  }
+
+  /** Same additive pattern as `viewFloorDiagram`, one level down each (BR-60 DXF/PDF-derivation
+   *  extension) — opens the Zone's or Room's own spatial diagram screen. */
+  protected viewZoneDiagram(zoneId: number): void {
+    void this.router.navigate(['/zone-diagrams'], { queryParams: { zoneId } });
+  }
+
+  protected viewRoomDiagram(roomId: number): void {
+    void this.router.navigate(['/room-diagrams'], { queryParams: { roomId } });
   }
 
   protected selectOrganization(organizationId: number): void {

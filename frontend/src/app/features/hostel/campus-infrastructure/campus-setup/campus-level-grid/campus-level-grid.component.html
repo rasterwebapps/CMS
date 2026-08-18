@@ -18,6 +18,11 @@
           (keydown.enter)="select.emit(item.id)"
         >
           <mat-icon class="level-card__watermark" aria-hidden="true">{{ item.icon }}</mat-icon>
+          @if (showViewDiagram()) {
+            <button type="button" class="level-card__edit level-card__edit--diagram" title="View Diagram" (click)="onViewDiagramClick($event, item.id)">
+              <mat-icon>map</mat-icon>
+            </button>
+          }
           <button type="button" class="level-card__edit" title="Edit" (click)="onEditClick($event, item.id)">
             <mat-icon>edit</mat-icon>
           </button>

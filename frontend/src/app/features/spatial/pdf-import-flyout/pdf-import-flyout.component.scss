@@ -1,0 +1,47 @@
+.sp-import-loading {
+  padding: 30px 0;
+  text-align: center;
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-sm);
+}
+
+.sp-pdf-page-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.sp-pdf-page-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 2px solid var(--cms-border-default);
+  border-radius: 10px;
+  background: var(--cms-bg-card);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  img {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    display: block;
+  }
+
+  &:hover {
+    border-color: rgba(var(--cms-primary-rgb), 0.4);
+  }
+
+  &--selected {
+    border-color: var(--cms-primary);
+    box-shadow: 0 0 0 2px rgba(var(--cms-primary-rgb), 0.2);
+  }
+}
+
+.sp-pdf-page-thumb__num {
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-muted);
+  font-weight: 600;
+}

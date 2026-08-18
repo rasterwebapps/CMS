@@ -1,0 +1,61 @@
+.sp-field-row {
+  display: flex;
+  gap: 12px;
+
+  .field-group {
+    flex: 1;
+  }
+}
+
+.sp-poly-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+
+  .field-input {
+    flex: 1;
+  }
+}
+
+.sp-poly-remove {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  background: var(--cms-bg-card);
+  color: var(--cms-text-muted);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--cms-danger);
+    border-color: var(--cms-danger);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.sp-btn-sm {
+  padding: 6px 12px;
+  font-size: var(--cms-text-xs);
+}
+
+.sp-link-search {
+  margin-bottom: 8px;
+}
+
+.sp-live-context {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -8px 0 16px;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-muted);
+}

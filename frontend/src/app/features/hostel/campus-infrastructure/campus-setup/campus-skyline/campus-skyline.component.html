@@ -59,6 +59,9 @@
                 (keydown.enter)="onFloorRowClick($event, sb, sf)"
               >
                 @if (floorsClickable()) {
+                  <button type="button" class="floor-row__edit floor-row__edit--diagram" title="View Diagram" (click)="onViewFloorDiagramClick($event, sb, sf)">
+                    <mat-icon>map</mat-icon>
+                  </button>
                   <button type="button" class="floor-row__edit" title="Edit" (click)="onFloorEditClick($event, sb, sf)">
                     <mat-icon>edit</mat-icon>
                   </button>
@@ -98,6 +101,9 @@
                   (keydown.enter)="onFloorRowClick($event, sb, sf)"
                 >
                   @if (floorsClickable()) {
+                    <button type="button" class="floor-row__edit floor-row__edit--diagram" title="View Diagram" (click)="onViewFloorDiagramClick($event, sb, sf)">
+                      <mat-icon>map</mat-icon>
+                    </button>
                     <button type="button" class="floor-row__edit" title="Edit" (click)="onFloorEditClick($event, sb, sf)">
                       <mat-icon>edit</mat-icon>
                     </button>

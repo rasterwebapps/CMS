@@ -1,0 +1,127 @@
+<div class="mlp-page">
+
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <a [routerLink]="listRoute()" class="sp-back-link" aria-label="Back">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </a>
+        <h1 class="rst-pg-title">{{ floorPlan()?.name ?? 'Virtual Locations' }}</h1>
+        @if (floorPlan(); as plan) {
+          @if (plan.isCalibrated) {
+            <span class="prev-pill prev-pill--green">Calibrated</span>
+          } @else {
+            <span class="prev-pill prev-pill--amber">Not Calibrated</span>
+          }
+        }
+      </div>
+      <p class="rst-pg-sub">Click anywhere on the plan to place a marker, or click an existing marker to edit it.</p>
+    </div>
+    @if (canManage()) {
+      <div class="mlp-hdr-actions">
+        <button class="btn-primary" (click)="addFromToolbar()" [disabled]="loading()" aria-label="Add virtual location">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Virtual Location
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="sp-vl-loading">Loading floor plan…</div>
+  } @else {
+    <div class="sp-vl-layout">
+      <div class="content-card sp-vl-canvas-card">
+        @if (floorPlan(); as plan) {
+          @if (!plan.isCalibrated) {
+            <div class="sp-vl-banner">This diagram isn't calibrated yet. Calibrate it from the {{ diagramLevel() === 'BRANCH' ? 'Branch Diagrams' : 'Floor Plans' }} list before placing virtual locations.</div>
+          }
+        }
+        @if (imageUrl()) {
+          <svg #canvasSvg
+               [attr.viewBox]="'0 0 ' + naturalWidth() + ' ' + naturalHeight()"
+               class="sp-canvas-svg"
+               (click)="onCanvasClick($event)">
+            <image [attr.href]="imageUrl()" x="0" y="0" [attr.width]="naturalWidth()" [attr.height]="naturalHeight()" />
+            @for (loc of locations(); track loc.id) {
+              @if (loc.shapeType === 'POINT') {
+                @if (pointGeometry(loc); as g) {
+                  <circle [attr.cx]="g.x" [attr.cy]="g.y" r="10" class="sp-marker sp-marker--point" (click)="selectLocation(loc, $event)">
+                    <title>{{ loc.name }}</title>
+                  </circle>
+                }
+              } @else if (loc.shapeType === 'RECTANGLE') {
+                @if (rectangleGeometry(loc); as g) {
+                  <rect [attr.x]="g.x" [attr.y]="g.y" [attr.width]="g.width" [attr.height]="g.height" class="sp-marker sp-marker--rect" (click)="selectLocation(loc, $event)">
+                    <title>{{ loc.name }}</title>
+                  </rect>
+                }
+              } @else {
+                <polygon [attr.points]="polygonPointsAttr(loc)" class="sp-marker sp-marker--polygon" (click)="selectLocation(loc, $event)">
+                  <title>{{ loc.name }}</title>
+                </polygon>
+              }
+              <text [attr.x]="labelAnchor(loc).x" [attr.y]="labelAnchor(loc).y" class="sp-marker-label">{{ loc.name }}</text>
+              @if (hasStatusDot(loc)) {
+                <circle [attr.cx]="statusDotAnchor(loc).x" [attr.cy]="statusDotAnchor(loc).y" r="3.5" [class]="'sp-dot ' + statusDotColorClass(loc)" />
+              }
+            }
+          </svg>
+        }
+      </div>
+
+      <div class="content-card sp-vl-sidebar">
+        <h2 class="sp-vl-sidebar-title">Virtual Locations ({{ locations().length }})</h2>
+        @if (locations().length === 0) {
+          <cms-empty-state
+            icon="place"
+            title="No markers yet"
+            subtitle="Click the plan to place the first one."
+          ></cms-empty-state>
+        } @else {
+          <div class="sp-vl-list">
+            @for (loc of locations(); track loc.id) {
+              <div class="sp-vl-list-item">
+                <div class="sp-vl-list-item__info">
+                  <span class="sp-vl-list-item__name">
+                    @if (hasStatusDot(loc)) { <span [class]="'sp-dot-inline ' + statusDotColorClass(loc)"></span> }
+                    {{ loc.name }}
+                  </span>
+                  <span class="sp-vl-list-item__meta">{{ loc.locationType }} · {{ loc.shapeType }}</span>
+                </div>
+                <div class="sp-vl-list-item__actions">
+                  @if (loc.entityType === 'BLOCK') {
+                    <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View Skyline" ariaLabel="View Skyline" (clicked)="viewSkyline(loc, $event)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+                    </cms-row-action-btn>
+                  }
+                  @if (canManage()) {
+                    <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit virtual location" (clicked)="selectLocation(loc, $event)">
+                      <cms-icon-edit [size]="13" />
+                    </cms-row-action-btn>
+                    <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete virtual location" (clicked)="deleteLocation(loc, $event)">
+                      <cms-icon-delete [size]="13" />
+                    </cms-row-action-btn>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  @if (showFormFlyout()) {
+    <app-virtual-location-form-flyout
+      [floorPlanId]="floorPlanId"
+      [location]="editingLocation"
+      [pendingPoint]="pendingPoint"
+      [diagramLevel]="diagramLevel()"
+      [diagramEntityId]="floorPlan()!.entityId"
+      (closed)="closeFormFlyout()"
+      (saved)="onLocationSaved()"
+    />
+  }
+
+</div>

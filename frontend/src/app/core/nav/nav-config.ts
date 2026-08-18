@@ -141,6 +141,10 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Campus Infrastructure',   icon: 'apartment',    route: '/campus-infrastructure',   permissions: ['CAMPUS_INFRASTRUCTURE_VIEW', 'CAMPUS_INFRASTRUCTURE_MANAGE', 'HOSTEL_ROOM_VIEW', 'HOSTEL_ROOM_MANAGE'] },
       { label: 'Room Purpose Categories', icon: 'category',     route: '/room-purpose-categories', permissions: ['ROOM_PURPOSE_CATEGORY_VIEW', 'ROOM_PURPOSE_CATEGORY_MANAGE'] },
       { label: 'Room Sub-Types',          icon: 'meeting_room', route: '/room-sub-types',          permissions: ['ROOM_SUB_TYPE_VIEW', 'ROOM_SUB_TYPE_MANAGE'] },
+      { label: 'Branch Diagrams',         icon: 'account_tree',  route: '/branch-diagrams',         permissions: ['SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'] },
+      { label: 'Floor Plans',             icon: 'map',           route: '/floor-plans',             permissions: ['SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'] },
+      { label: 'Zone Diagrams',           icon: 'grid_view',     route: '/zone-diagrams',           permissions: ['SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'] },
+      { label: 'Room Diagrams',           icon: 'meeting_room',  route: '/room-diagrams',           permissions: ['SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'] },
     ],
   },
   // 8. Inventory Management — physical asset/equipment tracking

@@ -40,14 +40,28 @@ export class CampusLevelGridComponent {
   readonly emptyLabel = input('Nothing here yet.');
   readonly heading = input('');
 
+  /** Only Zone and Room grids render the "View Diagram" icon (BR-60 extension) — Branch cards
+   *  already have their own dedicated nav entry point into Branch Diagrams, so there's no second
+   *  entry point needed there. Off by default so existing call sites (Branch, and any future
+   *  level added without a diagram) are unaffected. */
+  readonly showViewDiagram = input(false);
+
   readonly select = output<number>();
 
   /** Fired from a card's edit pencil — the card's own `select` must NOT also fire, so the handler
    *  stops propagation before emitting (see the template's `(click)`). */
   readonly edit = output<number>();
 
+  /** Fired from a card's "View Diagram" icon, same stop-propagation pattern as `edit` above. */
+  readonly viewDiagram = output<number>();
+
   protected onEditClick(event: Event, id: number): void {
     event.stopPropagation();
     this.edit.emit(id);
+  }
+
+  protected onViewDiagramClick(event: Event, id: number): void {
+    event.stopPropagation();
+    this.viewDiagram.emit(id);
   }
 }

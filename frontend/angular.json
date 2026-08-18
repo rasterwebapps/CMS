@@ -51,7 +51,9 @@
             "inlineStyleLanguage": "scss",
             "allowedCommonJsDependencies": [
               "html2canvas",
-              "html2pdf.js"
+              "html2pdf.js",
+              "loglevel",
+              "tesseract.js"
             ],
             "assets": [
               {

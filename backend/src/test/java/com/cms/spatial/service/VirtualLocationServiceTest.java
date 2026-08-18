@@ -8,9 +8,9 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Optional;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -23,6 +23,7 @@ import com.cms.spatial.model.enums.ShapeType;
 import com.cms.spatial.model.enums.VirtualLocationStatus;
 import com.cms.spatial.repository.FloorPlanRepository;
 import com.cms.spatial.repository.VirtualLocationRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
 class VirtualLocationServiceTest {
@@ -33,8 +34,12 @@ class VirtualLocationServiceTest {
     @Mock
     private FloorPlanRepository floorPlanRepository;
 
-    @InjectMocks
     private VirtualLocationService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new VirtualLocationService(virtualLocationRepository, floorPlanRepository, new ObjectMapper());
+    }
 
     private FloorPlan activeFloorPlan(Long id) {
         FloorPlan plan = new FloorPlan();
@@ -83,6 +88,73 @@ class VirtualLocationServiceTest {
         assertThat(out.status()).isEqualTo(VirtualLocationStatus.ACTIVE);
         assertThat(out.floorPlanId()).isEqualTo(1L);
         assertThat(out.name()).isEqualTo("Bed 3");
+    }
+
+    @Test
+    void createShouldRejectMalformedGeometryJson() {
+        when(floorPlanRepository.findById(1L)).thenReturn(Optional.of(activeFloorPlan(1L)));
+
+        VirtualLocationRequest req = new VirtualLocationRequest(
+            1L, "ROOM", 7L, "Bed 3", "BED", null, ShapeType.POINT, "not json", 1, null, null);
+
+        assertThatThrownBy(() -> service.create(req))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("not valid JSON");
+    }
+
+    @Test
+    void createShouldRejectPointMissingCoordinates() {
+        when(floorPlanRepository.findById(1L)).thenReturn(Optional.of(activeFloorPlan(1L)));
+
+        VirtualLocationRequest req = new VirtualLocationRequest(
+            1L, "ROOM", 7L, "Bed 3", "BED", null, ShapeType.POINT, "{\"x\":1}", 1, null, null);
+
+        assertThatThrownBy(() -> service.create(req))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("'y'");
+    }
+
+    @Test
+    void createShouldAcceptValidRectangleGeometry() {
+        FloorPlan plan = activeFloorPlan(1L);
+        when(floorPlanRepository.findById(1L)).thenReturn(Optional.of(plan));
+        when(virtualLocationRepository.save(any(VirtualLocation.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        VirtualLocationRequest req = new VirtualLocationRequest(
+            1L, "ROOM", 7L, "Desk 1", "DESK", null, ShapeType.RECTANGLE,
+            "{\"x\":10,\"y\":10,\"width\":50,\"height\":30}", 1, null, null);
+
+        VirtualLocationResponse out = service.create(req);
+
+        assertThat(out.shapeType()).isEqualTo(ShapeType.RECTANGLE);
+    }
+
+    @Test
+    void createShouldRejectPolygonWithFewerThanThreePoints() {
+        when(floorPlanRepository.findById(1L)).thenReturn(Optional.of(activeFloorPlan(1L)));
+
+        VirtualLocationRequest req = new VirtualLocationRequest(
+            1L, "ROOM", 7L, "Zone A", "ZONE", null, ShapeType.POLYGON,
+            "{\"points\":[{\"x\":1,\"y\":1},{\"x\":2,\"y\":2}]}", null, null, null);
+
+        assertThatThrownBy(() -> service.create(req))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("at least 3 entries");
+    }
+
+    @Test
+    void createShouldAcceptValidPolygonGeometry() {
+        FloorPlan plan = activeFloorPlan(1L);
+        when(floorPlanRepository.findById(1L)).thenReturn(Optional.of(plan));
+        when(virtualLocationRepository.save(any(VirtualLocation.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        VirtualLocationRequest req = new VirtualLocationRequest(
+            1L, "ROOM", 7L, "Zone A", "ZONE", null, ShapeType.POLYGON,
+            "{\"points\":[{\"x\":1,\"y\":1},{\"x\":2,\"y\":2},{\"x\":3,\"y\":0}]}", null, null, null);
+
+        VirtualLocationResponse out = service.create(req);
+
+        assertThat(out.shapeType()).isEqualTo(ShapeType.POLYGON);
     }
 
     @Test

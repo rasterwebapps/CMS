@@ -1,0 +1,144 @@
+<cms-flyout-panel width="460px" [ariaLabel]="isEditMode() ? 'Edit virtual location' : 'Add virtual location'" (closed)="onClose()">
+  <div flyoutHeader>{{ isEditMode() ? 'Edit Virtual Location' : 'Add Virtual Location' }}</div>
+
+  <div flyoutBody>
+    <div class="field-group">
+      <label class="field-label" for="vl-name">Name <span class="field-required">*</span></label>
+      <input id="vl-name" type="text" class="field-input" [(ngModel)]="name" placeholder="e.g. Bed 3" />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="vl-type">Location Type <span class="field-required">*</span></label>
+      <input id="vl-type" type="text" class="field-input" list="sp-location-types" [(ngModel)]="locationType" placeholder="e.g. BED" />
+      <datalist id="sp-location-types">
+        @for (t of locationTypeSuggestions; track t) { <option [value]="t"></option> }
+      </datalist>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="vl-link-type">Link To (optional)</label>
+      <select id="vl-link-type" class="field-select" [(ngModel)]="linkType" (ngModelChange)="onLinkTypeChange()">
+        <option [ngValue]="null">Not linked</option>
+        @for (t of availableLinkTypes(); track t) { <option [ngValue]="t">{{ linkTypeLabels[t] }}</option> }
+      </select>
+    </div>
+
+    @if (linkType) {
+      <div class="field-group">
+        <label class="field-label" for="vl-link-search">{{ linkTypeLabels[linkType] }}</label>
+        @if (linkOptions().length > 6) {
+          <input id="vl-link-search" type="text" class="field-input sp-link-search" [(ngModel)]="linkSearch" placeholder="Search…" />
+        }
+        <select class="field-select" [(ngModel)]="linkedEntityId" (ngModelChange)="onLinkedEntityChange()" [disabled]="loadingLinkOptions()">
+          <option [ngValue]="null">{{ loadingLinkOptions() ? 'Loading…' : 'Select ' + linkTypeLabels[linkType] }}</option>
+          @for (o of filteredLinkOptions(); track o.id) { <option [ngValue]="o.id">{{ o.label }}</option> }
+        </select>
+      </div>
+
+      @if (liveEquipment(); as eq) {
+        <div class="sp-live-context">
+          <span class="prev-pill" [class.prev-pill--green]="eq.status === 'AVAILABLE'" [class.prev-pill--amber]="eq.status === 'UNDER_MAINTENANCE'" [class.prev-pill--red]="eq.status === 'OUT_OF_ORDER' || eq.status === 'DISPOSED'">{{ eq.status }}</span>
+          <span>{{ eq.labName }}</span>
+        </div>
+      }
+      @if (liveInventoryItem(); as item) {
+        <div class="sp-live-context">
+          <span class="prev-pill" [class.prev-pill--red]="item.lowStock" [class.prev-pill--green]="!item.lowStock">{{ item.quantity }} {{ item.unit }}{{ item.lowStock ? ' — low stock' : '' }}</span>
+          <span>{{ item.labName }}</span>
+        </div>
+      }
+    }
+
+    <div class="field-group">
+      <label class="field-label" for="vl-module-tag">Module Tag (optional)</label>
+      <input id="vl-module-tag" type="text" class="field-input" [(ngModel)]="moduleTag" placeholder="e.g. hostel" />
+      <p class="field-hint">Used by consuming modules to filter which markers are theirs.</p>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="vl-shape">Shape</label>
+      <select id="vl-shape" class="field-select" [(ngModel)]="shapeType">
+        <option value="POINT">Point</option>
+        <option value="RECTANGLE">Rectangle</option>
+        <option value="POLYGON">Polygon</option>
+      </select>
+    </div>
+
+    @if (shapeType === 'POINT') {
+      <div class="sp-field-row">
+        <div class="field-group">
+          <label class="field-label" for="vl-px">X</label>
+          <input id="vl-px" type="number" class="field-input" [(ngModel)]="pointX" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="vl-py">Y</label>
+          <input id="vl-py" type="number" class="field-input" [(ngModel)]="pointY" />
+        </div>
+      </div>
+    }
+
+    @if (shapeType === 'RECTANGLE') {
+      <div class="sp-field-row">
+        <div class="field-group">
+          <label class="field-label" for="vl-rx">X</label>
+          <input id="vl-rx" type="number" class="field-input" [(ngModel)]="rectX" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="vl-ry">Y</label>
+          <input id="vl-ry" type="number" class="field-input" [(ngModel)]="rectY" />
+        </div>
+      </div>
+      <div class="sp-field-row">
+        <div class="field-group">
+          <label class="field-label" for="vl-rw">Width</label>
+          <input id="vl-rw" type="number" min="0.01" class="field-input" [(ngModel)]="rectWidth" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="vl-rh">Height</label>
+          <input id="vl-rh" type="number" min="0.01" class="field-input" [(ngModel)]="rectHeight" />
+        </div>
+      </div>
+    }
+
+    @if (shapeType === 'POLYGON') {
+      <div class="field-group">
+        <label class="field-label">Points ({{ polygonPoints.length }}, min 3)</label>
+        @for (p of polygonPoints; track $index) {
+          <div class="sp-poly-row">
+            <input type="number" class="field-input" [(ngModel)]="p.x" aria-label="Point X" />
+            <input type="number" class="field-input" [(ngModel)]="p.y" aria-label="Point Y" />
+            <button type="button" class="sp-poly-remove" [disabled]="polygonPoints.length <= 3" (click)="removePolygonPoint($index)" aria-label="Remove point">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        }
+        <button type="button" class="btn-cancel sp-btn-sm" (click)="addPolygonPoint()">Add Point</button>
+      </div>
+    }
+
+    <div class="field-group">
+      <label class="field-label" for="vl-capacity">Capacity (optional)</label>
+      <input id="vl-capacity" type="number" min="0" class="field-input" [(ngModel)]="capacity" />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="vl-status">Status</label>
+      <select id="vl-status" class="field-select" [(ngModel)]="status">
+        <option value="ACTIVE">Active</option>
+        <option value="INACTIVE">Inactive</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="vl-desc">Description (optional)</label>
+      <textarea id="vl-desc" class="field-textarea" rows="3" [(ngModel)]="description"></textarea>
+    </div>
+  </div>
+
+  <div flyoutFooter>
+    <button type="button" class="btn-cancel" (click)="onClose()" [disabled]="saving()">Cancel</button>
+    <button type="button" class="btn-primary" [disabled]="!canSubmit() || saving()" (click)="onSubmit()">
+      @if (saving()) { <span class="btn-spinner"></span> Saving… } @else { Save }
+    </button>
+  </div>
+</cms-flyout-panel>

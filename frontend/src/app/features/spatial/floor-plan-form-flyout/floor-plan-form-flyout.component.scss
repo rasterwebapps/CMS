@@ -1,0 +1,25 @@
+.sp-field-row {
+  display: flex;
+  gap: 12px;
+
+  .field-group {
+    flex: 1;
+  }
+}
+
+.sp-import-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sp-btn-sm {
+  padding: 6px 12px;
+  font-size: var(--cms-text-xs);
+}
+
+.sp-selected-file-hint {
+  margin: 8px 0 0;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-success);
+}
