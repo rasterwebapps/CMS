@@ -3,8 +3,9 @@
   <!-- Header -->
   <div class="mlp-hdr">
     <div class="mlp-hdr-left">
-      <div class="page-title-row">
+      <div class="page-title-row" style="display: flex; align-items: center; gap: 12px;">
         <h1 class="mlp-title">System <em>Settings</em></h1>
+        <cms-tour-button tourKey="settings-shell" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="mlp-sub">Application configuration, branding, and external integrations</p>
     </div>
@@ -26,7 +27,7 @@
   </div>
 
   <!-- Tab Bar -->
-  <div class="settings-tabs" role="tablist">
+  <div id="tour-set-tabs" class="settings-tabs" role="tablist">
     <button
       class="settings-tab"
       role="tab"

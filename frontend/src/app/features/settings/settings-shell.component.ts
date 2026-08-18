@@ -1,25 +1,34 @@
-import { Component, signal, ViewChild } from '@angular/core';
+import { Component, inject, signal, ViewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SystemConfigurationListComponent } from './system-configuration-list/system-configuration-list.component';
 import { BrandingComponent } from './branding/branding.component';
 import { IntegrationsSettingsComponent } from './integrations/integrations-settings.component';
+import { TourService } from '../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
+import { SETTINGS_SHELL_TOUR, SETTINGS_SHELL_FLOW_MAP } from '../../shared/tour/tours/settings.tours';
 
 type SettingsTab = 'configuration' | 'branding' | 'integrations';
 
 @Component({
   selector: 'app-settings-shell',
   standalone: true,
-  imports: [RouterLink, SystemConfigurationListComponent, BrandingComponent, IntegrationsSettingsComponent],
+  imports: [RouterLink, SystemConfigurationListComponent, BrandingComponent, IntegrationsSettingsComponent, CmsTourButtonComponent],
   templateUrl: './settings-shell.component.html',
   styleUrl: './settings-shell.component.scss',
 })
 export class SettingsShellComponent {
   private readonly STORAGE_KEY = 'settings-active-tab';
+  private readonly tourService = inject(TourService);
 
   @ViewChild(BrandingComponent) private brandingComp?: BrandingComponent;
   @ViewChild(IntegrationsSettingsComponent) private intComp?: IntegrationsSettingsComponent;
 
   protected readonly activeTab = signal<SettingsTab>(this.loadTab());
+
+  constructor() {
+    this.tourService.register('settings-shell', SETTINGS_SHELL_TOUR);
+    this.tourService.registerFlowMap('settings-shell', SETTINGS_SHELL_FLOW_MAP);
+  }
 
   protected setTab(tab: SettingsTab): void {
     this.activeTab.set(tab);
