@@ -17,6 +17,9 @@ import { CmsEmptyStateComponent } from '../../../../shared/empty-state/empty-sta
 import { CmsStatusBadgeComponent } from '../../../../shared/status-badge/status-badge.component';
 import { CmsRowActionButtonComponent } from '../../../../shared/row-action-button/row-action-button.component';
 import { ToastService } from '../../../../core/toast/toast.service';
+import { TourService } from '../../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../../shared/tour/tour-button.component';
+import { ROOM_PREFERENCE_LIST_TOUR, ROOM_PREFERENCE_LIST_FLOW_MAP } from '../../../../shared/tour/tours/hostel-management.tours';
 
 @Component({
   selector: 'app-room-preference-list',
@@ -32,6 +35,7 @@ import { ToastService } from '../../../../core/toast/toast.service';
     CmsEmptyStateComponent,
     CmsStatusBadgeComponent,
     CmsRowActionButtonComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './room-preference-list.component.html',
   styleUrl: './room-preference-list.component.scss',
@@ -42,6 +46,7 @@ export class RoomPreferenceListComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   private readonly destroy$ = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
@@ -74,6 +79,9 @@ export class RoomPreferenceListComponent implements OnInit, OnDestroy {
   protected sortDirection: 'asc' | 'desc' = 'desc';
 
   ngOnInit(): void {
+    this.tourService.register('room-preference-list', ROOM_PREFERENCE_LIST_TOUR);
+    this.tourService.registerFlowMap('room-preference-list', ROOM_PREFERENCE_LIST_FLOW_MAP);
+
     this.searchSubject.pipe(
       debounceTime(400),
       distinctUntilChanged(),

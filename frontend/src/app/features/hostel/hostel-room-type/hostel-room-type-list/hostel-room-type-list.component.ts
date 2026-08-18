@@ -16,6 +16,9 @@ import { CmsViewToggleComponent } from '../../../../shared/view-toggle/view-togg
 import { CmsStatusBadgeComponent } from '../../../../shared/status-badge/status-badge.component';
 import { CmsRowActionButtonComponent } from '../../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../../shared/icons';
+import { TourService } from '../../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../../shared/tour/tour-button.component';
+import { HOSTEL_ROOM_TYPE_LIST_TOUR, HOSTEL_ROOM_TYPE_LIST_FLOW_MAP } from '../../../../shared/tour/tours/hostel-management.tours';
 
 @Component({
   selector: 'app-hostel-room-type-list',
@@ -33,6 +36,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../../
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './hostel-room-type-list.component.html',
   styleUrl: './hostel-room-type-list.component.scss',
@@ -42,6 +46,7 @@ export class HostelRoomTypeListComponent implements OnInit, AfterViewInit, OnDes
   private readonly router          = inject(Router);
   private readonly route           = inject(ActivatedRoute);
   private readonly toast           = inject(ToastService);
+  private readonly tourService     = inject(TourService);
   private readonly dialog          = inject(MatDialog);
 
   private readonly VIEW_MODE_KEY = 'hostel-room-type-view-mode';
@@ -80,6 +85,9 @@ export class HostelRoomTypeListComponent implements OnInit, AfterViewInit, OnDes
   };
 
   ngOnInit(): void {
+    this.tourService.register('hostel-room-type-list', HOSTEL_ROOM_TYPE_LIST_TOUR);
+    this.tourService.registerFlowMap('hostel-room-type-list', HOSTEL_ROOM_TYPE_LIST_FLOW_MAP);
+
     const snap = this.route.snapshot.queryParams;
     if (snap['sortField']) this.sortActive    = snap['sortField'];
     if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';

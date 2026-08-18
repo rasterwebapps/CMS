@@ -1,12 +1,15 @@
 <div class="rad-page">
   <div class="rad-hdr">
     <div>
-      <h1 class="rad-hdr__title">Room <em>Allocation</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="rad-hdr__title">Room <em>Allocation</em></h1>
+        <cms-tour-button tourKey="room-allocation-dashboard" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="rad-hdr__sub">Occupancy map across every active hostel room — allocate, filter, and free up beds.</p>
     </div>
   </div>
 
-  <div class="rad-toolbar">
+  <div id="tour-rad-toolbar" class="rad-toolbar">
     <div class="rad-search">
       <mat-icon>search</mat-icon>
       <input type="text" placeholder="Search room number or student…"
@@ -41,7 +44,7 @@
   } @else if (filteredRooms().length === 0) {
     <cms-empty-state icon="bed" title="No hostel rooms found" subtitle="Try clearing filters, or set up rooms under Campus Infrastructure first."></cms-empty-state>
   } @else {
-    <div class="rad-grid">
+    <div id="tour-rad-grid" class="rad-grid">
       @for (room of filteredRooms(); track room.hostelRoomId) {
         <div class="rad-card" [class.rad-card--full]="room.occupiedCount >= room.sharingCapacity">
           <div class="rad-card__hdr">

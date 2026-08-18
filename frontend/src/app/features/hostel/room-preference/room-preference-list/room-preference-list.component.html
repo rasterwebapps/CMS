@@ -3,15 +3,16 @@
   <!-- ── Page Header ─────────────────────────────────────────── -->
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <div class="page-title-row">
+      <div class="page-title-row" style="display: flex; align-items: center; gap: 12px;">
         <h1 class="rpl-pg-title">Room <em>Preferences</em></h1>
+        <cms-tour-button tourKey="room-preference-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="rpl-pg-sub">Non-binding room requests captured at enquiry and admission, waiting to be allocated</p>
     </div>
   </div>
 
   <!-- ── Toolbar ───────────────────────────────────────────────── -->
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-rpl-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <div class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input
@@ -37,7 +38,7 @@
     </select>
   </div>
 
-  <div class="content-card mlp-table-card">
+  <div id="tour-rpl-table" class="content-card mlp-table-card">
     <div class="table-wrapper">
       <table mat-table [dataSource]="dataSource" matSort
              [matSortActive]="sortActive" [matSortDirection]="sortDirection"

@@ -19,11 +19,14 @@ import { ConfirmDialogComponent } from '../../../../shared/confirm-dialog/confir
 import { CmsEmptyStateComponent } from '../../../../shared/empty-state/empty-state.component';
 import { CmsCapacityMeterComponent } from '../../../../shared/capacity-meter/capacity-meter.component';
 import { ToastService } from '../../../../core/toast/toast.service';
+import { TourService } from '../../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../../shared/tour/tour-button.component';
+import { ROOM_ALLOCATION_DASHBOARD_TOUR, ROOM_ALLOCATION_DASHBOARD_FLOW_MAP } from '../../../../shared/tour/tours/hostel-management.tours';
 
 @Component({
   selector: 'app-room-allocation-dashboard',
   standalone: true,
-  imports: [FormsModule, MatIconModule, MatButtonModule, MatProgressSpinnerModule, CmsFlyoutPanelComponent, CmsEmptyStateComponent, CmsCapacityMeterComponent],
+  imports: [FormsModule, MatIconModule, MatButtonModule, MatProgressSpinnerModule, CmsFlyoutPanelComponent, CmsEmptyStateComponent, CmsCapacityMeterComponent, CmsTourButtonComponent],
   templateUrl: './room-allocation-dashboard.component.html',
   styleUrl: './room-allocation-dashboard.component.scss',
 })
@@ -34,6 +37,7 @@ export class RoomAllocationDashboardComponent implements OnInit {
   private readonly studentService = inject(StudentService);
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly rooms = signal<HostelRoomOccupancy[]>([]);
@@ -75,6 +79,9 @@ export class RoomAllocationDashboardComponent implements OnInit {
   private readonly studentQuery$ = new Subject<string>();
 
   ngOnInit(): void {
+    this.tourService.register('room-allocation-dashboard', ROOM_ALLOCATION_DASHBOARD_TOUR);
+    this.tourService.registerFlowMap('room-allocation-dashboard', ROOM_ALLOCATION_DASHBOARD_FLOW_MAP);
+
     this.refresh();
     this.hostelRoomTypeService.getAll(true).subscribe((types) => this.roomTypes.set(types));
     this.campusInfrastructureService.getAllActiveZones().subscribe((zones) => this.zones.set(zones));
