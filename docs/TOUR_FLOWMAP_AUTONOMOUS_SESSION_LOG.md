@@ -84,16 +84,16 @@ CLAUDE.md module priority).
 - [x] Student Promotion — `/student-promotions` — Tour:Y FM:Y
 
 ### Library
-- [ ] Issue Books — `/library/issues/new` — Tour:N FM:N
-- [ ] Issue Explorer — `/library/issues` — Tour:N FM:N
-- [ ] Overdue Books — `/library/reports` — Tour:N FM:N
+- [x] Issue Books — `/library/issues/new` — Tour:Y FM:Y
+- [x] Issue Explorer — `/library/issues` — Tour:Y FM:Y
+- [x] Overdue Books — `/library/reports` — Tour:Y FM:Y
 - [x] Book Explorer — `/library/books` — Tour:Y FM:Y
-- [ ] Journal Explorer — `/library/periodicals` — Tour:N FM:N
-- [ ] My Library — `/library/my-issues` — Tour:N FM:N
-- [ ] Fines — `/library/fines` — Tour:N FM:N
-- [ ] Racks & Shelves — `/library/racks` — Tour:N FM:N
-- [ ] Import — `/library/import` — Tour:N FM:N
-- [x] Library Settings — `/library/settings` — Tour:Y FM:Y
+- [x] Journal Explorer — `/library/periodicals` — Tour:Y FM:Y
+- [x] My Library — `/library/my-issues` — Tour:Y FM:Y
+- [x] Fines — `/library/fines` — Tour:Y FM:Y
+- [x] Racks & Shelves — `/library/racks` — Tour:Y FM:Y
+- [x] Import — `/library/import` — Tour:Y FM:Y
+- [x] Library Settings — `/library/settings` — Tour:Y FM:Y **(Library module complete)**
 
 ### Core Infrastructure
 - [ ] Campus Infrastructure — `/campus-infrastructure` — Tour:N FM:N
@@ -171,3 +171,4 @@ Format: `- YYYY-MM-DD HH:MM | <screen> | DONE|PARTIAL|BLOCKED|SKIPPED | <ticket>
 - 2026-08-19 03:01 | resume | DONE | OC-139 | Morning continuation session started. Found Timetable + Resource Timetable Grid already implemented in the working tree from the tail end of the night session but never committed (uncommitted .ts/.html changes + 2 new untracked tours files). Verified against tsc (clean) and against the established pattern (matches Conflict Inspector's header/anchor structure) — committed as-is under OC-147. Also found unrelated pre-existing uncommitted WIP (Campus Infrastructure org-editing + uniqueness-validation backend/frontend changes) in the working tree — NOT tour-related, left untouched/unstaged, not part of this task. Timetable uses the 8-stage TIMETABLE_BUILD_FUNNEL at currentIndex 7 (last stage). Resource Timetable introduces a new 5-stage TIMETABLE_OPERATIONS_FUNNEL (day-to-day ops group) at currentIndex 0, to be shared by Faculty Absence, Staff Session Swap, My Special Classes, Special Class Approvals next. Continuing Academics Phase 2 with those 4 screens, then Attendance/Progress Report/Manage Exams/Exam Results/Student Promotion.
 - 2026-08-19 03:04 | Faculty Absence, Staff Session Swap, My Special Classes, Special Class Approvals | DONE | OC-147 | Full Guided Tour + Flow Map built from scratch for all 4, closing out the 5-stage TIMETABLE_OPERATIONS_FUNNEL entirely (Resource Timetable was stage 0 from the earlier commit). New tours files: faculty-absence.tours.ts, staff-session-swap.tours.ts, special-class.tours.ts (holds both My Special Classes and Special Class Approvals — admin/faculty pair for the same feature, same as other paired screens in this rollout). tsc clean after each commit. Remaining in Academics: Attendance, Progress Report, Manage Exams, Exam Results, Student Promotion — none of these are part of the timetable-build/operations funnels, so each will get its own single-entry (or small local) funnel.
 - 2026-08-19 03:08 | Attendance, Progress Report, Manage Exams, Exam Results, Student Promotion | DONE | OC-147 | Full Guided Tour + Flow Map built from scratch for all 5, closing out **all of Academics Phase 2** — every screen in the module checklist is now Tour:Y FM:Y. New tours files: attendance.tours.ts, progress-report.tours.ts, examination.tours.ts (holds both Manage Exams and Exam Results, sharing a small local EXAMINATION_FUNNEL), student-promotion.tours.ts (3-step wizard: select cohort/terms → review eligibility → execute → result, anchors on all 3 conditional step containers plus the execute bar). tsc clean after each commit. **Flagging a pre-existing bug found while touching Exam Results (`exam-result-list.component.ts`), unrelated to tour work and NOT fixed in this session**: `selectedExamId` (which gates the whole results table behind `@if`) is only ever set by `onExaminationChange()`, but that method is never called from the template — there is no exam-picker UI anywhere in the component, and nothing elsewhere in the app links to `/exam-results` with a way to select an exam. The `examinations` signal loads data that's never rendered. Net effect: the Exam Results screen currently shows nothing and cannot be made to show anything via the UI as it exists. This is a functional/product-design gap (what should the picker look like — dropdown in toolbar? row action from Manage Exams?) requiring a design decision, not a same-day bug fix, so left as-is with the tour built honest to current (broken) state. Ticket OC-147 (Academics Phase 2) now moved to review. Next: Library module (Phase 2) — checklist shows Issue Books, Issue Explorer, Overdue Books, Journal Explorer, My Library, Fines, Racks & Shelves, Import all Tour:N (Book Explorer and Library Settings already done in Phase 1).
+- 2026-08-19 03:15 | Issue Books, Issue Explorer, Overdue Books, Fines, Journal Explorer, My Library, Racks & Shelves, Import | DONE | OC-148 | Full Guided Tour + Flow Map built from scratch for all 8, closing out **all of Library Phase 2** — every screen in the module is now Tour:Y FM:Y. New tours files: library-circulation.tours.ts (Issue Books/Issue Explorer/Overdue Books/Fines sharing a new LIBRARY_CIRCULATION_FUNNEL, mirroring Admission Management's real-pipeline idiom), library-periodical.tours.ts, library-my-issues.tours.ts, library-rack.tours.ts, library-import.tours.ts (each single-entry, matching the Book Explorer/Settings precedent for non-pipeline screens). tsc clean after each commit. Library module fully closed. Ticket OC-148 moved to review. Next: Core Infrastructure module (Phase 2) — Campus Infrastructure, Room Purpose Categories, Room Sub-Types, Branch Diagrams, Floor Plans, Zone Diagrams, Room Diagrams, all Tour:N.
