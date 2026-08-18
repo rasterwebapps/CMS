@@ -66,8 +66,8 @@ CLAUDE.md module priority).
 - [x] Lab Schedules — `/lab-schedules` — Tour:Y FM:Y
 - [x] Faculty Availability — `/faculty-availability` — Tour:Y FM:Y
 - [x] Faculty Workload Rules — `/timetable/workload-rules` — Tour:Y FM:Y
-- [ ] Skeleton Builder — `/timetable/skeleton-builder` — Tour:N FM:N
-- [ ] Staffing — `/timetable/staffing` — Tour:N FM:N
+- [x] Skeleton Builder — `/timetable/skeleton-builder` — Tour:Y FM:Y
+- [x] Staffing — `/timetable/staffing` — Tour:Y FM:Y
 - [x] Capacity Planner — `/timetable/capacity-planner` — Tour:Y FM:Y
 - [ ] Conflict Inspector — `/timetable/conflict-inspector` — Tour:N FM:N
 - [ ] Timetable Draft Review — `/timetable/draft-review` — Tour:N FM:N
@@ -166,3 +166,4 @@ Format: `- YYYY-MM-DD HH:MM | <screen> | DONE|PARTIAL|BLOCKED|SKIPPED | <ticket>
 - 2026-08-18 21:19 | CO/PO Mapping, Course Offerings | DONE | OC-147 | Phase 2 Academics begins. Full Guided Tour + Flow Map built from scratch for both (new co-po-mapping.tours.ts, course-offering.tours.ts), each single-entry funnel. tsc clean.
 - 2026-08-18 21:20 | Elective Assignment, Lab Schedules | DONE | OC-147 | Full Guided Tour + Flow Map built from scratch for both. Note: lab-schedule-list.component.html already had a `<cms-tour-button>` placeholder pre-scaffolded with no register() call — checklist's Tour:N was still correct (no tour actually registered) but worth flagging that some templates have dead tour buttons already in place; check for this before assuming a screen needs the button added. tsc clean.
 - 2026-08-18 21:22 | Faculty Availability, Faculty Workload Rules | DONE | OC-147 | Full Guided Tour + Flow Map built from scratch for both, both reusing the 8-stage TIMETABLE_BUILD_FUNNEL (currentIndex 0 and 1) so the rail is consistent with Capacity Planner. tsc clean.
+- 2026-08-18 21:24 | Skeleton Builder, Staffing | DONE | OC-147 | Full Guided Tour + Flow Map built from scratch for both — the two largest/most complex Academics screens so far (drag-drop grid, subject rail, per-row staffing list). Both use the shared TIMETABLE_BUILD_FUNNEL at currentIndex 2 and 3. tsc clean.

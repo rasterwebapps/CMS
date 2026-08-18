@@ -14,6 +14,9 @@ import { PermissionService } from '../../../core/permissions/permission.service'
 import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments/environment';
 import { violationText } from '../../../shared/util/violation-text';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { STAFFING_TOUR, STAFFING_FLOW_MAP } from '../../../shared/tour/tours/staffing.tours';
 
 interface StaffingRow extends UnstaffedCell {
   facultyId: number | null;
@@ -24,7 +27,7 @@ interface StaffingRow extends UnstaffedCell {
 @Component({
   selector: 'app-staffing',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatProgressSpinnerModule],
+  imports: [FormsModule, RouterLink, MatProgressSpinnerModule, CmsTourButtonComponent],
   templateUrl: './staffing.component.html',
   styleUrl: './staffing.component.scss',
 })
@@ -35,6 +38,7 @@ export class StaffingComponent implements OnInit {
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly http = inject(HttpClient);
+  private readonly tourService = inject(TourService);
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
@@ -92,6 +96,9 @@ export class StaffingComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('staffing', STAFFING_TOUR);
+    this.tourService.registerFlowMap('staffing', STAFFING_FLOW_MAP);
+
     this.http.get<{ id: number; fullName: string; specialityId: number | null }[]>(`${environment.apiUrl}/faculty`).subscribe({
       next: (data) => this.faculty.set(data.map((f) => ({ id: f.id, name: f.fullName, specialityId: f.specialityId }))),
       error: () => this.toast.error('Failed to load faculty'),

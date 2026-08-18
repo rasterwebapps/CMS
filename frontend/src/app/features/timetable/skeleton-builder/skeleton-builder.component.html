@@ -2,7 +2,10 @@
 
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Timetable <em>Skeleton Builder</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Timetable <em>Skeleton Builder</em></h1>
+        <cms-tour-button tourKey="skeleton-builder" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">Place Theory, Lab, and Clinical sessions into periods for a cohort's whole term at once — staff and rooms are assigned afterward</p>
       <p class="page-subtitle">Need to size rooms/batches first? Open the <a routerLink="/timetable/capacity-planner">Capacity Planner</a>.</p>
     </div>
@@ -48,7 +51,7 @@
     </app-elective-slot-block-flyout>
   }
 
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-skel-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
       @for (ay of academicYears(); track ay.id) {
         <option [ngValue]="ay.id">{{ ay.name }}</option>
@@ -83,7 +86,7 @@
   } @else if (skeleton()) {
 
     <div class="detail-split">
-      <div class="detail-split__sidebar content-card skeleton-subjects-card">
+      <div id="tour-skel-subjects" class="detail-split__sidebar content-card skeleton-subjects-card">
         <h2 class="skeleton-budget-card__title">{{ skeleton()!.cohortName }} — {{ skeleton()!.termInstanceLabel }}</h2>
 
         @if (skeleton()!.subjects.length === 0) {
@@ -142,7 +145,7 @@
       </div>
 
       <div class="detail-split__main skeleton-main-stack">
-        <div class="content-card mlp-table-card skeleton-grid-card">
+        <div id="tour-skel-grid" class="content-card mlp-table-card skeleton-grid-card">
           <div class="table-wrapper">
             <table class="skeleton-grid" cdkDropListGroup>
               <thead>

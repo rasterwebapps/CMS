@@ -18,11 +18,14 @@ import { RotationSetupFlyoutComponent } from '../rotation-setup/rotation-setup-f
 import { ElectiveSlotBlockFlyoutComponent } from './elective-slot-block-flyout.component';
 import { colorForSubject } from './subject-color.util';
 import { violationText } from '../../../shared/util/violation-text';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { SKELETON_BUILDER_TOUR, SKELETON_BUILDER_FLOW_MAP } from '../../../shared/tour/tours/skeleton-builder.tours';
 
 @Component({
   selector: 'app-skeleton-builder',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatDialogModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent, ElectiveSlotBlockFlyoutComponent, DragDropModule],
+  imports: [FormsModule, RouterLink, MatDialogModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent, ElectiveSlotBlockFlyoutComponent, DragDropModule, CmsTourButtonComponent],
   templateUrl: './skeleton-builder.component.html',
   styleUrl: './skeleton-builder.component.scss',
 })
@@ -33,6 +36,7 @@ export class SkeletonBuilderComponent implements OnInit {
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
@@ -179,6 +183,9 @@ export class SkeletonBuilderComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('skeleton-builder', SKELETON_BUILDER_TOUR);
+    this.tourService.registerFlowMap('skeleton-builder', SKELETON_BUILDER_FLOW_MAP);
+
     this.periodService.getAll(true).subscribe({
       next: (data) => this.periods.set(data),
       error: () => this.toast.error('Failed to load periods'),

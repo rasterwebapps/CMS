@@ -2,7 +2,10 @@
 
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Timetable <em>Staffing</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Timetable <em>Staffing</em></h1>
+        <cms-tour-button tourKey="staffing" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">Assign faculty and a room to every session placed in the Skeleton Builder, before this term's draft can be approved</p>
       <p class="page-subtitle">Need to size rooms/batches first? Open the <a routerLink="/timetable/capacity-planner">Capacity Planner</a>.</p>
     </div>
@@ -16,7 +19,7 @@
     }
   </div>
 
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-staff-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
       @for (ay of academicYears(); track ay.id) {
         <option [ngValue]="ay.id">{{ ay.name }}</option>
@@ -44,7 +47,7 @@
       Nothing left to staff for this term — every placed session already has a faculty and room, or none have been placed yet in the Skeleton Builder.
     </div>
   } @else {
-    <ul class="staffing-list">
+    <ul id="tour-staff-list" class="staffing-list">
       @for (row of rows(); track row.id) {
         <li class="content-card staffing-row">
           <div class="staffing-row__info">
