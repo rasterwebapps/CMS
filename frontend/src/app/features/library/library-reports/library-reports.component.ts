@@ -14,6 +14,9 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { LIBRARY_REPORTS_TOUR, LIBRARY_REPORTS_FLOW_MAP } from '../../../shared/tour/tours/library-circulation.tours';
 
 @Component({
   selector: 'app-library-reports',
@@ -21,7 +24,7 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
   imports: [
     DatePipe, FormsModule,
     MatTableModule, MatPaginatorModule, MatSortModule, MatIconModule,
-    CmsTypeBadgeComponent, CmsEmptyStateComponent, ExportButtonComponent,
+    CmsTypeBadgeComponent, CmsEmptyStateComponent, ExportButtonComponent, CmsTourButtonComponent,
   ],
   templateUrl: './library-reports.component.html',
   styleUrl:    './library-reports.component.scss',
@@ -29,6 +32,7 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
 export class LibraryReportsComponent implements OnInit, OnDestroy {
   private readonly libraryService = inject(LibraryService);
   private readonly toast          = inject(ToastService);
+  private readonly tourService    = inject(TourService);
   protected readonly permissions  = inject(PermissionService);
 
   private readonly destroy$      = new Subject<void>();
@@ -69,6 +73,9 @@ export class LibraryReportsComponent implements OnInit, OnDestroy {
   protected sortDirection: 'asc' | 'desc' = 'asc';
 
   ngOnInit(): void {
+    this.tourService.register('library-reports', LIBRARY_REPORTS_TOUR);
+    this.tourService.registerFlowMap('library-reports', LIBRARY_REPORTS_FLOW_MAP);
+
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });
     this.loadPage();

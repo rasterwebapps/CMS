@@ -4,7 +4,10 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
     </a>
     <div class="entry-form-hdr-text">
-      <h1 class="page-title">Issue <em>{{ itemType() === 'BOOK' ? 'Book' : 'Journal' }}</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="page-title">Issue <em>{{ itemType() === 'BOOK' ? 'Book' : 'Journal' }}</em></h1>
+        <cms-tour-button tourKey="library-issue-form" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">Issue available books or journals to students or faculty.</p>
     </div>
   </div>
@@ -12,7 +15,7 @@
   <form [formGroup]="form" (ngSubmit)="save()" novalidate class="issue-form">
 
     <!-- Section: Item Lookup -->
-    <section class="form-section">
+    <section id="tour-libissue-item" class="form-section">
       <h2 class="form-section__title">Item</h2>
       <div class="form-grid form-grid--2">
         <div class="form-field">
@@ -67,7 +70,7 @@
     </section>
 
     <!-- Section: Member -->
-    <section class="form-section">
+    <section id="tour-libissue-borrower" class="form-section">
       <h2 class="form-section__title">Borrower</h2>
       <div class="form-grid form-grid--3">
         <div class="form-field">

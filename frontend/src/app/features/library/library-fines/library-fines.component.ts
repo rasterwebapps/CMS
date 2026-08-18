@@ -22,6 +22,9 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { LIBRARY_FINES_TOUR, LIBRARY_FINES_FLOW_MAP } from '../../../shared/tour/tours/library-circulation.tours';
 
 @Component({
   selector: 'app-library-fines',
@@ -31,7 +34,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule,
     CmsRowActionButtonComponent, CmsTypeBadgeComponent, CmsEmptyStateComponent, ExportButtonComponent,
-    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent,
   ],
   templateUrl: './library-fines.component.html',
   styleUrl: './library-fines.component.scss',
@@ -40,6 +43,7 @@ export class LibraryFinesComponent implements OnInit, OnDestroy {
   private readonly libraryService = inject(LibraryService);
   private readonly toast          = inject(ToastService);
   private readonly dialog         = inject(MatDialog);
+  private readonly tourService    = inject(TourService);
   protected readonly permissions  = inject(PermissionService);
 
   private readonly destroy$      = new Subject<void>();
@@ -94,6 +98,9 @@ export class LibraryFinesComponent implements OnInit, OnDestroy {
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
+    this.tourService.register('library-fines', LIBRARY_FINES_TOUR);
+    this.tourService.registerFlowMap('library-fines', LIBRARY_FINES_FLOW_MAP);
+
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });
     this.loadPage();

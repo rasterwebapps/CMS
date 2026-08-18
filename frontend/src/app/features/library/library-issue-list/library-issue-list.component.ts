@@ -23,6 +23,9 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { LIBRARY_ISSUE_LIST_TOUR, LIBRARY_ISSUE_LIST_FLOW_MAP } from '../../../shared/tour/tours/library-circulation.tours';
 
 @Component({
   selector: 'app-library-issue-list',
@@ -32,7 +35,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent, ExportButtonComponent,
-    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent,
   ],
   templateUrl: './library-issue-list.component.html',
   styleUrl: './library-issue-list.component.scss',
@@ -42,6 +45,7 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
   private readonly router         = inject(Router);
   private readonly toast          = inject(ToastService);
   private readonly dialog         = inject(MatDialog);
+  private readonly tourService    = inject(TourService);
   protected readonly permissions  = inject(PermissionService);
 
   private readonly destroy$      = new Subject<void>();
@@ -106,6 +110,9 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
+    this.tourService.register('library-issue-list', LIBRARY_ISSUE_LIST_TOUR);
+    this.tourService.registerFlowMap('library-issue-list', LIBRARY_ISSUE_LIST_FLOW_MAP);
+
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });
     this.loadPage();

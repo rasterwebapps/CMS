@@ -9,11 +9,14 @@ import { StudentService } from '../../student/student.service';
 import { Student } from '../../student/student.model';
 import { FacultyService } from '../../faculty/faculty.service';
 import { Faculty } from '../../faculty/faculty.model';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { LIBRARY_ISSUE_FORM_TOUR, LIBRARY_ISSUE_FORM_FLOW_MAP } from '../../../shared/tour/tours/library-circulation.tours';
 
 @Component({
   selector: 'app-library-issue-form',
   standalone: true,
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule, CmsTourButtonComponent],
   templateUrl: './library-issue-form.component.html',
   styleUrl: './library-issue-form.component.scss',
 })
@@ -25,6 +28,7 @@ export class LibraryIssueFormComponent implements OnInit {
   private readonly facultyService = inject(FacultyService);
   private readonly toast          = inject(ToastService);
   private readonly destroyRef     = inject(DestroyRef);
+  private readonly tourService    = inject(TourService);
 
   protected readonly saving        = signal(false);
   protected readonly loadingItem   = signal(false);
@@ -40,6 +44,9 @@ export class LibraryIssueFormComponent implements OnInit {
   protected readonly itemType   = signal<LibraryItemType>('BOOK');
 
   ngOnInit(): void {
+    this.tourService.register('library-issue-form', LIBRARY_ISSUE_FORM_TOUR);
+    this.tourService.registerFlowMap('library-issue-form', LIBRARY_ISSUE_FORM_FLOW_MAP);
+
     this.form = this.fb.group({
       itemType:        ['BOOK', Validators.required],
       accessionNumber: ['', Validators.required],
