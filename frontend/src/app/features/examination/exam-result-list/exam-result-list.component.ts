@@ -12,6 +12,9 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { EXAM_RESULT_LIST_TOUR, EXAM_RESULT_LIST_FLOW_MAP } from '../../../shared/tour/tours/examination.tours';
 
 @Component({
   selector: 'app-exam-result-list',
@@ -19,7 +22,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
   imports: [
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatIconModule, MatProgressSpinnerModule, CmsStatusBadgeComponent, CmsEmptyStateComponent,
-    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent
   ],
   templateUrl: './exam-result-list.component.html',
   styleUrl: './exam-result-list.component.scss',
@@ -27,6 +30,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
 export class ExamResultListComponent implements OnInit {
   private readonly examinationService = inject(ExaminationService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -56,6 +60,8 @@ export class ExamResultListComponent implements OnInit {
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
   ngOnInit(): void {
+    this.tourService.register('exam-result-list', EXAM_RESULT_LIST_TOUR);
+    this.tourService.registerFlowMap('exam-result-list', EXAM_RESULT_LIST_FLOW_MAP);
     this.loadExaminations();
   }
 
