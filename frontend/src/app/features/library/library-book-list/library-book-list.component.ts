@@ -32,7 +32,7 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { LIBRARY_BOOK_LIST_TOUR } from '../../../shared/tour/tours/library.tours';
+import { LIBRARY_BOOK_LIST_TOUR, LIBRARY_BOOK_LIST_FLOW_MAP } from '../../../shared/tour/tours/library.tours';
 
 
 @Component({
@@ -144,6 +144,7 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('library-book-list', LIBRARY_BOOK_LIST_TOUR);
+    this.tourService.registerFlowMap('library-book-list', LIBRARY_BOOK_LIST_FLOW_MAP);
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });
     this.loadPage();

@@ -7,7 +7,7 @@ import { LibrarySetting } from '../library.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { LIBRARY_SETTINGS_TOUR } from '../../../shared/tour/tours/library.tours';
+import { LIBRARY_SETTINGS_TOUR, LIBRARY_SETTINGS_FLOW_MAP } from '../../../shared/tour/tours/library.tours';
 
 @Component({
   selector: 'app-library-settings',
@@ -29,6 +29,7 @@ export class LibrarySettingsComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('library-settings', LIBRARY_SETTINGS_TOUR);
+    this.tourService.registerFlowMap('library-settings', LIBRARY_SETTINGS_FLOW_MAP);
     this.form = this.fb.group({
       student_loan_days:  [14, [Validators.required, Validators.min(1), Validators.max(365)]],
       faculty_loan_days:  [30, [Validators.required, Validators.min(1), Validators.max(365)]],

@@ -87,13 +87,13 @@ CLAUDE.md module priority).
 - [ ] Issue Books — `/library/issues/new` — Tour:N FM:N
 - [ ] Issue Explorer — `/library/issues` — Tour:N FM:N
 - [ ] Overdue Books — `/library/reports` — Tour:N FM:N
-- [ ] Book Explorer — `/library/books` — Tour:Y FM:N
+- [x] Book Explorer — `/library/books` — Tour:Y FM:Y
 - [ ] Journal Explorer — `/library/periodicals` — Tour:N FM:N
 - [ ] My Library — `/library/my-issues` — Tour:N FM:N
 - [ ] Fines — `/library/fines` — Tour:N FM:N
 - [ ] Racks & Shelves — `/library/racks` — Tour:N FM:N
 - [ ] Import — `/library/import` — Tour:N FM:N
-- [ ] Library Settings — `/library/settings` — Tour:Y FM:N
+- [x] Library Settings — `/library/settings` — Tour:Y FM:Y
 
 ### Core Infrastructure
 - [ ] Campus Infrastructure — `/campus-infrastructure` — Tour:N FM:N
@@ -159,3 +159,4 @@ Format: `- YYYY-MM-DD HH:MM | <screen> | DONE|PARTIAL|BLOCKED|SKIPPED | <ticket>
 - 2026-08-18 21:05 | Student Explorer, Assign Roll Numbers, Scholarship Applications, Data Import | DONE | OC-141 | Phase 1 Flow Maps added to all Student Management Tour:Y screens, sharing one STUDENT_MANAGEMENT_FUNNEL (4 nav-group stages). tsc clean. Needs manual light/dark + role check.
 - 2026-08-18 21:06 | Finalize Fee, Fee Explorer, Receipts, Refunds | DONE | OC-142 | Phase 1 Flow Maps added to all Finance Tour:Y screens. Finalize Fee reuses the Admission pipeline funnel (duplicated locally in finance.tours.ts); Fee Explorer/Receipts/Refunds share a new FINANCE_FUNNEL (nav-group order, Commissions included as 4th stage for context even though Commissions itself is Tour:N/Phase 2). tsc clean. Needs manual light/dark + role check.
 - 2026-08-18 21:08 | Curriculum Versions, Syllabus, Experiments, Capacity Planner | DONE | OC-143 | Phase 1 Flow Maps added to Academics' 4 Tour:Y screens. Curriculum Versions/Syllabus/Experiments share a new CURRICULUM_AUTHORING_FUNNEL (3-stage). Capacity Planner gets a new TIMETABLE_BUILD_FUNNEL (8-stage, nav-group order) exported from timetable.tours.ts for reuse by the other timetable screens in Phase 2. tsc clean. Needs manual light/dark + role check.
+- 2026-08-18 21:10 | Book Explorer, Library Settings | DONE | OC-144 | Phase 1 Flow Maps added to Library's 2 Tour:Y screens, both single-entry funnels (no natural multi-screen journey between them). tsc clean. Needs manual light/dark + role check.

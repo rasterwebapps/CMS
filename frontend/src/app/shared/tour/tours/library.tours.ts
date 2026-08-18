@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const LIBRARY_BOOK_LIST_TOUR: TourDefinition = {
   steps: [
@@ -60,6 +60,19 @@ export const LIBRARY_BOOK_LIST_TOUR: TourDefinition = {
   ],
 };
 
+export const LIBRARY_BOOK_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Book Explorer', description: 'Search, register, and manage the complete library book catalogue (Accession Register).' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search Catalogue', icon: 'search', detail: 'Search by title, author, accession number, or call number.' },
+    { label: 'Filters & Bulk Actions', icon: 'checklist', detail: 'Filter by status, subject, rack, or shelf; select rows to Transfer or Print Labels in bulk.' },
+    { label: 'Add a Book', icon: 'open', detail: 'Register a new book — accession number, barcode, title, author, and shelf.' },
+    { label: 'Row Actions', icon: 'send', detail: 'View History, Print Barcode, or Transfer any book from its row.' },
+  ],
+};
+
 export const LIBRARY_SETTINGS_TOUR: TourDefinition = {
   steps: [
     {
@@ -117,5 +130,18 @@ export const LIBRARY_SETTINGS_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const LIBRARY_SETTINGS_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Library Settings', description: 'Configure loan periods, borrowing limits, fine rates, barcode labels, and printer routing for the whole Library module.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Loan Periods & Limits', icon: 'checklist', detail: 'How many days students and faculty may keep a book, and the maximum books each may hold.' },
+    { label: 'Fine & Renewals', icon: 'payment', detail: 'The overdue fine rate per day, and how many times an issue can be renewed.' },
+    { label: 'Barcode Label Size', icon: 'open', detail: 'The physical sticker size used for on-screen preview and printed labels.' },
+    { label: 'Label Printer', icon: 'send', detail: 'Route the Print button to the browser dialog, a networked printer, or a USB label printer — used by both Book Catalogue and Journals.' },
   ],
 };
