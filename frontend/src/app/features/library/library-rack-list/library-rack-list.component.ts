@@ -17,6 +17,9 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { LIBRARY_RACK_LIST_TOUR, LIBRARY_RACK_LIST_FLOW_MAP } from '../../../shared/tour/tours/library-rack.tours';
 
 @Component({
   selector: 'app-library-rack-list',
@@ -25,7 +28,7 @@ import { PermissionService } from '../../../core/permissions/permission.service'
     RouterLink, FormsModule,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatDialogModule, MatIconModule, MatTooltipModule,
-    CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsStatusBadgeComponent,
+    CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsStatusBadgeComponent, CmsTourButtonComponent,
   ],
   templateUrl: './library-rack-list.component.html',
   styleUrl: './library-rack-list.component.scss',
@@ -35,6 +38,7 @@ export class LibraryRackListComponent implements OnInit, OnDestroy {
   private readonly router         = inject(Router);
   private readonly toast          = inject(ToastService);
   private readonly dialog         = inject(MatDialog);
+  private readonly tourService    = inject(TourService);
   protected readonly permissions  = inject(PermissionService);
 
   private readonly destroy$      = new Subject<void>();
@@ -68,6 +72,9 @@ export class LibraryRackListComponent implements OnInit, OnDestroy {
   protected sortDirection: 'asc' | 'desc' = 'asc';
 
   ngOnInit(): void {
+    this.tourService.register('library-rack-list', LIBRARY_RACK_LIST_TOUR);
+    this.tourService.registerFlowMap('library-rack-list', LIBRARY_RACK_LIST_FLOW_MAP);
+
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });
     this.loadPage();

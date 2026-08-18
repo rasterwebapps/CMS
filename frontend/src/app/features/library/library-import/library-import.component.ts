@@ -10,6 +10,9 @@ import {
 } from '../library.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { LIBRARY_IMPORT_TOUR, LIBRARY_IMPORT_FLOW_MAP } from '../../../shared/tour/tours/library-import.tours';
 
 type ItemType = 'book' | 'journal';
 type Step     = 'template' | 'upload' | 'result';
@@ -18,7 +21,7 @@ type Phase    = 'idle' | 'validating' | 'importing' | 'done';
 @Component({
   selector: 'app-library-import',
   standalone: true,
-  imports: [RouterLink, NgTemplateOutlet, FormsModule],
+  imports: [RouterLink, NgTemplateOutlet, FormsModule, CmsTourButtonComponent],
   templateUrl: './library-import.component.html',
   styleUrl:    './library-import.component.scss',
 })
@@ -27,6 +30,7 @@ export class LibraryImportComponent implements OnInit {
   private readonly toast          = inject(ToastService);
   private readonly router         = inject(Router);
   private readonly route          = inject(ActivatedRoute);
+  private readonly tourService    = inject(TourService);
   private readonly permissions    = inject(PermissionService);
 
   protected readonly canImportBooks    = computed(() => this.permissions.hasAny('LIBRARY_IMPORT'));
@@ -54,6 +58,9 @@ export class LibraryImportComponent implements OnInit {
   );
 
   ngOnInit(): void {
+    this.tourService.register('library-import', LIBRARY_IMPORT_TOUR);
+    this.tourService.registerFlowMap('library-import', LIBRARY_IMPORT_FLOW_MAP);
+
     const requestedJournal = this.route.snapshot.queryParamMap.get('type') === 'journal';
     if (requestedJournal && this.canImportJournals()) {
       this.itemType.set('journal');

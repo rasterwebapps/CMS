@@ -3,7 +3,10 @@
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
   <div class="imp-hdr">
     <div class="imp-hdr-left">
-      <h1 class="imp-title">Import <em>{{ itemType() === 'book' ? 'Books' : 'Journals' }}</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="imp-title">Import <em>{{ itemType() === 'book' ? 'Books' : 'Journals' }}</em></h1>
+        <cms-tour-button tourKey="library-import" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="imp-sub">
         @if (itemType() === 'book') {
           Bulk-import book records from an Excel file into the Accession Register.
@@ -34,7 +37,7 @@
   }
 
   <!-- ── Step nav ───────────────────────────────────────────────────────── -->
-  <div class="step-nav">
+  <div id="tour-libimp-steps" class="step-nav">
     <button class="step-btn" [class.step-btn--active]="activeStep() === 'template'" (click)="activeStep.set('template')">
       <span class="step-num">1</span> Download Template
     </button>

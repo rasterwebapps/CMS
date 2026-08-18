@@ -3,10 +3,13 @@
   <!-- Header -->
   <div class="mlp-hdr">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Journals &amp; <em>Periodicals</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Journals &amp; <em>Periodicals</em></h1>
+        <cms-tour-button tourKey="library-periodical-list" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">Journal subscription register — national and international periodicals</p>
     </div>
-    <div class="header-actions">
+    <div id="tour-libjrn-add" class="header-actions">
       @if (canExport()) {
         <cms-export-button
           [disabled]="exporting() || totalElements === 0"
@@ -33,7 +36,7 @@
   </div>
 
   <!-- Toolbar -->
-  <div class="mlp-toolbar">
+  <div id="tour-libjrn-toolbar" class="mlp-toolbar">
     <div class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -85,7 +88,7 @@
     </div>
   </div>
 
-  <div class="mlp-table-wrap mlp-table-card">
+  <div id="tour-libjrn-table" class="mlp-table-wrap mlp-table-card">
     @if (loading()) {
       <div class="mlp-loading-row"><span class="mlp-spinner"></span> Loading journal register...</div>
     } @else {

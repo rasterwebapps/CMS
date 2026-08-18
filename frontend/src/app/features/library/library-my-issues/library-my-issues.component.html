@@ -2,7 +2,10 @@
 
   <div class="mlp-hdr portal-header">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">My <em>Library</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">My <em>Library</em></h1>
+        <cms-tour-button tourKey="library-my-issues" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">View your borrowed books, history, and search the catalogue.</p>
     </div>
     @if (hasOverdue()) {
@@ -14,7 +17,7 @@
   </div>
 
   <!-- Tabs -->
-  <div class="portal-tabs">
+  <div id="tour-mylib-tabs" class="portal-tabs">
     <button class="portal-tab" [class.active]="activeTab() === 'active'"  (click)="selectTab('active')">
       <mat-icon>book_online</mat-icon>
       Currently Borrowed

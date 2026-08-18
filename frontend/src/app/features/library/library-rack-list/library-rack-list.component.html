@@ -3,10 +3,13 @@
   <!-- Header -->
   <div class="mlp-hdr">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Racks &amp; <em>Shelves</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Racks &amp; <em>Shelves</em></h1>
+        <cms-tour-button tourKey="library-rack-list" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">Manage library racks — the physical storage units that hold book shelves</p>
     </div>
-    <div class="header-actions">
+    <div id="tour-librack-add" class="header-actions">
       @if (canManage()) {
         <a class="btn-primary" routerLink="/library/racks/new" aria-label="Add new rack">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -37,7 +40,7 @@
   </div>
 
   <!-- Table -->
-  <div class="mlp-table-wrap mlp-table-card">
+  <div id="tour-librack-table" class="mlp-table-wrap mlp-table-card">
     @if (loading()) {
       <div class="mlp-loading-row">
         <span class="mlp-spinner" aria-label="Loading..."></span> Loading racks...

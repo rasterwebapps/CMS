@@ -15,19 +15,23 @@ import {
   LibraryShelf,
 } from '../library.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { LIBRARY_MY_ISSUES_TOUR, LIBRARY_MY_ISSUES_FLOW_MAP } from '../../../shared/tour/tours/library-my-issues.tours';
 
 type PortalTab = 'active' | 'history' | 'search';
 
 @Component({
   selector: 'app-library-my-issues',
   standalone: true,
-  imports: [DatePipe, MatIconModule, MatPaginatorModule, FormsModule],
+  imports: [DatePipe, MatIconModule, MatPaginatorModule, FormsModule, CmsTourButtonComponent],
   templateUrl: './library-my-issues.component.html',
   styleUrl:    './library-my-issues.component.scss',
 })
 export class LibraryMyIssuesComponent implements OnInit, OnDestroy {
   private readonly libraryService = inject(LibraryService);
   private readonly toast          = inject(ToastService);
+  private readonly tourService    = inject(TourService);
 
   private readonly destroy$      = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
@@ -78,6 +82,9 @@ export class LibraryMyIssuesComponent implements OnInit, OnDestroy {
     ISSUE_STATUS_OPTIONS.find(o => o.value === s)?.label ?? s;
 
   ngOnInit(): void {
+    this.tourService.register('library-my-issues', LIBRARY_MY_ISSUES_TOUR);
+    this.tourService.registerFlowMap('library-my-issues', LIBRARY_MY_ISSUES_FLOW_MAP);
+
     this.loadMyIssues();
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadCatalogue(); });

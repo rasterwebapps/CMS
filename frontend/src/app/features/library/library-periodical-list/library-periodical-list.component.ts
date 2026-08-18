@@ -28,6 +28,9 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
 import { LibraryBarcodePreviewDialogComponent, LibraryBarcodePreviewDialogData } from '../library-barcode-preview-dialog/library-barcode-preview-dialog.component';
 import { LibraryItemHistoryDialogComponent, LibraryItemHistoryDialogData } from '../library-item-history-dialog/library-item-history-dialog.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { LIBRARY_PERIODICAL_LIST_TOUR, LIBRARY_PERIODICAL_LIST_FLOW_MAP } from '../../../shared/tour/tours/library-periodical.tours';
 
 
 @Component({
@@ -39,7 +42,7 @@ import { LibraryItemHistoryDialogComponent, LibraryItemHistoryDialogData } from 
     MatDialogModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatTooltipModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent,
     CmsTypeBadgeComponent, CmsStatusBadgeComponent, ExportButtonComponent, CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
-    LibraryBarcodePreviewDialogComponent, LibraryItemHistoryDialogComponent,
+    LibraryBarcodePreviewDialogComponent, LibraryItemHistoryDialogComponent, CmsTourButtonComponent,
   ],
   templateUrl: './library-periodical-list.component.html',
   styleUrl:    './library-periodical-list.component.scss',
@@ -50,6 +53,7 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
   private readonly router         = inject(Router);
   private readonly toast          = inject(ToastService);
   private readonly dialog         = inject(MatDialog);
+  private readonly tourService    = inject(TourService);
   protected readonly permissions  = inject(PermissionService);
 
   private readonly destroy$      = new Subject<void>();
@@ -117,6 +121,9 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
+    this.tourService.register('library-periodical-list', LIBRARY_PERIODICAL_LIST_TOUR);
+    this.tourService.registerFlowMap('library-periodical-list', LIBRARY_PERIODICAL_LIST_FLOW_MAP);
+
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });
     this.loadPage();
