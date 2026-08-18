@@ -10,7 +10,6 @@ import { CmsTourPanelComponent } from './tour-panel/tour-panel.component';
     @if (panelOpen) {
       <cms-tour-panel
         [tourKey]="tourKey"
-        [initialMode]="panelInitialMode"
         (closed)="panelOpen = false"
         (guidedRequested)="onGuidedRequested()"
       />
@@ -23,7 +22,23 @@ import { CmsTourPanelComponent } from './tour-panel/tour-panel.component';
         Flow Map
       </button>
     }
-    @if (iconOnly) {
+    @if (hasFlowMap) {
+      <!-- Small icon-level switch — no popup needed for a two-way choice -->
+      <div class="cms-tour-switch" role="group" aria-label="Take a Tour">
+        <button type="button" class="cms-tour-switch-btn" (click)="startGuided()" title="Guided Tour" aria-label="Guided Tour">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+          </svg>
+        </button>
+        <span class="cms-tour-switch-divider"></span>
+        <button type="button" class="cms-tour-switch-btn" (click)="openFlowMap()" title="Flow Map" aria-label="Flow Map">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>
+          </svg>
+        </button>
+      </div>
+    } @else if (iconOnly) {
       <!-- Icon-only variant -->
       <button
         class="cms-tour-icon-btn"
@@ -151,6 +166,43 @@ import { CmsTourPanelComponent } from './tour-panel/tour-panel.component';
       }
     }
 
+    /* ── Small icon-level switch, replaces the single icon button on screens with a Flow Map ── */
+    .cms-tour-switch {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--cms-border-default);
+      border-radius: 8px;
+      background: var(--cms-bg-card);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .cms-tour-switch-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 34px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--cms-text-secondary);
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s;
+
+      svg { flex-shrink: 0; }
+
+      &:hover {
+        color: var(--cms-primary);
+        background: var(--cms-primary-ring, rgba(99,102,241,0.08));
+      }
+    }
+    .cms-tour-switch-divider {
+      width: 1px;
+      align-self: stretch;
+      margin: 7px 0;
+      background: var(--cms-border-default);
+    }
+
     /* ── Floating "swap back to Flow Map" pill, shown while a Guided Tour is running ── */
     .cms-tour-swap-pill {
       position: fixed;
@@ -196,36 +248,39 @@ export class CmsTourButtonComponent implements OnInit {
   @Input() buttonLabel = 'Take a Tour';
 
   protected panelOpen = false;
-  protected panelInitialMode: 'choose' | 'map' = 'choose';
   protected guidedActive = false;
+  protected hasFlowMap = false;
 
   private readonly tourService = inject(TourService);
 
   ngOnInit(): void {
-    // Register tour if not already registered
+    this.hasFlowMap = this.tourService.hasFlowMap(this.tourKey);
   }
 
+  /** Used only on screens with no Flow Map — behaves exactly as before. */
   protected start(): void {
-    if (this.tourService.hasFlowMap(this.tourKey)) {
-      this.panelInitialMode = 'choose';
-      this.panelOpen = true;
-      return;
-    }
     this.tourService.start(this.tourKey);
   }
 
-  /** Panel asked to hand off to the Guided Tour — close the panel and start driver.js. */
-  protected onGuidedRequested(): void {
-    this.panelOpen = false;
+  protected startGuided(): void {
     this.guidedActive = true;
     this.tourService.start(this.tourKey, () => { this.guidedActive = false; });
+  }
+
+  protected openFlowMap(): void {
+    this.panelOpen = true;
+  }
+
+  /** The Flow Map panel's own tab/footer asked to swap to Guided Tour. */
+  protected onGuidedRequested(): void {
+    this.panelOpen = false;
+    this.startGuided();
   }
 
   /** Floating pill clicked mid-Guided-Tour — end it and reopen straight into the Flow Map. */
   protected swapToFlowMap(): void {
     this.tourService.stopActive();
     this.guidedActive = false;
-    this.panelInitialMode = 'map';
     this.panelOpen = true;
   }
 }

@@ -2,10 +2,9 @@ import { Component, EventEmitter, HostListener, inject, Input, OnDestroy, OnInit
 import { TourFlowMap, TourService } from '../tour.service';
 
 /**
- * Second view for "Take a Tour" on screens that have a registered Flow Map.
- * Opens on a chooser (unless told to open straight into the map, e.g. when
- * swapping back from an in-progress Guided Tour). Once a mode is picked, the
- * tab bar lets you swap to the other at any time — "Guided Tour" hands off
+ * The Flow Map view for "Take a Tour" — opened directly by the small icon-level
+ * switch on screens that have one registered (no chooser popup involved). The
+ * tab bar still lets you swap to the Guided Tour at any time — that hands off
  * to the existing driver.js walkthrough via `guidedRequested`, since it needs
  * to highlight real elements behind this panel.
  */
@@ -29,27 +28,7 @@ import { TourFlowMap, TourService } from '../tour.service';
           </button>
         </div>
 
-        @if (mode === 'choose') {
-          <div class="ctp-choose">
-            <div class="ctp-choose-caption">How would you like to take this tour?</div>
-            <div class="ctp-choose-grid">
-              <button type="button" class="ctp-choose-card" [disabled]="!hasGuided" (click)="requestGuided()">
-                <span class="ctp-choose-icon">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                </span>
-                <span class="ctp-choose-title">Guided Tour</span>
-                <span class="ctp-choose-desc">Step-by-step, pointing at the real buttons and fields on this screen.</span>
-              </button>
-              <button type="button" class="ctp-choose-card" (click)="mode = 'map'">
-                <span class="ctp-choose-icon">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
-                </span>
-                <span class="ctp-choose-title">Flow Map</span>
-                <span class="ctp-choose-desc">Where this screen fits in the journey, and how its own steps flow.</span>
-              </button>
-            </div>
-          </div>
-        } @else if (flowMap) {
+        @if (flowMap) {
           <div class="ctp-tabs">
             <button type="button" class="ctp-tab" title="Opens the existing step-by-step tour" (click)="requestGuided()">
               <span class="ctp-tab-n">1</span> Guided Tour
@@ -196,25 +175,6 @@ import { TourFlowMap, TourService } from '../tour.service';
       background: var(--cms-primary); border-radius: 2px 2px 0 0;
     }
 
-    /* ---- chooser: shown on first open ---- */
-    .ctp-choose { padding: 20px 18px 22px; }
-    .ctp-choose-caption { font-size: 13px; font-weight: 600; color: var(--cms-text-primary); margin-bottom: 14px; text-align: center; }
-    .ctp-choose-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .ctp-choose-card {
-      display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
-      padding: 20px 14px; border-radius: 14px; cursor: pointer;
-      background: var(--cms-bg-subtle, var(--cms-bg-card)); border: 1.5px solid var(--cms-border-default);
-      font-family: var(--cms-font-ui); transition: border-color .15s, box-shadow .15s, transform .15s;
-    }
-    .ctp-choose-card:hover:not(:disabled) { border-color: var(--cms-primary); box-shadow: 0 0 0 3px var(--cms-primary-ring); transform: translateY(-2px); }
-    .ctp-choose-card:disabled { opacity: .45; cursor: not-allowed; }
-    .ctp-choose-icon {
-      width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      background: var(--cms-primary-light); color: var(--cms-primary);
-    }
-    .ctp-choose-title { font-size: 13px; font-weight: 700; color: var(--cms-text-primary); }
-    .ctp-choose-desc { font-size: 11px; line-height: 1.45; color: var(--cms-text-secondary); }
-
     /* ---- static journey rail: deliberately quiet — context, not the main event ---- */
     .ctp-rail-wrap { padding: 12px 18px 14px; border-bottom: 1px solid var(--cms-border-default); flex: none; background: var(--cms-bg-subtle, var(--cms-bg-hover)); }
     .ctp-rail-caption { font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--cms-text-secondary); opacity: .75; margin-bottom: 9px; }
@@ -303,15 +263,12 @@ import { TourFlowMap, TourService } from '../tour.service';
 })
 export class CmsTourPanelComponent implements OnInit, OnDestroy {
   @Input({ required: true }) tourKey!: string;
-  /** Which view to open on — 'choose' for a fresh click, 'map' when swapping back from an in-progress Guided Tour. */
-  @Input() initialMode: 'choose' | 'map' = 'choose';
   @Output() closed = new EventEmitter<void>();
-  /** The user picked (or swapped to) Guided Tour — the owner is responsible for closing this panel and starting it. */
+  /** The tab/footer swap was clicked — the owner is responsible for closing this panel and starting the Guided Tour. */
   @Output() guidedRequested = new EventEmitter<void>();
 
   private readonly tourService = inject(TourService);
 
-  protected mode: 'choose' | 'map' = 'choose';
   protected hasGuided = false;
   protected activeStep = 0;
   protected walking = false;
@@ -320,7 +277,6 @@ export class CmsTourPanelComponent implements OnInit, OnDestroy {
   private walkTimer: ReturnType<typeof setInterval> | undefined;
 
   ngOnInit(): void {
-    this.mode = this.initialMode;
     this.hasGuided = this.tourService.hasTour(this.tourKey);
     this.flowMap = this.tourService.getFlowMap(this.tourKey);
   }
