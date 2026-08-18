@@ -21,6 +21,9 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
 import { PermissionService } from '../../../core/permissions/permission.service';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CO_PO_MAPPING_LIST_TOUR, CO_PO_MAPPING_LIST_FLOW_MAP } from '../../../shared/tour/tours/co-po-mapping.tours';
 
 @Component({
   selector: 'app-co-po-mapping',
@@ -42,6 +45,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
     CmsIconDeleteComponent,
     CmsIconEditComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsTourButtonComponent,
 ],
   templateUrl: './co-po-mapping.component.html',
   styleUrl: './co-po-mapping.component.scss',
@@ -52,6 +56,7 @@ export class CoPoMappingComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly permissionService = inject(PermissionService);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -86,6 +91,8 @@ export class CoPoMappingComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('co-po-mapping-list', CO_PO_MAPPING_LIST_TOUR);
+    this.tourService.registerFlowMap('co-po-mapping-list', CO_PO_MAPPING_LIST_FLOW_MAP);
     this.load();
   }
 

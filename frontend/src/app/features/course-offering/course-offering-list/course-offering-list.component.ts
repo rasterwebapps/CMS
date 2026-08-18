@@ -18,6 +18,9 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { COURSE_OFFERING_LIST_TOUR, COURSE_OFFERING_LIST_FLOW_MAP } from '../../../shared/tour/tours/course-offering.tours';
 import {
   CourseOfferingEditDialogComponent,
   CourseOfferingEditDialogData,
@@ -36,6 +39,7 @@ import {
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsStatusBadgeComponent,
     CmsIconDeleteComponent, CmsIconEditComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './course-offering-list.component.html',
   styleUrl: './course-offering-list.component.scss',
@@ -48,6 +52,7 @@ export class CourseOfferingListComponent implements OnInit {
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -97,6 +102,9 @@ export class CourseOfferingListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('course-offering-list', COURSE_OFFERING_LIST_TOUR);
+    this.tourService.registerFlowMap('course-offering-list', COURSE_OFFERING_LIST_FLOW_MAP);
+
     this.http.get<{ id: number; fullName: string; specialityId: number | null }[]>(`${environment.apiUrl}/faculty`).subscribe({
       next: (data) => this.faculty.set(data.map((f) => ({ id: f.id, name: f.fullName, specialityId: f.specialityId }))),
       error: () => { this.toast.error('Failed to load faculty'); },

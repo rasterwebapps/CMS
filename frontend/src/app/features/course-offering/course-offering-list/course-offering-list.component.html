@@ -8,7 +8,10 @@
       </a>
     }
     <div class="entry-form-hdr-text">
-      <h1 class="page-title">Course <em>Offerings</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="page-title">Course <em>Offerings</em></h1>
+        <cms-tour-button tourKey="course-offering-list" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">
         @if (selectedTerm(); as term) {
           {{ term.academicYearName }} · {{ term.termType }} Term
@@ -19,7 +22,7 @@
     </div>
   </div>
 
-  <div class="command-bar mlp-toolbar">
+  <div id="tour-cofr-toolbar" class="command-bar mlp-toolbar">
     <div class="command-bar__left">
       <select
         class="mlp-filter-select"
@@ -94,7 +97,7 @@
     </div>
   </div>
 
-  <div class="content-card mlp-table-card">
+  <div id="tour-cofr-table" class="content-card mlp-table-card">
     @if (loading()) {
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading course offerings"></mat-spinner>

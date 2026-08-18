@@ -60,8 +60,8 @@ CLAUDE.md module priority).
 - [x] Curriculum Versions — `/curriculum-versions` — Tour:Y FM:Y
 - [x] Syllabus — `/syllabi` — Tour:Y FM:Y
 - [x] Experiments — `/experiments` — Tour:Y FM:Y
-- [ ] CO/PO Mapping — `/curriculum-mappings` — Tour:N FM:N
-- [ ] Course Offerings — `/course-offerings` — Tour:N FM:N
+- [x] CO/PO Mapping — `/curriculum-mappings` — Tour:Y FM:Y
+- [x] Course Offerings — `/course-offerings` — Tour:Y FM:Y
 - [ ] Elective Assignment — `/elective-assignment` — Tour:N FM:N
 - [ ] Lab Schedules — `/lab-schedules` — Tour:N FM:N
 - [ ] Faculty Availability — `/faculty-availability` — Tour:N FM:N
@@ -163,3 +163,4 @@ Format: `- YYYY-MM-DD HH:MM | <screen> | DONE|PARTIAL|BLOCKED|SKIPPED | <ticket>
 - 2026-08-18 21:14 | Academic Calendar, Academic Years, Agents, Blood Groups, Communities, Courses, Designations, Equipment, Faculty, Faculty Doc Config, Fee Structures, Institutions, Location Master, Number Sequences, Programs, Referral Types, Scholarship Types, Specialities | DONE | OC-145 | Phase 1 Flow Maps added to all 18 Preferences Tour:Y screens — every one is a single-entry funnel per the README's guidance for master/config screens with no natural multi-screen journey. tsc clean across all 18. This closes out Phase 1 entirely — every Tour:Y screen in the checklist now has a Flow Map. Needs manual light/dark + role check.
 - 2026-08-18 21:15 | Dashboard, My Profile, My Timetable | SKIPPED | OC-139 | Phase 2 begins. All 3 Overview screens skipped per the judgment-call guidance — see per-screen reasoning in the checklist above. Moving to Phase 2 proper starting with Finance (Commissions) then Academics (21 Tour:N screens, largest remaining chunk).
 - 2026-08-18 21:16 | Commissions | DONE | OC-146 | Phase 2: full Guided Tour + Flow Map built from scratch (new commission.tours.ts, 4 tour-anchor ids added to commission-explorer-list.component.html, cms-tour-button wired). Reuses the Finance funnel as its 4th stage. tsc clean.
+- 2026-08-18 21:19 | CO/PO Mapping, Course Offerings | DONE | OC-147 | Phase 2 Academics begins. Full Guided Tour + Flow Map built from scratch for both (new co-po-mapping.tours.ts, course-offering.tours.ts), each single-entry funnel. tsc clean.
