@@ -7,7 +7,7 @@ export const FEE_COLLECTION_TOUR: TourDefinition = {
   steps: [
     {
       popover: {
-        title: '💰 Collect Payments',
+        title: '🧭 Take A Tour',
         description:
           'Record payments from enquiries and students. Track installments, due dates, and payment modes (cash, cheque, UPI, bank transfer, etc.) all in one place.',
         side: 'over',

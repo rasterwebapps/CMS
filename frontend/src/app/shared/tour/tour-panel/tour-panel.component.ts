@@ -4,22 +4,22 @@ import { TourFlowMap, TourService } from '../tour.service';
 /**
  * The Flow Map view for "Take a Tour" — opened directly by the small icon-level
  * switch on screens that have one registered (no chooser popup involved). The
- * tab bar still lets you swap to the Guided Tour at any time — that hands off
- * to the existing driver.js walkthrough via `guidedRequested`, since it needs
- * to highlight real elements behind this panel.
+ * footer link still lets you swap to the Guided Tour at any time — that hands
+ * off to the existing driver.js walkthrough via `guidedRequested`, since it
+ * needs to highlight real elements behind this panel.
  */
 @Component({
   selector: 'cms-tour-panel',
   standalone: true,
   template: `
     <div class="ctp-backdrop" (click)="onBackdropClick($event)">
-      <div class="ctp-panel" role="dialog" aria-modal="true" [attr.aria-label]="'Take a Tour — ' + tourKey">
+      <div class="ctp-panel" role="dialog" aria-modal="true" [attr.aria-label]="'Flow Map — ' + tourKey">
         <div class="ctp-hdr">
           <div class="ctp-hdr-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+              <line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>
             </svg>
-            Take a Tour
+            Flow Map
           </div>
           <button class="ctp-close" type="button" (click)="close()" aria-label="Close">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -29,15 +29,6 @@ import { TourFlowMap, TourService } from '../tour.service';
         </div>
 
         @if (flowMap) {
-          <div class="ctp-tabs">
-            <button type="button" class="ctp-tab" title="Opens the existing step-by-step tour" (click)="requestGuided()">
-              <span class="ctp-tab-n">1</span> Guided Tour
-            </button>
-            <button type="button" class="ctp-tab ctp-tab--active" aria-current="true">
-              <span class="ctp-tab-n">2</span> Flow Map
-            </button>
-          </div>
-
           <div class="ctp-rail-wrap">
             <div class="ctp-rail-caption">Where this screen sits in the journey</div>
             <div class="ctp-rail">
@@ -63,7 +54,7 @@ import { TourFlowMap, TourService } from '../tour.service';
             <div class="ctp-chart">
               @for (step of flowMap.steps; track $index; let i = $index) {
                 @if (i > 0) {
-                  <svg class="ctp-arrow" [class.ctp-arrow--active]="activeStep === i || activeStep === i - 1" width="30" height="18" viewBox="0 0 30 18" aria-hidden="true">
+                  <svg class="ctp-arrow" [class.ctp-arrow--active]="displayStep() === i || displayStep() === i - 1" width="30" height="18" viewBox="0 0 30 18" aria-hidden="true">
                     <line x1="0" y1="9" x2="20" y2="9" stroke="currentColor" stroke-width="2"/>
                     <path d="M17,3 L27,9 L17,15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
@@ -71,9 +62,11 @@ import { TourFlowMap, TourService } from '../tour.service';
                 <button
                   type="button"
                   class="ctp-node"
-                  [class.ctp-node--active]="activeStep === i"
-                  (mouseenter)="setActiveStep(i)"
-                  (focus)="setActiveStep(i)"
+                  [class.ctp-node--active]="displayStep() === i"
+                  (mouseenter)="hoverStep = i"
+                  (mouseleave)="hoverStep = null"
+                  (focus)="hoverStep = i"
+                  (blur)="hoverStep = null"
                   (click)="setActiveStep(i)"
                 >
                   <span class="ctp-node-step">{{ i + 1 }}</span>
@@ -105,8 +98,8 @@ import { TourFlowMap, TourService } from '../tour.service';
             </div>
 
             <div class="ctp-caption">
-              <span class="ctp-caption-n">{{ activeStep + 1 }}</span>
-              <span>{{ flowMap.steps[activeStep]?.detail }}</span>
+              <span class="ctp-caption-n">{{ displayStep() + 1 }}</span>
+              <span>{{ flowMap.steps[displayStep()]?.detail }}</span>
             </div>
           </div>
 
@@ -156,27 +149,8 @@ import { TourFlowMap, TourService } from '../tour.service';
     }
     .ctp-close:hover { background: var(--cms-bg-hover); }
 
-    .ctp-tabs { display: flex; gap: 4px; padding: 12px 18px 0; border-bottom: 1px solid var(--cms-border-default); flex: none; }
-    .ctp-tab {
-      appearance: none; border: none; background: transparent; font-family: var(--cms-font-ui);
-      font-size: 12.5px; font-weight: 600; color: var(--cms-text-secondary);
-      padding: 8px 4px 10px; cursor: pointer; position: relative; display: flex; align-items: center; gap: 6px;
-    }
-    .ctp-tab + .ctp-tab { margin-left: 14px; }
-    .ctp-tab-n {
-      font-family: var(--cms-font-mono, monospace); font-size: 9.5px; font-weight: 700;
-      width: 15px; height: 15px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-      background: var(--cms-border-default); color: var(--cms-text-secondary);
-    }
-    .ctp-tab--active { color: var(--cms-primary); }
-    .ctp-tab--active .ctp-tab-n { background: var(--cms-primary); color: #fff; }
-    .ctp-tab--active::after {
-      content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
-      background: var(--cms-primary); border-radius: 2px 2px 0 0;
-    }
-
     /* ---- static journey rail: deliberately quiet — context, not the main event ---- */
-    .ctp-rail-wrap { padding: 12px 18px 14px; border-bottom: 1px solid var(--cms-border-default); flex: none; background: var(--cms-bg-subtle, var(--cms-bg-hover)); }
+    .ctp-rail-wrap { padding: 16px 18px 14px; border-bottom: 1px solid var(--cms-border-default); flex: none; background: var(--cms-bg-subtle, var(--cms-bg-hover)); }
     .ctp-rail-caption { font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--cms-text-secondary); opacity: .75; margin-bottom: 9px; }
     .ctp-rail { display: flex; align-items: center; overflow-x: auto; }
     .ctp-rail-node { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; width: 88px; }
@@ -210,14 +184,13 @@ import { TourFlowMap, TourService } from '../tour.service';
     .ctp-node {
       position: relative;
       display: flex; flex-direction: column; align-items: center; gap: 8px;
-      width: 108px; padding: 16px 8px 12px; border-radius: 14px; cursor: pointer;
+      width: 108px; height: 112px; padding: 16px 8px 12px; border-radius: 14px; cursor: pointer;
       background: var(--cms-bg-card); border: 1px solid var(--cms-border-default);
       box-shadow: var(--cms-shadow-sm);
-      font-family: var(--cms-font-ui); transition: border-color .15s, box-shadow .15s, transform .15s;
+      font-family: var(--cms-font-ui); transition: border-color .15s, box-shadow .15s;
     }
     .ctp-node:hover, .ctp-node--active {
       border-color: var(--cms-primary); box-shadow: var(--cms-shadow-md), 0 0 0 3px var(--cms-primary-ring);
-      transform: translateY(-2px);
     }
     .ctp-node-step {
       position: absolute; top: -8px; right: -8px;
@@ -233,7 +206,11 @@ import { TourFlowMap, TourService } from '../tour.service';
       transition: background .15s, color .15s;
     }
     .ctp-node:hover .ctp-node-icon, .ctp-node--active .ctp-node-icon { background: var(--cms-primary); color: #fff; }
-    .ctp-node-label { font-size: 11px; font-weight: 600; color: var(--cms-text-primary); text-align: center; line-height: 1.3; }
+    .ctp-node-label {
+      font-size: 11px; font-weight: 600; color: var(--cms-text-primary); text-align: center; line-height: 1.3;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      height: 28.6px; /* fixed — reserved for 2 lines always, so a 1-line label never changes the card's size */
+    }
     .ctp-arrow { flex: none; color: var(--cms-border-default); margin: 0 -2px; transition: color .15s; align-self: center; }
     .ctp-arrow--active { color: var(--cms-primary); }
 
@@ -241,6 +218,7 @@ import { TourFlowMap, TourService } from '../tour.service';
       display: flex; align-items: flex-start; gap: 10px; margin: 16px 0 4px; padding: 12px 14px;
       background: var(--cms-bg-subtle, var(--cms-bg-hover)); border-radius: 10px;
       font-size: 12.5px; line-height: 1.55; color: var(--cms-text-primary);
+      min-height: 58px; /* reserves room for the longest step's detail (~3 lines) so switching steps never resizes the whole popup */
     }
     .ctp-caption-n {
       flex: none; width: 19px; height: 19px; border-radius: 50%; margin-top: 1px;
@@ -270,7 +248,10 @@ export class CmsTourPanelComponent implements OnInit, OnDestroy {
   private readonly tourService = inject(TourService);
 
   protected hasGuided = false;
+  /** The committed step — set by a click, or advanced automatically while walking. */
   protected activeStep = 0;
+  /** Purely visual hover/focus preview — never touches the walk timer, so pointing at a step doesn't stop it. */
+  protected hoverStep: number | null = null;
   protected walking = false;
   protected flowMap: TourFlowMap | undefined;
 
@@ -294,6 +275,16 @@ export class CmsTourPanelComponent implements OnInit, OnDestroy {
     return n < 10 ? '0' + n : String(n);
   }
 
+  /**
+   * What the chart/caption should show right now. While walking, this always follows the
+   * timer — a stray hover must never freeze the display on whatever card the mouse happens
+   * to be resting on. Only when not walking does the hover preview take over.
+   */
+  protected displayStep(): number {
+    return this.walking ? this.activeStep : (this.hoverStep ?? this.activeStep);
+  }
+
+  /** Explicit click — stop auto-play (if any) and commit to this step. */
   protected setActiveStep(i: number): void {
     this.stopWalk();
     this.activeStep = i;
