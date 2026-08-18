@@ -2,12 +2,15 @@
 
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Faculty <em>Availability</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Faculty <em>Availability</em></h1>
+        <cms-tour-button tourKey="faculty-availability" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">Mark when a faculty member is unavailable so Timetable Generate/Regenerate/Swap can steer around it</p>
     </div>
   </div>
 
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-facavail-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="mlp-filter-select" [(ngModel)]="selectedFacultyId" (ngModelChange)="onFacultyChange()" aria-label="Faculty">
       @if (faculties().length === 0) {
         <option [ngValue]="null">No faculty found</option>
@@ -24,7 +27,7 @@
     </div>
   }
 
-  <div class="content-card availability-grid-card">
+  <div id="tour-facavail-grid" class="content-card availability-grid-card">
     <h2 class="availability-grid-card__title">Days</h2>
     <div class="availability-grid" [style.grid-template-columns]="'120px repeat(' + periodRows().length + ', 1fr)'">
       <div class="availability-grid__corner"></div>

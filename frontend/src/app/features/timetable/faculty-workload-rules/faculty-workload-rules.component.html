@@ -1,12 +1,15 @@
 <div class="mlp-page">
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Faculty Workload <em>Rules</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Faculty Workload <em>Rules</em></h1>
+        <cms-tour-button tourKey="faculty-workload-rules" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">Institution-wide teaching-hour caps enforced when staffing a session.</p>
     </div>
   </div>
 
-  <div class="content-card fwr-card anim-rise anim-rise--d1">
+  <div id="tour-fwr-form" class="content-card fwr-card anim-rise anim-rise--d1">
     @if (loading()) {
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading workload rules"></mat-spinner>

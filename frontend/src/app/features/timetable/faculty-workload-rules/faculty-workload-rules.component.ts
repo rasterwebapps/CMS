@@ -5,6 +5,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ToastService } from '../../../core/toast/toast.service';
 import { FacultyWorkloadRulesService } from './faculty-workload-rules.service';
 import { FacultyWorkloadRules } from './faculty-workload-rules.model';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { FACULTY_WORKLOAD_RULES_TOUR, FACULTY_WORKLOAD_RULES_FLOW_MAP } from '../../../shared/tour/tours/faculty-workload-rules.tours';
 
 /** Scoped editor for the three global timetable.faculty_max_*_hours values -- per-designation and
  *  per-faculty overrides are intentionally NOT duplicated here; they stay editable on the
@@ -12,13 +15,14 @@ import { FacultyWorkloadRules } from './faculty-workload-rules.model';
 @Component({
   selector: 'app-faculty-workload-rules',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatProgressSpinnerModule],
+  imports: [FormsModule, RouterLink, MatProgressSpinnerModule, CmsTourButtonComponent],
   templateUrl: './faculty-workload-rules.component.html',
   styleUrl: './faculty-workload-rules.component.scss',
 })
 export class FacultyWorkloadRulesComponent implements OnInit {
   private readonly rulesService = inject(FacultyWorkloadRulesService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -28,6 +32,8 @@ export class FacultyWorkloadRulesComponent implements OnInit {
   protected maxContinuousHours: number | null = null;
 
   ngOnInit(): void {
+    this.tourService.register('faculty-workload-rules', FACULTY_WORKLOAD_RULES_TOUR);
+    this.tourService.registerFlowMap('faculty-workload-rules', FACULTY_WORKLOAD_RULES_FLOW_MAP);
     this.load();
   }
 

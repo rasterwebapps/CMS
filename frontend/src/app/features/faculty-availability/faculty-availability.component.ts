@@ -13,6 +13,9 @@ import { PermissionService } from '../../core/permissions/permission.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { BlockAvailabilityDialogComponent, BlockAvailabilityDialogData, BlockAvailabilityDialogResult } from './block-availability-dialog/block-availability-dialog.component';
+import { TourService } from '../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
+import { FACULTY_AVAILABILITY_TOUR, FACULTY_AVAILABILITY_FLOW_MAP } from '../../shared/tour/tours/faculty-availability.tours';
 
 interface AvailabilityRow {
   key: string;
@@ -24,7 +27,7 @@ interface AvailabilityRow {
 @Component({
   selector: 'app-faculty-availability',
   standalone: true,
-  imports: [FormsModule, MatDialogModule, MatTooltipModule],
+  imports: [FormsModule, MatDialogModule, MatTooltipModule, CmsTourButtonComponent],
   templateUrl: './faculty-availability.component.html',
   styleUrl: './faculty-availability.component.scss',
 })
@@ -35,6 +38,7 @@ export class FacultyAvailabilityComponent implements OnInit {
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   protected readonly faculties = signal<Faculty[]>([]);
   protected readonly periods = signal<Period[]>([]);
@@ -55,6 +59,9 @@ export class FacultyAvailabilityComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('faculty-availability', FACULTY_AVAILABILITY_TOUR);
+    this.tourService.registerFlowMap('faculty-availability', FACULTY_AVAILABILITY_FLOW_MAP);
+
     this.facultyService.getAll().subscribe({
       next: (faculties) => {
         this.faculties.set(faculties);
