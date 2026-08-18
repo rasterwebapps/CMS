@@ -2,12 +2,15 @@
 
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Timetable <em>Draft Review</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Timetable <em>Draft Review</em></h1>
+        <cms-tour-button tourKey="timetable-draft-review" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">Review the draft built via Skeleton Builder + Staffing, swap sessions if needed, and approve it once it looks right</p>
     </div>
   </div>
 
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-tdr-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
       @for (ay of academicYears(); track ay.id) {
         <option [ngValue]="ay.id">{{ ay.name }}</option>
@@ -31,7 +34,7 @@
     </div>
   }
 
-  <div class="content-card">
+  <div id="tour-tdr-grid" class="content-card">
     @if (loading()) {
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading timetable"></mat-spinner>

@@ -13,11 +13,14 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { violationText } from '../../../shared/util/violation-text';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TIMETABLE_DRAFT_REVIEW_TOUR, TIMETABLE_DRAFT_REVIEW_FLOW_MAP } from '../../../shared/tour/tours/timetable-draft-review.tours';
 
 @Component({
   selector: 'app-timetable-draft-review',
   standalone: true,
-  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule, CmsWeekGridComponent],
+  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule, CmsWeekGridComponent, CmsTourButtonComponent],
   templateUrl: './timetable-draft-review.component.html',
   styleUrl: './timetable-draft-review.component.scss',
 })
@@ -28,6 +31,7 @@ export class TimetableDraftReviewComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
+  private readonly tourService = inject(TourService);
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
@@ -53,6 +57,9 @@ export class TimetableDraftReviewComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('timetable-draft-review', TIMETABLE_DRAFT_REVIEW_TOUR);
+    this.tourService.registerFlowMap('timetable-draft-review', TIMETABLE_DRAFT_REVIEW_FLOW_MAP);
+
     const qpAcademicYearId = Number(this.route.snapshot.queryParamMap.get('academicYearId')) || null;
     const qpTermInstanceId = Number(this.route.snapshot.queryParamMap.get('termInstanceId')) || null;
 

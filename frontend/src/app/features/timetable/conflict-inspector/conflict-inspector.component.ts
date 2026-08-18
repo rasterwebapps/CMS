@@ -8,11 +8,14 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { ToastService } from '../../../core/toast/toast.service';
 import { ConflictInspectorService } from './conflict-inspector.service';
 import { ConflictScanResponse } from './conflict-inspector.model';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CONFLICT_INSPECTOR_TOUR, CONFLICT_INSPECTOR_FLOW_MAP } from '../../../shared/tour/tours/conflict-inspector.tours';
 
 @Component({
   selector: 'app-conflict-inspector',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, CmsEmptyStateComponent, CmsStatusBadgeComponent],
+  imports: [FormsModule, MatProgressSpinnerModule, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent],
   templateUrl: './conflict-inspector.component.html',
   styleUrl: './conflict-inspector.component.scss',
 })
@@ -20,6 +23,7 @@ export class ConflictInspectorComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly conflictInspectorService = inject(ConflictInspectorService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
@@ -31,6 +35,9 @@ export class ConflictInspectorComponent implements OnInit {
   protected selectedTermInstanceId: number | null = null;
 
   ngOnInit(): void {
+    this.tourService.register('conflict-inspector', CONFLICT_INSPECTOR_TOUR);
+    this.tourService.registerFlowMap('conflict-inspector', CONFLICT_INSPECTOR_FLOW_MAP);
+
     this.academicYearService.getAllAcademicYears().subscribe({
       next: (years) => {
         this.academicYears.set(years);

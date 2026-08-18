@@ -2,12 +2,15 @@
 
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Timetable <em>Conflict Inspector</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Timetable <em>Conflict Inspector</em></h1>
+        <cms-tour-button tourKey="conflict-inspector" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">Every structural violation still standing in this term's draft and published timetable — the same checks that must all be clean before it can be approved.</p>
     </div>
   </div>
 
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-ci-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
       @for (ay of academicYears(); track ay.id) {
         <option [ngValue]="ay.id">{{ ay.name }}</option>
@@ -29,7 +32,7 @@
   </div>
 
   @if (scan(); as s) {
-    <div class="content-card ci-summary-card anim-rise anim-rise--d2">
+    <div id="tour-ci-summary" class="content-card ci-summary-card anim-rise anim-rise--d2">
       <div class="ci-summary-card__row">
         <div class="ci-summary-card__main">
           <h2 class="ci-summary-card__title">{{ s.termLabel }}</h2>
@@ -63,7 +66,7 @@
         subtitle="This term is clean — every session passes room, faculty, workload, and blocked-period checks.">
       </cms-empty-state>
     } @else {
-      <div class="content-card mlp-table-card anim-rise anim-rise--d3">
+      <div id="tour-ci-table" class="content-card mlp-table-card anim-rise anim-rise--d3">
         <div class="table-wrapper">
           <table>
             <thead>
