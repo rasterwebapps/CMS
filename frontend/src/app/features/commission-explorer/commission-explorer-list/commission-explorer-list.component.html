@@ -192,7 +192,10 @@
   <!-- ── Page header ─────────────────────────────────────────────────────────── -->
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Commission <em>Explorer</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <h1 class="mlp-title">Commission <em>Explorer</em></h1>
+        <cms-tour-button tourKey="commission-explorer-list" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">Track referral commissions — pending, requested, and paid.</p>
     </div>
     @if (canExport()) {
@@ -207,7 +210,7 @@
   </div>
 
   <!-- ── Summary stats ───────────────────────────────────────────────────────── -->
-  <div class="ce-stats anim-rise anim-rise--d1">
+  <div id="tour-comm-stats" class="ce-stats anim-rise anim-rise--d1">
     <div class="ce-stat">
       <span class="ce-stat__label">Total Commission Due</span>
       <span class="ce-stat__value">{{ totalDue | inr }}</span>
@@ -227,7 +230,7 @@
   </div>
 
   <!-- ── Toolbar ─────────────────────────────────────────────────────────────── -->
-  <div class="mlp-toolbar anim-rise anim-rise--d2">
+  <div id="tour-comm-toolbar" class="mlp-toolbar anim-rise anim-rise--d2">
     <div class="search-bar" role="search">
       <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -306,7 +309,7 @@
   </div>
 
   <!-- ── Table ───────────────────────────────────────────────────────────────── -->
-  <div class="mlp-table-wrap mlp-table-card anim-rise anim-rise--d3">
+  <div id="tour-comm-table" class="mlp-table-wrap mlp-table-card anim-rise anim-rise--d3">
     @if (loading()) {
       <div class="mlp-loading">
         <mat-spinner diameter="36" />

@@ -34,6 +34,9 @@ import {
   COMMISSION_SOURCE_OPTIONS,
 } from '../commission-explorer.model';
 import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { COMMISSION_EXPLORER_LIST_TOUR, COMMISSION_EXPLORER_LIST_FLOW_MAP } from '../../../shared/tour/tours/commission.tours';
 
 const DEFAULT_PAGE_SIZE = 25;
 const DEFAULT_SORT_FIELD = 'updatedAt';
@@ -54,6 +57,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     ExportButtonComponent, CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
+    CmsTourButtonComponent,
   ],
   templateUrl: './commission-explorer-list.component.html',
   styleUrl:    './commission-explorer-list.component.scss',
@@ -66,6 +70,7 @@ export class CommissionExplorerListComponent implements OnInit, OnDestroy {
   private readonly settingsService  = inject(SettingsService);
   private readonly router           = inject(Router);
   private readonly route            = inject(ActivatedRoute);
+  private readonly tourService      = inject(TourService);
 
   @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
     @ViewChild(MatPaginator)
@@ -165,6 +170,9 @@ export class CommissionExplorerListComponent implements OnInit, OnDestroy {
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
+    this.tourService.register('commission-explorer-list', COMMISSION_EXPLORER_LIST_TOUR);
+    this.tourService.registerFlowMap('commission-explorer-list', COMMISSION_EXPLORER_LIST_FLOW_MAP);
+
     this.loadOneBookConfig();
 
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
