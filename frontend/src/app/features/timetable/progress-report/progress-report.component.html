@@ -2,12 +2,15 @@
 
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Subject <em>Progress Report</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Subject <em>Progress Report</em></h1>
+        <cms-tour-button tourKey="progress-report" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">Unit-wise syllabus coverage across every subject in the selected term</p>
     </div>
   </div>
 
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-pr-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
       @for (ay of academicYears(); track ay.id) {
         <option [ngValue]="ay.id">{{ ay.name }}</option>
@@ -24,7 +27,7 @@
     </select>
   </div>
 
-  <div class="content-card">
+  <div id="tour-pr-list" class="content-card">
     @if (loading()) {
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading progress report"></mat-spinner>

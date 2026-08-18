@@ -20,6 +20,9 @@ import { CmsIconDeleteComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { ATTENDANCE_TOUR, ATTENDANCE_FLOW_MAP } from '../../../shared/tour/tours/attendance.tours';
 
 @Component({
   selector: 'app-attendance-list',
@@ -39,7 +42,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
     CmsIconDeleteComponent,
-    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent,
 ],
   templateUrl: './attendance-list.component.html',
   styleUrl: './attendance-list.component.scss',
@@ -48,6 +51,7 @@ export class AttendanceListComponent implements OnInit {
   private readonly attendanceService = inject(AttendanceService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -80,6 +84,8 @@ export class AttendanceListComponent implements OnInit {
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
   ngOnInit(): void {
+    this.tourService.register('attendance-list', ATTENDANCE_TOUR);
+    this.tourService.registerFlowMap('attendance-list', ATTENDANCE_FLOW_MAP);
     this.loadAttendance();
   }
 

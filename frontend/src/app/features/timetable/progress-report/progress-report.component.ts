@@ -11,11 +11,14 @@ import { ProgressTrackingService } from '../progress-tracking.service';
 import { OfferingProgress, TermProgressSummary } from '../progress-tracking.model';
 import { PortionBlueprintService } from '../portion-blueprint.service';
 import { UnitVariance } from '../portion-blueprint.model';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { PROGRESS_REPORT_TOUR, PROGRESS_REPORT_FLOW_MAP } from '../../../shared/tour/tours/progress-report.tours';
 
 @Component({
   selector: 'app-progress-report',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, DecimalPipe],
+  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, DecimalPipe, CmsTourButtonComponent],
   templateUrl: './progress-report.component.html',
   styleUrl: './progress-report.component.scss',
 })
@@ -25,6 +28,7 @@ export class ProgressReportComponent implements OnInit {
   private readonly portionBlueprintService = inject(PortionBlueprintService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
@@ -53,6 +57,9 @@ export class ProgressReportComponent implements OnInit {
   protected selectedTermInstanceId: number | null = null;
 
   ngOnInit(): void {
+    this.tourService.register('progress-report', PROGRESS_REPORT_TOUR);
+    this.tourService.registerFlowMap('progress-report', PROGRESS_REPORT_FLOW_MAP);
+
     this.academicYearService.getAllAcademicYears().subscribe({
       next: (years) => {
         this.academicYears.set(years);
