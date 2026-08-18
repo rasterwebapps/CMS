@@ -3,8 +3,9 @@
   <!-- ── Page Header ─────────────────────────────────────────── -->
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <div class="page-title-row">
+      <div class="page-title-row" style="display: flex; align-items: center; gap: 12px;">
         <h1 class="rst-pg-title">{{ pageTitleMain() }} <em>{{ pageTitleAccent() }}</em></h1>
+        <cms-tour-button [tourKey]="tourKey()" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="rst-pg-sub">{{ pageSubtitle() }}</p>
     </div>
@@ -19,7 +20,7 @@
   </div>
 
   <!-- ── Picker ──────────────────────────────────────────────── -->
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-fpl-picker" class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="field-select" [(ngModel)]="selectedOrganizationId" (ngModelChange)="onOrganizationChange($event)" aria-label="Organization">
       <option [ngValue]="null">Select Organization</option>
       @for (o of organizations(); track o.id) { <option [ngValue]="o.id">{{ o.name }}</option> }
@@ -80,7 +81,7 @@
       (actionClick)="handleEmptyAction()"
     ></cms-empty-state>
   } @else {
-    <div class="mlp-cards-grid">
+    <div id="tour-fpl-cards" class="mlp-cards-grid">
       @for (plan of floorPlans(); track plan.id; let i = $index) {
         <div class="rst-card" [style.animation-delay]="(i * 0.05) + 's'">
           @if (canManage()) {

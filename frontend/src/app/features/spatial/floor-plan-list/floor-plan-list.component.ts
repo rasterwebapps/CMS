@@ -15,6 +15,9 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { CmsIconEditComponent, CmsIconDeleteComponent } from '../../../shared/icons';
 import { FloorPlanFormFlyoutComponent } from '../floor-plan-form-flyout/floor-plan-form-flyout.component';
 import { FloorPlanCalibrationFlyoutComponent } from '../floor-plan-calibration-flyout/floor-plan-calibration-flyout.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { tourKeyForDiagramLevel, buildFloorPlanListTour, buildFloorPlanListFlowMap } from '../../../shared/tour/tours/floor-plan-list.tours';
 
 const LIST_ROUTE_BY_LEVEL: Record<DiagramLevel, string> = {
   BRANCH: '/branch-diagrams',
@@ -86,6 +89,7 @@ const EMPTY_SUBTITLE_BY_LEVEL: Record<DiagramLevel, string> = {
     CmsIconDeleteComponent,
     FloorPlanFormFlyoutComponent,
     FloorPlanCalibrationFlyoutComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './floor-plan-list.component.html',
   styleUrl: './floor-plan-list.component.scss',
@@ -98,6 +102,7 @@ export class FloorPlanListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly permissionService = inject(PermissionService);
+  private readonly tourService = inject(TourService);
 
   protected readonly canManage = computed(() => this.permissionService.has('SPATIAL_FLOOR_PLAN_MANAGE'));
 
@@ -105,6 +110,7 @@ export class FloorPlanListComponent implements OnInit {
    *  Items. ZONE: diagrams showing Rooms. ROOM: diagrams showing Equipment/Inventory Items.
    *  Block itself never gets its own diagram — see the Skyline view. */
   protected level: DiagramLevel = 'FLOOR';
+  protected readonly tourKey = () => tourKeyForDiagramLevel(this.level);
   protected readonly pageTitleMain = computed(() => PAGE_TITLE_PARTS_BY_LEVEL[this.level][0]);
   protected readonly pageTitleAccent = computed(() => PAGE_TITLE_PARTS_BY_LEVEL[this.level][1]);
   protected readonly pageSubtitle = computed(() => PAGE_SUBTITLE_BY_LEVEL[this.level]);
@@ -158,6 +164,9 @@ export class FloorPlanListComponent implements OnInit {
 
   ngOnInit(): void {
     this.level = (this.route.snapshot.data['level'] as DiagramLevel) ?? 'FLOOR';
+    this.tourService.register(this.tourKey(), buildFloorPlanListTour(this.level));
+    this.tourService.registerFlowMap(this.tourKey(), buildFloorPlanListFlowMap(this.level));
+
     this.campusService.getOrganizations(false).subscribe({ next: (o) => this.organizations.set(o) });
 
     if (this.level === 'FLOOR') {
