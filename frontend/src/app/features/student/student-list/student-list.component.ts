@@ -30,7 +30,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { STUDENT_LIST_TOUR } from '../../../shared/tour/tours/student.tours';
+import { STUDENT_LIST_TOUR, STUDENT_LIST_FLOW_MAP } from '../../../shared/tour/tours/student.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { computeInitials } from '../../../shared/utils/initials';
@@ -225,6 +225,7 @@ export class StudentListComponent implements OnInit, OnDestroy {
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('student-list', STUDENT_LIST_TOUR);
+    this.tourService.registerFlowMap('student-list', STUDENT_LIST_FLOW_MAP);
     this.loadMasterData();
 
     // Single subscriber for URL params — handles initial load + back-navigation

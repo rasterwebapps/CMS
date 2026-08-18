@@ -1,4 +1,13 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
+
+// Student Management nav group (nav-config.ts), in nav order — shared funnel
+// for the 4 utility screens under it (not a strict pipeline, but the same group).
+const STUDENT_MANAGEMENT_FUNNEL = [
+  { label: 'Student Explorer', description: 'Search, view, and manage every enrolled student record.' },
+  { label: 'Assign Roll Numbers', description: 'Bulk-assign roll numbers to newly admitted students by programme and course.' },
+  { label: 'Scholarship Applications', description: 'Review and approve student scholarship requests.' },
+  { label: 'Data Import', description: 'Migrate legacy student records, qualifications, and fee history from Excel.' },
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Student List
@@ -53,6 +62,20 @@ export const STUDENT_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Student List — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const STUDENT_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: STUDENT_MANAGEMENT_FUNNEL,
+  currentIndex: 0,
+  steps: [
+    { label: 'Add Student', icon: 'open', detail: 'Create a new student record manually — most admissions flow from enquiry conversion, but this covers corrections or legacy entries.' },
+    { label: 'Search & Columns', icon: 'search', detail: 'Search by name, roll number, or programme; show or hide columns for your current task.' },
+    { label: 'Browse Records', icon: 'checklist', detail: 'Each row shows key academic placement details, with actions to view, edit, or delete.' },
+    { label: 'Open Profile', icon: 'send', detail: 'Open a student\'s full profile for admission, fee, or academic details.' },
   ],
 };
 
@@ -225,6 +248,20 @@ export const ROLL_NUMBER_ASSIGNMENT_TOUR: TourDefinition = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Roll Number Assignment — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const ROLL_NUMBER_ASSIGNMENT_FLOW_MAP: TourFlowMap = {
+  funnel: STUDENT_MANAGEMENT_FUNNEL,
+  currentIndex: 1,
+  steps: [
+    { label: 'Filter Students', icon: 'search', detail: 'Pick a programme and course to load only the relevant students.' },
+    { label: 'Edit Roll Numbers', icon: 'checklist', detail: 'Type the new roll number directly in each cell — changes are highlighted until saved.' },
+    { label: 'Save All', icon: 'send', detail: 'Click Save All to persist every roll number in one batch — nothing is saved until then.' },
+    { label: 'Ready for Use', icon: 'receipt', detail: 'Roll numbers become permanent and appear on hall tickets, mark sheets, and ID cards.' },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Retro Admit
 // ─────────────────────────────────────────────────────────────────────────────
 export const RETRO_ADMIT_TOUR: TourDefinition = {
@@ -301,6 +338,25 @@ export const RETRO_ADMIT_TOUR: TourDefinition = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Retro Admit — Flow Map
+// A separate, exceptional entry path (not part of the main pipeline funnel),
+// so it gets a single-entry funnel per the README's guidance.
+// ─────────────────────────────────────────────────────────────────────────────
+export const RETRO_ADMIT_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Retro Admit', description: 'Add students admitted in previous years who lack admission records in the system, including historical fees and payments.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Admission Context', icon: 'search', detail: 'Select the program, academic year, quota, year of study, and fee state.' },
+    { label: 'Student & Family Details', icon: 'checklist', detail: 'Enter identity, registration numbers, and family details across the seven-step workflow.' },
+    { label: 'Fee Structure', icon: 'open', detail: 'Define year-wise fees, starting from system-fetched guideline fees.' },
+    { label: 'Payment History', icon: 'payment', detail: 'Add all historical payments with dates, amounts, modes, and receipt references.' },
+    { label: 'Save', icon: 'send', detail: 'Save to create the student record with all historical fees and payments captured.' },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Scholarship Applications
 // ─────────────────────────────────────────────────────────────────────────────
 export const SCHOLARSHIP_APPLICATIONS_TOUR: TourDefinition = {
@@ -343,6 +399,20 @@ export const SCHOLARSHIP_APPLICATIONS_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scholarship Applications — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const SCHOLARSHIP_APPLICATIONS_FLOW_MAP: TourFlowMap = {
+  funnel: STUDENT_MANAGEMENT_FUNNEL,
+  currentIndex: 2,
+  steps: [
+    { label: 'Applications Queue', icon: 'checklist', detail: 'The pending scholarship approval queue for authorised staff to process.' },
+    { label: 'Review Workspace', icon: 'open', detail: 'Review each request\'s details, table, or empty-state depending on current data.' },
+    { label: 'Approve or Reject', icon: 'send', detail: 'Complete the approval workflow with the correct sanctioned amount or a rejection reason.' },
+    { label: 'Sanctioned Amount', icon: 'receipt', detail: 'The final approved amount is recorded against the student\'s fee once sanctioned.' },
   ],
 };
 
@@ -429,6 +499,20 @@ export const STUDENT_DATA_IMPORT_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Student Data Import — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const STUDENT_DATA_IMPORT_FLOW_MAP: TourFlowMap = {
+  funnel: STUDENT_MANAGEMENT_FUNNEL,
+  currentIndex: 3,
+  steps: [
+    { label: 'Download Template', icon: 'open', detail: 'Download the live workbook with required sheets, reference values, and validation support.' },
+    { label: 'Set Defaults', icon: 'checklist', detail: 'Prefill joining year, student type, admission category, and other fallback values.' },
+    { label: 'Upload & Validate', icon: 'search', detail: 'Upload the filled template and validate it first to review issues before importing.' },
+    { label: 'Review Results', icon: 'receipt', detail: 'The Results step summarizes imported records, skipped rows, warnings, and errors.' },
   ],
 };
 

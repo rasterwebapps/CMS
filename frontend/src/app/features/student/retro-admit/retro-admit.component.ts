@@ -35,7 +35,7 @@ import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/countr
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { RETRO_ADMIT_TOUR } from '../../../shared/tour/tours/student.tours';
+import { RETRO_ADMIT_TOUR, RETRO_ADMIT_FLOW_MAP } from '../../../shared/tour/tours/student.tours';
 import { PAYMENT_MODES, getPaymentModeLabel } from '../../../shared/utils/payment-mode.utils';
 import { trimmedMinLength } from '../../../shared/validators/cms-validators';
 
@@ -244,6 +244,7 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.tourService.register('retro-admit', RETRO_ADMIT_TOUR);
+    this.tourService.registerFlowMap('retro-admit', RETRO_ADMIT_FLOW_MAP);
 
     // Enforce at least one payment entry and aggregate payment cap.
     this.paymentsArray.setValidators([

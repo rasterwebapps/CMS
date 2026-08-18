@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Admission List
@@ -43,6 +43,25 @@ export const ADMISSION_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Admission List — Flow Map
+// Admission Explorer isn't a pipeline stage of its own (it's the browse/search
+// screen over records the pipeline already created), so it gets a single-entry
+// funnel per the README's guidance for screens with no natural multi-screen journey.
+// ─────────────────────────────────────────────────────────────────────────────
+export const ADMISSION_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Admission Explorer', description: 'Browse and drill into every admission record created from completed enquiries.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search & Columns', icon: 'search', detail: 'Search for admissions by student name and choose which columns are visible.' },
+    { label: 'Browse Records', icon: 'open', detail: 'Click any row to open the full admission profile — fees, documents, and academic placement.' },
+    { label: 'Review Tabs', icon: 'checklist', detail: 'Switch between Application, Fees, and Documents tabs for a focused view of each aspect.' },
+    { label: 'Edit', icon: 'send', detail: 'Use Edit to update the academic year, programme, or other administrative fields.' },
   ],
 };
 

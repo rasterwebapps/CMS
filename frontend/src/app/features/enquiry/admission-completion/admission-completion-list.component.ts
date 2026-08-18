@@ -20,7 +20,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { ADMISSION_COMPLETION_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+import { ADMISSION_COMPLETION_LIST_TOUR, ADMISSION_COMPLETION_LIST_FLOW_MAP } from '../../../shared/tour/tours/enquiry.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconViewComponent } from '../../../shared/icons';
 import { ProgramService } from '../../program/program.service';
@@ -138,6 +138,7 @@ export class AdmissionCompletionListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.tourService.register('admission-completion-list', ADMISSION_COMPLETION_LIST_TOUR);
+    this.tourService.registerFlowMap('admission-completion-list', ADMISSION_COMPLETION_LIST_FLOW_MAP);
     this.loadMasterData();
 
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {

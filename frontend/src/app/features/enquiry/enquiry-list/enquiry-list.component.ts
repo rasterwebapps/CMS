@@ -29,7 +29,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { ENQUIRY_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+import { ENQUIRY_LIST_TOUR, ENQUIRY_LIST_FLOW_MAP } from '../../../shared/tour/tours/enquiry.tours';
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
@@ -248,6 +248,7 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('enquiry-list', ENQUIRY_LIST_TOUR);
+    this.tourService.registerFlowMap('enquiry-list', ENQUIRY_LIST_FLOW_MAP);
 
     // Restore filter state from URL query params
     const p = this.route.snapshot.queryParamMap;

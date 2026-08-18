@@ -9,7 +9,7 @@ import { AcademicYearService } from '../academic-year/academic-year.service';
 import { AcademicYear } from '../academic-year/academic-year.model';
 import { ToastService } from '../../core/toast/toast.service';
 import { TourService } from '../../shared/tour/tour.service';
-import { STUDENT_DATA_IMPORT_TOUR } from '../../shared/tour/tours/student.tours';
+import { STUDENT_DATA_IMPORT_TOUR, STUDENT_DATA_IMPORT_FLOW_MAP } from '../../shared/tour/tours/student.tours';
 
 type Step = 'template' | 'defaults' | 'upload' | 'result';
 type Phase = 'idle' | 'validating' | 'importing' | 'done';
@@ -48,6 +48,7 @@ export class ImportComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('student-data-import', STUDENT_DATA_IMPORT_TOUR);
+    this.tourService.registerFlowMap('student-data-import', STUDENT_DATA_IMPORT_FLOW_MAP);
     this.academicYearSvc.getAllAcademicYears().subscribe({
       next: (years) => {
         const sorted = [...years].sort((a, b) =>

@@ -13,7 +13,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { DOCUMENT_VERIFICATION_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+import { DOCUMENT_VERIFICATION_LIST_TOUR, DOCUMENT_VERIFICATION_LIST_FLOW_MAP } from '../../../shared/tour/tours/enquiry.tours';
 import { EnquiryService } from '../enquiry.service';
 import { Enquiry } from '../enquiry.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
@@ -130,6 +130,7 @@ export class DocumentVerificationListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.tourService.register('document-verification-list', DOCUMENT_VERIFICATION_LIST_TOUR);
+    this.tourService.registerFlowMap('document-verification-list', DOCUMENT_VERIFICATION_LIST_FLOW_MAP);
     this.loadMasterData();
 
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {

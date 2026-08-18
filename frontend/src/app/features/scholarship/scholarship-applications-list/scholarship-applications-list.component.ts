@@ -16,7 +16,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { SCHOLARSHIP_APPLICATIONS_TOUR } from '../../../shared/tour/tours/student.tours';
+import { SCHOLARSHIP_APPLICATIONS_TOUR, SCHOLARSHIP_APPLICATIONS_FLOW_MAP } from '../../../shared/tour/tours/student.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { ScholarshipApplication } from '../scholarship.model';
 import { ScholarshipService } from '../scholarship.service';
@@ -103,6 +103,7 @@ export class ScholarshipApplicationsListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.tourService.register('scholarship-applications', SCHOLARSHIP_APPLICATIONS_TOUR);
+    this.tourService.registerFlowMap('scholarship-applications', SCHOLARSHIP_APPLICATIONS_FLOW_MAP);
 
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
       this.searchQuery.set(params['search'] ?? '');

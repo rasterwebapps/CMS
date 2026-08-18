@@ -1,4 +1,15 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
+
+// The Admission Management pipeline (nav-config.ts "Admission Management" group,
+// first 6 items) — same funnel used by fee-collection's FEE_COLLECTION_FLOW_MAP.
+const ADMISSION_PIPELINE_FUNNEL = [
+  { label: 'Enquiries', description: 'Track interest, follow up, and convert promising enquiries into admissions.' },
+  { label: 'Finalize Fee', description: 'Set the final fee amount for each enquiry before payment can begin.' },
+  { label: 'Collect Payment', description: 'Record payments from enquiries and students, installment by installment.' },
+  { label: 'Submit Documents', description: 'Collect proof of identity, transcripts, and certificates once a candidate has paid.' },
+  { label: 'Verify Documents', description: 'Review and approve submitted documents before admission can be completed.' },
+  { label: 'Complete Admission', description: 'Finalize paid, verified candidates into enrolled students with a roll number.' },
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Enquiry List
@@ -63,6 +74,20 @@ export const ENQUIRY_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Enquiry List — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const ENQUIRY_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: ADMISSION_PIPELINE_FUNNEL,
+  currentIndex: 0,
+  steps: [
+    { label: 'Pipeline Counters', icon: 'checklist', detail: 'See total enquiries plus how many are in the pipeline, marked interested, or already admitted — counters update live.' },
+    { label: 'Add Enquiry', icon: 'open', detail: 'Register a walk-in or telephone enquiry, capturing contact info, programme interest, and referral source.' },
+    { label: 'Search & Filter', icon: 'search', detail: 'Filter by status, search by name/phone/email, or switch between card and table views.' },
+    { label: 'Open & Convert', icon: 'send', detail: 'Click a row to view history, capture follow-up notes, collect payment, or convert the enquiry into an admission.' },
   ],
 };
 
@@ -235,6 +260,20 @@ export const DOCUMENT_SUBMISSION_LIST_TOUR: TourDefinition = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Submit Documents List — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const DOCUMENT_SUBMISSION_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: ADMISSION_PIPELINE_FUNNEL,
+  currentIndex: 3,
+  steps: [
+    { label: 'Collection Queue', icon: 'checklist', detail: 'Counters show how many candidates are pending, fully paid, and partially paid — use this to prioritise document collection.' },
+    { label: 'Filter & Search', icon: 'search', detail: 'Narrow down by payment status or search by candidate name to find the right file quickly.' },
+    { label: 'Open Candidate File', icon: 'open', detail: 'Click a row to open the document collection screen for that candidate.' },
+    { label: 'Upload & Verify', icon: 'send', detail: 'Upload, verify, and approve each required document — proof of identity, transcripts, and certificates.' },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Document Collection (per-candidate)
 // ─────────────────────────────────────────────────────────────────────────────
 export const DOCUMENT_COLLECTION_TOUR: TourDefinition = {
@@ -327,6 +366,20 @@ export const ADMISSION_COMPLETION_LIST_TOUR: TourDefinition = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Complete Admission List — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const ADMISSION_COMPLETION_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: ADMISSION_PIPELINE_FUNNEL,
+  currentIndex: 5,
+  steps: [
+    { label: 'Ready-to-Admit Counters', icon: 'checklist', detail: 'See at a glance how many candidates are ready for complete admission across each programme.' },
+    { label: 'Candidate Queue', icon: 'open', detail: 'Click any row to open the candidate and review their documents and payment status.' },
+    { label: 'Complete Admission', icon: 'send', detail: 'Finalize the admission to generate the student record.' },
+    { label: 'Assign Roll Number', icon: 'receipt', detail: 'The new student appears in Students, ready to have a roll number assigned.' },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Enquiry → Admission Conversion
 // ─────────────────────────────────────────────────────────────────────────────
 export const ENQUIRY_CONVERT_TOUR: TourDefinition = {
@@ -369,6 +422,20 @@ export const ENQUIRY_CONVERT_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Document Verification List — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const DOCUMENT_VERIFICATION_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: ADMISSION_PIPELINE_FUNNEL,
+  currentIndex: 4,
+  steps: [
+    { label: 'Filter & Search', icon: 'search', detail: 'Filter by program or course, or search by candidate name to locate documents awaiting verification.' },
+    { label: 'Verification Queue', icon: 'checklist', detail: 'Each row is a candidate pending verification — click to open their profile.' },
+    { label: 'Review & Approve', icon: 'open', detail: 'Review each submitted document and approve or reject it.' },
+    { label: 'Auto-Advance', icon: 'send', detail: 'Once all of a candidate\'s documents are verified, they automatically appear in Complete Admission.' },
   ],
 };
 

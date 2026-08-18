@@ -36,7 +36,7 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { ADMISSION_LIST_TOUR } from '../../../shared/tour/tours/admission.tours';
+import { ADMISSION_LIST_TOUR, ADMISSION_LIST_FLOW_MAP } from '../../../shared/tour/tours/admission.tours';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
@@ -197,6 +197,7 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('admission-list', ADMISSION_LIST_TOUR);
+    this.tourService.registerFlowMap('admission-list', ADMISSION_LIST_FLOW_MAP);
     this.loadMasterData();
 
     // Single subscriber for URL params — handles initial load + back-navigation

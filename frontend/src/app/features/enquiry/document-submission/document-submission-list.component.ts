@@ -21,7 +21,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { DOCUMENT_SUBMISSION_LIST_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+import { DOCUMENT_SUBMISSION_LIST_TOUR, DOCUMENT_SUBMISSION_LIST_FLOW_MAP } from '../../../shared/tour/tours/enquiry.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { CmsIconViewComponent } from '../../../shared/icons';
@@ -142,6 +142,7 @@ export class DocumentSubmissionListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.tourService.register('document-submission-list', DOCUMENT_SUBMISSION_LIST_TOUR);
+    this.tourService.registerFlowMap('document-submission-list', DOCUMENT_SUBMISSION_LIST_FLOW_MAP);
     this.loadMasterData();
 
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {

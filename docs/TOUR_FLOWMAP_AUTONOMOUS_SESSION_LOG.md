@@ -35,20 +35,20 @@ CLAUDE.md module priority).
 - [ ] My Timetable — `/my-timetable` — Tour:N FM:N
 
 ### Admission Management (funnel: Enquiries → Finalize Fee → Collect Payment → Submit Documents → Verify Documents → Complete Admission)
-- [ ] Enquiries — `/enquiries` — Tour:Y FM:N
+- [x] Enquiries — `/enquiries` — Tour:Y FM:Y
 - [ ] Finalize Fee — `/student-fees/finalize` — Tour:Y FM:N
 - [x] Collect Payment — `/fee-collection` — Tour:Y FM:Y **(done — OC-136/137/138, reference implementation)**
-- [ ] Submit Documents — `/enquiries/document-submission` — Tour:Y FM:N
-- [ ] Verify Documents — `/enquiries/document-verification` — Tour:Y FM:N
-- [ ] Complete Admission — `/enquiries/admission-completion` — Tour:Y FM:N
-- [ ] Admission Explorer — `/admissions` — Tour:Y FM:N
-- [ ] Retro Admit — `/students/retro-admit` — Tour:Y FM:N
+- [x] Submit Documents — `/enquiries/document-submission` — Tour:Y FM:Y
+- [x] Verify Documents — `/enquiries/document-verification` — Tour:Y FM:Y
+- [x] Complete Admission — `/enquiries/admission-completion` — Tour:Y FM:Y
+- [x] Admission Explorer — `/admissions` — Tour:Y FM:Y
+- [x] Retro Admit — `/students/retro-admit` — Tour:Y FM:Y
 
 ### Student Management
-- [ ] Student Explorer — `/students` — Tour:Y FM:N
-- [ ] Assign Roll Numbers — `/students/roll-numbers` — Tour:Y FM:N
-- [ ] Scholarship Applications — `/scholarship-applications` — Tour:Y FM:N
-- [ ] Data Import — `/import` — Tour:Y FM:N
+- [x] Student Explorer — `/students` — Tour:Y FM:Y
+- [x] Assign Roll Numbers — `/students/roll-numbers` — Tour:Y FM:Y
+- [x] Scholarship Applications — `/scholarship-applications` — Tour:Y FM:Y
+- [x] Data Import — `/import` — Tour:Y FM:Y
 
 ### Finance
 - [ ] Fee Explorer — `/student-fees` — Tour:Y FM:N
@@ -155,3 +155,6 @@ CLAUDE.md module priority).
 Format: `- YYYY-MM-DD HH:MM | <screen> | DONE|PARTIAL|BLOCKED|SKIPPED | <ticket> | <note>`
 
 - 2026-08-18 18:XX | setup | DONE | OC-139 | Parent ticket created, README written, checklist scaffolded, cron sessions scheduled for 21:00 today and 03:00 tomorrow. No screens started yet — this is the pre-work session.
+- 2026-08-18 21:05 | Enquiries, Submit Documents, Verify Documents, Complete Admission, Admission Explorer, Retro Admit | DONE | OC-140 | Phase 1 Flow Maps added to all remaining Admission Management Tour:Y screens. Pipeline screens share one ADMISSION_PIPELINE_FUNNEL (same 6 stages as fee-collection's); Admission Explorer and Retro Admit use single-entry funnels (not pipeline stages). tsc clean. Needs manual light/dark + role check.
+- 2026-08-18 21:05 | Student Explorer, Assign Roll Numbers, Scholarship Applications, Data Import | DONE | OC-141 | Phase 1 Flow Maps added to all Student Management Tour:Y screens, sharing one STUDENT_MANAGEMENT_FUNNEL (4 nav-group stages). tsc clean. Needs manual light/dark + role check.
+- 2026-08-18 21:05 | Finalize Fee | PENDING | OC-139 | Deferred to the Finance module batch (component lives in features/finance/, same tours.ts file as the rest of Finance) — not forgotten, just resequenced.

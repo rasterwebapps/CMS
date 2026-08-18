@@ -15,7 +15,7 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { ROLL_NUMBER_ASSIGNMENT_TOUR } from '../../../shared/tour/tours/student.tours';
+import { ROLL_NUMBER_ASSIGNMENT_TOUR, ROLL_NUMBER_ASSIGNMENT_FLOW_MAP } from '../../../shared/tour/tours/student.tours';
 import { computeInitials } from '../../../shared/utils/initials';
 
 interface RollAssignment {
@@ -69,6 +69,7 @@ export class RollNumberAssignmentComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('roll-number-assignment', ROLL_NUMBER_ASSIGNMENT_TOUR);
+    this.tourService.registerFlowMap('roll-number-assignment', ROLL_NUMBER_ASSIGNMENT_FLOW_MAP);
     this.programService.getAll().subscribe({ next: (p) => this.programs.set(p) });
     this.loadCourses();
     this.loadStudents();
