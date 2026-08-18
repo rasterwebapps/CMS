@@ -3,7 +3,10 @@
   <!-- ── Header ─────────────────────────────────────────────────── -->
   <div class="um-hdr anim-rise">
     <div class="um-hdr-left">
-      <h1 class="um-title">User <em>Management</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="um-title">User <em>Management</em></h1>
+        <cms-tour-button tourKey="user-management" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="um-sub">Create and manage system user accounts and role assignments.</p>
     </div>
     @if (canCreate()) {
@@ -21,7 +24,7 @@
     <div class="um-list-col">
 
       <!-- Toolbar: search + count -->
-      <div class="um-toolbar">
+      <div id="tour-um-toolbar" class="um-toolbar">
         <div class="search-bar" role="search">
           <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input class="search-bar__input" [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)" placeholder="Search by name, email or role…" type="text" aria-label="Search users" />
@@ -50,7 +53,7 @@
           (actionClick)="handleEmptyAction()"
         />
       } @else {
-        <div class="user-list">
+        <div id="tour-um-list" class="user-list">
           @for (user of filteredUsers(); track user.id) {
             <div class="user-card"
                  [class.user-card--inactive]="!user.isActive"

@@ -3,7 +3,10 @@
   <!-- ══ PAGE HEADER ════════════════════════════════════════════════════ -->
   <div class="rm-hdr anim-rise">
     <div class="rm-hdr-left">
-      <h1 class="rm-title">Role <em>Management</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="rm-title">Role <em>Management</em></h1>
+        <cms-tour-button tourKey="role-management" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="rm-sub">Configure roles and assign granular permissions per module.</p>
     </div>
     @if (canCreate()) {
@@ -18,7 +21,7 @@
   <div class="rm-workspace">
 
     <!-- ── LEFT: Role list ──────────────────────────────────────────────── -->
-    <div class="rm-roles-col">
+    <div id="tour-rm-roles" class="rm-roles-col">
 
       <!-- Simple search — filters role list in real time via searchTerm signal -->
       <div class="search-bar" role="search">
@@ -91,7 +94,7 @@
     </div>
 
     <!-- ── RIGHT: Permission editor ─────────────────────────────────────── -->
-    <div class="rm-editor-col">
+    <div id="tour-rm-editor" class="rm-editor-col">
 
       @if (!panelMode()) {
         <cms-empty-state

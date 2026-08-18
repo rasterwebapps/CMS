@@ -3,7 +3,10 @@
   <!-- ══ PAGE HEADER ════════════════════════════════════════════════════════ -->
   <div class="pt-hdr anim-rise">
     <div class="pt-hdr-left">
-      <h1 class="pt-title">Permission <em>Tiers</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="pt-title">Permission <em>Tiers</em></h1>
+        <cms-tour-button tourKey="permission-tier" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="pt-sub">Control which roles can hold and delegate each permission. Changes are audit-logged.</p>
     </div>
     @if (dirtyCount() > 0) {
@@ -18,7 +21,7 @@
   </div>
 
   <!-- ══ TIER LEGEND ════════════════════════════════════════════════════════ -->
-  <div class="pt-legend anim-rise">
+  <div id="tour-pt-legend" class="pt-legend anim-rise">
     @for (tier of tiers; track tier) {
       <div class="pt-legend-item" [style.--tier-color]="tierMeta[tier].color">
         <span class="pt-legend-badge">T{{ tier }}</span>
@@ -34,7 +37,7 @@
   @if (loading()) {
     <div class="pt-state-center"><mat-spinner diameter="32"></mat-spinner></div>
   } @else {
-    <div class="pt-matrix anim-rise">
+    <div id="tour-pt-matrix" class="pt-matrix anim-rise">
       @for (group of groups(); track group.groupLabel) {
         <div class="pt-group" [attr.data-cat]="group.groupLabel" [class.pt-group--open]="group.expanded">
 

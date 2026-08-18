@@ -8,13 +8,16 @@ import { AppUserResponse, AppRoleResponse, CreateUserRequest, UpdateUserRequest 
 import { ToastService } from '../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../shared/empty-state/empty-state.component';
 import { CmsRowActionButtonComponent } from '../../shared/row-action-button/row-action-button.component';
+import { TourService } from '../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
+import { USER_MANAGEMENT_TOUR, USER_MANAGEMENT_FLOW_MAP } from '../../shared/tour/tours/user-management.tours';
 
 type PanelMode = 'create' | 'edit' | null;
 
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, CmsEmptyStateComponent, CmsRowActionButtonComponent],
+  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTourButtonComponent],
   templateUrl: './user-management.component.html',
   styleUrl:    './user-management.component.scss',
 })
@@ -22,6 +25,7 @@ export class UserManagementComponent implements OnInit {
   private readonly svc    = inject(UserRoleService);
   private readonly perm   = inject(PermissionService);
   private readonly toast  = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly users       = signal<AppUserResponse[]>([]);
   protected readonly roles       = signal<AppRoleResponse[]>([]);
@@ -53,6 +57,8 @@ export class UserManagementComponent implements OnInit {
   protected readonly canDeactivate = computed(() => this.perm.has('USER_DEACTIVATE'));
 
   ngOnInit(): void {
+    this.tourService.register('user-management', USER_MANAGEMENT_TOUR);
+    this.tourService.registerFlowMap('user-management', USER_MANAGEMENT_FLOW_MAP);
     this.loadAll();
   }
 

@@ -10,6 +10,9 @@ import { AppRoleResponse, AllPermissionsResponse, PermissionGroup, WidgetConfigD
 import { ToastService } from '../../core/toast/toast.service';
 import { WidgetPickerComponent } from '../../shared/widget-picker/widget-picker.component';
 import { CmsEmptyStateComponent } from '../../shared/empty-state/empty-state.component';
+import { TourService } from '../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
+import { ROLE_MANAGEMENT_TOUR, ROLE_MANAGEMENT_FLOW_MAP } from '../../shared/tour/tours/user-management.tours';
 
 type PanelMode = 'create' | 'edit' | 'widgets' | null;
 
@@ -33,7 +36,7 @@ const ACTION_SUFFIXES = new Set([
 @Component({
   selector: 'app-role-management',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, MatIconModule, WidgetPickerComponent, CmsEmptyStateComponent],
+  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, MatIconModule, WidgetPickerComponent, CmsEmptyStateComponent, CmsTourButtonComponent],
   templateUrl: './role-management.component.html',
   styleUrl: './role-management.component.scss',
 })
@@ -41,6 +44,7 @@ export class RoleManagementComponent implements OnInit {
   private readonly svc   = inject(UserRoleService);
   private readonly perm  = inject(PermissionService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly roles    = signal<AppRoleResponse[]>([]);
   protected readonly allPerms = signal<AllPermissionsResponse[]>([]);
@@ -93,7 +97,11 @@ export class RoleManagementComponent implements OnInit {
     );
   });
 
-  ngOnInit(): void { this.loadAll(); }
+  ngOnInit(): void {
+    this.tourService.register('role-management', ROLE_MANAGEMENT_TOUR);
+    this.tourService.registerFlowMap('role-management', ROLE_MANAGEMENT_FLOW_MAP);
+    this.loadAll();
+  }
 
   private loadAll(): void {
     this.loading.set(true);

@@ -7,6 +7,9 @@ import { AllPermissionsResponse, TierImpactEntry } from '../../core/permissions/
 import { groupPermissionsByNav, colorForNavGroup } from '../../core/permissions/menu-order.util';
 import { ToastService } from '../../core/toast/toast.service';
 import { forkJoin } from 'rxjs';
+import { TourService } from '../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
+import { PERMISSION_TIER_TOUR, PERMISSION_TIER_FLOW_MAP } from '../../shared/tour/tours/user-management.tours';
 
 interface PermTierRow {
   id: number;
@@ -44,13 +47,14 @@ const TIER_META: Record<number, { label: string; desc: string; color: string }> 
 @Component({
   selector: 'app-permission-tier',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule],
+  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, CmsTourButtonComponent],
   templateUrl: './permission-tier.component.html',
   styleUrl: './permission-tier.component.scss',
 })
 export class PermissionTierComponent implements OnInit {
   private readonly svc   = inject(UserRoleService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly loading  = signal(true);
   protected readonly saving   = signal(false);
@@ -67,6 +71,9 @@ export class PermissionTierComponent implements OnInit {
   protected readonly tierImpact = signal<TierImpactEntry[]>([]);
 
   ngOnInit(): void {
+    this.tourService.register('permission-tier', PERMISSION_TIER_TOUR);
+    this.tourService.registerFlowMap('permission-tier', PERMISSION_TIER_FLOW_MAP);
+
     this.svc.getAllPermissions().subscribe({
       next: (perms) => {
         const rows: PermTierRow[] = perms.map(p => ({
