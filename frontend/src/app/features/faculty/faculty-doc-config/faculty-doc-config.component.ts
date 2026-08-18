@@ -29,7 +29,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { FACULTY_DOC_CONFIG_TOUR } from '../../../shared/tour/tours/faculty-doc-config.tours';
+import { FACULTY_DOC_CONFIG_TOUR, FACULTY_DOC_CONFIG_FLOW_MAP } from '../../../shared/tour/tours/faculty-doc-config.tours';
 
 @Component({
   selector: 'app-faculty-doc-config',
@@ -105,6 +105,7 @@ export class FacultyDocConfigComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('faculty-doc-config', FACULTY_DOC_CONFIG_TOUR);
+    this.tourService.registerFlowMap('faculty-doc-config', FACULTY_DOC_CONFIG_FLOW_MAP);
     this.loadAll();
   }
 

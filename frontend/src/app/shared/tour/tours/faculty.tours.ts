@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const FACULTY_LIST_TOUR: TourDefinition = {
   steps: [
@@ -80,6 +80,19 @@ export const FACULTY_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const FACULTY_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Faculty', description: 'Master list of faculty members — speciality, designation, and contact details used across timetable and academics.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Filter & Search', icon: 'search', detail: 'Filter by speciality and status, or search faculty by name.' },
+    { label: 'Faculty Cards', icon: 'checklist', detail: 'Each card shows employee code, speciality, designation, and contact details.' },
+    { label: 'Add a Faculty Member', icon: 'open', detail: 'Register a new faculty member with employee code, speciality, designation, and specialization/lab expertise.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the employee code and email.' },
   ],
 };
 

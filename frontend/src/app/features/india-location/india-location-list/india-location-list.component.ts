@@ -21,7 +21,7 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { INDIA_LOCATION_LIST_TOUR } from '../../../shared/tour/tours/india-location.tours';
+import { INDIA_LOCATION_LIST_TOUR, INDIA_LOCATION_LIST_FLOW_MAP } from '../../../shared/tour/tours/india-location.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
@@ -105,6 +105,7 @@ export class IndiaLocationListComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('india-location-list', INDIA_LOCATION_LIST_TOUR);
+    this.tourService.registerFlowMap('india-location-list', INDIA_LOCATION_LIST_FLOW_MAP);
     this.load();
   }
 

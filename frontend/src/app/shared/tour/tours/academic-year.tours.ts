@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const ACADEMIC_YEAR_LIST_TOUR: TourDefinition = {
   steps: [
@@ -70,6 +70,19 @@ export const ACADEMIC_YEAR_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const ACADEMIC_YEAR_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Academic Years', description: 'Define and manage the institution\'s academic years, each containing its own terms/semesters.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search Years', icon: 'search', detail: 'Search academic years by name.' },
+    { label: 'Year Cards', icon: 'checklist', detail: 'Each card/row shows the year name, date range, and current-session flag.' },
+    { label: 'Add a Year', icon: 'open', detail: 'Create a new academic year with its name and start/end dates.' },
+    { label: 'Save', icon: 'send', detail: 'Save the year — mark it Current Session if it\'s the active one used for new enrollments.' },
   ],
 };
 

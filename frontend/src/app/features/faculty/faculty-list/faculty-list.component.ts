@@ -31,7 +31,7 @@ import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { FACULTY_LIST_TOUR } from '../../../shared/tour/tours/faculty.tours';
+import { FACULTY_LIST_TOUR, FACULTY_LIST_FLOW_MAP } from '../../../shared/tour/tours/faculty.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
@@ -151,6 +151,7 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('faculty-list', FACULTY_LIST_TOUR);
+    this.tourService.registerFlowMap('faculty-list', FACULTY_LIST_FLOW_MAP);
     const snap = this.route.snapshot.queryParams;
     if (snap['sortField']) this.sortActive    = snap['sortField'];
     if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';

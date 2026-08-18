@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const EQUIPMENT_LIST_TOUR: TourDefinition = {
   steps: [
@@ -66,6 +66,19 @@ export const EQUIPMENT_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const EQUIPMENT_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Equipment', description: 'Master list of lab equipment — model, serial number, lab location, and warranty tracking.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search Equipment', icon: 'search', detail: 'Search equipment by name, model, or serial number.' },
+    { label: 'Equipment Cards', icon: 'checklist', detail: 'Each card shows the equipment\'s lab, category, status, and warranty.' },
+    { label: 'Add Equipment', icon: 'open', detail: 'Register new equipment with model, serial number, lab, category, and purchase/warranty dates.' },
+    { label: 'Save', icon: 'send', detail: 'Save the equipment record so it can be tracked for maintenance.' },
   ],
 };
 

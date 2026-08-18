@@ -16,7 +16,7 @@ import { environment } from '../../../../environments';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { FEE_STRUCTURE_LIST_TOUR } from '../../../shared/tour/tours/fee-structure.tours';
+import { FEE_STRUCTURE_LIST_TOUR, FEE_STRUCTURE_LIST_FLOW_MAP } from '../../../shared/tour/tours/fee-structure.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
@@ -197,6 +197,7 @@ export class FeeStructureListComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('fee-structure-list', FEE_STRUCTURE_LIST_TOUR);
+    this.tourService.registerFlowMap('fee-structure-list', FEE_STRUCTURE_LIST_FLOW_MAP);
     this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({ next: d => this.programs.set(d) });
     this.http.get<AcademicYear[]>(`${environment.apiUrl}/academic-years`).subscribe({ next: d => this.academicYears.set(d) });
     this.financeService.getFeeStates().subscribe({ next: d => this.feeStates.set(d) });

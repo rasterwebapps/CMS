@@ -19,7 +19,7 @@ import { PermissionService } from '../../../core/permissions/permission.service'
 import { ExportButtonComponent } from '../../../shared/export-button/export-button.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { AGENT_LIST_TOUR } from '../../../shared/tour/tours/agent.tours';
+import { AGENT_LIST_TOUR, AGENT_LIST_FLOW_MAP } from '../../../shared/tour/tours/agent.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
@@ -111,6 +111,7 @@ export class AgentListComponent implements OnInit, AfterViewInit, OnDestroy {
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('agent-list', AGENT_LIST_TOUR);
+    this.tourService.registerFlowMap('agent-list', AGENT_LIST_FLOW_MAP);
     const snap = this.route.snapshot.queryParams;
     if (snap['sortField']) this.sortActive    = snap['sortField'];
     if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';

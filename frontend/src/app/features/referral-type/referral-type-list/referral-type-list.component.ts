@@ -17,7 +17,7 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { REFERRAL_TYPE_LIST_TOUR } from '../../../shared/tour/tours/referral-type.tours';
+import { REFERRAL_TYPE_LIST_TOUR, REFERRAL_TYPE_LIST_FLOW_MAP } from '../../../shared/tour/tours/referral-type.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
 
@@ -87,6 +87,7 @@ export class ReferralTypeListComponent implements OnInit, AfterViewInit, OnDestr
 
   ngOnInit(): void {
     this.tourService.register('referral-type-list', REFERRAL_TYPE_LIST_TOUR);
+    this.tourService.registerFlowMap('referral-type-list', REFERRAL_TYPE_LIST_FLOW_MAP);
     const snap = this.route.snapshot.queryParams;
     if (snap['sortField']) this.sortActive    = snap['sortField'];
     if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';

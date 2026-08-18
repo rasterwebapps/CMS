@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const COURSE_LIST_TOUR: TourDefinition = {
   steps: [
@@ -80,6 +80,19 @@ export const COURSE_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const COURSE_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Courses', description: 'Master list of courses offered under each program.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Filter & Search', icon: 'search', detail: 'Filter by parent program, or search courses by name.' },
+    { label: 'Course Cards', icon: 'checklist', detail: 'Each card shows the course name, code, specialization, and parent program.' },
+    { label: 'Add a Course', icon: 'open', detail: 'Create a new course, optionally under a specialization, and link it to a parent program.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the course name and code.' },
   ],
 };
 

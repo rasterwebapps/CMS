@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const AGENT_LIST_TOUR: TourDefinition = {
   steps: [
@@ -70,6 +70,19 @@ export const AGENT_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const AGENT_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Agents', description: 'Manage referral agents who bring in enquiries, and the commission terms attached to each.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search Agents', icon: 'search', detail: 'Search referral agents by name.' },
+    { label: 'Agent Cards', icon: 'checklist', detail: 'Each card shows the agent\'s area, locality, allotted seats, and active status.' },
+    { label: 'Add an Agent', icon: 'open', detail: 'Register a new agent with contact details, area, and a commission override if needed.' },
+    { label: 'Save', icon: 'send', detail: 'Save the agent so they can be selected as a referral source on new enquiries.' },
   ],
 };
 

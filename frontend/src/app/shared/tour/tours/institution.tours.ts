@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const INSTITUTION_LIST_TOUR: TourDefinition = {
   steps: [
@@ -60,6 +60,19 @@ export const INSTITUTION_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const INSTITUTION_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Institutions', description: 'Master list of institutions under the organization, used to scope programs and infrastructure.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search', icon: 'search', detail: 'Search institutions by name or code.' },
+    { label: 'Browse Records', icon: 'checklist', detail: 'Cards/rows show each institution\'s name, code, and active status.' },
+    { label: 'Add', icon: 'open', detail: 'Create a new institution with a name and code.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the name and code.' },
   ],
 };
 

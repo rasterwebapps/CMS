@@ -18,7 +18,7 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { COURSE_LIST_TOUR } from '../../../shared/tour/tours/course.tours';
+import { COURSE_LIST_TOUR, COURSE_LIST_FLOW_MAP } from '../../../shared/tour/tours/course.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
 
@@ -95,6 +95,7 @@ export class CourseListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.tourService.register('course-list', COURSE_LIST_TOUR);
+    this.tourService.registerFlowMap('course-list', COURSE_LIST_FLOW_MAP);
     this.loadPrograms();
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });

@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const FACULTY_DOC_CONFIG_TOUR: TourDefinition = {
   steps: [
@@ -49,6 +49,18 @@ export const FACULTY_DOC_CONFIG_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const FACULTY_DOC_CONFIG_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Faculty Doc Config', description: 'Define which documents are required from faculty based on designation, speciality, or qualification.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Add a Rule', icon: 'open', detail: 'Select a Document Type and at least one matching criterion — Designation, Speciality, or Qualification.' },
+    { label: 'Existing Rules', icon: 'checklist', detail: 'All active requirement rules are listed, each showing the document type and its trigger conditions.' },
+    { label: 'Auto-Apply', icon: 'send', detail: 'When a faculty profile is saved, all rules are checked — any match flags that document as required on their profile.' },
   ],
 };
 

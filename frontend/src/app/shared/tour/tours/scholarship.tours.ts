@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const SCHOLARSHIP_TYPE_LIST_TOUR: TourDefinition = {
   steps: [
@@ -50,6 +50,19 @@ export const SCHOLARSHIP_TYPE_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const SCHOLARSHIP_TYPE_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Scholarship Types', description: 'Master list of scholarship types available for students to apply against, with their discount rules.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search Scholarships', icon: 'search', detail: 'Search scholarship types by code or name.' },
+    { label: 'Scholarship Table', icon: 'checklist', detail: 'Each row shows the scholarship code, name, and discount type/value.' },
+    { label: 'Add', icon: 'open', detail: 'Create a new scholarship type with a discount type (percentage or fixed) and value.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the scholarship code.' },
   ],
 };
 

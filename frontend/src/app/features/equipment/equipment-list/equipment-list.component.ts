@@ -21,7 +21,7 @@ import { ExportButtonComponent } from '../../../shared/export-button/export-butt
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { EQUIPMENT_LIST_TOUR } from '../../../shared/tour/tours/equipment.tours';
+import { EQUIPMENT_LIST_TOUR, EQUIPMENT_LIST_FLOW_MAP } from '../../../shared/tour/tours/equipment.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
@@ -111,6 +111,7 @@ export class EquipmentListComponent implements OnInit, AfterViewInit, OnDestroy 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('equipment-list', EQUIPMENT_LIST_TOUR);
+    this.tourService.registerFlowMap('equipment-list', EQUIPMENT_LIST_FLOW_MAP);
     const snap = this.route.snapshot.queryParams;
     if (snap['sortField']) this.sortActive    = snap['sortField'];
     if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';

@@ -13,7 +13,7 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { NUMBER_SEQUENCES_TOUR } from '../../../shared/tour/tours/number-sequences.tours';
+import { NUMBER_SEQUENCES_TOUR, NUMBER_SEQUENCES_FLOW_MAP } from '../../../shared/tour/tours/number-sequences.tours';
 import { NumberSeriesDefinition } from './number-series-definition.model';
 import { NumberSeriesDefinitionService } from './number-series-definition.service';
 
@@ -54,6 +54,7 @@ export class NumberSequencesListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.tourService.register('number-sequences-list', NUMBER_SEQUENCES_TOUR);
+    this.tourService.registerFlowMap('number-sequences-list', NUMBER_SEQUENCES_FLOW_MAP);
     this.searchSubject.pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(q => this.applyLocalFilter(q));
     this.load();

@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const FEE_STRUCTURE_LIST_TOUR: TourDefinition = {
   steps: [
@@ -78,6 +78,19 @@ export const FEE_STRUCTURE_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const FEE_STRUCTURE_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Fee Structures', description: 'Master fee schedules per program/course/academic year, used to calculate student fee allocations.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Filter & Search', icon: 'search', detail: 'Filter and search fee structures by program, course, or academic year.' },
+    { label: 'Fee Structure Cards', icon: 'checklist', detail: 'Each card summarizes the fee schedule for a program/course/year combination.' },
+    { label: 'Add Fee Structure', icon: 'open', detail: 'Select academic year, program, and optionally course, then define course fees and additional fees.' },
+    { label: 'Save', icon: 'send', detail: 'Save the fee structure so it can be applied to new admissions in that program/year.' },
   ],
 };
 

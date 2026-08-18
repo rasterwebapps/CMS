@@ -118,30 +118,30 @@ CLAUDE.md module priority).
 - [ ] Fee Reports — `/fee-reports` — Tour:N FM:N
 
 ### Preferences
-- [ ] Academic Calendar — `/academic-calendar` — Tour:Y FM:N
-- [ ] Academic Years — `/academic-years` — Tour:Y FM:N
-- [ ] Agents — `/agents` — Tour:Y FM:N
-- [ ] Blood Groups — `/blood-groups` — Tour:Y FM:N
+- [x] Academic Calendar — `/academic-calendar` — Tour:Y FM:Y
+- [x] Academic Years — `/academic-years` — Tour:Y FM:Y
+- [x] Agents — `/agents` — Tour:Y FM:Y
+- [x] Blood Groups — `/blood-groups` — Tour:Y FM:Y
 - [ ] Classrooms — `/classrooms` — Tour:N FM:N
 - [ ] Clinical Venues — `/clinical-venues` — Tour:N FM:N
-- [ ] Communities — `/communities` — Tour:Y FM:N
-- [ ] Courses — `/courses` — Tour:Y FM:N
-- [ ] Designations — `/designations` — Tour:Y FM:N
-- [ ] Equipment — `/equipment` — Tour:Y FM:N
-- [ ] Faculty — `/faculty` — Tour:Y FM:N
-- [ ] Faculty Doc Config — `/faculty/document-config` — Tour:Y FM:N
-- [ ] Fee Structures — `/fee-structures` — Tour:Y FM:N
+- [x] Communities — `/communities` — Tour:Y FM:Y
+- [x] Courses — `/courses` — Tour:Y FM:Y
+- [x] Designations — `/designations` — Tour:Y FM:Y
+- [x] Equipment — `/equipment` — Tour:Y FM:Y
+- [x] Faculty — `/faculty` — Tour:Y FM:Y
+- [x] Faculty Doc Config — `/faculty/document-config` — Tour:Y FM:Y
+- [x] Fee Structures — `/fee-structures` — Tour:Y FM:Y
 - [ ] Holiday Templates — `/holiday-templates` — Tour:N FM:N
-- [ ] Institutions — `/institutions` — Tour:Y FM:N
+- [x] Institutions — `/institutions` — Tour:Y FM:Y
 - [ ] Labs — `/labs` — Tour:N FM:N
-- [ ] Location Master — `/india-locations` — Tour:Y FM:N
-- [ ] Number Sequences — `/number-sequences` — Tour:Y FM:N
+- [x] Location Master — `/india-locations` — Tour:Y FM:Y
+- [x] Number Sequences — `/number-sequences` — Tour:Y FM:Y
 - [ ] Periods — `/periods` — Tour:N FM:N
-- [ ] Programs — `/programs` — Tour:Y FM:N
-- [ ] Referral Types — `/referral-types` — Tour:Y FM:N
-- [ ] Scholarship Types — `/scholarships` — Tour:Y FM:N
+- [x] Programs — `/programs` — Tour:Y FM:Y
+- [x] Referral Types — `/referral-types` — Tour:Y FM:Y
+- [x] Scholarship Types — `/scholarships` — Tour:Y FM:Y
 - [ ] Settings — `/settings` — Tour:N FM:N
-- [ ] Specialities — `/specialities` — Tour:Y FM:N
+- [x] Specialities — `/specialities` — Tour:Y FM:Y
 - [ ] Staff Referrers — `/staff-referrers` — Tour:N FM:N
 - [ ] Subjects — `/subjects` — Tour:N FM:N
 
@@ -160,3 +160,4 @@ Format: `- YYYY-MM-DD HH:MM | <screen> | DONE|PARTIAL|BLOCKED|SKIPPED | <ticket>
 - 2026-08-18 21:06 | Finalize Fee, Fee Explorer, Receipts, Refunds | DONE | OC-142 | Phase 1 Flow Maps added to all Finance Tour:Y screens. Finalize Fee reuses the Admission pipeline funnel (duplicated locally in finance.tours.ts); Fee Explorer/Receipts/Refunds share a new FINANCE_FUNNEL (nav-group order, Commissions included as 4th stage for context even though Commissions itself is Tour:N/Phase 2). tsc clean. Needs manual light/dark + role check.
 - 2026-08-18 21:08 | Curriculum Versions, Syllabus, Experiments, Capacity Planner | DONE | OC-143 | Phase 1 Flow Maps added to Academics' 4 Tour:Y screens. Curriculum Versions/Syllabus/Experiments share a new CURRICULUM_AUTHORING_FUNNEL (3-stage). Capacity Planner gets a new TIMETABLE_BUILD_FUNNEL (8-stage, nav-group order) exported from timetable.tours.ts for reuse by the other timetable screens in Phase 2. tsc clean. Needs manual light/dark + role check.
 - 2026-08-18 21:10 | Book Explorer, Library Settings | DONE | OC-144 | Phase 1 Flow Maps added to Library's 2 Tour:Y screens, both single-entry funnels (no natural multi-screen journey between them). tsc clean. Needs manual light/dark + role check.
+- 2026-08-18 21:14 | Academic Calendar, Academic Years, Agents, Blood Groups, Communities, Courses, Designations, Equipment, Faculty, Faculty Doc Config, Fee Structures, Institutions, Location Master, Number Sequences, Programs, Referral Types, Scholarship Types, Specialities | DONE | OC-145 | Phase 1 Flow Maps added to all 18 Preferences Tour:Y screens — every one is a single-entry funnel per the README's guidance for master/config screens with no natural multi-screen journey. tsc clean across all 18. This closes out Phase 1 entirely — every Tour:Y screen in the checklist now has a Flow Map. Needs manual light/dark + role check.

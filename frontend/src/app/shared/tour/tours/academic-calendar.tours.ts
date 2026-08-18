@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const ACADEMIC_CALENDAR_TOUR: TourDefinition = {
   steps: [
@@ -70,6 +70,19 @@ export const ACADEMIC_CALENDAR_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const ACADEMIC_CALENDAR_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Academic Calendar', description: 'Visual overview of an academic year\'s terms, holidays, exams, and key events.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Pick a Year', icon: 'search', detail: 'Switch academic years with the Year Selector, or export/print the calendar.' },
+    { label: 'Term Timeline', icon: 'checklist', detail: 'Each term shows start/end dates, status, and progress, with related events underneath.' },
+    { label: 'Timeline or Grid', icon: 'open', detail: 'Switch between a vertical Timeline view and a month-by-month Grid view of the same events.' },
+    { label: 'Manage Events', icon: 'send', detail: 'Add, edit, or delete events — colour-coded by type (holiday, exam, cultural, sports, workshop, other).' },
   ],
 };
 

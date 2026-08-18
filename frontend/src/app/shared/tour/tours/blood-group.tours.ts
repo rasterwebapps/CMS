@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const BLOOD_GROUP_LIST_TOUR: TourDefinition = {
   steps: [
@@ -60,6 +60,19 @@ export const BLOOD_GROUP_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const BLOOD_GROUP_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Blood Groups', description: 'Master list of blood group values used across student and faculty records.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search', icon: 'search', detail: 'Search blood groups by name or code.' },
+    { label: 'Browse Records', icon: 'checklist', detail: 'Cards/rows show each blood group\'s name, code, and active status.' },
+    { label: 'Add', icon: 'open', detail: 'Create a new blood group with a name and short code.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the name and code.' },
   ],
 };
 

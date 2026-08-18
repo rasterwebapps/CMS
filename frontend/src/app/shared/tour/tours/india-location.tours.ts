@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const INDIA_LOCATION_LIST_TOUR: TourDefinition = {
   steps: [
@@ -60,6 +60,19 @@ export const INDIA_LOCATION_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const INDIA_LOCATION_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Location Master', description: 'Master list of Indian states, districts, and cities used for address fields across the system.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search Locations', icon: 'search', detail: 'Search states, districts, or cities by name.' },
+    { label: 'Card / Table View', icon: 'open', detail: 'Switch between a card layout and a sortable table.' },
+    { label: 'Location Table', icon: 'checklist', detail: 'Browse the full hierarchy of states, districts, and cities.' },
+    { label: 'Add / Edit', icon: 'send', detail: 'Add or edit location entries used across student, faculty, and institution address fields.' },
   ],
 };
 

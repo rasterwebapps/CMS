@@ -17,7 +17,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { COMMUNITY_LIST_TOUR } from '../../../shared/tour/tours/community.tours';
+import { COMMUNITY_LIST_TOUR, COMMUNITY_LIST_FLOW_MAP } from '../../../shared/tour/tours/community.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
 
@@ -91,6 +91,7 @@ export class CommunityListComponent implements OnInit, AfterViewInit, OnDestroy 
 
   ngOnInit(): void {
     this.tourService.register('community-list', COMMUNITY_LIST_TOUR);
+    this.tourService.registerFlowMap('community-list', COMMUNITY_LIST_FLOW_MAP);
     const snap = this.route.snapshot.queryParams;
     if (snap['sortField']) this.sortActive    = snap['sortField'];
     if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';

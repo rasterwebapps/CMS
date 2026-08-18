@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const NUMBER_SEQUENCES_TOUR: TourDefinition = {
   steps: [
@@ -49,6 +49,19 @@ export const NUMBER_SEQUENCES_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const NUMBER_SEQUENCES_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Number Sequences', description: 'Read-only registry of every auto-generated number series used across the application.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search Sequences', icon: 'search', detail: 'Type a series name, scope key, or generated number to filter the list instantly.' },
+    { label: 'Sequence Registry', icon: 'checklist', detail: 'Each row shows the series name, scope key, last generated number, next-number preview, and last update.' },
+    { label: 'Read-Only', icon: 'open', detail: 'This screen is for reference only — sequences are managed automatically by the system, not edited manually.' },
+    { label: 'Auto-Increment', icon: 'receipt', detail: 'Sequences increment automatically whenever an admission, receipt, or roll number is generated.' },
   ],
 };
 

@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const REFERRAL_TYPE_LIST_TOUR: TourDefinition = {
   steps: [
@@ -68,6 +68,19 @@ export const REFERRAL_TYPE_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const REFERRAL_TYPE_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Referral Types', description: 'Master list of referral sources used to track how enquiries found the institution, with optional commission terms.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search', icon: 'search', detail: 'Search referral types by name.' },
+    { label: 'Referral Type Cards', icon: 'checklist', detail: 'Each card shows the referral type\'s name, code, commission setting, and active status.' },
+    { label: 'Add a Referral Type', icon: 'open', detail: 'Create a new referral type, optionally enabling a commission amount for it.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the name and code.' },
   ],
 };
 

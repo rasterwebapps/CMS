@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const DESIGNATION_LIST_TOUR: TourDefinition = {
   steps: [
@@ -60,6 +60,19 @@ export const DESIGNATION_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const DESIGNATION_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Designations', description: 'Master list of faculty/staff job designations used across HR and faculty records.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search', icon: 'search', detail: 'Search designations by name or code.' },
+    { label: 'Browse Records', icon: 'checklist', detail: 'Cards/rows show each designation\'s name, code, and description.' },
+    { label: 'Add', icon: 'open', detail: 'Create a new designation with a name, code, and description.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the name and code.' },
   ],
 };
 

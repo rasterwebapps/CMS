@@ -38,7 +38,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { ACADEMIC_CALENDAR_TOUR } from '../../../shared/tour/tours/academic-calendar.tours';
+import { ACADEMIC_CALENDAR_TOUR, ACADEMIC_CALENDAR_FLOW_MAP } from '../../../shared/tour/tours/academic-calendar.tours';
 import { formatBlockSummary } from './blocked-period-summary.util';
 import {
   DAY_OF_WEEK_LABELS,
@@ -220,6 +220,7 @@ export class AcademicCalendarComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('academic-calendar', ACADEMIC_CALENDAR_TOUR);
+    this.tourService.registerFlowMap('academic-calendar', ACADEMIC_CALENDAR_FLOW_MAP);
     this.loadAll();
     this.periodService.getAll(true).subscribe({
       next: (data) => this.periods.set(data),

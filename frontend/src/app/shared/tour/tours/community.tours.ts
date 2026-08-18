@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const COMMUNITY_LIST_TOUR: TourDefinition = {
   steps: [
@@ -60,6 +60,19 @@ export const COMMUNITY_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const COMMUNITY_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Communities', description: 'Master list of community/category values used on student admission and statutory records.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search', icon: 'search', detail: 'Search communities by name or code.' },
+    { label: 'Browse Records', icon: 'checklist', detail: 'Cards/rows show each community\'s name, code, description, and active status.' },
+    { label: 'Add', icon: 'open', detail: 'Create a new community with a name, code, and description.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the name and code.' },
   ],
 };
 

@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const PROGRAM_LIST_TOUR: TourDefinition = {
   steps: [
@@ -70,6 +70,19 @@ export const PROGRAM_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const PROGRAM_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Programs', description: 'Master list of academic programs offered by the institution.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search', icon: 'search', detail: 'Search programs by name.' },
+    { label: 'Program Cards', icon: 'checklist', detail: 'Each card shows the program name, code, duration, and status.' },
+    { label: 'Add a Program', icon: 'open', detail: 'Create a new program with a name, code, and duration.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the program name and code.' },
   ],
 };
 

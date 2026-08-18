@@ -16,7 +16,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { SCHOLARSHIP_TYPE_LIST_TOUR } from '../../../shared/tour/tours/scholarship.tours';
+import { SCHOLARSHIP_TYPE_LIST_TOUR, SCHOLARSHIP_TYPE_LIST_FLOW_MAP } from '../../../shared/tour/tours/scholarship.tours';
 import { ScholarshipType } from '../scholarship.model';
 import { ScholarshipService } from '../scholarship.service';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -108,6 +108,7 @@ export class ScholarshipTypeListComponent implements OnInit, AfterViewInit, OnDe
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('scholarship-type-list', SCHOLARSHIP_TYPE_LIST_TOUR);
+    this.tourService.registerFlowMap('scholarship-type-list', SCHOLARSHIP_TYPE_LIST_FLOW_MAP);
     const snap = this.route.snapshot.queryParams;
     if (snap['sortField']) this.sortActive    = snap['sortField'];
     if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';

@@ -16,7 +16,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { ACADEMIC_YEAR_LIST_TOUR } from '../../../shared/tour/tours/academic-year.tours';
+import { ACADEMIC_YEAR_LIST_TOUR, ACADEMIC_YEAR_LIST_FLOW_MAP } from '../../../shared/tour/tours/academic-year.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
@@ -94,6 +94,7 @@ export class AcademicYearListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.tourService.register('academic-year-list', ACADEMIC_YEAR_LIST_TOUR);
+    this.tourService.registerFlowMap('academic-year-list', ACADEMIC_YEAR_LIST_FLOW_MAP);
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });
     this.loadPage();

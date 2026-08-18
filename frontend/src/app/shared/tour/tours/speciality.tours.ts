@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 export const DEPT_LIST_TOUR: TourDefinition = {
   steps: [
@@ -70,6 +70,19 @@ export const DEPT_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const DEPT_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Specialities', description: 'Master list of academic specialities/departments, each with a head and description.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Search & Filter', icon: 'search', detail: 'Search and filter specialities by name.' },
+    { label: 'Speciality Cards', icon: 'checklist', detail: 'Each card shows the speciality\'s name, code, and head of speciality.' },
+    { label: 'Add a Speciality', icon: 'open', detail: 'Create a new speciality with a name, code, description, and head of speciality.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the name and code.' },
   ],
 };
 
