@@ -71,12 +71,12 @@ CLAUDE.md module priority).
 - [x] Capacity Planner — `/timetable/capacity-planner` — Tour:Y FM:Y
 - [x] Conflict Inspector — `/timetable/conflict-inspector` — Tour:Y FM:Y
 - [x] Timetable Draft Review — `/timetable/draft-review` — Tour:Y FM:Y
-- [ ] Timetable — `/timetable` — Tour:N FM:N
-- [ ] Resource Timetable — `/timetable/resource-grid` — Tour:N FM:N
-- [ ] Faculty Absence — `/faculty-absence` — Tour:N FM:N
-- [ ] Staff Session Swap — `/timetable/staff-swap` — Tour:N FM:N
-- [ ] My Special Classes — `/timetable/special-classes/my-requests` — Tour:N FM:N
-- [ ] Special Class Approvals — `/timetable/special-classes/approval-queue` — Tour:N FM:N
+- [x] Timetable — `/timetable` — Tour:Y FM:Y
+- [x] Resource Timetable — `/timetable/resource-grid` — Tour:Y FM:Y
+- [x] Faculty Absence — `/faculty-absence` — Tour:Y FM:Y
+- [x] Staff Session Swap — `/timetable/staff-swap` — Tour:Y FM:Y
+- [x] My Special Classes — `/timetable/special-classes/my-requests` — Tour:Y FM:Y
+- [x] Special Class Approvals — `/timetable/special-classes/approval-queue` — Tour:Y FM:Y
 - [ ] Attendance — `/attendance` — Tour:N FM:N
 - [ ] Progress Report — `/progress-report` — Tour:N FM:N
 - [ ] Manage Exams — `/examinations` — Tour:N FM:N
@@ -168,3 +168,5 @@ Format: `- YYYY-MM-DD HH:MM | <screen> | DONE|PARTIAL|BLOCKED|SKIPPED | <ticket>
 - 2026-08-18 21:22 | Faculty Availability, Faculty Workload Rules | DONE | OC-147 | Full Guided Tour + Flow Map built from scratch for both, both reusing the 8-stage TIMETABLE_BUILD_FUNNEL (currentIndex 0 and 1) so the rail is consistent with Capacity Planner. tsc clean.
 - 2026-08-18 21:24 | Skeleton Builder, Staffing | DONE | OC-147 | Full Guided Tour + Flow Map built from scratch for both — the two largest/most complex Academics screens so far (drag-drop grid, subject rail, per-row staffing list). Both use the shared TIMETABLE_BUILD_FUNNEL at currentIndex 2 and 3. tsc clean.
 - 2026-08-18 21:26 | Conflict Inspector, Timetable Draft Review | DONE | OC-147 | Full Guided Tour + Flow Map built from scratch for both, sharing the timetable-build funnel at currentIndex 5 and 6. tsc clean. Timetable-build funnel screens remaining: Timetable, Resource Timetable, Faculty Absence, Staff Session Swap, My Special Classes, Special Class Approvals.
+- 2026-08-19 03:01 | resume | DONE | OC-139 | Morning continuation session started. Found Timetable + Resource Timetable Grid already implemented in the working tree from the tail end of the night session but never committed (uncommitted .ts/.html changes + 2 new untracked tours files). Verified against tsc (clean) and against the established pattern (matches Conflict Inspector's header/anchor structure) — committed as-is under OC-147. Also found unrelated pre-existing uncommitted WIP (Campus Infrastructure org-editing + uniqueness-validation backend/frontend changes) in the working tree — NOT tour-related, left untouched/unstaged, not part of this task. Timetable uses the 8-stage TIMETABLE_BUILD_FUNNEL at currentIndex 7 (last stage). Resource Timetable introduces a new 5-stage TIMETABLE_OPERATIONS_FUNNEL (day-to-day ops group) at currentIndex 0, to be shared by Faculty Absence, Staff Session Swap, My Special Classes, Special Class Approvals next. Continuing Academics Phase 2 with those 4 screens, then Attendance/Progress Report/Manage Exams/Exam Results/Student Promotion.
+- 2026-08-19 03:04 | Faculty Absence, Staff Session Swap, My Special Classes, Special Class Approvals | DONE | OC-147 | Full Guided Tour + Flow Map built from scratch for all 4, closing out the 5-stage TIMETABLE_OPERATIONS_FUNNEL entirely (Resource Timetable was stage 0 from the earlier commit). New tours files: faculty-absence.tours.ts, staff-session-swap.tours.ts, special-class.tours.ts (holds both My Special Classes and Special Class Approvals — admin/faculty pair for the same feature, same as other paired screens in this rollout). tsc clean after each commit. Remaining in Academics: Attendance, Progress Report, Manage Exams, Exam Results, Student Promotion — none of these are part of the timetable-build/operations funnels, so each will get its own single-entry (or small local) funnel.
