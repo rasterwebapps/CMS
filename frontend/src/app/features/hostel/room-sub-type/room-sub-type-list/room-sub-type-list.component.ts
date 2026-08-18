@@ -19,6 +19,9 @@ import { CmsViewToggleComponent } from '../../../../shared/view-toggle/view-togg
 import { CmsStatusBadgeComponent } from '../../../../shared/status-badge/status-badge.component';
 import { CmsRowActionButtonComponent } from '../../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../../shared/icons';
+import { TourService } from '../../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../../shared/tour/tour-button.component';
+import { ROOM_SUB_TYPE_LIST_TOUR, ROOM_SUB_TYPE_LIST_FLOW_MAP } from '../../../../shared/tour/tours/room-purpose.tours';
 
 @Component({
   selector: 'app-room-sub-type-list',
@@ -37,6 +40,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../../
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './room-sub-type-list.component.html',
   styleUrl: './room-sub-type-list.component.scss',
@@ -48,6 +52,7 @@ export class RoomSubTypeListComponent implements OnInit, AfterViewInit, OnDestro
   private readonly route           = inject(ActivatedRoute);
   private readonly toast           = inject(ToastService);
   private readonly dialog          = inject(MatDialog);
+  private readonly tourService     = inject(TourService);
 
   private readonly VIEW_MODE_KEY = 'room-sub-type-view-mode';
   private readonly destroy$ = new Subject<void>();
@@ -86,6 +91,9 @@ export class RoomSubTypeListComponent implements OnInit, AfterViewInit, OnDestro
   };
 
   ngOnInit(): void {
+    this.tourService.register('room-sub-type-list', ROOM_SUB_TYPE_LIST_TOUR);
+    this.tourService.registerFlowMap('room-sub-type-list', ROOM_SUB_TYPE_LIST_FLOW_MAP);
+
     this.categoryService.getAll(true).subscribe({ next: (c) => this.categories.set(c) });
 
     const snap = this.route.snapshot.queryParams;

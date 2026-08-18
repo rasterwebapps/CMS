@@ -16,6 +16,9 @@ import { CmsViewToggleComponent } from '../../../../shared/view-toggle/view-togg
 import { CmsStatusBadgeComponent } from '../../../../shared/status-badge/status-badge.component';
 import { CmsRowActionButtonComponent } from '../../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../../shared/icons';
+import { TourService } from '../../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../../shared/tour/tour-button.component';
+import { ROOM_PURPOSE_CATEGORY_LIST_TOUR, ROOM_PURPOSE_CATEGORY_LIST_FLOW_MAP } from '../../../../shared/tour/tours/room-purpose.tours';
 
 @Component({
   selector: 'app-room-purpose-category-list',
@@ -33,6 +36,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../../
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './room-purpose-category-list.component.html',
   styleUrl: './room-purpose-category-list.component.scss',
@@ -43,6 +47,7 @@ export class RoomPurposeCategoryListComponent implements OnInit, AfterViewInit, 
   private readonly route           = inject(ActivatedRoute);
   private readonly toast           = inject(ToastService);
   private readonly dialog          = inject(MatDialog);
+  private readonly tourService     = inject(TourService);
 
   private readonly VIEW_MODE_KEY = 'room-purpose-category-view-mode';
   private readonly destroy$ = new Subject<void>();
@@ -79,6 +84,9 @@ export class RoomPurposeCategoryListComponent implements OnInit, AfterViewInit, 
   };
 
   ngOnInit(): void {
+    this.tourService.register('room-purpose-category-list', ROOM_PURPOSE_CATEGORY_LIST_TOUR);
+    this.tourService.registerFlowMap('room-purpose-category-list', ROOM_PURPOSE_CATEGORY_LIST_FLOW_MAP);
+
     const snap = this.route.snapshot.queryParams;
     if (snap['sortField']) this.sortActive    = snap['sortField'];
     if (snap['sortDir'])   this.sortDirection = snap['sortDir'] as 'asc' | 'desc';
