@@ -1,12 +1,15 @@
 <div class="list-page mlp-page">
   <div class="entry-form-header">
     <div class="entry-form-hdr-text">
-      <h1 class="page-title">Elective <em>Assignment</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="page-title">Elective <em>Assignment</em></h1>
+        <cms-tour-button tourKey="elective-assignment" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">Assign each enrolled student's choice-based elective for the term.</p>
     </div>
   </div>
 
-  <div class="command-bar mlp-toolbar">
+  <div id="tour-elec-toolbar" class="command-bar mlp-toolbar">
     <div class="command-bar__left">
       <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
         @for (ay of academicYears(); track ay.id) {
@@ -79,7 +82,7 @@
     </div>
   }
 
-  <div class="content-card mlp-table-card">
+  <div id="tour-elec-table" class="content-card mlp-table-card">
     @if (loading()) {
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading"></mat-spinner>

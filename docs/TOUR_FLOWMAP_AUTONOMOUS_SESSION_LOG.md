@@ -62,8 +62,8 @@ CLAUDE.md module priority).
 - [x] Experiments — `/experiments` — Tour:Y FM:Y
 - [x] CO/PO Mapping — `/curriculum-mappings` — Tour:Y FM:Y
 - [x] Course Offerings — `/course-offerings` — Tour:Y FM:Y
-- [ ] Elective Assignment — `/elective-assignment` — Tour:N FM:N
-- [ ] Lab Schedules — `/lab-schedules` — Tour:N FM:N
+- [x] Elective Assignment — `/elective-assignment` — Tour:Y FM:Y
+- [x] Lab Schedules — `/lab-schedules` — Tour:Y FM:Y
 - [ ] Faculty Availability — `/faculty-availability` — Tour:N FM:N
 - [ ] Faculty Workload Rules — `/timetable/workload-rules` — Tour:N FM:N
 - [ ] Skeleton Builder — `/timetable/skeleton-builder` — Tour:N FM:N
@@ -164,3 +164,4 @@ Format: `- YYYY-MM-DD HH:MM | <screen> | DONE|PARTIAL|BLOCKED|SKIPPED | <ticket>
 - 2026-08-18 21:15 | Dashboard, My Profile, My Timetable | SKIPPED | OC-139 | Phase 2 begins. All 3 Overview screens skipped per the judgment-call guidance — see per-screen reasoning in the checklist above. Moving to Phase 2 proper starting with Finance (Commissions) then Academics (21 Tour:N screens, largest remaining chunk).
 - 2026-08-18 21:16 | Commissions | DONE | OC-146 | Phase 2: full Guided Tour + Flow Map built from scratch (new commission.tours.ts, 4 tour-anchor ids added to commission-explorer-list.component.html, cms-tour-button wired). Reuses the Finance funnel as its 4th stage. tsc clean.
 - 2026-08-18 21:19 | CO/PO Mapping, Course Offerings | DONE | OC-147 | Phase 2 Academics begins. Full Guided Tour + Flow Map built from scratch for both (new co-po-mapping.tours.ts, course-offering.tours.ts), each single-entry funnel. tsc clean.
+- 2026-08-18 21:20 | Elective Assignment, Lab Schedules | DONE | OC-147 | Full Guided Tour + Flow Map built from scratch for both. Note: lab-schedule-list.component.html already had a `<cms-tour-button>` placeholder pre-scaffolded with no register() call — checklist's Tour:N was still correct (no tour actually registered) but worth flagging that some templates have dead tour buttons already in place; check for this before assuming a screen needs the button added. tsc clean.

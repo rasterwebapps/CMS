@@ -14,6 +14,8 @@ import { LabSchedule } from '../lab-schedule.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { LAB_SCHEDULE_LIST_TOUR, LAB_SCHEDULE_LIST_FLOW_MAP } from '../../../shared/tour/tours/lab-schedule.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
@@ -46,6 +48,7 @@ export class LabScheduleListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly permissionService = inject(PermissionService);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -81,7 +84,11 @@ export class LabScheduleListComponent implements OnInit {
     return this.permissionService.has('LAB_SCHEDULE_MANAGE');
   }
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.tourService.register('lab-schedule-list', LAB_SCHEDULE_LIST_TOUR);
+    this.tourService.registerFlowMap('lab-schedule-list', LAB_SCHEDULE_LIST_FLOW_MAP);
+    this.load();
+  }
 
   protected applyFilter(event: Event): void {
     const value = (event.target as HTMLInputElement).value;

@@ -20,6 +20,9 @@ import { ToastService } from '../../core/toast/toast.service';
 import { PermissionService } from '../../core/permissions/permission.service';
 import { SkeletonBuilderService } from '../timetable/skeleton-builder/skeleton-builder.service';
 import { ElectiveGroupScheduleResponse } from '../timetable/skeleton-builder/skeleton-builder.model';
+import { TourService } from '../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
+import { ELECTIVE_ASSIGNMENT_TOUR, ELECTIVE_ASSIGNMENT_FLOW_MAP } from '../../shared/tour/tours/elective-assignment.tours';
 
 interface ElectiveGroupOption {
   electiveGroupId: number;
@@ -41,6 +44,7 @@ interface AssignmentRow {
   imports: [
     FormsModule, RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatDialogModule, CmsEmptyStateComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './elective-assignment.component.html',
   styleUrl: './elective-assignment.component.scss',
@@ -52,6 +56,7 @@ export class ElectiveAssignmentComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly permissionService = inject(PermissionService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
@@ -96,6 +101,9 @@ export class ElectiveAssignmentComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('elective-assignment', ELECTIVE_ASSIGNMENT_TOUR);
+    this.tourService.registerFlowMap('elective-assignment', ELECTIVE_ASSIGNMENT_FLOW_MAP);
+
     // AssignmentRow nests the real values under `enrollment` — MatTableDataSource's default
     // sortingDataAccessor only reads a shallow row[sortHeaderId], so without this override
     // clicking the Student/Cohort column headers silently sorts nothing (every row reads as
