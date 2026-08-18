@@ -12,7 +12,7 @@ import { PercentPipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { TourService } from '../../../shared/tour/tour.service';
-import { FEE_FINALIZATION_TOUR } from '../../../shared/tour/tours/finance.tours';
+import { FEE_FINALIZATION_TOUR, FEE_FINALIZATION_FLOW_MAP } from '../../../shared/tour/tours/finance.tours';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { Enquiry, FeeFinalizationRequest } from '../../enquiry/enquiry.model';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
@@ -186,6 +186,7 @@ export class FeeFinalizationComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('fee-finalization', FEE_FINALIZATION_TOUR);
+    this.tourService.registerFlowMap('fee-finalization', FEE_FINALIZATION_FLOW_MAP);
     this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({
       next: (d) => this.programs.set(d),
     });

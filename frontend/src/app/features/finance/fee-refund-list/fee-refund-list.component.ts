@@ -27,7 +27,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { FEE_REFUND_LIST_TOUR } from '../../../shared/tour/tours/finance.tours';
+import { FEE_REFUND_LIST_TOUR, FEE_REFUND_LIST_FLOW_MAP } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
@@ -175,6 +175,7 @@ export class FeeRefundListComponent implements OnInit, OnDestroy {
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('fee-refund-list', FEE_REFUND_LIST_TOUR);
+    this.tourService.registerFlowMap('fee-refund-list', FEE_REFUND_LIST_FLOW_MAP);
     this.loadOneBookConfig();
 
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {

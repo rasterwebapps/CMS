@@ -1,5 +1,25 @@
 import { TourDefinition, TourFlowMap } from '../tour.service';
 
+// Same 6-stage Admission Management pipeline as FEE_COLLECTION_FLOW_MAP below
+// (duplicated rather than imported cross-file, matching how each tours.ts file
+// stays self-contained).
+const ADMISSION_PIPELINE_FUNNEL = [
+  { label: 'Enquiries', description: 'Track interest, follow up, and convert promising enquiries into admissions.' },
+  { label: 'Finalize Fee', description: 'Set the final fee amount for each enquiry before payment can begin.' },
+  { label: 'Collect Payment', description: 'Record payments from enquiries and students, installment by installment.' },
+  { label: 'Submit Documents', description: 'Collect proof of identity, transcripts, and certificates once a candidate has paid.' },
+  { label: 'Verify Documents', description: 'Review and approve submitted documents before admission can be completed.' },
+  { label: 'Complete Admission', description: 'Finalize paid, verified candidates into enrolled students with a roll number.' },
+];
+
+// Finance nav group (nav-config.ts), in nav order.
+const FINANCE_FUNNEL = [
+  { label: 'Fee Explorer', description: 'High-level view of every student fee allocation, payment status, and outstanding balance.' },
+  { label: 'Receipts', description: 'All issued payment receipts, searchable and reprintable.' },
+  { label: 'Refunds', description: 'Refund requests from students and enquiries, pending review and approval.' },
+  { label: 'Commissions', description: 'Agent commission tracking on converted admissions.' },
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Fee Collection
 // ─────────────────────────────────────────────────────────────────────────────
@@ -109,6 +129,20 @@ export const FEE_FINALIZATION_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fee Finalization — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const FEE_FINALIZATION_FLOW_MAP: TourFlowMap = {
+  funnel: ADMISSION_PIPELINE_FUNNEL,
+  currentIndex: 1,
+  steps: [
+    { label: 'Global Summary', icon: 'checklist', detail: 'See the total number of pending enquiries ready for fee finalization at a glance.' },
+    { label: 'Filters & Search', icon: 'search', detail: 'Filter by program, quota (Management/Counselling), or academic year; search by candidate name or program.' },
+    { label: 'Enquiry List', icon: 'open', detail: 'Click a candidate to open their profile where you can adjust fees and apply discounts.' },
+    { label: 'Confirm Finalization', icon: 'send', detail: 'After setting the final fee, the candidate moves to Complete Admission.' },
   ],
 };
 
@@ -232,6 +266,20 @@ export const RECEIPTS_LIST_TOUR: TourDefinition = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Receipts List — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const RECEIPTS_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: FINANCE_FUNNEL,
+  currentIndex: 1,
+  steps: [
+    { label: 'Search & Filter', icon: 'search', detail: 'Search by receipt number, payer name, or payment date; filter by payment mode or receipt type.' },
+    { label: 'Receipt Records', icon: 'checklist', detail: 'Each row shows a payment receipt with payer name, amount, mode, and date.' },
+    { label: 'Print / Download', icon: 'receipt', detail: 'Click the print or download icon to generate a hardcopy or PDF.' },
+    { label: 'Audit Payments', icon: 'send', detail: 'Use this screen to audit all payments made and support refund or enquiry documentation.' },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Fee Refund List
 // ─────────────────────────────────────────────────────────────────────────────
 export const FEE_REFUND_LIST_TOUR: TourDefinition = {
@@ -278,6 +326,20 @@ export const FEE_REFUND_LIST_TOUR: TourDefinition = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Fee Refund List — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const FEE_REFUND_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: FINANCE_FUNNEL,
+  currentIndex: 2,
+  steps: [
+    { label: 'Search & Status Filter', icon: 'search', detail: 'Search by student name or receipt number; filter by status (Pending / Approved / Rejected).' },
+    { label: 'Refund Requests', icon: 'checklist', detail: 'Each row is a refund request showing the original receipt, amount, requestor, and status.' },
+    { label: 'Review Details', icon: 'open', detail: 'Open a request to view the full details before deciding.' },
+    { label: 'Approve or Reject', icon: 'send', detail: 'Approve to restore the outstanding balance, or reject to keep the payment recorded. Approved refunds generate a voucher.' },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Fee Explorer (Student Fees)
 // ─────────────────────────────────────────────────────────────────────────────
 export const FEE_EXPLORER_TOUR: TourDefinition = {
@@ -320,6 +382,20 @@ export const FEE_EXPLORER_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fee Explorer — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const FEE_EXPLORER_FLOW_MAP: TourFlowMap = {
+  funnel: FINANCE_FUNNEL,
+  currentIndex: 0,
+  steps: [
+    { label: 'Search Students', icon: 'search', detail: 'Search by student name or roll number — results update instantly.' },
+    { label: 'Fee Summary Table', icon: 'checklist', detail: 'Each row shows total fee, amount paid, outstanding balance, and any penalties.' },
+    { label: 'Drill Into Details', icon: 'open', detail: 'Click a student to see their complete installment breakdown and payment history.' },
+    { label: 'Take Action', icon: 'send', detail: 'Collect balance or process a refund directly from the detail view.' },
   ],
 };
 

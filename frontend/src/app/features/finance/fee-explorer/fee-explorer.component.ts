@@ -13,7 +13,7 @@ import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-bad
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { FEE_EXPLORER_TOUR } from '../../../shared/tour/tours/finance.tours';
+import { FEE_EXPLORER_TOUR, FEE_EXPLORER_FLOW_MAP } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsIconViewComponent } from '../../../shared/icons';
@@ -173,6 +173,7 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('fee-explorer', FEE_EXPLORER_TOUR);
+    this.tourService.registerFlowMap('fee-explorer', FEE_EXPLORER_FLOW_MAP);
 
     // URL params drive state — initial load + back-nav restore
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {

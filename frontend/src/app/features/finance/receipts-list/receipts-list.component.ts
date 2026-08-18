@@ -24,7 +24,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { RECEIPTS_LIST_TOUR } from '../../../shared/tour/tours/finance.tours';
+import { RECEIPTS_LIST_TOUR, RECEIPTS_LIST_FLOW_MAP } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
@@ -144,6 +144,7 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('receipts-list', RECEIPTS_LIST_TOUR);
+    this.tourService.registerFlowMap('receipts-list', RECEIPTS_LIST_FLOW_MAP);
 
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
       this.searchValue.set(params['search'] ?? '');

@@ -36,7 +36,7 @@ CLAUDE.md module priority).
 
 ### Admission Management (funnel: Enquiries → Finalize Fee → Collect Payment → Submit Documents → Verify Documents → Complete Admission)
 - [x] Enquiries — `/enquiries` — Tour:Y FM:Y
-- [ ] Finalize Fee — `/student-fees/finalize` — Tour:Y FM:N
+- [x] Finalize Fee — `/student-fees/finalize` — Tour:Y FM:Y
 - [x] Collect Payment — `/fee-collection` — Tour:Y FM:Y **(done — OC-136/137/138, reference implementation)**
 - [x] Submit Documents — `/enquiries/document-submission` — Tour:Y FM:Y
 - [x] Verify Documents — `/enquiries/document-verification` — Tour:Y FM:Y
@@ -51,9 +51,9 @@ CLAUDE.md module priority).
 - [x] Data Import — `/import` — Tour:Y FM:Y
 
 ### Finance
-- [ ] Fee Explorer — `/student-fees` — Tour:Y FM:N
-- [ ] Receipts — `/receipts` — Tour:Y FM:N
-- [ ] Refunds — `/refund-approvals` — Tour:Y FM:N
+- [x] Fee Explorer — `/student-fees` — Tour:Y FM:Y
+- [x] Receipts — `/receipts` — Tour:Y FM:Y
+- [x] Refunds — `/refund-approvals` — Tour:Y FM:Y
 - [ ] Commissions — `/commission-explorer` — Tour:N FM:N
 
 ### Academics
@@ -157,4 +157,4 @@ Format: `- YYYY-MM-DD HH:MM | <screen> | DONE|PARTIAL|BLOCKED|SKIPPED | <ticket>
 - 2026-08-18 18:XX | setup | DONE | OC-139 | Parent ticket created, README written, checklist scaffolded, cron sessions scheduled for 21:00 today and 03:00 tomorrow. No screens started yet — this is the pre-work session.
 - 2026-08-18 21:05 | Enquiries, Submit Documents, Verify Documents, Complete Admission, Admission Explorer, Retro Admit | DONE | OC-140 | Phase 1 Flow Maps added to all remaining Admission Management Tour:Y screens. Pipeline screens share one ADMISSION_PIPELINE_FUNNEL (same 6 stages as fee-collection's); Admission Explorer and Retro Admit use single-entry funnels (not pipeline stages). tsc clean. Needs manual light/dark + role check.
 - 2026-08-18 21:05 | Student Explorer, Assign Roll Numbers, Scholarship Applications, Data Import | DONE | OC-141 | Phase 1 Flow Maps added to all Student Management Tour:Y screens, sharing one STUDENT_MANAGEMENT_FUNNEL (4 nav-group stages). tsc clean. Needs manual light/dark + role check.
-- 2026-08-18 21:05 | Finalize Fee | PENDING | OC-139 | Deferred to the Finance module batch (component lives in features/finance/, same tours.ts file as the rest of Finance) — not forgotten, just resequenced.
+- 2026-08-18 21:06 | Finalize Fee, Fee Explorer, Receipts, Refunds | DONE | OC-142 | Phase 1 Flow Maps added to all Finance Tour:Y screens. Finalize Fee reuses the Admission pipeline funnel (duplicated locally in finance.tours.ts); Fee Explorer/Receipts/Refunds share a new FINANCE_FUNNEL (nav-group order, Commissions included as 4th stage for context even though Commissions itself is Tour:N/Phase 2). tsc clean. Needs manual light/dark + role check.
