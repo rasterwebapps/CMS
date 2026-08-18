@@ -13,13 +13,16 @@ import { CmsDayAgendaComponent } from '../../../shared/day-agenda/day-agenda.com
 import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { RoomRelocationModalComponent } from '../room-relocation/room-relocation-modal.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { TIMETABLE_VIEW_TOUR, TIMETABLE_VIEW_FLOW_MAP } from '../../../shared/tour/tours/timetable-view.tours';
 
 export type TimetableViewMode = 'week' | 'month' | 'day';
 
 @Component({
   selector: 'app-timetable-view',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, MatDialogModule, CmsWeekGridComponent, CmsMonthGridComponent, CmsDayAgendaComponent],
+  imports: [FormsModule, MatProgressSpinnerModule, MatDialogModule, CmsWeekGridComponent, CmsMonthGridComponent, CmsDayAgendaComponent, CmsTourButtonComponent],
   templateUrl: './timetable-view.component.html',
   styleUrl: './timetable-view.component.scss',
 })
@@ -30,6 +33,7 @@ export class TimetableViewComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly permissionService = inject(PermissionService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   protected readonly canRelocateRoom = computed(() => this.permissionService.has('TIMETABLE_ROOM_RELOCATE'));
 
@@ -91,6 +95,9 @@ export class TimetableViewComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('timetable-view', TIMETABLE_VIEW_TOUR);
+    this.tourService.registerFlowMap('timetable-view', TIMETABLE_VIEW_FLOW_MAP);
+
     const qpAcademicYearId = Number(this.route.snapshot.queryParamMap.get('academicYearId')) || null;
     const qpTermInstanceId = Number(this.route.snapshot.queryParamMap.get('termInstanceId')) || null;
 

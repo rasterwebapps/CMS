@@ -9,6 +9,9 @@ import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { RESOURCE_TIMETABLE_GRID_TOUR, RESOURCE_TIMETABLE_GRID_FLOW_MAP } from '../../../shared/tour/tours/resource-timetable-grid.tours';
 
 interface TimeColumn {
   key: string;
@@ -20,7 +23,7 @@ interface TimeColumn {
 @Component({
   selector: 'app-resource-timetable-grid',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, CmsEmptyStateComponent],
+  imports: [FormsModule, MatProgressSpinnerModule, CmsEmptyStateComponent, CmsTourButtonComponent],
   templateUrl: './resource-timetable-grid.component.html',
   styleUrl: './resource-timetable-grid.component.scss',
 })
@@ -29,6 +32,7 @@ export class ResourceTimetableGridComponent implements OnInit {
   private readonly timetableService = inject(TimetableService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly canViewFaculty = computed(() => this.permissionService.has('TIMETABLE_FACULTY_GRID_VIEW'));
   protected readonly canViewClassroom = computed(() => this.permissionService.has('TIMETABLE_CLASSROOM_GRID_VIEW'));

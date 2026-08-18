@@ -2,12 +2,15 @@
 
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Resource <em>Timetable</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Resource <em>Timetable</em></h1>
+        <cms-tour-button tourKey="resource-timetable-grid" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">See every faculty member's schedule, or every classroom/lab/clinical venue's schedule, for one day at once</p>
     </div>
   </div>
 
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-resgrid-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
       @for (ay of academicYears(); track ay.id) {
         <option [ngValue]="ay.id">{{ ay.name }}</option>
@@ -46,7 +49,7 @@
     }
   </div>
 
-  <div class="content-card resource-grid-card">
+  <div id="tour-resgrid-grid" class="content-card resource-grid-card">
     @if (loading()) {
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading resource grid"></mat-spinner>
