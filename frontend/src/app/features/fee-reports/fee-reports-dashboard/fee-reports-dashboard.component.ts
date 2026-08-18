@@ -20,6 +20,9 @@ import { CsvExporterService, CsvColumn } from '../../../core/export/csv-exporter
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
  import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { FEE_REPORTS_DASHBOARD_TOUR, FEE_REPORTS_DASHBOARD_FLOW_MAP } from '../../../shared/tour/tours/reports.tours';
 
 @Component({
   selector: 'app-fee-reports-dashboard',
@@ -34,6 +37,7 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    CmsTourButtonComponent,
   ],
   templateUrl: './fee-reports-dashboard.component.html',
   styleUrl: './fee-reports-dashboard.component.scss',
@@ -45,6 +49,7 @@ export class FeeReportsDashboardComponent {
   private readonly printService = inject(PrintService);
   private readonly csvExporter = inject(CsvExporterService);
   private readonly fb = inject(FormBuilder);
+  private readonly tourService = inject(TourService);
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
@@ -65,6 +70,9 @@ export class FeeReportsDashboardComponent {
   });
 
   constructor() {
+    this.tourService.register('fee-reports-dashboard', FEE_REPORTS_DASHBOARD_TOUR);
+    this.tourService.registerFlowMap('fee-reports-dashboard', FEE_REPORTS_DASHBOARD_FLOW_MAP);
+
     this.academicYearService.getAllAcademicYears().subscribe({
       next: (data) => this.academicYears.set(data),
       error: () => this.toast.error('Failed to load academic years'),

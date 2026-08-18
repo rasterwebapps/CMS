@@ -1,14 +1,15 @@
 <div class="mlp-page">
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <div class="page-title-row">
+      <div class="page-title-row" style="display: flex; align-items: center; gap: 12px;">
         <h1 class="mlp-title">Fee <em>Reports</em></h1>
+        <cms-tour-button tourKey="fee-reports-dashboard" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="mlp-sub">View outstanding fees, collection summaries, and student ledgers</p>
     </div>
   </div>
 
-  <mat-tab-group class="detail-tabs">
+  <mat-tab-group id="tour-fr-tabs" class="detail-tabs">
     <!-- Tab 1: Outstanding Fees -->
     <mat-tab label="Outstanding Fees">
       <div class="tab-content">
@@ -82,9 +83,9 @@
                     <td>{{ d.dueDate | appDate }}</td>
                     <td>
                       <span class="cms-badge"
-                        [class.cms-badge--soft-warning]="d.status === 'PARTIAL'"
-                        [class.cms-badge--soft-error]="d.status === 'UNPAID'"
-                        [class.cms-badge--soft-default]="d.status === 'WAIVED'">
+                        [class.cms-badge--soft-amber]="d.status === 'PARTIAL'"
+                        [class.cms-badge--soft-red]="d.status === 'UNPAID'"
+                        [class.cms-badge--soft-gray]="d.status === 'WAIVED'">
                         {{ d.status }}
                       </span>
                     </td>
@@ -211,7 +212,7 @@
         } @else {
           <div class="ledger-header">
             <h3>{{ ledger()!.studentName }}</h3>
-            <span class="cms-badge cms-badge--soft-default">ID: {{ ledger()!.studentId }}</span>
+            <span class="cms-badge cms-badge--soft-gray">ID: {{ ledger()!.studentId }}</span>
           </div>
 
           @for (entry of ledger()!.entries; track entry.demandId) {
@@ -219,10 +220,10 @@
               <div class="ledger-entry__header">
                 <h4 class="ledger-entry__term">{{ entry.termLabel }}</h4>
                 <span class="cms-badge"
-                  [class.cms-badge--soft-success]="entry.status === 'PAID'"
-                  [class.cms-badge--soft-warning]="entry.status === 'PARTIAL'"
-                  [class.cms-badge--soft-error]="entry.status === 'UNPAID'"
-                  [class.cms-badge--soft-default]="entry.status === 'WAIVED'">
+                  [class.cms-badge--soft-green]="entry.status === 'PAID'"
+                  [class.cms-badge--soft-amber]="entry.status === 'PARTIAL'"
+                  [class.cms-badge--soft-red]="entry.status === 'UNPAID'"
+                  [class.cms-badge--soft-gray]="entry.status === 'WAIVED'">
                   {{ entry.status }}
                 </span>
               </div>
