@@ -7,11 +7,14 @@ import { Faculty } from '../../faculty/faculty.model';
 import { FacultyAbsenceService } from '../faculty-absence.service';
 import { AffectedSession, FacultyAbsence, SubstituteCandidate } from '../faculty-absence.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { FACULTY_ABSENCE_TOUR, FACULTY_ABSENCE_FLOW_MAP } from '../../../shared/tour/tours/faculty-absence.tours';
 
 @Component({
   selector: 'app-faculty-absence',
   standalone: true,
-  imports: [FormsModule, MatButtonModule, MatProgressSpinnerModule],
+  imports: [FormsModule, MatButtonModule, MatProgressSpinnerModule, CmsTourButtonComponent],
   templateUrl: './faculty-absence.component.html',
   styleUrl: './faculty-absence.component.scss',
 })
@@ -19,6 +22,7 @@ export class FacultyAbsenceComponent implements OnInit {
   private readonly facultyService = inject(FacultyService);
   private readonly absenceService = inject(FacultyAbsenceService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly facultyList = signal<Faculty[]>([]);
   protected selectedFacultyId: number | null = null;
@@ -36,6 +40,9 @@ export class FacultyAbsenceComponent implements OnInit {
   protected readonly applyingSubstituteFacultyId = signal<number | null>(null);
 
   ngOnInit(): void {
+    this.tourService.register('faculty-absence', FACULTY_ABSENCE_TOUR);
+    this.tourService.registerFlowMap('faculty-absence', FACULTY_ABSENCE_FLOW_MAP);
+
     this.facultyService.getAll().subscribe({
       next: (list) => this.facultyList.set(list),
       error: () => this.toast.error('Failed to load faculty list'),

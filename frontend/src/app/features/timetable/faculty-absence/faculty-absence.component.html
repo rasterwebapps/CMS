@@ -2,12 +2,15 @@
 
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Faculty <em>Absence</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Faculty <em>Absence</em></h1>
+        <cms-tour-button tourKey="faculty-absence" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">Mark a faculty absent for a date and find an eligible substitute for their affected sessions</p>
     </div>
   </div>
 
-  <div class="content-card mark-absence-card">
+  <div id="tour-fa-form" class="content-card mark-absence-card">
     <div class="field-row">
       <div class="field-group">
         <label class="field-label">Faculty</label>
@@ -41,7 +44,7 @@
   </div>
 
   @if (currentAbsence()) {
-    <div class="content-card affected-sessions-card">
+    <div id="tour-fa-sessions" class="content-card affected-sessions-card">
       <h3 class="affected-sessions__title">
         Affected sessions — {{ currentAbsence()!.facultyName }} on {{ currentAbsence()!.absenceDate }}
       </h3>

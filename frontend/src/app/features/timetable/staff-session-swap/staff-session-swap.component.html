@@ -2,12 +2,15 @@
 
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Staff <em>Session Swap</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Staff <em>Session Swap</em></h1>
+        <cms-tour-button tourKey="staff-session-swap" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">Trade which staff member teaches a session, for one date only — both sides must be mutually available</p>
     </div>
   </div>
 
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-sss-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
       @for (ay of academicYears(); track ay.id) {
         <option [ngValue]="ay.id">{{ ay.name }}</option>
@@ -29,7 +32,7 @@
     </label>
   </div>
 
-  <div class="content-card">
+  <div id="tour-sss-list" class="content-card">
     @if (loading()) {
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading sessions"></mat-spinner>

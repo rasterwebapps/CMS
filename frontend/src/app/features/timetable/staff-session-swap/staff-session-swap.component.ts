@@ -9,11 +9,14 @@ import { ClassScheduleOccurrence, StaffSwapCandidate } from '../timetable.model'
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { violationText } from '../../../shared/util/violation-text';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { STAFF_SESSION_SWAP_TOUR, STAFF_SESSION_SWAP_FLOW_MAP } from '../../../shared/tour/tours/staff-session-swap.tours';
 
 @Component({
   selector: 'app-staff-session-swap',
   standalone: true,
-  imports: [FormsModule, MatButtonModule, MatProgressSpinnerModule, CmsEmptyStateComponent],
+  imports: [FormsModule, MatButtonModule, MatProgressSpinnerModule, CmsEmptyStateComponent, CmsTourButtonComponent],
   templateUrl: './staff-session-swap.component.html',
   styleUrl: './staff-session-swap.component.scss',
 })
@@ -21,6 +24,7 @@ export class StaffSessionSwapComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly timetableService = inject(TimetableService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
@@ -42,6 +46,9 @@ export class StaffSessionSwapComponent implements OnInit {
   protected readonly applyingCandidateId = signal<number | null>(null);
 
   ngOnInit(): void {
+    this.tourService.register('staff-session-swap', STAFF_SESSION_SWAP_TOUR);
+    this.tourService.registerFlowMap('staff-session-swap', STAFF_SESSION_SWAP_FLOW_MAP);
+
     this.academicYearService.getAllAcademicYears().subscribe({
       next: (years) => {
         this.academicYears.set(years);
