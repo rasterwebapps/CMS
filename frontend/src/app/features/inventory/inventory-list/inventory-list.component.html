@@ -1,8 +1,9 @@
 <div class="mlp-page">
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <div class="page-title-row">
+      <div class="page-title-row" style="display: flex; align-items: center; gap: 12px;">
         <h1 class="mlp-title">Lab <em>Inventory</em></h1>
+        <cms-tour-button tourKey="inventory-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="mlp-sub">Track lab consumables, quantities, and stock levels</p>
     </div>
@@ -14,7 +15,7 @@
     </div>
   </div>
 
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-inv-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <div class="command-bar__left">
       <div class="search-bar" role="search">
         <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -49,7 +50,7 @@
     </div>
   </div>
 
-  <div class="content-card mlp-table-card anim-rise anim-rise--d2">
+  <div id="tour-inv-table" class="content-card mlp-table-card anim-rise anim-rise--d2">
     @if (loading()) {
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading inventory"></mat-spinner>

@@ -21,6 +21,9 @@ import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/ic
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { MAINTENANCE_LIST_TOUR, MAINTENANCE_LIST_FLOW_MAP } from '../../../shared/tour/tours/inventory.tours';
 
 @Component({
   selector: 'app-maintenance-list',
@@ -35,7 +38,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
     CmsIconDeleteComponent,
     CmsIconEditComponent,
-    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent,
   ],
   templateUrl: './maintenance-list.component.html',
   styleUrl: './maintenance-list.component.scss',
@@ -44,6 +47,7 @@ export class MaintenanceListComponent implements OnInit {
   private readonly maintenanceService = inject(MaintenanceService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
   private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
@@ -73,7 +77,11 @@ export class MaintenanceListComponent implements OnInit {
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.tourService.register('maintenance-list', MAINTENANCE_LIST_TOUR);
+    this.tourService.registerFlowMap('maintenance-list', MAINTENANCE_LIST_FLOW_MAP);
+    this.load();
+  }
 
   protected applyFilter(event: Event): void {
     const value = (event.target as HTMLInputElement).value;

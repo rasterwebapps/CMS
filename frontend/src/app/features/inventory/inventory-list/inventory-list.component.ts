@@ -19,6 +19,9 @@ import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/ic
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { INVENTORY_LIST_TOUR, INVENTORY_LIST_FLOW_MAP } from '../../../shared/tour/tours/inventory.tours';
 
 @Component({
   selector: 'app-inventory-list',
@@ -30,7 +33,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
     CmsIconDeleteComponent,
     CmsIconEditComponent,
-    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent,
   ],
   templateUrl: './inventory-list.component.html',
   styleUrl: './inventory-list.component.scss',
@@ -40,6 +43,7 @@ export class InventoryListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -68,7 +72,11 @@ export class InventoryListComponent implements OnInit {
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.tourService.register('inventory-list', INVENTORY_LIST_TOUR);
+    this.tourService.registerFlowMap('inventory-list', INVENTORY_LIST_FLOW_MAP);
+    this.load();
+  }
 
   protected applyFilter(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
