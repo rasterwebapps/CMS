@@ -19,7 +19,7 @@ import { CohortRoomAllocationService } from './cohort-room-allocation.service';
 import { AllocatedBatch, CohortRoomAllocation, CohortSection, CohortSectionRequest, VentureSplit } from './cohort-room-allocation.model';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { CAPACITY_PLANNER_TOUR } from '../../../shared/tour/tours/timetable.tours';
+import { CAPACITY_PLANNER_TOUR, CAPACITY_PLANNER_FLOW_MAP } from '../../../shared/tour/tours/timetable.tours';
 
 /** One physical batch row within a subject block, scoped to a single cohort section. Starts as
  *  the section's whole headcount; Split breaks it into 2+ sibling rows (same section, own venue/
@@ -603,6 +603,7 @@ export class CapacityPlannerComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('capacity-planner', CAPACITY_PLANNER_TOUR);
+    this.tourService.registerFlowMap('capacity-planner', CAPACITY_PLANNER_FLOW_MAP);
     this.academicYearService.getAllAcademicYears().subscribe({
       next: (years) => {
         this.academicYears.set(years);

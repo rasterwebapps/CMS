@@ -15,7 +15,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { TourService } from '../../../shared/tour/tour.service';
-import { SYLLABUS_LIST_TOUR } from '../../../shared/tour/tours/syllabus.tours';
+import { SYLLABUS_LIST_TOUR, SYLLABUS_LIST_FLOW_MAP } from '../../../shared/tour/tours/syllabus.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconToggleStatusComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
@@ -142,6 +142,7 @@ export class SyllabusListComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('syllabus-list', SYLLABUS_LIST_TOUR);
+    this.tourService.registerFlowMap('syllabus-list', SYLLABUS_LIST_FLOW_MAP);
     this.load();
   }
 

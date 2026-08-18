@@ -15,7 +15,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { TourService } from '../../../shared/tour/tour.service';
-import { EXPERIMENT_LIST_TOUR } from '../../../shared/tour/tours/experiment.tours';
+import { EXPERIMENT_LIST_TOUR, EXPERIMENT_LIST_FLOW_MAP } from '../../../shared/tour/tours/experiment.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
@@ -87,6 +87,7 @@ export class ExperimentListComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('experiment-list', EXPERIMENT_LIST_TOUR);
+    this.tourService.registerFlowMap('experiment-list', EXPERIMENT_LIST_FLOW_MAP);
     this.load();
   }
 

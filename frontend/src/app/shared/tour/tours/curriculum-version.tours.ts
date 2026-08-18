@@ -1,4 +1,11 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
+
+// Curriculum-authoring group of the Academics nav (nav-config.ts, in nav order).
+const CURRICULUM_AUTHORING_FUNNEL = [
+  { label: 'Curriculum Versions', description: 'Define versioned term/subject mappings for each program.' },
+  { label: 'Syllabus', description: 'Author credit hours, objectives, content, books, and outcomes for each course.' },
+  { label: 'Experiments', description: 'Define lab experiments with procedure, apparatus, and learning outcomes for each subject.' },
+];
 
 export const CURRICULUM_VERSION_LIST_TOUR: TourDefinition = {
   steps: [
@@ -74,6 +81,17 @@ export const CURRICULUM_VERSION_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const CURRICULUM_VERSION_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: CURRICULUM_AUTHORING_FUNNEL,
+  currentIndex: 0,
+  steps: [
+    { label: 'Filter by Program/Status', icon: 'search', detail: 'Narrow the list to one program and Active/Inactive status, or browse all.' },
+    { label: 'Version Cards', icon: 'checklist', detail: 'Each card shows version name, program, effective year, content summary, and status.' },
+    { label: 'Clone or View Map', icon: 'open', detail: 'Clone a version to duplicate its full term/subject mapping, or view the full curriculum map.' },
+    { label: 'Create New Version', icon: 'send', detail: 'Add a brand-new curriculum version, picking the program inside the form.' },
   ],
 };
 

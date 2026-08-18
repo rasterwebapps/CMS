@@ -19,7 +19,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { CURRICULUM_VERSION_LIST_TOUR } from '../../../shared/tour/tours/curriculum-version.tours';
+import { CURRICULUM_VERSION_LIST_TOUR, CURRICULUM_VERSION_LIST_FLOW_MAP } from '../../../shared/tour/tours/curriculum-version.tours';
 import { CmsIconEditComponent, CmsIconDeleteComponent, CmsIconViewComponent } from '../../../shared/icons';
 import { CurriculumVersionCloneDialogComponent, CurriculumVersionCloneDialogData } from '../curriculum-version-clone-dialog/curriculum-version-clone-dialog.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
@@ -100,6 +100,7 @@ export class CurriculumVersionListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.tourService.register('curriculum-version-list', CURRICULUM_VERSION_LIST_TOUR);
+    this.tourService.registerFlowMap('curriculum-version-list', CURRICULUM_VERSION_LIST_FLOW_MAP);
 
     const programIdParam = this.route.snapshot.queryParamMap.get('programId');
     if (programIdParam) {

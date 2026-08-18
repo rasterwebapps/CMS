@@ -57,9 +57,9 @@ CLAUDE.md module priority).
 - [ ] Commissions — `/commission-explorer` — Tour:N FM:N
 
 ### Academics
-- [ ] Curriculum Versions — `/curriculum-versions` — Tour:Y FM:N
-- [ ] Syllabus — `/syllabi` — Tour:Y FM:N
-- [ ] Experiments — `/experiments` — Tour:Y FM:N
+- [x] Curriculum Versions — `/curriculum-versions` — Tour:Y FM:Y
+- [x] Syllabus — `/syllabi` — Tour:Y FM:Y
+- [x] Experiments — `/experiments` — Tour:Y FM:Y
 - [ ] CO/PO Mapping — `/curriculum-mappings` — Tour:N FM:N
 - [ ] Course Offerings — `/course-offerings` — Tour:N FM:N
 - [ ] Elective Assignment — `/elective-assignment` — Tour:N FM:N
@@ -68,7 +68,7 @@ CLAUDE.md module priority).
 - [ ] Faculty Workload Rules — `/timetable/workload-rules` — Tour:N FM:N
 - [ ] Skeleton Builder — `/timetable/skeleton-builder` — Tour:N FM:N
 - [ ] Staffing — `/timetable/staffing` — Tour:N FM:N
-- [ ] Capacity Planner — `/timetable/capacity-planner` — Tour:Y FM:N
+- [x] Capacity Planner — `/timetable/capacity-planner` — Tour:Y FM:Y
 - [ ] Conflict Inspector — `/timetable/conflict-inspector` — Tour:N FM:N
 - [ ] Timetable Draft Review — `/timetable/draft-review` — Tour:N FM:N
 - [ ] Timetable — `/timetable` — Tour:N FM:N
@@ -158,3 +158,4 @@ Format: `- YYYY-MM-DD HH:MM | <screen> | DONE|PARTIAL|BLOCKED|SKIPPED | <ticket>
 - 2026-08-18 21:05 | Enquiries, Submit Documents, Verify Documents, Complete Admission, Admission Explorer, Retro Admit | DONE | OC-140 | Phase 1 Flow Maps added to all remaining Admission Management Tour:Y screens. Pipeline screens share one ADMISSION_PIPELINE_FUNNEL (same 6 stages as fee-collection's); Admission Explorer and Retro Admit use single-entry funnels (not pipeline stages). tsc clean. Needs manual light/dark + role check.
 - 2026-08-18 21:05 | Student Explorer, Assign Roll Numbers, Scholarship Applications, Data Import | DONE | OC-141 | Phase 1 Flow Maps added to all Student Management Tour:Y screens, sharing one STUDENT_MANAGEMENT_FUNNEL (4 nav-group stages). tsc clean. Needs manual light/dark + role check.
 - 2026-08-18 21:06 | Finalize Fee, Fee Explorer, Receipts, Refunds | DONE | OC-142 | Phase 1 Flow Maps added to all Finance Tour:Y screens. Finalize Fee reuses the Admission pipeline funnel (duplicated locally in finance.tours.ts); Fee Explorer/Receipts/Refunds share a new FINANCE_FUNNEL (nav-group order, Commissions included as 4th stage for context even though Commissions itself is Tour:N/Phase 2). tsc clean. Needs manual light/dark + role check.
+- 2026-08-18 21:08 | Curriculum Versions, Syllabus, Experiments, Capacity Planner | DONE | OC-143 | Phase 1 Flow Maps added to Academics' 4 Tour:Y screens. Curriculum Versions/Syllabus/Experiments share a new CURRICULUM_AUTHORING_FUNNEL (3-stage). Capacity Planner gets a new TIMETABLE_BUILD_FUNNEL (8-stage, nav-group order) exported from timetable.tours.ts for reuse by the other timetable screens in Phase 2. tsc clean. Needs manual light/dark + role check.

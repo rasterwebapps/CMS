@@ -1,4 +1,12 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
+
+// Same curriculum-authoring funnel as curriculum-version.tours.ts (duplicated,
+// not imported, so each tours.ts file stays self-contained).
+const CURRICULUM_AUTHORING_FUNNEL = [
+  { label: 'Curriculum Versions', description: 'Define versioned term/subject mappings for each program.' },
+  { label: 'Syllabus', description: 'Author credit hours, objectives, content, books, and outcomes for each course.' },
+  { label: 'Experiments', description: 'Define lab experiments with procedure, apparatus, and learning outcomes for each subject.' },
+];
 
 export const EXPERIMENT_LIST_TOUR: TourDefinition = {
   steps: [
@@ -56,6 +64,17 @@ export const EXPERIMENT_LIST_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+export const EXPERIMENT_LIST_FLOW_MAP: TourFlowMap = {
+  funnel: CURRICULUM_AUTHORING_FUNNEL,
+  currentIndex: 2,
+  steps: [
+    { label: 'Search Experiments', icon: 'search', detail: 'Quickly filter by name, subject, or apparatus.' },
+    { label: 'Experiments Table', icon: 'checklist', detail: 'Sort by any column; hover a row for Edit and Delete actions.' },
+    { label: 'Add Experiment', icon: 'open', detail: 'Define a new lab experiment with subject, sequence number, and procedure.' },
+    { label: 'Save', icon: 'send', detail: 'Save the aim, apparatus, procedure, and expected/learning outcomes.' },
   ],
 };
 
