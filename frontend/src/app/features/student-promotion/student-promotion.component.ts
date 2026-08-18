@@ -16,6 +16,9 @@ import {
   PromotionOutcome,
   PromotionPreviewResponse,
 } from './student-promotion.model';
+import { TourService } from '../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
+import { STUDENT_PROMOTION_TOUR, STUDENT_PROMOTION_FLOW_MAP } from '../../shared/tour/tours/student-promotion.tours';
 
 type Step = 'select' | 'preview' | 'result';
 
@@ -35,7 +38,7 @@ const BLOCK_REASON_LABELS: Record<string, string> = {
 @Component({
   selector: 'app-student-promotion',
   standalone: true,
-  imports: [FormsModule, MatTableModule, MatTooltipModule, CmsEmptyStateComponent],
+  imports: [FormsModule, MatTableModule, MatTooltipModule, CmsEmptyStateComponent, CmsTourButtonComponent],
   templateUrl: './student-promotion.component.html',
   styleUrl: './student-promotion.component.scss',
 })
@@ -43,6 +46,7 @@ export class StudentPromotionComponent implements OnInit {
   private readonly academicYearSvc = inject(AcademicYearService);
   private readonly promotionSvc = inject(StudentPromotionService);
   private readonly toast = inject(ToastService);
+  private readonly tourService = inject(TourService);
   protected readonly permissions = inject(PermissionService);
 
   protected readonly outcomeLabels = OUTCOME_LABELS;
@@ -87,6 +91,9 @@ export class StudentPromotionComponent implements OnInit {
     !!this.selectedCohortId && !!this.selectedFromTermInstanceId && !!this.selectedToTermInstanceId);
 
   ngOnInit(): void {
+    this.tourService.register('student-promotion', STUDENT_PROMOTION_TOUR);
+    this.tourService.registerFlowMap('student-promotion', STUDENT_PROMOTION_FLOW_MAP);
+
     this.academicYearSvc.getAllAcademicYears().subscribe({
       next: (years) => {
         const sorted = [...years].sort((a, b) =>

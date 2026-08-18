@@ -3,8 +3,9 @@
   <!-- ── Header ─────────────────────────────────────────────── -->
   <div class="sp-hdr anim-rise">
     <div class="sp-hdr-left">
-      <div class="page-title-row">
+      <div class="page-title-row" style="display: flex; align-items: center; gap: 12px;">
         <h1 class="sp-title">Student <em>Promotion</em></h1>
+        <cms-tour-button tourKey="student-promotion" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="sp-sub">Review academic eligibility and promote a cohort to its next term</p>
     </div>
@@ -12,7 +13,7 @@
 
   <!-- ── Step 1: Select cohort + terms ─────────────────────────── -->
   @if (step() === 'select') {
-    <div class="content-card sp-select-card anim-rise anim-rise--d1">
+    <div id="tour-sp-select" class="content-card sp-select-card anim-rise anim-rise--d1">
 
       <div class="sp-field sp-field--cohort">
         <label>Cohort</label>
@@ -127,7 +128,7 @@
       <button class="btn-toolbar" type="button" (click)="backToSelect()">Change Selection</button>
     </div>
 
-    <div class="content-card sp-table-card">
+    <div id="tour-sp-preview" class="content-card sp-table-card">
       @if (!rows().length) {
         <cms-empty-state icon="groups" title="No enrolled students"
           subtitle="There are no ENROLLED students for this cohort/term." />
@@ -208,7 +209,7 @@
       }
     </div>
 
-    <div class="sp-execute-bar anim-rise">
+    <div id="tour-sp-execute" class="sp-execute-bar anim-rise">
       <label class="sp-checkbox">
         <input type="checkbox" [(ngModel)]="generateCourseRegistrations" />
         Generate course registrations for promoted students
