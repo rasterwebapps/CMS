@@ -14,6 +14,9 @@ import { ConfirmDialogComponent } from '../../../../shared/confirm-dialog/confir
 import { ToastService } from '../../../../core/toast/toast.service';
 import { SpecialClassService } from '../special-class.service';
 import { SpecialClassOccurrence } from '../special-class.model';
+import { TourService } from '../../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../../shared/tour/tour-button.component';
+import { SPECIAL_CLASS_APPROVALS_TOUR, SPECIAL_CLASS_APPROVALS_FLOW_MAP } from '../../../../shared/tour/tours/special-class.tours';
 
 /** BR-55 — admin-facing approval queue for pending special-class/day-repeat requests, mirroring
  *  the fee-refund-list approve/reject shape but via the shared cms-flyout-panel for the reject
@@ -24,7 +27,7 @@ import { SpecialClassOccurrence } from '../special-class.model';
   standalone: true,
   imports: [
     FormsModule, DatePipe, MatTableModule, MatSortModule, MatPaginatorModule, MatProgressSpinnerModule, MatDialogModule,
-    CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsFlyoutPanelComponent,
+    CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsFlyoutPanelComponent, CmsTourButtonComponent,
   ],
   templateUrl: './approval-queue-list.component.html',
   styleUrl: './approval-queue-list.component.scss',
@@ -33,6 +36,7 @@ export class ApprovalQueueListComponent implements OnInit {
   private readonly specialClassService = inject(SpecialClassService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -51,6 +55,8 @@ export class ApprovalQueueListComponent implements OnInit {
   protected rejectionReason = '';
 
   ngOnInit(): void {
+    this.tourService.register('special-class-approvals', SPECIAL_CLASS_APPROVALS_TOUR);
+    this.tourService.registerFlowMap('special-class-approvals', SPECIAL_CLASS_APPROVALS_FLOW_MAP);
     this.load();
   }
 

@@ -12,6 +12,9 @@ import { ToastService } from '../../../../core/toast/toast.service';
 import { SpecialClassService } from '../special-class.service';
 import { SpecialClassOccurrence } from '../special-class.model';
 import { SpecialClassRequestFlyoutComponent } from '../special-class-request-flyout/special-class-request-flyout.component';
+import { TourService } from '../../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../../shared/tour/tour-button.component';
+import { MY_SPECIAL_CLASSES_TOUR, MY_SPECIAL_CLASSES_FLOW_MAP } from '../../../../shared/tour/tours/special-class.tours';
 
 /** BR-55 — a faculty member's own special-class/day-repeat requests, mirroring the
  *  my-timetable vs timetable-view split idiom (own-scoped screen, separate from the admin-facing
@@ -21,7 +24,7 @@ import { SpecialClassRequestFlyoutComponent } from '../special-class-request-fly
   standalone: true,
   imports: [
     MatTableModule, MatSortModule, MatPaginatorModule, MatProgressSpinnerModule, MatDialogModule,
-    CmsStatusBadgeComponent, CmsEmptyStateComponent, CmsRowActionButtonComponent, SpecialClassRequestFlyoutComponent,
+    CmsStatusBadgeComponent, CmsEmptyStateComponent, CmsRowActionButtonComponent, SpecialClassRequestFlyoutComponent, CmsTourButtonComponent,
   ],
   templateUrl: './my-requests-list.component.html',
   styleUrl: './my-requests-list.component.scss',
@@ -30,6 +33,7 @@ export class MyRequestsListComponent implements OnInit {
   private readonly specialClassService = inject(SpecialClassService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -45,6 +49,8 @@ export class MyRequestsListComponent implements OnInit {
   protected readonly showRequestFlyout = signal(false);
 
   ngOnInit(): void {
+    this.tourService.register('my-special-classes', MY_SPECIAL_CLASSES_TOUR);
+    this.tourService.registerFlowMap('my-special-classes', MY_SPECIAL_CLASSES_FLOW_MAP);
     this.load();
   }
 

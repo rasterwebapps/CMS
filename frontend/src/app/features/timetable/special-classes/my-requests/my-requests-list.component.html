@@ -1,18 +1,21 @@
 <div class="mlp-page">
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">My <em>Special Classes</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">My <em>Special Classes</em></h1>
+        <cms-tour-button tourKey="my-special-classes" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">Request an ad-hoc special/remedial class or a whole-day repeat — an admin must approve before it goes live.</p>
     </div>
     <div class="mlp-hdr-right">
-      <button class="btn-primary" (click)="openRequestFlyout()" aria-label="Request a special class">
+      <button id="tour-msc-request" class="btn-primary" (click)="openRequestFlyout()" aria-label="Request a special class">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Request Special Class
       </button>
     </div>
   </div>
 
-  <div class="content-card mlp-table-card anim-rise anim-rise--d1">
+  <div id="tour-msc-table" class="content-card mlp-table-card anim-rise anim-rise--d1">
     @if (loading()) {
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading requests"></mat-spinner>

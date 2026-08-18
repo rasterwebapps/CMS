@@ -1,12 +1,15 @@
 <div class="mlp-page">
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Special Class <em>Approvals</em></h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Special Class <em>Approvals</em></h1>
+        <cms-tour-button tourKey="special-class-approvals" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="mlp-sub">Pending faculty requests for ad-hoc special/remedial classes and whole-day repeats.</p>
     </div>
   </div>
 
-  <div class="content-card mlp-table-card anim-rise anim-rise--d1">
+  <div id="tour-aql-table" class="content-card mlp-table-card anim-rise anim-rise--d1">
     @if (loading()) {
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading approval queue"></mat-spinner>
