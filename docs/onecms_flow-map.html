@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OneCMS — Architecture Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#ded4a9;
+    --bg2:#e8e0c2;
+    --panel:#e3d9b4;
+    --ink:#1e1c14;
+    --line:#2a2717;
+    --muted:#6b6446;
+    --accent-bg:#1e1c14;
+    --accent-fg:#ede4c0;
+    --hatch-top:#c9bd8c;
+    --hatch-side:#b3a677;
+    --hatch-side2:#a49666;
+    --loop-tint:#d8a15a;
+    --support-tint:#8fa889;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'JetBrains Mono','Fira Code',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:13px;
+    overflow:hidden;
+  }
+  .app{display:flex;flex-direction:column;height:100vh;}
+
+  /* ---- top bar ---- */
+  .topbar{
+    display:flex;align-items:stretch;
+    border-bottom:2px solid var(--line);
+    background:var(--bg2);
+    flex-wrap:nowrap;
+  }
+  .stat{
+    padding:10px 18px;
+    border-right:1px solid var(--line);
+    display:flex;flex-direction:column;justify-content:center;
+    white-space:nowrap;
+  }
+  .stat .k{font-size:10px;letter-spacing:.06em;color:var(--muted);}
+  .stat .v{font-size:14px;font-weight:600;margin-top:2px;}
+  .topbar-spacer{flex:1;}
+  .btns{display:flex;align-items:center;gap:8px;padding:0 14px;}
+  button{
+    font-family:inherit;font-size:11px;letter-spacing:.04em;
+    background:var(--bg);border:1px solid var(--line);color:var(--ink);
+    padding:8px 12px;cursor:pointer;
+  }
+  button:hover{background:var(--accent-bg);color:var(--accent-fg);}
+  button.primary{background:var(--accent-bg);color:var(--accent-fg);}
+  button.primary:hover{opacity:.85;background:var(--accent-bg);color:var(--accent-fg);}
+
+  /* ---- main layout ---- */
+  .main{flex:1;display:flex;min-height:0;}
+
+  /* ---- sidebar ---- */
+  .sidebar{
+    width:260px;flex:none;border-right:2px solid var(--line);
+    background:var(--bg2);overflow-y:auto;padding:14px 0 40px;
+  }
+  .sb-title{font-size:10px;letter-spacing:.1em;color:var(--muted);padding:4px 16px 8px;}
+  .sb-section{font-size:10px;letter-spacing:.08em;color:var(--muted);padding:14px 16px 6px;border-top:1px solid #cfc494;margin-top:4px;}
+  .sb-row{
+    display:flex;align-items:center;gap:8px;
+    padding:6px 16px;cursor:pointer;
+  }
+  .sb-row:hover{background:var(--panel);}
+  .sb-row.active{background:var(--accent-bg);color:var(--accent-fg);}
+  .sb-code{
+    font-size:10px;font-weight:700;width:20px;flex:none;
+    border:1px solid currentColor;text-align:center;line-height:16px;height:16px;
+  }
+  .sb-label{flex:1;font-size:11.5px;}
+  .sb-count{font-size:10px;color:var(--muted);}
+  .sb-row.active .sb-count{color:var(--accent-fg);opacity:.7;}
+  .sb-back{
+    display:flex;align-items:center;gap:6px;cursor:pointer;
+    padding:9px 16px;font-size:11px;border-bottom:1px solid #cfc494;margin-bottom:2px;
+  }
+  .sb-back:hover{background:var(--panel);}
+  .sb-back .muted{color:var(--muted);}
+
+  /* ---- canvas ---- */
+  .canvas-wrap{flex:1;position:relative;min-width:0;overflow:hidden;background:
+    repeating-linear-gradient(0deg, transparent 0 39px, #cfc494 39px 40px),
+    repeating-linear-gradient(90deg, transparent 0 39px, #cfc494 39px 40px), var(--bg);
+  }
+  svg#stage{width:100%;height:100%;display:block;cursor:grab;}
+  svg#stage.grabbing{cursor:grabbing;}
+  .zoom-ctrl{position:absolute;top:14px;right:14px;display:flex;flex-direction:column;}
+  .zoom-ctrl button{width:30px;height:30px;padding:0;font-size:15px;line-height:1;}
+  .breadcrumb{
+    position:absolute;top:14px;left:14px;font-size:11px;color:var(--muted);
+    letter-spacing:.03em;display:none;z-index:4;
+  }
+  .breadcrumb b{color:var(--ink);}
+  .breadcrumb .crumb-link{cursor:pointer;text-decoration:underline;}
+  .breadcrumb .crumb-link:hover{color:var(--ink);}
+  .tooltip{
+    position:absolute;pointer-events:none;
+    background:var(--accent-bg);color:var(--accent-fg);
+    padding:6px 10px;font-size:11px;white-space:nowrap;
+    transform:translate(-50%,-130%);opacity:0;transition:opacity .1s;
+    z-index:5;
+  }
+  .tooltip.show{opacity:1;}
+
+  /* ---- right panel ---- */
+  .panel{
+    width:400px;flex:none;border-left:2px solid var(--line);
+    background:var(--bg2);display:flex;flex-direction:column;min-height:0;
+  }
+  .tabs{display:flex;border-bottom:2px solid var(--line);}
+  .tab{
+    flex:1;text-align:center;padding:11px 6px;font-size:11px;letter-spacing:.05em;
+    cursor:pointer;border-right:1px solid var(--line);
+  }
+  .tab:last-child{border-right:none;}
+  .tab.active{background:var(--accent-bg);color:var(--accent-fg);}
+  .panel-body{flex:1;overflow-y:auto;padding:18px 20px 40px;}
+  .panel-eyebrow{font-size:10px;letter-spacing:.1em;color:var(--muted);}
+  .panel-h1{font-size:20px;font-weight:700;margin:4px 0 4px;}
+  .panel-tag{font-size:11.5px;color:var(--muted);margin-bottom:14px;}
+  .panel-body h3{font-size:10.5px;letter-spacing:.08em;color:var(--muted);margin:18px 0 8px;border-top:1px solid #cfc494;padding-top:14px;}
+  .panel-body p{line-height:1.55;margin:0 0 10px;font-size:12.5px;}
+  .hl{background:var(--accent-bg);color:var(--accent-fg);padding:0 3px;}
+  .screen-list{list-style:none;margin:0;padding:0;}
+  .screen-list li{
+    font-size:12px;padding:5px 0 5px 14px;border-bottom:1px dashed #cfc494;
+    position:relative;
+  }
+  .screen-list li::before{content:"→";position:absolute;left:0;color:var(--muted);}
+  .stack-row{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px dashed #cfc494;}
+  .stack-row b{font-weight:600;}
+  .link-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+  .link-tag{font-size:10px;border:1px solid var(--line);padding:2px 6px;cursor:pointer;}
+  .link-tag:hover{background:var(--accent-bg);color:var(--accent-fg);}
+  .panel-actions{margin-top:18px;padding-top:14px;border-top:1px solid #cfc494;}
+  .panel-hint{color:var(--muted);font-size:11.5px;}
+
+  /* ---- bottom hint bar ---- */
+  .hintbar{
+    border-top:2px solid var(--line);background:var(--bg2);
+    padding:7px 16px;font-size:10.5px;color:var(--muted);letter-spacing:.02em;
+    display:flex;justify-content:space-between;gap:12px;
+  }
+  .hintbar .right{white-space:nowrap;}
+
+  /* ---- svg elements ---- */
+  .cube-group{cursor:pointer;}
+  .cube-face{stroke:var(--line);stroke-width:1.6;}
+  .cube-group .code-label{font-weight:700;fill:var(--ink);text-anchor:middle;dominant-baseline:middle;pointer-events:none;}
+  .cube-group .name-label{fill:var(--ink);text-anchor:middle;pointer-events:none;font-size:9px;}
+  .cube-group.dim{opacity:.32;}
+  .cube-group.selected .cube-face{stroke-width:3;}
+  .conn-line{fill:none;stroke:var(--line);stroke-width:1.4;opacity:.55;}
+  .conn-line.dashed{stroke-dasharray:3 4;opacity:.4;}
+  .conn-line.active{stroke-width:2.4;opacity:1;}
+  .conn-joint{fill:var(--line);}
+  .flow-label{font-size:9px;fill:var(--muted);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="stat"><span class="k">REPOSITORY</span><span class="v">SKSCMS · OneCMS</span></div>
+    <div class="stat"><span class="k">NAV MODULES</span><span class="v">12 real · 17 shown</span></div>
+    <div class="stat"><span class="k">SCREENS</span><span class="v">93</span></div>
+    <div class="stat"><span class="k">MIGRATIONS</span><span class="v">780 (V1–V389)</span></div>
+    <div class="stat"><span class="k">CONTROLLERS</span><span class="v">123</span></div>
+    <div class="stat"><span class="k">BRs SHIPPED</span><span class="v">58 documented</span></div>
+    <div class="topbar-spacer"></div>
+    <div class="btns">
+      <button id="btnResume" class="primary">▶ RESUME THE FLOW</button>
+      <button id="btnStep">TRACE ONE STEP</button>
+      <button id="btnReset">RESET VIEW</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <div class="canvas-wrap" id="canvasWrap">
+      <svg id="stage" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <pattern id="hatchTop" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <rect width="7" height="7" fill="var(--hatch-top)"></rect>
+            <line x1="0" y1="0" x2="0" y2="7" stroke="var(--line)" stroke-width="0.6" opacity=".5"></line>
+          </pattern>
+          <pattern id="hatchLeft" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <rect width="7" height="7" fill="var(--hatch-side2)"></rect>
+            <line x1="0" y1="0" x2="0" y2="7" stroke="var(--line)" stroke-width="0.6" opacity=".5"></line>
+          </pattern>
+          <pattern id="hatchRight" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <rect width="7" height="7" fill="var(--hatch-side)"></rect>
+            <line x1="0" y1="0" x2="0" y2="7" stroke="var(--line)" stroke-width="0.6" opacity=".5"></line>
+          </pattern>
+        </defs>
+        <g id="connLayer"></g>
+        <g id="cubeLayer"></g>
+      </svg>
+      <div class="breadcrumb" id="breadcrumb"></div>
+      <div class="zoom-ctrl">
+        <button id="zoomIn">+</button>
+        <button id="zoomOut">−</button>
+      </div>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+
+    <aside class="panel">
+      <div class="tabs">
+        <div class="tab active" data-tab="does">WHAT IT DOES</div>
+        <div class="tab" data-tab="built">HOW IT'S BUILT</div>
+      </div>
+      <div class="panel-body" id="panelBody"></div>
+    </aside>
+  </div>
+
+  <footer class="hintbar">
+    <span class="left" id="hintLeft"></span>
+    <span class="right" id="hintRight"></span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------------------------------------------------------------
+  // Data — every count below is read directly from
+  // frontend/src/app/core/nav/nav-config.ts (93 route: entries across
+  // 12 real NavGroups). Academics is one nav group in the real app;
+  // it is split here into its six shipped phases (see the code comments
+  // in nav-config.ts itself) because that is genuinely how the module
+  // was built and shipped over OC-69..OC-135, not an invented split.
+  // ---------------------------------------------------------------
+  var LOOP = [
+    {id:'OV', label:'Overview', count:3, gx:0, gy:0, tier:'S',
+      desc:'Landing point after login: role-aware Dashboard, My Profile, and (for teaching staff) My Timetable. Not a workflow of its own — just where every session starts.',
+      screens:['Dashboard','My Profile','My Timetable']},
+    {id:'AD', label:'Admission Management', count:8, gx:3, gy:-2, tier:'M', flow:true,
+      desc:'Enquiry-to-admission funnel: Enquiries → Finalize Fee → Collect Payment → Submit/Verify Documents → Complete Admission, plus a full Admission Explorer and a Retro Admit path for backdated entries.',
+      screens:['Enquiries','Finalize Fee','Collect Payment','Submit Documents','Verify Documents','Complete Admission','Admission Explorer','Retro Admit']},
+    {id:'ST', label:'Student Management', count:4, gx:6, gy:0, tier:'M',
+      desc:'The student master record and its post-admission housekeeping: Student Explorer, roll-number assignment, scholarship applications, and bulk data import.',
+      screens:['Student Explorer','Assign Roll Numbers','Scholarship Applications','Data Import']},
+    {id:'FN', label:'Finance', count:4, gx:6, gy:3, tier:'M',
+      desc:'Fee Explorer, Receipts, Refund approvals, and Commission tracking for referral agents — the money side once a student is admitted.',
+      screens:['Fee Explorer','Receipts','Refunds','Commissions']},
+    {id:'CU', label:'Curriculum Setup', count:4, gx:9, gy:5, tier:'M', flow:true,
+      desc:'Curriculum Versions anchor everything else in Academics: Syllabus rows, Attendance-Threshold rows, and Elective Groups all hang off a version; Experiments hang off Subject; CO/PO Mapping hangs off Experiments.',
+      screens:['Curriculum Versions','Syllabus','Experiments','CO/PO Mapping']},
+    {id:'TB', label:'Timetable Build', count:12, gx:13, gy:3, tier:'L', flow:true,
+      desc:'The largest single phase in the app. Course Offerings and Lab Schedules feed the Skeleton Builder, gated by Faculty Availability and Workload Rules, then Staffing, Capacity Planner and Conflict Inspector run before a Timetable Draft Review can publish.',
+      screens:['Course Offerings','Elective Assignment','Lab Schedules','Faculty Availability','Faculty Workload Rules','Skeleton Builder','Staffing','Capacity Planner','Conflict Inspector','Timetable Draft Review','Timetable','Resource Timetable']},
+    {id:'TO', label:'Timetable Ops', count:4, gx:17, gy:5, tier:'M',
+      desc:'On-demand adjustments after publish: Faculty Absence substitution, Staff Session Swap, and the faculty-request / admin-approval Special Class workflow (OC-120).',
+      screens:['Faculty Absence','Staff Session Swap','My Special Classes','Special Class Approvals']},
+    {id:'AX', label:'Attendance & Progress', count:2, gx:20, gy:3, tier:'S', flow:true,
+      desc:'Daily Attendance capture, checked against each curriculum’s attendance threshold, and the Progress Report derived from it.',
+      screens:['Attendance','Progress Report']},
+    {id:'EX', label:'Examinations', count:2, gx:20, gy:0, tier:'S', flow:true,
+      desc:'Manage Exams and Exam Results — the assessment side that closes out a term alongside attendance.',
+      screens:['Manage Exams','Exam Results']},
+    {id:'PM', label:'Student Promotion', count:1, gx:17, gy:-2, tier:'S',
+      desc:'The sole path to next-term enrollment and fee-demand creation (BR-52) — this is what actually closes the loop, advancing students back into Student Management for the next cycle.',
+      screens:['Student Promotion']}
+  ];
+
+  var SUPPORT = [
+    {id:'PF', label:'Preferences', count:26, gx:-4, gy:4, tier:'XL',
+      desc:'26 master-data screens — Programs, Subjects, Faculty, Fee Structures, Academic Calendar and more — that every other module references. The single largest screen count in the app, and it feeds almost everything else here.',
+      screens:['Academic Calendar','Academic Years','Agents','Blood Groups','Classrooms','Clinical Venues','Communities','Courses','Designations','Equipment','Faculty','Faculty Doc Config','Fee Structures','Holiday Templates','Institutions','Labs','Location Master','Number Sequences','Periods','Programs','Referral Types','Scholarship Types','Settings','Specialities','Staff Referrers','Subjects']},
+    {id:'LB', label:'Library', count:10, gx:2, gy:6.5, tier:'L',
+      desc:'Full circulation system: Issue/Book/Journal Explorers, Fines, Racks & Shelves (C{n}-R{n} convention), and Import — recently migrated to the shared flyout-panel dialog pattern.',
+      screens:['Issue Books','Issue Explorer','Overdue Books','Book Explorer','Journal Explorer','My Library','Fines','Racks & Shelves','Import','Library Settings']},
+    {id:'CI', label:'Core Infrastructure', count:3, gx:8, gy:8.5, tier:'S',
+      desc:'Org → Branch → Block → Floor → Zone → Room hierarchy shared with Hostel (and, in future, Library/Stores location features), plus the 2-tier Room Purpose Category / Sub-Type masters (BR-54).',
+      screens:['Campus Infrastructure','Room Purpose Categories','Room Sub-Types']},
+    {id:'IV', label:'Inventory Management', count:2, gx:12, gy:9, tier:'S',
+      desc:'Physical asset tracking: the Inventory register and Maintenance requests against it.',
+      screens:['Inventory','Maintenance']},
+    {id:'HS', label:'Hostel Management', count:3, gx:16, gy:8.5, tier:'S',
+      desc:'Room Types, student Room Preferences, and Room Allocation — the operational hostel screens. The building/room masters themselves live in Core Infrastructure, gated by an isResidential flag (BR-54).',
+      screens:['Hostel Room Types','Room Preferences','Room Allocation']},
+    {id:'RA', label:'Reports & Analytics', count:2, gx:22, gy:5, tier:'S',
+      desc:'General and Fee-specific reporting surfaces that read across Finance, Attendance/Exams, and Library rather than owning data of their own.',
+      screens:['General Reports','Fee Reports']},
+    {id:'UM', label:'User Management', count:3, gx:-4, gy:-3, tier:'S',
+      desc:'Users, Roles & Permissions, and Permission Tiers. Role assignment itself is DB-only by design — never hardcoded — so this module is the UI for that DB config, not the source of truth for it.',
+      screens:['Users','Roles & Permissions','Permission Tiers']}
+  ];
+
+  var ALL = LOOP.concat(SUPPORT);
+  var BY_ID = {};
+  ALL.forEach(function(m){ BY_ID[m.id]=m; });
+
+  var LOOP_ORDER = LOOP.map(function(m){return m.id;});
+
+  // solid sequential loop connectors, then the dashed "next term" closer
+  var LOOP_CONNECTORS = [];
+  for (var i=0;i<LOOP_ORDER.length-1;i++){
+    LOOP_CONNECTORS.push({from:LOOP_ORDER[i], to:LOOP_ORDER[i+1], dashed:false});
+  }
+  LOOP_CONNECTORS.push({from:'PM', to:'ST', dashed:true, label:'next term'});
+
+  var SUPPORT_CONNECTORS = [
+    {from:'PF', to:'AD', dashed:true},
+    {from:'PF', to:'CU', dashed:true},
+    {from:'PF', to:'TB', dashed:true},
+    {from:'UM', to:'OV', dashed:true},
+    {from:'CI', to:'HS', dashed:false},
+    {from:'FN', to:'RA', dashed:true},
+    {from:'AX', to:'RA', dashed:true},
+    {from:'LB', to:'RA', dashed:true}
+  ];
+
+  var CONNECTORS = LOOP_CONNECTORS.concat(SUPPORT_CONNECTORS);
+
+  var TIER = {
+    S:  {hw:32},
+    M:  {hw:44},
+    L:  {hw:58},
+    XL: {hw:76}
+  };
+
+  var ISO_X = 46, ISO_Y = 23;
+
+  function iso(gx,gy){
+    return { x:(gx-gy)*ISO_X, y:(gx+gy)*ISO_Y };
+  }
+
+  function cubeGeom(node){
+    var p = iso(node.gx, node.gy);
+    var hw = TIER[node.tier].hw;
+    var hh = hw*0.5;
+    var vh = hw*0.62;
+    var cx = p.x, cy = p.y;
+    var top = [ [cx,cy-hh], [cx+hw,cy], [cx,cy+hh], [cx-hw,cy] ];
+    var left = [ [cx-hw,cy], [cx,cy+hh], [cx,cy+hh+vh], [cx-hw,cy+vh] ];
+    var right = [ [cx,cy+hh], [cx+hw,cy], [cx+hw,cy+vh], [cx,cy+hh+vh] ];
+    return { cx:cx, cy:cy, hw:hw, hh:hh, vh:vh, top:top, left:left, right:right,
+      anchor:[cx, cy+hh+vh*0.5], labelY:cy };
+  }
+
+  ALL.forEach(function(m){ m.geom = cubeGeom(m); });
+
+  // Short 2-letter code per screen name, so leaf cubes are tellable
+  // apart at a glance instead of all repeating the parent module's
+  // code. "My Profile" -> PR, "Finalize Fee" -> FF, "Dashboard" -> DA.
+  var STOPWORDS = {my:1,the:1,of:1,and:1,'&':1,a:1};
+  function shortCode(name){
+    var words = name.split(/\s+/).filter(Boolean);
+    var sig = words.filter(function(w){ return !STOPWORDS[w.toLowerCase()]; });
+    if (sig.length===0) sig = words;
+    if (sig.length>=2) return (sig[0][0]+sig[1][0]).toUpperCase();
+    return sig[0].slice(0,2).toUpperCase();
+  }
+
+  // wrap a screen name into up to 2 short lines for the label under each leaf cube
+  function wrapName(name){
+    if (name.length<=14) return [name];
+    var words = name.split(' '), line1='', line2='';
+    words.forEach(function(w){
+      if (line2==='' && (line1+' '+w).trim().length<=14) line1=(line1+' '+w).trim();
+      else line2=(line2+' '+w).trim();
+    });
+    return line2 ? [line1,line2] : [line1];
+  }
+
+  // ---------------------------------------------------------------
+  // Build the "inside a module" scene: each real screen becomes its
+  // own small leaf cube. Modules whose screens form a genuine sequence
+  // (flow:true — e.g. the Admission funnel, or Curriculum Setup's
+  // version→syllabus→experiment→CO/PO dependency chain, per each
+  // module's own description above) get a connecting chain in
+  // nav-config.ts order. Modules that are just an unordered set of
+  // masters/registers (flow unset) get no connectors, so the map never
+  // implies a step-by-step relationship that doesn't exist.
+  // ---------------------------------------------------------------
+  function buildInsideScene(moduleId){
+    var m = BY_ID[moduleId];
+    var perRow = 3;
+    var nodes = m.screens.map(function(name, i){
+      var col = i % perRow, row = Math.floor(i/perRow);
+      var node = {
+        id: moduleId+'-'+i, code: moduleId, short: shortCode(name), label: name, tier:'S',
+        gx: col*3.4 + (row%2===1 ? 1.5 : 0), gy: row*2.3,
+        index:i
+      };
+      node.geom = cubeGeom(node);
+      return node;
+    });
+    var conns = [];
+    if (m.flow){
+      for (var i=0;i<nodes.length-1;i++){
+        conns.push({from:nodes[i].id, to:nodes[i+1].id, dashed:false});
+      }
+    }
+    return {nodes:nodes, conns:conns};
+  }
+
+  // ---------------------------------------------------------------
+  // SVG rendering (generic — used for both the outer map and any
+  // "inside a module" scene)
+  // ---------------------------------------------------------------
+  var svg = document.getElementById('stage');
+  var connLayer = document.getElementById('connLayer');
+  var cubeLayer = document.getElementById('cubeLayer');
+  var NS = 'http://www.w3.org/2000/svg';
+
+  function pts(arr){ return arr.map(function(p){return p[0]+','+p[1];}).join(' '); }
+
+  function el(tag, attrs){
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs){ n.setAttribute(k, attrs[k]); }
+    return n;
+  }
+
+  function drawScene(nodesArr, connArr, opts){
+    connLayer.innerHTML = '';
+    cubeLayer.innerHTML = '';
+    var byId = {};
+    nodesArr.forEach(function(n){ byId[n.id]=n; });
+    connArr.forEach(function(c){
+      var a = byId[c.from].geom.anchor, b = byId[c.to].geom.anchor;
+      var midx = (a[0]+b[0])/2, midy = (a[1]+b[1])/2 - 14;
+      var d = 'M '+a[0]+','+a[1]+' Q '+midx+','+midy+' '+b[0]+','+b[1];
+      var path = el('path', {d:d, class:'conn-line'+(c.dashed?' dashed':'')});
+      path.dataset.from = c.from; path.dataset.to = c.to;
+      connLayer.appendChild(path);
+      connLayer.appendChild(el('circle', {cx:a[0], cy:a[1], r:2.4, class:'conn-joint'}));
+      connLayer.appendChild(el('circle', {cx:b[0], cy:b[1], r:2.4, class:'conn-joint'}));
+      if (c.label){
+        var t = el('text', {x:midx, y:midy-4, class:'flow-label', 'text-anchor':'middle'});
+        t.textContent = c.label;
+        connLayer.appendChild(t);
+      }
+    });
+    nodesArr.forEach(function(n){
+      var g = el('g', {class:'cube-group', 'data-id':n.id});
+      g.appendChild(el('polygon', {points:pts(n.geom.left), fill:'url(#hatchLeft)', class:'cube-face'}));
+      g.appendChild(el('polygon', {points:pts(n.geom.right), fill:'url(#hatchRight)', class:'cube-face'}));
+      g.appendChild(el('polygon', {points:pts(n.geom.top), fill:'url(#hatchTop)', class:'cube-face'}));
+      var codeSize = n.tier==='XL' ? 15 : n.tier==='L' ? 13 : 11;
+      var code = el('text', {x:n.geom.cx, y:n.geom.labelY, class:'code-label', 'font-size':codeSize});
+      code.textContent = opts.codeLabel(n);
+      g.appendChild(code);
+      if (opts.subLabel){
+        var lines = opts.subLabel(n);
+        var baseY = n.geom.cy + n.geom.hh + n.geom.vh + 13;
+        lines.forEach(function(line, li){
+          var t = el('text', {x:n.geom.cx, y:baseY+li*11, class:'name-label'});
+          t.textContent = line;
+          g.appendChild(t);
+        });
+      }
+      g.addEventListener('mouseenter', function(e){ tooltip.textContent = opts.hoverText(n); tooltip.classList.add('show'); moveTooltip(e); });
+      g.addEventListener('mousemove', moveTooltip);
+      g.addEventListener('mouseleave', hideTooltip);
+      g.addEventListener('click', function(e){ e.stopPropagation(); opts.onClick(n,e); });
+      cubeLayer.appendChild(g);
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // Tooltip
+  // ---------------------------------------------------------------
+  var tooltip = document.getElementById('tooltip');
+  var wrap = document.getElementById('canvasWrap');
+  function moveTooltip(e){
+    var r = wrap.getBoundingClientRect();
+    tooltip.style.left = (e.clientX - r.left)+'px';
+    tooltip.style.top = (e.clientY - r.top)+'px';
+  }
+  function hideTooltip(){ tooltip.classList.remove('show'); }
+
+  // ---------------------------------------------------------------
+  // Mode / selection state
+  //   mode 'overview' — the full module map
+  //   mode 'inside'   — drilled into insideId, looking at its screens
+  // ---------------------------------------------------------------
+  var mode = 'overview';
+  var insideId = null;
+  var insideSelectedId = null;
+  var currentInsideScene = null;
+  var selectedId = null;
+  var activeTab = 'does';
+
+  function renderOuterCanvas(){
+    drawScene(ALL, CONNECTORS, {
+      codeLabel: function(n){ return n.id; },
+      hoverText: function(n){
+        var extra = (n.id===selectedId) ? ' · click again to go inside' : '';
+        return n.id+' — '+n.label+' ('+n.count+' screen'+(n.count===1?'':'s')+')'+extra;
+      },
+      onClick: function(n){
+        if (selectedId===n.id) enterModule(n.id);
+        else selectModule(n.id, true);
+      }
+    });
+    refreshCubeStates();
+  }
+
+  function renderInsideCanvas(moduleId){
+    currentInsideScene = buildInsideScene(moduleId);
+    drawScene(currentInsideScene.nodes, currentInsideScene.conns, {
+      codeLabel: function(n){ return n.short; },
+      subLabel: function(n){ return wrapName(n.label); },
+      hoverText: function(n){ return n.label; },
+      onClick: function(n){ selectInsideNode(n.id); }
+    });
+    refreshInsideStates();
+  }
+
+  function selectModule(id, doPan){
+    selectedId = id;
+    refreshCubeStates();
+    renderPanel();
+    renderSidebar();
+    if (doPan) panToModule(id);
+  }
+
+  function clearSelection(){
+    selectedId = null;
+    refreshCubeStates();
+    renderPanel();
+    renderSidebar();
+  }
+
+  function refreshCubeStates(){
+    var touching = {};
+    if (selectedId){
+      touching[selectedId] = true;
+      CONNECTORS.forEach(function(c){
+        if (c.from===selectedId) touching[c.to]=true;
+        if (c.to===selectedId) touching[c.from]=true;
+      });
+    }
+    Array.prototype.forEach.call(cubeLayer.querySelectorAll('.cube-group'), function(g){
+      var id = g.dataset.id;
+      g.classList.toggle('selected', id===selectedId);
+      g.classList.toggle('dim', !!selectedId && !touching[id]);
+    });
+    Array.prototype.forEach.call(connLayer.querySelectorAll('.conn-line'), function(p){
+      var on = selectedId && (p.dataset.from===selectedId || p.dataset.to===selectedId);
+      p.classList.toggle('active', !!on);
+    });
+  }
+
+  function refreshInsideStates(){
+    var touching = {};
+    if (insideSelectedId){
+      touching[insideSelectedId] = true;
+      currentInsideScene.conns.forEach(function(c){
+        if (c.from===insideSelectedId) touching[c.to]=true;
+        if (c.to===insideSelectedId) touching[c.from]=true;
+      });
+    }
+    Array.prototype.forEach.call(cubeLayer.querySelectorAll('.cube-group'), function(g){
+      var id = g.dataset.id;
+      g.classList.toggle('selected', id===insideSelectedId);
+      g.classList.toggle('dim', !!insideSelectedId && !touching[id]);
+    });
+    Array.prototype.forEach.call(connLayer.querySelectorAll('.conn-line'), function(p){
+      var on = insideSelectedId && (p.dataset.from===insideSelectedId || p.dataset.to===insideSelectedId);
+      p.classList.toggle('active', !!on);
+    });
+  }
+
+  function selectInsideNode(id){
+    insideSelectedId = id;
+    refreshInsideStates();
+    renderPanel();
+    renderSidebar();
+    panToInsideNode(id);
+  }
+
+  // ---------------------------------------------------------------
+  // Go inside / come back out
+  // ---------------------------------------------------------------
+  function enterModule(id){
+    stopFlow();
+    mode = 'inside';
+    insideId = id;
+    renderInsideCanvas(id);
+    insideHome = computeFit(currentInsideScene.nodes);
+    activeHome = insideHome;
+    insideSelectedId = currentInsideScene.nodes.length ? currentInsideScene.nodes[0].id : null;
+    refreshInsideStates();
+    setViewBox(insideHome);
+    renderPanel();
+    renderSidebar();
+  }
+
+  function exitModule(){
+    if (mode !== 'inside') return;
+    var prevId = insideId;
+    mode = 'overview';
+    insideId = null; insideSelectedId = null; currentInsideScene = null;
+    activeHome = home;
+    renderOuterCanvas();
+    selectModule(prevId, true);
+  }
+
+  var panelBody = document.getElementById('panelBody');
+
+  var BUILT_HTML =
+    '<div class="panel-eyebrow">ONECMS</div>' +
+    '<div class="panel-h1">How It\'s Built</div>' +
+    '<div class="panel-tag">College Management System for SKS College of Nursing (SKSCON)</div>' +
+    '<h3>STACK</h3>' +
+    '<div class="stack-row"><span>Frontend</span><b>Angular 21, standalone components + Material</b></div>' +
+    '<div class="stack-row"><span>Backend</span><b>Spring Boot 3.4.5 (Gradle)</b></div>' +
+    '<div class="stack-row"><span>Database</span><b>PostgreSQL + Flyway</b></div>' +
+    '<div class="stack-row"><span>File storage</span><b>MinIO (S3-compatible)</b></div>' +
+    '<div class="stack-row"><span>Auth</span><b>OAuth2 resource server (Keycloak-issued tokens)</b></div>' +
+    '<h3>HOW THE APP IS SHAPED</h3>' +
+    '<p>Frontend is one feature-module folder per screen family under <code>frontend/src/app/features</code>. Backend stays layered — controller / service / repository / model — rather than domain-packaged; the 123 controllers and the domain grouping shown on this map exist only at the routing and nav-config layer.</p>' +
+    '<h3>SCHEMA EVOLUTION</h3>' +
+    '<p>780 forward-only Flyway migrations, currently at <span class="hl">V389</span>. Once a migration ships to any environment its file is frozen — a checksum mismatch crash-loops the backend everywhere it already ran. Corrections are always a new, idempotent forward migration, never an edit.</p>' +
+    '<h3>ACCESS CONTROL</h3>' +
+    '<p>304 distinct permission codes. Every button/operation on a screen (View / Manage / Export / …) gets its own dedicated permission, never a shared one. Role assignment itself is <span class="hl">DB-only</span> — the User Management module is the UI for that config, not code that hardcodes roles.</p>' +
+    '<h3>DEPLOY TARGETS</h3>' +
+    '<p>Two Proxmox LXCs: <b>172.17.1.243</b> (testing) and <b>172.16.7.209</b> (live production). No auto-deploy — every change is fixed locally and shipped only on explicit instruction, and a <code>pg_dump</code> backup is taken before anything touches production.</p>';
+
+  function overviewDoesHTML(){
+    return '<div class="panel-eyebrow">ONECMS</div>' +
+      '<div class="panel-h1">What It Does</div>' +
+      '<div class="panel-tag">A student-lifecycle CMS for a nursing college, from first enquiry to graduation</div>' +
+      '<p>This map is the app\'s own real navigation structure (<code>nav-config.ts</code>), redrawn as two regions. The <span class="hl">student lifecycle loop</span> — Overview → Admission → Student → Finance → the six Academics phases → back into Student for the next term — is the path a student\'s record actually travels. Everything else is a <span class="hl">supporting module</span> that the loop reads from or depends on: Preferences (26 master screens), Library, Core Infrastructure, Inventory, Hostel, Reports, and User Management.</p>' +
+      '<h3>HOW TO READ IT</h3>' +
+      '<p>Click a block to open it. Click the <i>same</i> block again (or press <b>I</b>) to go inside it and see its real screens as their own blocks — <b>Esc</b>, or the breadcrumb, brings you back out. Hover for a quick label. Drag or <b>WASD</b> to pan, scroll (or +/−) to zoom. <span class="hl">Resume the Flow</span> walks the loop in the order a student record actually moves through it.</p>' +
+      '<h3>ONE THING TO NOTE</h3>' +
+      '<p>Academics is a single nav group in the real app. It\'s split into six blocks here (Curriculum Setup → Timetable Build → Timetable Ops → Attendance/Progress → Examinations → Promotion) because that\'s genuinely how it shipped in phases (OC-69 through OC-135) — not an invented subdivision.</p>';
+  }
+
+  function moduleDoesHTML(m){
+    var group = LOOP.indexOf(m) > -1 ? 'STUDENT LIFECYCLE LOOP' : 'SUPPORTING MODULE';
+    var screensHtml = m.screens.map(function(s){return '<li>'+s+'</li>';}).join('');
+    var related = CONNECTORS.filter(function(c){return c.from===m.id||c.to===m.id;})
+      .map(function(c){ return c.from===m.id ? c.to : c.from; });
+    var uniq = related.filter(function(v,i){return related.indexOf(v)===i;});
+    var tagsHtml = uniq.map(function(id){return '<span class="link-tag" data-jump="'+id+'">'+id+' · '+BY_ID[id].label+'</span>';}).join('');
+    return '<div class="panel-eyebrow">'+group+'</div>' +
+      '<div class="panel-h1">'+m.id+' — '+m.label+'</div>' +
+      '<div class="panel-tag">'+m.count+' screen'+(m.count===1?'':'s')+' in nav-config.ts</div>' +
+      '<p>'+m.desc+'</p>' +
+      (uniq.length ? '<h3>CONNECTS TO</h3><div class="link-tags">'+tagsHtml+'</div>' : '') +
+      '<h3>SCREENS</h3><ul class="screen-list">'+screensHtml+'</ul>' +
+      '<div class="panel-actions"><button id="goInsideBtn" data-id="'+m.id+'">→ GO INSIDE '+m.id+'</button></div>';
+  }
+
+  function insideOverviewHTML(m){
+    var orderNote = m.flow
+      ? 'These screens run in the order shown, left to right — that\'s a real sequence, not just a list.'
+      : 'These are independent screens with no fixed order — browse them in any order.';
+    return '<div class="panel-eyebrow">INSIDE MODULE</div>' +
+      '<div class="panel-h1">'+m.id+' — '+m.label+'</div>' +
+      '<div class="panel-tag">'+m.count+' screen'+(m.count===1?'':'s')+' · '+(m.flow?'sequence':'unordered set')+'</div>' +
+      '<p>'+m.desc+'</p>' +
+      '<p class="panel-hint">'+orderNote+' Click a block above, or a row on the left, to read about a specific screen.</p>' +
+      '<div class="panel-actions"><button id="comeBackBtn">← COME BACK OUT</button></div>';
+  }
+
+  function insideScreenHTML(moduleId, screenId){
+    var m = BY_ID[moduleId];
+    var idx = parseInt(screenId.split('-').pop(), 10);
+    var name = m.screens[idx];
+    return '<div class="panel-eyebrow">SCREEN · '+m.id+' · '+m.label.toUpperCase()+'</div>' +
+      '<div class="panel-h1">'+name+'</div>' +
+      '<div class="panel-tag">Screen '+(idx+1)+' of '+m.count+' in '+m.label+'</div>' +
+      '<p><span class="hl">'+name+'</span> is a screen inside '+m.label+'. '+m.desc+'</p>' +
+      '<div class="panel-actions"><button id="comeBackBtn">← COME BACK OUT</button></div>';
+  }
+
+  function renderPanel(){
+    if (activeTab === 'built'){ panelBody.innerHTML = BUILT_HTML; return; }
+    if (mode === 'inside'){
+      panelBody.innerHTML = insideSelectedId ? insideScreenHTML(insideId, insideSelectedId) : insideOverviewHTML(BY_ID[insideId]);
+    } else {
+      panelBody.innerHTML = selectedId ? moduleDoesHTML(BY_ID[selectedId]) : overviewDoesHTML();
+    }
+    Array.prototype.forEach.call(panelBody.querySelectorAll('.link-tag'), function(t){
+      t.addEventListener('click', function(){ selectModule(t.dataset.jump, true); });
+    });
+    var gi = document.getElementById('goInsideBtn');
+    if (gi) gi.addEventListener('click', function(){ enterModule(gi.dataset.id); });
+    var cb = document.getElementById('comeBackBtn');
+    if (cb) cb.addEventListener('click', exitModule);
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(t){
+    t.addEventListener('click', function(){
+      activeTab = t.dataset.tab;
+      Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(x){x.classList.toggle('active', x===t);});
+      renderPanel();
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // Sidebar
+  // ---------------------------------------------------------------
+  var sidebar = document.getElementById('sidebar');
+
+  function renderSidebar(){
+    if (mode === 'inside') renderInsideSidebar(); else renderOuterSidebar();
+    updateBreadcrumb();
+    updateHints();
+  }
+
+  function renderOuterSidebar(){
+    var html = '<div class="sb-title">THE SYSTEM</div>';
+    html += '<div class="sb-section">THE STUDENT LIFECYCLE LOOP</div>';
+    LOOP.forEach(function(m){ html += sbRow(m); });
+    html += '<div class="sb-section">SUPPORTING MODULES</div>';
+    SUPPORT.forEach(function(m){ html += sbRow(m); });
+    sidebar.innerHTML = html;
+    Array.prototype.forEach.call(sidebar.querySelectorAll('.sb-row'), function(r){
+      r.addEventListener('click', function(){ selectModule(r.dataset.id, true); });
+    });
+  }
+  function sbRow(m){
+    return '<div class="sb-row'+(m.id===selectedId?' active':'')+'" data-id="'+m.id+'">' +
+      '<span class="sb-code">'+m.id+'</span><span class="sb-label">'+m.label+'</span>' +
+      '<span class="sb-count">'+m.count+'</span></div>';
+  }
+
+  function renderInsideSidebar(){
+    var m = BY_ID[insideId];
+    var html = '<div class="sb-back" id="sbBack">← <span><b>'+m.label+'</b> <span class="muted">(come back out)</span></span></div>';
+    html += '<div class="sb-title">INSIDE '+m.id+' · '+m.label.toUpperCase()+'</div>';
+    html += '<div class="sb-section">SCREENS IN THIS MODULE</div>';
+    m.screens.forEach(function(name, i){
+      var id = insideId+'-'+i;
+      html += '<div class="sb-row'+(id===insideSelectedId?' active':'')+'" data-id="'+id+'">' +
+        '<span class="sb-code">'+shortCode(name)+'</span><span class="sb-label">'+name+'</span></div>';
+    });
+    sidebar.innerHTML = html;
+    document.getElementById('sbBack').addEventListener('click', exitModule);
+    Array.prototype.forEach.call(sidebar.querySelectorAll('.sb-row'), function(r){
+      r.addEventListener('click', function(){ selectInsideNode(r.dataset.id); });
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // Breadcrumb + hint bar
+  // ---------------------------------------------------------------
+  var breadcrumbEl = document.getElementById('breadcrumb');
+  function updateBreadcrumb(){
+    if (mode === 'inside'){
+      var m = BY_ID[insideId];
+      breadcrumbEl.style.display = 'block';
+      breadcrumbEl.innerHTML = '<span class="crumb-link" id="crumbHome">ONECMS</span> / <b>'+m.label.toUpperCase()+'</b>';
+      document.getElementById('crumbHome').addEventListener('click', exitModule);
+    } else {
+      breadcrumbEl.style.display = 'none';
+    }
+  }
+
+  var hintLeft = document.getElementById('hintLeft');
+  var hintRight = document.getElementById('hintRight');
+  function updateHints(){
+    if (mode === 'inside'){
+      hintLeft.textContent = 'ESC OR CLICK "ONECMS" ABOVE TO COME BACK OUT · HOVER TO READ · DRAG OR WASD TO PAN · SCROLL TO ZOOM';
+      hintRight.textContent = 'YOU ARE INSIDE A MODULE';
+    } else {
+      hintLeft.textContent = 'CLICK A BLOCK, CLICK IT AGAIN (OR PRESS I) TO GO INSIDE · HOVER TO READ · DRAG OR WASD TO PAN · SCROLL TO ZOOM · CLICK BACKGROUND TO DESELECT';
+      hintRight.textContent = '';
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Pan / zoom
+  // ---------------------------------------------------------------
+  var vb = {x:0,y:0,w:1000,h:600};
+  var home = null;
+  var insideHome = null;
+  var activeHome = null;
+
+  function computeFit(nodesArr){
+    var minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    nodesArr.forEach(function(n){
+      var g=n.geom;
+      minX = Math.min(minX, g.cx-g.hw); maxX = Math.max(maxX, g.cx+g.hw);
+      minY = Math.min(minY, g.cy-g.hh-4); maxY = Math.max(maxY, g.cy+g.hh+g.vh+40);
+    });
+    var padX=(maxX-minX)*0.08+20, padY=(maxY-minY)*0.08+20;
+    return {x:minX-padX, y:minY-padY, w:(maxX-minX)+padX*2, h:(maxY-minY)+padY*2};
+  }
+
+  function applyViewBox(){
+    svg.setAttribute('viewBox', vb.x+' '+vb.y+' '+vb.w+' '+vb.h);
+  }
+
+  function setViewBox(v){ vb = {x:v.x,y:v.y,w:v.w,h:v.h}; applyViewBox(); }
+
+  function resetView(){
+    stopFlow();
+    if (mode === 'inside'){
+      mode = 'overview'; insideId=null; insideSelectedId=null; currentInsideScene=null;
+      activeHome = home;
+      renderOuterCanvas();
+    }
+    clearSelection();
+    setViewBox(home);
+  }
+
+  function panToModule(id){
+    var g = BY_ID[id].geom;
+    var w = Math.min(vb.w, 640), h = w * (home.h/home.w);
+    animateViewBox({x:g.cx-w/2, y:g.cy-h/2, w:w, h:h});
+  }
+
+  function panToInsideNode(id){
+    var n = currentInsideScene.nodes.filter(function(x){return x.id===id;})[0];
+    if (!n) return;
+    var w = Math.min(vb.w, insideHome.w*0.55), h = w * (insideHome.h/insideHome.w);
+    animateViewBox({x:n.geom.cx-w/2, y:n.geom.cy-h/2, w:w, h:h});
+  }
+
+  var animReq = null;
+  function animateViewBox(target){
+    if (animReq) cancelAnimationFrame(animReq);
+    var start = {x:vb.x,y:vb.y,w:vb.w,h:vb.h};
+    var t0 = performance.now(), dur = 420;
+    function step(t){
+      var k = Math.min(1, (t-t0)/dur);
+      var e = 1-Math.pow(1-k, 3);
+      vb = {
+        x: start.x + (target.x-start.x)*e,
+        y: start.y + (target.y-start.y)*e,
+        w: start.w + (target.w-start.w)*e,
+        h: start.h + (target.h-start.h)*e
+      };
+      applyViewBox();
+      if (k<1) animReq = requestAnimationFrame(step);
+    }
+    animReq = requestAnimationFrame(step);
+  }
+
+  // drag to pan
+  var dragging = false, dragStart=null, vbStart=null;
+  svg.addEventListener('pointerdown', function(e){
+    if (e.target.closest && e.target.closest('.cube-group')) return;
+    dragging = true; svg.classList.add('grabbing');
+    dragStart = {x:e.clientX, y:e.clientY}; vbStart = {x:vb.x,y:vb.y};
+    svg.setPointerCapture(e.pointerId);
+  });
+  svg.addEventListener('pointermove', function(e){
+    if (!dragging) return;
+    var rect = wrap.getBoundingClientRect();
+    var scale = vb.w / rect.width;
+    vb.x = vbStart.x - (e.clientX-dragStart.x)*scale;
+    vb.y = vbStart.y - (e.clientY-dragStart.y)*scale;
+    applyViewBox();
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+    svg.addEventListener(ev, function(){ dragging=false; svg.classList.remove('grabbing'); });
+  });
+  svg.addEventListener('click', function(e){
+    if (e.target.closest && e.target.closest('.cube-group')) return;
+    if (mode === 'inside'){
+      insideSelectedId = null;
+      refreshInsideStates();
+      renderPanel();
+      renderSidebar();
+    } else {
+      clearSelection();
+    }
+  });
+
+  // WASD pan
+  var keys = {};
+  window.addEventListener('keydown', function(e){
+    var k = e.key.toLowerCase();
+    if (k==='w'||k==='a'||k==='s'||k==='d'){ keys[k]=true; }
+    else if (k==='escape'){
+      if (mode==='inside') exitModule();
+      else if (selectedId) clearSelection();
+    } else if (k==='i'){
+      if (mode==='overview' && selectedId) enterModule(selectedId);
+    }
+  });
+  window.addEventListener('keyup', function(e){
+    var k = e.key.toLowerCase();
+    if (k==='w'||k==='a'||k==='s'||k==='d'){ keys[k]=false; }
+  });
+  (function panLoop(){
+    var s = vb.w*0.014;
+    var moved = false;
+    if (keys.w){ vb.y-=s; moved=true; }
+    if (keys.s){ vb.y+=s; moved=true; }
+    if (keys.a){ vb.x-=s; moved=true; }
+    if (keys.d){ vb.x+=s; moved=true; }
+    if (moved) applyViewBox();
+    requestAnimationFrame(panLoop);
+  })();
+
+  // wheel zoom
+  wrap.addEventListener('wheel', function(e){
+    e.preventDefault();
+    zoomBy(e.deltaY>0 ? 1.12 : 1/1.12);
+  }, {passive:false});
+
+  function zoomBy(factor){
+    var ref = activeHome || home;
+    var newW = clamp(vb.w*factor, ref.w*0.18, ref.w*2.2);
+    var newH = vb.h * (newW/vb.w);
+    var cx = vb.x+vb.w/2, cy = vb.y+vb.h/2;
+    setViewBox({x:cx-newW/2, y:cy-newH/2, w:newW, h:newH});
+  }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+  document.getElementById('zoomIn').addEventListener('click', function(){ zoomBy(1/1.25); });
+  document.getElementById('zoomOut').addEventListener('click', function(){ zoomBy(1.25); });
+  document.getElementById('btnReset').addEventListener('click', resetView);
+
+  // ---------------------------------------------------------------
+  // Trace the flow (operates on the outer loop only — entering a
+  // module or clicking Resume/Step while inside one exits first)
+  // ---------------------------------------------------------------
+  var traceIndex = -1;
+  var flowTimer = null;
+  var btnResume = document.getElementById('btnResume');
+
+  function traceStep(){
+    if (mode === 'inside') exitModule();
+    traceIndex = (traceIndex+1) % LOOP_ORDER.length;
+    selectModule(LOOP_ORDER[traceIndex], true);
+  }
+  document.getElementById('btnStep').addEventListener('click', function(){
+    stopFlow();
+    traceStep();
+  });
+
+  function startFlow(){
+    btnResume.textContent = '⏸ PAUSE THE FLOW';
+    traceStep();
+    flowTimer = setInterval(traceStep, 2200);
+  }
+  function stopFlow(){
+    if (flowTimer){ clearInterval(flowTimer); flowTimer=null; }
+    btnResume.textContent = '▶ RESUME THE FLOW';
+  }
+  btnResume.addEventListener('click', function(){
+    if (flowTimer) stopFlow(); else startFlow();
+  });
+
+  // ---------------------------------------------------------------
+  // Boot
+  // ---------------------------------------------------------------
+  home = computeFit(ALL);
+  activeHome = home;
+  renderOuterCanvas();
+  setViewBox(home);
+  renderPanel();
+  renderSidebar();
+
+})();
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import { TourDefinition } from '../tour.service';
+import { TourDefinition, TourFlowMap } from '../tour.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fee Collection
@@ -155,6 +155,33 @@ export const COLLECT_BALANCE_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Collect Payment — Flow Map (Take a Tour, second view)
+// Funnel labels/order and the "current" position mirror the Admission Management
+// nav group (AD) in nav-config.ts; the six steps are the real Fee Collection /
+// Collect Balance workflow already described in FEE_COLLECTION_TOUR and
+// COLLECT_BALANCE_TOUR above, restated as flowchart nodes instead of prose.
+// ─────────────────────────────────────────────────────────────────────────────
+export const FEE_COLLECTION_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Enquiries', description: 'Track interest, follow up, and convert promising enquiries into admissions.' },
+    { label: 'Finalize Fee', description: 'Set the final fee amount for each enquiry before payment can begin.' },
+    { label: 'Collect Payment', description: 'Record payments from enquiries and students, installment by installment.' },
+    { label: 'Submit Documents', description: 'Collect proof of identity, transcripts, and certificates once a candidate has paid.' },
+    { label: 'Verify Documents', description: 'Review and approve submitted documents before admission can be completed.' },
+    { label: 'Complete Admission', description: 'Finalize paid, verified candidates into enrolled students with a roll number.' },
+  ],
+  currentIndex: 2,
+  steps: [
+    { label: 'Filter / Search', icon: 'search', detail: 'Filter by status (All / Overdue / Outstanding) or type (Enquiries / Students), or use Quick Search to find the person paying.' },
+    { label: 'Open Record', icon: 'open', detail: 'Click their row to open the payment form for that person.' },
+    { label: 'Review Installments', icon: 'checklist', detail: 'Check due date, fee amount, already paid, and outstanding balance — each installment shows a paid / partial / overdue / pending badge.' },
+    { label: 'Enter Payment', icon: 'payment', detail: 'Enter the collection amount, payment date, and payment mode (cash, cheque, UPI, bank transfer). Cash can be broken down by denomination.' },
+    { label: 'Submit', icon: 'send', detail: 'Add remarks if needed, then submit. The outstanding balance updates automatically.' },
+    { label: 'Receipt', icon: 'receipt', detail: 'The payment is recorded and a receipt is ready to print or download immediately.' },
   ],
 };
 

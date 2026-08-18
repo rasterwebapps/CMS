@@ -1,10 +1,15 @@
 import { Component, inject, Input, OnInit } from '@angular/core';
 import { TourService } from './tour.service';
+import { CmsTourPanelComponent } from './tour-panel/tour-panel.component';
 
 @Component({
   selector: 'cms-tour-button',
   standalone: true,
+  imports: [CmsTourPanelComponent],
   template: `
+    @if (panelOpen) {
+      <cms-tour-panel [tourKey]="tourKey" (closed)="panelOpen = false" />
+    }
     @if (iconOnly) {
       <!-- Icon-only variant -->
       <button
@@ -148,6 +153,8 @@ export class CmsTourButtonComponent implements OnInit {
   /** Label text shown on the full-text button variant. Defaults to 'Take a Tour'. */
   @Input() buttonLabel = 'Take a Tour';
 
+  protected panelOpen = false;
+
   private readonly tourService = inject(TourService);
 
   ngOnInit(): void {
@@ -155,6 +162,10 @@ export class CmsTourButtonComponent implements OnInit {
   }
 
   protected start(): void {
+    if (this.tourService.hasFlowMap(this.tourKey)) {
+      this.panelOpen = true;
+      return;
+    }
     this.tourService.start(this.tourKey);
   }
 }
