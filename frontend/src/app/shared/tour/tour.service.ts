@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { driver, DriveStep, Config } from 'driver.js';
+import { driver, Driver, DriveStep, Config } from 'driver.js';
 
 export interface TourDefinition {
   steps: DriveStep[];
@@ -44,6 +44,10 @@ export class TourService {
     this.tours.set(key, def);
   }
 
+  hasTour(key: string): boolean {
+    return this.tours.has(key);
+  }
+
   /** Registers a Flow Map view for this tour key, shown as a second tab alongside the Guided Tour. */
   registerFlowMap(key: string, def: TourFlowMap): void {
     this.flowMaps.set(key, def);
@@ -57,7 +61,14 @@ export class TourService {
     return this.flowMaps.get(key);
   }
 
-  start(key: string): void {
+  private activeDriver: Driver | undefined;
+
+  /**
+   * Starts the driver.js walkthrough. `onDone` fires once, whether the tour
+   * finishes normally, is closed by the user, or is cut short via `stopActive()`
+   * — used by screens with a Flow Map to know when it's safe to swap back.
+   */
+  start(key: string, onDone?: () => void): void {
     const def = this.tours.get(key);
     if (!def) return;
 
@@ -80,9 +91,19 @@ export class TourService {
       },
       ...def.config,
       steps: def.steps,
+      onDestroyed: () => {
+        this.activeDriver = undefined;
+        onDone?.();
+      },
     });
 
+    this.activeDriver = d;
     d.drive();
+  }
+
+  /** Ends whichever driver.js tour is currently running, if any — used to swap back to a Flow Map mid-tour. */
+  stopActive(): void {
+    this.activeDriver?.destroy();
   }
 
   hasSeen(key: string): boolean {

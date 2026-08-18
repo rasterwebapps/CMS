@@ -8,7 +8,20 @@ import { CmsTourPanelComponent } from './tour-panel/tour-panel.component';
   imports: [CmsTourPanelComponent],
   template: `
     @if (panelOpen) {
-      <cms-tour-panel [tourKey]="tourKey" (closed)="panelOpen = false" />
+      <cms-tour-panel
+        [tourKey]="tourKey"
+        [initialMode]="panelInitialMode"
+        (closed)="panelOpen = false"
+        (guidedRequested)="onGuidedRequested()"
+      />
+    }
+    @if (guidedActive) {
+      <button type="button" class="cms-tour-swap-pill" (click)="swapToFlowMap()" title="Switch to Flow Map">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+        </svg>
+        Flow Map
+      </button>
     }
     @if (iconOnly) {
       <!-- Icon-only variant -->
@@ -137,6 +150,35 @@ import { CmsTourPanelComponent } from './tour-panel/tour-panel.component';
         box-shadow: 0 0 0 3px var(--cms-primary-ring);
       }
     }
+
+    /* ── Floating "swap back to Flow Map" pill, shown while a Guided Tour is running ── */
+    .cms-tour-swap-pill {
+      position: fixed;
+      bottom: 22px;
+      right: 22px;
+      z-index: 2147483647;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      border: none;
+      border-radius: 999px;
+      background: var(--cms-primary);
+      color: #fff;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      font-family: var(--cms-font-ui);
+      cursor: pointer;
+      box-shadow: var(--cms-shadow-lg);
+      transition: transform 0.15s, box-shadow 0.15s;
+
+      svg { flex-shrink: 0; }
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--cms-shadow-xl);
+      }
+    }
   `],
 })
 export class CmsTourButtonComponent implements OnInit {
@@ -154,6 +196,8 @@ export class CmsTourButtonComponent implements OnInit {
   @Input() buttonLabel = 'Take a Tour';
 
   protected panelOpen = false;
+  protected panelInitialMode: 'choose' | 'map' = 'choose';
+  protected guidedActive = false;
 
   private readonly tourService = inject(TourService);
 
@@ -163,9 +207,25 @@ export class CmsTourButtonComponent implements OnInit {
 
   protected start(): void {
     if (this.tourService.hasFlowMap(this.tourKey)) {
+      this.panelInitialMode = 'choose';
       this.panelOpen = true;
       return;
     }
     this.tourService.start(this.tourKey);
+  }
+
+  /** Panel asked to hand off to the Guided Tour — close the panel and start driver.js. */
+  protected onGuidedRequested(): void {
+    this.panelOpen = false;
+    this.guidedActive = true;
+    this.tourService.start(this.tourKey, () => { this.guidedActive = false; });
+  }
+
+  /** Floating pill clicked mid-Guided-Tour — end it and reopen straight into the Flow Map. */
+  protected swapToFlowMap(): void {
+    this.tourService.stopActive();
+    this.guidedActive = false;
+    this.panelInitialMode = 'map';
+    this.panelOpen = true;
   }
 }
