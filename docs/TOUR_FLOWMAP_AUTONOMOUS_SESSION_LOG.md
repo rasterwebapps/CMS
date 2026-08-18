@@ -122,8 +122,8 @@ CLAUDE.md module priority).
 - [x] Academic Years — `/academic-years` — Tour:Y FM:Y
 - [x] Agents — `/agents` — Tour:Y FM:Y
 - [x] Blood Groups — `/blood-groups` — Tour:Y FM:Y
-- [ ] Classrooms — `/classrooms` — Tour:N FM:N
-- [ ] Clinical Venues — `/clinical-venues` — Tour:N FM:N
+- [x] Classrooms — `/classrooms` — Tour:Y FM:Y
+- [x] Clinical Venues — `/clinical-venues` — Tour:Y FM:Y
 - [x] Communities — `/communities` — Tour:Y FM:Y
 - [x] Courses — `/courses` — Tour:Y FM:Y
 - [x] Designations — `/designations` — Tour:Y FM:Y
@@ -131,19 +131,19 @@ CLAUDE.md module priority).
 - [x] Faculty — `/faculty` — Tour:Y FM:Y
 - [x] Faculty Doc Config — `/faculty/document-config` — Tour:Y FM:Y
 - [x] Fee Structures — `/fee-structures` — Tour:Y FM:Y
-- [ ] Holiday Templates — `/holiday-templates` — Tour:N FM:N
+- [x] Holiday Templates — `/holiday-templates` — Tour:Y FM:Y
 - [x] Institutions — `/institutions` — Tour:Y FM:Y
-- [ ] Labs — `/labs` — Tour:N FM:N
+- [x] Labs — `/labs` — Tour:Y FM:Y
 - [x] Location Master — `/india-locations` — Tour:Y FM:Y
 - [x] Number Sequences — `/number-sequences` — Tour:Y FM:Y
-- [ ] Periods — `/periods` — Tour:N FM:N
+- [x] Periods — `/periods` — Tour:Y FM:Y
 - [x] Programs — `/programs` — Tour:Y FM:Y
 - [x] Referral Types — `/referral-types` — Tour:Y FM:Y
 - [x] Scholarship Types — `/scholarships` — Tour:Y FM:Y
-- [ ] Settings — `/settings` — Tour:N FM:N
+- [x] Settings — `/settings` — Tour:Y FM:Y **(Preferences module complete)**
 - [x] Specialities — `/specialities` — Tour:Y FM:Y
-- [ ] Staff Referrers — `/staff-referrers` — Tour:N FM:N
-- [ ] Subjects — `/subjects` — Tour:N FM:N
+- [x] Staff Referrers — `/staff-referrers` — Tour:Y FM:Y
+- [x] Subjects — `/subjects` — Tour:Y FM:Y
 
 ### User Management
 - [ ] Users — `/user-management` — Tour:N FM:N
@@ -176,3 +176,4 @@ Format: `- YYYY-MM-DD HH:MM | <screen> | DONE|PARTIAL|BLOCKED|SKIPPED | <ticket>
 - 2026-08-19 03:22 | Inventory, Maintenance | DONE | OC-150 | Full Guided Tour + Flow Map built from scratch for both, closing **Inventory Management module**. Both are simple single-entry-funnel list screens (new inventory.tours.ts holds both). tsc clean, committed. Next: Hostel Management (Hostel Room Types, Room Preferences, Room Allocation).
 - 2026-08-19 03:25 | Hostel Room Types, Room Preferences, Room Allocation | DONE | OC-151 | Full Guided Tour + Flow Map built from scratch for all 3, closing **Hostel Management module**. New hostel-management.tours.ts, all 3 sharing a real HOSTEL_MANAGEMENT_FUNNEL (Room Types master → Preferences request → Allocation fulfillment). tsc clean, committed. Next: Reports & Analytics (General Reports, Fee Reports), then remaining Preferences masters, then User Management.
 - 2026-08-19 03:27 | General Reports, Fee Reports | DONE | OC-152 | Full Guided Tour + Flow Map built from scratch for both, closing **Reports & Analytics module**. New reports.tours.ts. Along the way, found and fixed a badge-audit-gate violation in Fee Reports (`fee-reports-dashboard.component.html`): 3 status badges used `cms-badge--soft-warning`/`soft-error`/`soft-success`/`soft-default`, none of which are defined anywhere in styles.scss (exact repeat of the documented soft-* bug pattern, just not previously caught on this screen) — remapped to the real defined classes (`soft-amber`/`soft-red`/`soft-green`/`soft-gray`) across all 3 occurrences (Outstanding Fees status pill, Student Ledger ID chip, Ledger entry status pill). tsc clean, committed. Next: remaining Preferences masters (Classrooms, Clinical Venues, Holiday Templates, Labs, Periods, Settings, Staff Referrers, Subjects), then User Management (Users, Roles & Permissions, Permission Tiers) — the last module in the checklist.
+- 2026-08-19 03:34 | Classrooms, Clinical Venues, Periods, Subjects, Staff Referrers, Holiday Templates, Labs, Settings | DONE | OC-153 | Full Guided Tour + Flow Map built from scratch for all 8, closing **the entire Preferences module**. New files: preferences-remainder.tours.ts (6 simple card/table masters, single-entry funnels), lab.tours.ts (Lab already had a dead `<cms-tour-button tourKey="lab-list">` placeholder in its template from an earlier partial pass — wired the actual TourService registration to make it live), settings.tours.ts (3-tab shell: Configuration/Branding/Integrations). tsc clean, committed. Every Preferences screen in the checklist is now Tour:Y FM:Y. Next and final module: User Management (Users, Roles & Permissions, Permission Tiers) — once that's done every screen in the checklist will be DONE except Campus Infrastructure, which stays BLOCKED (see OC-149 note above) pending human resolution of its pre-existing unrelated WIP.
