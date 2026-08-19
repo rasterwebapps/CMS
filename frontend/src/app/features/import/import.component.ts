@@ -8,6 +8,7 @@ import { ImportDefaults, ImportRowError, ImportValidationResult, ImportExecuteRe
 import { AcademicYearService } from '../academic-year/academic-year.service';
 import { AcademicYear } from '../academic-year/academic-year.model';
 import { ToastService } from '../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
 import { TourService } from '../../shared/tour/tour.service';
 import { STUDENT_DATA_IMPORT_TOUR, STUDENT_DATA_IMPORT_FLOW_MAP } from '../../shared/tour/tours/student.tours';
 
@@ -17,7 +18,7 @@ type Phase = 'idle' | 'validating' | 'importing' | 'done';
 @Component({
   selector: 'app-import',
   standalone: true,
-  imports: [FormsModule, NgTemplateOutlet, MatProgressSpinnerModule, MatTooltipModule],
+  imports: [FormsModule, NgTemplateOutlet, MatProgressSpinnerModule, MatTooltipModule, CmsTourButtonComponent],
   templateUrl: './import.component.html',
   styleUrl:    './import.component.scss',
 })
@@ -59,10 +60,6 @@ export class ImportComponent implements OnInit {
         if (current) this.defaults = { ...this.defaults, defaultJoiningAcademicYearId: current.id };
       },
     });
-  }
-
-  protected startTour(): void {
-    this.tourService.start('student-data-import');
   }
 
   protected downloadTemplate(): void {

@@ -15,6 +15,7 @@ import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { SCHOLARSHIP_APPLICATIONS_TOUR, SCHOLARSHIP_APPLICATIONS_FLOW_MAP } from '../../../shared/tour/tours/student.tours';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -42,6 +43,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     MatIconModule, MatDialogModule, MatTableModule, MatPaginatorModule, MatSortModule,
     AppDatePipe, InrPipe,
     CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsRowActionButtonComponent,
+    CmsTourButtonComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './scholarship-applications-list.component.html',
@@ -162,10 +164,6 @@ export class ScholarshipApplicationsListComponent implements OnInit, OnDestroy {
   protected clearSearch(): void {
     this.searchQuery.set('');
     this.searchSubject.next('');
-  }
-
-  protected startTour(): void {
-    this.tourService.start('scholarship-applications');
   }
 
   protected onSortChange(sort: Sort): void {

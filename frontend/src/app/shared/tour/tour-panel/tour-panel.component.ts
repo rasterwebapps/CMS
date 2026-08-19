@@ -1,4 +1,4 @@
-import { Component, EventEmitter, HostListener, inject, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, inject, Input, OnDestroy, OnInit, Output, signal } from '@angular/core';
 import { TourFlowMap, TourService } from '../tour.service';
 
 /**
@@ -48,8 +48,8 @@ import { TourFlowMap, TourService } from '../tour.service';
           <div class="ctp-flow">
             <div class="ctp-flow-hdr">
               <span class="ctp-flow-caption">How this screen works</span>
-              <button type="button" class="ctp-walk-btn" [class.ctp-walk-btn--on]="walking" (click)="toggleWalk()">
-                {{ walking ? '⏸ Pause' : '▶ Walk the Steps' }}
+              <button type="button" class="ctp-walk-btn" [class.ctp-walk-btn--on]="walking()" (click)="toggleWalk()">
+                {{ walking() ? '⏸ Pause' : '▶ Walk the Steps' }}
               </button>
             </div>
 
@@ -65,10 +65,10 @@ import { TourFlowMap, TourService } from '../tour.service';
                   type="button"
                   class="ctp-node"
                   [class.ctp-node--active]="displayStep() === i"
-                  (mouseenter)="hoverStep = i"
-                  (mouseleave)="hoverStep = null"
-                  (focus)="hoverStep = i"
-                  (blur)="hoverStep = null"
+                  (mouseenter)="hoverStep.set(i)"
+                  (mouseleave)="hoverStep.set(null)"
+                  (focus)="hoverStep.set(i)"
+                  (blur)="hoverStep.set(null)"
                   (click)="setActiveStep(i)"
                 >
                   <span class="ctp-node-step">{{ i + 1 }}</span>
@@ -154,7 +154,7 @@ import { TourFlowMap, TourService } from '../tour.service';
     /* ---- static journey rail: deliberately quiet — context, not the main event ---- */
     .ctp-rail-wrap { padding: 16px 18px 14px; border-bottom: 1px solid var(--cms-border-default); flex: none; background: var(--cms-bg-subtle, var(--cms-bg-hover)); }
     .ctp-rail-caption { font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--cms-text-secondary); opacity: .75; margin-bottom: 9px; }
-    .ctp-rail { display: flex; align-items: center; overflow-x: auto; }
+    .ctp-rail { display: flex; align-items: center; flex-wrap: wrap; row-gap: 12px; overflow: visible; }
     .ctp-rail-node { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; width: 88px; }
     .ctp-rail-dot {
       width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
@@ -250,11 +250,12 @@ export class CmsTourPanelComponent implements OnInit, OnDestroy {
   private readonly tourService = inject(TourService);
 
   protected hasGuided = false;
-  /** The committed step — set by a click, or advanced automatically while walking. */
-  protected activeStep = 0;
+  /** The committed step — set by a click, or advanced automatically while walking. Signals so the
+   * setInterval tick in toggleWalk() actually schedules a repaint under zoneless change detection. */
+  protected activeStep = signal(0);
   /** Purely visual hover/focus preview — never touches the walk timer, so pointing at a step doesn't stop it. */
-  protected hoverStep: number | null = null;
-  protected walking = false;
+  protected hoverStep = signal<number | null>(null);
+  protected walking = signal(false);
   protected flowMap: TourFlowMap | undefined;
 
   private walkTimer: ReturnType<typeof setInterval> | undefined;
@@ -283,26 +284,26 @@ export class CmsTourPanelComponent implements OnInit, OnDestroy {
    * to be resting on. Only when not walking does the hover preview take over.
    */
   protected displayStep(): number {
-    return this.walking ? this.activeStep : (this.hoverStep ?? this.activeStep);
+    return this.walking() ? this.activeStep() : (this.hoverStep() ?? this.activeStep());
   }
 
   /** Explicit click — stop auto-play (if any) and commit to this step. */
   protected setActiveStep(i: number): void {
     this.stopWalk();
-    this.activeStep = i;
+    this.activeStep.set(i);
   }
 
   protected toggleWalk(): void {
-    if (this.walking) { this.stopWalk(); return; }
-    this.walking = true;
+    if (this.walking()) { this.stopWalk(); return; }
+    this.walking.set(true);
     const total = this.flowMap?.steps.length ?? 0;
     this.walkTimer = setInterval(() => {
-      this.activeStep = (this.activeStep + 1) % total;
+      this.activeStep.update(v => (v + 1) % total);
     }, 1400);
   }
 
   private stopWalk(): void {
-    this.walking = false;
+    this.walking.set(false);
     if (this.walkTimer) { clearInterval(this.walkTimer); this.walkTimer = undefined; }
   }
 

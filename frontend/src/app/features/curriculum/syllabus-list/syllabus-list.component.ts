@@ -14,6 +14,7 @@ import { Syllabus } from '../curriculum.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { SYLLABUS_LIST_TOUR, SYLLABUS_LIST_FLOW_MAP } from '../../../shared/tour/tours/syllabus.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
@@ -40,6 +41,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
     CmsEmptyStateComponent,
     CmsRowActionButtonComponent,
     CmsIconToggleStatusComponent,
+    CmsTourButtonComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
 ],
   templateUrl: './syllabus-list.component.html',

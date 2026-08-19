@@ -12,6 +12,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { DOCUMENT_VERIFICATION_LIST_TOUR, DOCUMENT_VERIFICATION_LIST_FLOW_MAP } from '../../../shared/tour/tours/enquiry.tours';
 import { EnquiryService } from '../enquiry.service';
@@ -51,6 +52,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
     CmsIconViewComponent,
+    CmsTourButtonComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './document-verification-list.component.html',
@@ -269,8 +271,4 @@ export class DocumentVerificationListComponent implements OnInit, OnDestroy {
 
   protected viewEnquiry(item: Enquiry): void    { void this.router.navigate(['/enquiries', item.id]); }
   protected verifyDocuments(item: Enquiry): void { void this.router.navigate(['/enquiries/document-verification', item.id]); }
-
-  protected startTour(): void {
-    this.tourService.start('document-verification-list');
-  }
 }

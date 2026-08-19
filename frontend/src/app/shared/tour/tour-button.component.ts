@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnInit } from '@angular/core';
+import { Component, inject, Input, OnInit, signal } from '@angular/core';
 import { TourService } from './tour.service';
 import { CmsTourPanelComponent } from './tour-panel/tour-panel.component';
 
@@ -14,7 +14,7 @@ import { CmsTourPanelComponent } from './tour-panel/tour-panel.component';
         (guidedRequested)="onGuidedRequested()"
       />
     }
-    @if (guidedActive) {
+    @if (guidedActive()) {
       <button type="button" class="cms-tour-swap-pill" (click)="swapToFlowMap()" title="Switch to Flow Map">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
@@ -248,7 +248,9 @@ export class CmsTourButtonComponent implements OnInit {
   @Input() buttonLabel = 'Take a Tour';
 
   protected panelOpen = false;
-  protected guidedActive = false;
+  /** Signal, not a plain field — flipped false from driver.js's onDestroyed callback,
+   * which runs outside Angular's event/renderer system, so only a signal write repaints. */
+  protected guidedActive = signal(false);
   protected hasFlowMap = false;
 
   private readonly tourService = inject(TourService);
@@ -263,8 +265,8 @@ export class CmsTourButtonComponent implements OnInit {
   }
 
   protected startGuided(): void {
-    this.guidedActive = true;
-    this.tourService.start(this.tourKey, () => { this.guidedActive = false; });
+    this.guidedActive.set(true);
+    this.tourService.start(this.tourKey, () => { this.guidedActive.set(false); });
   }
 
   protected openFlowMap(): void {
@@ -280,7 +282,7 @@ export class CmsTourButtonComponent implements OnInit {
   /** Floating pill clicked mid-Guided-Tour — end it and reopen straight into the Flow Map. */
   protected swapToFlowMap(): void {
     this.tourService.stopActive();
-    this.guidedActive = false;
+    this.guidedActive.set(false);
     this.panelOpen = true;
   }
 }

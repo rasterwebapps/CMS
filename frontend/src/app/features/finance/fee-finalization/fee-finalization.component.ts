@@ -11,6 +11,7 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { PercentPipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { FEE_FINALIZATION_TOUR, FEE_FINALIZATION_FLOW_MAP } from '../../../shared/tour/tours/finance.tours';
 import { EnquiryService } from '../../enquiry/enquiry.service';
@@ -43,7 +44,7 @@ interface Program { id: number; name: string; durationYears: number; }
     MatTableModule, MatTooltipModule,
     MatPaginatorModule, MatSortModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent,
-      CmsIconEditComponent,
+      CmsIconEditComponent, CmsTourButtonComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './fee-finalization.component.html',
@@ -540,9 +541,5 @@ export class FeeFinalizationComponent implements OnInit {
 
   protected isFiniteNumber(value: number): boolean {
     return Number.isFinite(value);
-  }
-
-  protected startTour(): void {
-    this.tourService.start('fee-finalization');
   }
 }

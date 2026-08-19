@@ -15,6 +15,7 @@ import { CashDenominationComponent } from '../../../shared/cash-denomination/cas
 import { FeeReceiptDialogComponent } from '../../../shared/fee-receipt-dialog/fee-receipt-dialog.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { printFeeReceipt, downloadFeeReceipt } from '../../../shared/utils/print-receipt.utils';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { STUDENT_FEE_DETAIL_TOUR } from '../../../shared/tour/tours/finance.tours';
 import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
@@ -42,6 +43,7 @@ export interface ReceiptGroup {
     AppDatePipe, PaymentModeLabelPipe, InrPipe, RouterLink, DatePipe, DecimalPipe,
     ReactiveFormsModule, MatTooltipModule, MatProgressSpinnerModule,
     CmsStatusBadgeComponent, CmsRowActionButtonComponent, CashDenominationComponent, FeeReceiptDialogComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './student-fee-detail.component.html',
   styleUrl: './student-fee-detail.component.scss',
@@ -344,10 +346,6 @@ export class StudentFeeDetailComponent implements OnInit {
 
   protected downloadReceipt(group: ReceiptGroup): void {
     void downloadFeeReceipt(this.toReceiptPrintData(group));
-  }
-
-  protected startTour(): void {
-    this.tourService.start('student-fee-detail');
   }
 
   // ── Data loading ──────────────────────────────────────────────────────────────

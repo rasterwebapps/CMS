@@ -20,6 +20,7 @@ import {
 } from '../../../shared/validators/cms-validators';
 import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { COMMUNITY_FORM_TOUR } from '../../../shared/tour/tours/community.tours';
 
@@ -33,6 +34,7 @@ import { COMMUNITY_FORM_TOUR } from '../../../shared/tour/tours/community.tours'
     MatSlideToggleModule,
     CmsPreviewCardComponent,
     CmsTipsCardComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './community-form.component.html',
   styleUrl: './community-form.component.scss',
