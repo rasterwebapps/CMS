@@ -1,14 +1,5 @@
 import { TourDefinition, TourFlowMap } from '../tour.service';
 
-// Issue Books → Issue Explorer → Overdue Books → Fines, the day-to-day circulation pipeline
-// (nav-config.ts order, mirrors Admission Management's own funnel idiom).
-export const LIBRARY_CIRCULATION_FUNNEL = [
-  { label: 'Issue Books', description: 'Look up an available book or journal and issue it to a student or faculty member.' },
-  { label: 'Issue Explorer', description: 'Track every issue, return, and renewal — scan-to-return in one motion.' },
-  { label: 'Overdue Books', description: 'Every issue past its due date and not yet returned.' },
-  { label: 'Fines', description: 'View, waive, and collect overdue fines.' },
-];
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Issue Books
 // ─────────────────────────────────────────────────────────────────────────────
@@ -51,8 +42,12 @@ export const LIBRARY_ISSUE_FORM_TOUR: TourDefinition = {
   ],
 };
 
+// Standalone transaction screen, not a pipeline stage — single-entry funnel
+// per the README's guidance (no rail, Flow Map only).
 export const LIBRARY_ISSUE_FORM_FLOW_MAP: TourFlowMap = {
-  funnel: LIBRARY_CIRCULATION_FUNNEL,
+  funnel: [
+    { label: 'Issue Books', description: 'Look up an available book or journal and issue it to a student or faculty member.' },
+  ],
   currentIndex: 0,
   steps: [
     { label: 'Look Up Item', icon: 'search', detail: 'Scan or type an accession number/barcode; the item must be Available.' },
@@ -104,9 +99,13 @@ export const LIBRARY_ISSUE_LIST_TOUR: TourDefinition = {
   ],
 };
 
+// Standalone tracking screen, not a pipeline stage — single-entry funnel per
+// the README's guidance (no rail, Flow Map only).
 export const LIBRARY_ISSUE_LIST_FLOW_MAP: TourFlowMap = {
-  funnel: LIBRARY_CIRCULATION_FUNNEL,
-  currentIndex: 1,
+  funnel: [
+    { label: 'Issue Explorer', description: 'Track every issue, return, and renewal — scan-to-return in one motion.' },
+  ],
+  currentIndex: 0,
   steps: [
     { label: 'Scan to Return', icon: 'search', detail: 'Scan an accession number to find and return that issue directly.' },
     { label: 'Search & Filter', icon: 'checklist', detail: 'By title, accession number, member, item type, status, or member type.' },
@@ -149,9 +148,13 @@ export const LIBRARY_REPORTS_TOUR: TourDefinition = {
   ],
 };
 
+// Standalone report screen, not a pipeline stage — single-entry funnel per
+// the README's guidance (no rail, Flow Map only).
 export const LIBRARY_REPORTS_FLOW_MAP: TourFlowMap = {
-  funnel: LIBRARY_CIRCULATION_FUNNEL,
-  currentIndex: 2,
+  funnel: [
+    { label: 'Overdue Books', description: 'Every issue past its due date and not yet returned.' },
+  ],
+  currentIndex: 0,
   steps: [
     { label: 'Search & Filter', icon: 'search', detail: 'By title, accession number, borrower, or member type.' },
     { label: 'Review', icon: 'checklist', detail: 'Days overdue and estimated fine per issue.' },
@@ -193,9 +196,13 @@ export const LIBRARY_FINES_TOUR: TourDefinition = {
   ],
 };
 
+// Standalone management screen, not a pipeline stage — single-entry funnel
+// per the README's guidance (no rail, Flow Map only).
 export const LIBRARY_FINES_FLOW_MAP: TourFlowMap = {
-  funnel: LIBRARY_CIRCULATION_FUNNEL,
-  currentIndex: 3,
+  funnel: [
+    { label: 'Fines', description: 'View, waive, and collect overdue fines.' },
+  ],
+  currentIndex: 0,
   steps: [
     { label: 'Search & Filter', icon: 'search', detail: 'By title, accession number, member, fine status, or member type.' },
     { label: 'Review Fines', icon: 'checklist', detail: 'Overdue days, per-day rate, and total per fine.' },

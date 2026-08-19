@@ -1,16 +1,5 @@
 import { TourDefinition, TourFlowMap } from '../tour.service';
 
-// Day-to-day timetable operations group (nav-config.ts, after the build pipeline) —
-// shared by Resource Timetable, Faculty Absence, Staff Session Swap, My Special
-// Classes, and Special Class Approvals.
-export const TIMETABLE_OPERATIONS_FUNNEL = [
-  { label: 'Resource Timetable', description: 'See every faculty or room\'s schedule for one day at a glance.' },
-  { label: 'Faculty Absence', description: 'Mark a faculty member absent and arrange a substitute for their affected sessions.' },
-  { label: 'Staff Session Swap', description: 'Swap a session\'s assigned faculty with another eligible faculty member.' },
-  { label: 'My Special Classes', description: 'Request or track extra classes outside the regular timetable.' },
-  { label: 'Special Class Approvals', description: 'Approve or reject faculty requests for special classes.' },
-];
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Resource Timetable
 // ─────────────────────────────────────────────────────────────────────────────
@@ -56,8 +45,13 @@ export const RESOURCE_TIMETABLE_GRID_TOUR: TourDefinition = {
   ],
 };
 
+// Standalone day-to-day view, not a pipeline stage — the timetable operations
+// screens are independent tools, so this gets a single-entry funnel per the
+// README's guidance (no rail, Flow Map only).
 export const RESOURCE_TIMETABLE_GRID_FLOW_MAP: TourFlowMap = {
-  funnel: TIMETABLE_OPERATIONS_FUNNEL,
+  funnel: [
+    { label: 'Resource Timetable', description: 'See every faculty or room\'s schedule for one day at a glance.' },
+  ],
   currentIndex: 0,
   steps: [
     { label: 'Term, Resource & Day', icon: 'search', detail: 'Pick a term, switch Faculty/Classroom view, and choose a specific date or planning weekday.' },

@@ -59,12 +59,30 @@ export const FEE_COLLECTION_FLOW_MAP: TourFlowMap = {
 };
 ```
 
-`funnel` = the multi-screen journey this screen sits inside (usually the same
-nav group, in nav order — e.g. Collect Payment's funnel is the 6 screens of
-Admission Management's own pipeline). If a screen has no natural multi-screen
-journey (most Preferences/master screens), `funnel` can be a single-entry
-array containing just that screen, or the Flow Map can be skipped entirely —
-a Guided Tour alone is a fine, complete outcome for those.
+`funnel` = the multi-screen journey this screen sits inside. **Being in the
+same nav group is not enough on its own** — only use the group's full screen
+list if completing one screen is actually a real prerequisite/output of the
+next (e.g. Collect Payment's funnel is the 6 screens of Admission
+Management's own pipeline, where each stage gates the next). Nav groups that
+just gather independent, standalone tools under one topic — Finance
+(Fee Explorer/Receipts/Refunds/Commissions), Student Management utilities,
+day-to-day Timetable Operations — are **not** a journey; using the whole
+group there was a real bug (fixed 2026-08-19: it made a "You are here" rail
+appear on 12 unrelated screens implying a sequence that didn't exist). Ask
+"does finishing screen A actually lead to or require screen B?" — if no,
+each screen gets its own single-entry `funnel` (or, for a genuine small
+2-3-screen relationship inside a bigger independent group, its own local
+funnel covering just those — see `EXAMINATION_FUNNEL` or
+`SPECIAL_CLASS_FUNNEL`).
+
+If a screen has no natural multi-screen journey (most Preferences/master
+screens, or a standalone tool inside an otherwise-unrelated nav group),
+`funnel` should be a single-entry array containing just that screen, or the
+Flow Map can be skipped entirely — a Guided Tour alone is a fine, complete
+outcome for those. The rail (`ctp-rail-wrap`) is hidden automatically by
+`tour-panel.component.ts` whenever `funnel.length <= 1`, so a single-entry
+funnel correctly renders as Flow Map only, no rail — you don't need to
+special-case the template per screen.
 
 `steps` = 4–6 flowchart blocks describing what's actually done **on this
 screen**, using the existing `FlowMapIcon` union

@@ -29,19 +29,21 @@ import { TourFlowMap, TourService } from '../tour.service';
         </div>
 
         @if (flowMap) {
-          <div class="ctp-rail-wrap">
-            <div class="ctp-rail-caption">Where this screen sits in the journey</div>
-            <div class="ctp-rail">
-              @for (stage of flowMap.funnel; track $index; let i = $index) {
-                @if (i > 0) { <span class="ctp-rail-line"></span> }
-                <div class="ctp-rail-node" [class.ctp-rail-node--current]="i === flowMap.currentIndex" [title]="stage.description">
-                  <span class="ctp-rail-dot">{{ pad(i + 1) }}</span>
-                  <span class="ctp-rail-label">{{ stage.label }}</span>
-                  <span class="ctp-rail-here">You are here</span>
-                </div>
-              }
+          @if (flowMap.funnel.length > 1) {
+            <div class="ctp-rail-wrap">
+              <div class="ctp-rail-caption">Where this screen sits in the journey</div>
+              <div class="ctp-rail">
+                @for (stage of flowMap.funnel; track $index; let i = $index) {
+                  @if (i > 0) { <span class="ctp-rail-line"></span> }
+                  <div class="ctp-rail-node" [class.ctp-rail-node--current]="i === flowMap.currentIndex" [title]="stage.description">
+                    <span class="ctp-rail-dot">{{ pad(i + 1) }}</span>
+                    <span class="ctp-rail-label">{{ stage.label }}</span>
+                    <span class="ctp-rail-here">You are here</span>
+                  </div>
+                }
+              </div>
             </div>
-          </div>
+          }
 
           <div class="ctp-flow">
             <div class="ctp-flow-hdr">

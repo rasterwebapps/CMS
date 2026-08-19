@@ -56,14 +56,13 @@ export const COMMISSION_EXPLORER_LIST_TOUR: TourDefinition = {
   ],
 };
 
+// Standalone audit/reporting tool, not a pipeline stage — single-entry funnel
+// per the README's guidance (no rail, Flow Map only).
 export const COMMISSION_EXPLORER_LIST_FLOW_MAP: TourFlowMap = {
   funnel: [
-    { label: 'Fee Explorer', description: 'High-level view of every student fee allocation, payment status, and outstanding balance.' },
-    { label: 'Receipts', description: 'All issued payment receipts, searchable and reprintable.' },
-    { label: 'Refunds', description: 'Refund requests from students and enquiries, pending review and approval.' },
     { label: 'Commissions', description: 'Agent commission tracking on converted admissions.' },
   ],
-  currentIndex: 3,
+  currentIndex: 0,
   steps: [
     { label: 'Search & Filter', icon: 'search', detail: 'Search by student, referrer, or admission number; filter by date range, status, or referral source.' },
     { label: 'Review Record', icon: 'open', detail: 'Expand a row to see enquiry details, OneBook integration status, and the full payout history.' },

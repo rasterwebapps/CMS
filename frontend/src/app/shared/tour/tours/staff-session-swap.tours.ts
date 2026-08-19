@@ -1,5 +1,4 @@
 import { TourDefinition, TourFlowMap } from '../tour.service';
-import { TIMETABLE_OPERATIONS_FUNNEL } from './resource-timetable-grid.tours';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Staff Session Swap
@@ -43,9 +42,13 @@ export const STAFF_SESSION_SWAP_TOUR: TourDefinition = {
   ],
 };
 
+// Standalone day-to-day action, not a pipeline stage — single-entry funnel
+// per the README's guidance (no rail, Flow Map only).
 export const STAFF_SESSION_SWAP_FLOW_MAP: TourFlowMap = {
-  funnel: TIMETABLE_OPERATIONS_FUNNEL,
-  currentIndex: 2,
+  funnel: [
+    { label: 'Staff Session Swap', description: 'Swap a session\'s assigned faculty with another eligible faculty member.' },
+  ],
+  currentIndex: 0,
   steps: [
     { label: 'Term & Date', icon: 'search', detail: 'Pick a term and date to see every published session scheduled that day.' },
     { label: 'Pick a Session to Swap', icon: 'checklist', detail: 'Click Swap on the session you want to hand off.' },

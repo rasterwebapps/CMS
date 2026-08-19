@@ -12,13 +12,6 @@ const ADMISSION_PIPELINE_FUNNEL = [
   { label: 'Complete Admission', description: 'Finalize paid, verified candidates into enrolled students with a roll number.' },
 ];
 
-// Finance nav group (nav-config.ts), in nav order.
-const FINANCE_FUNNEL = [
-  { label: 'Fee Explorer', description: 'High-level view of every student fee allocation, payment status, and outstanding balance.' },
-  { label: 'Receipts', description: 'All issued payment receipts, searchable and reprintable.' },
-  { label: 'Refunds', description: 'Refund requests from students and enquiries, pending review and approval.' },
-  { label: 'Commissions', description: 'Agent commission tracking on converted admissions.' },
-];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fee Collection
@@ -267,10 +260,15 @@ export const RECEIPTS_LIST_TOUR: TourDefinition = {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Receipts List — Flow Map
+// Standalone audit/reporting tool, not a pipeline stage — the Finance nav
+// group's screens are independent of each other, so this gets a single-entry
+// funnel per the README's guidance (no rail, Flow Map only).
 // ─────────────────────────────────────────────────────────────────────────────
 export const RECEIPTS_LIST_FLOW_MAP: TourFlowMap = {
-  funnel: FINANCE_FUNNEL,
-  currentIndex: 1,
+  funnel: [
+    { label: 'Receipts', description: 'All issued payment receipts, searchable and reprintable.' },
+  ],
+  currentIndex: 0,
   steps: [
     { label: 'Search & Filter', icon: 'search', detail: 'Search by receipt number, payer name, or payment date; filter by payment mode or receipt type.' },
     { label: 'Receipt Records', icon: 'checklist', detail: 'Each row shows a payment receipt with payer name, amount, mode, and date.' },
@@ -327,10 +325,14 @@ export const FEE_REFUND_LIST_TOUR: TourDefinition = {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fee Refund List — Flow Map
+// Standalone audit/reporting tool, not a pipeline stage — single-entry funnel
+// per the README's guidance (no rail, Flow Map only).
 // ─────────────────────────────────────────────────────────────────────────────
 export const FEE_REFUND_LIST_FLOW_MAP: TourFlowMap = {
-  funnel: FINANCE_FUNNEL,
-  currentIndex: 2,
+  funnel: [
+    { label: 'Refunds', description: 'Refund requests from students and enquiries, pending review and approval.' },
+  ],
+  currentIndex: 0,
   steps: [
     { label: 'Search & Status Filter', icon: 'search', detail: 'Search by student name or receipt number; filter by status (Pending / Approved / Rejected).' },
     { label: 'Refund Requests', icon: 'checklist', detail: 'Each row is a refund request showing the original receipt, amount, requestor, and status.' },
@@ -387,9 +389,13 @@ export const FEE_EXPLORER_TOUR: TourDefinition = {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fee Explorer — Flow Map
+// Standalone audit/reporting tool, not a pipeline stage — single-entry funnel
+// per the README's guidance (no rail, Flow Map only).
 // ─────────────────────────────────────────────────────────────────────────────
 export const FEE_EXPLORER_FLOW_MAP: TourFlowMap = {
-  funnel: FINANCE_FUNNEL,
+  funnel: [
+    { label: 'Fee Explorer', description: 'High-level view of every student fee allocation, payment status, and outstanding balance.' },
+  ],
   currentIndex: 0,
   steps: [
     { label: 'Search Students', icon: 'search', detail: 'Search by student name or roll number — results update instantly.' },

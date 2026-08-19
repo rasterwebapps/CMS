@@ -1,5 +1,15 @@
 import { TourDefinition, TourFlowMap } from '../tour.service';
-import { TIMETABLE_OPERATIONS_FUNNEL } from './resource-timetable-grid.tours';
+
+// My Special Classes → Special Class Approvals, a small local funnel (a
+// faculty request gets reviewed by an admin) — same idiom as Examination's
+// Manage Exams → Exam Results. The other timetable-operations screens
+// (Resource Timetable, Faculty Absence, Staff Session Swap) are independent
+// of these two and of each other, so they each get their own single-entry
+// funnel instead of sharing a fake group-wide one.
+const SPECIAL_CLASS_FUNNEL = [
+  { label: 'My Special Classes', description: 'Request an ad-hoc special/remedial class, or a whole-day repeat, and track its approval status.' },
+  { label: 'Special Class Approvals', description: 'Review and approve or reject faculty requests for ad-hoc special/remedial classes.' },
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // My Special Classes (faculty-facing request list)
@@ -36,8 +46,8 @@ export const MY_SPECIAL_CLASSES_TOUR: TourDefinition = {
 };
 
 export const MY_SPECIAL_CLASSES_FLOW_MAP: TourFlowMap = {
-  funnel: TIMETABLE_OPERATIONS_FUNNEL,
-  currentIndex: 3,
+  funnel: SPECIAL_CLASS_FUNNEL,
+  currentIndex: 0,
   steps: [
     { label: 'Request', icon: 'search', detail: 'Choose a single-date or day-repeat special class — subject, venue, and date(s).' },
     { label: 'Awaiting Approval', icon: 'checklist', detail: 'The request sits Pending until an admin approves or rejects it.' },
@@ -80,8 +90,8 @@ export const SPECIAL_CLASS_APPROVALS_TOUR: TourDefinition = {
 };
 
 export const SPECIAL_CLASS_APPROVALS_FLOW_MAP: TourFlowMap = {
-  funnel: TIMETABLE_OPERATIONS_FUNNEL,
-  currentIndex: 4,
+  funnel: SPECIAL_CLASS_FUNNEL,
+  currentIndex: 1,
   steps: [
     { label: 'Review Queue', icon: 'checklist', detail: 'Every pending request, with requester, subject, date, and venue.' },
     { label: 'Approve', icon: 'open', detail: 'Schedules the class immediately — the whole day-repeat batch if applicable.' },

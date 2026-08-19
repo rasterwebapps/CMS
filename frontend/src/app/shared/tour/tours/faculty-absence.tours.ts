@@ -1,5 +1,4 @@
 import { TourDefinition, TourFlowMap } from '../tour.service';
-import { TIMETABLE_OPERATIONS_FUNNEL } from './resource-timetable-grid.tours';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Faculty Absence
@@ -43,9 +42,13 @@ export const FACULTY_ABSENCE_TOUR: TourDefinition = {
   ],
 };
 
+// Standalone day-to-day action, not a pipeline stage — single-entry funnel
+// per the README's guidance (no rail, Flow Map only).
 export const FACULTY_ABSENCE_FLOW_MAP: TourFlowMap = {
-  funnel: TIMETABLE_OPERATIONS_FUNNEL,
-  currentIndex: 1,
+  funnel: [
+    { label: 'Faculty Absence', description: 'Mark a faculty member absent and arrange a substitute for their affected sessions.' },
+  ],
+  currentIndex: 0,
   steps: [
     { label: 'Mark Absent', icon: 'search', detail: 'Pick the faculty member and date, add an optional reason.' },
     { label: 'Review Affected Sessions', icon: 'checklist', detail: 'See every published session that faculty was teaching that day.' },
