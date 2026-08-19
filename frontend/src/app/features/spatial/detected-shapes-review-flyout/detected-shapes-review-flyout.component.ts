@@ -18,6 +18,15 @@ import { ToastService } from '../../../core/toast/toast.service';
  *  catalog row instead. */
 type EquipmentLinkKind = 'EQUIPMENT' | 'INVENTORY_ITEM';
 
+/** An already-existing Block/Zone/Room under the same parent — Room's "name" here is its
+ *  roomNumber. Used to auto-suggest linking a detected shape to a manually-created sibling instead
+ *  of creating a near-duplicate. Position-matching isn't possible: manually-created Block/Zone/Room
+ *  rows carry no coordinate data at all (BR-60), so this is name-based only. */
+interface ExistingSibling {
+  id: number;
+  name: string;
+}
+
 interface ReviewRow {
   candidate: DetectedShapeCandidate;
   included: boolean;
@@ -33,6 +42,11 @@ interface ReviewRow {
   // ROOM level → existing Equipment/InventoryItem link (null linkKind = skip this row)
   linkKind: EquipmentLinkKind | null;
   linkedEntityId: number | null;
+  // BRANCH/FLOOR/ZONE level → an existing sibling this row's name matched. Non-null id means
+  // "link to this existing entity" instead of creating a new Block/Zone/Room; the admin can still
+  // switch back to "create new" by clearing it, even when a match was found.
+  matchedExisting: ExistingSibling | null;
+  linkToExistingId: number | null;
   submitting: boolean;
   confirmed: boolean;
   error: string | null;
@@ -79,6 +93,9 @@ export class DetectedShapesReviewFlyoutComponent implements OnInit {
   protected readonly purposeCategories = signal<RoomPurposeCategory[]>([]);
   protected readonly equipmentList = signal<SpatialEquipmentSummary[]>([]);
   protected readonly inventoryList = signal<SpatialInventoryItemSummary[]>([]);
+  /** Existing Blocks/Zones/Rooms already under this diagram's parent entity — fetched once so every
+   *  row can be matched against it without a per-row request. Empty (and irrelevant) at ROOM level. */
+  private existingSiblings: ExistingSibling[] = [];
 
   ngOnInit(): void {
     this.rows.set(this.detectedShapes.map((candidate) => ({
@@ -93,6 +110,8 @@ export class DetectedShapesReviewFlyoutComponent implements OnInit {
       subTypes: [],
       linkKind: null,
       linkedEntityId: null,
+      matchedExisting: null,
+      linkToExistingId: null,
       submitting: false,
       confirmed: false,
       error: null,
@@ -104,11 +123,57 @@ export class DetectedShapesReviewFlyoutComponent implements OnInit {
       this.spatialService.getEquipmentSummaries().subscribe({ next: (list) => this.equipmentList.set(list) });
       this.spatialService.getInventoryItemSummaries().subscribe({ next: (list) => this.inventoryList.set(list) });
     }
+
+    if (this.diagramLevel === 'BRANCH') {
+      this.campusService.getBlocksByBranch(this.parentEntityId).subscribe({
+        next: (blocks) => this.setExistingSiblings(blocks.map((b) => ({ id: b.id, name: b.name }))),
+      });
+    } else if (this.diagramLevel === 'FLOOR') {
+      this.campusService.getZonesByFloor(this.parentEntityId).subscribe({
+        next: (zones) => this.setExistingSiblings(zones.map((z) => ({ id: z.id, name: z.name }))),
+      });
+    } else if (this.diagramLevel === 'ZONE') {
+      this.campusService.getRoomsByZone(this.parentEntityId).subscribe({
+        next: (rooms) => this.setExistingSiblings(rooms.map((r) => ({ id: r.id, name: r.roomNumber }))),
+      });
+    }
+  }
+
+  /** Runs once the sibling list loads (async, after rows already exist) — matches every row against
+   *  it and defaults matched rows to "link to existing" rather than "create new". */
+  private setExistingSiblings(siblings: ExistingSibling[]): void {
+    this.existingSiblings = siblings;
+    this.rows.set(this.rows().map((row) => this.applyMatch(row, row.name)));
+  }
+
+  private findMatch(name: string): ExistingSibling | null {
+    const trimmed = name.trim().toLowerCase();
+    if (!trimmed) return null;
+    return this.existingSiblings.find((s) => s.name.trim().toLowerCase() === trimmed) ?? null;
+  }
+
+  /** Re-evaluates a row's match against the current sibling list and name — always re-defaults to
+   *  the matched entity's id when a match is found, even if the admin had previously typed a
+   *  different (unmatched) name; a fresh match on a still-unconfirmed row is exactly the "these
+   *  look the same" signal this feature exists to surface. */
+  private applyMatch(row: ReviewRow, name: string): ReviewRow {
+    const matchedExisting = this.findMatch(name);
+    return { ...row, matchedExisting, linkToExistingId: matchedExisting?.id ?? null };
   }
 
   protected onNameChange(row: ReviewRow, value: string): void {
     row.name = value;
     if (this.diagramLevel === 'BRANCH' && !row.code.trim()) row.code = codeSuggestionFrom(value);
+    const matched = this.applyMatch(row, value);
+    row.matchedExisting = matched.matchedExisting;
+    row.linkToExistingId = matched.linkToExistingId;
+    this.rows.set([...this.rows()]);
+  }
+
+  /** Lets the admin override the auto-suggested match either way — clear it to create a new entity
+   *  even though a name matched, or (re-)select linking to the matched entity after clearing it. */
+  protected onLinkToExistingToggle(row: ReviewRow, linkToExisting: boolean): void {
+    row.linkToExistingId = linkToExisting ? row.matchedExisting?.id ?? null : null;
     this.rows.set([...this.rows()]);
   }
 
@@ -136,9 +201,12 @@ export class DetectedShapesReviewFlyoutComponent implements OnInit {
   protected canConfirm(row: ReviewRow): boolean {
     if (!row.included || row.confirmed || row.submitting) return false;
     if (!row.name.trim()) return false;
+    if (this.diagramLevel === 'ROOM') return row.linkKind != null && row.linkedEntityId != null;
+    // Linking to an existing Block/Zone/Room only places a marker — none of the "create new" fields
+    // (code, purpose category, sub-type) are relevant since nothing is being created.
+    if (row.linkToExistingId != null) return true;
     if (this.diagramLevel === 'BRANCH') return !!row.code.trim();
     if (this.diagramLevel === 'ZONE') return row.purposeCategoryId != null && row.subTypeId != null;
-    if (this.diagramLevel === 'ROOM') return row.linkKind != null && row.linkedEntityId != null;
     return true; // FLOOR → Zone only needs a name
   }
 
@@ -198,12 +266,20 @@ export class DetectedShapesReviewFlyoutComponent implements OnInit {
     });
   }
 
-  /** Creates the real Block/Zone/Room row (skipped at ROOM level, which only links an existing
-   *  Equipment/InventoryItem), then places a VirtualLocation marker pointing at it — the same two
-   *  calls the manual Campus Setup + manual marker flows already make, just chained together. */
+  /** Creates the real Block/Zone/Room row, then places a VirtualLocation marker pointing at it —
+   *  the same two calls the manual Campus Setup + manual marker flows already make, just chained
+   *  together. Skipped in two cases: ROOM level (only links an existing Equipment/InventoryItem)
+   *  and any row the admin chose to link to an already-existing sibling instead of creating one
+   *  (see `linkToExistingId` / the "link to existing" auto-match toggle) — both go straight to
+   *  placing the marker on the already-real entity. */
   private createEntityAndMarker(row: ReviewRow): Observable<VirtualLocation> {
     const geometryJson: PolygonGeometry = { points: row.candidate.points };
     const name = row.name.trim();
+
+    if (row.linkToExistingId != null && this.diagramLevel !== 'ROOM') {
+      const entityType = this.diagramLevel === 'BRANCH' ? 'BLOCK' : this.diagramLevel === 'FLOOR' ? 'ZONE' : 'ROOM';
+      return this.createMarker(entityType, row.linkToExistingId, geometryJson, name);
+    }
 
     switch (this.diagramLevel) {
       case 'BRANCH':

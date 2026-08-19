@@ -58,6 +58,13 @@
   min-width: 90px;
 }
 
+.dsr-row__match {
+  flex-basis: 100%;
+  white-space: normal;
+  font-weight: 600;
+  color: var(--cms-primary);
+}
+
 .dsr-row__check-inline {
   display: flex;
   align-items: center;

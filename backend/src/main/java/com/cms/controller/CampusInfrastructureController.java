@@ -149,6 +149,20 @@ public class CampusInfrastructureController {
         return ResponseEntity.ok(service.updateBranchStatus(id, request));
     }
 
+    @GetMapping("/branches/name-exists")
+    @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_MANAGE')")
+    public ResponseEntity<Boolean> branchNameExists(
+            @RequestParam Long organizationId, @RequestParam String value, @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(service.branchNameExists(organizationId, value, excludeId));
+    }
+
+    @GetMapping("/branches/code-exists")
+    @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_MANAGE')")
+    public ResponseEntity<Boolean> branchCodeExists(
+            @RequestParam Long organizationId, @RequestParam String value, @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(service.branchCodeExists(organizationId, value, excludeId));
+    }
+
     // ─── Blocks ──────────────────────────────────────────────────────────────
 
     @GetMapping("/branches/{branchId}/blocks")
@@ -191,6 +205,20 @@ public class CampusInfrastructureController {
     public ResponseEntity<ActiveStatusUpdateResponse> updateBlockStatus(
             @PathVariable Long id, @Valid @RequestBody ActiveStatusUpdateRequest request) {
         return ResponseEntity.ok(service.updateBlockStatus(id, request));
+    }
+
+    @GetMapping("/blocks/name-exists")
+    @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_MANAGE')")
+    public ResponseEntity<Boolean> blockNameExists(
+            @RequestParam Long branchId, @RequestParam String value, @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(service.blockNameExists(branchId, value, excludeId));
+    }
+
+    @GetMapping("/blocks/code-exists")
+    @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_MANAGE')")
+    public ResponseEntity<Boolean> blockCodeExists(
+            @RequestParam Long branchId, @RequestParam String value, @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(service.blockCodeExists(branchId, value, excludeId));
     }
 
     @PutMapping("/branches/{branchId}/blocks/reorder")
@@ -244,6 +272,13 @@ public class CampusInfrastructureController {
         return ResponseEntity.ok(service.updateFloorStatus(id, request));
     }
 
+    @GetMapping("/floors/name-exists")
+    @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_MANAGE')")
+    public ResponseEntity<Boolean> floorNameExists(
+            @RequestParam Long blockId, @RequestParam String value, @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(service.floorNameExists(blockId, value, excludeId));
+    }
+
     // ─── Zones ───────────────────────────────────────────────────────────────
 
     @GetMapping("/zones")
@@ -292,6 +327,13 @@ public class CampusInfrastructureController {
     public ResponseEntity<ActiveStatusUpdateResponse> updateZoneStatus(
             @PathVariable Long id, @Valid @RequestBody ActiveStatusUpdateRequest request) {
         return ResponseEntity.ok(service.updateZoneStatus(id, request));
+    }
+
+    @GetMapping("/zones/name-exists")
+    @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_MANAGE')")
+    public ResponseEntity<Boolean> zoneNameExists(
+            @RequestParam Long floorId, @RequestParam String value, @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(service.zoneNameExists(floorId, value, excludeId));
     }
 
     @PutMapping("/floors/{floorId}/zones/reorder")
@@ -357,6 +399,13 @@ public class CampusInfrastructureController {
     public ResponseEntity<ActiveStatusUpdateResponse> updateRoomStatus(
             @PathVariable Long id, @Valid @RequestBody ActiveStatusUpdateRequest request) {
         return ResponseEntity.ok(service.updateRoomStatus(id, request));
+    }
+
+    @GetMapping("/rooms/number-exists")
+    @PreAuthorize("@perm.has('CAMPUS_INFRASTRUCTURE_MANAGE')")
+    public ResponseEntity<Boolean> roomNumberExists(
+            @RequestParam Long zoneId, @RequestParam String value, @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(service.roomNumberExists(zoneId, value, excludeId));
     }
 
     @PutMapping("/zones/{zoneId}/rooms/reorder")

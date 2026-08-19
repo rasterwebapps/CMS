@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
@@ -11,6 +11,9 @@ import { CampusSkylineComponent, SkylineBlock, SkylineFloor, SkylineZone } from 
 import { CmsStatusBadgeComponent } from '../../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../../core/toast/toast.service';
 import { PermissionService } from '../../../../core/permissions/permission.service';
+import { TourService } from '../../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../../shared/tour/tour-button.component';
+import { CAMPUS_SETUP_TOUR, CAMPUS_SETUP_FLOW_MAP } from '../../../../shared/tour/tours/campus-setup.tours';
 
 interface Crumb {
   label: string;
@@ -27,22 +30,23 @@ interface Crumb {
  * a lingering-transform containing-block bug. Moving every add action into one fixed side panel
  * removes that whole bug class instead of chasing the specific ancestor.
  *
- * A separate screen from the existing browse tree / single-item edit forms
- * (`campus-infrastructure-list`) — this one is for fast structural creation; full-detail editing
- * (hostel flags, gender restriction, warden, capacity…) still happens on the existing form pages.
+ * The single create/edit surface for the whole Org→Branch→Block→Floor→Zone→Room hierarchy,
+ * including full-detail fields (hostel flags, gender restriction, warden, capacity…) and floor-plan
+ * import — the former standalone browse tree (`campus-infrastructure-list`) and the six per-level
+ * full-detail forms (`organization-form`, `branch-form`, etc.) were retired once this panel reached
+ * parity with them.
  */
 @Component({
   selector: 'app-campus-setup',
   standalone: true,
   imports: [
-    RouterLink,
-    RouterLinkActive,
     MatIconModule,
     MatTooltipModule,
     CampusLevelGridComponent,
     CampusSidePanelComponent,
     CampusSkylineComponent,
     CmsStatusBadgeComponent,
+    CmsTourButtonComponent,
   ],
   templateUrl: './campus-setup.component.html',
   styleUrl: './campus-setup.component.scss',
@@ -53,6 +57,7 @@ export class CampusSetupComponent implements OnInit {
   private readonly permissionService = inject(PermissionService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly tourService = inject(TourService);
   protected readonly canManage = computed(() => this.permissionService.has('CAMPUS_INFRASTRUCTURE_MANAGE'));
 
   protected readonly organizations = signal<Organization[]>([]);
@@ -87,7 +92,7 @@ export class CampusSetupComponent implements OnInit {
    *  separate editing state since it's a leaf (selecting one already means viewing its properties,
    *  same as before). Cleared on every navigation (see `clearEditing`) and after a successful save
    *  (`onPanelSaved`), so the panel falls back to that level's normal "Add child" form. */
-  protected readonly editingLevel = signal<'branch' | 'block' | 'floor' | 'zone' | null>(null);
+  protected readonly editingLevel = signal<'organization' | 'branch' | 'block' | 'floor' | 'zone' | null>(null);
   protected readonly editingId = signal<number | null>(null);
 
   protected readonly selectedOrganization = computed(() =>
@@ -99,6 +104,9 @@ export class CampusSetupComponent implements OnInit {
   protected readonly selectedZone = computed(() => this.zones().find((z) => z.id === this.selectedZoneId()) ?? null);
   protected readonly selectedRoom = computed(() => this.rooms().find((r) => r.id === this.selectedRoomId()) ?? null);
 
+  protected readonly editingOrganization = computed(() =>
+    this.editingLevel() === 'organization' ? this.organizations().find((o) => o.id === this.editingId()) ?? null : null
+  );
   protected readonly editingBranch = computed(() =>
     this.editingLevel() === 'branch' ? this.branches().find((b) => b.id === this.editingId()) ?? null : null
   );
@@ -240,6 +248,15 @@ export class CampusSetupComponent implements OnInit {
    *  refetch the affected list(s) and, for a new child, select it. */
   protected onPanelCreated(event: { level: CampusPanelLevel; id: number }): void {
     switch (event.level) {
+      case 'organization':
+        this.service.getOrganizations(false).subscribe({
+          next: (organizations) => {
+            this.organizations.set(organizations);
+            this.selectOrganization(event.id);
+          },
+          error: () => this.toast.error('Failed to reload organizations'),
+        });
+        break;
       case 'branch':
         if (this.selectedOrganizationId() != null) this.loadBranches(this.selectedOrganizationId()!);
         this.selectBranch(event.id);
@@ -272,6 +289,12 @@ export class CampusSetupComponent implements OnInit {
   protected onPanelSaved(event: { level: CampusPanelLevel }): void {
     this.clearEditing();
     switch (event.level) {
+      case 'organization':
+        this.service.getOrganizations(false).subscribe({
+          next: (organizations) => this.organizations.set(organizations),
+          error: () => this.toast.error('Failed to reload organizations'),
+        });
+        break;
       case 'branch':
         if (this.selectedOrganizationId() != null) this.loadBranches(this.selectedOrganizationId()!);
         break;
@@ -298,6 +321,9 @@ export class CampusSetupComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('campus-setup', CAMPUS_SETUP_TOUR);
+    this.tourService.registerFlowMap('campus-setup', CAMPUS_SETUP_FLOW_MAP);
+
     this.service.getOrganizations(false).subscribe({
       next: (organizations) => {
         this.organizations.set(organizations);
@@ -351,6 +377,31 @@ export class CampusSetupComponent implements OnInit {
     void this.router.navigate(['/room-diagrams'], { queryParams: { roomId } });
   }
 
+  /** Branch-level counterpart, only reachable via the side panel's "Import Floor Plan" button (no
+   *  card-level "view diagram" affordance exists for Branches, unlike Floor/Zone/Room). */
+  protected viewBranchDiagram(branchId: number): void {
+    void this.router.navigate(['/branch-diagrams'], { queryParams: { branchId } });
+  }
+
+  /** The side panel's "Import Floor Plan" action (Branch/Floor/Zone/Room, never Block) — dispatches
+   *  to the matching standalone diagram screen, preselected to the entity currently being edited. */
+  protected onImportFloorPlan(event: { level: 'branch' | 'floor' | 'zone' | 'room'; id: number }): void {
+    switch (event.level) {
+      case 'branch':
+        this.viewBranchDiagram(event.id);
+        break;
+      case 'floor':
+        this.viewFloorDiagram(event.id);
+        break;
+      case 'zone':
+        this.viewZoneDiagram(event.id);
+        break;
+      case 'room':
+        this.viewRoomDiagram(event.id);
+        break;
+    }
+  }
+
   protected selectOrganization(organizationId: number): void {
     this.selectedOrganizationId.set(organizationId);
     this.selectBranch(null);
@@ -359,7 +410,7 @@ export class CampusSetupComponent implements OnInit {
 
   /** Shows an entity's properties in the side panel without touching the drill position — called
    *  from a card's edit pencil, never from clicking the rest of the card (that still navigates). */
-  private startEditing(level: 'branch' | 'block' | 'floor' | 'zone', id: number): void {
+  private startEditing(level: 'organization' | 'branch' | 'block' | 'floor' | 'zone', id: number): void {
     this.editingLevel.set(level);
     this.editingId.set(id);
   }
@@ -367,6 +418,19 @@ export class CampusSetupComponent implements OnInit {
   private clearEditing(): void {
     this.editingLevel.set(null);
     this.editingId.set(null);
+  }
+
+  protected editOrganization(id: number): void {
+    this.startEditing('organization', id);
+  }
+
+  /** Clears the current organization selection so the side panel's "no organization" branch (its
+   *  `organizationId() == null` check) shows the Add Organization form — mirrors how every other
+   *  level's "add" affordance is really just "nothing of that type is selected/being edited". */
+  protected addOrganization(): void {
+    this.clearEditing();
+    this.selectedOrganizationId.set(null);
+    this.selectBranch(null);
   }
 
   protected editBranch(id: number): void {

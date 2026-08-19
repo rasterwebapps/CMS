@@ -2,9 +2,11 @@ package com.cms.spatial.service;
 
 import java.util.List;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.config.PermSecurityBean;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.spatial.dto.VirtualLocationRequest;
 import com.cms.spatial.dto.VirtualLocationResponse;
@@ -24,13 +26,16 @@ public class VirtualLocationService {
     private final VirtualLocationRepository virtualLocationRepository;
     private final FloorPlanRepository floorPlanRepository;
     private final ObjectMapper objectMapper;
+    private final PermSecurityBean permSecurityBean;
 
     public VirtualLocationService(VirtualLocationRepository virtualLocationRepository,
                                    FloorPlanRepository floorPlanRepository,
-                                   ObjectMapper objectMapper) {
+                                   ObjectMapper objectMapper,
+                                   PermSecurityBean permSecurityBean) {
         this.virtualLocationRepository = virtualLocationRepository;
         this.floorPlanRepository = floorPlanRepository;
         this.objectMapper = objectMapper;
+        this.permSecurityBean = permSecurityBean;
     }
 
     public List<VirtualLocationResponse> findByFloorPlan(Long floorPlanId) {
@@ -57,6 +62,7 @@ public class VirtualLocationService {
         if (!Boolean.TRUE.equals(floorPlan.getIsActive())) {
             throw new IllegalStateException("Floor plan " + floorPlan.getId() + " is not active");
         }
+        requireLinkPermission(request.entityType());
 
         VirtualLocation location = new VirtualLocation();
         location.setFloorPlan(floorPlan);
@@ -74,8 +80,28 @@ public class VirtualLocationService {
                     "Floor plan not found with id: " + request.floorPlanId()));
             location.setFloorPlan(floorPlan);
         }
+        requireLinkPermission(request.entityType());
         applyRequest(location, request);
         return toResponse(virtualLocationRepository.save(location));
+    }
+
+    /**
+     * A marker's own {@code SPATIAL_VIRTUAL_LOCATION_MANAGE} permission only covers placing/moving
+     * the marker itself — it says nothing about whether the caller may link to the specific
+     * Equipment/InventoryItem catalog row being pointed at. Block/Zone/Room links don't need an
+     * extra check here: those go through {@code CampusInfrastructureController}'s own
+     * {@code CAMPUS_INFRASTRUCTURE_MANAGE} gate first when created via the normal flows.
+     */
+    private void requireLinkPermission(String entityType) {
+        String requiredPermission = switch (entityType) {
+            case null -> null;
+            case "EQUIPMENT" -> "EQUIPMENT_MANAGE";
+            case "INVENTORY_ITEM" -> "INVENTORY_MANAGE";
+            default -> null;
+        };
+        if (requiredPermission != null && !permSecurityBean.has(requiredPermission)) {
+            throw new AccessDeniedException("Linking a marker to " + entityType + " requires the " + requiredPermission + " permission");
+        }
     }
 
     @Transactional

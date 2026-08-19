@@ -33,7 +33,18 @@
 
           @if (row.included && !row.confirmed) {
             <div class="dsr-row__fields">
-              @if (diagramLevel === 'BRANCH') {
+              @if (diagramLevel !== 'ROOM' && row.matchedExisting) {
+                <label class="dsr-row__check-inline dsr-row__match">
+                  <input
+                    type="checkbox"
+                    [checked]="row.linkToExistingId != null"
+                    (change)="onLinkToExistingToggle(row, $any($event.target).checked)"
+                  />
+                  Link to existing "{{ row.matchedExisting.name }}" instead of creating new
+                </label>
+              }
+
+              @if (diagramLevel === 'BRANCH' && !row.linkToExistingId) {
                 <input type="text" class="field-input dsr-row__field--sm" placeholder="Code" [(ngModel)]="row.code" />
                 <label class="dsr-row__check-inline">
                   <input type="checkbox" [(ngModel)]="row.isHostel" />
@@ -48,7 +59,7 @@
                 }
               }
 
-              @if (diagramLevel === 'ZONE') {
+              @if (diagramLevel === 'ZONE' && !row.linkToExistingId) {
                 <select class="field-select" [ngModel]="row.purposeCategoryId" (ngModelChange)="onPurposeCategoryChange(row, $event)">
                   <option [ngValue]="null">Select Purpose Category</option>
                   @for (c of purposeCategories(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }

@@ -169,7 +169,10 @@ export class FloorPlanListComponent implements OnInit {
 
     this.campusService.getOrganizations(false).subscribe({ next: (o) => this.organizations.set(o) });
 
-    if (this.level === 'FLOOR') {
+    if (this.level === 'BRANCH') {
+      const branchId = Number(this.route.snapshot.queryParamMap.get('branchId')) || null;
+      if (branchId) this.preselectFromBranch(branchId);
+    } else if (this.level === 'FLOOR') {
       const floorId = Number(this.route.snapshot.queryParamMap.get('floorId')) || null;
       if (floorId) this.preselectFromFloor(floorId);
     } else if (this.level === 'ZONE') {
@@ -312,6 +315,25 @@ export class FloorPlanListComponent implements OnInit {
     this.spatialService.getFloorPlansByEntity(this.level, entityId).subscribe({
       next: (plans) => { this.floorPlans.set(plans); this.loading.set(false); },
       error: () => { this.toast.error('Failed to load floor plans'); this.loading.set(false); },
+    });
+  }
+
+  /** Walks Branch→Organization to pre-populate the two top selects, then loads the branch's
+   *  diagrams — lets Campus Setup's "Import Floor Plan" button (Branch edit panel) jump straight
+   *  here. One level shallower than `preselectFromFloor` below since Branch has no Block ancestor. */
+  private preselectFromBranch(branchId: number): void {
+    this.campusService.getBranchById(branchId).subscribe({
+      next: (branch) => {
+        this.campusService.getBranchesByOrganization(branch.organizationId).subscribe({
+          next: (branches) => {
+            this.selectedOrganizationId = branch.organizationId;
+            this.branches.set(branches);
+            this.selectedBranchId = branchId;
+            this.loadFloorPlans();
+          },
+        });
+      },
+      error: () => this.toast.error('Failed to load that branch'),
     });
   }
 

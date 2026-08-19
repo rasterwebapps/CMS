@@ -2,7 +2,38 @@
   <!-- ── Properties: only for the entity currently being edited via a card's edit pencil, or Room
        (a leaf — selecting one already means viewing its properties, nothing to drill into). Add-child
        forms below are driven independently by the drill position, not by this. ── -->
-  @if (editingBranch(); as b) {
+  @if (editingOrganization(); as o) {
+    <div class="panel-section">
+      <div class="panel-title-row">
+        <span class="panel-title">Organization</span>
+        <cms-status-badge [status]="o.isActive ? 'ACTIVE' : 'INACTIVE'" />
+      </div>
+
+      <div class="form-group">
+        <label for="csp-oe-name">Name</label>
+        <input id="csp-oe-name" type="text" [disabled]="!canManage()" [ngModel]="organizationEdit().name" (ngModelChange)="organizationEdit.set({ ...organizationEdit(), name: $event })" />
+        @if (organizationNameTaken()) { <p class="panel-error">This name is already in use.</p> }
+      </div>
+      <div class="form-group">
+        <label for="csp-oe-code">Code</label>
+        <input id="csp-oe-code" type="text" [disabled]="!canManage()" [ngModel]="organizationEdit().code" (ngModelChange)="organizationEdit.set({ ...organizationEdit(), code: $event })" />
+        @if (organizationCodeTaken()) { <p class="panel-error">This code is already in use.</p> }
+      </div>
+      <div class="form-group">
+        <label for="csp-oe-desc">Description</label>
+        <input id="csp-oe-desc" type="text" [disabled]="!canManage()" [ngModel]="organizationEdit().description" (ngModelChange)="organizationEdit.set({ ...organizationEdit(), description: $event })" />
+      </div>
+
+      @if (canManage()) {
+        <div class="panel-btn-row">
+          <button type="button" [disabled]="!organizationEdit().name.trim() || !organizationEdit().code.trim() || organizationNameTaken() || organizationCodeTaken() || organizationSaving()" (click)="saveOrganization()">
+            {{ organizationSaving() ? 'Saving…' : 'Save' }}
+          </button>
+          <button type="button" class="btn-outline" (click)="toggleActive('organization')">{{ o.isActive ? 'Deactivate' : 'Activate' }}</button>
+        </div>
+      }
+    </div>
+  } @else if (editingBranch(); as b) {
     <div class="panel-section">
       <div class="panel-title-row">
         <span class="panel-title">Branch</span>
@@ -12,10 +43,12 @@
       <div class="form-group">
         <label for="csp-be-name">Name</label>
         <input id="csp-be-name" type="text" [disabled]="!canManage()" [ngModel]="branchEdit().name" (ngModelChange)="branchEdit.set({ ...branchEdit(), name: $event })" />
+        @if (branchNameTaken()) { <p class="panel-error">This name is already in use.</p> }
       </div>
       <div class="form-group">
         <label for="csp-be-code">Code</label>
         <input id="csp-be-code" type="text" [disabled]="!canManage()" [ngModel]="branchEdit().code" (ngModelChange)="branchEdit.set({ ...branchEdit(), code: $event })" />
+        @if (branchCodeTaken()) { <p class="panel-error">This code is already in use.</p> }
       </div>
       <div class="form-group">
         <label for="csp-be-desc">Description</label>
@@ -24,10 +57,11 @@
 
       @if (canManage()) {
         <div class="panel-btn-row">
-          <button type="button" [disabled]="!branchEdit().name.trim() || !branchEdit().code.trim() || branchSaving()" (click)="saveBranch()">
+          <button type="button" [disabled]="!branchEdit().name.trim() || !branchEdit().code.trim() || branchNameTaken() || branchCodeTaken() || branchSaving()" (click)="saveBranch()">
             {{ branchSaving() ? 'Saving…' : 'Save' }}
           </button>
           <button type="button" class="btn-outline" (click)="toggleActive('branch')">{{ b.isActive ? 'Deactivate' : 'Activate' }}</button>
+          <button type="button" class="btn-outline" (click)="importFloorPlan.emit({ level: 'branch', id: b.id })">Import Floor Plan</button>
         </div>
       }
     </div>
@@ -41,10 +75,12 @@
       <div class="form-group">
         <label for="csp-ble-name">Name</label>
         <input id="csp-ble-name" type="text" [disabled]="!canManage()" [ngModel]="blockEdit().name" (ngModelChange)="blockEdit.set({ ...blockEdit(), name: $event })" />
+        @if (blockNameTaken()) { <p class="panel-error">This name is already in use.</p> }
       </div>
       <div class="form-group">
         <label for="csp-ble-code">Code</label>
         <input id="csp-ble-code" type="text" [disabled]="!canManage()" [ngModel]="blockEdit().code" (ngModelChange)="blockEdit.set({ ...blockEdit(), code: $event })" />
+        @if (blockCodeTaken()) { <p class="panel-error">This code is already in use.</p> }
       </div>
       <div class="form-group">
         <label for="csp-ble-desc">Description</label>
@@ -67,7 +103,7 @@
 
       @if (canManage()) {
         <div class="panel-btn-row">
-          <button type="button" [disabled]="!blockEdit().name.trim() || !blockEdit().code.trim() || blockSaving()" (click)="saveBlock()">
+          <button type="button" [disabled]="!blockEdit().name.trim() || !blockEdit().code.trim() || blockNameTaken() || blockCodeTaken() || blockSaving()" (click)="saveBlock()">
             {{ blockSaving() ? 'Saving…' : 'Save' }}
           </button>
           <button type="button" class="btn-outline" (click)="toggleActive('block')">{{ bl.isActive ? 'Deactivate' : 'Activate' }}</button>
@@ -84,6 +120,7 @@
       <div class="form-group">
         <label for="csp-fle-name">Name</label>
         <input id="csp-fle-name" type="text" [disabled]="!canManage()" [ngModel]="floorEdit().name" (ngModelChange)="floorEdit.set({ ...floorEdit(), name: $event })" />
+        @if (floorNameTaken()) { <p class="panel-error">This name is already in use.</p> }
       </div>
       <div class="form-group">
         <label for="csp-fle-num">Floor number</label>
@@ -113,10 +150,11 @@
 
       @if (canManage()) {
         <div class="panel-btn-row">
-          <button type="button" [disabled]="!floorEdit().name.trim() || floorSaving()" (click)="saveFloor()">
+          <button type="button" [disabled]="!floorEdit().name.trim() || floorNameTaken() || floorSaving()" (click)="saveFloor()">
             {{ floorSaving() ? 'Saving…' : 'Save' }}
           </button>
           <button type="button" class="btn-outline" (click)="toggleActive('floor')">{{ fl.isActive ? 'Deactivate' : 'Activate' }}</button>
+          <button type="button" class="btn-outline" (click)="importFloorPlan.emit({ level: 'floor', id: fl.id })">Import Floor Plan</button>
         </div>
       }
     </div>
@@ -130,6 +168,7 @@
       <div class="form-group">
         <label for="csp-ze-name">Name</label>
         <input id="csp-ze-name" type="text" [disabled]="!canManage()" [ngModel]="zoneEdit().name" (ngModelChange)="zoneEdit.set({ ...zoneEdit(), name: $event })" />
+        @if (zoneNameTaken()) { <p class="panel-error">This name is already in use.</p> }
       </div>
       <label class="checkbox-row">
         <input type="checkbox" [disabled]="!canManage()" [ngModel]="zoneEdit().isHostel" (ngModelChange)="zoneEdit.set({ ...zoneEdit(), isHostel: $event })" />
@@ -157,10 +196,11 @@
 
       @if (canManage()) {
         <div class="panel-btn-row">
-          <button type="button" [disabled]="!zoneEdit().name.trim() || zoneSaving()" (click)="saveZone()">
+          <button type="button" [disabled]="!zoneEdit().name.trim() || zoneNameTaken() || zoneSaving()" (click)="saveZone()">
             {{ zoneSaving() ? 'Saving…' : 'Save' }}
           </button>
           <button type="button" class="btn-outline" (click)="toggleActive('zone')">{{ z.isActive ? 'Deactivate' : 'Activate' }}</button>
+          <button type="button" class="btn-outline" (click)="importFloorPlan.emit({ level: 'zone', id: z.id })">Import Floor Plan</button>
         </div>
       }
     </div>
@@ -174,6 +214,7 @@
       <div class="form-group">
         <label for="csp-re-num">Room number</label>
         <input id="csp-re-num" type="text" [disabled]="!canManage()" [ngModel]="roomEdit().roomNumber" (ngModelChange)="roomEdit.set({ ...roomEdit(), roomNumber: $event })" />
+        @if (roomNumberTaken()) { <p class="panel-error">This room number is already in use.</p> }
       </div>
       <div class="form-group">
         <label for="csp-re-cap">Capacity</label>
@@ -204,10 +245,11 @@
 
       @if (canManage()) {
         <div class="panel-btn-row">
-          <button type="button" [disabled]="!roomEdit().roomNumber.trim() || !roomEdit().purposeCategoryId || !roomEdit().subTypeId || roomSaving()" (click)="saveRoom()">
+          <button type="button" [disabled]="!roomEdit().roomNumber.trim() || !roomEdit().purposeCategoryId || !roomEdit().subTypeId || roomNumberTaken() || roomSaving()" (click)="saveRoom()">
             {{ roomSaving() ? 'Saving…' : 'Save' }}
           </button>
           <button type="button" class="btn-outline" (click)="toggleActive('room')">{{ r.isActive ? 'Deactivate' : 'Activate' }}</button>
+          <button type="button" class="btn-outline" (click)="importFloorPlan.emit({ level: 'room', id: r.id })">Import Floor Plan</button>
         </div>
       }
     </div>
@@ -246,15 +288,43 @@
     <!-- ── Add-child form: driven by the drill position, shown whenever nothing is being edited. ── -->
     @switch (level()) {
       @case ('none') {
-        @if (canManage()) {
+        @if (organizationId() == null) {
+          @if (canManage()) {
+            <div class="panel-section">
+              <div class="panel-title">Add Organization</div>
+              <div class="form-group">
+                <label for="csp-org-name">Organization name</label>
+                <input id="csp-org-name" type="text" placeholder="Organization name" [ngModel]="addOrganizationForm().name" (ngModelChange)="addOrganizationForm.set({ ...addOrganizationForm(), name: $event })" />
+                @if (organizationNameTaken()) { <p class="panel-error">This name is already in use.</p> }
+              </div>
+              <div class="form-group">
+                <input type="text" placeholder="Code (auto-suggested)" [ngModel]="addOrganizationForm().code" (ngModelChange)="addOrganizationForm.set({ ...addOrganizationForm(), code: $event })" />
+                @if (organizationCodeTaken()) { <p class="panel-error">This code is already in use.</p> }
+              </div>
+              <div class="form-group">
+                <input type="text" placeholder="Description (optional)" [ngModel]="addOrganizationForm().description" (ngModelChange)="addOrganizationForm.set({ ...addOrganizationForm(), description: $event })" />
+              </div>
+              @if (addOrganizationForm().error) {
+                <p class="panel-error">{{ addOrganizationForm().error }}</p>
+              }
+              <button type="button" [disabled]="!addOrganizationForm().name.trim() || organizationNameTaken() || organizationCodeTaken() || addOrganizationForm().submitting" (click)="submitAddOrganization()">
+                {{ addOrganizationForm().submitting ? 'Adding…' : '+ Add Organization' }}
+              </button>
+            </div>
+          } @else {
+            <p class="panel-hint">No organization set up yet.</p>
+          }
+        } @else if (canManage()) {
           <div class="panel-section">
             <div class="panel-title">Add Branch</div>
             <div class="form-group">
               <label for="csp-branch-name">Branch name</label>
               <input id="csp-branch-name" type="text" placeholder="Branch name" [ngModel]="addBranchForm().name" (ngModelChange)="addBranchForm.set({ ...addBranchForm(), name: $event })" />
+              @if (branchNameTaken()) { <p class="panel-error">This name is already in use.</p> }
             </div>
             <div class="form-group">
               <input type="text" placeholder="Code (auto-suggested)" [ngModel]="addBranchForm().code" (ngModelChange)="addBranchForm.set({ ...addBranchForm(), code: $event })" />
+              @if (branchCodeTaken()) { <p class="panel-error">This code is already in use.</p> }
             </div>
             <div class="form-group">
               <input type="text" placeholder="Description (optional)" [ngModel]="addBranchForm().description" (ngModelChange)="addBranchForm.set({ ...addBranchForm(), description: $event })" />
@@ -262,7 +332,7 @@
             @if (addBranchForm().error) {
               <p class="panel-error">{{ addBranchForm().error }}</p>
             }
-            <button type="button" [disabled]="!addBranchForm().name.trim() || addBranchForm().submitting" (click)="submitAddBranch()">
+            <button type="button" [disabled]="!addBranchForm().name.trim() || branchNameTaken() || branchCodeTaken() || addBranchForm().submitting" (click)="submitAddBranch()">
               {{ addBranchForm().submitting ? 'Adding…' : '+ Add Branch' }}
             </button>
           </div>
@@ -278,9 +348,11 @@
             <div class="form-group">
               <label for="csp-block-name">Block name</label>
               <input id="csp-block-name" type="text" placeholder="Block name" [ngModel]="addBlockForm().name" (ngModelChange)="addBlockForm.set({ ...addBlockForm(), name: $event })" />
+              @if (blockNameTaken()) { <p class="panel-error">This name is already in use.</p> }
             </div>
             <div class="form-group">
               <input type="text" placeholder="Code (auto-suggested)" [ngModel]="addBlockForm().code" (ngModelChange)="addBlockForm.set({ ...addBlockForm(), code: $event })" />
+              @if (blockCodeTaken()) { <p class="panel-error">This code is already in use.</p> }
             </div>
             <div class="form-group">
               <input type="text" placeholder="Description (optional)" [ngModel]="addBlockForm().description" (ngModelChange)="addBlockForm.set({ ...addBlockForm(), description: $event })" />
@@ -302,7 +374,7 @@
             @if (addBlockForm().error) {
               <p class="panel-error">{{ addBlockForm().error }}</p>
             }
-            <button type="button" [disabled]="!addBlockForm().name.trim() || addBlockForm().submitting" (click)="submitAddBlock()">
+            <button type="button" [disabled]="!addBlockForm().name.trim() || blockNameTaken() || blockCodeTaken() || addBlockForm().submitting" (click)="submitAddBlock()">
               {{ addBlockForm().submitting ? 'Adding…' : '+ Add Block' }}
             </button>
           </div>
@@ -316,6 +388,7 @@
             <div class="form-group">
               <label for="csp-floor-name">Floor name</label>
               <input id="csp-floor-name" type="text" placeholder="Floor name (e.g. Floor 3)" [ngModel]="addFloorForm().name" (ngModelChange)="addFloorForm.set({ ...addFloorForm(), name: $event })" (keydown.enter)="submitAddFloor()" />
+              @if (floorNameTaken()) { <p class="panel-error">This name is already in use.</p> }
             </div>
             <div class="form-group">
               <label for="csp-add-floor-num">Floor number</label>
@@ -345,7 +418,7 @@
             @if (addFloorForm().error) {
               <p class="panel-error">{{ addFloorForm().error }}</p>
             }
-            <button type="button" [disabled]="!addFloorForm().name.trim() || addFloorForm().submitting" (click)="submitAddFloor()">
+            <button type="button" [disabled]="!addFloorForm().name.trim() || floorNameTaken() || addFloorForm().submitting" (click)="submitAddFloor()">
               {{ addFloorForm().submitting ? 'Adding…' : '+ Add Floor' }}
             </button>
           </div>
@@ -361,6 +434,7 @@
             <div class="form-group">
               <label for="csp-zone-name">Zone name</label>
               <input id="csp-zone-name" type="text" placeholder="Zone name" [ngModel]="addZoneForm().name" (ngModelChange)="addZoneForm.set({ ...addZoneForm(), name: $event })" (keydown.enter)="submitAddZone()" />
+              @if (zoneNameTaken()) { <p class="panel-error">This name is already in use.</p> }
             </div>
             <label class="checkbox-row">
               <input type="checkbox" [ngModel]="addZoneForm().isHostel" (ngModelChange)="addZoneForm.set({ ...addZoneForm(), isHostel: $event })" />
@@ -388,7 +462,7 @@
             @if (addZoneForm().error) {
               <p class="panel-error">{{ addZoneForm().error }}</p>
             }
-            <button type="button" [disabled]="!addZoneForm().name.trim() || addZoneForm().submitting" (click)="submitAddZone()">
+            <button type="button" [disabled]="!addZoneForm().name.trim() || zoneNameTaken() || addZoneForm().submitting" (click)="submitAddZone()">
               {{ addZoneForm().submitting ? 'Adding…' : '+ Add Zone' }}
             </button>
           </div>
@@ -404,6 +478,7 @@
             <div class="form-group">
               <label for="csp-room-name">Room number</label>
               <input id="csp-room-name" type="text" placeholder="Room number" [ngModel]="addRoomForm().roomNumber" (ngModelChange)="addRoomForm.set({ ...addRoomForm(), roomNumber: $event })" />
+              @if (roomNumberTaken()) { <p class="panel-error">This room number is already in use.</p> }
             </div>
             <div class="form-group">
               <input type="number" min="1" placeholder="Capacity (optional)" [ngModel]="addRoomForm().capacity" (ngModelChange)="addRoomForm.set({ ...addRoomForm(), capacity: $event })" />
@@ -432,7 +507,7 @@
             @if (addRoomForm().error) {
               <p class="panel-error">{{ addRoomForm().error }}</p>
             }
-            <button type="button" [disabled]="!addRoomForm().roomNumber.trim() || !addRoomForm().purposeCategoryId || !addRoomForm().subTypeId || addRoomForm().submitting" (click)="submitAddRoom()">
+            <button type="button" [disabled]="!addRoomForm().roomNumber.trim() || !addRoomForm().purposeCategoryId || !addRoomForm().subTypeId || roomNumberTaken() || addRoomForm().submitting" (click)="submitAddRoom()">
               {{ addRoomForm().submitting ? 'Adding…' : '+ Add Room' }}
             </button>
           </div>

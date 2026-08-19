@@ -249,6 +249,20 @@ public class CampusInfrastructureService {
         return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
     }
 
+    public boolean branchNameExists(Long organizationId, String name, Long excludeId) {
+        fetchOrganization(organizationId);
+        String trimmed = name == null ? "" : name.trim();
+        if (excludeId != null) return branchRepository.existsByOrganizationIdAndNameIgnoreCaseAndIdNot(organizationId, trimmed, excludeId);
+        return branchRepository.existsByOrganizationIdAndNameIgnoreCase(organizationId, trimmed);
+    }
+
+    public boolean branchCodeExists(Long organizationId, String code, Long excludeId) {
+        fetchOrganization(organizationId);
+        String trimmed = code == null ? "" : code.trim();
+        if (excludeId != null) return branchRepository.existsByOrganizationIdAndCodeIgnoreCaseAndIdNot(organizationId, trimmed, excludeId);
+        return branchRepository.existsByOrganizationIdAndCodeIgnoreCase(organizationId, trimmed);
+    }
+
     // ─── Blocks ──────────────────────────────────────────────────────────────
 
     public List<BlockResponse> findBlocksByBranch(Long branchId) {
@@ -337,6 +351,20 @@ public class CampusInfrastructureService {
         return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
     }
 
+    public boolean blockNameExists(Long branchId, String name, Long excludeId) {
+        fetchBranch(branchId);
+        String trimmed = name == null ? "" : name.trim();
+        if (excludeId != null) return blockRepository.existsByBranchIdAndNameIgnoreCaseAndIdNot(branchId, trimmed, excludeId);
+        return blockRepository.existsByBranchIdAndNameIgnoreCase(branchId, trimmed);
+    }
+
+    public boolean blockCodeExists(Long branchId, String code, Long excludeId) {
+        fetchBranch(branchId);
+        String trimmed = code == null ? "" : code.trim();
+        if (excludeId != null) return blockRepository.existsByBranchIdAndCodeIgnoreCaseAndIdNot(branchId, trimmed, excludeId);
+        return blockRepository.existsByBranchIdAndCodeIgnoreCase(branchId, trimmed);
+    }
+
     // ─── Floors ──────────────────────────────────────────────────────────────
 
     public List<FloorResponse> findFloorsByBlock(Long blockId) {
@@ -416,6 +444,13 @@ public class CampusInfrastructureService {
         floor.setIsActive(Boolean.TRUE.equals(request.isActive()));
         Floor saved = floorRepository.save(floor);
         return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
+    }
+
+    public boolean floorNameExists(Long blockId, String name, Long excludeId) {
+        fetchBlock(blockId);
+        String trimmed = name == null ? "" : name.trim();
+        if (excludeId != null) return floorRepository.existsByBlockIdAndNameIgnoreCaseAndIdNot(blockId, trimmed, excludeId);
+        return floorRepository.existsByBlockIdAndNameIgnoreCase(blockId, trimmed);
     }
 
     // ─── Zones ───────────────────────────────────────────────────────────────
@@ -503,6 +538,13 @@ public class CampusInfrastructureService {
         zone.setIsActive(Boolean.TRUE.equals(request.isActive()));
         Zone saved = zoneRepository.save(zone);
         return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
+    }
+
+    public boolean zoneNameExists(Long floorId, String name, Long excludeId) {
+        fetchFloor(floorId);
+        String trimmed = name == null ? "" : name.trim();
+        if (excludeId != null) return zoneRepository.existsByFloorIdAndNameIgnoreCaseAndIdNot(floorId, trimmed, excludeId);
+        return zoneRepository.existsByFloorIdAndNameIgnoreCase(floorId, trimmed);
     }
 
     // ─── Rooms ───────────────────────────────────────────────────────────────
@@ -612,6 +654,13 @@ public class CampusInfrastructureService {
         room.setIsActive(Boolean.TRUE.equals(request.isActive()));
         Room saved = roomRepository.save(room);
         return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
+    }
+
+    public boolean roomNumberExists(Long zoneId, String roomNumber, Long excludeId) {
+        fetchZone(zoneId);
+        String trimmed = roomNumber == null ? "" : roomNumber.trim();
+        if (excludeId != null) return roomRepository.existsByZoneIdAndRoomNumberIgnoreCaseAndIdNot(zoneId, trimmed, excludeId);
+        return roomRepository.existsByZoneIdAndRoomNumberIgnoreCase(zoneId, trimmed);
     }
 
     // ─── Hostel Rooms (Room + HostelRoomType attachment) ────────────────────

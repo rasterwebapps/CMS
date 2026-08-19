@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.config.PermSecurityBean;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.spatial.dto.VirtualLocationRequest;
 import com.cms.spatial.dto.VirtualLocationResponse;
@@ -34,11 +35,14 @@ class VirtualLocationServiceTest {
     @Mock
     private FloorPlanRepository floorPlanRepository;
 
+    @Mock
+    private PermSecurityBean permSecurityBean;
+
     private VirtualLocationService service;
 
     @BeforeEach
     void setUp() {
-        service = new VirtualLocationService(virtualLocationRepository, floorPlanRepository, new ObjectMapper());
+        service = new VirtualLocationService(virtualLocationRepository, floorPlanRepository, new ObjectMapper(), permSecurityBean);
     }
 
     private FloorPlan activeFloorPlan(Long id) {

@@ -1,8 +1,10 @@
-import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, Signal, computed, effect, inject, input, output, signal } from '@angular/core';
+import { FormsModule, FormControl } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 import { CampusInfrastructureService } from '../../campus-infrastructure.service';
-import { Block, Branch, Floor, GenderRestriction, Room, Zone } from '../../campus-infrastructure.model';
+import { Block, Branch, Floor, GenderRestriction, Organization, Room, Zone } from '../../campus-infrastructure.model';
 import { HostelRoomTypeService } from '../../../hostel-room-type/hostel-room-type.service';
 import { HostelRoomType } from '../../../hostel-room-type/hostel-room-type.model';
 import { RoomPurposeCategoryService } from '../../../room-purpose-category/room-purpose-category.service';
@@ -13,8 +15,19 @@ import { FacultyService } from '../../../../faculty/faculty.service';
 import { Faculty } from '../../../../faculty/faculty.model';
 import { CmsStatusBadgeComponent } from '../../../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../../../core/toast/toast.service';
+import { environment } from '../../../../../../environments';
+import { uniqueFieldValidator } from '../../../../../shared/validators/unique-field.validator';
 
-export type CampusPanelLevel = 'branch' | 'block' | 'floor' | 'zone' | 'room';
+export type CampusPanelLevel = 'organization' | 'branch' | 'block' | 'floor' | 'zone' | 'room';
+
+interface AddOrganizationFormState {
+  name: string;
+  code: string;
+  description: string;
+  submitting: boolean;
+  error: string | null;
+}
+const emptyAddOrganizationForm = (): AddOrganizationFormState => ({ name: '', code: '', description: '', submitting: false, error: null });
 
 interface AddBranchFormState {
   name: string;
@@ -98,6 +111,8 @@ export class CampusSidePanelComponent {
   private readonly subTypeService = inject(RoomSubTypeService);
   private readonly facultyService = inject(FacultyService);
   private readonly toast = inject(ToastService);
+  private readonly http = inject(HttpClient);
+  private readonly campusApiUrl = `${environment.apiUrl}/campus-infrastructure`;
 
   readonly canManage = input(false);
   readonly organizationId = input<number | null>(null);
@@ -111,7 +126,9 @@ export class CampusSidePanelComponent {
   /** The entity currently being edited via a card's edit pencil — independent of the `branch`/
    *  `block`/`floor`/`zone` drill-position inputs above (which now only decide which "Add child"
    *  form shows). Room has no equivalent since it's a leaf: selecting one already means viewing its
-   *  properties, same as before this split. */
+   *  properties, same as before this split. Organization is root-level (no drill-position input of
+   *  its own), so it only ever appears via this editing path. */
+  readonly editingOrganization = input<Organization | null>(null);
   readonly editingBranch = input<Branch | null>(null);
   readonly editingBlock = input<Block | null>(null);
   readonly editingFloor = input<Floor | null>(null);
@@ -123,6 +140,10 @@ export class CampusSidePanelComponent {
 
   readonly created = output<{ level: CampusPanelLevel; id: number }>();
   readonly saved = output<{ level: CampusPanelLevel }>();
+  /** Import Floor Plan action — Branch/Floor/Zone/Room only, never Block (Block has no diagram of
+   *  its own, see BR-60). The panel doesn't own the spatial module's screens itself; it just reports
+   *  which entity to open, mirroring `created`/`saved`. */
+  readonly importFloorPlan = output<{ level: 'branch' | 'floor' | 'zone' | 'room'; id: number }>();
 
   protected readonly level = computed<CampusPanelLevel | 'none'>(() => {
     if (this.room()) return 'room';
@@ -144,6 +165,7 @@ export class CampusSidePanelComponent {
   protected readonly faculties = signal<Faculty[]>([]);
 
   // ── Edit-in-place field state, one per level ────────────────────────────
+  protected readonly organizationEdit = signal({ name: '', code: '', description: '' });
   protected readonly branchEdit = signal({ name: '', code: '', description: '' });
   protected readonly blockEdit = signal({ name: '', code: '', description: '', isHostel: false, genderRestriction: null as GenderRestriction | null });
   protected readonly floorEdit = signal({ name: '', floorNumber: 0, isHostel: false, genderRestriction: null as GenderRestriction | null, isBasement: false });
@@ -154,6 +176,7 @@ export class CampusSidePanelComponent {
   });
   protected readonly roomHostelTypeId = signal<number | null>(null);
 
+  protected readonly organizationSaving = signal(false);
   protected readonly branchSaving = signal(false);
   protected readonly blockSaving = signal(false);
   protected readonly floorSaving = signal(false);
@@ -162,6 +185,7 @@ export class CampusSidePanelComponent {
   protected readonly hostelAssigning = signal(false);
 
   // ── Add-child form state, one per level ─────────────────────────────────
+  protected readonly addOrganizationForm = signal(emptyAddOrganizationForm());
   protected readonly addBranchForm = signal(emptyAddBranchForm());
   protected readonly addBlockForm = signal(emptyAddBlockForm());
   protected readonly addFloorForm = signal(emptyAddFloorForm(0));
@@ -171,6 +195,81 @@ export class CampusSidePanelComponent {
   protected readonly nextFloorNumber = computed(() => this.blockFloors().reduce((max, fl) => Math.max(max, fl.floorNumber), -1) + 1);
   protected readonly addZoneForm = signal(emptyAddZoneForm());
   protected readonly addRoomForm = signal(emptyAddRoomForm());
+
+  /** Real-time async uniqueness (mandatory master-form pattern) — reuses the shared
+   *  `uniqueFieldValidator` (the same one every Reactive-Forms master screen uses) even though this
+   *  panel is signal/ngModel-driven, not FormGroup-driven: a throwaway `FormControl` exists purely
+   *  as a vehicle to run the validator, its value driven from whichever signal (edit or add form)
+   *  is currently live for that level — the two are mutually exclusive states, so one control per
+   *  field covers both. Returns a signal of whether the current value is taken. */
+  private createUniquenessCheck(
+    checkUrl: string,
+    getValue: () => string,
+    getExcludeId: () => number | null,
+    getExtraParams: () => Record<string, string | number> | null,
+  ): Signal<boolean> {
+    const control = new FormControl<string>('');
+    control.setAsyncValidators(uniqueFieldValidator(this.http, checkUrl, getExcludeId, getExtraParams));
+    const taken = signal(false);
+    effect(() => control.setValue(getValue(), { emitEvent: true }));
+    control.statusChanges.pipe(takeUntilDestroyed()).subscribe(() => taken.set(!!control.errors?.['duplicate']));
+    return taken.asReadonly();
+  }
+
+  protected readonly organizationNameTaken = this.createUniquenessCheck(
+    `${this.campusApiUrl}/organizations/name-exists`,
+    () => (this.editingOrganization() ? this.organizationEdit().name : this.addOrganizationForm().name),
+    () => this.editingOrganization()?.id ?? null,
+    () => ({}),
+  );
+  protected readonly organizationCodeTaken = this.createUniquenessCheck(
+    `${this.campusApiUrl}/organizations/code-exists`,
+    () => (this.editingOrganization() ? this.organizationEdit().code : this.addOrganizationForm().code),
+    () => this.editingOrganization()?.id ?? null,
+    () => ({}),
+  );
+  protected readonly branchNameTaken = this.createUniquenessCheck(
+    `${this.campusApiUrl}/branches/name-exists`,
+    () => (this.editingBranch() ? this.branchEdit().name : this.addBranchForm().name),
+    () => this.editingBranch()?.id ?? null,
+    () => (this.organizationId() != null ? { organizationId: this.organizationId()! } : null),
+  );
+  protected readonly branchCodeTaken = this.createUniquenessCheck(
+    `${this.campusApiUrl}/branches/code-exists`,
+    () => (this.editingBranch() ? this.branchEdit().code : this.addBranchForm().code),
+    () => this.editingBranch()?.id ?? null,
+    () => (this.organizationId() != null ? { organizationId: this.organizationId()! } : null),
+  );
+  protected readonly blockNameTaken = this.createUniquenessCheck(
+    `${this.campusApiUrl}/blocks/name-exists`,
+    () => (this.editingBlock() ? this.blockEdit().name : this.addBlockForm().name),
+    () => this.editingBlock()?.id ?? null,
+    () => (this.branch()?.id != null ? { branchId: this.branch()!.id } : null),
+  );
+  protected readonly blockCodeTaken = this.createUniquenessCheck(
+    `${this.campusApiUrl}/blocks/code-exists`,
+    () => (this.editingBlock() ? this.blockEdit().code : this.addBlockForm().code),
+    () => this.editingBlock()?.id ?? null,
+    () => (this.branch()?.id != null ? { branchId: this.branch()!.id } : null),
+  );
+  protected readonly floorNameTaken = this.createUniquenessCheck(
+    `${this.campusApiUrl}/floors/name-exists`,
+    () => (this.editingFloor() ? this.floorEdit().name : this.addFloorForm().name),
+    () => this.editingFloor()?.id ?? null,
+    () => (this.block()?.id != null ? { blockId: this.block()!.id } : null),
+  );
+  protected readonly zoneNameTaken = this.createUniquenessCheck(
+    `${this.campusApiUrl}/zones/name-exists`,
+    () => (this.editingZone() ? this.zoneEdit().name : this.addZoneForm().name),
+    () => this.editingZone()?.id ?? null,
+    () => (this.floor()?.id != null ? { floorId: this.floor()!.id } : null),
+  );
+  protected readonly roomNumberTaken = this.createUniquenessCheck(
+    `${this.campusApiUrl}/rooms/number-exists`,
+    () => (this.room() ? this.roomEdit().roomNumber : this.addRoomForm().roomNumber),
+    () => this.room()?.id ?? null,
+    () => (this.zone()?.id != null ? { zoneId: this.zone()!.id } : null),
+  );
 
   constructor() {
     this.roomTypeService.getAll(true).subscribe({ next: (types) => this.roomTypes.set(types) });
@@ -200,6 +299,10 @@ export class CampusSidePanelComponent {
 
     // ── Edit-in-place field state resets off the *editing* inputs instead — set only when a card's
     // edit pencil was clicked, independent of the drill position above.
+    effect(() => {
+      const o = this.editingOrganization();
+      this.organizationEdit.set(o ? { name: o.name, code: o.code, description: o.description ?? '' } : { name: '', code: '', description: '' });
+    });
     effect(() => {
       const b = this.editingBranch();
       this.branchEdit.set(b ? { name: b.name, code: b.code, description: b.description ?? '' } : { name: '', code: '', description: '' });
@@ -261,6 +364,26 @@ export class CampusSidePanelComponent {
   }
 
   // ── Save current entity's fields ────────────────────────────────────────
+  protected saveOrganization(): void {
+    const o = this.editingOrganization();
+    const f = this.organizationEdit();
+    if (!o || !f.name.trim() || !f.code.trim() || this.organizationSaving()) return;
+    this.organizationSaving.set(true);
+    this.service
+      .updateOrganization(o.id, { name: f.name.trim(), code: f.code.trim().toUpperCase(), description: f.description.trim() || undefined, isActive: o.isActive })
+      .subscribe({
+        next: () => {
+          this.organizationSaving.set(false);
+          this.toast.success('Organization updated');
+          this.saved.emit({ level: 'organization' });
+        },
+        error: (err) => {
+          this.organizationSaving.set(false);
+          this.toast.error(err?.error?.message ?? 'Failed to update organization');
+        },
+      });
+  }
+
   protected saveBranch(): void {
     const b = this.branch();
     const f = this.branchEdit();
@@ -392,6 +515,7 @@ export class CampusSidePanelComponent {
   // ── Active/Inactive toggle ───────────────────────────────────────────────
   protected toggleActive(level: CampusPanelLevel): void {
     const entity =
+      level === 'organization' ? this.editingOrganization() :
       level === 'branch' ? this.branch() :
       level === 'block' ? this.block() :
       level === 'floor' ? this.floor() :
@@ -400,6 +524,7 @@ export class CampusSidePanelComponent {
     const nextActive = !entity.isActive;
 
     const statusCall$ =
+      level === 'organization' ? this.service.updateOrganizationStatus(entity.id, { isActive: nextActive }) :
       level === 'branch' ? this.service.updateBranchStatus(entity.id, { isActive: nextActive }) :
       level === 'block' ? this.service.updateBlockStatus(entity.id, { isActive: nextActive }) :
       level === 'floor' ? this.service.updateFloorStatus(entity.id, { isActive: nextActive }) :
@@ -453,6 +578,21 @@ export class CampusSidePanelComponent {
   }
 
   // ── Add child ─────────────────────────────────────────────────────────
+  protected submitAddOrganization(): void {
+    const f = this.addOrganizationForm();
+    const name = f.name.trim();
+    if (!name || f.submitting) return;
+    const code = f.code.trim() || codeSuggestionFrom(name);
+    this.addOrganizationForm.set({ ...f, submitting: true, error: null });
+    this.service.createOrganization({ name, code, description: f.description.trim() || undefined }).subscribe({
+      next: (created) => {
+        this.addOrganizationForm.set(emptyAddOrganizationForm());
+        this.created.emit({ level: 'organization', id: created.id });
+      },
+      error: (err) => this.addOrganizationForm.set({ ...f, submitting: false, error: err?.error?.message ?? 'Failed to add organization.' }),
+    });
+  }
+
   protected submitAddBranch(): void {
     const orgId = this.organizationId();
     const f = this.addBranchForm();

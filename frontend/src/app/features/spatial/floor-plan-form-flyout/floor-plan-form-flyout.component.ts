@@ -1,9 +1,11 @@
 import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { CmsFlyoutPanelComponent } from '../../../shared/flyout-panel/flyout-panel.component';
 import { SpatialService } from '../spatial.service';
 import { DetectedShapeCandidate, DiagramLevel, FloorPlan, OriginAnchor, UnitSystem } from '../spatial.model';
 import { ToastService } from '../../../core/toast/toast.service';
+import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PdfImportFlyoutComponent, PdfImportResult } from '../pdf-import-flyout/pdf-import-flyout.component';
 import { DxfImportFlyoutComponent, DxfImportResult } from '../dxf-import-flyout/dxf-import-flyout.component';
 import { DetectedShapesReviewFlyoutComponent } from '../detected-shapes-review-flyout/detected-shapes-review-flyout.component';
@@ -31,6 +33,7 @@ export class FloorPlanFormFlyoutComponent implements OnInit {
 
   private readonly spatialService = inject(SpatialService);
   private readonly toast = inject(ToastService);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly acceptedTypes = ACCEPTED_TYPES;
   protected readonly saving = signal(false);
@@ -127,8 +130,33 @@ export class FloorPlanFormFlyoutComponent implements OnInit {
 
   protected onSubmit(): void {
     if (!this.canSubmit() || this.saving()) return;
-    this.saving.set(true);
 
+    // Replacing the file re-derives the SVG viewBox, which can shift where already-placed markers
+    // (in SVG-pixel space) land — warn first, but never block; the calibration flyout doesn't need
+    // this same check since recalibrating never touches geometryJson or the viewBox.
+    if (this.isEditMode() && this.selectedFile) {
+      this.spatialService.getVirtualLocationsByFloorPlan(this.floorPlan!.id).subscribe({
+        next: (locations) => {
+          if (locations.length === 0) { this.proceedSubmit(); return; }
+          this.dialog.open(ConfirmDialogComponent, {
+            data: {
+              title: 'Replace Floor Plan File',
+              message: `This floor plan has ${locations.length} linked room/zone/marker${locations.length === 1 ? '' : 's'} placed on it — replacing the file may shift where they appear. Continue?`,
+              confirmText: 'Replace',
+              cancelText: 'Cancel',
+            },
+          }).afterClosed().subscribe((confirmed) => { if (confirmed) this.proceedSubmit(); });
+        },
+        error: () => this.proceedSubmit(),
+      });
+      return;
+    }
+
+    this.proceedSubmit();
+  }
+
+  private proceedSubmit(): void {
+    this.saving.set(true);
     if (this.isEditMode()) {
       this.updateExisting();
     } else {
