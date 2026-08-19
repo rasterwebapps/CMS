@@ -350,41 +350,10 @@
     padding-bottom: 10px;
   }
 
-  // Total-row label cell
-  &--total-label {
-    font-size: var(--cms-text-base);
-    font-weight: 700;
-    color: var(--cms-text-primary);
-
-    mat-icon {
-      font-size: var(--cms-text-base);
-      width: 14px;
-      height: 14px;
-      color: var(--cms-primary);
-    }
-
-    &-additional mat-icon { color: var(--cms-primary); }
-  }
-
-  // Total-row year cells
-  &--total-value {
-    font-size: var(--cms-text-base);
-    font-weight: 600;
-    color: var(--cms-text-secondary);
-    justify-content: flex-end;
-    padding-right: 8px;
-
-    &-additional { color: var(--cms-text-secondary); }
-  }
-
-  // Total-row grand total cell
-  &--grand-total {
-    font-size: var(--cms-text-md);
-    font-weight: 800;
-    color: var(--cms-primary);
-
-    &-additional { color: var(--cms-primary); }
-  }
+  // Total-row label/value/grand-total cells are styled below in the
+  // dedicated .g-cell--total-label / --total-value / --grand-total blocks
+  // (with --scholar/--hosteler modifiers) — kept out of this nest so they're
+  // defined once, not shadowed by a duplicate.
 }
 
 // Fee-type icon inside the type column
@@ -567,9 +536,11 @@
 
   mat-icon { font-size: var(--cms-text-lg); width: 18px; height: 18px; }
 
-  &--primary {
-    color: var(--cms-primary) !important;
-  }
+  // Colors mirror the app-wide Day Scholar/Hosteler convention used by
+  // <cms-type-badge> (amber/green) — not the tenant's --cms-primary accent,
+  // so this stays correct regardless of theme swatch.
+  &--scholar { color: #B45309 !important; }
+  &--hosteler { color: #15803D !important; }
 }
 
 .g-cell--total-value {
@@ -579,10 +550,8 @@
   font-variant-numeric: tabular-nums;
   justify-content: flex-end;
 
-  &--primary {
-    color: var(--cms-primary);
-    font-weight: 700;
-  }
+  &--scholar { color: #B45309; font-weight: 700; }
+  &--hosteler { color: #15803D; font-weight: 700; }
 }
 
 .g-cell--grand-total {
@@ -590,11 +559,12 @@
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 
-  &--scholar { color: #059669; }
-  &--primary { color: var(--cms-primary); font-size: var(--cms-text-md); }
+  &--scholar { color: #B45309; }
+  &--hosteler { color: #15803D; }
 }
 
-.g-type-icon--scholar  { color: #10b981 !important; }
+.g-type-icon--scholar  { color: #B45309 !important; }
+.g-type-icon--hosteler { color: #15803D !important; }
 
 // ── Form Actions ──────────────────────────────────────────────────────────
 // Actions now use shared .entry-form-sticky-footer + .btn-cancel/.btn-submit styles.

@@ -259,8 +259,8 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--cms-primary) 15%, transparent);
-  color: var(--cms-primary);
+  background: var(--cms-bg-muted);
+  color: var(--cms-text-secondary);
   font-size: var(--cms-text-xs);
   font-weight: 700;
   display: flex;

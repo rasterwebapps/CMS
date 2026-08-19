@@ -203,7 +203,7 @@
     text-align: right;
 
     &--red     { color: #EF4444; font-size: var(--cms-text-base); }
-    &--primary { color: var(--cms-primary); font-size: var(--cms-text-md); }
+    &--primary { color: var(--cms-text-primary); font-size: var(--cms-text-md); }
     small { font-size: 0.625rem; font-weight: 500; opacity: 0.7; margin-left: 3px; }
   }
 }

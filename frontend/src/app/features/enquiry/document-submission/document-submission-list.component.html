@@ -169,7 +169,7 @@
             <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="cell-align-right">Net Fee (₹)</th>
             <td mat-cell *matCellDef="let row" class="cell-align-right">
               @if (row.finalizedNetFee) {
-                <span class="cell-mono cell-mono--primary">{{ row.finalizedNetFee | inr:false:false }}</span>
+                <span class="cell-mono">{{ row.finalizedNetFee | inr:false:false }}</span>
               } @else {
                 <span class="cell-muted">—</span>
               }

@@ -82,8 +82,8 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(var(--cms-primary-rgb), 0.1);
-  color: var(--cms-primary);
+  background: var(--cms-bg-muted);
+  color: var(--cms-text-secondary);
   font-size: var(--cms-text-sm);
   font-weight: 700;
   display: flex;
