@@ -19,7 +19,13 @@
         >
           <mat-icon class="level-card__watermark" aria-hidden="true">{{ item.icon }}</mat-icon>
           @if (showViewDiagram()) {
-            <button type="button" class="level-card__edit level-card__edit--diagram" title="View Diagram" (click)="onViewDiagramClick($event, item.id)">
+            <button
+              type="button"
+              class="level-card__edit level-card__edit--diagram"
+              [class.level-card__edit--diagram-active]="item.hasFloorPlan"
+              [title]="item.hasFloorPlan ? 'View Floor Plan' : 'View Diagram'"
+              (click)="onViewDiagramClick($event, item.id)"
+            >
               <mat-icon>map</mat-icon>
             </button>
           }

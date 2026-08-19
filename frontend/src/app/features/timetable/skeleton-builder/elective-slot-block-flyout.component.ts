@@ -6,7 +6,7 @@ import { CmsFlyoutPanelComponent } from '../../../shared/flyout-panel/flyout-pan
 import { ToastService } from '../../../core/toast/toast.service';
 import { violationText } from '../../../shared/util/violation-text';
 import { SkeletonBuilderService } from './skeleton-builder.service';
-import { ElectiveGroupMemberPlacement, SkeletonBuilderResponse, SkeletonSessionType, SkeletonSubject } from './skeleton-builder.model';
+import { ElectiveGroupMemberPlacement, SkeletonBuilderResponse, SkeletonCell, SkeletonSessionType, SkeletonSubject } from './skeleton-builder.model';
 
 /**
  * Places every not-yet-placed member of a term's one elective group at a single shared day/period
@@ -57,9 +57,14 @@ export class ElectiveSlotBlockFlyoutComponent {
 
   /** Any already-placed cell for this group locks the day/period every further placement must
    *  match — the same rule the backend enforces, surfaced here so the admin isn't offered a
-   *  picker that will just bounce with a conflict. */
+   *  picker that will just bounce with a conflict. Must agree with the backend's own anchor pick
+   *  ({@code TimetableSkeletonService.resolveGroupAnchor}, lowest-id/earliest-created) rather than
+   *  taking whichever cell happens to sort first in this unordered response list — otherwise the
+   *  flyout could lock to (and pre-fill) a slot that isn't actually the one the backend enforces. */
   protected readonly anchorCell = computed(() =>
-    this.skeleton().cells.find((c) => c.electiveGroupId != null) ?? null);
+    this.skeleton().cells
+      .filter((c) => c.electiveGroupId != null)
+      .reduce<SkeletonCell | null>((min, c) => (min == null || c.id < min.id ? c : min), null));
 
   protected readonly isLocked = computed(() => this.anchorCell() != null);
 

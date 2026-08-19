@@ -2,6 +2,21 @@
 // Floor Plan List Page
 // ─────────────────────────────────────────────────────────────
 
+.fpl-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: var(--cms-text-sm);
+  font-weight: 500;
+  color: var(--cms-text-muted);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--cms-primary);
+  }
+}
+
 .rst-pg-title {
   margin: 0 0 2px;
   font-family: var(--cms-font-display);

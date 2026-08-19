@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,6 +53,15 @@ public class FloorPlanService {
 
     public FloorPlanResponse findById(Long id) {
         return toResponse(getOrThrow(id));
+    }
+
+    /** Which of these entity ids already have at least one active floor plan — powers Campus
+     *  Setup's card badge without a per-card request. */
+    public Set<Long> findEntityIdsWithFloorPlan(String entityType, List<Long> entityIds) {
+        if (entityIds == null || entityIds.isEmpty()) {
+            return Set.of();
+        }
+        return Set.copyOf(floorPlanRepository.findEntityIdsWithFloorPlan(entityType, entityIds));
     }
 
     @Transactional

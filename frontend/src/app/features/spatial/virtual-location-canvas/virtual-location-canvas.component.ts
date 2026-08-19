@@ -76,6 +76,21 @@ export class VirtualLocationCanvasComponent implements OnInit, OnDestroy {
     }
   });
 
+  /** This diagram's own entity, as the query param key `floor-plan-list.component.ts` and Campus
+   *  Setup's `initializeFromQueryParamsOrDefault` both already read (`branchId`/`floorId`/
+   *  `zoneId`/`roomId`) to preselect/deep-link straight to a node. Used on two links: the "back"
+   *  arrow (→ `listRoute()`, the picker screen this plan was opened from) and "View in Campus
+   *  Setup" below — without it, the back arrow used to land on the picker with every dropdown
+   *  reset instead of restored, since the picker's own preselect logic only runs from a query
+   *  param, and plain `routerLink="/floor-plans"` carried none. */
+  protected readonly parentQueryParams = computed<Record<string, number> | null>(() => {
+    const plan = this.floorPlan();
+    if (!plan) return null;
+    const paramName: Record<string, string> = { BRANCH: 'branchId', FLOOR: 'floorId', ZONE: 'zoneId', ROOM: 'roomId' };
+    const key = paramName[plan.entityType];
+    return key ? { [key]: plan.entityId } : null;
+  });
+
   /** Live status/quantity for markers linked to Equipment/InventoryItem, keyed by VirtualLocation.id. */
   protected readonly equipmentByLocation = signal<Map<number, SpatialEquipmentSummary>>(new Map());
   protected readonly inventoryByLocation = signal<Map<number, SpatialInventoryItemSummary>>(new Map());
@@ -83,6 +98,10 @@ export class VirtualLocationCanvasComponent implements OnInit, OnDestroy {
   protected readonly showFormFlyout = signal(false);
   protected editingLocation: VirtualLocation | null = null;
   protected pendingPoint: CanvasPoint | null = null;
+
+  /** Hover-driven (not click, which already opens the edit flyout via `selectLocation`) — the
+   *  shape currently showing its per-edge wall-length labels. */
+  protected readonly hoveredLocationId = signal<number | null>(null);
 
   protected floorPlanId!: number;
   private objectUrl: string | null = null;
@@ -207,6 +226,86 @@ export class VirtualLocationCanvasComponent implements OnInit, OnDestroy {
   protected statusDotAnchor(loc: VirtualLocation): CanvasPoint {
     const anchor = this.labelAnchor(loc);
     return { x: anchor.x - 8, y: anchor.y - 3 };
+  }
+
+  /** Second line under the name label — offset a bit further down than `labelAnchor`. */
+  protected areaLabelAnchor(loc: VirtualLocation): CanvasPoint {
+    const anchor = this.labelAnchor(loc);
+    return { x: anchor.x, y: anchor.y + 13 };
+  }
+
+  protected onMarkerHover(loc: VirtualLocation, entering: boolean): void {
+    this.hoveredLocationId.set(entering ? loc.id : null);
+  }
+
+  private unitSuffix(exponent: 1 | 2): string {
+    const isFeet = this.floorPlan()?.unitSystem === 'FEET';
+    return exponent === 2 ? (isFeet ? 'ft²' : 'm²') : (isFeet ? 'ft' : 'm');
+  }
+
+  /** Real-world area, from the already-calibrated `scaleFactor` (physical units per SVG unit) —
+   *  null when uncalibrated or the shape has no area (POINT). Computed client-side rather than via
+   *  the backend's SpatialTransform: it's a two-line multiply, not worth an API round trip. */
+  protected areaLabel(loc: VirtualLocation): string | null {
+    const plan = this.floorPlan();
+    if (!plan?.isCalibrated || !plan.scaleFactor) return null;
+
+    let svgArea: number | null = null;
+    if (loc.shapeType === 'RECTANGLE') {
+      const g = this.rectangleGeometry(loc);
+      svgArea = g ? g.width * g.height : null;
+    } else if (loc.shapeType === 'POLYGON') {
+      const geom = this.safeParse<PolygonGeometry>(loc.geometryJson);
+      svgArea = geom ? this.shoelaceArea(geom.points) : null;
+    }
+    if (svgArea == null) return null;
+
+    const physicalArea = svgArea * plan.scaleFactor * plan.scaleFactor;
+    return `${physicalArea.toFixed(1)} ${this.unitSuffix(2)}`;
+  }
+
+  private shoelaceArea(points: { x: number; y: number }[]): number {
+    let sum = 0;
+    for (let i = 0; i < points.length; i++) {
+      const a = points[i];
+      const b = points[(i + 1) % points.length];
+      sum += a.x * b.y - b.x * a.y;
+    }
+    return Math.abs(sum) / 2;
+  }
+
+  /** Per-edge wall lengths for the currently-hovered shape only (not click — click already opens
+   *  the edit flyout via `selectLocation`, so hover is what keeps the canvas uncluttered by
+   *  default while still surfacing this on demand). Empty array renders nothing. */
+  protected wallSegments(loc: VirtualLocation): { x1: number; y1: number; x2: number; y2: number; midX: number; midY: number; label: string }[] {
+    const plan = this.floorPlan();
+    if (this.hoveredLocationId() !== loc.id || !plan?.isCalibrated || !plan.scaleFactor) return [];
+
+    let points: { x: number; y: number }[] | null = null;
+    if (loc.shapeType === 'POLYGON') {
+      points = this.safeParse<PolygonGeometry>(loc.geometryJson)?.points ?? null;
+    } else if (loc.shapeType === 'RECTANGLE') {
+      const g = this.rectangleGeometry(loc);
+      points = g ? [
+        { x: g.x, y: g.y },
+        { x: g.x + g.width, y: g.y },
+        { x: g.x + g.width, y: g.y + g.height },
+        { x: g.x, y: g.y + g.height },
+      ] : null;
+    }
+    if (!points || points.length < 2) return [];
+
+    const scale = plan.scaleFactor;
+    const suffix = this.unitSuffix(1);
+    return points.map((p, i) => {
+      const next = points![(i + 1) % points!.length];
+      const physicalLength = Math.hypot(next.x - p.x, next.y - p.y) * scale;
+      return {
+        x1: p.x, y1: p.y, x2: next.x, y2: next.y,
+        midX: (p.x + next.x) / 2, midY: (p.y + next.y) / 2,
+        label: `${physicalLength.toFixed(1)} ${suffix}`,
+      };
+    });
   }
 
   /** Equipment: color by status. InventoryItem: red when low stock, green otherwise. */

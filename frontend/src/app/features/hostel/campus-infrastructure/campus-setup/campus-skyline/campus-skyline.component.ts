@@ -72,6 +72,10 @@ export class CampusSkylineComponent {
    *  to opt in. */
   readonly floorsClickable = input(true);
 
+  /** Floor ids that already have a floor plan uploaded — colors that floor's "View Diagram" icon
+   *  as active. Purely additive to the existing settled skyline design (no other visual change). */
+  readonly floorPlanFloorIds = input<Set<number>>(new Set());
+
   readonly blockSelected = output<SkylineBlock>();
   readonly floorOpened = output<{ block: SkylineBlock; floor: SkylineFloor }>();
 

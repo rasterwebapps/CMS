@@ -3,6 +3,7 @@ package com.cms.spatial.controller;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -56,6 +57,16 @@ public class FloorPlanController {
     @PreAuthorize("@perm.has('SPATIAL_FLOOR_PLAN_VIEW')")
     public ResponseEntity<FloorPlanResponse> findById(@PathVariable Long id) {
         return ResponseEntity.ok(floorPlanService.findById(id));
+    }
+
+    /** Bulk existence check for a Campus Setup card grid — which of the given entity ids already
+     *  have a floor plan, so the UI can render a badge without one request per card. */
+    @GetMapping("/existence")
+    @PreAuthorize("@perm.has('SPATIAL_FLOOR_PLAN_VIEW')")
+    public ResponseEntity<Set<Long>> findEntityIdsWithFloorPlan(
+            @RequestParam String entityType,
+            @RequestParam List<Long> entityIds) {
+        return ResponseEntity.ok(floorPlanService.findEntityIdsWithFloorPlan(entityType, entityIds));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

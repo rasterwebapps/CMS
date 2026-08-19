@@ -260,6 +260,14 @@
   right: 40px;
 }
 
+// A plan is already uploaded for this entity — stays visible at rest (not hover-gated like the
+// plain edit/diagram icons above) so it reads as a real status indicator, not just an action.
+.level-card__edit--diagram-active {
+  opacity: 1;
+  background: rgba(var(--cms-primary-rgb), 0.14);
+  color: var(--cms-primary);
+}
+
 .level-grid__loading,
 .level-grid__empty {
   padding: 24px 4px;

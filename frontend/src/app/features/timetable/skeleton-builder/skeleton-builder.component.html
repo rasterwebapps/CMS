@@ -179,7 +179,7 @@
                               [disabled]="!canManage()"
                               cdkDrag
                               [cdkDragData]="cell"
-                              [cdkDragDisabled]="!canManage() || !canMove()"
+                              [cdkDragDisabled]="!canManage() || !canMove() || !!cell.sessionGroupId"
                               (click)="onCellChipClick(cell)">
                               <span class="skeleton-cell__subject">{{ cell.subjectCode }}</span>
                               <span class="skeleton-cell__type">{{ cell.sessionType }}</span>

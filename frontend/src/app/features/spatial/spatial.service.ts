@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { environment } from '../../../environments';
 import {
   FloorPlan,
@@ -29,6 +29,15 @@ export class SpatialService {
 
   getFloorPlanById(id: number): Observable<FloorPlan> {
     return this.http.get<FloorPlan>(`${this.floorPlansUrl}/${id}`);
+  }
+
+  /** Bulk existence check — which of these entity ids already have a floor plan, for a Campus
+   *  Setup card grid badge. Returns entity ids, not FloorPlan rows. */
+  getFloorPlanExistence(entityType: string, entityIds: number[]): Observable<number[]> {
+    if (entityIds.length === 0) return of([]);
+    let params = new HttpParams().set('entityType', entityType);
+    for (const id of entityIds) params = params.append('entityIds', id);
+    return this.http.get<number[]>(`${this.floorPlansUrl}/existence`, { params });
   }
 
   createFloorPlan(fields: FloorPlanMetadataFields, file: File): Observable<FloorPlan> {

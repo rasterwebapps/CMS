@@ -37,6 +37,22 @@
   }
 }
 
+.sp-campus-setup-link {
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  color: var(--cms-primary);
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--cms-primary-rgb), 0.35);
+  background: rgba(var(--cms-primary-rgb), 0.08);
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(var(--cms-primary-rgb), 0.16);
+  }
+}
+
 .sp-vl-loading {
   padding: 60px 0;
   text-align: center;
@@ -84,16 +100,41 @@
   stroke: var(--cms-primary);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
-  transition: fill 0.15s ease;
+  transition: fill 0.15s ease, stroke-width 0.15s ease;
 
   &:hover {
     fill: rgba(var(--cms-primary-rgb), 0.5);
+  }
+
+  &--hovered {
+    stroke-width: 3.5;
   }
 }
 
 .sp-marker-label {
   font-size: 11px;
   fill: var(--cms-text-primary);
+  paint-order: stroke;
+  stroke: var(--cms-bg-card);
+  stroke-width: 3px;
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+.sp-area-label {
+  font-size: 10px;
+  fill: var(--cms-text-muted);
+  paint-order: stroke;
+  stroke: var(--cms-bg-card);
+  stroke-width: 3px;
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+.sp-wall-label {
+  font-size: 9px;
+  fill: var(--cms-primary);
+  font-weight: 600;
   paint-order: stroke;
   stroke: var(--cms-bg-card);
   stroke-width: 3px;

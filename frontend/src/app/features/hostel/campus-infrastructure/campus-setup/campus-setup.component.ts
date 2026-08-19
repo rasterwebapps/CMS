@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
 import { CampusInfrastructureService } from '../campus-infrastructure.service';
+import { SpatialService } from '../../../spatial/spatial.service';
 import { Block, Branch, Floor, HostelRoom, Organization, Room, Zone } from '../campus-infrastructure.model';
 import { CampusLevelGridBadge, CampusLevelGridComponent, CampusLevelGridItem } from './campus-level-grid/campus-level-grid.component';
 import { CampusPanelLevel, CampusSidePanelComponent } from './campus-side-panel/campus-side-panel.component';
@@ -53,6 +54,7 @@ interface Crumb {
 })
 export class CampusSetupComponent implements OnInit {
   private readonly service = inject(CampusInfrastructureService);
+  private readonly spatialService = inject(SpatialService);
   private readonly toast = inject(ToastService);
   private readonly permissionService = inject(PermissionService);
   private readonly route = inject(ActivatedRoute);
@@ -70,6 +72,14 @@ export class CampusSetupComponent implements OnInit {
   protected readonly zones = signal<Zone[]>([]);
   protected readonly rooms = signal<Room[]>([]);
   protected readonly hostelRoom = signal<HostelRoom | null>(null);
+
+  /** Which Branch/Zone/Room ids already have a floor plan uploaded — powers the "View Floor Plan"
+   *  indicator on Campus Setup's cards. Kept as three separate sets (not one combined set) because
+   *  Branch/Zone/Room ids come from independent DB sequences and can collide numerically. */
+  protected readonly branchFloorPlanIds = signal<Set<number>>(new Set());
+  protected readonly floorFloorPlanIds = signal<Set<number>>(new Set());
+  protected readonly zoneFloorPlanIds = signal<Set<number>>(new Set());
+  protected readonly roomFloorPlanIds = signal<Set<number>>(new Set());
 
   protected readonly loadingBranches = signal(false);
   protected readonly loadingBlocks = signal(false);
@@ -157,7 +167,10 @@ export class CampusSetupComponent implements OnInit {
     const q = this.normalizedQuery();
     return this.branches()
       .filter((b) => !q || b.name.toLowerCase().includes(q) || b.code.toLowerCase().includes(q))
-      .map((b) => ({ id: b.id, title: b.name, subtitle: b.code, icon: 'domain', isActive: b.isActive }));
+      .map((b) => ({
+        id: b.id, title: b.name, subtitle: b.code, icon: 'domain', isActive: b.isActive,
+        hasFloorPlan: this.branchFloorPlanIds().has(b.id),
+      }));
   });
   protected readonly zoneItems = computed<CampusLevelGridItem[]>(() => {
     const q = this.normalizedQuery();
@@ -175,6 +188,7 @@ export class CampusSetupComponent implements OnInit {
           icon: 'grid_view',
           isActive: z.isActive,
           badges,
+          hasFloorPlan: this.zoneFloorPlanIds().has(z.id),
         };
       });
   });
@@ -194,6 +208,7 @@ export class CampusSetupComponent implements OnInit {
           isActive: r.isActive,
           badges,
           stat: r.capacity ? `${r.capacity} cap` : undefined,
+          hasFloorPlan: this.roomFloorPlanIds().has(r.id),
         };
       });
   });
@@ -337,12 +352,23 @@ export class CampusSetupComponent implements OnInit {
     });
   }
 
-  /** Lets a "View Skyline" link elsewhere in the app (the Branch Diagram canvas, BR-60 Phase 1)
-   *  land directly on a specific Block's zoomed floor-stack, instead of always defaulting to the
-   *  first Organization's Branches-level view. */
+  /** Lets a "View Skyline"/"View in Campus Setup" link elsewhere in the app (the floor-plan
+   *  diagram canvas, BR-60 Phase 1) land directly on a specific node, instead of always defaulting
+   *  to the first Organization's Branches-level view. `floorId`/`zoneId`/`roomId` walk their
+   *  ancestors first (same reverse-walk pattern already proven in
+   *  `floor-plan-list.component.ts`'s `preselectFromFloor`/`Zone`/`Room`) since Campus Setup's own
+   *  `select*` chain only ever accepts ids top-down. */
   private initializeFromQueryParamsOrDefault(organizations: Organization[]): void {
-    const branchId = Number(this.route.snapshot.queryParamMap.get('branchId')) || null;
-    const blockId = Number(this.route.snapshot.queryParamMap.get('blockId')) || null;
+    const params = this.route.snapshot.queryParamMap;
+    const branchId = Number(params.get('branchId')) || null;
+    const blockId = Number(params.get('blockId')) || null;
+    const floorId = Number(params.get('floorId')) || null;
+    const zoneId = Number(params.get('zoneId')) || null;
+    const roomId = Number(params.get('roomId')) || null;
+
+    if (roomId) { this.initializeFromRoom(roomId, organizations); return; }
+    if (zoneId) { this.initializeFromZone(zoneId, organizations); return; }
+    if (floorId) { this.initializeFromFloor(floorId, organizations); return; }
 
     if (branchId) {
       this.service.getBranchById(branchId).subscribe({
@@ -351,14 +377,100 @@ export class CampusSetupComponent implements OnInit {
           this.selectBranch(branchId);
           if (blockId) this.selectBlock(blockId);
         },
-        error: () => {
-          if (organizations.length > 0) this.selectOrganization(organizations[0].id);
-        },
+        error: () => this.fallbackToFirstOrg(organizations),
       });
       return;
     }
 
+    this.fallbackToFirstOrg(organizations);
+  }
+
+  private fallbackToFirstOrg(organizations: Organization[]): void {
     if (organizations.length > 0) this.selectOrganization(organizations[0].id);
+  }
+
+  private landOnBranchAndBlock(organizationId: number, branchId: number, blockId: number): void {
+    this.selectOrganization(organizationId);
+    this.selectBranch(branchId);
+    this.selectBlock(blockId);
+  }
+
+  private initializeFromFloor(floorId: number, organizations: Organization[]): void {
+    this.service.getFloorById(floorId).subscribe({
+      next: (floor) => {
+        this.service.getBlockById(floor.blockId).subscribe({
+          next: (block) => {
+            this.service.getBranchById(block.branchId).subscribe({
+              next: (branch) => {
+                this.landOnBranchAndBlock(branch.organizationId, block.branchId, floor.blockId);
+                this.selectFloor(floorId);
+              },
+              error: () => this.fallbackToFirstOrg(organizations),
+            });
+          },
+          error: () => this.fallbackToFirstOrg(organizations),
+        });
+      },
+      error: () => this.fallbackToFirstOrg(organizations),
+    });
+  }
+
+  private initializeFromZone(zoneId: number, organizations: Organization[]): void {
+    this.service.getZoneById(zoneId).subscribe({
+      next: (zone) => {
+        this.service.getFloorById(zone.floorId).subscribe({
+          next: (floor) => {
+            this.service.getBlockById(floor.blockId).subscribe({
+              next: (block) => {
+                this.service.getBranchById(block.branchId).subscribe({
+                  next: (branch) => {
+                    this.landOnBranchAndBlock(branch.organizationId, block.branchId, floor.blockId);
+                    this.selectFloor(floor.id);
+                    this.selectZone(zoneId);
+                  },
+                  error: () => this.fallbackToFirstOrg(organizations),
+                });
+              },
+              error: () => this.fallbackToFirstOrg(organizations),
+            });
+          },
+          error: () => this.fallbackToFirstOrg(organizations),
+        });
+      },
+      error: () => this.fallbackToFirstOrg(organizations),
+    });
+  }
+
+  private initializeFromRoom(roomId: number, organizations: Organization[]): void {
+    this.service.getRoomById(roomId).subscribe({
+      next: (room) => {
+        this.service.getZoneById(room.zoneId).subscribe({
+          next: (zone) => {
+            this.service.getFloorById(zone.floorId).subscribe({
+              next: (floor) => {
+                this.service.getBlockById(floor.blockId).subscribe({
+                  next: (block) => {
+                    this.service.getBranchById(block.branchId).subscribe({
+                      next: (branch) => {
+                        this.landOnBranchAndBlock(branch.organizationId, block.branchId, floor.blockId);
+                        this.selectFloor(floor.id);
+                        this.selectZone(zone.id);
+                        this.selectRoom(roomId);
+                      },
+                      error: () => this.fallbackToFirstOrg(organizations),
+                    });
+                  },
+                  error: () => this.fallbackToFirstOrg(organizations),
+                });
+              },
+              error: () => this.fallbackToFirstOrg(organizations),
+            });
+          },
+          error: () => this.fallbackToFirstOrg(organizations),
+        });
+      },
+      error: () => this.fallbackToFirstOrg(organizations),
+    });
   }
 
   /** New, additive entry point from the Skyline's floor rows (BR-60 Phase 1) — opens that Floor's
@@ -555,11 +667,25 @@ export class CampusSetupComponent implements OnInit {
       next: (branches) => {
         this.branches.set(branches);
         this.loadingBranches.set(false);
+        this.refreshFloorPlanIds('BRANCH', branches.map((b) => b.id), this.branchFloorPlanIds);
       },
       error: () => {
         this.loadingBranches.set(false);
         this.toast.error('Failed to load branches');
       },
+    });
+  }
+
+  /** Bulk floor-plan-existence lookup for one level's just-loaded list — used by
+   *  loadBranches/loadZones/loadRooms to populate each item's `hasFloorPlan` badge. */
+  private refreshFloorPlanIds(entityType: string, ids: number[], target: typeof this.branchFloorPlanIds): void {
+    if (ids.length === 0) {
+      target.set(new Set());
+      return;
+    }
+    this.spatialService.getFloorPlanExistence(entityType, ids).subscribe({
+      next: (existingIds) => target.set(new Set(existingIds)),
+      error: () => target.set(new Set()),
     });
   }
 
@@ -583,6 +709,7 @@ export class CampusSetupComponent implements OnInit {
       next: (floors) => {
         this.floors.set([...floors].sort((a, b) => a.floorNumber - b.floorNumber));
         this.loadingFloors.set(false);
+        this.refreshFloorPlanIds('FLOOR', floors.map((f) => f.id), this.floorFloorPlanIds);
       },
       error: () => {
         this.loadingFloors.set(false);
@@ -597,6 +724,7 @@ export class CampusSetupComponent implements OnInit {
       next: (zones) => {
         this.zones.set(zones);
         this.loadingZones.set(false);
+        this.refreshFloorPlanIds('ZONE', zones.map((z) => z.id), this.zoneFloorPlanIds);
       },
       error: () => {
         this.loadingZones.set(false);
@@ -611,6 +739,7 @@ export class CampusSetupComponent implements OnInit {
       next: (rooms) => {
         this.rooms.set(rooms);
         this.loadingRooms.set(false);
+        this.refreshFloorPlanIds('ROOM', rooms.map((r) => r.id), this.roomFloorPlanIds);
       },
       error: () => {
         this.loadingRooms.set(false);

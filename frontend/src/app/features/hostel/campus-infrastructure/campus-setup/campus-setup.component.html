@@ -139,6 +139,7 @@
             [loading]="loadingSkyline()"
             [emptyLabel]="emptyLabelFor('No floors in this block yet.')"
             [selectedFloorId]="selectedFloorId()"
+            [floorPlanFloorIds]="floorFloorPlanIds()"
             (blockSelected)="selectBlockFromSkyline($event)"
             (floorOpened)="openFloorFromSkyline($event.block, $event.floor)"
             (blockEditRequested)="editBlock($event.block.id)"
@@ -166,8 +167,10 @@
           [items]="branchItems()"
           [loading]="loadingBranches()"
           [emptyLabel]="canManage() ? 'No branches yet — add one from the panel on the right.' : 'No branches yet.'"
+          [showViewDiagram]="true"
           (select)="selectBranch($event)"
           (edit)="editBranch($event)"
+          (viewDiagram)="viewBranchDiagram($event)"
         />
       }
     </div>

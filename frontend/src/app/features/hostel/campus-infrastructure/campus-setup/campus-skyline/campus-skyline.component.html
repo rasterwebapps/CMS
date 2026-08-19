@@ -59,7 +59,13 @@
                 (keydown.enter)="onFloorRowClick($event, sb, sf)"
               >
                 @if (floorsClickable()) {
-                  <button type="button" class="floor-row__edit floor-row__edit--diagram" title="View Diagram" (click)="onViewFloorDiagramClick($event, sb, sf)">
+                  <button
+                    type="button"
+                    class="floor-row__edit floor-row__edit--diagram"
+                    [class.floor-row__edit--diagram-active]="floorPlanFloorIds().has(sf.floor.id)"
+                    [title]="floorPlanFloorIds().has(sf.floor.id) ? 'View Floor Plan' : 'View Diagram'"
+                    (click)="onViewFloorDiagramClick($event, sb, sf)"
+                  >
                     <mat-icon>map</mat-icon>
                   </button>
                   <button type="button" class="floor-row__edit" title="Edit" (click)="onFloorEditClick($event, sb, sf)">

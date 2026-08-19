@@ -19,6 +19,9 @@ export interface CampusLevelGridItem {
    *  rather than blend into the descriptive line. */
   stat?: string;
   badges?: CampusLevelGridBadge[];
+  /** A floor plan diagram already exists for this entity — renders a small filled indicator next
+   *  to the "View Diagram" icon (BR-60 extension) so it's discoverable without opening the panel. */
+  hasFloorPlan?: boolean;
 }
 
 /**

@@ -3,10 +3,13 @@
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
       <div class="page-title-row">
-        <a [routerLink]="listRoute()" class="sp-back-link" aria-label="Back">
+        <a [routerLink]="listRoute()" [queryParams]="parentQueryParams()" class="sp-back-link" aria-label="Back">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
         </a>
         <h1 class="rst-pg-title">{{ floorPlan()?.name ?? 'Virtual Locations' }}</h1>
+        @if (parentQueryParams(); as link) {
+          <a routerLink="/campus-infrastructure" [queryParams]="link" class="sp-campus-setup-link">View in Campus Setup</a>
+        }
         @if (floorPlan(); as plan) {
           @if (plan.isCalibrated) {
             <span class="prev-pill prev-pill--green">Calibrated</span>
@@ -15,7 +18,7 @@
           }
         }
       </div>
-      <p class="rst-pg-sub">Click anywhere on the plan to place a marker, or click an existing marker to edit it.</p>
+      <p class="rst-pg-sub">Click anywhere on the plan to place a marker, or click an existing marker to edit it. Hover a room to see its wall lengths.</p>
     </div>
     @if (canManage()) {
       <div class="mlp-hdr-actions">
@@ -46,22 +49,28 @@
             @for (loc of locations(); track loc.id) {
               @if (loc.shapeType === 'POINT') {
                 @if (pointGeometry(loc); as g) {
-                  <circle [attr.cx]="g.x" [attr.cy]="g.y" r="10" class="sp-marker sp-marker--point" (click)="selectLocation(loc, $event)">
+                  <circle [attr.cx]="g.x" [attr.cy]="g.y" r="10" class="sp-marker sp-marker--point" (click)="selectLocation(loc, $event)" (mouseenter)="onMarkerHover(loc, true)" (mouseleave)="onMarkerHover(loc, false)">
                     <title>{{ loc.name }}</title>
                   </circle>
                 }
               } @else if (loc.shapeType === 'RECTANGLE') {
                 @if (rectangleGeometry(loc); as g) {
-                  <rect [attr.x]="g.x" [attr.y]="g.y" [attr.width]="g.width" [attr.height]="g.height" class="sp-marker sp-marker--rect" (click)="selectLocation(loc, $event)">
+                  <rect [attr.x]="g.x" [attr.y]="g.y" [attr.width]="g.width" [attr.height]="g.height" class="sp-marker sp-marker--rect" [class.sp-marker--hovered]="hoveredLocationId() === loc.id" (click)="selectLocation(loc, $event)" (mouseenter)="onMarkerHover(loc, true)" (mouseleave)="onMarkerHover(loc, false)">
                     <title>{{ loc.name }}</title>
                   </rect>
                 }
               } @else {
-                <polygon [attr.points]="polygonPointsAttr(loc)" class="sp-marker sp-marker--polygon" (click)="selectLocation(loc, $event)">
+                <polygon [attr.points]="polygonPointsAttr(loc)" class="sp-marker sp-marker--polygon" [class.sp-marker--hovered]="hoveredLocationId() === loc.id" (click)="selectLocation(loc, $event)" (mouseenter)="onMarkerHover(loc, true)" (mouseleave)="onMarkerHover(loc, false)">
                   <title>{{ loc.name }}</title>
                 </polygon>
               }
               <text [attr.x]="labelAnchor(loc).x" [attr.y]="labelAnchor(loc).y" class="sp-marker-label">{{ loc.name }}</text>
+              @if (areaLabel(loc); as area) {
+                <text [attr.x]="areaLabelAnchor(loc).x" [attr.y]="areaLabelAnchor(loc).y" class="sp-area-label">{{ area }}</text>
+              }
+              @for (wall of wallSegments(loc); track $index) {
+                <text [attr.x]="wall.midX" [attr.y]="wall.midY" class="sp-wall-label">{{ wall.label }}</text>
+              }
               @if (hasStatusDot(loc)) {
                 <circle [attr.cx]="statusDotAnchor(loc).x" [attr.cy]="statusDotAnchor(loc).y" r="3.5" [class]="'sp-dot ' + statusDotColorClass(loc)" />
               }

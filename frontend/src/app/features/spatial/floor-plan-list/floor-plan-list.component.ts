@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { forkJoin } from 'rxjs';
@@ -82,6 +82,7 @@ const EMPTY_SUBTITLE_BY_LEVEL: Record<DiagramLevel, string> = {
   standalone: true,
   imports: [
     FormsModule,
+    RouterLink,
     MatDialogModule,
     CmsEmptyStateComponent,
     CmsRowActionButtonComponent,
@@ -151,6 +152,22 @@ export class FloorPlanListComponent implements OnInit {
       case 'ZONE': return this.selectedZoneId;
       case 'ROOM': return this.selectedRoomId;
     }
+  }
+
+  /** This screen (`/branch-diagrams`, `/floor-plans`, `/zone-diagrams`, `/room-diagrams`) is
+   *  reached only via deep links from Campus Setup — it has no entry in the nav sidebar (see
+   *  `project_oc155_campus_infra_consolidation` — only the diagram screens' 4 nav-config entries
+   *  were removed, not the routes themselves). Without an on-screen way back, landing here strands
+   *  the user with no path back to where they came from. Deep-links back to the current selection
+   *  using the same query-param shape Campus Setup's `initializeFromQueryParamsOrDefault` already
+   *  reads; falls back to a bare link (still lands on Campus Setup, just not deep-linked) before
+   *  anything is picked. Plain method, not `computed()`, for the same reason as
+   *  `selectedEntityId()` above. */
+  protected campusSetupLink(): Record<string, number> {
+    const id = this.selectedEntityId();
+    if (id == null) return {};
+    const paramName: Record<DiagramLevel, string> = { BRANCH: 'branchId', FLOOR: 'floorId', ZONE: 'zoneId', ROOM: 'roomId' };
+    return { [paramName[this.level]]: id };
   }
 
   protected readonly loading = signal(false);

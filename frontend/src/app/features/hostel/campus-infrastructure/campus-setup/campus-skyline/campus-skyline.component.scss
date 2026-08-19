@@ -411,6 +411,14 @@
     right: 24px;
   }
 
+  // A plan already exists for this floor — stays visible at rest, same idiom as
+  // `.level-card__edit--diagram-active` in campus-level-grid.
+  &--diagram-active {
+    opacity: 1;
+    background: rgba(var(--cms-primary-rgb), 0.14);
+    color: var(--cms-primary);
+  }
+
   mat-icon {
     font-size: 11px;
     width: 11px;
