@@ -149,3 +149,15 @@ export const COMMUNITY_FORM_TOUR: TourDefinition = {
   ],
 };
 
+export const COMMUNITY_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Communities', description: 'Master list of community/category values used on student admission and statutory records.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Name & Code', icon: 'checklist', detail: 'Full name and a short uppercase code — both required and must be unique.' },
+    { label: 'Description & Status', icon: 'open', detail: 'Optional description, plus Active status to control visibility in admission forms.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the name and code.' },
+  ],
+};
+

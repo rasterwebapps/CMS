@@ -130,3 +130,13 @@ export const CURRICULUM_VERSION_FORM_TOUR: TourDefinition = {
   ],
 };
 
+export const CURRICULUM_VERSION_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: CURRICULUM_AUTHORING_FUNNEL,
+  currentIndex: 0,
+  steps: [
+    { label: 'Program & Version Name', icon: 'checklist', detail: 'Pick the program and name the version using a convention like 2024-25 v1.' },
+    { label: 'Effective Year & Status', icon: 'open', detail: 'Set the effective academic year and Active status — only one active version per program.' },
+    { label: 'Save', icon: 'send', detail: 'Save the curriculum version.' },
+  ],
+};
+

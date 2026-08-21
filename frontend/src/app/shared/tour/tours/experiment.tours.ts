@@ -110,3 +110,14 @@ export const EXPERIMENT_FORM_TOUR: TourDefinition = {
   ],
 };
 
+export const EXPERIMENT_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: CURRICULUM_AUTHORING_FUNNEL,
+  currentIndex: 2,
+  steps: [
+    { label: 'Subject & Sequence', icon: 'checklist', detail: 'Pick the subject and sequence number, then name and describe the experiment.' },
+    { label: 'Aim, Apparatus & Procedure', icon: 'open', detail: 'Stated objective, required apparatus, and the step-by-step procedure students must follow.' },
+    { label: 'Outcomes & Duration', icon: 'checklist', detail: 'Expected outcome, learning outcomes, and expected session duration.' },
+    { label: 'Save', icon: 'send', detail: 'Save the experiment.' },
+  ],
+};
+

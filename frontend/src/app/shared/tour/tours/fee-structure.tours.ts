@@ -158,3 +158,16 @@ export const FEE_STRUCTURE_FORM_TOUR: TourDefinition = {
   ],
 };
 
+export const FEE_STRUCTURE_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Fee Structures', description: 'Master fee schedules per program/course/academic year, used to calculate student fee allocations.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Selection Criteria', icon: 'checklist', detail: 'Pick the academic year, program, and optional course this fee schedule applies to.' },
+    { label: 'Course Fees', icon: 'payment', detail: 'Enter year-wise tuition and core fee amounts — row and grand totals update live.' },
+    { label: 'Additional Fees', icon: 'open', detail: 'Optional per-year charges like hostel and transport, without changing core course totals.' },
+    { label: 'Save', icon: 'send', detail: 'Review the totals and save the fee structure.' },
+  ],
+};
+

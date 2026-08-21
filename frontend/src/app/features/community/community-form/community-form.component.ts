@@ -22,7 +22,7 @@ import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { COMMUNITY_FORM_TOUR } from '../../../shared/tour/tours/community.tours';
+import { COMMUNITY_FORM_TOUR, COMMUNITY_FORM_FLOW_MAP } from '../../../shared/tour/tours/community.tours';
 
 @Component({
   selector: 'app-community-form',
@@ -104,6 +104,7 @@ export class CommunityFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('community-form', COMMUNITY_FORM_TOUR);
+    this.tourService.registerFlowMap('community-form', COMMUNITY_FORM_FLOW_MAP);
     const id = this.route.snapshot.paramMap.get('id');
     if (id && id !== 'new') {
       this.itemId = Number(id);

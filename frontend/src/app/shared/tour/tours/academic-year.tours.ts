@@ -159,3 +159,15 @@ export const ACADEMIC_YEAR_FORM_TOUR: TourDefinition = {
   ],
 };
 
+export const ACADEMIC_YEAR_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Academic Years', description: 'Define and manage the institution\'s academic years, each containing its own terms/semesters.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Session Name & Dates', icon: 'checklist', detail: 'Enter the session name in the format YYYY-YYYY, plus its start and end dates.' },
+    { label: 'Mark Current Session', icon: 'open', detail: 'Optionally mark this year as the active session for new admissions — only one year can be current at a time.' },
+    { label: 'Save', icon: 'send', detail: 'Save to create or update the academic year.' },
+  ],
+};
+

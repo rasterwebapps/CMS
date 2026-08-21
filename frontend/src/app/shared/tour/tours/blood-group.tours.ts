@@ -139,3 +139,15 @@ export const BLOOD_GROUP_FORM_TOUR: TourDefinition = {
   ],
 };
 
+export const BLOOD_GROUP_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Blood Groups', description: 'Master list of blood group values used across student and faculty records.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Name & Code', icon: 'checklist', detail: 'Full name (e.g. A Positive) and short clinical code (e.g. A+) — both required and must be unique.' },
+    { label: 'Active Status', icon: 'open', detail: 'Enable to make this blood group available for selection in student admission forms.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the name and code.' },
+  ],
+};
+

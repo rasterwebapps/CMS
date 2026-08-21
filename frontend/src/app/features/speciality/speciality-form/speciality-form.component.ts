@@ -13,7 +13,7 @@ import { Faculty } from '../../faculty/faculty.model';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { DEPT_FORM_TOUR } from '../../../shared/tour/tours/speciality.tours';
+import { DEPT_FORM_TOUR, DEPT_FORM_FLOW_MAP } from '../../../shared/tour/tours/speciality.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 import { environment } from '../../../../environments';
@@ -109,6 +109,7 @@ export class SpecialityFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('dept-form', DEPT_FORM_TOUR);
+    this.tourService.registerFlowMap('dept-form', DEPT_FORM_FLOW_MAP);
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.specialityId = Number(idParam);

@@ -141,6 +141,22 @@ export const STUDENT_FORM_TOUR: TourDefinition = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Student Form — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const STUDENT_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Student Explorer', description: 'Search, view, and manage every enrolled student record.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Basic Information', icon: 'checklist', detail: 'Roll number, admission date, name, email, programme, and year of study — used across fees, attendance, and exams.' },
+    { label: 'Personal Details', icon: 'open', detail: 'Date of birth, gender, community category, caste, and blood group — support statutory reports and student services.' },
+    { label: 'Family Details', icon: 'checklist', detail: 'Parent and guardian details for communications, attendance alerts, and fee follow-ups.' },
+    { label: 'Save', icon: 'send', detail: 'Save the record — once saved, the student appears in fee, attendance, and exam modules.' },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Student Detail
 // ─────────────────────────────────────────────────────────────────────────────
 export const STUDENT_DETAIL_TOUR: TourDefinition = {
@@ -183,6 +199,21 @@ export const STUDENT_DETAIL_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Student Detail — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const STUDENT_DETAIL_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Student Explorer', description: 'Search, view, and manage every enrolled student record.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Identity & Status', icon: 'checklist', detail: 'Name, programme, year of study, and current status badge confirm you\'re viewing the right student.' },
+    { label: 'Detailed Sections', icon: 'open', detail: 'Personal info, family details, address, fee history, attendance, and exam records — all in one place.' },
+    { label: 'Take Action', icon: 'send', detail: 'Edit from the list screen, or jump to fees / attendance using the side navigation.' },
   ],
 };
 

@@ -17,7 +17,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { printFeeReceipt, downloadFeeReceipt } from '../../../shared/utils/print-receipt.utils';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { STUDENT_FEE_DETAIL_TOUR } from '../../../shared/tour/tours/finance.tours';
+import { STUDENT_FEE_DETAIL_TOUR, STUDENT_FEE_DETAIL_FLOW_MAP } from '../../../shared/tour/tours/finance.tours';
 import { getPaymentModeLabel, PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { transactionReferenceRequiredValidator } from '../../../shared/validators/transaction-reference-validator';
@@ -198,6 +198,7 @@ export class StudentFeeDetailComponent implements OnInit {
   ngOnInit(): void {
     this.studentId = Number(this.route.snapshot.paramMap.get('studentId'));
     this.tourService.register('student-fee-detail', STUDENT_FEE_DETAIL_TOUR);
+    this.tourService.registerFlowMap('student-fee-detail', STUDENT_FEE_DETAIL_FLOW_MAP);
     this.resolveBackTarget();
     this.loadAll();
   }

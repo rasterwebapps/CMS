@@ -139,3 +139,15 @@ export const DESIGNATION_FORM_TOUR: TourDefinition = {
   ],
 };
 
+export const DESIGNATION_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Designations', description: 'Master list of faculty/staff job designations used across HR and faculty records.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Name & Code', icon: 'checklist', detail: 'Full designation title and a short uppercase code — both required and unique.' },
+    { label: 'Description', icon: 'open', detail: 'Optional description of the role, responsibilities, or seniority level.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the name and code.' },
+  ],
+};
+

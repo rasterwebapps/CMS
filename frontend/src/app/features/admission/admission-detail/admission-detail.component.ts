@@ -16,7 +16,7 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { ADMISSION_DETAIL_TOUR } from '../../../shared/tour/tours/admission.tours';
+import { ADMISSION_DETAIL_TOUR, ADMISSION_DETAIL_FLOW_MAP } from '../../../shared/tour/tours/admission.tours';
 import { StudentService } from '../../student/student.service';
 import { Student } from '../../student/student.model';
 import { AdmissionFormData, viewAdmissionForm, printAdmissionForm, downloadAdmissionForm } from '../../../shared/utils/print-admission-form.utils';
@@ -85,6 +85,7 @@ export class AdmissionDetailComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('admission-detail', ADMISSION_DETAIL_TOUR);
+    this.tourService.registerFlowMap('admission-detail', ADMISSION_DETAIL_FLOW_MAP);
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.loadAll(id);
     this.loadBranding();

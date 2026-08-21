@@ -77,3 +77,14 @@ export const SYLLABUS_FORM_TOUR: TourDefinition = {
   ],
 };
 
+export const SYLLABUS_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: CURRICULUM_AUTHORING_FUNNEL,
+  currentIndex: 1,
+  steps: [
+    { label: 'Course & Version', icon: 'checklist', detail: 'Pick the course and bump the version number when revising — old versions stay preserved for audit.' },
+    { label: 'Contact Hours', icon: 'open', detail: 'Weekly theory, lab, and tutorial hours.' },
+    { label: 'Content & Outcomes', icon: 'checklist', detail: 'Objectives, unit-wise content, text/reference books, and measurable course outcomes.' },
+    { label: 'Save', icon: 'send', detail: 'Save the syllabus.' },
+  ],
+};
+

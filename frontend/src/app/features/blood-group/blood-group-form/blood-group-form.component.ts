@@ -22,7 +22,7 @@ import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { BLOOD_GROUP_FORM_TOUR } from '../../../shared/tour/tours/blood-group.tours';
+import { BLOOD_GROUP_FORM_TOUR, BLOOD_GROUP_FORM_FLOW_MAP } from '../../../shared/tour/tours/blood-group.tours';
 
 @Component({
   selector: 'app-blood-group-form',
@@ -101,6 +101,7 @@ export class BloodGroupFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('blood-group-form', BLOOD_GROUP_FORM_TOUR);
+    this.tourService.registerFlowMap('blood-group-form', BLOOD_GROUP_FORM_FLOW_MAP);
     const id = this.route.snapshot.paramMap.get('id');
     if (id && id !== 'new') {
       this.itemId = Number(id);

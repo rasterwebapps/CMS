@@ -17,7 +17,7 @@ import { environment } from '../../../../environments';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { ENQUIRY_FORM_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+import { ENQUIRY_FORM_TOUR, ENQUIRY_FORM_FLOW_MAP } from '../../../shared/tour/tours/enquiry.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
 import { trimmedMinLength } from '../../../shared/validators/cms-validators';
@@ -325,6 +325,7 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.tourService.register('enquiry-form', ENQUIRY_FORM_TOUR);
+    this.tourService.registerFlowMap('enquiry-form', ENQUIRY_FORM_FLOW_MAP);
 
     this.scrollContainer = document.querySelector('main.app-content');
     const onScroll = () => {

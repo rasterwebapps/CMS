@@ -113,3 +113,15 @@ export const EQUIPMENT_FORM_TOUR: TourDefinition = {
   ],
 };
 
+export const EQUIPMENT_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Equipment', description: 'Master list of lab equipment — model, serial number, lab location, and warranty tracking.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Identity & Location', icon: 'checklist', detail: 'Name, model, serial number, lab, and category.' },
+    { label: 'Status & Dates', icon: 'open', detail: 'Operational status, purchase date, warranty expiry, and cost.' },
+    { label: 'Save', icon: 'send', detail: 'Save the equipment record so it can be tracked for maintenance.' },
+  ],
+};
+

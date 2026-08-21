@@ -12,7 +12,7 @@ import { ReferralTypeService } from '../../referral-type/referral-type.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { AGENT_FORM_TOUR } from '../../../shared/tour/tours/agent.tours';
+import { AGENT_FORM_TOUR, AGENT_FORM_FLOW_MAP } from '../../../shared/tour/tours/agent.tours';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
@@ -114,6 +114,7 @@ export class AgentFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('agent-form', AGENT_FORM_TOUR);
+    this.tourService.registerFlowMap('agent-form', AGENT_FORM_FLOW_MAP);
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.itemId = Number(id);

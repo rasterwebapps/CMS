@@ -27,7 +27,7 @@ import { STATUS_LABELS } from '../enquiry-list/enquiry-list.component';
 import { computeInitials } from '../../../shared/utils/initials';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { ENQUIRY_DETAIL_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+import { ENQUIRY_DETAIL_TOUR, ENQUIRY_DETAIL_FLOW_MAP } from '../../../shared/tour/tours/enquiry.tours';
 import { FeeReceiptDialogComponent } from '../../../shared/fee-receipt-dialog/fee-receipt-dialog.component';
 import { ReceiptDisplayData } from '../../finance/finance.model';
 import { printFeeReceipt, printRefundVoucher, downloadRefundVoucher, RefundVoucherData } from '../../../shared/utils/print-receipt.utils';
@@ -124,6 +124,7 @@ export class EnquiryDetailComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('enquiry-detail', ENQUIRY_DETAIL_TOUR);
+    this.tourService.registerFlowMap('enquiry-detail', ENQUIRY_DETAIL_FLOW_MAP);
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (id) this.load(id);
   }

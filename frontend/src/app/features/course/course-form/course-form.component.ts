@@ -13,7 +13,7 @@ import { Program } from '../../program/program.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { COURSE_FORM_TOUR } from '../../../shared/tour/tours/course.tours';
+import { COURSE_FORM_TOUR, COURSE_FORM_FLOW_MAP } from '../../../shared/tour/tours/course.tours';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
@@ -112,6 +112,7 @@ export class CourseFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('course-form', COURSE_FORM_TOUR);
+    this.tourService.registerFlowMap('course-form', COURSE_FORM_FLOW_MAP);
     this.loadPrograms();
 
     const idParam = this.route.snapshot.paramMap.get('id');

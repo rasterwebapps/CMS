@@ -136,3 +136,15 @@ export const INSTITUTION_FORM_TOUR: TourDefinition = {
     },
   ],
 };
+
+export const INSTITUTION_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Institutions', description: 'Master list of institutions under the organization, used to scope programs and infrastructure.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Name & Code', icon: 'checklist', detail: 'Full institution name and a short internal code — both required and must be unique.' },
+    { label: 'Active Status', icon: 'open', detail: 'Enable to make this institution selectable on the Staff Referrer form.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the name and code.' },
+  ],
+};

@@ -13,7 +13,7 @@ import { environment } from '../../../../environments';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { FEE_STRUCTURE_FORM_TOUR } from '../../../shared/tour/tours/fee-structure.tours';
+import { FEE_STRUCTURE_FORM_TOUR, FEE_STRUCTURE_FORM_FLOW_MAP } from '../../../shared/tour/tours/fee-structure.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 
 interface Program { id: number; name: string; durationYears: number; }
@@ -265,6 +265,7 @@ export class FeeStructureFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('fee-structure-form', FEE_STRUCTURE_FORM_TOUR);
+    this.tourService.registerFlowMap('fee-structure-form', FEE_STRUCTURE_FORM_FLOW_MAP);
 
     // Load lookups in parallel
     this.http.get<AcademicYear[]>(`${environment.apiUrl}/academic-years`).subscribe({ next: d => this.academicYears.set(d) });

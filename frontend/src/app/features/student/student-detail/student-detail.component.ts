@@ -26,7 +26,7 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { PaymentModeLabelPipe } from '../../../shared/pipes/payment-mode-label.pipe';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { STUDENT_DETAIL_TOUR } from '../../../shared/tour/tours/student.tours';
+import { STUDENT_DETAIL_TOUR, STUDENT_DETAIL_FLOW_MAP } from '../../../shared/tour/tours/student.tours';
 import { ScholarshipService } from '../../scholarship/scholarship.service';
 import {
   OneBookPaymentTrack,
@@ -181,6 +181,7 @@ export class StudentDetailComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('student-detail', STUDENT_DETAIL_TOUR);
+    this.tourService.registerFlowMap('student-detail', STUDENT_DETAIL_FLOW_MAP);
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.loadStudent(Number(idParam));

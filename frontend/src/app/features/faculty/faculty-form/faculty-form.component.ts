@@ -32,7 +32,7 @@ import { BloodGroup } from '../../blood-group/blood-group.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { FACULTY_FORM_TOUR } from '../../../shared/tour/tours/faculty.tours';
+import { FACULTY_FORM_TOUR, FACULTY_FORM_FLOW_MAP } from '../../../shared/tour/tours/faculty.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
 
@@ -199,6 +199,7 @@ export class FacultyFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('faculty-form', FACULTY_FORM_TOUR);
+    this.tourService.registerFlowMap('faculty-form', FACULTY_FORM_FLOW_MAP);
     this.loadSpecialities();
     this.loadDesignations();
     this.loadBloodGroups();

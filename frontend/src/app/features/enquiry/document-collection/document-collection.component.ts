@@ -18,7 +18,7 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { DOCUMENT_COLLECTION_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+import { DOCUMENT_COLLECTION_TOUR, DOCUMENT_COLLECTION_FLOW_MAP } from '../../../shared/tour/tours/enquiry.tours';
 
 const MAX_DOCUMENT_UPLOAD_BYTES = 10 * 1024 * 1024;
 const ALLOWED_UPLOAD_MIME_TYPES = new Set([
@@ -163,6 +163,7 @@ export class DocumentCollectionComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('document-collection', DOCUMENT_COLLECTION_TOUR);
+    this.tourService.registerFlowMap('document-collection', DOCUMENT_COLLECTION_FLOW_MAP);
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (!id || Number.isNaN(id)) {
       this.toast.warning('Invalid enquiry id');

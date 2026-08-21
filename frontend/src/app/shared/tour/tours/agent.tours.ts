@@ -191,3 +191,16 @@ export const AGENT_FORM_TOUR: TourDefinition = {
   ],
 };
 
+export const AGENT_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Agents', description: 'Manage referral agents who bring in enquiries, and the commission terms attached to each.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Contact Details', icon: 'checklist', detail: 'Name, phone, email, area, and locality for the referral agent.' },
+    { label: 'Seats & Commission', icon: 'payment', detail: 'Set allotted seats and an optional commission override for this agent.' },
+    { label: 'Active Status', icon: 'open', detail: 'Enable Active to allow new admissions to be referred via this agent.' },
+    { label: 'Save', icon: 'send', detail: 'Save the agent record.' },
+  ],
+};
+

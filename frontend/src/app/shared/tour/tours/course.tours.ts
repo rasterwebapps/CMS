@@ -169,3 +169,15 @@ export const COURSE_FORM_TOUR: TourDefinition = {
   ],
 };
 
+export const COURSE_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Courses', description: 'Master list of courses offered under each program.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Name, Code & Specialization', icon: 'checklist', detail: 'Course name and code are required; specialization is optional.' },
+    { label: 'Parent Program', icon: 'open', detail: 'Pick the degree programme this course belongs to — required.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the course name and code.' },
+  ],
+};
+

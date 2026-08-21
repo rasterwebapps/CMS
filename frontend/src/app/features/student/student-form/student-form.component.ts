@@ -15,7 +15,7 @@ import { Community } from '../../community/community.model';
 import { BloodGroup } from '../../blood-group/blood-group.model';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { STUDENT_FORM_TOUR } from '../../../shared/tour/tours/student.tours';
+import { STUDENT_FORM_TOUR, STUDENT_FORM_FLOW_MAP } from '../../../shared/tour/tours/student.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
@@ -169,6 +169,7 @@ export class StudentFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('student-form', STUDENT_FORM_TOUR);
+    this.tourService.registerFlowMap('student-form', STUDENT_FORM_FLOW_MAP);
     this.loadPrograms();
     this.communityService.getActiveCommunities().subscribe({
       next: (data) => this.communities.set(data),

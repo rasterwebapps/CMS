@@ -22,7 +22,7 @@ import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { INSTITUTION_FORM_TOUR } from '../../../shared/tour/tours/institution.tours';
+import { INSTITUTION_FORM_TOUR, INSTITUTION_FORM_FLOW_MAP } from '../../../shared/tour/tours/institution.tours';
 
 @Component({
   selector: 'app-institution-form',
@@ -101,6 +101,7 @@ export class InstitutionFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('institution-form', INSTITUTION_FORM_TOUR);
+    this.tourService.registerFlowMap('institution-form', INSTITUTION_FORM_FLOW_MAP);
     const id = this.route.snapshot.paramMap.get('id');
     if (id && id !== 'new') {
       this.itemId = Number(id);

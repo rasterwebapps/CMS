@@ -178,3 +178,15 @@ export const DEPT_FORM_TOUR: TourDefinition = {
     },
   ],
 };
+
+export const DEPT_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Specialities', description: 'Master list of academic specialities/departments, each with a head and description.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Name & Code', icon: 'checklist', detail: 'Full speciality name and a short uppercase code — the live preview updates as you type.' },
+    { label: 'Description & HOD', icon: 'open', detail: 'Optional description, plus the Head of Speciality\'s full name.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the name and code.' },
+  ],
+};

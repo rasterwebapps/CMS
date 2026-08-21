@@ -13,7 +13,7 @@ import { environment } from '../../../../environments/environment';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { EXPERIMENT_FORM_TOUR } from '../../../shared/tour/tours/experiment.tours';
+import { EXPERIMENT_FORM_TOUR, EXPERIMENT_FORM_FLOW_MAP } from '../../../shared/tour/tours/experiment.tours';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
@@ -106,6 +106,7 @@ export class ExperimentFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('experiment-form', EXPERIMENT_FORM_TOUR);
+    this.tourService.registerFlowMap('experiment-form', EXPERIMENT_FORM_FLOW_MAP);
 
     this.form.get('name')?.setAsyncValidators(
       uniqueFieldValidator(this.http, `${environment.apiUrl}/experiments/name-exists`,

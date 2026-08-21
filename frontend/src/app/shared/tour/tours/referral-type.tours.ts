@@ -170,3 +170,16 @@ export const REFERRAL_TYPE_FORM_TOUR: TourDefinition = {
   ],
 };
 
+export const REFERRAL_TYPE_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Referral Types', description: 'Master list of referral sources used to track how enquiries found the institution, with optional commission terms.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Name & Code', icon: 'checklist', detail: 'Display name and a unique uppercase code for the referral source.' },
+    { label: 'Commission', icon: 'payment', detail: 'Optionally enable commission and set the default amount — used unless overridden per agent.' },
+    { label: 'Description & Status', icon: 'open', detail: 'Optional description, plus Active status to control availability during admission entry.' },
+    { label: 'Save', icon: 'send', detail: 'Save the referral type.' },
+  ],
+};
+

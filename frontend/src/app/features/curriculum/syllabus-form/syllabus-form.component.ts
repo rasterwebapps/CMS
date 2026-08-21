@@ -13,7 +13,7 @@ import { CurriculumVersion, CurriculumFullView, CurriculumSemesterCourse } from 
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { SYLLABUS_FORM_TOUR } from '../../../shared/tour/tours/syllabus.tours';
+import { SYLLABUS_FORM_TOUR, SYLLABUS_FORM_FLOW_MAP } from '../../../shared/tour/tours/syllabus.tours';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
@@ -137,6 +137,7 @@ export class SyllabusFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('syllabus-form', SYLLABUS_FORM_TOUR);
+    this.tourService.registerFlowMap('syllabus-form', SYLLABUS_FORM_FLOW_MAP);
     this.curriculumVersionService.getPage({ size: 500, sort: 'versionName' }).subscribe({
       next: (page) => this.curriculumVersions.set(page.content),
       error: () => this.toast.error('Failed to load curriculum versions'),

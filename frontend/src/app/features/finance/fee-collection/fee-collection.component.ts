@@ -19,7 +19,7 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { FEE_COLLECTION_TOUR, COLLECT_BALANCE_TOUR, FEE_COLLECTION_FLOW_MAP } from '../../../shared/tour/tours/finance.tours';
+import { FEE_COLLECTION_TOUR, COLLECT_BALANCE_TOUR, FEE_COLLECTION_FLOW_MAP, COLLECT_BALANCE_FLOW_MAP } from '../../../shared/tour/tours/finance.tours';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
@@ -275,6 +275,7 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     this.tourService.register('fee-collection', FEE_COLLECTION_TOUR);
     this.tourService.register('collect-balance', COLLECT_BALANCE_TOUR);
     this.tourService.registerFlowMap('fee-collection', FEE_COLLECTION_FLOW_MAP);
+    this.tourService.registerFlowMap('collect-balance', COLLECT_BALANCE_FLOW_MAP);
     this.restoreFiltersFromQueryParams();
     this.loadAll(() => this.applyDeepLink());
 

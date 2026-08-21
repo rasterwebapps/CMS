@@ -11,7 +11,7 @@ import { AssessmentPattern, DocumentRequirementsRequest, DocumentTypeInfo, Progr
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { PROGRAM_FORM_TOUR } from '../../../shared/tour/tours/program.tours';
+import { PROGRAM_FORM_TOUR, PROGRAM_FORM_FLOW_MAP } from '../../../shared/tour/tours/program.tours';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
@@ -159,6 +159,7 @@ export class ProgramFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('program-form', PROGRAM_FORM_TOUR);
+    this.tourService.registerFlowMap('program-form', PROGRAM_FORM_FLOW_MAP);
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.programId = Number(idParam);

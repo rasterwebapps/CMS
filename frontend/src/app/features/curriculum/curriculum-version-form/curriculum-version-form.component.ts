@@ -12,7 +12,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { environment } from '../../../../environments';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { CURRICULUM_VERSION_FORM_TOUR } from '../../../shared/tour/tours/curriculum-version.tours';
+import { CURRICULUM_VERSION_FORM_TOUR, CURRICULUM_VERSION_FORM_FLOW_MAP } from '../../../shared/tour/tours/curriculum-version.tours';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
@@ -123,6 +123,7 @@ export class CurriculumVersionFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('curriculum-version-form', CURRICULUM_VERSION_FORM_TOUR);
+    this.tourService.registerFlowMap('curriculum-version-form', CURRICULUM_VERSION_FORM_FLOW_MAP);
 
     this.form.get('versionName')?.setAsyncValidators(
       uniqueFieldValidator(this.http, `${environment.apiUrl}/curriculum-versions/name-exists`,

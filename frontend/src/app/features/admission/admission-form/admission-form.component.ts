@@ -28,7 +28,7 @@ import { PageHeaderComponent } from '../../../shared/page-header/page-header.com
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { ADMISSION_FORM_TOUR } from '../../../shared/tour/tours/admission.tours';
+import { ADMISSION_FORM_TOUR, ADMISSION_FORM_FLOW_MAP } from '../../../shared/tour/tours/admission.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
 import { RoomPreferencePickerComponent } from '../../hostel/room-preference/room-preference-picker/room-preference-picker.component';
@@ -200,6 +200,7 @@ export class AdmissionFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('admission-form', ADMISSION_FORM_TOUR);
+    this.tourService.registerFlowMap('admission-form', ADMISSION_FORM_FLOW_MAP);
 
     // Load communities and blood groups for demographic dropdowns
     this.communityService.getActiveCommunities().subscribe({

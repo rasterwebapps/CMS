@@ -229,3 +229,16 @@ export const FACULTY_FORM_TOUR: TourDefinition = {
   ],
 };
 
+export const FACULTY_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Faculty', description: 'Master list of faculty members — speciality, designation, and contact details used across timetable and academics.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Identity & Contact', icon: 'checklist', detail: 'Employee code, email, name, and phone.' },
+    { label: 'Speciality & Designation', icon: 'open', detail: 'Assign a speciality and designation, plus joining date.' },
+    { label: 'Specialization & Expertise', icon: 'checklist', detail: 'Subject expertise and lab equipment knowledge — used for lab assignments and incharge selection.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the employee code and email.' },
+  ],
+};
+

@@ -159,3 +159,15 @@ export const PROGRAM_FORM_TOUR: TourDefinition = {
   ],
 };
 
+export const PROGRAM_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Programs', description: 'Master list of academic programs offered by the institution.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Name & Code', icon: 'checklist', detail: 'Full programme name and a short uppercase code.' },
+    { label: 'Duration & Status', icon: 'open', detail: 'Duration in years (1–10), and Active/Inactive to control new admissions.' },
+    { label: 'Save', icon: 'send', detail: 'Save with a real-time uniqueness check on the name and code.' },
+  ],
+};
+

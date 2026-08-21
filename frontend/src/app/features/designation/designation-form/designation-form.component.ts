@@ -15,7 +15,7 @@ import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { DESIGNATION_FORM_TOUR } from '../../../shared/tour/tours/designation.tours';
+import { DESIGNATION_FORM_TOUR, DESIGNATION_FORM_FLOW_MAP } from '../../../shared/tour/tours/designation.tours';
 
 @Component({
   selector: 'app-designation-form',
@@ -76,6 +76,7 @@ export class DesignationFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('designation-form', DESIGNATION_FORM_TOUR);
+    this.tourService.registerFlowMap('designation-form', DESIGNATION_FORM_FLOW_MAP);
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.designationId = Number(idParam);

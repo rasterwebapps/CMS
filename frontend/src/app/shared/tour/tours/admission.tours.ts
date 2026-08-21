@@ -102,6 +102,21 @@ export const ADMISSION_FORM_TOUR: TourDefinition = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Admission Form — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const ADMISSION_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Admission Explorer', description: 'Browse and drill into every admission record created from completed enquiries.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Select Enquiry', icon: 'search', detail: 'Select a pending enquiry to auto-fill the candidate\'s details.' },
+    { label: 'Admission Details', icon: 'checklist', detail: 'Enter the academic year, programme, year of study, batch, and other admission-specific information.' },
+    { label: 'Save', icon: 'send', detail: 'On save, the admission is created and the candidate becomes a student — roll number can be assigned later.' },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Admission Detail
 // ─────────────────────────────────────────────────────────────────────────────
 export const ADMISSION_DETAIL_TOUR: TourDefinition = {
@@ -144,6 +159,21 @@ export const ADMISSION_DETAIL_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Admission Detail — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const ADMISSION_DETAIL_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Admission Explorer', description: 'Browse and drill into every admission record created from completed enquiries.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Identity & Actions', icon: 'checklist', detail: 'Student name plus the Edit button to update the academic year, programme, or other administrative fields.' },
+    { label: 'Sectioned Tabs', icon: 'open', detail: 'Switch between Application, Fees, and Documents for a focused view of each aspect.' },
+    { label: 'Edit', icon: 'send', detail: 'Use Edit to update the admission record as circumstances change.' },
   ],
 };
 

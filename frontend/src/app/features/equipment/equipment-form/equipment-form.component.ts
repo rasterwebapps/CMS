@@ -12,7 +12,7 @@ import { environment } from '../../../../environments/environment';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { EQUIPMENT_FORM_TOUR } from '../../../shared/tour/tours/equipment.tours';
+import { EQUIPMENT_FORM_TOUR, EQUIPMENT_FORM_FLOW_MAP } from '../../../shared/tour/tours/equipment.tours';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
@@ -97,6 +97,7 @@ export class EquipmentFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('equipment-form', EQUIPMENT_FORM_TOUR);
+    this.tourService.registerFlowMap('equipment-form', EQUIPMENT_FORM_FLOW_MAP);
     this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/labs`).subscribe({
       next: (data) => this.labs.set(data),
       error: () => { this.toast.error('Failed to load labs'); },

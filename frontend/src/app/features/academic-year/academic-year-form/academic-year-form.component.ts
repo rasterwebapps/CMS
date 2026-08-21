@@ -39,7 +39,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { ACADEMIC_YEAR_FORM_TOUR } from '../../../shared/tour/tours/academic-year.tours';
+import { ACADEMIC_YEAR_FORM_TOUR, ACADEMIC_YEAR_FORM_FLOW_MAP } from '../../../shared/tour/tours/academic-year.tours';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
@@ -162,6 +162,7 @@ export class AcademicYearFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.tourService.register('academic-year-form', ACADEMIC_YEAR_FORM_TOUR);
+    this.tourService.registerFlowMap('academic-year-form', ACADEMIC_YEAR_FORM_FLOW_MAP);
     const idParam  = this.route.snapshot.paramMap.get('id');
     const urlSegs  = this.route.snapshot.url.map(s => s.path);
     const isDetail = urlSegs.includes('detail');

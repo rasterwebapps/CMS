@@ -20,7 +20,7 @@ import { BloodGroup } from '../../blood-group/blood-group.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
-import { ENQUIRY_CONVERT_TOUR } from '../../../shared/tour/tours/enquiry.tours';
+import { ENQUIRY_CONVERT_TOUR, ENQUIRY_CONVERT_FLOW_MAP } from '../../../shared/tour/tours/enquiry.tours';
 import { computeInitials } from '../../../shared/utils/initials';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { IndiaLocationService } from '../../india-location/india-location.service';
@@ -289,6 +289,7 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
 
   ngOnInit(): void {
     this.tourService.register('enquiry-convert', ENQUIRY_CONVERT_TOUR);
+    this.tourService.registerFlowMap('enquiry-convert', ENQUIRY_CONVERT_FLOW_MAP);
     this.initAddressCascade();
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (id) this.load(id);

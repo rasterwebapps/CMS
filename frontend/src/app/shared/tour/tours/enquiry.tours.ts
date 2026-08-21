@@ -148,6 +148,20 @@ export const ENQUIRY_FORM_TOUR: TourDefinition = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Enquiry Form — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const ENQUIRY_FORM_FLOW_MAP: TourFlowMap = {
+  funnel: ADMISSION_PIPELINE_FUNNEL,
+  currentIndex: 0,
+  steps: [
+    { label: 'Candidate Basics', icon: 'checklist', detail: 'Name, phone, and email — phone matters most since most candidates respond faster via call than email.' },
+    { label: 'Programme & Course', icon: 'open', detail: 'Select the programme of interest — the course list and base fee load automatically from this choice.' },
+    { label: 'Referral & Agent', icon: 'checklist', detail: 'Track where the enquiry came from; select an agent if referred so commissions calculate automatically.' },
+    { label: 'Save', icon: 'send', detail: 'Save to register the enquiry — return anytime to update notes, take payments, or convert it.' },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Enquiry Detail
 // ─────────────────────────────────────────────────────────────────────────────
 export const ENQUIRY_DETAIL_TOUR: TourDefinition = {
@@ -200,6 +214,20 @@ export const ENQUIRY_DETAIL_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Enquiry Detail — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const ENQUIRY_DETAIL_FLOW_MAP: TourFlowMap = {
+  funnel: ADMISSION_PIPELINE_FUNNEL,
+  currentIndex: 0,
+  steps: [
+    { label: 'Candidate Identity', icon: 'checklist', detail: 'Name, programme, course, status badge, and referral source, at a glance.' },
+    { label: 'Quick Actions', icon: 'open', detail: 'Update status, capture follow-up notes, collect a fee payment, or convert to an admission.' },
+    { label: 'Tabbed Sections', icon: 'checklist', detail: 'Switch between profile details, status history, payment records, and uploaded documents.' },
+    { label: 'Convert', icon: 'send', detail: 'Move the candidate forward through the admission workflow using the action buttons.' },
   ],
 };
 
@@ -320,6 +348,19 @@ export const DOCUMENT_COLLECTION_TOUR: TourDefinition = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Document Collection (per-candidate) — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const DOCUMENT_COLLECTION_FLOW_MAP: TourFlowMap = {
+  funnel: ADMISSION_PIPELINE_FUNNEL,
+  currentIndex: 3,
+  steps: [
+    { label: 'Candidate Banner', icon: 'checklist', detail: 'Confirms you\'re working on the right person — name, programme, course, and overall payment status.' },
+    { label: 'Document Checklist', icon: 'open', detail: 'Each item shows the required document, its status (Pending / Submitted / Verified), and an upload button. Mandatory items are marked.' },
+    { label: 'Upload & Verify', icon: 'send', detail: 'Upload each document — once all mandatory documents are verified, the candidate moves toward Complete Admission.' },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Complete Admission List
 // ─────────────────────────────────────────────────────────────────────────────
 export const ADMISSION_COMPLETION_LIST_TOUR: TourDefinition = {
@@ -422,6 +463,19 @@ export const ENQUIRY_CONVERT_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Enquiry → Admission Conversion — Flow Map
+// ─────────────────────────────────────────────────────────────────────────────
+export const ENQUIRY_CONVERT_FLOW_MAP: TourFlowMap = {
+  funnel: ADMISSION_PIPELINE_FUNNEL,
+  currentIndex: 0,
+  steps: [
+    { label: 'Enquiry Summary', icon: 'checklist', detail: 'Verify the candidate, programme, course, and final fee one last time before converting.' },
+    { label: 'Admission Details', icon: 'open', detail: 'Fill in the academic year, year of study, batch, and other admission-specific fields.' },
+    { label: 'Confirm Conversion', icon: 'send', detail: 'On submit, a new admission record is created and the enquiry moves to Admitted.' },
   ],
 };
 

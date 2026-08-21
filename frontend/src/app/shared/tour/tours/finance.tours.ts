@@ -186,6 +186,22 @@ export const COLLECT_BALANCE_TOUR: TourDefinition = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Collect Balance (Payment Detail) — Flow Map
+// Same 6-stage funnel/position as FEE_COLLECTION_FLOW_MAP below — this is the
+// per-person payment form the list drills into, not a new pipeline stage.
+// ─────────────────────────────────────────────────────────────────────────────
+export const COLLECT_BALANCE_FLOW_MAP: TourFlowMap = {
+  funnel: ADMISSION_PIPELINE_FUNNEL,
+  currentIndex: 2,
+  steps: [
+    { label: 'Installment Table', icon: 'checklist', detail: 'Each installment shows its due date, fee amount, paid amount, and outstanding balance, with a paid / partial / overdue / pending badge.' },
+    { label: 'Payment Form', icon: 'payment', detail: 'Enter the collection amount, payment date, and payment mode — cash payments can be broken down by denomination.' },
+    { label: 'Record Payment', icon: 'send', detail: 'Submit to record the payment; the outstanding balance updates automatically.' },
+    { label: 'Receipt', icon: 'receipt', detail: 'A receipt is ready to print or download immediately.' },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Collect Payment — Flow Map (Take a Tour, second view)
 // Funnel labels/order and the "current" position mirror the Admission Management
 // nav group (AD) in nav-config.ts; the six steps are the real Fee Collection /
@@ -458,5 +474,23 @@ export const STUDENT_FEE_DETAIL_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Student Fee Detail — Flow Map
+// The drill-down destination of Fee Explorer — standalone, single-entry funnel
+// per the README's guidance (no rail, Flow Map only).
+// ─────────────────────────────────────────────────────────────────────────────
+export const STUDENT_FEE_DETAIL_FLOW_MAP: TourFlowMap = {
+  funnel: [
+    { label: 'Fee Explorer', description: 'High-level view of every student fee allocation, payment status, and outstanding balance.' },
+  ],
+  currentIndex: 0,
+  steps: [
+    { label: 'Student & Summary Stats', icon: 'checklist', detail: 'Name, roll number, program, and quick stats — total fee, amount paid, outstanding balance, and penalties.' },
+    { label: 'Installment Schedule', icon: 'open', detail: 'All installments with due dates, allocated and paid amounts, and status — click a row to drill deeper.' },
+    { label: 'Payment History', icon: 'receipt', detail: 'Past payments grouped by receipt, with print/download icons to retrieve documents.' },
+    { label: 'Take Action', icon: 'send', detail: 'Use Collect Balance to record a new payment, or Request Refund to begin a refund workflow.' },
   ],
 };
