@@ -46,6 +46,15 @@ public class Classroom {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    /** Large lecture/drawing halls can host multiple special-class bookings at once as long as
+     *  their combined headcount fits this room's capacity — see
+     *  {@code SpecialClassRequestService#checkConflicts}. Every other classroom stays exclusive
+     *  (one booking per period) by default. Deliberately independent of the Room Purpose
+     *  Classification masters ({@link Room}'s {@code purposeCategory}/{@code subType}) — this
+     *  entity's own {@link #room} link is optional/non-unique, not a reliable place to hang this. */
+    @Column(name = "allows_concurrent_sharing", nullable = false)
+    private Boolean allowsConcurrentSharing = false;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -118,6 +127,14 @@ public class Classroom {
 
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
+    }
+
+    public Boolean getAllowsConcurrentSharing() {
+        return allowsConcurrentSharing;
+    }
+
+    public void setAllowsConcurrentSharing(Boolean allowsConcurrentSharing) {
+        this.allowsConcurrentSharing = allowsConcurrentSharing != null ? allowsConcurrentSharing : false;
     }
 
     public Instant getCreatedAt() {

@@ -276,6 +276,7 @@ export interface StudentTermEnrollment {
   id: number;
   studentId: number;
   studentName: string;
+  rollNumber: string | null;
   cohortId: number;
   cohortCode: string;
   termInstanceId: number;
@@ -296,6 +297,17 @@ export type ElectiveSelectionMode = 'STUDENT_CHOICE' | 'INSTITUTION_DECIDED';
 export interface ElectiveBulkAssignmentResponse {
   eligibleStudentCount: number;
   assignedCount: number;
+  blockedCount: number;
+}
+
+export interface ElectiveGroupSummary {
+  electiveGroupId: number;
+  electiveGroupName: string;
+  selectionMode: ElectiveSelectionMode;
+  termNumber: number;
+  eligibleCount: number;
+  assignedCount: number;
+  scheduled: boolean;
 }
 
 export interface CourseOffering {
@@ -313,7 +325,6 @@ export interface CourseOffering {
   facultyId: number | null;
   /** Informational-only backup/co-instructor note — never eligible for staffing/substitution. */
   secondaryFacultyId: number | null;
-  sectionLabel: string | null;
   isActive: boolean;
   curriculumTermCourseId: number | null;
   isElective: boolean;
@@ -325,12 +336,74 @@ export interface CourseOffering {
   clinicalHours: number;
   createdAt: string;
   updatedAt: string;
+  /** CourseOffering has no cohort FK of its own — it's keyed by curriculum version, which can be
+   *  shared by more than one cohort's admission year on the same (program, course). Usually a
+   *  single name; more than one means this exact row is shared across cohorts. Empty when no
+   *  cohort is currently enrolled against this offering's curriculum version + semester. */
+  cohortNames: string[];
 }
 
 export interface CourseOfferingUpdateRequest {
   facultyId?: number | null;
   secondaryFacultyId?: number | null;
-  sectionLabel?: string | null;
+}
+
+/** Deactivating (isActive: false) is blocked server-side when the offering already has sessions
+ *  placed in Skeleton Builder or batches with students rostered — reactivating has no such guard. */
+export interface CourseOfferingStatusUpdateRequest {
+  isActive: boolean;
+  reason?: string;
+}
+
+export interface CourseOfferingStatusUpdateResponse {
+  id: number;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface FacultyCapacitySpreadLoadSuggestion {
+  alternateFacultyId: number;
+  alternateFacultyName: string;
+  isOfferingsSecondaryFaculty: boolean;
+  alternateSpareCapacityHours: number;
+  courseOfferingId: number;
+  subjectName: string;
+}
+
+/** Live pre-save capacity check for the Course Offering edit dialog's Faculty picker — mirrors
+ *  the backend's FacultyCapacityCheckResult exactly. */
+export interface FacultyCapacityCheckResult {
+  overCapacity: boolean;
+  currentDemandHours: number;
+  offeringHours: number;
+  projectedTotalHours: number;
+  capacityHours: number;
+  dailyCap: number;
+  capacityTier: string;
+  workingDaysInTerm: number;
+  suggestedMinDailyHours: number;
+  spreadLoad: FacultyCapacitySpreadLoadSuggestion[];
+}
+
+/** cohortName exists because a CourseOffering can be shared by more than one cohort on the same
+ *  curriculum version — sections from every matching cohort are listed together, distinguished by
+ *  this label. */
+export interface SectionFacultyAssignment {
+  cohortSectionId: number;
+  cohortName: string;
+  sectionLabel: string;
+  facultyId: number | null;
+  facultyName: string | null;
+}
+
+/** applicable=false means this offering's cohort couldn't be uniquely resolved (shared across
+ *  cohorts, or none currently enrolled) — reason explains why, sections is empty. Fewer than 2
+ *  sections should also be treated as "nothing to show" even when applicable is true, since a
+ *  single-section cohort has no split to assign. */
+export interface CourseOfferingSectionFacultyResponse {
+  applicable: boolean;
+  reason: string | null;
+  sections: SectionFacultyAssignment[];
 }
 
 export interface GenerateCourseOfferingsResponse {

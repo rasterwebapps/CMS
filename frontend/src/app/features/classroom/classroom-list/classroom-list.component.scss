@@ -110,6 +110,13 @@
   text-transform: uppercase;
 }
 
+.cls-card__badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .dept-card__desc {
   font-size: var(--cms-text-sm);
   color: var(--cms-text-muted);

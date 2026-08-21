@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.CapacityPlanResponse;
 import com.cms.dto.FacultyWorkloadReportResponse;
+import com.cms.dto.TermCapacityOverviewResponse;
 import com.cms.model.enums.PlanningBasis;
 import com.cms.service.FacultyWorkloadCapacityService;
 import com.cms.service.TimetableCapacityPlanningService;
@@ -40,5 +41,15 @@ public class TimetableCapacityPlanningController {
     @PreAuthorize("@perm.has('TIMETABLE_CAPACITY_PLANNER_VIEW')")
     public ResponseEntity<FacultyWorkloadReportResponse> getFacultyWorkload(@RequestParam Long termInstanceId) {
         return ResponseEntity.ok(facultyWorkloadCapacityService.getTermWorkloadReport(termInstanceId));
+    }
+
+    /** Same permission as {@link #getPlan} — the bulk Capacity Auto-Plan screen is a read/navigate
+     *  view only; committing still goes through {@code CohortRoomAllocationController}'s own
+     *  MANAGE-gated endpoint, unchanged. */
+    @GetMapping("/term-overview")
+    @PreAuthorize("@perm.has('TIMETABLE_CAPACITY_PLANNER_VIEW')")
+    public ResponseEntity<TermCapacityOverviewResponse> getTermOverview(@RequestParam Long termInstanceId,
+                                                                          @RequestParam(required = false) PlanningBasis planningBasis) {
+        return ResponseEntity.ok(timetableCapacityPlanningService.getTermOverview(termInstanceId, planningBasis));
     }
 }

@@ -24,5 +24,9 @@ public record CapacityPlanResponse(
     List<VenueOptionResponse> fittingClinicalVenues,
     List<VenueUtilizationResponse> classroomUtilization,
     List<VenueUtilizationResponse> labUtilization,
-    List<VenueUtilizationResponse> clinicalVenueUtilization
+    List<VenueUtilizationResponse> clinicalVenueUtilization,
+    List<SuggestedSectionResponse> suggestedSections,
+    List<SuggestedBatchResponse> suggestedLabClinicalBatches,
+    boolean labClinicalMappingSufficient,
+    String labClinicalMappingIssuesMessage
 ) {}

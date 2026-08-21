@@ -1,1 +1,58 @@
 // Subject form styles are handled by global entry-form classes in styles.scss
+
+// Eligible Labs / Eligible Clinical Venues checklists -- same visual language as Role Management's
+// permission checklist (.perm-item), redefined locally since Angular's ViewEncapsulation scopes
+// component styles per-component.
+.subj-venue-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md, 10px);
+  padding: 6px;
+}
+
+.subj-venue-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+
+  &:hover {
+    background: var(--cms-bg-muted);
+  }
+
+  &--checked {
+    background: rgba(var(--cms-primary-rgb), 0.06);
+
+    .subj-venue-item__name {
+      color: var(--cms-text-primary);
+      font-weight: 600;
+    }
+  }
+}
+
+.subj-venue-checkbox {
+  flex-shrink: 0;
+}
+
+.subj-venue-item__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--cms-text-base, 0.875rem);
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subj-venue-item__capacity {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--cms-text-secondary);
+}

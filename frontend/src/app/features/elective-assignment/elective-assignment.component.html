@@ -1,153 +1,209 @@
-<div class="list-page mlp-page">
-  <div class="entry-form-header">
-    <div class="entry-form-hdr-text">
+<div class="mlp-page">
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
       <div style="display: flex; align-items: center; gap: 12px;">
-        <h1 class="page-title">Elective <em>Assignment</em></h1>
+        <h1 class="mlp-title">Elective <em>Assignment</em></h1>
         <cms-tour-button tourKey="elective-assignment" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="page-subtitle">Assign each enrolled student's choice-based elective for the term.</p>
+      <p class="mlp-sub">Assign each enrolled student's choice-based elective for the term.</p>
     </div>
   </div>
 
-  <div id="tour-elec-toolbar" class="command-bar mlp-toolbar">
-    <div class="command-bar__left">
-      <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
-        @for (ay of academicYears(); track ay.id) {
-          <option [ngValue]="ay.id">{{ ay.name }}</option>
-        }
-      </select>
-
-      <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()" aria-label="Term instance">
-        @for (term of termInstances(); track term.id) {
-          <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
-        }
-      </select>
-
-      <select class="mlp-filter-select" [(ngModel)]="selectedElectiveGroupId" (ngModelChange)="onGroupChange()"
-        [disabled]="electiveGroupOptions().length === 0" aria-label="Elective group">
-        <option [ngValue]="null" disabled>
-          {{ electiveGroupOptions().length === 0 ? 'No elective groups for this term' : 'Select elective group' }}
-        </option>
-        @for (group of electiveGroupOptions(); track group.electiveGroupId) {
-          <option [ngValue]="group.electiveGroupId">{{ group.electiveGroupName }}</option>
-        }
-      </select>
-    </div>
-
-    @if (selectedGroup(); as group) {
-      <div class="command-bar__right">
-        @if (canManageElectiveGroups()) {
-          <span class="field-hint">Selection mode:</span>
-          <select class="mlp-filter-select" [ngModel]="group.selectionMode"
-            (ngModelChange)="setSelectionMode($event)" [disabled]="modeSaving()" aria-label="Selection mode">
-            <option value="STUDENT_CHOICE">Student Choice</option>
-            <option value="INSTITUTION_DECIDED">Institution Decided</option>
-          </select>
-        } @else {
-          <span class="field-hint">
-            Mode: {{ group.selectionMode === 'INSTITUTION_DECIDED' ? 'Institution Decided' : 'Student Choice' }}
-          </span>
-        }
-      </div>
-    }
-  </div>
-
-  @if (selectedElectiveGroupId && scheduleStatus(); as status) {
-    <p class="field-hint ea-schedule-status">
-      @if (status.scheduled) {
-        Scheduled: {{ status.dayOfWeek }}, {{ status.periodName }} ({{ status.startTime }}–{{ status.endTime }})
-      } @else {
-        Not yet scheduled — <a routerLink="/timetable/skeleton-builder">place it in Skeleton Builder</a> first.
-      }
-    </p>
-  }
-
-  @if (isInstitutionDecided() && offeringOptions().length > 0) {
-    <div class="command-bar mlp-toolbar">
-      <div class="command-bar__left">
-        <select class="field-select" (change)="onBulkOfferingSelect($event)" aria-label="Offering for everyone">
-          <option value="">-- Choose offering for everyone --</option>
-          @for (offering of offeringOptions(); track offering.id) {
-            <option [value]="offering.id">{{ offering.subjectCode }} — {{ offering.subjectName }}</option>
+  <div class="ea-layout anim-rise anim-rise--d1">
+    <div id="tour-elec-choose" class="content-card ea-choose-panel">
+      <div class="ea-filters">
+        <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
+          @for (ay of academicYears(); track ay.id) {
+            <option [ngValue]="ay.id">{{ ay.name }}</option>
           }
         </select>
-        <button class="btn-primary" type="button" [disabled]="!bulkOfferingId() || bulkAssigning()" (click)="applyToAll()">
-          @if (bulkAssigning()) {
-            <span class="btn-spinner"></span>
-          } @else {
-            Apply to All
+
+        <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()" aria-label="Term instance">
+          @for (term of termInstances(); track term.id) {
+            <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
           }
-        </button>
+        </select>
+      </div>
+
+      <h2 class="ea-panel-title">Choose Elective Group</h2>
+      @if (groupSummaries().length === 0) {
+        <p class="field-hint">No elective groups for this term.</p>
+      }
+      <div class="ea-group-list" role="list" aria-label="Elective groups this term">
+        @for (summary of groupSummaries(); track summary.electiveGroupId) {
+          <button type="button" role="listitem" class="ea-group-card"
+            [class.ea-group-card--active]="summary.electiveGroupId === selectedElectiveGroupId"
+            (click)="selectGroupFromSummary(summary)">
+            <span class="ea-group-card__top">
+              <span class="ea-group-card__name">{{ summary.electiveGroupName }}</span>
+              @if (summary.electiveGroupId === selectedElectiveGroupId) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              }
+            </span>
+            <span class="ea-group-card__progress-track">
+              <span class="ea-group-card__progress-fill" [style.width.%]="progressPercent(summary)"></span>
+            </span>
+            <span class="ea-group-card__count">{{ summary.assignedCount }} / {{ summary.eligibleCount }} assigned</span>
+            <span class="ea-group-card__mode">
+              {{ summary.selectionMode === 'INSTITUTION_DECIDED' ? 'Institution Decided' : 'Student Choice' }}
+              @if (summary.scheduled) { · Scheduled }
+            </span>
+          </button>
+        }
       </div>
     </div>
-  }
 
-  <div id="tour-elec-table" class="content-card mlp-table-card">
-    @if (loading()) {
-      <div class="loading-container">
-        <mat-spinner diameter="36" aria-label="Loading"></mat-spinner>
-      </div>
-    } @else {
-      <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
-          <ng-container matColumnDef="studentName">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
-            <td mat-cell *matCellDef="let row">{{ row.enrollment.studentName }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="cohortCode">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Cohort</th>
-            <td mat-cell *matCellDef="let row">{{ row.enrollment.cohortCode }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="currentChoice">
-            <th mat-header-cell *matHeaderCellDef>Current Choice</th>
-            <td mat-cell *matCellDef="let row">{{ row.currentChoiceLabel || '— Not assigned —' }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="action">
-            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
-            <td mat-cell *matCellDef="let row">
-              @if (!isInstitutionDecided()) {
-                <div class="row-actions ea-action-row">
-                  <select class="field-select field-select--narrow" (change)="onSelectOffering(row.enrollment.id, $event)">
-                    <option value="">-- Choose option --</option>
-                    @for (offering of offeringOptions(); track offering.id) {
-                      <option [value]="offering.id" [selected]="row.currentChoiceOfferingId === offering.id">
-                        {{ offering.subjectCode }} — {{ offering.subjectName }}
-                      </option>
-                    }
-                  </select>
-                  <button class="btn-secondary" type="button" [disabled]="assigning() === row.enrollment.id" (click)="assign(row)">
-                    @if (assigning() === row.enrollment.id) {
-                      <span class="btn-spinner btn-spinner--dark"></span>
-                    } @else {
-                      Assign
-                    }
-                  </button>
-                </div>
+    <div id="tour-elec-table" class="ea-assign-panel">
+      @if (!selectedElectiveGroupId) {
+        <div class="content-card mlp-table-card ea-assign-empty">
+          <cms-empty-state
+            icon="how_to_reg"
+            title="Select an elective group"
+            subtitle="Choose a group on the left to assign or review student electives."
+          />
+        </div>
+      } @else if (selectedGroup(); as group) {
+        <div class="ea-assign-header">
+          <div class="ea-assign-header__text">
+            <h2 class="ea-panel-title">
+              {{ editMode() ? 'Assign' : 'View' }} — {{ group.electiveGroupName }}
+              @if (!editMode()) {
+                <span class="ea-mode-tag">
+                  {{ group.selectionMode === 'INSTITUTION_DECIDED' ? 'Institution Decided' : 'Student Choice' }}
+                </span>
               }
-            </td>
-          </ng-container>
+            </h2>
+            @if (!editMode()) {
+              <p class="field-hint">Every eligible student is already assigned. Click Edit to make changes.</p>
+            }
+            @if (scheduleStatus(); as status) {
+              @if (status.scheduled) {
+                <p class="field-hint ea-schedule-status">
+                  Scheduled: {{ status.dayOfWeek }}, {{ status.periodName }} ({{ status.startTime }}–{{ status.endTime }})
+                </p>
+              }
+            }
+          </div>
+          <div class="ea-assign-header__actions">
+            @if (editMode()) {
+              @if (canManageElectiveGroups()) {
+                <div class="ea-mode-switch">
+                  <span class="field-hint">Mode:</span>
+                  <select class="mlp-filter-select" [ngModel]="group.selectionMode"
+                    (ngModelChange)="setSelectionMode($event)" [disabled]="modeSaving()" aria-label="Selection mode">
+                    <option value="STUDENT_CHOICE">Student Choice</option>
+                    <option value="INSTITUTION_DECIDED">Institution Decided</option>
+                  </select>
+                </div>
+              } @else {
+                <span class="field-hint">
+                  Mode: {{ group.selectionMode === 'INSTITUTION_DECIDED' ? 'Institution Decided' : 'Student Choice' }}
+                </span>
+              }
+              @if (isInstitutionDecided() && offeringOptions().length > 0) {
+                <select class="field-select" [ngModel]="bulkOfferingId()" (ngModelChange)="bulkOfferingId.set($event)" aria-label="Offering for everyone">
+                  <option [ngValue]="null">-- Choose offering for everyone --</option>
+                  @for (offering of offeringOptions(); track offering.id) {
+                    <option [ngValue]="offering.id">{{ offering.subjectCode }} — {{ offering.subjectName }}</option>
+                  }
+                </select>
+                <button class="btn-primary" type="button" [disabled]="!bulkOfferingId() || bulkAssigning()" (click)="applyToAll()">
+                  @if (bulkAssigning()) {
+                    <mat-spinner diameter="14" class="btn-spinner"></mat-spinner>
+                  } @else {
+                    Apply to All
+                  }
+                </button>
+              }
+            }
+            <button class="btn-secondary" type="button" (click)="toggleEditMode()">
+              @if (editMode()) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Done
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit
+              }
+            </button>
+          </div>
+        </div>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+        <div class="content-card mlp-table-card">
+          @if (loading()) {
+            <div class="loading-container">
+              <mat-spinner diameter="36" aria-label="Loading"></mat-spinner>
+            </div>
+          } @else {
+            <div class="table-wrapper">
+              <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+                <ng-container matColumnDef="rollNumber">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Roll No.</th>
+                  <td mat-cell *matCellDef="let row">
+                    <span class="cell-code">{{ row.enrollment.rollNumber || '—' }}</span>
+                  </td>
+                </ng-container>
 
-          <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0; border: none;">
-              <cms-empty-state
-                icon="how_to_reg"
-                [title]="selectedElectiveGroupId ? 'No students in this term for this elective group' : 'Select an elective group to begin'"
-                subtitle="Pick an academic year, term and elective group above."
-              />
-            </td>
-          </tr>
-        </table>
-      </div>
+                <ng-container matColumnDef="studentName">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
+                  <td mat-cell *matCellDef="let row">{{ row.enrollment.studentName }}</td>
+                </ng-container>
 
-      <div class="pagination-wrapper">
-        <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
-      </div>
-    }
+                <ng-container matColumnDef="cohortCode">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Cohort</th>
+                  <td mat-cell *matCellDef="let row">{{ row.enrollment.cohortCode }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="currentChoice">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Current Choice</th>
+                  <td mat-cell *matCellDef="let row">{{ row.currentChoiceLabel || '— Not assigned —' }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="action">
+                  <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+                  <td mat-cell *matCellDef="let row">
+                    @if (editMode() && !isInstitutionDecided()) {
+                      <div class="row-actions ea-action-row">
+                        <select class="field-select field-select--narrow" (change)="onSelectOffering(row.enrollment.id, $event)">
+                          <option value="">-- Choose option --</option>
+                          @for (offering of offeringOptions(); track offering.id) {
+                            <option [value]="offering.id" [selected]="row.currentChoiceOfferingId === offering.id">
+                              {{ offering.subjectCode }} — {{ offering.subjectName }}
+                            </option>
+                          }
+                        </select>
+                        <button class="btn-secondary" type="button" [disabled]="assigning() === row.enrollment.id" (click)="assign(row)">
+                          @if (assigning() === row.enrollment.id) {
+                            <mat-spinner diameter="14" class="btn-spinner"></mat-spinner>
+                          } @else {
+                            {{ isChange(row) ? 'Change' : 'Assign' }}
+                          }
+                        </button>
+                      </div>
+                    }
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+
+                <tr class="mat-row" *matNoDataRow>
+                  <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0; border: none;">
+                    <cms-empty-state
+                      icon="how_to_reg"
+                      title="No students in this term for this elective group"
+                      subtitle="Check the academic year and term above."
+                    />
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            <div class="pagination-wrapper">
+              <mat-paginator [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
+            </div>
+          }
+        </div>
+      }
+    </div>
   </div>
 </div>

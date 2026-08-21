@@ -92,6 +92,45 @@
   gap: 6px;
 }
 
+// The violations table is a plain <table> (no mat-table directives), so it gets none of the shared
+// .modern-table padding/border styling -- that only targets Angular Material's .mat-header-cell/
+// .mat-cell classes. This component has exactly one <table>, so scoping directly on table/th/td
+// here is safe.
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+th {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cms-text-table-header);
+  background: var(--cms-bg-subtle);
+  border-bottom: 1px solid var(--cms-border-default);
+  padding: 13px 16px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--cms-border-light);
+  font-size: 0.875rem;
+  color: var(--cms-text-secondary);
+  vertical-align: middle;
+}
+
+tbody tr:last-child > td {
+  border-bottom: none;
+}
+
+tbody tr:hover > td {
+  background: var(--cms-bg-hover);
+}
+
 .ci-loading {
   display: flex;
   justify-content: center;

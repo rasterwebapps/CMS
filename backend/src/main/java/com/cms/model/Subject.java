@@ -1,6 +1,8 @@
 package com.cms.model;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -14,6 +16,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
@@ -50,6 +54,20 @@ public class Subject {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    /** Labs/Clinical Venues suitable for this subject's practical sessions -- a soft PREFERENCE for
+     *  the auto-suggest algorithm and manual pickers (TimetableCapacityPlanningService), not a hard
+     *  restriction: an empty set means no preference has been configured yet, in which case every
+     *  active lab/venue is offered exactly as before this field existed. */
+    @ManyToMany
+    @JoinTable(name = "subject_eligible_labs", joinColumns = @JoinColumn(name = "subject_id"),
+        inverseJoinColumns = @JoinColumn(name = "lab_id"))
+    private Set<Lab> eligibleLabs = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(name = "subject_eligible_clinical_venues", joinColumns = @JoinColumn(name = "subject_id"),
+        inverseJoinColumns = @JoinColumn(name = "clinical_venue_id"))
+    private Set<ClinicalVenue> eligibleClinicalVenues = new HashSet<>();
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -148,6 +166,22 @@ public class Subject {
 
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
+    }
+
+    public Set<Lab> getEligibleLabs() {
+        return eligibleLabs;
+    }
+
+    public void setEligibleLabs(Set<Lab> eligibleLabs) {
+        this.eligibleLabs = eligibleLabs;
+    }
+
+    public Set<ClinicalVenue> getEligibleClinicalVenues() {
+        return eligibleClinicalVenues;
+    }
+
+    public void setEligibleClinicalVenues(Set<ClinicalVenue> eligibleClinicalVenues) {
+        this.eligibleClinicalVenues = eligibleClinicalVenues;
     }
 
     public Instant getCreatedAt() {

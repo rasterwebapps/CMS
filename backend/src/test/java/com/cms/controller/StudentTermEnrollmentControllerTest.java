@@ -36,7 +36,7 @@ class StudentTermEnrollmentControllerTest {
     private StudentTermEnrollmentDto createDto(Long id, Long studentId, Long cohortId, Long termInstanceId,
                                                 Integer semesterNumber, Integer yearOfStudy) {
         return new StudentTermEnrollmentDto(
-            id, studentId, "John Doe", cohortId, "BCA-2024-2027",
+            id, studentId, "John Doe", "ROLL001", cohortId, "BCA-2024-2027",
             termInstanceId, "2024-2025 ODD", semesterNumber, yearOfStudy, EnrollmentStatus.ENROLLED
         );
     }

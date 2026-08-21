@@ -6,6 +6,8 @@ import {
   AutoPlaceResult,
   ElectiveGroupPlacementRequest,
   ElectiveGroupScheduleResponse,
+  GlobalAutoScheduleResult,
+  GlobalCapacityPrecheckResult,
   SkeletonBuilderResponse,
   SkeletonCell,
   SkeletonCellMoveRequest,
@@ -59,6 +61,18 @@ export class SkeletonBuilderService {
 
   getElectiveGroupSchedule(electiveGroupId: number, termInstanceId: number): Observable<ElectiveGroupScheduleResponse> {
     return this.http.get<ElectiveGroupScheduleResponse>(`${this.baseUrl}/elective-groups/${electiveGroupId}/schedule`, {
+      params: { termInstanceId: termInstanceId.toString() },
+    });
+  }
+
+  precheckGlobalAutoPlace(termInstanceId: number): Observable<GlobalCapacityPrecheckResult> {
+    return this.http.get<GlobalCapacityPrecheckResult>(`${this.baseUrl}/global-auto-place/precheck`, {
+      params: { termInstanceId: termInstanceId.toString() },
+    });
+  }
+
+  globalAutoPlace(termInstanceId: number): Observable<GlobalAutoScheduleResult> {
+    return this.http.post<GlobalAutoScheduleResult>(`${this.baseUrl}/global-auto-place`, null, {
       params: { termInstanceId: termInstanceId.toString() },
     });
   }

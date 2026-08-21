@@ -154,6 +154,57 @@ class CurriculumSemesterCourseServiceTest {
     }
 
     @Test
+    void shouldRejectLabHoursWhenSubjectHasNoEligibleLab() {
+        Subject subjectWithNoLab = createSubject(2L, "Anatomy", "ANAT");
+        subjectWithNoLab.setEligibleLabs(new java.util.HashSet<>());
+        CurriculumSemesterCourse existing = createCsc(1L, testCv, 1, subjectWithNoLab, 1);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 2L, 1, 40, 80, 0, com.cms.model.enums.SubjectType.CORE, false, null);
+
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.updateCourseDetails(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("eligible Lab");
+
+        verify(courseRepository, org.mockito.Mockito.never()).save(any(CurriculumSemesterCourse.class));
+    }
+
+    @Test
+    void shouldRejectClinicalHoursWhenSubjectHasNoEligibleClinicalVenue() {
+        Subject subjectWithNoVenue = createSubject(3L, "Fundamentals of Nursing", "FON");
+        subjectWithNoVenue.setEligibleClinicalVenues(new java.util.HashSet<>());
+        CurriculumSemesterCourse existing = createCsc(1L, testCv, 1, subjectWithNoVenue, 1);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 3L, 1, 40, 0, 320, com.cms.model.enums.SubjectType.CORE, false, null);
+
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.updateCourseDetails(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("eligible Clinical Venue");
+
+        verify(courseRepository, org.mockito.Mockito.never()).save(any(CurriculumSemesterCourse.class));
+    }
+
+    @Test
+    void shouldAllowZeroLabAndClinicalHoursRegardlessOfEligibility() {
+        // A pure-theory subject (0 lab/clinical hours) never needs the gate, even with nothing
+        // configured -- the block only fires when hours are actually requested.
+        Subject theoryOnlySubject = createSubject(4L, "Nursing Ethics", "NETH");
+        theoryOnlySubject.setEligibleLabs(new java.util.HashSet<>());
+        theoryOnlySubject.setEligibleClinicalVenues(new java.util.HashSet<>());
+        CurriculumSemesterCourse existing = createCsc(1L, testCv, 1, theoryOnlySubject, 1);
+        CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 4L, 1, 60, 0, 0, com.cms.model.enums.SubjectType.CORE, false, null);
+
+        when(courseRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(courseRepository.save(any(CurriculumSemesterCourse.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CurriculumSemesterCourseDto dto = service.updateCourseDetails(1L, request);
+
+        assertThat(dto.theoryHours()).isEqualTo(60);
+        assertThat(dto.labHours()).isEqualTo(0);
+    }
+
+    @Test
     void shouldRejectUpdateWhenCourseHasOfferings() {
         CurriculumSemesterCourse existing = createCsc(1L, testCv, 1, testSubject, 1);
         CurriculumSemesterCourseRequest request = new CurriculumSemesterCourseRequest(1L, 1, 1L, 1, 40, 80, 320, com.cms.model.enums.SubjectType.CORE, false, null);
@@ -375,11 +426,21 @@ class CurriculumSemesterCourseServiceTest {
         return cv;
     }
 
+    // Default fixture is pre-configured with an eligible Lab/Clinical Venue (a realistic,
+    // correctly-set-up subject) so existing hours/subjectType tests aren't tripped up by the
+    // eligible-lab/venue hard block in applyDetails() -- see shouldRejectLabHoursWithoutEligibleLab
+    // / shouldRejectClinicalHoursWithoutEligibleClinicalVenue below for the block itself.
     private Subject createSubject(Long id, String name, String code) {
         Subject s = new Subject(name, code, 4, 3, 1, null, 1);
         s.setId(id);
         s.setCreatedAt(Instant.now());
         s.setUpdatedAt(Instant.now());
+        com.cms.model.Lab lab = new com.cms.model.Lab();
+        lab.setId(500L);
+        s.setEligibleLabs(new java.util.HashSet<>(java.util.List.of(lab)));
+        com.cms.model.ClinicalVenue venue = new com.cms.model.ClinicalVenue();
+        venue.setId(600L);
+        s.setEligibleClinicalVenues(new java.util.HashSet<>(java.util.List.of(venue)));
         return s;
     }
 

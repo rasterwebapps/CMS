@@ -200,7 +200,7 @@ public class TimetableSkeletonService {
      *  none has been committed — mirrors {@code TimetableStaffingService.resolveCommittedTheoryClassroom}'s
      *  exact repository chain. Empty means "whole cohort" (today's original behavior); one or more
      *  active sections means THEORY placement becomes per-section. */
-    private List<CohortSection> resolveActiveSections(Long cohortId, Long termInstanceId) {
+    List<CohortSection> resolveActiveSections(Long cohortId, Long termInstanceId) {
         return cohortRoomAllocationRepository
             .findByCohortIdAndTermInstanceIdAndStatus(cohortId, termInstanceId, CohortRoomAllocationStatus.COMMITTED)
             .map(a -> cohortSectionRepository.findByCohortRoomAllocationIdAndIsActiveTrue(a.getId()))

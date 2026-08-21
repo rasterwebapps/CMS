@@ -55,6 +55,104 @@ mat-dialog-content {
   padding-bottom: 4px;
 }
 
+.coed-section-faculty {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+  margin-bottom: 20px;
+
+  .field-hint {
+    margin: 2px 0 10px;
+  }
+}
+
+.coed-section-faculty__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .field-select {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.coed-section-faculty__label {
+  flex-shrink: 0;
+  max-width: 45%;
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coed-prefill-banner {
+  margin-top: 20px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-primary-alpha-30);
+  background: var(--cms-primary-light);
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-primary);
+  line-height: 1.4;
+}
+
+.coed-capacity-warning {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--cms-badge-amber-text) 30%, var(--cms-border-default));
+  background: color-mix(in srgb, var(--cms-badge-amber-text) 8%, var(--cms-bg-card));
+
+  p {
+    margin: 0;
+    font-size: var(--cms-text-xs);
+    color: var(--cms-text-primary);
+
+    & + p {
+      margin-top: 4px;
+    }
+  }
+}
+
+.field-hint--error {
+  color: var(--cms-danger);
+}
+
+.coed-capacity-fix-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  color: var(--cms-primary);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  mat-icon {
+    font-size: 0.9rem;
+    width: 13px;
+    height: 13px;
+  }
+}
+
+.coed-capacity-ok {
+  margin: 6px 0 0;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-badge-green-text);
+}
+
 // ── Dialog actions ────────────────────────────────────────────
 mat-dialog-actions {
   padding: 12px 24px 20px !important;

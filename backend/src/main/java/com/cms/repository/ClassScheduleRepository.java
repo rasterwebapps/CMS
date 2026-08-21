@@ -64,6 +64,11 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
 
     boolean existsByTermInstanceId(Long termInstanceId);
 
+    /** Subject-wide guard for {@code SubjectService#requireSafeToDeactivate} — a subject can have
+     *  offerings across many terms, so this checks placed sessions across all of them at once
+     *  rather than requiring a per-offering loop. */
+    boolean existsByCourseOffering_Subject_Id(Long subjectId);
+
     boolean existsByTermInstanceIdAndStatus(Long termInstanceId, ClassScheduleStatus status);
 
     void deleteByTermInstanceIdAndStatus(Long termInstanceId, ClassScheduleStatus status);

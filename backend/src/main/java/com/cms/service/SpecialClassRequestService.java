@@ -134,8 +134,8 @@ public class SpecialClassRequestService {
 
         List<ConstraintViolation> violations = new ArrayList<>();
         checkConflicts(violations, term, day, period, requestedFaculty.getId(), request.sessionType(),
-            venue.venueId(), venue.physicalRoom(), venue.capacity(), courseOffering.getId(), request.occurrenceDate(),
-            subject.getId(), cohortSection != null ? cohortSection.getId() : null, null);
+            venue.venueId(), venue.physicalRoom(), venue.capacity(), venue.classroom(), courseOffering.getId(),
+            request.occurrenceDate(), subject.getId(), cohortSection != null ? cohortSection.getId() : null, null);
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
         }
@@ -182,8 +182,8 @@ public class SpecialClassRequestService {
             Long facultyId = cs.getFaculty() != null ? cs.getFaculty().getId() : null;
             Long rowCourseOfferingId = cs.getCourseOffering() != null ? cs.getCourseOffering().getId() : null;
             checkConflicts(rowViolations, term, targetDay, cs.getPeriod(), facultyId, cs.getSessionType(),
-                venue.venueId(), venue.physicalRoom(), venue.capacity(), rowCourseOfferingId, request.targetDate(),
-                cs.getSubject().getId(), cohortSection.getId(), null);
+                venue.venueId(), venue.physicalRoom(), venue.capacity(), venue.classroom(), rowCourseOfferingId,
+                request.targetDate(), cs.getSubject().getId(), cohortSection.getId(), null);
             if (!rowViolations.isEmpty()) {
                 allViolations.addAll(rowViolations.stream()
                     .map(v -> new ConstraintViolation(v.code(), cs.getSubject().getName() + ": " + v.message()))
@@ -361,7 +361,8 @@ public class SpecialClassRequestService {
         Long courseOfferingId = occurrence.getCourseOffering() != null ? occurrence.getCourseOffering().getId() : null;
         List<ConstraintViolation> violations = new ArrayList<>();
         checkConflicts(violations, term, day, occurrence.getPeriod(), facultyId, occurrence.getSessionType(),
-            venue.venueId(), venue.physicalRoom(), venue.capacity(), courseOfferingId, occurrence.getOccurrenceDate(),
+            venue.venueId(), venue.physicalRoom(), venue.capacity(), venue.classroom(), courseOfferingId,
+            occurrence.getOccurrenceDate(),
             occurrence.getSubject() != null ? occurrence.getSubject().getId() : null,
             occurrence.getCohortSection() != null ? occurrence.getCohortSection().getId() : null,
             occurrence.getId());
@@ -391,11 +392,13 @@ public class SpecialClassRequestService {
      *  special classes on the same date+period -- which (1) can't see, since they have no
      *  ClassSchedule row. {@code excludeOccurrenceId} is non-null only when re-checking an
      *  existing request (approval time). Faculty checks are skipped when {@code facultyId} is
-     *  null (a day-repeat row copied from an unstaffed source session). */
+     *  null (a day-repeat row copied from an unstaffed source session). {@code classroom} is
+     *  non-null only for THEORY (mirrors {@code venueId}/{@code physicalRoom}) and drives the
+     *  concurrent-capacity-sharing exception below. */
     private void checkConflicts(List<ConstraintViolation> violations, TermInstance term, DayOfWeek day, Period period,
                                  Long facultyId, ClassSessionType sessionType, Long venueId, Room physicalRoom,
-                                 Integer venueCapacity, Long courseOfferingId, LocalDate date, Long subjectId,
-                                 Long cohortSectionId, Long excludeOccurrenceId) {
+                                 Integer venueCapacity, Classroom classroom, Long courseOfferingId, LocalDate date,
+                                 Long subjectId, Long cohortSectionId, Long excludeOccurrenceId) {
         var start = period.getStartTime();
         var end = period.getEndTime();
 
@@ -407,18 +410,21 @@ public class SpecialClassRequestService {
             timetableStaffingService.checkRoomFree(sessionType, venueId, physicalRoom, term.getId(), null, day, start, end)
                 .ifPresent(violations::add);
         }
+
         // Capacity-fit mirrors TimetableStaffingService.checkCapacityFit's THEORY branch only --
         // LAB/CLINICAL strength there is resolved from a Batch roster, which a special class has
         // none of; a known venue-capacity/registered-strength mismatch is still worth catching for
         // THEORY, where the audience is the whole course offering's registered cohort.
-        if (venueCapacity != null && sessionType == ClassSessionType.THEORY && courseOfferingId != null) {
-            int strength = (int) courseRegistrationRepository.countByCourseOfferingIdAndStatus(
-                courseOfferingId, RegistrationStatus.REGISTERED);
-            if (strength > venueCapacity) {
-                violations.add(new ConstraintViolation("SPECIAL_CLASS_CAPACITY_EXCEEDED",
-                    "This venue seats " + venueCapacity + ", but " + strength + " students need to be accommodated for this session."));
-            }
-        }
+        Integer strength = (sessionType == ClassSessionType.THEORY && courseOfferingId != null)
+            ? registeredStrength(courseOfferingId) : null;
+
+        // A shared-capacity room (large lecture/drawing hall) pools concurrent bookings by
+        // headcount instead of exclusively locking to one booking per period -- see Classroom
+        // .allowsConcurrentSharing. Only ever applies to the SAME Classroom row (never the separate
+        // cross-identity samePhysicalRoom case below, which has no agreed single capacity to pool
+        // against) and only when a capacity is actually on record to pool against.
+        boolean sharedCapacityRoom = classroom != null && Boolean.TRUE.equals(classroom.getAllowsConcurrentSharing())
+            && venueCapacity != null;
 
         List<SessionOccurrence> others = sessionOccurrenceRepository
             .findByOccurrenceSourceInAndOccurrenceDateAndPeriod_Id(SPECIAL_SOURCES, date, period.getId())
@@ -426,6 +432,9 @@ public class SpecialClassRequestService {
             .filter(o -> LIVE_STATUSES.contains(o.getApprovalStatus()))
             .filter(o -> excludeOccurrenceId == null || !o.getId().equals(excludeOccurrenceId))
             .toList();
+
+        int pooledOtherStrength = 0;
+        boolean hasPooledOther = false;
 
         for (SessionOccurrence other : others) {
             if (subjectId != null && subjectId.equals(other.getSubject() != null ? other.getSubject().getId() : null)
@@ -442,12 +451,33 @@ public class SpecialClassRequestService {
                 boolean sameVenue = other.getSessionType() == sessionType && venueId.equals(otherVenue.venueId());
                 boolean samePhysicalRoom = physicalRoom != null && otherVenue.physicalRoom() != null
                     && physicalRoom.getId().equals(otherVenue.physicalRoom().getId());
-                if (sameVenue || samePhysicalRoom) {
+                if (sameVenue && sharedCapacityRoom) {
+                    hasPooledOther = true;
+                    Long otherCourseOfferingId = other.getCourseOffering() != null ? other.getCourseOffering().getId() : null;
+                    pooledOtherStrength += registeredStrength(otherCourseOfferingId);
+                } else if (sameVenue || samePhysicalRoom) {
                     violations.add(new ConstraintViolation("SPECIAL_CLASS_ROOM_CONFLICT",
                         "This room is already occupied by another special class at this exact date and period."));
                 }
             }
         }
+
+        if (sharedCapacityRoom && hasPooledOther) {
+            int combined = (strength != null ? strength : 0) + pooledOtherStrength;
+            if (combined > venueCapacity) {
+                violations.add(new ConstraintViolation("SPECIAL_CLASS_SHARED_CAPACITY_EXCEEDED",
+                    "This venue seats " + venueCapacity + ", but sharing it at this date and period would need "
+                        + combined + " seats combined with the other special class(es) already booked here."));
+            }
+        } else if (venueCapacity != null && strength != null && strength > venueCapacity) {
+            violations.add(new ConstraintViolation("SPECIAL_CLASS_CAPACITY_EXCEEDED",
+                "This venue seats " + venueCapacity + ", but " + strength + " students need to be accommodated for this session."));
+        }
+    }
+
+    private int registeredStrength(Long courseOfferingId) {
+        return courseOfferingId == null ? 0
+            : (int) courseRegistrationRepository.countByCourseOfferingIdAndStatus(courseOfferingId, RegistrationStatus.REGISTERED);
     }
 
     private VenueResolution resolveVenue(ClassSessionType sessionType, Long classroomId, Long labId, Long clinicalVenueId) {

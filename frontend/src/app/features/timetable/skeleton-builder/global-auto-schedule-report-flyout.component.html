@@ -1,0 +1,88 @@
+<cms-flyout-panel width="520px" ariaLabel="Global auto-schedule" (closed)="onClose()">
+  <div flyoutHeader>Global Auto-Schedule — All Cohorts</div>
+
+  <div flyoutBody>
+    @switch (step()) {
+      @case ('loading') {
+        <p class="field-hint">Checking every faculty's real term-hour demand against their capacity…</p>
+      }
+
+      @case ('over-capacity') {
+        <p class="field-hint gas-warning">
+          {{ overCapacityFaculty().length }} faculty member(s) are over capacity — nothing has been placed for any
+          cohort yet. Resolve at least one option below per faculty, then re-check.
+        </p>
+        @for (f of overCapacityFaculty(); track f.facultyId) {
+          <div class="gas-faculty-card">
+            <div class="gas-faculty-card__name">{{ f.facultyName }}</div>
+            <div class="gas-faculty-card__stat">
+              Needs {{ f.totalTermDemandHours | number: '1.0-1' }}h across the term's {{ f.workingDaysInTerm }} working
+              days — capacity is {{ f.termCapacityHours | number: '1.0-1' }}h ({{ f.effectiveDailyCapacityHours | number: '1.0-1' }}h/day
+              from {{ tierLabel(f.dailyCapacityTier) }}), short by {{ f.shortfallHours | number: '1.0-1' }}h.
+            </div>
+
+            @if (f.topContributors.length > 0) {
+              <ul class="gas-contributors">
+                @for (c of f.topContributors; track c.courseOfferingId + '-' + c.cohortId) {
+                  <li>{{ c.subjectName }} ({{ c.cohortName }}) — {{ c.termHoursContributed | number: '1.0-1' }}h</li>
+                }
+              </ul>
+            }
+
+            <div class="gas-suggestions">
+              <a class="btn-secondary" [routerLink]="['/faculty', f.facultyId, 'edit']" target="_blank" rel="noopener">
+                Raise cap to {{ f.suggestedMinDailyHours | number: '1.0-1' }}h/day
+              </a>
+              @for (s of f.spreadLoad; track s.alternateFacultyId + '-' + s.courseOfferingId) {
+                <div class="gas-spread-suggestion">
+                  <p class="field-hint">
+                    Or move {{ s.subjectName }} to {{ s.alternateFacultyName }}{{ s.isOfferingsSecondaryFaculty ? ' (this offering’s own secondary faculty)' : '' }}
+                    — {{ s.alternateSpareCapacityHours | number: '1.0-1' }}h spare capacity.
+                  </p>
+                  <a class="btn-secondary" routerLink="/assign-faculty"
+                    [queryParams]="{ academicYearId: academicYearId(), termInstanceId: termInstanceId(), editOfferingId: s.courseOfferingId, suggestedFacultyId: s.alternateFacultyId }"
+                    target="_blank" rel="noopener">
+                    Reassign this offering
+                  </a>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      }
+
+      @case ('ready') {
+        <p class="field-hint">Every bound faculty fits within their capacity. Nothing will be placed until you confirm.</p>
+      }
+
+      @case ('running') {
+        <p class="field-hint">Placing and staffing every cohort's remaining sessions…</p>
+      }
+
+      @case ('success') {
+        @if (result(); as r) {
+          <p class="field-hint">Placed and staffed {{ r.totalPlaced }} session(s) across {{ r.cohortSummaries.length }} cohort(s).</p>
+          <ul class="gas-contributors">
+            @for (c of r.cohortSummaries; track c.cohortId) {
+              <li>{{ c.cohortName }} — {{ c.placedCount }} session(s)</li>
+            }
+          </ul>
+        }
+      }
+
+      @case ('run-failed') {
+        <p class="field-hint gas-warning" style="white-space: pre-line;">{{ runError() }}</p>
+      }
+    }
+  </div>
+
+  <div flyoutFooter>
+    <button type="button" class="btn-cancel" (click)="onClose()">Close</button>
+    @if (step() === 'over-capacity' || step() === 'run-failed') {
+      <button type="button" class="btn-secondary" (click)="runPrecheck()">Re-check</button>
+    }
+    @if (step() === 'ready') {
+      <button type="button" class="btn-primary" (click)="runGlobalSchedule()">Run Global Auto-Schedule</button>
+    }
+  </div>
+</cms-flyout-panel>

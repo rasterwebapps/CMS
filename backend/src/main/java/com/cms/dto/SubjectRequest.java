@@ -1,5 +1,7 @@
 package com.cms.dto;
 
+import java.util.List;
+
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -37,5 +39,10 @@ public record SubjectRequest(
     @Max(value = 12, message = "Semester must not exceed 12")
     Integer termNumber,
 
-    Boolean isActive
+    Boolean isActive,
+
+    /** Labs/Clinical Venues suitable for this subject's practical sessions -- a soft preference,
+     *  optional. Null/empty means no preference configured, matching pre-existing behavior. */
+    List<Long> eligibleLabIds,
+    List<Long> eligibleClinicalVenueIds
 ) {}

@@ -1,13 +1,15 @@
 package com.cms.controller;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -24,9 +26,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.GenerateOfferingsResponse;
+import com.cms.service.CourseOfferingSectionFacultyService;
 import com.cms.service.CourseOfferingService;
+import com.cms.service.TimetableGlobalAutoScheduleService;
 
 @WebMvcTest(controllers = CourseOfferingController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -38,16 +43,23 @@ class CourseOfferingControllerTest {
     @MockitoBean
     private CourseOfferingService service;
 
+    @MockitoBean
+    private TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
+
+    @MockitoBean
+    private CourseOfferingSectionFacultyService sectionFacultyService;
+
     private CourseOfferingDto createDto(Long id, Long termInstanceId, Integer semNum) {
         return new CourseOfferingDto(
             id, termInstanceId, "2024-2025 ODD",
             1L, "CV-2024",
             1L, "Mathematics", "MATH101", null, null,
-            semNum, null, null, null, true,
+            semNum, null, null, true,
             null, false, com.cms.model.enums.SubjectType.CORE,
             null, null, null,
             0, 0,
-            Instant.now(), Instant.now()
+            Instant.now(), Instant.now(),
+            List.of()
         );
     }
 
@@ -107,22 +119,25 @@ class CourseOfferingControllerTest {
     @Test
     void update() throws Exception {
         CourseOfferingDto dto = createDto(1L, 1L, 1);
-        when(service.updateOffering(1L, 42L, null, "A")).thenReturn(dto);
+        when(service.updateOffering(1L, 42L, null)).thenReturn(dto);
 
         mockMvc.perform(put("/course-offerings/1")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"facultyId\":42,\"sectionLabel\":\"A\"}"))
+                .content("{\"facultyId\":42}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1));
 
-        verify(service).updateOffering(1L, 42L, null, "A");
+        verify(service).updateOffering(1L, 42L, null);
     }
 
     @Test
-    void deactivate() throws Exception {
-        mockMvc.perform(delete("/course-offerings/1"))
-            .andExpect(status().isNoContent());
+    void updateStatus() throws Exception {
+        when(service.updateStatus(eq(1L), any())).thenReturn(new ActiveStatusUpdateResponse(1L, false, Instant.now()));
 
-        verify(service).deactivateOffering(1L);
+        mockMvc.perform(patch("/course-offerings/1/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"isActive\":false}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.isActive").value(false));
     }
 }

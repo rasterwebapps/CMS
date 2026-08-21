@@ -114,6 +114,44 @@
             </div>
 
             <div class="field-group" style="margin-top: 12px;">
+              <label class="field-label">Eligible Labs</label>
+              <p class="field-hint">Optional — rooms suitable for this subject's practical sessions. Preferred by auto-suggest and manual pickers, but not required; leave empty for a theory-only subject.</p>
+              @if (activeLabs().length === 0) {
+                <p class="field-hint">No active labs configured yet.</p>
+              } @else {
+                <div class="subj-venue-checklist">
+                  @for (lab of activeLabs(); track lab.id) {
+                    <label class="subj-venue-item" [class.subj-venue-item--checked]="isLabChecked(lab.id)">
+                      <input type="checkbox" class="subj-venue-checkbox"
+                        [checked]="isLabChecked(lab.id)" (change)="toggleLab(lab.id)" />
+                      <span class="subj-venue-item__name">{{ lab.name }}</span>
+                      <span class="subj-venue-item__capacity">{{ lab.capacity }} seats</span>
+                    </label>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="field-group" style="margin-top: 12px;">
+              <label class="field-label">Eligible Clinical Venues</label>
+              <p class="field-hint">Optional — clinical postings suitable for this subject. Same soft preference as Eligible Labs above.</p>
+              @if (activeClinicalVenues().length === 0) {
+                <p class="field-hint">No active clinical venues configured yet.</p>
+              } @else {
+                <div class="subj-venue-checklist">
+                  @for (venue of activeClinicalVenues(); track venue.id) {
+                    <label class="subj-venue-item" [class.subj-venue-item--checked]="isClinicalVenueChecked(venue.id)">
+                      <input type="checkbox" class="subj-venue-checkbox"
+                        [checked]="isClinicalVenueChecked(venue.id)" (change)="toggleClinicalVenue(venue.id)" />
+                      <span class="subj-venue-item__name">{{ venue.name }}</span>
+                      <span class="subj-venue-item__capacity">{{ venue.capacity ?? '—' }} seats</span>
+                    </label>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="field-group" style="margin-top: 12px;">
               <label for="subj-status" class="field-label">Status</label>
               <select id="subj-status" class="field-select" formControlName="isActive">
                 <option [ngValue]="true">Active</option>

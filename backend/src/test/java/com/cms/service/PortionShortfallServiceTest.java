@@ -53,7 +53,8 @@ class PortionShortfallServiceTest {
 
     private CapacityPlanResponse planWithBuffer(double bufferHours) {
         return new CapacityPlanResponse(1L, "Cohort", 10L, "Term", 3, 60, 60, null, 100, 500.0, 20.0, 300,
-            bufferHours, true, null, List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+            bufferHours, true, null, List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+            List.of(), List.of(), true, null);
     }
 
     @Test

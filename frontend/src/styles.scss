@@ -5531,6 +5531,18 @@ main.app-content > :not(router-outlet) {
 // Legacy dedicated classes + .admission-list-fixed-page + .mlp-page screens
 // (detected via :has(.mlp-table-card)) + speciality (.dept-list-page) +
 // lab-schedule (.list-page:has(mat-paginator)).
+//
+// `:not(.mlp-page--free-scroll)` opt-out: a non-paginated `.mlp-page` screen
+// (a builder/detail layout with its own independently-scrolling sidebar, say)
+// can still legitimately reuse `.mlp-table-card`/`.content-card` purely for
+// that card's own visual box treatment without also matching this rule —
+// which otherwise hard-locks the WHOLE PAGE to `height:100%; overflow:hidden`
+// on the (structural, class-name-only) assumption that anything carrying
+// `.mlp-table-card` is a `mat-paginator` list screen whose own internal
+// `.table-wrapper` substitutes for page scroll. Skeleton Builder hit exactly
+// this: it has no paginator, and its `.detail-split__sidebar`'s own
+// `overflow-y: auto` never got a chance to run out of content to scroll
+// because the page itself was already clipped first — found 2026-08-19.
 :is(
   .enq-list-page,
   .adm-page,
@@ -5542,8 +5554,8 @@ main.app-content > :not(router-outlet) {
   .stu-page,
   .rna-page,
   .admission-list-fixed-page:not(.admission-list-fixed-page--detail),
-  .mlp-page:has(.mlp-table-card),
-  .mlp-page:has(.mlp-cards-grid),
+  .mlp-page:has(.mlp-table-card):not(.mlp-page--free-scroll),
+  .mlp-page:has(.mlp-cards-grid):not(.mlp-page--free-scroll),
   .dept-list-page,
   .list-page:has(mat-paginator)
 ) {

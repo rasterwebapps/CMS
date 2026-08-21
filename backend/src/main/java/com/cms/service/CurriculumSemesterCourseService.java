@@ -89,6 +89,25 @@ public class CurriculumSemesterCourseService {
 
     private void applyDetails(CurriculumSemesterCourse entry, CurriculumVersion cv,
                                CurriculumSemesterCourseRequest request) {
+        // Hard block: a subject can't be declared as needing Lab/Clinical hours in a curriculum
+        // unless it already has at least one eligible Lab/Clinical Venue configured (Subject master
+        // > Eligible Labs/Clinical Venues) -- otherwise the auto-suggest algorithm and every manual
+        // picker would have nothing appropriate to offer once this curriculum entry starts producing
+        // real CourseOfferings. Unlike the soft-prefer-with-fallback behavior those pickers use once
+        // a subject already has SOME eligible venue configured, this is the earlier gate that forces
+        // the mapping to exist in the first place.
+        if (request.labHours() != null && request.labHours() > 0 && entry.getSubject().getEligibleLabs().isEmpty()) {
+            throw new IllegalArgumentException(
+                "Subject '" + entry.getSubject().getName() + "' needs " + request.labHours() + " lab hour(s) but has "
+                    + "no eligible Lab configured — link at least one Lab to this subject first (Subjects > Eligible Labs).");
+        }
+        if (request.clinicalHours() != null && request.clinicalHours() > 0 && entry.getSubject().getEligibleClinicalVenues().isEmpty()) {
+            throw new IllegalArgumentException(
+                "Subject '" + entry.getSubject().getName() + "' needs " + request.clinicalHours() + " clinical hour(s) "
+                    + "but has no eligible Clinical Venue configured — link at least one Clinical Venue to this "
+                    + "subject first (Subjects > Eligible Clinical Venues).");
+        }
+
         entry.setTheoryHours(request.theoryHours());
         entry.setLabHours(request.labHours());
         entry.setClinicalHours(request.clinicalHours());

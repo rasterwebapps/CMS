@@ -1,6 +1,8 @@
 package com.cms.service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,12 +15,19 @@ import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.dto.SpecialityResponse;
 import com.cms.dto.SubjectRequest;
 import com.cms.dto.SubjectResponse;
+import com.cms.dto.VenueOptionResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.ClinicalVenue;
+import com.cms.model.Lab;
 import com.cms.model.Speciality;
 import com.cms.model.Subject;
+import com.cms.repository.BatchRepository;
+import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
+import com.cms.repository.LabRepository;
 import com.cms.repository.SpecialityRepository;
 import com.cms.repository.SubjectRepository;
 
@@ -31,16 +40,28 @@ public class SubjectService {
     private final SpecialityRepository specialityRepository;
     private final CurriculumSemesterCourseRepository curriculumSemesterCourseRepository;
     private final CourseOfferingRepository courseOfferingRepository;
+    private final ClassScheduleRepository classScheduleRepository;
+    private final BatchRepository batchRepository;
+    private final LabRepository labRepository;
+    private final ClinicalVenueRepository clinicalVenueRepository;
 
     public SubjectService(SubjectRepository subjectRepository, CourseRepository courseRepository,
                           SpecialityRepository specialityRepository,
                           CurriculumSemesterCourseRepository curriculumSemesterCourseRepository,
-                          CourseOfferingRepository courseOfferingRepository) {
+                          CourseOfferingRepository courseOfferingRepository,
+                          ClassScheduleRepository classScheduleRepository,
+                          BatchRepository batchRepository,
+                          LabRepository labRepository,
+                          ClinicalVenueRepository clinicalVenueRepository) {
         this.subjectRepository = subjectRepository;
         this.courseRepository = courseRepository;
         this.specialityRepository = specialityRepository;
         this.curriculumSemesterCourseRepository = curriculumSemesterCourseRepository;
         this.courseOfferingRepository = courseOfferingRepository;
+        this.classScheduleRepository = classScheduleRepository;
+        this.batchRepository = batchRepository;
+        this.labRepository = labRepository;
+        this.clinicalVenueRepository = clinicalVenueRepository;
     }
 
     @Transactional
@@ -72,8 +93,20 @@ public class SubjectService {
         if (request.isActive() != null) {
             subject.setIsActive(request.isActive());
         }
+        subject.setEligibleLabs(resolveLabs(request.eligibleLabIds()));
+        subject.setEligibleClinicalVenues(resolveClinicalVenues(request.eligibleClinicalVenueIds()));
         Subject saved = subjectRepository.save(subject);
         return toResponse(saved);
+    }
+
+    private Set<Lab> resolveLabs(List<Long> labIds) {
+        if (labIds == null || labIds.isEmpty()) return new HashSet<>();
+        return new HashSet<>(labRepository.findAllById(labIds));
+    }
+
+    private Set<ClinicalVenue> resolveClinicalVenues(List<Long> clinicalVenueIds) {
+        if (clinicalVenueIds == null || clinicalVenueIds.isEmpty()) return new HashSet<>();
+        return new HashSet<>(clinicalVenueRepository.findAllById(clinicalVenueIds));
     }
 
     public List<SubjectResponse> findAll(boolean activeOnly) {
@@ -166,6 +199,8 @@ public class SubjectService {
         if (request.isActive() != null) {
             subject.setIsActive(request.isActive());
         }
+        subject.setEligibleLabs(resolveLabs(request.eligibleLabIds()));
+        subject.setEligibleClinicalVenues(resolveClinicalVenues(request.eligibleClinicalVenueIds()));
 
         Subject updated = subjectRepository.save(subject);
         return toResponse(updated);
@@ -191,9 +226,29 @@ public class SubjectService {
     public ActiveStatusUpdateResponse updateStatus(Long id, ActiveStatusUpdateRequest request) {
         Subject subject = subjectRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + id));
-        subject.setIsActive(Boolean.TRUE.equals(request.isActive()));
+        boolean nextActive = Boolean.TRUE.equals(request.isActive());
+        if (!nextActive && Boolean.TRUE.equals(subject.getIsActive())) {
+            requireSafeToDeactivate(subject);
+        }
+        subject.setIsActive(nextActive);
         Subject saved = subjectRepository.save(subject);
         return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
+    }
+
+    /** Mirrors {@code CourseOfferingServiceImpl#requireSafeToDeactivate} one level up: deactivating
+     *  a subject that already has offerings placed in the timetable or batches with rostered
+     *  students would silently strand them without anyone noticing. Reactivating has no equivalent
+     *  guard for the same reason as the offering-level version — deactivation never touches
+     *  anything else, so flipping the flag back restores exactly the prior state. */
+    private void requireSafeToDeactivate(Subject subject) {
+        if (classScheduleRepository.existsByCourseOffering_Subject_Id(subject.getId())) {
+            throw new IllegalArgumentException(
+                "Cannot deactivate — this subject has offerings with sessions placed in Skeleton Builder. Remove them there first.");
+        }
+        if (batchRepository.existsAnyStudentInBatchesForSubject(subject.getId())) {
+            throw new IllegalArgumentException(
+                "Cannot deactivate — this subject has offerings with batches already rostered. Remove them via Assign Faculty's Manage Batches first.");
+        }
     }
 
     public boolean nameExists(String name, Long excludeId) {
@@ -224,6 +279,13 @@ public class SubjectService {
             );
         }
 
+        List<VenueOptionResponse> eligibleLabs = subject.getEligibleLabs().stream()
+            .map(l -> new VenueOptionResponse(l.getId(), l.getName(), l.getCapacity()))
+            .toList();
+        List<VenueOptionResponse> eligibleClinicalVenues = subject.getEligibleClinicalVenues().stream()
+            .map(v -> new VenueOptionResponse(v.getId(), v.getName(), v.getCapacity()))
+            .toList();
+
         return new SubjectResponse(
             subject.getId(),
             subject.getName(),
@@ -235,7 +297,9 @@ public class SubjectService {
             subject.getTermNumber(),
             subject.getIsActive(),
             subject.getCreatedAt(),
-            subject.getUpdatedAt()
+            subject.getUpdatedAt(),
+            eligibleLabs,
+            eligibleClinicalVenues
         );
     }
 }

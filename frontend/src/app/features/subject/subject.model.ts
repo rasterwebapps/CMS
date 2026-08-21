@@ -10,6 +10,14 @@ export interface Page<T> {
   last: boolean;
 }
 
+/** Minimal venue shape used for a Subject's eligible Labs/Clinical Venues — same fields as the
+ *  backend's shared VenueOptionResponse. */
+export interface SubjectEligibleVenue {
+  id: number;
+  name: string;
+  capacity: number | null;
+}
+
 export interface Subject {
   id: number;
   name: string;
@@ -22,6 +30,11 @@ export interface Subject {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Labs/Clinical Venues suitable for this subject's practical sessions — a soft preference for
+   *  the auto-suggest algorithm and manual pickers, not a hard restriction. Empty means no
+   *  preference configured. */
+  eligibleLabs: SubjectEligibleVenue[];
+  eligibleClinicalVenues: SubjectEligibleVenue[];
 }
 
 export interface SubjectRequest {
@@ -33,6 +46,8 @@ export interface SubjectRequest {
   specialityId: number | null;
   termNumber: number;
   isActive?: boolean;
+  eligibleLabIds?: number[];
+  eligibleClinicalVenueIds?: number[];
 }
 
 export interface SubjectStatusUpdateRequest {

@@ -238,7 +238,12 @@ export class StaffingComponent implements OnInit {
     this.rowsLoading.set(true);
     this.staffingService.getUnstaffedCells(termInstanceId).subscribe({
       next: (cells) => {
-        this.rows.set(cells.map((c) => ({ ...c, facultyId: null, roomId: null, saving: false })));
+        this.rows.set(cells.map((c) => ({
+          ...c,
+          facultyId: null,
+          roomId: null,
+          saving: false,
+        })));
         this.rowsLoading.set(false);
       },
       error: () => { this.toast.error('Failed to load unstaffed sessions'); this.rowsLoading.set(false); },

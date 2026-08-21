@@ -13,10 +13,16 @@ import {
   CohortSeatsRequest,
   CohortSummary,
   CourseOffering,
+  CourseOfferingSectionFacultyResponse,
+  CourseOfferingStatusUpdateRequest,
+  CourseOfferingStatusUpdateResponse,
   CourseOfferingUpdateRequest,
   CourseRegistration,
   ElectiveBulkAssignmentResponse,
+  ElectiveGroupSummary,
   ElectiveSelectionMode,
+  FacultyCapacityCheckResult,
+  SectionFacultyAssignment,
   FeeDemand,
   GenerateCourseOfferingsResponse,
   GenerateCourseRegistrationsResponse,
@@ -259,8 +265,24 @@ export class AcademicYearService {
     return this.http.put<CourseOffering>(`${environment.apiUrl}/course-offerings/${id}`, request);
   }
 
-  deactivateCourseOffering(id: number): Observable<void> {
-    return this.http.delete<void>(`${environment.apiUrl}/course-offerings/${id}`);
+  checkFacultyCapacity(offeringId: number, facultyId: number, termInstanceId: number): Observable<FacultyCapacityCheckResult> {
+    const params = new HttpParams().set('facultyId', facultyId.toString()).set('termInstanceId', termInstanceId.toString());
+    return this.http.get<FacultyCapacityCheckResult>(`${environment.apiUrl}/course-offerings/${offeringId}/faculty-capacity-check`, { params });
+  }
+
+  updateCourseOfferingStatus(id: number, request: CourseOfferingStatusUpdateRequest): Observable<CourseOfferingStatusUpdateResponse> {
+    return this.http.patch<CourseOfferingStatusUpdateResponse>(`${environment.apiUrl}/course-offerings/${id}/status`, request);
+  }
+
+  getSectionFaculty(offeringId: number): Observable<CourseOfferingSectionFacultyResponse> {
+    return this.http.get<CourseOfferingSectionFacultyResponse>(`${environment.apiUrl}/course-offerings/${offeringId}/section-faculty`);
+  }
+
+  /** facultyId null clears the override for this section, falling back to the offering's own
+   *  primary faculty. */
+  updateSectionFaculty(offeringId: number, cohortSectionId: number, facultyId: number | null): Observable<SectionFacultyAssignment> {
+    return this.http.put<SectionFacultyAssignment>(
+      `${environment.apiUrl}/course-offerings/${offeringId}/section-faculty/${cohortSectionId}`, { facultyId });
   }
 
   // CourseRegistration methods
@@ -313,6 +335,15 @@ export class AcademicYearService {
     return this.http.put<{ id: number; selectionMode: ElectiveSelectionMode }>(
       `${environment.apiUrl}/curriculum-elective-groups/${electiveGroupId}/selection-mode`,
       { selectionMode },
+    );
+  }
+
+  /** One row per elective group open in a term, with eligible/assigned counts and scheduled
+   *  status — backs the Elective Assignment screen's group-launcher view. */
+  getElectiveGroupSummaries(termInstanceId: number): Observable<ElectiveGroupSummary[]> {
+    return this.http.get<ElectiveGroupSummary[]>(
+      `${environment.apiUrl}/course-registrations/elective-assignment/summary`,
+      { params: { termInstanceId: termInstanceId.toString() } },
     );
   }
 

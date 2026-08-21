@@ -1,0 +1,51 @@
+.gas-warning {
+  color: var(--cms-badge-amber-text);
+  font-weight: 600;
+}
+
+.gas-faculty-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+
+  &__name {
+    font-size: var(--cms-text-sm);
+    font-weight: 700;
+    color: var(--cms-text-primary);
+  }
+
+  &__stat {
+    font-size: var(--cms-text-xs);
+    color: var(--cms-text-secondary);
+  }
+}
+
+.gas-contributors {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-secondary);
+}
+
+.gas-suggestions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.gas-spread-suggestion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+
+  .field-hint {
+    margin: 0;
+  }
+}

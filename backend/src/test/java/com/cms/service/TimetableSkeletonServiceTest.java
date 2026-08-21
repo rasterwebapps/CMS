@@ -168,7 +168,7 @@ class TimetableSkeletonServiceTest {
 
     private CourseOfferingDto offeringDto(Long id, boolean elective) {
         return new CourseOfferingDto(id, 10L, "2024-2025 ODD", null, null, null, null, null, null, null,
-            1, null, null, null, true, null, elective, null, null, null, null, null, null, null, null);
+            1, null, null, true, null, elective, null, null, null, null, null, null, null, null, List.of());
     }
 
     private CohortSection section(Long id, String label) {

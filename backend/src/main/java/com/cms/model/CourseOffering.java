@@ -59,9 +59,6 @@ public class CourseOffering {
     @Column(name = "secondary_faculty_id")
     private Long secondaryFacultyId;
 
-    @Column(name = "section_label", length = 50)
-    private String sectionLabel;
-
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
@@ -138,14 +135,6 @@ public class CourseOffering {
 
     public void setSecondaryFacultyId(Long secondaryFacultyId) {
         this.secondaryFacultyId = secondaryFacultyId;
-    }
-
-    public String getSectionLabel() {
-        return sectionLabel;
-    }
-
-    public void setSectionLabel(String sectionLabel) {
-        this.sectionLabel = sectionLabel;
     }
 
     public Boolean getIsActive() {

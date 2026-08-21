@@ -1,35 +1,25 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { environment } from '../../../../environments/environment';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, CourseOffering, GenerateCourseOfferingsResponse, TermInstance } from '../../academic-year/academic-year.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
-import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/icons';
+import { CmsIconToggleStatusComponent } from '../../../shared/icons';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { COURSE_OFFERING_LIST_TOUR, COURSE_OFFERING_LIST_FLOW_MAP } from '../../../shared/tour/tours/course-offering.tours';
-import {
-  CourseOfferingEditDialogComponent,
-  CourseOfferingEditDialogData,
-  FacultyOption,
-} from '../course-offering-edit-dialog/course-offering-edit-dialog.component';
-import {
-  BatchManageDialogComponent,
-  BatchManageDialogData,
-} from '../batch-manage-dialog/batch-manage-dialog.component';
+import { violationText } from '../../../shared/util/violation-text';
 
 @Component({
   selector: 'app-course-offering-list',
@@ -38,7 +28,7 @@ import {
     RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsStatusBadgeComponent,
-    CmsIconDeleteComponent, CmsIconEditComponent,
+    CmsIconToggleStatusComponent,
     CmsTourButtonComponent,
   ],
   templateUrl: './course-offering-list.component.html',
@@ -46,9 +36,7 @@ import {
 })
 export class CourseOfferingListComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
-  private readonly http = inject(HttpClient);
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
@@ -62,7 +50,7 @@ export class CourseOfferingListComponent implements OnInit {
   }
 
   protected readonly displayedColumns = [
-    'subjectCode', 'subjectName', 'termNumber', 'faculty', 'secondaryFaculty', 'sectionLabel', 'status', 'actions',
+    'subjectCode', 'subjectName', 'termNumber', 'cohort', 'status', 'actions',
   ];
   protected readonly dataSource = new MatTableDataSource<CourseOffering>([]);
   protected readonly loading = signal(false);
@@ -72,8 +60,21 @@ export class CourseOfferingListComponent implements OnInit {
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
-  protected readonly faculty = signal<FacultyOption[]>([]);
-  private readonly facultyById = computed(() => new Map(this.faculty().map((f) => [f.id, f.name])));
+
+  /** All offerings loaded for the selected term instance, before the semester dropdown narrows
+   *  them into dataSource.data — kept separate so switching the semester filter doesn't require
+   *  a reload. */
+  private readonly offerings = signal<CourseOffering[]>([]);
+  protected readonly selectedSemester = signal<number | 'ALL'>('ALL');
+  protected readonly semesterOptions = computed(() =>
+    Array.from(new Set(this.offerings().map((o) => o.termNumber))).sort((a, b) => a - b));
+
+  /** A row can belong to more than one cohort (see CourseOffering.cohortNames) when multiple
+   *  intake years share one curriculum version — the filter still works fine against that, since
+   *  a row simply matches if the selected cohort is among its (possibly multiple) names. */
+  protected readonly selectedCohort = signal<string | 'ALL'>('ALL');
+  protected readonly cohortOptions = computed(() =>
+    Array.from(new Set(this.offerings().flatMap((o) => o.cohortNames))).sort());
 
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
@@ -90,29 +91,27 @@ export class CourseOfferingListComponent implements OnInit {
     return this.permissionService.has('COURSE_MANAGE');
   }
 
-  protected canAssignElectives(): boolean {
-    return this.permissionService.has('COURSE_REGISTRATION_ELECTIVE_ASSIGN');
-  }
-
-  protected goToElectiveAssignment(): void {
-    if (!this.selectedTermInstanceId) return;
-    void this.router.navigate(['/elective-assignment'], {
-      queryParams: { termInstanceId: this.selectedTermInstanceId }
-    });
-  }
-
   ngOnInit(): void {
     this.tourService.register('course-offering-list', COURSE_OFFERING_LIST_TOUR);
     this.tourService.registerFlowMap('course-offering-list', COURSE_OFFERING_LIST_FLOW_MAP);
 
-    this.http.get<{ id: number; fullName: string; specialityId: number | null }[]>(`${environment.apiUrl}/faculty`).subscribe({
-      next: (data) => this.faculty.set(data.map((f) => ({ id: f.id, name: f.fullName, specialityId: f.specialityId }))),
-      error: () => { this.toast.error('Failed to load faculty'); },
-    });
+    // MatTableDataSource's default sortingDataAccessor does row[sortHeaderId] — fine for columns
+    // whose matColumnDef id matches a real CourseOffering property (subjectCode, subjectName,
+    // termNumber), but 'cohort'/'status' are rendered from cohortNames/isActive, not fields of
+    // those literal names, so the default accessor silently returned undefined for every row.
+    this.dataSource.sortingDataAccessor = (row: CourseOffering, sortHeaderId: string) => {
+      switch (sortHeaderId) {
+        case 'cohort': return row.cohortNames.join(', ').toLowerCase();
+        case 'status': return row.isActive ? 1 : 0;
+        default: return (row as unknown as Record<string, string | number>)[sortHeaderId] ?? '';
+      }
+    };
 
-    this.cameFromAcademicYear.set(this.route.snapshot.queryParamMap.has('academicYearId'));
     const qpAcademicYearId = Number(this.route.snapshot.queryParamMap.get('academicYearId')) || null;
     const qpTermInstanceId = Number(this.route.snapshot.queryParamMap.get('termInstanceId')) || null;
+    // The "back to academic year" button only makes sense when we arrived via the Academic
+    // Year detail screen's own "View Course Offerings" link.
+    this.cameFromAcademicYear.set(this.route.snapshot.queryParamMap.has('academicYearId'));
 
     this.academicYearService.getAllAcademicYears().subscribe({
       next: (years) => {
@@ -132,13 +131,29 @@ export class CourseOfferingListComponent implements OnInit {
 
   protected onAcademicYearChange(): void {
     this.selectedTermInstanceId = null;
+    this.selectedSemester.set('ALL');
+    this.selectedCohort.set('ALL');
     this.dataSource.data = [];
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
   protected onTermChange(): void {
+    this.selectedSemester.set('ALL');
+    this.selectedCohort.set('ALL');
     if (this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId);
     else this.dataSource.data = [];
+  }
+
+  protected onSemesterChange(): void {
+    this.applyRowFilters();
+  }
+
+  protected onCohortChange(): void {
+    this.applyRowFilters();
+  }
+
+  protected cohortLabel(row: CourseOffering): string {
+    return row.cohortNames.length > 0 ? row.cohortNames.join(', ') : '—';
   }
 
   protected applyFilter(event: Event): void {
@@ -212,39 +227,21 @@ export class CourseOfferingListComponent implements OnInit {
     this.toast.warning('No offerings generated — the assigned curriculum has no subjects mapped for this semester.', { durationMs: 0 });
   }
 
-  protected edit(row: CourseOffering): void {
-    const data: CourseOfferingEditDialogData = {
-      offering: row,
-      facultyOptions: this.faculty(),
-    };
-    this.dialog.open(CourseOfferingEditDialogComponent, { data, width: '480px' })
-      .afterClosed().subscribe((updated) => {
-        if (updated && this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId);
-      });
-  }
-
-  protected manageBatches(row: CourseOffering): void {
-    const data: BatchManageDialogData = {
-      offering: row,
-      facultyOptions: this.faculty(),
-    };
-    this.dialog.open(BatchManageDialogComponent, { data, width: '560px' });
-  }
-
-  protected deactivate(row: CourseOffering): void {
+  /** Bidirectional — deactivating is blocked server-side (surfaced as an error toast, not a
+   *  client-side guess) when the offering already has sessions placed in Skeleton Builder or
+   *  batches with students rostered. Reactivating has no such restriction. */
+  protected toggleStatus(row: CourseOffering): void {
+    const nextAction = row.isActive ? 'Deactivate' : 'Activate';
     this.dialog.open(ConfirmDialogComponent, {
       data: {
-        title: 'Deactivate Course Offering',
-        message: `Deactivate "${row.subjectName}" (Semester ${row.termNumber}) for this term? Existing student registrations are unaffected, but no further exam events can be scheduled against it.`,
-        confirmText: 'Deactivate',
+        title: `${nextAction} Course Offering`,
+        message: row.isActive
+          ? `Deactivate "${row.subjectName}" (Semester ${row.termNumber}) for this term? Existing student registrations are unaffected, but no further exam events can be scheduled against it.`
+          : `Reactivate "${row.subjectName}" (Semester ${row.termNumber}) for this term?`,
+        confirmText: nextAction,
         cancelText: 'Cancel',
       },
-    }).afterClosed().subscribe((confirmed) => { if (confirmed) this.doDeactivate(row); });
-  }
-
-  protected facultyName(id: number | null): string {
-    if (id == null) return 'Unassigned';
-    return this.facultyById().get(id) ?? 'Unassigned';
+    }).afterClosed().subscribe((confirmed) => { if (confirmed) this.performToggle(row); });
   }
 
   private loadTermInstances(academicYearId: number, preselectTermInstanceId?: number): void {
@@ -267,21 +264,36 @@ export class CourseOfferingListComponent implements OnInit {
   private loadOfferings(termInstanceId: number): void {
     this.loading.set(true);
     this.academicYearService.getCourseOfferingsByTermInstance(termInstanceId).subscribe({
-      next: (data) => { this.dataSource.data = data; this.loading.set(false); },
+      next: (data) => {
+        this.offerings.set(data);
+        this.applyRowFilters();
+        this.loading.set(false);
+      },
       error: () => { this.toast.error('Failed to load course offerings'); this.loading.set(false); },
     });
   }
 
-  private doDeactivate(row: CourseOffering): void {
+  private applyRowFilters(): void {
+    const semester = this.selectedSemester();
+    const cohort = this.selectedCohort();
+    let rows = this.offerings();
+    if (semester !== 'ALL') rows = rows.filter((o) => o.termNumber === semester);
+    if (cohort !== 'ALL') rows = rows.filter((o) => o.cohortNames.includes(cohort));
+    this.dataSource.data = rows;
+    if (this.dataSource.paginator) this.dataSource.paginator.firstPage();
+  }
+
+  private performToggle(row: CourseOffering): void {
     this.loading.set(true);
     const termInstanceId = this.selectedTermInstanceId;
-    this.academicYearService.deactivateCourseOffering(row.id).subscribe({
+    const nextActive = !row.isActive;
+    this.academicYearService.updateCourseOfferingStatus(row.id, { isActive: nextActive }).subscribe({
       next: () => {
-        this.toast.success('Course offering deactivated');
+        this.toast.success(`Course offering ${nextActive ? 'activated' : 'deactivated'}`);
         if (termInstanceId) this.loadOfferings(termInstanceId);
       },
       error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to deactivate');
+        this.toast.error(violationText(err) ?? 'Failed to update status');
         this.loading.set(false);
       },
     });

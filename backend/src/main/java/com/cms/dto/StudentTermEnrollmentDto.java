@@ -6,6 +6,7 @@ public record StudentTermEnrollmentDto(
     Long id,
     Long studentId,
     String studentName,
+    String rollNumber,
     Long cohortId,
     String cohortCode,
     Long termInstanceId,

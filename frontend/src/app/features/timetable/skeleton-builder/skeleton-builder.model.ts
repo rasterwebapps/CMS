@@ -152,3 +152,61 @@ export interface ElectiveGroupScheduleResponse {
   startTime: string | null;
   endTime: string | null;
 }
+
+// ── Global multi-cohort auto-scheduler ─────────────────────────────────────
+
+export interface OverageContributor {
+  courseOfferingId: number;
+  subjectName: string;
+  cohortId: number;
+  cohortName: string;
+  termHoursContributed: number;
+}
+
+export interface RaiseCapSuggestion {
+  facultyId: number;
+  currentDailyCap: number;
+  currentTier: string;
+  suggestedMinDailyHours: number;
+}
+
+export interface SpreadLoadSuggestion {
+  alternateFacultyId: number;
+  alternateFacultyName: string;
+  isOfferingsSecondaryFaculty: boolean;
+  alternateSpareCapacityHours: number;
+  courseOfferingId: number;
+  subjectName: string;
+}
+
+export interface FacultyOverCapacity {
+  facultyId: number;
+  facultyName: string;
+  effectiveDailyCapacityHours: number;
+  dailyCapacityTier: string;
+  workingDaysInTerm: number;
+  termCapacityHours: number;
+  totalTermDemandHours: number;
+  shortfallHours: number;
+  suggestedMinDailyHours: number;
+  topContributors: OverageContributor[];
+  raiseCap: RaiseCapSuggestion;
+  spreadLoad: SpreadLoadSuggestion[];
+}
+
+export interface GlobalCapacityPrecheckResult {
+  overCapacityFaculty: FacultyOverCapacity[];
+}
+
+export interface CohortPlacementSummary {
+  cohortId: number;
+  cohortName: string;
+  placedCount: number;
+  staffedCount: number;
+}
+
+export interface GlobalAutoScheduleResult {
+  totalPlaced: number;
+  totalStaffed: number;
+  cohortSummaries: CohortPlacementSummary[];
+}

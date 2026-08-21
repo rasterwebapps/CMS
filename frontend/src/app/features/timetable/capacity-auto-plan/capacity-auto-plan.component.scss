@@ -1,0 +1,518 @@
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.cap-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  border-radius: var(--cms-radius-md, 10px);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  border: 1px solid transparent;
+
+  &--ok {
+    background: var(--cms-badge-green-bg);
+    color: var(--cms-badge-green-text);
+  }
+
+  // Same soft/muted red treatment as the profile screen's "Remove Photo" button
+  // (.btn-ghost-photo) -- a translucent tint instead of a solid, alarm-red fill.
+  &--bad {
+    background: rgba(239, 68, 68, .12);
+    border-color: rgba(239, 68, 68, .35);
+    color: rgba(239, 68, 68, .95);
+  }
+}
+
+.cap-alert__cta {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(239, 68, 68, .35);
+  background: transparent;
+  color: rgba(239, 68, 68, .95);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background .18s, border-color .18s, color .18s;
+
+  &:hover {
+    background: rgba(239, 68, 68, .82);
+    border-color: transparent;
+    color: #fff;
+  }
+}
+
+.cap-summary-card {
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+
+.cap-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.cap-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: var(--cms-radius-md, 10px);
+  background: var(--cms-bg-muted);
+}
+
+.cap-tile__value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+.cap-tile__label {
+  font-size: 0.75rem;
+  color: var(--cms-text-secondary);
+}
+
+.cap-room-card {
+  margin-bottom: 16px;
+  padding: 16px 20px;
+}
+
+// Standalone section heading sitting directly in .mlp-page's flex flow (not inside a card) --
+// deliberately no margin, so .mlp-page's own 16px gap is the only spacing above/below it (see the
+// mlp-page spacing hard gate: a local margin here would stack on top of that gap instead of
+// replacing it).
+.cap-cohorts-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  margin: 0;
+}
+
+.cap-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  margin: 0 0 12px;
+}
+
+.cap-empty-hint {
+  font-size: 0.85rem;
+  color: var(--cms-text-secondary);
+  margin: 0;
+}
+
+.cap-room-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cap-room-group__title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--cms-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 8px;
+}
+
+.cap-room-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.cap-room-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--cms-radius-md, 10px);
+  background: var(--cms-bg-muted);
+  border: 1px solid transparent;
+
+  &--claimed {
+    border-color: var(--cms-badge-red-bg);
+  }
+}
+
+.cap-room-chip__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cap-room-chip__name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--cms-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cap-room-chip__capacity {
+  font-size: 0.75rem;
+  color: var(--cms-text-secondary);
+}
+
+.cap-room-chip__foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cap-room-chip__claim {
+  font-size: 0.72rem;
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cap-room-chip__occupancy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cap-room-chip__occupancy-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--cms-text-secondary);
+}
+
+.cap-room-chip__occupancy-pct--over {
+  font-weight: 700;
+  color: var(--cms-danger);
+}
+
+.cap-room-chip__occupancy-track {
+  height: 4px;
+  border-radius: 99px;
+  background: var(--cms-border-default);
+  overflow: hidden;
+}
+
+.cap-room-chip__occupancy-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--cms-primary);
+  transition: width 0.2s ease;
+
+  &--over {
+    background: var(--cms-danger);
+  }
+}
+
+// ── Cohort tabs ───────────────────────────────────────────────
+// One cohort's full editable card shown at a time, picked via this strip, instead of every
+// cohort's card rendered in a grid at once -- got cluttered fast once each card grew a real
+// section/batch editor. Same segmented-pill visual language as Capacity Planner's own
+// .cap-tab-toggle (sibling screen), but a scrollable strip since the cohort count is unbounded
+// where that toggle's is a fixed 2 tabs.
+.cap-cohort-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 4px;
+  border-radius: var(--cms-radius-md, 10px);
+  background: var(--cms-bg-muted);
+  overflow-x: auto;
+}
+
+.cap-cohort-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 16px;
+  border: none;
+  border-radius: var(--cms-radius-sm, 6px);
+  background: transparent;
+  color: var(--cms-text-secondary);
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+
+  &--active {
+    background: var(--cms-bg-card);
+    color: var(--cms-primary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.cap-cohort-tab__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--cms-text-muted);
+
+  &--committed {
+    background: var(--cms-success);
+  }
+
+  &--warn {
+    background: var(--cms-danger);
+  }
+}
+
+// ── Cohort proposal card (one at a time, selected via the tabs above) ──────
+// Capped width -- it no longer sits in a multi-column grid, and a full-bleed section/batch editor
+// reads awkwardly stretched across a wide viewport. Wide enough for two section blocks side by
+// side (see .cap-cohort-card__sections) at a readable width each.
+.cap-cohort-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 960px;
+}
+
+.cap-cohort-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cap-cohort-card__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cap-cohort-card__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+.cap-cohort-card__meta {
+  font-size: 0.78rem;
+  color: var(--cms-text-secondary);
+}
+
+.cap-cohort-card__flag {
+  align-self: flex-start;
+}
+
+.cap-cohort-card__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--cms-text-secondary);
+}
+
+// Sections lay out side by side (2+ columns) instead of stacking vertically -- wraps down to one
+// column only once the viewport can't fit a second section block at a readable width.
+.cap-cohort-card__sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.cap-cohort-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+// One vertical block per Theory section -- a cohort split into 2 sections renders as 2 of these,
+// stacked, each with its own room picker and the Lab/Clinical batch rows scoped to it.
+.cap-section-block {
+  display: flex;
+  flex-direction: column;
+  // 16px gap between section-head / Theory / Lab / Clinical -- same single-gap-drives-everything
+  // rhythm as .cap-room-groups elsewhere on this screen, not an arbitrary local value.
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-md, 10px);
+  background: var(--cms-bg-muted);
+}
+
+.cap-section-block__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cap-section-block__label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+
+  em {
+    font-style: normal;
+    font-weight: 500;
+    color: var(--cms-text-secondary);
+    font-size: 0.75rem;
+  }
+}
+
+.cap-section-block__size {
+  font-size: 0.78rem;
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+}
+
+// Theory's count input is wrapped in the same .cap-batch-row__boxes (104px reserved column, see
+// below) as Lab/Clinical -- so it starts at the same X position as their batch boxes, and every
+// row's own venue/classroom select (flex: 1 1 auto) fills the identical remaining width, keeping
+// every row's location+count columns vertically aligned down the whole card.
+.cap-section-block__room {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+
+  select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+// Theory / Lab / Clinical each get their own titled block within a section card, so the three stay
+// visually distinct instead of reading as one undifferentiated stack of rows.
+.cap-subblock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  // Bleeds the divider through .cap-section-block's own 14px horizontal padding so it spans the
+  // full card width edge-to-edge, not just the padded content width -- the compensating
+  // padding-left/right keeps the title/content back at their normal inset.
+  &:not(:first-child) {
+    margin-left: -14px;
+    margin-right: -14px;
+    padding-top: 16px;
+    padding-left: 14px;
+    padding-right: 14px;
+    border-top: 1px solid var(--cms-border-default);
+  }
+}
+
+.cap-subblock__title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cms-text-muted);
+}
+
+// Two lines per subject: the full name on its own line, then venue+batch-boxes together on the
+// line below -- see .cap-batch-row__controls.
+.cap-batch-row {
+  display: flex;
+  flex-direction: column;
+  // 14px, not 6px -- leaves clearance above the controls row for .cap-batch-box__label, which floats
+  // 11px above its input via absolute positioning (see .cap-batch-box), so it never crowds/overlaps
+  // the subject-name line above it.
+  gap: 14px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--cms-border-default);
+}
+
+.cap-batch-row__label {
+  font-size: 0.78rem;
+  color: var(--cms-text-secondary);
+}
+
+.cap-batch-row__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+
+  select.field-select--inline {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+// Fixed 104px column (2x48px box + 8px gap, matching .cap-section-block__room's count input
+// exactly) -- reserved whether this subject has 1 or 2+ batches, so the boxes always start at the
+// SAME X position as every other row's count column, not just line up with each other when counts
+// match. flex-shrink: 0 -- boxes never shrink to make room; the venue select absorbs any squeeze
+// instead. Also reused (unchanged) by Theory's own count input above, wrapping its single
+// .cap-count-plain the same way.
+.cap-batch-row__boxes {
+  display: flex;
+  flex: 0 0 104px;
+  width: 104px;
+  gap: 8px;
+}
+
+// A plain, unboxed count input -- used for Theory's classroom count and any Lab/Clinical subject
+// that ISN'T split into sequential batches (see splitIntoSequentialBatches). No fieldset/legend
+// styling; just a normal field-input--narrow, sized to match one .cap-batch-box (48px) so it still
+// lines up with split rows' first box even though it doesn't fill the whole 104px reserved column.
+.cap-count-plain {
+  flex: 0 0 48px;
+  width: 48px;
+  max-width: 48px;
+  min-width: 0;
+}
+
+// Fixed width (not flex-grow/shrink) so every box lines up the same size across every subject/section
+// regardless of how many batches it holds or how long its subject name is. position: relative + the
+// label positioned absolutely above (see .cap-batch-box__label) means THIS box's own layout height
+// is exactly its input's height -- identical to the venue select's height next to it -- so
+// align-items: center on .cap-batch-row__controls lines the input and select up on the exact same
+// horizontal line, guaranteed, regardless of the label floating above it.
+.cap-batch-box {
+  position: relative;
+  flex: 0 0 48px;
+  width: 48px;
+  min-width: 0;
+
+  input {
+    width: 100%;
+    min-width: 0;
+    padding: 0 1px;
+    text-align: center;
+  }
+}
+
+// Positioned OUT of normal flow -- takes no layout height of its own, so it never affects
+// .cap-batch-box's height (see above) or pushes the input down.
+.cap-batch-box__label {
+  position: absolute;
+  top: -11px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.5rem;
+  font-weight: 700;
+  color: var(--cms-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.cap-loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}

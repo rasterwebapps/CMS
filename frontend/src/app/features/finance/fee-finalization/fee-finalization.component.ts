@@ -188,6 +188,18 @@ export class FeeFinalizationComponent implements OnInit {
   ngOnInit(): void {
     this.tourService.register('fee-finalization', FEE_FINALIZATION_TOUR);
     this.tourService.registerFlowMap('fee-finalization', FEE_FINALIZATION_FLOW_MAP);
+
+    // 'quota' renders row.admissionQuota via a badge, not a field literally named 'quota', so the
+    // default sortingDataAccessor (row[sortHeaderId]) returned undefined and never reordered.
+    // 'finalCalculatedFee' is sorted on the raw persisted field too, but the cell can display an
+    // authoritative override from getProposedFee() instead — sorting on the same value shown.
+    this.dataSource.sortingDataAccessor = (row: Enquiry, sortHeaderId: string) => {
+      switch (sortHeaderId) {
+        case 'quota': return row.admissionQuota ?? '';
+        case 'finalCalculatedFee': return this.getProposedFee(row) ?? 0;
+        default: return (row as unknown as Record<string, string | number>)[sortHeaderId] ?? '';
+      }
+    };
     this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({
       next: (d) => this.programs.set(d),
     });

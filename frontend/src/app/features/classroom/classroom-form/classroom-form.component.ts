@@ -68,6 +68,7 @@ export class ClassroomFormComponent implements OnInit {
     building:   ['', [Validators.maxLength(255)]],
     roomNumber: ['', [Validators.maxLength(255)]],
     capacity:   [null],
+    allowsConcurrentSharing: [false],
   });
 
   constructor() {
@@ -136,6 +137,7 @@ export class ClassroomFormComponent implements OnInit {
       roomNumber: this.form.value.roomNumber?.trim() || undefined,
       capacity:   this.form.get('capacity')?.value ?? undefined,
       roomId:     this.selectedRoomId ?? undefined,
+      allowsConcurrentSharing: this.form.value.allowsConcurrentSharing ?? false,
     };
 
     this.saving.set(true);
@@ -169,7 +171,10 @@ export class ClassroomFormComponent implements OnInit {
     this.loading.set(true);
     this.classroomService.getById(this.classroomId).subscribe({
       next: (c) => {
-        this.form.patchValue({ name: c.name, building: c.building || '', roomNumber: c.roomNumber || '', capacity: c.capacity ?? null });
+        this.form.patchValue({
+          name: c.name, building: c.building || '', roomNumber: c.roomNumber || '', capacity: c.capacity ?? null,
+          allowsConcurrentSharing: c.allowsConcurrentSharing ?? false,
+        });
         this.selectedRoomId = c.roomId ?? null;
         this.keepRoomId = c.roomId ?? null;
         this.currentRoomLabel.set(c.roomLabel ?? null);

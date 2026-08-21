@@ -20,6 +20,14 @@
   padding: 18px 20px;
 }
 
+.gas-cta-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
 .skeleton-budget-card__title {
   margin: 0 0 14px;
   font-size: var(--cms-text-md);

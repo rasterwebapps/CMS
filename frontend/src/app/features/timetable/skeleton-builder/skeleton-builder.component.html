@@ -1,4 +1,4 @@
-<div class="mlp-page">
+<div class="mlp-page mlp-page--free-scroll">
 
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
@@ -51,6 +51,15 @@
     </app-elective-slot-block-flyout>
   }
 
+  @if (showGlobalAutoSchedule() && selectedTermInstanceId && selectedAcademicYearId) {
+    <app-global-auto-schedule-report-flyout
+      [termInstanceId]="selectedTermInstanceId"
+      [academicYearId]="selectedAcademicYearId"
+      (closed)="onGlobalAutoScheduleClosed()"
+      (scheduled)="onGlobalScheduleCompleted()">
+    </app-global-auto-schedule-report-flyout>
+  }
+
   <div id="tour-skel-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
       @for (ay of academicYears(); track ay.id) {
@@ -66,7 +75,7 @@
         <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
       }
     </select>
-    <select class="mlp-filter-select" [(ngModel)]="selectedCohortId" (ngModelChange)="onCohortChange()"
+    <select class="mlp-filter-select" [(ngModel)]="cohortSelection" (ngModelChange)="onCohortSelectionChange()"
       [disabled]="cohortsLoading() || cohorts().length === 0" aria-label="Cohort">
       @if (cohorts().length === 0) {
         <option [ngValue]="null">No cohorts yet</option>
@@ -74,10 +83,22 @@
       @for (cohort of cohorts(); track cohort.id) {
         <option [ngValue]="cohort.id">{{ cohort.displayName }}</option>
       }
+      @if (canGlobalAutoPlace() && cohorts().length > 0) {
+        <option [ngValue]="'ALL'">All cohorts…</option>
+      }
     </select>
   </div>
 
-  @if (skeletonLoading()) {
+  @if (allCohortsSelected()) {
+    <div class="content-card gas-cta-card">
+      <h2 class="skeleton-budget-card__title">Global Auto-Schedule</h2>
+      <p class="skeleton-empty-hint">
+        Places and staffs every cohort's remaining shortfall in this term at once, using each offering's assigned
+        faculty. Checks every faculty's real capacity first — nothing is placed for any cohort unless everyone fits.
+      </p>
+      <button type="button" class="btn-primary" (click)="openGlobalAutoSchedule()">Run Global Auto-Schedule</button>
+    </div>
+  } @else if (skeletonLoading()) {
     <div class="content-card">
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading skeleton"></mat-spinner>

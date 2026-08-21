@@ -89,6 +89,15 @@ export const NAV_ENTRIES: NavEntry[] = [
       // -- Term offering --
       { label: 'Course Offerings',    icon: 'event_available',    route: '/course-offerings',    permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
       { label: 'Elective Assignment', icon: 'how_to_reg',         route: '/elective-assignment', permissions: ['COURSE_REGISTRATION_ELECTIVE_ASSIGN'] },
+      // Deliberately after Elective Assignment: only once electives are assigned do you know which
+      // options actually have real enrolled students and need a faculty at all. Capacity Planner
+      // must run before Assign Faculty, not after -- it's what decides whether a cohort's Theory
+      // splits into 2+ CohortSection rows, and Assign Faculty's per-section "Section Faculty"
+      // picker (CourseOfferingSectionFacultyService.getForOffering) only appears once those
+      // sections already exist.
+      { label: 'Capacity Planner',    icon: 'calculate',          route: '/timetable/capacity-planner', permissions: ['TIMETABLE_CAPACITY_PLANNER_VIEW'] },
+      { label: 'Capacity Auto-Plan',  icon: 'auto_awesome',       route: '/timetable/capacity-auto-plan', permissions: ['TIMETABLE_CAPACITY_PLANNER_VIEW'] },
+      { label: 'Assign Faculty',      icon: 'person_edit',        route: '/assign-faculty',      permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
       { label: 'Lab Schedules',       icon: 'calendar_view_week', route: '/lab-schedules',       permissions: ['LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_CREATE', 'LAB_SCHEDULE_EDIT', 'LAB_SCHEDULE_DELETE', 'LAB_SCHEDULE_EXPORT', 'LAB_SCHEDULE_MANAGE'] },
       // -- Timetable build -- (Faculty Availability + Workload Rules first: TimetableStaffingService's
       // validateAssignment() checks both directly, so they gate Staffing, not the other way round)
@@ -96,7 +105,6 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Faculty Workload Rules', icon: 'rule',            route: '/timetable/workload-rules', permissions: ['TIMETABLE_WORKLOAD_RULES_VIEW', 'TIMETABLE_WORKLOAD_RULES_MANAGE'] },
       { label: 'Skeleton Builder',    icon: 'grid_on',            route: '/timetable/skeleton-builder', permissions: ['TIMETABLE_VIEW'] },
       { label: 'Staffing',            icon: 'assignment_ind',     route: '/timetable/staffing',   permissions: ['TIMETABLE_VIEW'] },
-      { label: 'Capacity Planner',    icon: 'calculate',          route: '/timetable/capacity-planner', permissions: ['TIMETABLE_CAPACITY_PLANNER_VIEW'] },
       { label: 'Conflict Inspector',  icon: 'fact_check',         route: '/timetable/conflict-inspector', permissions: ['TIMETABLE_CONFLICT_INSPECTOR_VIEW'] },
       { label: 'Timetable Draft Review', icon: 'auto_awesome',    route: '/timetable/draft-review', permissions: ['TIMETABLE_MANAGE'] },
       { label: 'Timetable',           icon: 'event_note',         route: '/timetable',           permissions: ['TIMETABLE_VIEW'] },

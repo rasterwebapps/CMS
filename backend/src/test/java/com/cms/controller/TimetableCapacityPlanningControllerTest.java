@@ -14,8 +14,12 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.cms.dto.CohortAutoPlanSummaryResponse;
 import com.cms.dto.FacultyWorkloadReportResponse;
 import com.cms.dto.FacultyWorkloadRow;
+import com.cms.dto.RoomInventoryRowResponse;
+import com.cms.dto.TermCapacityOverviewResponse;
+import com.cms.model.enums.PlanningBasis;
 import com.cms.service.FacultyWorkloadCapacityService;
 import com.cms.service.TimetableCapacityPlanningService;
 
@@ -51,5 +55,24 @@ class TimetableCapacityPlanningControllerTest {
             .andExpect(jsonPath("$.rows[0].overDemand").value(true))
             .andExpect(jsonPath("$.rows[0].overCommitted").value(false))
             .andExpect(jsonPath("$.unconfiguredFacultyCount").value(0));
+    }
+
+    @Test
+    void shouldGetTermOverview() throws Exception {
+        CohortAutoPlanSummaryResponse row = new CohortAutoPlanSummaryResponse(
+            5L, "BSc Nursing 2026 - Sem 1", 1, 60L, false, true, null, List.of(), List.of(), true, null);
+        RoomInventoryRowResponse roomRow = new RoomInventoryRowResponse(1L, "Room 101", "CLASSROOM", 60, null, 0, 0L, 0, 0.0);
+        TermCapacityOverviewResponse overview = new TermCapacityOverviewResponse(
+            10L, true, 60, 60, null, List.of(row), List.of(roomRow), true, null);
+        when(timetableCapacityPlanningService.getTermOverview(10L, PlanningBasis.ENROLLED)).thenReturn(overview);
+
+        mockMvc.perform(get("/timetables/capacity-plan/term-overview")
+                .param("termInstanceId", "10")
+                .param("planningBasis", "ENROLLED"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.theorySufficient").value(true))
+            .andExpect(jsonPath("$.cohorts[0].cohortId").value(5))
+            .andExpect(jsonPath("$.cohorts[0].hasCommittedAllocation").value(false))
+            .andExpect(jsonPath("$.roomInventory[0].roomType").value("CLASSROOM"));
     }
 }

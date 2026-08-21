@@ -16,6 +16,7 @@ import { PermissionService } from '../../../core/permissions/permission.service'
 import { ToastService } from '../../../core/toast/toast.service';
 import { RotationSetupFlyoutComponent } from '../rotation-setup/rotation-setup-flyout.component';
 import { ElectiveSlotBlockFlyoutComponent } from './elective-slot-block-flyout.component';
+import { GlobalAutoScheduleReportFlyoutComponent } from './global-auto-schedule-report-flyout.component';
 import { colorForSubject } from './subject-color.util';
 import { violationText } from '../../../shared/util/violation-text';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -25,7 +26,7 @@ import { SKELETON_BUILDER_TOUR, SKELETON_BUILDER_FLOW_MAP } from '../../../share
 @Component({
   selector: 'app-skeleton-builder',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatDialogModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent, ElectiveSlotBlockFlyoutComponent, DragDropModule, CmsTourButtonComponent],
+  imports: [FormsModule, RouterLink, MatDialogModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent, ElectiveSlotBlockFlyoutComponent, GlobalAutoScheduleReportFlyoutComponent, DragDropModule, CmsTourButtonComponent],
   templateUrl: './skeleton-builder.component.html',
   styleUrl: './skeleton-builder.component.scss',
 })
@@ -54,6 +55,14 @@ export class SkeletonBuilderComponent implements OnInit {
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
   protected selectedCohortId: number | null = null;
+
+  /** Bound to the cohort `<select>` directly — mirrors {@link selectedCohortId} except it can also
+   *  hold the `'ALL'` sentinel for the "All cohorts" option. Kept separate from {@link
+   *  selectedCohortId} deliberately: that field flows unchanged into placeCell/moveCell/the
+   *  elective flyout's `[cohortId]` input and must never hold a fake id. */
+  protected cohortSelection: number | 'ALL' | null = null;
+  protected readonly allCohortsSelected = signal(false);
+  protected readonly showGlobalAutoSchedule = signal(false);
 
   /** Which subject in the rail is currently "active" for placement/suggest — the grid itself
    *  always shows every subject's cells together, this only scopes the placement panel + Suggest
@@ -123,6 +132,30 @@ export class SkeletonBuilderComponent implements OnInit {
 
   protected canPlaceElectiveGroup(): boolean {
     return this.permissionService.has('TIMETABLE_SKELETON_ELECTIVE_PLACE');
+  }
+
+  protected canGlobalAutoPlace(): boolean {
+    return this.permissionService.has('TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE');
+  }
+
+  protected openGlobalAutoSchedule(): void {
+    this.showGlobalAutoSchedule.set(true);
+  }
+
+  protected onGlobalAutoScheduleClosed(): void {
+    this.showGlobalAutoSchedule.set(false);
+  }
+
+  /** Only fires on an actual successful run (not just closing the panel) — falls back to a normal
+   *  single-cohort selection so the admin reviews/drag-edits the result exactly as today, reusing
+   *  the existing per-cohort load path with no new logic needed for that part. */
+  protected onGlobalScheduleCompleted(): void {
+    this.showGlobalAutoSchedule.set(false);
+    this.allCohortsSelected.set(false);
+    const fallbackCohortId = this.cohorts()[0]?.id ?? null;
+    this.cohortSelection = fallbackCohortId;
+    this.selectedCohortId = fallbackCohortId;
+    this.onCohortChange();
   }
 
   protected openElectiveBlock(): void {
@@ -219,6 +252,22 @@ export class SkeletonBuilderComponent implements OnInit {
     this.tryLoadSkeleton();
   }
 
+  /** Fires on every cohort `<select>` change, including the "All cohorts" option — the only place
+   *  {@link cohortSelection} ever gets read, keeping {@link selectedCohortId} a real numeric id (or
+   *  null) everywhere else in this component. */
+  protected onCohortSelectionChange(): void {
+    if (this.cohortSelection === 'ALL') {
+      this.allCohortsSelected.set(true);
+      this.selectedCohortId = null;
+      this.skeleton.set(null);
+      this.cancelPlacement();
+      return;
+    }
+    this.allCohortsSelected.set(false);
+    this.selectedCohortId = this.cohortSelection;
+    this.onCohortChange();
+  }
+
   private loadTermInstances(academicYearId: number): void {
     this.termsLoading.set(true);
     this.academicYearService.getTermInstancesByAcademicYear(academicYearId).subscribe({
@@ -242,6 +291,7 @@ export class SkeletonBuilderComponent implements OnInit {
         this.cohorts.set(cohorts);
         this.cohortsLoading.set(false);
         this.selectedCohortId = cohorts[0]?.id ?? null;
+        this.cohortSelection = this.selectedCohortId;
         this.tryLoadSkeleton();
       },
       error: () => { this.toast.error('Failed to load cohorts'); this.cohortsLoading.set(false); },

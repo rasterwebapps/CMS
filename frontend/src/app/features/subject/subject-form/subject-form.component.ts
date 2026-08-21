@@ -9,6 +9,10 @@ import { SubjectService } from '../subject.service';
 import { SubjectRequest } from '../subject.model';
 import { SpecialityService } from '../../speciality/speciality.service';
 import { Speciality } from '../../speciality/speciality.model';
+import { LabService } from '../../lab/lab.service';
+import { Lab } from '../../lab/lab.model';
+import { ClinicalVenueService } from '../../clinical-venue/clinical-venue.service';
+import { ClinicalVenue } from '../../clinical-venue/clinical-venue.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
@@ -37,6 +41,8 @@ export class SubjectFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly subjectService = inject(SubjectService);
   private readonly specialityService = inject(SpecialityService);
+  private readonly labService = inject(LabService);
+  private readonly clinicalVenueService = inject(ClinicalVenueService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly http = inject(HttpClient);
@@ -46,6 +52,14 @@ export class SubjectFormComponent implements OnInit {
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Subject');
   protected readonly specialities = signal<Speciality[]>([]);
+
+  /** Eligible Labs/Clinical Venues for this subject's practical sessions — a soft preference for
+   *  the auto-suggest algorithm and manual pickers (TimetableCapacityPlanningService), not a hard
+   *  restriction. Sourced from the active Lab/Clinical Venue masters; admin picks 0+ of each. */
+  protected readonly activeLabs = signal<Lab[]>([]);
+  protected readonly activeClinicalVenues = signal<ClinicalVenue[]>([]);
+  protected readonly selectedLabIds = signal<Set<number>>(new Set());
+  protected readonly selectedClinicalVenueIds = signal<Set<number>>(new Set());
 
   // Live preview signals
   protected readonly previewName = signal('');
@@ -84,6 +98,30 @@ export class SubjectFormComponent implements OnInit {
       });
   }
 
+  protected isLabChecked(id: number): boolean {
+    return this.selectedLabIds().has(id);
+  }
+
+  protected toggleLab(id: number): void {
+    this.selectedLabIds.update((set) => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  protected isClinicalVenueChecked(id: number): boolean {
+    return this.selectedClinicalVenueIds().has(id);
+  }
+
+  protected toggleClinicalVenue(id: number): void {
+    this.selectedClinicalVenueIds.update((set) => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
   protected onCodeInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     const upper = input.value.toUpperCase();
@@ -94,6 +132,8 @@ export class SubjectFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadSpecialities();
+    this.loadActiveLabs();
+    this.loadActiveClinicalVenues();
 
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
@@ -137,6 +177,8 @@ export class SubjectFormComponent implements OnInit {
       specialityId: this.form.value.specialityId ?? null,
       termNumber: this.form.value.termNumber,
       isActive: this.form.value.isActive,
+      eligibleLabIds: [...this.selectedLabIds()],
+      eligibleClinicalVenueIds: [...this.selectedClinicalVenueIds()],
     };
 
     this.saving.set(true);
@@ -186,6 +228,22 @@ export class SubjectFormComponent implements OnInit {
     });
   }
 
+  private loadActiveLabs(): void {
+    // getAll() returns every lab regardless of status -- filter to active client-side, same as
+    // every other "pick from an active master" selector in this app.
+    this.labService.getAll().subscribe({
+      next: (labs) => this.activeLabs.set(labs.filter((l) => l.status === 'ACTIVE')),
+      error: () => this.toast.error('Failed to load labs'),
+    });
+  }
+
+  private loadActiveClinicalVenues(): void {
+    this.clinicalVenueService.getAll(true).subscribe({
+      next: (venues) => this.activeClinicalVenues.set(venues),
+      error: () => this.toast.error('Failed to load clinical venues'),
+    });
+  }
+
   private loadSubject(): void {
     if (!this.subjectId) return;
 
@@ -202,6 +260,8 @@ export class SubjectFormComponent implements OnInit {
           termNumber: subject.termNumber,
           isActive: subject.isActive,
         });
+        this.selectedLabIds.set(new Set(subject.eligibleLabs.map((l) => l.id)));
+        this.selectedClinicalVenueIds.set(new Set(subject.eligibleClinicalVenues.map((v) => v.id)));
         this.loading.set(false);
       },
       error: () => {

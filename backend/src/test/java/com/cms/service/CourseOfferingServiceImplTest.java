@@ -3,6 +3,8 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -19,10 +21,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.CourseOfferingDto;
+import com.cms.dto.FacultyCapacityCheckResult;
 import com.cms.dto.GenerateOfferingsResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
+import com.cms.model.ClassSchedule;
 import com.cms.model.Cohort;
 import com.cms.model.Course;
 import com.cms.model.CourseOffering;
@@ -41,6 +46,8 @@ import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.ProgramStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
+import com.cms.repository.BatchRepository;
+import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
@@ -66,6 +73,12 @@ class CourseOfferingServiceImplTest {
     private FacultyRepository facultyRepository;
     @Mock
     private StudentTermEnrollmentRepository studentTermEnrollmentRepository;
+    @Mock
+    private ClassScheduleRepository classScheduleRepository;
+    @Mock
+    private BatchRepository batchRepository;
+    @Mock
+    private TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
 
     private CourseOfferingServiceImpl service;
 
@@ -74,7 +87,12 @@ class CourseOfferingServiceImplTest {
         service = new CourseOfferingServiceImpl(
             courseOfferingRepository, termInstanceRepository, cohortRepository,
             curriculumVersionRepository, curriculumSemesterCourseRepository, facultyRepository,
-            studentTermEnrollmentRepository);
+            studentTermEnrollmentRepository, classScheduleRepository, batchRepository);
+        service.setTimetableGlobalAutoScheduleService(timetableGlobalAutoScheduleService);
+    }
+
+    private FacultyCapacityCheckResult fitsWithinCapacity() {
+        return new FacultyCapacityCheckResult(false, 0, 0, 0, 100, 5, "NONE", 100, 0, List.of());
     }
 
     private Speciality createSpeciality(Long id, String name, String code) {
@@ -434,7 +452,7 @@ class CourseOfferingServiceImplTest {
     }
 
     @Test
-    void updateOffering_updatesFacultyAndSection() {
+    void updateOffering_updatesFaculty() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
         Course course = createCourse(1L, "BCA Course", "BCA-C", program);
@@ -445,11 +463,12 @@ class CourseOfferingServiceImplTest {
 
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
         when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForOffering(anyLong(), eq(1L), eq(42L)))
+            .thenReturn(fitsWithinCapacity());
 
-        service.updateOffering(1L, 42L, null, "Section A");
+        service.updateOffering(1L, 42L, null);
 
         assertThat(offering.getFacultyId()).isEqualTo(42L);
-        assertThat(offering.getSectionLabel()).isEqualTo("Section A");
     }
 
     @Test
@@ -469,7 +488,7 @@ class CourseOfferingServiceImplTest {
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
         when(facultyRepository.findById(42L)).thenReturn(Optional.of(mismatchedFaculty));
 
-        assertThatThrownBy(() -> service.updateOffering(1L, 42L, null, "Section A"))
+        assertThatThrownBy(() -> service.updateOffering(1L, 42L, null))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("not eligible to teach");
 
@@ -492,8 +511,10 @@ class CourseOfferingServiceImplTest {
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
         when(facultyRepository.findById(42L)).thenReturn(Optional.of(matchingFaculty));
         when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForOffering(anyLong(), eq(1L), eq(42L)))
+            .thenReturn(fitsWithinCapacity());
 
-        service.updateOffering(1L, 42L, null, "Section A");
+        service.updateOffering(1L, 42L, null);
 
         assertThat(offering.getFacultyId()).isEqualTo(42L);
     }
@@ -501,8 +522,8 @@ class CourseOfferingServiceImplTest {
     @Test
     void updateOffering_grandfathersAnUnchangedMismatchedFaculty() {
         // A row assigned before this eligibility rule existed may already carry a mismatched
-        // pairing. Resubmitting the SAME faculty on an otherwise-unrelated edit (section label)
-        // must not suddenly start failing, and must not require a facultyRepository lookup.
+        // pairing. Resubmitting the SAME faculty unchanged must not suddenly start failing, and
+        // must not require a facultyRepository lookup.
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
         Course course = createCourse(1L, "BCA Course", "BCA-C", program);
@@ -517,9 +538,9 @@ class CourseOfferingServiceImplTest {
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
         when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
 
-        service.updateOffering(1L, 42L, null, "Section A - Renamed");
+        service.updateOffering(1L, 42L, null);
 
-        assertThat(offering.getSectionLabel()).isEqualTo("Section A - Renamed");
+        assertThat(offering.getFacultyId()).isEqualTo(42L);
         verify(facultyRepository, never()).findById(any());
     }
 
@@ -542,7 +563,7 @@ class CourseOfferingServiceImplTest {
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
         when(facultyRepository.findById(43L)).thenReturn(Optional.of(mismatchedFaculty));
 
-        assertThatThrownBy(() -> service.updateOffering(1L, null, 43L, "Section A"))
+        assertThatThrownBy(() -> service.updateOffering(1L, null, 43L))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("not eligible to teach");
 
@@ -566,7 +587,7 @@ class CourseOfferingServiceImplTest {
         when(facultyRepository.findById(43L)).thenReturn(Optional.of(matchingFaculty));
         when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
 
-        service.updateOffering(1L, null, 43L, "Section A");
+        service.updateOffering(1L, null, 43L);
 
         assertThat(offering.getSecondaryFacultyId()).isEqualTo(43L);
     }
@@ -574,7 +595,7 @@ class CourseOfferingServiceImplTest {
     @Test
     void updateOffering_grandfathersAnUnchangedMismatchedSecondaryFacultyIndependentlyOfThePrimary() {
         // The secondary's own prior value is the grandfather baseline -- not the primary's --
-        // so an unrelated edit doesn't suddenly require the secondary to also match.
+        // so resubmitting it unchanged doesn't suddenly require the secondary to also match.
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
         Course course = createCourse(1L, "BCA Course", "BCA-C", program);
@@ -589,14 +610,35 @@ class CourseOfferingServiceImplTest {
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
         when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
 
-        service.updateOffering(1L, null, 43L, "Section A - Renamed");
+        service.updateOffering(1L, null, 43L);
 
-        assertThat(offering.getSectionLabel()).isEqualTo("Section A - Renamed");
+        assertThat(offering.getSecondaryFacultyId()).isEqualTo(43L);
         verify(facultyRepository, never()).findById(any());
     }
 
     @Test
-    void deactivateOffering_setsIsActiveFalse() {
+    void updateOffering_blocksTheSameFacultyAsBothPrimaryAndSecondary() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Subject subject = createSubject(1L, "Math", "MATH101");
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForOffering(anyLong(), eq(1L), eq(42L)))
+            .thenReturn(fitsWithinCapacity());
+
+        assertThatThrownBy(() -> service.updateOffering(1L, 42L, 42L))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("cannot be the same person");
+
+        verify(courseOfferingRepository, never()).save(any());
+    }
+
+    @Test
+    void updateStatus_deactivatesWhenNothingIsAttached() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
         Course course = createCourse(1L, "BCA Course", "BCA-C", program);
@@ -607,10 +649,79 @@ class CourseOfferingServiceImplTest {
 
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
         when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
+        when(classScheduleRepository.findByCourseOfferingId(1L)).thenReturn(List.of());
+        when(batchRepository.existsAnyStudentInBatchesForOffering(1L)).thenReturn(false);
 
-        service.deactivateOffering(1L);
+        service.updateStatus(1L, new ActiveStatusUpdateRequest(false, null));
 
         assertThat(offering.getIsActive()).isFalse();
+    }
+
+    @Test
+    void updateStatus_blocksDeactivationWhenSessionsArePlaced() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Subject subject = createSubject(1L, "Math", "MATH101");
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(classScheduleRepository.findByCourseOfferingId(1L)).thenReturn(List.of(new ClassSchedule()));
+
+        assertThatThrownBy(() -> service.updateStatus(1L, new ActiveStatusUpdateRequest(false, null)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("already has sessions placed");
+
+        assertThat(offering.getIsActive()).isTrue();
+        verify(courseOfferingRepository, never()).save(any());
+    }
+
+    @Test
+    void updateStatus_blocksDeactivationWhenBatchesHaveStudents() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Subject subject = createSubject(1L, "Math", "MATH101");
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(classScheduleRepository.findByCourseOfferingId(1L)).thenReturn(List.of());
+        when(batchRepository.existsAnyStudentInBatchesForOffering(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.updateStatus(1L, new ActiveStatusUpdateRequest(false, null)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("batches with students");
+
+        assertThat(offering.getIsActive()).isTrue();
+        verify(courseOfferingRepository, never()).save(any());
+    }
+
+    @Test
+    void updateStatus_reactivatesWithNoGuardEvenWhenSessionsArePlaced() {
+        // Deactivation never touches ClassSchedule/Batch, so reactivating has nothing to protect
+        // against -- must succeed even when the offering already has placed sessions, and must not
+        // need to consult either repository to do it.
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Subject subject = createSubject(1L, "Math", "MATH101");
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        offering.setIsActive(false);
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
+
+        service.updateStatus(1L, new ActiveStatusUpdateRequest(true, null));
+
+        assertThat(offering.getIsActive()).isTrue();
+        verify(classScheduleRepository, never()).findByCourseOfferingId(any());
+        verify(batchRepository, never()).existsAnyStudentInBatchesForOffering(any());
     }
 
     @Test

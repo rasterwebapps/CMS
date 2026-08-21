@@ -163,6 +163,7 @@ public class StudentTermEnrollmentServiceImpl implements StudentTermEnrollmentSe
             e.getId(),
             e.getStudent().getId(),
             e.getStudent().getFullName(),
+            e.getStudent().getRollNumber(),
             e.getCohort().getId(),
             e.getCohort().getCohortCode(),
             e.getTermInstance().getId(),

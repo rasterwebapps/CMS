@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -12,6 +12,7 @@ import {
   TermInstance,
   StudentTermEnrollment,
   CourseOffering,
+  ElectiveGroupSummary,
   ElectiveSelectionMode,
 } from '../academic-year/academic-year.model';
 import { CmsEmptyStateComponent } from '../../shared/empty-state/empty-state.component';
@@ -42,7 +43,7 @@ interface AssignmentRow {
   selector: 'app-elective-assignment',
   standalone: true,
   imports: [
-    FormsModule, RouterLink, MatTableModule, MatPaginatorModule, MatSortModule,
+    FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatDialogModule, CmsEmptyStateComponent,
     CmsTourButtonComponent,
   ],
@@ -65,12 +66,13 @@ export class ElectiveAssignmentComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['studentName', 'cohortCode', 'currentChoice', 'action'];
+  protected readonly displayedColumns = ['rollNumber', 'studentName', 'cohortCode', 'currentChoice', 'action'];
   protected readonly dataSource = new MatTableDataSource<AssignmentRow>([]);
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
   protected readonly electiveGroupOptions = signal<ElectiveGroupOption[]>([]);
+  protected readonly groupSummaries = signal<ElectiveGroupSummary[]>([]);
   protected readonly offeringOptions = signal<CourseOffering[]>([]);
   protected readonly loading = signal(false);
   protected readonly assigning = signal<number | null>(null);
@@ -80,6 +82,11 @@ export class ElectiveAssignmentComponent implements OnInit {
   protected readonly bulkOfferingId = signal<number | null>(null);
   protected readonly bulkAssigning = signal(false);
   protected readonly modeSaving = signal(false);
+  // A fully-assigned group opens read-only by default -- Apply to All / per-row Assign sit right
+  // there ready to overwrite everyone, and a completed group is far more likely being *reviewed*
+  // than *worked on*. A group still in progress opens directly editable since that IS the normal
+  // working state. Either way, one click flips it -- this is a safety default, not a lock.
+  protected readonly editMode = signal(true);
 
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
@@ -100,6 +107,10 @@ export class ElectiveAssignmentComponent implements OnInit {
     return this.permissionService.has('CURRICULUM_ELECTIVE_GROUP_MANAGE');
   }
 
+  protected progressPercent(summary: ElectiveGroupSummary): number {
+    return summary.eligibleCount === 0 ? 0 : Math.round((summary.assignedCount / summary.eligibleCount) * 100);
+  }
+
   ngOnInit(): void {
     this.tourService.register('elective-assignment', ELECTIVE_ASSIGNMENT_TOUR);
     this.tourService.registerFlowMap('elective-assignment', ELECTIVE_ASSIGNMENT_FLOW_MAP);
@@ -110,8 +121,10 @@ export class ElectiveAssignmentComponent implements OnInit {
     // the same undefined value).
     this.dataSource.sortingDataAccessor = (row, sortHeaderId) => {
       switch (sortHeaderId) {
+        case 'rollNumber': return row.enrollment.rollNumber ?? '';
         case 'studentName': return row.enrollment.studentName;
         case 'cohortCode': return row.enrollment.cohortCode;
+        case 'currentChoice': return row.currentChoiceLabel ?? '';
         default: return '';
       }
     };
@@ -139,7 +152,29 @@ export class ElectiveAssignmentComponent implements OnInit {
 
   protected onTermChange(): void {
     this.resetGroupState();
-    if (this.selectedTermInstanceId) this.loadElectiveGroupOptions(this.selectedTermInstanceId);
+    if (this.selectedTermInstanceId) {
+      this.loadElectiveGroupOptions(this.selectedTermInstanceId);
+      this.loadGroupSummaries(this.selectedTermInstanceId);
+    }
+  }
+
+  /** Clicking a card in the group-launcher strip selects that group and loads its roster —
+   *  the same effect as picking it from the dropdown below, just one click instead of two. */
+  protected selectGroupFromSummary(summary: ElectiveGroupSummary): void {
+    this.selectedElectiveGroupId = summary.electiveGroupId;
+    this.editMode.set(!(summary.eligibleCount > 0 && summary.assignedCount >= summary.eligibleCount));
+    this.onGroupChange();
+  }
+
+  protected toggleEditMode(): void {
+    this.editMode.update((v) => !v);
+  }
+
+  private loadGroupSummaries(termInstanceId: number): void {
+    this.academicYearService.getElectiveGroupSummaries(termInstanceId).subscribe({
+      next: (summaries) => this.groupSummaries.set(summaries),
+      error: () => this.groupSummaries.set([]),
+    });
   }
 
   protected onGroupChange(): void {
@@ -165,17 +200,44 @@ export class ElectiveAssignmentComponent implements OnInit {
     });
   }
 
+  protected isChange(row: AssignmentRow): boolean {
+    const offeringId = this.selectedOfferingByEnrollment.get(row.enrollment.id);
+    return !!row.currentChoiceOfferingId && !!offeringId && offeringId !== row.currentChoiceOfferingId;
+  }
+
   protected assign(row: AssignmentRow): void {
     const offeringId = this.selectedOfferingByEnrollment.get(row.enrollment.id);
     if (!offeringId) return;
+    if (this.isChange(row)) {
+      this.dialog.open(ConfirmDialogComponent, {
+        data: {
+          title: 'Change Elective Choice',
+          message: `"${row.enrollment.studentName}" is currently assigned to "${row.currentChoiceLabel}". ` +
+            `Change their choice? The previous registration will be dropped.`,
+          confirmText: 'Change',
+          cancelText: 'Cancel',
+        },
+      }).afterClosed().subscribe((confirmed) => {
+        if (confirmed) this.doAssign(row, offeringId);
+      });
+      return;
+    }
+    this.doAssign(row, offeringId);
+  }
+
+  private doAssign(row: AssignmentRow, offeringId: number): void {
     this.assigning.set(row.enrollment.id);
     this.academicYearService.assignElectiveChoice(row.enrollment.id, offeringId).subscribe({
       next: () => {
         this.toast.success('Elective assigned');
         this.assigning.set(null);
+        this.selectedOfferingByEnrollment.delete(row.enrollment.id);
         const termInstanceId = this.selectedTermInstanceId;
         const group = this.selectedGroup();
-        if (termInstanceId && group) this.loadEnrollments(termInstanceId, group);
+        if (termInstanceId && group) {
+          this.loadEnrollments(termInstanceId, group);
+          this.loadGroupSummaries(termInstanceId);
+        }
       },
       error: (err) => {
         this.toast.error(err?.error?.message ?? 'Failed to assign elective');
@@ -188,11 +250,6 @@ export class ElectiveAssignmentComponent implements OnInit {
     const value = Number((event.target as HTMLSelectElement).value);
     if (value) this.selectedOfferingByEnrollment.set(enrollmentId, value);
     else this.selectedOfferingByEnrollment.delete(enrollmentId);
-  }
-
-  protected onBulkOfferingSelect(event: Event): void {
-    const value = Number((event.target as HTMLSelectElement).value);
-    this.bulkOfferingId.set(value || null);
   }
 
   protected applyToAll(): void {
@@ -220,10 +277,18 @@ export class ElectiveAssignmentComponent implements OnInit {
     this.bulkAssigning.set(true);
     this.academicYearService.bulkAssignElectiveChoice(termInstanceId, electiveGroupId, offeringId).subscribe({
       next: (res) => {
-        this.toast.success(`Assigned ${res.assignedCount} of ${res.eligibleStudentCount} eligible student(s)`);
+        const message = res.blockedCount > 0
+          ? `Assigned ${res.assignedCount} of ${res.eligibleStudentCount} eligible student(s) — ` +
+            `${res.blockedCount} skipped (already scheduled or attendance recorded, see roster below)`
+          : `Assigned ${res.assignedCount} of ${res.eligibleStudentCount} eligible student(s)`;
+        this.toast.success(message);
         this.bulkAssigning.set(false);
+        this.bulkOfferingId.set(null);
         const group = this.selectedGroup();
-        if (group) this.loadEnrollments(termInstanceId, group);
+        if (group) {
+          this.loadEnrollments(termInstanceId, group);
+          this.loadGroupSummaries(termInstanceId);
+        }
       },
       error: (err) => {
         this.toast.error(err?.error?.message ?? 'Failed to apply to all');
@@ -254,6 +319,7 @@ export class ElectiveAssignmentComponent implements OnInit {
   private resetGroupState(): void {
     this.selectedElectiveGroupId = null;
     this.electiveGroupOptions.set([]);
+    this.groupSummaries.set([]);
     this.offeringOptions.set([]);
     this.dataSource.data = [];
     this.scheduleStatus.set(null);
@@ -268,7 +334,10 @@ export class ElectiveAssignmentComponent implements OnInit {
           ? preselectTermInstanceId
           : terms[0]?.id ?? null;
         this.selectedTermInstanceId = preselect;
-        if (preselect) this.loadElectiveGroupOptions(preselect);
+        if (preselect) {
+          this.loadElectiveGroupOptions(preselect);
+          this.loadGroupSummaries(preselect);
+        }
       },
       error: () => this.toast.error('Failed to load term instances'),
     });
@@ -304,6 +373,7 @@ export class ElectiveAssignmentComponent implements OnInit {
       next: (relevant) => {
         if (relevant.length === 0) {
           this.dataSource.data = [];
+          this.dataSource.paginator?.firstPage();
           this.loading.set(false);
           return;
         }
@@ -323,6 +393,7 @@ export class ElectiveAssignmentComponent implements OnInit {
               pending--;
               if (pending === 0) {
                 this.dataSource.data = rows;
+                this.dataSource.paginator?.firstPage();
                 this.loading.set(false);
               }
             },
@@ -330,6 +401,7 @@ export class ElectiveAssignmentComponent implements OnInit {
               pending--;
               if (pending === 0) {
                 this.dataSource.data = rows;
+                this.dataSource.paginator?.firstPage();
                 this.loading.set(false);
               }
             },

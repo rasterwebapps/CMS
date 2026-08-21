@@ -656,7 +656,7 @@ public class TimetableStaffingService {
      *  advisory Faculty Workload report and this hard gate can never resolve a faculty's weekly
      *  capacity differently. A configured value of 0 or less is treated as unset, mirroring {@link
      *  #resolveCapHours}'s own "blank/zero = no cap" convention. */
-    private Optional<Double> resolveWeeklyCap(Faculty faculty) {
+    Optional<Double> resolveWeeklyCap(Faculty faculty) {
         Integer perFacultyOrDesignation = FacultyWorkloadCapacityService.resolveEffectiveCapacity(faculty);
         if (perFacultyOrDesignation != null && perFacultyOrDesignation > 0) {
             return Optional.of(perFacultyOrDesignation.doubleValue());
@@ -665,7 +665,7 @@ public class TimetableStaffingService {
     }
 
     /** Same per-faculty-then-designation-then-global precedence as {@link #resolveWeeklyCap}. */
-    private Optional<Double> resolveDailyCap(Faculty faculty) {
+    Optional<Double> resolveDailyCap(Faculty faculty) {
         Integer perFacultyOrDesignation = FacultyWorkloadCapacityService.resolveEffectiveDailyCapacity(faculty);
         if (perFacultyOrDesignation != null && perFacultyOrDesignation > 0) {
             return Optional.of(perFacultyOrDesignation.doubleValue());

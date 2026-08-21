@@ -125,6 +125,28 @@ class CohortRoomAllocationServiceTest {
     }
 
     @Test
+    void shouldRejectCommitWhenClassroomAllowsConcurrentSharing() {
+        // A large lecture/drawing hall flagged shareable can't be committed as one cohort's
+        // exclusive Theory section -- that would defeat the point of flagging it shareable (see
+        // SpecialClassRequestService for the actual concurrent-sharing behavior this room is for).
+        stubCohortAndTerm(60);
+        Classroom sharedHall = new Classroom("Drawing Hall", null, null, 120);
+        sharedHall.setId(12L);
+        sharedHall.setAllowsConcurrentSharing(true);
+        when(classroomRepository.findById(12L)).thenReturn(Optional.of(sharedHall));
+
+        CohortSectionRequest section = new CohortSectionRequest("Section 1", 12L, 60);
+        CohortRoomAllocationCommitRequest request =
+            new CohortRoomAllocationCommitRequest(1L, 1L, PlanningBasis.ENROLLED, List.of(section), List.of());
+
+        assertThatThrownBy(() -> service.commit(request, "admin"))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("allows concurrent sharing");
+
+        verify(allocationRepository, never()).save(any());
+    }
+
+    @Test
     void shouldRejectCommitWhenSectionsUnderCoverCohortStrength() {
         stubCohortAndTerm(100);
         when(classroomRepository.findById(10L)).thenReturn(Optional.of(theoryClassroom));

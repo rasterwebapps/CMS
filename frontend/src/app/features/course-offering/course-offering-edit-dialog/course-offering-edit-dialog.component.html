@@ -1,26 +1,59 @@
 <div mat-dialog-title class="coed-dialog-title-bar">
   <div class="coed-dialog-title-bar__icon-wrap">
-    <mat-icon>menu_book</mat-icon>
+    <mat-icon>person_edit</mat-icon>
   </div>
   <div>
-    <h2 class="coed-dialog-title-bar__heading">Edit Course Offering</h2>
+    <h2 class="coed-dialog-title-bar__heading">Assign Faculty</h2>
     <p class="coed-dialog-title-bar__sub">{{ data.offering.subjectCode }} · {{ data.offering.subjectName }} — Semester {{ data.offering.termNumber }}</p>
   </div>
 </div>
 
 <mat-dialog-content>
+  @if (prefilledFromSuggestion) {
+    <div class="coed-prefill-banner">
+      Opened from a Global Auto-Schedule capacity suggestion — the Faculty field below has been pre-filled with the
+      suggested reassignment. Nothing is saved until you confirm with Save.
+    </div>
+  }
   <form [formGroup]="form" class="coed-form">
 
     <div class="field-group">
       <label for="coed-faculty" class="field-label">Faculty</label>
       <select id="coed-faculty" class="field-select" formControlName="facultyId">
         <option [ngValue]="null">Unassigned</option>
-        @for (f of eligibleFacultyOptions; track f.id) {
+        @for (f of eligibleFacultyOptions(); track f.id) {
           <option [ngValue]="f.id">{{ f.name }}</option>
         }
       </select>
       @if (data.offering.subjectSpecialityName) {
         <p class="field-hint">Showing {{ data.offering.subjectSpecialityName }} department faculty only</p>
+      }
+      @if (capacityChecking()) {
+        <p class="field-hint">Checking capacity…</p>
+      } @else if (capacityCheck(); as check) {
+        @if (check.overCapacity) {
+          <div class="coed-capacity-warning">
+            <p>
+              This would put them at {{ check.projectedTotalHours | number: '1.0-1' }}h against a capacity of
+              {{ check.capacityHours | number: '1.0-1' }}h ({{ check.dailyCap | number: '1.0-1' }}h/day) — raise their cap to at
+              least {{ check.suggestedMinDailyHours | number: '1.0-1' }}h/day to save this assignment.
+            </p>
+            @if (check.spreadLoad.length > 0) {
+              <p>
+                Or assign {{ check.spreadLoad[0].alternateFacultyName }} instead
+                ({{ check.spreadLoad[0].alternateSpareCapacityHours | number: '1.0-1' }}h spare capacity).
+              </p>
+            }
+            @if (canManageFaculty() && capacityCheckFacultyId(); as fid) {
+              <a class="coed-capacity-fix-link" [routerLink]="['/faculty', fid, 'edit']" target="_blank" rel="noopener">
+                Fix their work hours
+                <mat-icon>open_in_new</mat-icon>
+              </a>
+            }
+          </div>
+        } @else {
+          <p class="coed-capacity-ok">Fits — {{ (check.capacityHours - check.projectedTotalHours) | number: '1.0-1' }}h spare after this assignment.</p>
+        }
       }
     </div>
 
@@ -28,31 +61,55 @@
       <label for="coed-secondary-faculty" class="field-label">Secondary Faculty (optional)</label>
       <select id="coed-secondary-faculty" class="field-select" formControlName="secondaryFacultyId">
         <option [ngValue]="null">None</option>
-        @for (f of eligibleSecondaryFacultyOptions; track f.id) {
+        @for (f of eligibleSecondaryFacultyOptions(); track f.id) {
           <option [ngValue]="f.id">{{ f.name }}</option>
         }
       </select>
-      <p class="field-hint">Co-instructor — eligible as a substitute if the primary faculty is marked absent</p>
-    </div>
-
-    <div class="field-group">
-      <label for="coed-section" class="field-label">Section Label</label>
-      <input
-        id="coed-section"
-        class="field-input"
-        formControlName="sectionLabel"
-        placeholder="e.g. Section A"
-      />
+      @if (sameFacultyConflict()) {
+        <p class="field-hint field-hint--error">Primary and secondary faculty can't be the same person — they can't substitute for themselves.</p>
+      } @else {
+        <p class="field-hint">Co-instructor — eligible as a substitute if the primary faculty is marked absent</p>
+      }
     </div>
 
   </form>
+
+  @if (showSectionFaculty()) {
+    <div class="coed-section-faculty">
+      <label class="field-label">Section Faculty</label>
+      <p class="field-hint">
+        This cohort's Theory delivery is split into {{ sectionFacultySections().length }} active sections — assign
+        a different faculty per section, or leave blank to use the primary faculty above.
+      </p>
+      @for (row of sectionFacultySections(); track row.cohortSectionId) {
+        <div class="coed-section-faculty__row">
+          <span class="coed-section-faculty__label">{{ row.cohortName }} — {{ row.sectionLabel }}</span>
+          <select
+            class="field-select"
+            [ngModel]="row.facultyId"
+            (ngModelChange)="onSectionFacultyChange(row, $event)"
+            [disabled]="!canManageSectionFaculty() || sectionFacultySavingId() === row.cohortSectionId"
+            [attr.aria-label]="row.cohortName + ' ' + row.sectionLabel + ' faculty'">
+            <option [ngValue]="null">Uses primary faculty</option>
+            @for (f of sectionFacultyOptionsFor(row); track f.id) {
+              <option [ngValue]="f.id">{{ f.name }}</option>
+            }
+          </select>
+          @if (sectionFacultySavingId() === row.cohortSectionId) {
+            <mat-spinner diameter="14" class="btn-spinner"></mat-spinner>
+          }
+        </div>
+      }
+    </div>
+  }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button class="btn-secondary" type="button" (click)="onCancel()" [disabled]="saving()">
     Cancel
   </button>
-  <button class="btn-primary" type="button" (click)="onSubmit()" [disabled]="saving()">
+  <button class="btn-primary" type="button" (click)="onSubmit()"
+    [disabled]="saving() || capacityChecking() || !!capacityCheck()?.overCapacity || sameFacultyConflict()">
     @if (saving()) {
       <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
     } @else {

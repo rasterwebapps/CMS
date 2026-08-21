@@ -12,5 +12,6 @@ public record ClassroomResponse(
     Instant createdAt,
     Instant updatedAt,
     Long roomId,
-    String roomLabel
+    String roomLabel,
+    Boolean allowsConcurrentSharing
 ) {}

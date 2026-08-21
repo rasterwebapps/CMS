@@ -89,7 +89,10 @@ export class SubjectListComponent implements OnInit, OnDestroy {
     code: 'code',
     name: 'name',
     credits: 'credits',
-    term: 'termNumber',
+    // Subject's JPA-mapped attribute is 'semester' (DB column term_number) — 'termNumber' is only
+    // a deprecated Java getter alias, not a real JPA attribute, so Spring Data can't resolve it
+    // for sorting and throws PropertyReferenceException (500) the moment this header is clicked.
+    term: 'semester',
     status: 'isActive',
   };
 

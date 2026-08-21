@@ -47,6 +47,7 @@ public class ClassroomService {
             classroom.setIsActive(request.isActive());
         }
         classroom.setRoom(room);
+        classroom.setAllowsConcurrentSharing(request.allowsConcurrentSharing());
         return toResponse(classroomRepository.save(classroom));
     }
 
@@ -122,6 +123,7 @@ public class ClassroomService {
             classroom.setIsActive(request.isActive());
         }
         classroom.setRoom(room);
+        classroom.setAllowsConcurrentSharing(request.allowsConcurrentSharing());
         return toResponse(classroomRepository.save(classroom));
     }
 
@@ -157,7 +159,7 @@ public class ClassroomService {
         String roomLabel = room != null ? room.getZone().getName() + " · " + room.getRoomNumber() : null;
         return new ClassroomResponse(c.getId(), c.getName(), c.getBuilding(), c.getRoomNumber(),
             c.getCapacity(), c.getIsActive(), c.getCreatedAt(), c.getUpdatedAt(),
-            room != null ? room.getId() : null, roomLabel);
+            room != null ? room.getId() : null, roomLabel, c.getAllowsConcurrentSharing());
     }
 
     private static String trim(String s) {

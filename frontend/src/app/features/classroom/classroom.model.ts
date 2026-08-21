@@ -20,6 +20,10 @@ export interface Classroom {
   /** Linked physical Campus Setup Room, if any — see CmsRoomPickerComponent. */
   roomId?: number;
   roomLabel?: string;
+  /** Large lecture/drawing hall: the Special Class Scheduler pools concurrent bookings by
+   *  headcount instead of exclusively locking to one booking per period — see
+   *  SpecialClassRequestService.checkConflicts. */
+  allowsConcurrentSharing?: boolean;
 }
 
 export interface ClassroomRequest {
@@ -29,6 +33,7 @@ export interface ClassroomRequest {
   capacity?: number;
   isActive?: boolean;
   roomId?: number;
+  allowsConcurrentSharing?: boolean;
 }
 
 export interface ClassroomStatusUpdateRequest {

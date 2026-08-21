@@ -22,5 +22,9 @@ public record ClassroomRequest(
     Boolean isActive,
 
     /** Links this virtual venue to a physical Campus Setup Room — optional, admin-linked. */
-    Long roomId
+    Long roomId,
+
+    /** Marks this room (e.g. a large lecture/drawing hall) as eligible for concurrent,
+     *  capacity-pooled sharing in the Special Class Scheduler — see {@code Classroom}. */
+    Boolean allowsConcurrentSharing
 ) {}

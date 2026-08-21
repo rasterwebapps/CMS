@@ -68,7 +68,7 @@ export class ClassroomListComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected readonly displayedColumns = ['name', 'building', 'roomNumber', 'capacity', 'isActive', 'actions'];
+  protected readonly displayedColumns = ['name', 'building', 'roomNumber', 'capacity', 'isActive', 'allowsConcurrentSharing', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Classroom>([]);
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');

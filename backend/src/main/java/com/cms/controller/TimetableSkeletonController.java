@@ -18,12 +18,15 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cms.dto.AutoPlaceResult;
 import com.cms.dto.ElectiveGroupPlacementRequest;
 import com.cms.dto.ElectiveGroupScheduleResponse;
+import com.cms.dto.GlobalAutoScheduleResult;
+import com.cms.dto.GlobalCapacityPrecheckResult;
 import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellMoveRequest;
 import com.cms.dto.SkeletonCellPlacementRequest;
 import com.cms.dto.SkeletonCellResponse;
 import com.cms.dto.SkeletonPlacementCandidateResponse;
 import com.cms.model.enums.ClassSessionType;
+import com.cms.service.TimetableGlobalAutoScheduleService;
 import com.cms.service.TimetableSkeletonAutoPlaceService;
 import com.cms.service.TimetableSkeletonService;
 
@@ -35,11 +38,14 @@ public class TimetableSkeletonController {
 
     private final TimetableSkeletonService timetableSkeletonService;
     private final TimetableSkeletonAutoPlaceService timetableSkeletonAutoPlaceService;
+    private final TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
 
     public TimetableSkeletonController(TimetableSkeletonService timetableSkeletonService,
-                                        TimetableSkeletonAutoPlaceService timetableSkeletonAutoPlaceService) {
+                                        TimetableSkeletonAutoPlaceService timetableSkeletonAutoPlaceService,
+                                        TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService) {
         this.timetableSkeletonService = timetableSkeletonService;
         this.timetableSkeletonAutoPlaceService = timetableSkeletonAutoPlaceService;
+        this.timetableGlobalAutoScheduleService = timetableGlobalAutoScheduleService;
     }
 
     @GetMapping
@@ -81,6 +87,24 @@ public class TimetableSkeletonController {
     @PreAuthorize("@perm.has('TIMETABLE_SKELETON_AUTO_PLACE')")
     public ResponseEntity<AutoPlaceResult> autoPlace(@RequestParam Long termInstanceId, @RequestParam Long cohortId) {
         return ResponseEntity.ok(timetableSkeletonAutoPlaceService.autoPlace(termInstanceId, cohortId));
+    }
+
+    /** Read-only — sums every faculty's real total term-hour demand across every offering they're
+     *  bound to, across every cohort in the term, against their real term capacity. The frontend
+     *  must call this first and never call {@link #globalAutoPlace} if it comes back non-empty. */
+    @GetMapping("/global-auto-place/precheck")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE')")
+    public ResponseEntity<GlobalCapacityPrecheckResult> precheckGlobalAutoPlace(@RequestParam Long termInstanceId) {
+        return ResponseEntity.ok(timetableGlobalAutoScheduleService.precheckCapacity(termInstanceId));
+    }
+
+    /** Places and staffs every cohort's remaining shortfall in one atomic run — any single
+     *  unplaceable session aborts the whole thing (409, {@code TimetableConstraintViolationException}).
+     *  Re-runs the capacity precheck defensively even though the frontend already called it. */
+    @PostMapping("/global-auto-place")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE')")
+    public ResponseEntity<GlobalAutoScheduleResult> globalAutoPlace(@RequestParam Long termInstanceId) {
+        return ResponseEntity.ok(timetableGlobalAutoScheduleService.runGlobalAutoSchedule(termInstanceId));
     }
 
     @PostMapping("/elective-groups/place")

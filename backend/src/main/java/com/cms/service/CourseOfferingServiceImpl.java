@@ -1,18 +1,27 @@
 package com.cms.service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ActiveStatusUpdateResponse;
+import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
+import com.cms.dto.FacultyCapacityCheckResult;
 import com.cms.dto.GenerateOfferingsResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.Cohort;
 import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
@@ -23,7 +32,10 @@ import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.CohortStatus;
+import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.TermType;
+import com.cms.repository.BatchRepository;
+import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
@@ -43,6 +55,14 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
     private final CurriculumSemesterCourseRepository curriculumSemesterCourseRepository;
     private final FacultyRepository facultyRepository;
     private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
+    private final ClassScheduleRepository classScheduleRepository;
+    private final BatchRepository batchRepository;
+
+    // Field injection with @Lazy breaks the circular dependency:
+    // CourseOfferingServiceImpl -> TimetableGlobalAutoScheduleService -> CourseOfferingService
+    @Autowired
+    @Lazy
+    private TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
 
     public CourseOfferingServiceImpl(CourseOfferingRepository courseOfferingRepository,
                                       TermInstanceRepository termInstanceRepository,
@@ -50,7 +70,9 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
                                       CurriculumVersionRepository curriculumVersionRepository,
                                       CurriculumSemesterCourseRepository curriculumSemesterCourseRepository,
                                       FacultyRepository facultyRepository,
-                                      StudentTermEnrollmentRepository studentTermEnrollmentRepository) {
+                                      StudentTermEnrollmentRepository studentTermEnrollmentRepository,
+                                      ClassScheduleRepository classScheduleRepository,
+                                      BatchRepository batchRepository) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.cohortRepository = cohortRepository;
@@ -58,6 +80,13 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
         this.curriculumSemesterCourseRepository = curriculumSemesterCourseRepository;
         this.facultyRepository = facultyRepository;
         this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
+        this.classScheduleRepository = classScheduleRepository;
+        this.batchRepository = batchRepository;
+    }
+
+    /** Package-private setter for test injection of the lazy-wired service. */
+    void setTimetableGlobalAutoScheduleService(TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService) {
+        this.timetableGlobalAutoScheduleService = timetableGlobalAutoScheduleService;
     }
 
     @Override
@@ -149,18 +178,20 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
 
     @Override
     public List<CourseOfferingDto> getOfferingsByTermInstance(Long termInstanceId) {
+        Map<CohortSemesterKey, List<String>> cohortNamesByKey = buildCohortNamesByKey(termInstanceId);
         return courseOfferingRepository.findByTermInstanceId(termInstanceId)
             .stream()
-            .map(this::toDto)
+            .map(o -> toDto(o, cohortNamesByKey))
             .toList();
     }
 
     @Override
     public List<CourseOfferingDto> getOfferingsByTermInstanceAndSemester(Long termInstanceId,
                                                                           Integer semesterNumber) {
+        Map<CohortSemesterKey, List<String>> cohortNamesByKey = buildCohortNamesByKey(termInstanceId);
         return courseOfferingRepository.findByTermInstanceIdAndSemesterNumber(termInstanceId, semesterNumber)
             .stream()
-            .map(this::toDto)
+            .map(o -> toDto(o, cohortNamesByKey))
             .toList();
     }
 
@@ -180,19 +211,21 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
         if (semesterNumbers.isEmpty()) {
             return List.of();
         }
+        Map<CohortSemesterKey, List<String>> cohortNamesByKey = buildCohortNamesByKey(termInstanceId);
         return courseOfferingRepository
             .findByTermInstanceIdAndCurriculumVersionIdAndSemesterNumberIn(termInstanceId, cv.getId(), semesterNumbers)
             .stream()
-            .map(this::toDto)
+            .map(o -> toDto(o, cohortNamesByKey))
             .toList();
     }
 
     @Override
     public List<CourseOfferingDto> getOfferingsByTermInstanceAndElectiveGroup(Long termInstanceId, Long electiveGroupId) {
+        Map<CohortSemesterKey, List<String>> cohortNamesByKey = buildCohortNamesByKey(termInstanceId);
         return courseOfferingRepository
             .findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(termInstanceId, electiveGroupId)
             .stream()
-            .map(this::toDto)
+            .map(o -> toDto(o, cohortNamesByKey))
             .toList();
     }
 
@@ -205,17 +238,20 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
 
     @Override
     @Transactional
-    public CourseOfferingDto updateOffering(Long id, Long facultyId, Long secondaryFacultyId, String sectionLabel) {
+    public CourseOfferingDto updateOffering(Long id, Long facultyId, Long secondaryFacultyId) {
         CourseOffering offering = courseOfferingRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + id));
         requireEligibleFaculty(offering, facultyId, offering.getFacultyId());
+        requireWithinCapacity(offering, facultyId);
         offering.setFacultyId(facultyId);
         // OC-127 gap-closure follow-up: secondaryFacultyId reopened from informational-only to a
         // real substitute-matching-eligible co-instructor -- same department-eligibility gate as
         // the primary, grandfathered against its own prior value independently of the primary's.
         requireEligibleFaculty(offering, secondaryFacultyId, offering.getSecondaryFacultyId());
+        if (facultyId != null && facultyId.equals(secondaryFacultyId)) {
+            throw new IllegalArgumentException("Primary and secondary faculty cannot be the same person");
+        }
         offering.setSecondaryFacultyId(secondaryFacultyId);
-        offering.setSectionLabel(sectionLabel);
         return toDto(courseOfferingRepository.save(offering));
     }
 
@@ -226,32 +262,76 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
      * one previously on this slot — blocks new/changed mismatched assignments without
      * retroactively breaking a row saved before this rule existed on an otherwise-unrelated edit
      * (e.g. section label). Shared by both the primary and secondary faculty slots, each checked
-     * against its own prior value.
+     * against its own prior value. Delegates to {@link FacultyEligibility}, the same shared check
+     * {@link CourseOfferingSectionFacultyService} uses for per-section Theory faculty.
      */
     private void requireEligibleFaculty(CourseOffering offering, Long facultyId, Long previousFacultyId) {
-        if (facultyId == null || facultyId.equals(previousFacultyId)) {
+        FacultyEligibility.require(offering.getSubject(), facultyId, previousFacultyId, facultyRepository);
+    }
+
+    /**
+     * Hard-blocks assigning a faculty whose real term-wide workload (every offering they're
+     * already bound to across every cohort, plus this one) would exceed their effective capacity —
+     * same check {@link TimetableGlobalAutoScheduleService}'s live precheck runs, reused here so
+     * the two can never disagree. Same grandfathering as {@link #requireEligibleFaculty}: skipped
+     * when unassigning or re-saving the same already-assigned faculty unchanged, since neither
+     * changes anyone's real workload.
+     */
+    private void requireWithinCapacity(CourseOffering offering, Long facultyId) {
+        if (facultyId == null || facultyId.equals(offering.getFacultyId())) {
             return;
         }
-        Subject subject = offering.getSubject();
-        if (subject.getSpeciality() == null) {
+        FacultyCapacityCheckResult check = timetableGlobalAutoScheduleService.checkFacultyCapacityForOffering(
+            offering.getTermInstance().getId(), offering.getId(), facultyId);
+        if (!check.overCapacity()) {
             return;
         }
-        Faculty faculty = facultyRepository.findById(facultyId)
-            .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + facultyId));
-        if (!subject.getSpeciality().getId().equals(faculty.getSpeciality().getId())) {
-            throw new IllegalArgumentException("Faculty '" + faculty.getFullName() + "' belongs to the "
-                + faculty.getSpeciality().getName() + " department and is not eligible to teach '"
-                + subject.getName() + "' (" + subject.getSpeciality().getName() + ")");
+        StringBuilder message = new StringBuilder()
+            .append("This assignment would put them at ").append(formatHours(check.projectedTotalHours()))
+            .append(" against a capacity of ").append(formatHours(check.capacityHours()))
+            .append(" (").append(formatHours(check.dailyCap())).append("/day) — raise their cap to at least ")
+            .append(formatHours(check.suggestedMinDailyHours())).append("/day");
+        if (!check.spreadLoad().isEmpty()) {
+            var alt = check.spreadLoad().get(0);
+            message.append(", or assign ").append(alt.alternateFacultyName())
+                .append(" instead (").append(formatHours(alt.alternateSpareCapacityHours())).append(" spare capacity)");
         }
+        throw new TimetableConstraintViolationException(List.of(
+            new ConstraintViolation("COURSE_OFFERING_FACULTY_OVER_CAPACITY", message.toString())));
+    }
+
+    private static String formatHours(double hours) {
+        return (Math.round(hours * 10) / 10.0) + "h";
     }
 
     @Override
     @Transactional
-    public void deactivateOffering(Long id) {
+    public ActiveStatusUpdateResponse updateStatus(Long id, ActiveStatusUpdateRequest request) {
         CourseOffering offering = courseOfferingRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + id));
-        offering.setIsActive(false);
-        courseOfferingRepository.save(offering);
+        boolean nextActive = Boolean.TRUE.equals(request.isActive());
+        if (!nextActive && Boolean.TRUE.equals(offering.getIsActive())) {
+            requireSafeToDeactivate(offering);
+        }
+        offering.setIsActive(nextActive);
+        CourseOffering saved = courseOfferingRepository.save(offering);
+        return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
+    }
+
+    /** Deactivating an offering that's already live in the timetable would silently orphan placed
+     *  sessions and rostered lab/clinical batches -- block outright rather than let the admin
+     *  discover the damage later in Skeleton Builder or Staffing. Reactivating (handled by the
+     *  caller, {@link #updateStatus}) has no equivalent guard: deactivation never touches anything
+     *  else, so flipping the flag back restores exactly the prior state. */
+    private void requireSafeToDeactivate(CourseOffering offering) {
+        if (!classScheduleRepository.findByCourseOfferingId(offering.getId()).isEmpty()) {
+            throw new IllegalArgumentException(
+                "Cannot deactivate — this offering already has sessions placed in Skeleton Builder. Remove them there first.");
+        }
+        if (batchRepository.existsAnyStudentInBatchesForOffering(offering.getId())) {
+            throw new IllegalArgumentException(
+                "Cannot deactivate — this offering has batches with students already rostered. Remove them via Manage Batches first.");
+        }
     }
 
     @Override
@@ -278,10 +358,45 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
             .collect(Collectors.toSet());
     }
 
+    private record CohortSemesterKey(Long curriculumVersionId, Integer semesterNumber) {}
+
+    /** Builds (curriculumVersionId, semesterNumber) -> cohort display names, from every cohort with
+     *  an ENROLLED student in this term -- CourseOffering has no cohort FK of its own (shareable
+     *  across cohorts on the same curriculum version, e.g. multiple intake years that haven't been
+     *  given separate curriculum versions yet), so this reconstructs which cohort(s) each offering
+     *  row actually belongs to. Cost is bounded by cohort count (small), not offering count, since
+     *  callers compute it once per list request and reuse it for every row. */
+    private Map<CohortSemesterKey, List<String>> buildCohortNamesByKey(Long termInstanceId) {
+        Map<CohortSemesterKey, List<String>> result = new LinkedHashMap<>();
+        for (Long cohortId : studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(termInstanceId, EnrollmentStatus.ENROLLED)) {
+            Cohort cohort = cohortRepository.findById(cohortId).orElse(null);
+            if (cohort == null) {
+                continue;
+            }
+            CurriculumVersion cv = resolveActiveCurriculumVersion(cohort);
+            if (cv == null) {
+                continue;
+            }
+            Set<Integer> semesters = studentTermEnrollmentRepository.findByTermInstanceIdAndCohortId(termInstanceId, cohortId).stream()
+                .map(StudentTermEnrollment::getSemesterNumber)
+                .collect(Collectors.toSet());
+            for (Integer semester : semesters) {
+                result.computeIfAbsent(new CohortSemesterKey(cv.getId(), semester), k -> new ArrayList<>()).add(cohort.getDisplayName());
+            }
+        }
+        return result;
+    }
+
     private CourseOfferingDto toDto(CourseOffering o) {
+        return toDto(o, buildCohortNamesByKey(o.getTermInstance().getId()));
+    }
+
+    private CourseOfferingDto toDto(CourseOffering o, Map<CohortSemesterKey, List<String>> cohortNamesByKey) {
         String termInstanceLabel = o.getTermInstance().getAcademicYear().getName()
             + " " + o.getTermInstance().getTermType();
         CurriculumSemesterCourse csc = o.getCurriculumSemesterCourse();
+        List<String> cohortNames = cohortNamesByKey.getOrDefault(
+            new CohortSemesterKey(o.getCurriculumVersion().getId(), o.getSemesterNumber()), List.of());
         return new CourseOfferingDto(
             o.getId(),
             o.getTermInstance().getId(),
@@ -296,7 +411,6 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
             o.getSemesterNumber(),
             o.getFacultyId(),
             o.getSecondaryFacultyId(),
-            o.getSectionLabel(),
             o.getIsActive(),
             csc != null ? csc.getId() : null,
             csc != null && Boolean.TRUE.equals(csc.getIsElective()),
@@ -307,7 +421,8 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
             csc != null ? csc.getLabHours() : 0,
             csc != null ? csc.getClinicalHours() : 0,
             o.getCreatedAt(),
-            o.getUpdatedAt()
+            o.getUpdatedAt(),
+            cohortNames
         );
     }
 }

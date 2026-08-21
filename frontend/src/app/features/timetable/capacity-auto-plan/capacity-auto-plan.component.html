@@ -1,0 +1,306 @@
+<div class="mlp-page mlp-page--free-scroll">
+
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Timetable <em>Capacity Auto-Plan</em></h1>
+      <p class="page-subtitle">Every cohort enrolled this term, the rooms available to plan into, and fewest-rooms Theory/Lab/Clinical suggestions ready to review — nothing here commits automatically.</p>
+      <p class="page-subtitle">Need to fine-tune one cohort by hand? Open the <a routerLink="/timetable/capacity-planner">Capacity Planner</a>.</p>
+    </div>
+  </div>
+
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
+      @for (ay of academicYears(); track ay.id) {
+        <option [ngValue]="ay.id">{{ ay.name }}</option>
+      }
+    </select>
+    <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()"
+      [disabled]="termsLoading() || termInstances().length === 0" aria-label="Term">
+      @if (termInstances().length === 0) {
+        <option [ngValue]="null">No terms yet</option>
+      }
+      @for (term of termInstances(); track term.id) {
+        <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
+      }
+    </select>
+    <div class="toolbar-right">
+      <button type="button" class="btn-primary" [disabled]="loading() || !selectedTermInstanceId" (click)="onAutoPlanAll()">
+        @if (loading()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+        Auto-Plan All
+      </button>
+    </div>
+  </div>
+
+  @if (overview(); as o) {
+    <div class="cap-alert anim-rise anim-rise--d2" [class.cap-alert--ok]="o.theorySufficient" [class.cap-alert--bad]="!o.theorySufficient">
+      @if (o.theorySufficient) {
+        <span>Free classroom capacity ({{ o.totalFreeClassroomCapacity }}) covers every not-yet-planned cohort's headcount ({{ o.totalNotPlannedStrength }}).</span>
+      } @else {
+        <span>{{ o.theorySufficiencyMessage }} Committing is blocked until this is resolved — increase a room's capacity or add classrooms.</span>
+        <a routerLink="/classrooms" class="cap-alert__cta">Manage Classrooms →</a>
+      }
+    </div>
+
+    @if (!o.labClinicalMappingSufficient) {
+      <div class="cap-alert cap-alert--bad anim-rise anim-rise--d2">
+        <span>{{ o.labClinicalMappingIssuesMessage }} Committing is blocked until every subject has at least one designated Lab/Clinical Venue configured.</span>
+        <a routerLink="/subjects" class="cap-alert__cta">Manage Subjects →</a>
+      </div>
+    }
+
+    <div class="content-card cap-summary-card anim-rise anim-rise--d2">
+      <div class="cap-tiles">
+        <div class="cap-tile" data-tone="total">
+          <span class="cap-tile__value">{{ o.cohorts.length }}</span>
+          <span class="cap-tile__label">Cohorts this term</span>
+        </div>
+        <div class="cap-tile" data-tone="committed">
+          <span class="cap-tile__value">{{ committedCount() }}</span>
+          <span class="cap-tile__label">Already committed</span>
+        </div>
+        <div class="cap-tile" data-tone="not-planned">
+          <span class="cap-tile__value">{{ notPlannedCount() }}</span>
+          <span class="cap-tile__label">Not yet planned</span>
+        </div>
+        <div class="cap-tile" data-tone="sections">
+          <span class="cap-tile__value">{{ totalSuggestedSections() }}</span>
+          <span class="cap-tile__label">Suggested Theory sections</span>
+        </div>
+        <div class="cap-tile" data-tone="batches">
+          <span class="cap-tile__value">{{ totalSuggestedBatches() }}</span>
+          <span class="cap-tile__label">Suggested Lab/Clinical batches</span>
+        </div>
+      </div>
+    </div>
+
+    @if (o.cohorts.length === 0) {
+      <cms-empty-state
+        icon="groups_off"
+        title="No cohorts enrolled"
+        subtitle="No cohort has an enrolled student in this term yet — nothing to plan.">
+      </cms-empty-state>
+    } @else {
+      <h2 class="cap-cohorts-title anim-rise anim-rise--d3">Cohorts to Plan</h2>
+
+      <div class="cap-cohort-tabs anim-rise anim-rise--d3" role="tablist">
+        @for (row of o.cohorts; track row.cohortId) {
+          <button type="button" class="cap-cohort-tab" role="tab"
+            [class.cap-cohort-tab--active]="selectedCohortId() === row.cohortId"
+            [attr.aria-selected]="selectedCohortId() === row.cohortId"
+            (click)="selectCohortTab(row.cohortId)">
+            <span class="cap-cohort-tab__dot"
+              [class.cap-cohort-tab__dot--committed]="row.hasCommittedAllocation"
+              [class.cap-cohort-tab__dot--warn]="!row.hasCommittedAllocation && (!row.theoryFits || !row.labClinicalMappingSufficient)"></span>
+            {{ row.cohortLabel }}
+          </button>
+        }
+      </div>
+
+      @if (selectedCohort(); as row) {
+        <div class="mlp-card cap-cohort-card anim-rise anim-rise--d3">
+          <div class="cap-cohort-card__head">
+            <div class="cap-cohort-card__title-group">
+              <span class="cap-cohort-card__title">{{ row.cohortLabel }}</span>
+              <span class="cap-cohort-card__meta">Semester {{ row.semesterNumber ?? '—' }} · {{ row.cohortStrength }} students</span>
+            </div>
+            <cms-status-badge [status]="row.hasCommittedAllocation ? 'COMMITTED' : 'NOT_PLANNED'"></cms-status-badge>
+          </div>
+
+          @if (!row.hasCommittedAllocation && !row.theoryFits) {
+            <span class="cms-badge cms-badge--red cap-cohort-card__flag">No single room fits the whole cohort — split into sections below</span>
+          }
+          @if (!row.hasCommittedAllocation && !row.labClinicalMappingSufficient) {
+            <span class="cms-badge cms-badge--red cap-cohort-card__flag">{{ row.labClinicalMappingIssuesMessage }}</span>
+          }
+
+          @if (row.hasCommittedAllocation) {
+            <p class="cap-cohort-card__hint">This cohort's rooms are already committed for this term.</p>
+            <div class="cap-cohort-card__actions">
+              <a class="btn-secondary" routerLink="/timetable/capacity-planner" [queryParams]="queryParamsFor(row)">View</a>
+            </div>
+          } @else if (draftFor(row.cohortId); as draft) {
+            <div class="cap-cohort-card__sections">
+              @for (section of draft.sections; track section.sectionLabel) {
+                <div class="cap-section-block">
+                  <div class="cap-section-block__head">
+                    <span class="cap-section-block__label">{{ section.sectionLabel }} <em>(proposed)</em></span>
+                    <span class="cap-section-block__size">{{ section.plannedSize }} students</span>
+                  </div>
+                  <div class="cap-subblock">
+                    <span class="cap-subblock__title">Theory</span>
+                    <div class="cap-section-block__room">
+                      <select class="field-select field-select--inline" [(ngModel)]="section.classroomId"
+                        [disabled]="!canManageAllocation()" aria-label="Classroom">
+                        @for (opt of classroomOptionsFor(row.cohortId, section); track opt.id) {
+                          <option [ngValue]="opt.id">{{ opt.name }} (cap {{ opt.capacity ?? '—' }})</option>
+                        }
+                      </select>
+                      <div class="cap-batch-row__boxes">
+                        <input type="number" class="field-input field-input--inline field-input--narrow cap-count-plain" min="1"
+                          [ngModel]="section.plannedSize" (ngModelChange)="onSectionSizeChange(row.cohortId, section, $event)"
+                          [disabled]="!canManageAllocation()" aria-label="Planned size" />
+                      </div>
+                    </div>
+                  </div>
+
+                  @if (batchGroupsForSection(row.cohortId, section.sectionLabel, 'LAB'); as labGroups) {
+                    @if (labGroups.length > 0) {
+                      <div class="cap-subblock">
+                        <span class="cap-subblock__title">Lab</span>
+                        @for (group of labGroups; track group.courseOfferingId) {
+                          <ng-container *ngTemplateOutlet="batchGroupTpl; context: { group }"></ng-container>
+                        }
+                      </div>
+                    }
+                  }
+
+                  @if (batchGroupsForSection(row.cohortId, section.sectionLabel, 'CLINICAL'); as clinicalGroups) {
+                    @if (clinicalGroups.length > 0) {
+                      <div class="cap-subblock">
+                        <span class="cap-subblock__title">Clinical</span>
+                        @for (group of clinicalGroups; track group.courseOfferingId) {
+                          <ng-container *ngTemplateOutlet="batchGroupTpl; context: { group }"></ng-container>
+                        }
+                      </div>
+                    }
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="cap-cohort-card__actions">
+              @if (canManageAllocation()) {
+                @if (o.theorySufficient && o.labClinicalMappingSufficient) {
+                  <button type="button" class="btn-primary" [disabled]="committingCohortId() === row.cohortId" (click)="confirmAndCommit(row)">
+                    @if (committingCohortId() === row.cohortId) { <mat-spinner diameter="14" class="btn-spinner"></mat-spinner> }
+                    Confirm & Commit
+                  </button>
+                } @else {
+                  <button type="button" class="btn-primary" disabled
+                    [title]="!o.theorySufficient
+                      ? 'Free classroom capacity is short this term — increase a room\'s capacity or add classrooms before committing any cohort.'
+                      : 'A subject somewhere in this term is missing a designated Lab/Clinical Venue mapping — configure it on the Subject before committing any cohort.'">
+                    Confirm & Commit
+                  </button>
+                }
+              }
+              <a class="btn-secondary" routerLink="/timetable/capacity-planner" [queryParams]="queryParamsFor(row)">Adjust manually</a>
+            </div>
+          } @else {
+            <p class="cap-cohort-card__hint">{{ row.theoryShortfallMessage ?? 'No classroom is available to suggest for this cohort yet.' }}</p>
+            <div class="cap-cohort-card__actions">
+              <a class="btn-secondary" routerLink="/timetable/capacity-planner" [queryParams]="queryParamsFor(row)">Adjust manually</a>
+              <a class="btn-secondary" routerLink="/classrooms">Manage Classrooms</a>
+            </div>
+          }
+        </div>
+      }
+    }
+
+    <div class="content-card cap-room-card anim-rise anim-rise--d4">
+      <h2 class="cap-section-title">Room Inventory</h2>
+      @if (o.roomInventory.length === 0) {
+        <p class="cap-empty-hint">No active Classroom, Lab, or Clinical Venue is configured yet.</p>
+      } @else {
+        <div class="cap-room-groups">
+          @for (group of roomGroups(); track group.roomType) {
+            @if (group.rooms.length > 0) {
+              <div class="cap-room-group">
+                <h3 class="cap-room-group__title">{{ group.label }}</h3>
+                <div class="cap-room-chip-grid">
+                  @for (room of group.rooms; track room.id) {
+                    <div class="cap-room-chip" [class.cap-room-chip--claimed]="room.claimedByCohortLabel">
+                      <div class="cap-room-chip__head">
+                        <span class="cap-room-chip__name" [title]="room.name">{{ room.name }}</span>
+                        <span class="cap-room-chip__capacity">{{ room.capacity ?? '—' }} seats</span>
+                      </div>
+
+                      @if (group.roomType === 'CLASSROOM') {
+                        <!-- Theory rooms are full-or-empty for the whole term, not a percentage. -->
+                        <div class="cap-room-chip__foot">
+                          @if (room.claimedByCohortLabel) {
+                            <span class="cms-badge cms-badge--red">Claimed</span>
+                          } @else {
+                            <span class="cms-badge cms-badge--green">Free</span>
+                          }
+                          @if (room.suggestedBookingCount > 0) {
+                            <span class="cms-badge cms-badge--blue">{{ room.suggestedBookingCount }} suggested</span>
+                          }
+                        </div>
+                        @if (room.claimedByCohortLabel) {
+                          <div class="cap-room-chip__claim">{{ room.claimedByCohortLabel }}</div>
+                        }
+                      } @else {
+                        <!-- Lab/Clinical venues are shared -- real weekly period-slot occupancy
+                             against a 5-day (Mon-Fri) baseline, so genuine Saturday bookings can
+                             read over 100%, an honest "leaning on overflow" signal, not a bug. -->
+                        <div class="cap-room-chip__occupancy">
+                          <div class="cap-room-chip__occupancy-head">
+                            <span>{{ room.occupiedSlots }}/{{ room.totalSlots }} weekly slots</span>
+                            <span [class.cap-room-chip__occupancy-pct--over]="room.utilizationPercent > 100">{{ room.utilizationPercent | number:'1.0-0' }}%</span>
+                          </div>
+                          <div class="cap-room-chip__occupancy-track">
+                            <div class="cap-room-chip__occupancy-fill"
+                              [class.cap-room-chip__occupancy-fill--over]="room.utilizationPercent > 100"
+                              [style.width.%]="room.utilizationPercent > 100 ? 100 : room.utilizationPercent"></div>
+                          </div>
+                        </div>
+                        @if (room.suggestedBookingCount > 0) {
+                          <div class="cap-room-chip__foot">
+                            <span class="cms-badge cms-badge--blue">{{ room.suggestedBookingCount }} suggested</span>
+                          </div>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+      }
+    </div>
+  } @else if (loading()) {
+    <div class="cap-loading">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  }
+
+  <!-- One subject's batch row(s) within a Lab or Clinical sub-block -- shared by both so a subject
+       split into sequential turns (see splitIntoSequentialBatches) renders identically either way. -->
+  <ng-template #batchGroupTpl let-group="group">
+    <!-- Two lines per subject: the full subject name on its own line (never truncated), then one
+         shared venue (see groupVenueId/onGroupVenueChange) plus one count box per batch underneath --
+         a single box when unsplit, two+ when split into sequential turns (see
+         splitIntoSequentialBatches). Every box is a fixed width so a subject's boxes always line up
+         the same regardless of section or subject-name length. -->
+    <div class="cap-batch-row">
+      <span class="cap-batch-row__label">{{ group.subjectName }}</span>
+      <div class="cap-batch-row__controls">
+        <select class="field-select field-select--inline" [ngModel]="groupVenueId(group)"
+          (ngModelChange)="onGroupVenueChange(group, $event)" [ngModelOptions]="{standalone: true}"
+          [disabled]="!canManageAllocation()" [attr.aria-label]="group.subjectName + ' venue'">
+          @for (opt of venueOptionsForGroup(group); track opt.id) {
+            <option [ngValue]="opt.id">{{ opt.name }} (cap {{ opt.capacity ?? '—' }})</option>
+          }
+        </select>
+        <div class="cap-batch-row__boxes">
+          @if (group.batches.length > 1) {
+            @for (batch of group.batches; track batch.batchLabel ?? 'solo') {
+              <div class="cap-batch-box">
+                <span class="cap-batch-box__label">{{ batch.batchLabel }}</span>
+                <input type="number" class="field-input field-input--inline field-input--narrow" min="1"
+                  [(ngModel)]="batch.plannedSize" [disabled]="!canManageAllocation()"
+                  [attr.aria-label]="group.subjectName + ' ' + batch.batchLabel + ' planned size'" />
+              </div>
+            }
+          } @else if (group.batches[0]; as batch) {
+            <input type="number" class="field-input field-input--inline field-input--narrow cap-count-plain" min="1"
+              [(ngModel)]="batch.plannedSize" [disabled]="!canManageAllocation()"
+              [attr.aria-label]="group.subjectName + ' planned size'" />
+          }
+        </div>
+      </div>
+    </div>
+  </ng-template>
+</div>

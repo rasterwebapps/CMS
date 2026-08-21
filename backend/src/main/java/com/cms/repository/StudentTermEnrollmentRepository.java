@@ -2,8 +2,11 @@ package com.cms.repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.enums.EnrollmentStatus;
@@ -29,4 +32,10 @@ public interface StudentTermEnrollmentRepository extends JpaRepository<StudentTe
 
     Optional<StudentTermEnrollment> findFirstByTermInstanceIdAndCohortIdAndStatus(
         Long termInstanceId, Long cohortId, EnrollmentStatus status);
+
+    /** Every cohort with at least one ENROLLED student in this term -- the "which cohorts are
+     *  actually active here" source for the Global Auto-Scheduler's cross-cohort loop. */
+    @Query("select distinct e.cohort.id from StudentTermEnrollment e "
+        + "where e.termInstance.id = :termInstanceId and e.status = :status")
+    Set<Long> findDistinctCohortIdsByTermInstanceId(@Param("termInstanceId") Long termInstanceId, @Param("status") EnrollmentStatus status);
 }

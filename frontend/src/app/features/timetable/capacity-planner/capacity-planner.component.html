@@ -223,6 +223,16 @@
           <p class="cap-shortfall-banner__ok">Portion completion is on track — {{ s.totalShortfallHours | number:'1.0-1' }} of {{ s.bufferHours | number:'1.0-1' }} buffer hrs used.</p>
         }
       }
+      @if (!p.labClinicalMappingSufficient) {
+        <div class="cap-shortfall-banner cap-shortfall-banner--risk">
+          <p class="cap-shortfall-banner__title">Lab/Clinical venue mapping is incomplete</p>
+          <p class="cap-shortfall-banner__detail">
+            {{ p.labClinicalMappingIssuesMessage }} Committing is blocked until every subject has at least one
+            designated Lab/Clinical Venue configured on the Subject form — a small designated venue is fine, it
+            will be scheduled as multiple sequential batches.
+          </p>
+        </div>
+      }
     </div>
 
     @if (!canManageAllocation() && !canRevertAllocation()) {
@@ -399,7 +409,7 @@
                         </select>
                         <select class="mlp-filter-select" [ngModel]="block.defaultVenueId" (ngModelChange)="onBlockVenueChange(block, $event)" [ngModelOptions]="{standalone: true}" aria-label="Default Lab venue" [disabled]="!block.courseOfferingId">
                           <option [ngValue]="null">Select default venue</option>
-                          @for (v of venueOptionsFor('LAB'); track v.id) {
+                          @for (v of venueOptionsFor('LAB', block.courseOfferingId); track v.id) {
                             <option [ngValue]="v.id">{{ v.name }} (cap {{ v.capacity }})</option>
                           }
                         </select>
@@ -479,7 +489,7 @@
                         </select>
                         <select class="mlp-filter-select" [ngModel]="block.defaultVenueId" (ngModelChange)="onBlockVenueChange(block, $event)" [ngModelOptions]="{standalone: true}" aria-label="Default Clinical venue" [disabled]="!block.courseOfferingId">
                           <option [ngValue]="null">Select default venue</option>
-                          @for (v of venueOptionsFor('CLINICAL'); track v.id) {
+                          @for (v of venueOptionsFor('CLINICAL', block.courseOfferingId); track v.id) {
                             <option [ngValue]="v.id">{{ v.name }} (cap {{ v.capacity }})</option>
                           }
                         </select>
@@ -537,7 +547,10 @@
             </div>
 
             <div class="cap-batch-action-card__row">
-              <button type="button" class="btn-primary" [disabled]="committingAllocation() || !sectionsFinalized()" (click)="commitAllocation()">
+              <button type="button" class="btn-primary"
+                [disabled]="committingAllocation() || !sectionsFinalized() || !labClinicalMappingSufficient()"
+                [title]="!labClinicalMappingSufficient() ? 'A subject is missing a designated Lab/Clinical Venue mapping — configure it on the Subject before committing.' : ''"
+                (click)="commitAllocation()">
                 @if (committingAllocation()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
                 Commit Allocation
               </button>

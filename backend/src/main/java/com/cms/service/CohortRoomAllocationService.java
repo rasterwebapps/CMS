@@ -115,6 +115,12 @@ public class CohortRoomAllocationService {
         for (CohortSectionRequest section : request.sections()) {
             Classroom classroom = classroomRepository.findById(section.classroomId())
                 .orElseThrow(() -> new ResourceNotFoundException("Classroom not found with id: " + section.classroomId()));
+            if (Boolean.TRUE.equals(classroom.getAllowsConcurrentSharing())) {
+                throw new LifecycleConflictException(
+                    "Classroom '" + classroom.getName() + "' allows concurrent sharing and can't be committed as an "
+                        + "exclusive Theory section — pick a different classroom.",
+                    "COHORT_ROOM_ALLOCATION_SHARED_CLASSROOM_NOT_ALLOWED", "Classroom", classroom.getId(), null);
+            }
             if (!classroomIdsUsed.add(classroom.getId())) {
                 throw new LifecycleConflictException(
                     "Classroom '" + classroom.getName() + "' is assigned to more than one section in this commit.",

@@ -888,6 +888,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'assign-faculty',
+    canActivate: withPermission('COURSE_VIEW', 'COURSE_MANAGE'),
+    loadComponent: () =>
+      import('./features/assign-faculty/assign-faculty-list.component').then(
+        (m) => m.AssignFacultyListComponent
+      ),
+  },
+  {
     path: 'my-timetable',
     canActivate: withPermission('TIMETABLE_VIEW'),
     loadComponent: () =>
@@ -925,6 +933,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/timetable/capacity-planner/capacity-planner.component').then(
         (m) => m.CapacityPlannerComponent
+      ),
+  },
+  {
+    path: 'timetable/capacity-auto-plan',
+    canActivate: withPermission('TIMETABLE_CAPACITY_PLANNER_VIEW'),
+    loadComponent: () =>
+      import('./features/timetable/capacity-auto-plan/capacity-auto-plan.component').then(
+        (m) => m.CapacityAutoPlanComponent
       ),
   },
   {

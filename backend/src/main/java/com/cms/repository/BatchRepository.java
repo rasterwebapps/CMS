@@ -25,4 +25,12 @@ public interface BatchRepository extends JpaRepository<Batch, Long> {
 
     @Query("SELECT b FROM Batch b JOIN b.students s WHERE b.termInstance.id = :termInstanceId AND s.id = :studentId")
     List<Batch> findByTermInstanceIdAndStudentId(@Param("termInstanceId") Long termInstanceId, @Param("studentId") Long studentId);
+
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END " +
+           "FROM Batch b JOIN b.students s WHERE b.courseOffering.id = :courseOfferingId")
+    boolean existsAnyStudentInBatchesForOffering(@Param("courseOfferingId") Long courseOfferingId);
+
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END " +
+           "FROM Batch b JOIN b.students s WHERE b.courseOffering.subject.id = :subjectId")
+    boolean existsAnyStudentInBatchesForSubject(@Param("subjectId") Long subjectId);
 }

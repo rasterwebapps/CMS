@@ -107,6 +107,14 @@ export class IndiaLocationListComponent implements OnInit {
     this.tourService.register('india-location-list', INDIA_LOCATION_LIST_TOUR);
     this.tourService.registerFlowMap('india-location-list', INDIA_LOCATION_LIST_FLOW_MAP);
     this.load();
+
+    // 'country' renders row.countryName/row.countryIsoCode, not a field literally named
+    // 'country', so the default sortingDataAccessor (row[sortHeaderId]) returned undefined and
+    // never reordered.
+    this.dataSource.sortingDataAccessor = (row: IndiaState, sortHeaderId: string) => {
+      if (sortHeaderId === 'country') return row.countryName ?? row.countryIsoCode ?? '';
+      return (row as unknown as Record<string, string | number>)[sortHeaderId] ?? '';
+    };
   }
 
   protected setViewMode(mode: 'card' | 'table'): void {

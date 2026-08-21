@@ -198,6 +198,13 @@ export class FeeStructureListComponent implements OnInit {
   ngOnInit(): void {
     this.tourService.register('fee-structure-list', FEE_STRUCTURE_LIST_TOUR);
     this.tourService.registerFlowMap('fee-structure-list', FEE_STRUCTURE_LIST_FLOW_MAP);
+
+    // 'feeCount' renders row.items.length, not a field literally named 'feeCount', so the default
+    // sortingDataAccessor (row[sortHeaderId]) returned undefined and never reordered.
+    this.dataSource.sortingDataAccessor = (row: GroupedFeeStructure, sortHeaderId: string) => {
+      if (sortHeaderId === 'feeCount') return row.items.length;
+      return (row as unknown as Record<string, string | number>)[sortHeaderId] ?? '';
+    };
     this.http.get<Program[]>(`${environment.apiUrl}/programs`).subscribe({ next: d => this.programs.set(d) });
     this.http.get<AcademicYear[]>(`${environment.apiUrl}/academic-years`).subscribe({ next: d => this.academicYears.set(d) });
     this.financeService.getFeeStates().subscribe({ next: d => this.feeStates.set(d) });

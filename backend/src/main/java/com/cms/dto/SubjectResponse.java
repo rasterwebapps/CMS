@@ -1,6 +1,7 @@
 package com.cms.dto;
 
 import java.time.Instant;
+import java.util.List;
 
 public record SubjectResponse(
     Long id,
@@ -13,5 +14,7 @@ public record SubjectResponse(
     Integer termNumber,
     Boolean isActive,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    List<VenueOptionResponse> eligibleLabs,
+    List<VenueOptionResponse> eligibleClinicalVenues
 ) {}

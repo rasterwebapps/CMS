@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Period } from '../../period/period.model';
@@ -23,7 +23,7 @@ import { ElectiveGroupMemberPlacement, SkeletonBuilderResponse, SkeletonCell, Sk
   templateUrl: './elective-slot-block-flyout.component.html',
   styleUrl: './elective-slot-block-flyout.component.scss',
 })
-export class ElectiveSlotBlockFlyoutComponent {
+export class ElectiveSlotBlockFlyoutComponent implements OnInit {
   private readonly skeletonBuilderService = inject(SkeletonBuilderService);
   private readonly toast = inject(ToastService);
 
@@ -68,7 +68,9 @@ export class ElectiveSlotBlockFlyoutComponent {
 
   protected readonly isLocked = computed(() => this.anchorCell() != null);
 
-  constructor() {
+  /** Required signal inputs aren't guaranteed bound until ngOnInit — reading {@link skeleton} (via
+   *  {@link anchorCell}) any earlier throws NG0950. */
+  ngOnInit(): void {
     const anchor = this.anchorCell();
     if (anchor) {
       this.selectedDayOfWeek = anchor.dayOfWeek;
