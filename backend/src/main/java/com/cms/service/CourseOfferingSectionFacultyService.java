@@ -120,17 +120,23 @@ public class CourseOfferingSectionFacultyService {
 
     private static final String NOT_APPLICABLE_REASON = "No cohort is currently enrolled against this offering's curriculum version.";
 
-    /** {@link CourseOffering} has no cohort FK of its own -- it's keyed by curriculum version,
-     *  which can be shared by more than one cohort's admission year on the same (program, course).
-     *  Reconstructs every cohort currently enrolled in this offering's term whose (program, course)
-     *  matches this offering's curriculum version, mirroring {@code CourseOfferingServiceImpl}'s
-     *  own cohort-to-curriculum-version resolution. Each {@link CohortSection} unambiguously
-     *  belongs to exactly one cohort regardless of how many share the offering, so there's no real
-     *  ambiguity in listing every matching cohort's sections together -- only an empty result (no
-     *  cohort enrolled at all) is genuinely inapplicable. */
+    /** {@link CourseOffering} has no cohort FK of its own -- it's keyed by (curriculum version,
+     *  semesterNumber), and a curriculum version can be shared by more than one cohort's admission
+     *  year on the same (program, course). Reconstructs every cohort currently enrolled in this
+     *  offering's term whose (program, course) matches this offering's curriculum version AND
+     *  which actually has a student enrolled at this offering's own semesterNumber this term,
+     *  mirroring {@code CourseOfferingServiceImpl#buildCohortNamesByKey}'s (curriculumVersionId,
+     *  semesterNumber) key exactly -- matching on (program, course) alone (the original version of
+     *  this method) wrongly pulled in every admission-year cohort sharing that program/course
+     *  regardless of which semester they were actually enrolled at this term, e.g. a Semester-1
+     *  offering also listing a senior cohort's Semester-3 sections. Each {@link CohortSection}
+     *  unambiguously belongs to exactly one cohort regardless of how many share the offering, so
+     *  there's no real ambiguity in listing every matching cohort's sections together -- only an
+     *  empty result (no cohort enrolled at this semester at all) is genuinely inapplicable. */
     private List<Cohort> resolveCohorts(CourseOffering offering) {
         Long programId = offering.getCurriculumVersion().getProgram().getId();
         Long courseId = offering.getCurriculumVersion().getCourse().getId();
+        Integer semesterNumber = offering.getSemesterNumber();
         Long termInstanceId = offering.getTermInstance().getId();
 
         return studentTermEnrollmentRepository
@@ -140,6 +146,8 @@ public class CourseOfferingSectionFacultyService {
             .filter(Objects::nonNull)
             .filter(c -> c.getProgram() != null && c.getProgram().getId().equals(programId)
                 && c.getCourse() != null && c.getCourse().getId().equals(courseId))
+            .filter(c -> studentTermEnrollmentRepository.findByTermInstanceIdAndCohortId(termInstanceId, c.getId()).stream()
+                .anyMatch(e -> Objects.equals(e.getSemesterNumber(), semesterNumber)))
             .toList();
     }
 }

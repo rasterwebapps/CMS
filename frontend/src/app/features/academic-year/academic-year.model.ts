@@ -323,7 +323,8 @@ export interface CourseOffering {
   subjectSpecialityName: string | null;
   termNumber: number;
   facultyId: number | null;
-  /** Informational-only backup/co-instructor note — never eligible for staffing/substitution. */
+  /** Co-instructor, department-eligibility-checked same as the primary — a vetted substitute
+   *  candidate for FacultyAbsenceService and TimetableGlobalAutoScheduleService (OC-127). */
   secondaryFacultyId: number | null;
   isActive: boolean;
   curriculumTermCourseId: number | null;
@@ -404,6 +405,18 @@ export interface CourseOfferingSectionFacultyResponse {
   applicable: boolean;
   reason: string | null;
   sections: SectionFacultyAssignment[];
+}
+
+/** One committed CohortSection for a term, with its Class Incharge if assigned — structurally
+ *  created in Capacity Planner, staffed here (Assign Faculty), same split as batch coordinators
+ *  and Section Faculty. No fallback: a section with facultyId null simply has no incharge yet. */
+export interface ClassInchargeAssignment {
+  cohortSectionId: number;
+  cohortName: string;
+  sectionLabel: string;
+  classroomName: string;
+  facultyId: number | null;
+  facultyName: string | null;
 }
 
 export interface GenerateCourseOfferingsResponse {

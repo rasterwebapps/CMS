@@ -49,6 +49,14 @@ public class CohortSection {
     @JoinColumn(name = "classroom_id", nullable = false)
     private Classroom classroom;
 
+    /** Class Teacher / Class Incharge for this section, for this term -- a staffing concern
+     *  assigned via Assign Faculty, not part of Capacity Planner's own structural commit. No
+     *  fallback (unlike {@link Batch#getCoordinatorFaculty()}'s offering-primary pattern): a
+     *  section simply has no incharge until one is explicitly assigned. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_incharge_faculty_id")
+    private Faculty classInchargeFaculty;
+
     @Column(name = "planned_size", nullable = false)
     private Integer plannedSize;
 
@@ -113,6 +121,14 @@ public class CohortSection {
 
     public void setClassroom(Classroom classroom) {
         this.classroom = classroom;
+    }
+
+    public Faculty getClassInchargeFaculty() {
+        return classInchargeFaculty;
+    }
+
+    public void setClassInchargeFaculty(Faculty classInchargeFaculty) {
+        this.classInchargeFaculty = classInchargeFaculty;
     }
 
     public Integer getPlannedSize() {

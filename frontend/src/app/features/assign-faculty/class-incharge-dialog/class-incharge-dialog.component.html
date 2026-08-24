@@ -1,0 +1,49 @@
+<div mat-dialog-title class="cid-dialog-title-bar">
+  <div class="cid-dialog-title-bar__icon-wrap">
+    <mat-icon>badge</mat-icon>
+  </div>
+  <div>
+    <h2 class="cid-dialog-title-bar__heading">Class Incharge</h2>
+    <p class="cid-dialog-title-bar__sub">{{ data.termLabel }}</p>
+  </div>
+</div>
+
+<mat-dialog-content>
+  @if (loading()) {
+    <div class="cid-loading">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (sections().length === 0) {
+    <p class="cid-empty">No committed sections for this term yet — commit cohort room allocations in Capacity Planner first.</p>
+  } @else {
+    <p class="cid-hint">Assign one faculty as class incharge per committed section for this term.</p>
+    <div class="cid-section-list">
+      @for (row of sections(); track row.cohortSectionId) {
+        <div class="cid-section-row">
+          <div class="cid-section-row__info">
+            <span class="cid-section-row__label">{{ row.cohortName }} — {{ row.sectionLabel }}</span>
+            <span class="cid-section-row__sub">{{ row.classroomName }}</span>
+          </div>
+          <select
+            class="field-select"
+            [ngModel]="row.facultyId"
+            (ngModelChange)="onFacultyChange(row, $event)"
+            [disabled]="!canManage() || savingId() === row.cohortSectionId"
+            [attr.aria-label]="row.cohortName + ' ' + row.sectionLabel + ' class incharge'">
+            <option [ngValue]="null">Unassigned</option>
+            @for (f of data.facultyOptions; track f.id) {
+              <option [ngValue]="f.id">{{ f.name }}</option>
+            }
+          </select>
+          @if (savingId() === row.cohortSectionId) {
+            <mat-spinner diameter="14" class="btn-spinner"></mat-spinner>
+          }
+        </div>
+      }
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button class="btn-secondary" type="button" (click)="onClose()">Close</button>
+</mat-dialog-actions>

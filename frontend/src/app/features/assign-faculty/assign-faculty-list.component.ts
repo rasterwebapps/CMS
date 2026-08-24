@@ -25,6 +25,10 @@ import {
   BatchManageDialogComponent,
   BatchManageDialogData,
 } from '../course-offering/batch-manage-dialog/batch-manage-dialog.component';
+import {
+  ClassInchargeDialogComponent,
+  ClassInchargeDialogData,
+} from './class-incharge-dialog/class-incharge-dialog.component';
 
 /**
  * Deliberately separate from Course Offerings: generating/deactivating/batching an offering is a
@@ -94,6 +98,10 @@ export class AssignFacultyListComponent implements OnInit {
 
   protected canManage(): boolean {
     return this.permissionService.has('COURSE_MANAGE');
+  }
+
+  protected canViewClassIncharge(): boolean {
+    return this.permissionService.has('CLASS_INCHARGE_VIEW');
   }
 
   ngOnInit(): void {
@@ -198,6 +206,20 @@ export class AssignFacultyListComponent implements OnInit {
       facultyOptions: this.faculty(),
     };
     this.dialog.open(BatchManageDialogComponent, { data, width: '560px' });
+  }
+
+  /** Class Incharge isn't tied to any one subject/offering, so it's a standalone term-wide action
+   *  rather than a per-row one — every committed CohortSection across every cohort in the
+   *  selected term, not just this screen's currently-filtered offerings. */
+  protected openClassIncharge(): void {
+    const term = this.selectedTerm();
+    if (!this.selectedTermInstanceId || !term) return;
+    const data: ClassInchargeDialogData = {
+      termInstanceId: this.selectedTermInstanceId,
+      termLabel: `${term.academicYearName} · ${term.termType} Term`,
+      facultyOptions: this.faculty(),
+    };
+    this.dialog.open(ClassInchargeDialogComponent, { data, width: '560px' });
   }
 
   protected facultyName(id: number | null): string {

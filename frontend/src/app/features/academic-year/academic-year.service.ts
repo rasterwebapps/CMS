@@ -9,6 +9,7 @@ import {
   CalendarEvent,
   CalendarEventRequest,
   CalendarEventType,
+  ClassInchargeAssignment,
   CohortLapsedSummary,
   CohortSeatsRequest,
   CohortSummary,
@@ -283,6 +284,17 @@ export class AcademicYearService {
   updateSectionFaculty(offeringId: number, cohortSectionId: number, facultyId: number | null): Observable<SectionFacultyAssignment> {
     return this.http.put<SectionFacultyAssignment>(
       `${environment.apiUrl}/course-offerings/${offeringId}/section-faculty/${cohortSectionId}`, { facultyId });
+  }
+
+  getClassIncharge(termInstanceId: number): Observable<ClassInchargeAssignment[]> {
+    const params = new HttpParams().set('termInstanceId', termInstanceId.toString());
+    return this.http.get<ClassInchargeAssignment[]>(`${environment.apiUrl}/class-incharge`, { params });
+  }
+
+  /** facultyId null clears this section's incharge — there is no fallback to revert to. */
+  updateClassIncharge(cohortSectionId: number, facultyId: number | null): Observable<ClassInchargeAssignment> {
+    return this.http.put<ClassInchargeAssignment>(
+      `${environment.apiUrl}/class-incharge/${cohortSectionId}`, { facultyId });
   }
 
   // CourseRegistration methods
