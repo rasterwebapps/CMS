@@ -14,6 +14,8 @@ public interface BatchRepository extends JpaRepository<Batch, Long> {
 
     List<Batch> findByCohortRoomAllocationId(Long cohortRoomAllocationId);
 
+    List<Batch> findByCohortRoomAllocationIdAndIsActiveTrue(Long cohortRoomAllocationId);
+
     boolean existsByCourseOfferingIdAndName(Long courseOfferingId, String name);
 
     @Query("SELECT COUNT(s) FROM Batch b JOIN b.students s WHERE b.id = :batchId")

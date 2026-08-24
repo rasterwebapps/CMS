@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -43,6 +44,7 @@ import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.LabStatus;
 import com.cms.model.enums.PlanningBasis;
+import com.cms.repository.BatchRepository;
 import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.CalendarEventRepository;
 import com.cms.repository.ClassScheduleRepository;
@@ -90,6 +92,7 @@ public class TimetableCapacityPlanningService {
     private final CourseOfferingRepository courseOfferingRepository;
     private final BlockedPeriodRepository blockedPeriodRepository;
     private final CohortRoomAllocationRepository cohortRoomAllocationRepository;
+    private final BatchRepository batchRepository;
 
     public TimetableCapacityPlanningService(CohortRepository cohortRepository,
                                              CohortSectionRepository cohortSectionRepository,
@@ -103,7 +106,8 @@ public class TimetableCapacityPlanningService {
                                              CalendarEventRepository calendarEventRepository,
                                              CourseOfferingRepository courseOfferingRepository,
                                              BlockedPeriodRepository blockedPeriodRepository,
-                                             CohortRoomAllocationRepository cohortRoomAllocationRepository) {
+                                             CohortRoomAllocationRepository cohortRoomAllocationRepository,
+                                             BatchRepository batchRepository) {
         this.cohortRepository = cohortRepository;
         this.cohortSectionRepository = cohortSectionRepository;
         this.termInstanceRepository = termInstanceRepository;
@@ -117,6 +121,7 @@ public class TimetableCapacityPlanningService {
         this.courseOfferingRepository = courseOfferingRepository;
         this.blockedPeriodRepository = blockedPeriodRepository;
         this.cohortRoomAllocationRepository = cohortRoomAllocationRepository;
+        this.batchRepository = batchRepository;
     }
 
     public CapacityPlanResponse getPlan(Long termInstanceId, Long cohortId, PlanningBasis planningBasisParam) {
@@ -313,8 +318,15 @@ public class TimetableCapacityPlanningService {
         List<CohortAutoPlanSummaryResponse> cohortRows = new ArrayList<>();
         for (Cohort cohortRow : cohortsInPlanOrder) {
             Long cohortId = cohortRow.getId();
-            boolean committed = cohortRoomAllocationRepository.existsByCohortIdAndTermInstanceIdAndStatus(
-                cohortId, termInstanceId, CohortRoomAllocationStatus.COMMITTED);
+            Optional<com.cms.model.CohortRoomAllocation> committedAllocation = cohortRoomAllocationRepository
+                .findByCohortIdAndTermInstanceIdAndStatus(cohortId, termInstanceId, CohortRoomAllocationStatus.COMMITTED);
+            boolean committed = committedAllocation.isPresent();
+            int committedSectionsCount = committedAllocation
+                .map(a -> cohortSectionRepository.findByCohortRoomAllocationIdAndIsActiveTrue(a.getId()).size())
+                .orElse(0);
+            int committedBatchesCount = committedAllocation
+                .map(a -> batchRepository.findByCohortRoomAllocationIdAndIsActiveTrue(a.getId()).size())
+                .orElse(0);
             CapacityPlanResponse plan = getPlan(termInstanceId, cohortId, planningBasis, provisionallyClaimedClassroomIds);
             if (!committed) {
                 for (SuggestedSectionResponse section : plan.suggestedSections()) {
@@ -332,7 +344,9 @@ public class TimetableCapacityPlanningService {
                 committed ? List.of() : plan.suggestedSections(),
                 committed ? List.of() : plan.suggestedLabClinicalBatches(),
                 committed || plan.labClinicalMappingSufficient(),
-                committed ? null : plan.labClinicalMappingIssuesMessage()
+                committed ? null : plan.labClinicalMappingIssuesMessage(),
+                committedSectionsCount,
+                committedBatchesCount
             ));
         }
         cohortRows.sort(Comparator.comparing(CohortAutoPlanSummaryResponse::cohortLabel));

@@ -110,7 +110,10 @@ export interface CapacityPlan {
 
 /** One row of the term-wide Capacity Auto-Plan overview screen — one per Cohort enrolled in a
  *  TermInstance. Committed cohorts are never re-planned; suggestedSections/
- *  suggestedLabClinicalBatches are empty for them. */
+ *  suggestedLabClinicalBatches are empty for them -- committedSectionsCount/committedBatchesCount
+ *  are the mirror image (always 0 until committed, then the real active row counts), so the
+ *  term-wide stat tiles can report a genuine planned-vs-total ratio instead of losing the count
+ *  entirely once a cohort commits. */
 export interface CohortAutoPlanSummary {
   cohortId: number;
   cohortLabel: string;
@@ -123,6 +126,8 @@ export interface CohortAutoPlanSummary {
   suggestedLabClinicalBatches: SuggestedBatch[];
   labClinicalMappingSufficient: boolean;
   labClinicalMappingIssuesMessage: string | null;
+  committedSectionsCount: number;
+  committedBatchesCount: number;
 }
 
 /** One physical room in the Capacity Auto-Plan overview's whole-term room inventory. A CLASSROOM

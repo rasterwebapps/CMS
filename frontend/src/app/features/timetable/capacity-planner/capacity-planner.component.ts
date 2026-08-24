@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { DecimalPipe, DatePipe } from '@angular/common';
+import { DecimalPipe, DatePipe, Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -74,6 +74,7 @@ export class CapacityPlannerComponent implements OnInit {
   private readonly portionBlueprintService = inject(PortionBlueprintService);
   private readonly cohortRoomAllocationService = inject(CohortRoomAllocationService);
   private readonly dialog = inject(MatDialog);
+  private readonly location = inject(Location);
   private readonly tourService = inject(TourService);
   private readonly route = inject(ActivatedRoute);
 
@@ -729,6 +730,16 @@ export class CapacityPlannerComponent implements OnInit {
     if (tab === 'faculty' && this.selectedTermInstanceId && !this.facultyWorkload() && !this.loadingFacultyWorkload()) {
       this.loadFacultyWorkload();
     }
+  }
+
+  /** Real browser-history back, not a fixed destination route -- this screen has no standalone
+   *  nav menu entry and is deep-linked from three different places (Capacity Auto-Plan's
+   *  "Adjust manually"/"View", Skeleton Builder, Staffing), each with its own selected
+   *  year/term/cohort context. A fixed routerLink back to any one of them would lose whichever
+   *  of the other two actually sent the admin here, and would drop the specific deep-link state
+   *  (e.g. Auto-Plan's own cohort tab selection) even for the one it matched. */
+  protected goBack(): void {
+    this.location.back();
   }
 
   protected selectedTermLabel(): string {

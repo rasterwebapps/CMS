@@ -24,7 +24,9 @@
       }
     </select>
     <div class="toolbar-right">
-      <button type="button" class="btn-primary" [disabled]="loading() || !selectedTermInstanceId" (click)="onAutoPlanAll()">
+      <button type="button" class="btn-primary" [disabled]="loading() || !selectedTermInstanceId || notPlannedCount() === 0"
+        [title]="notPlannedCount() === 0 && selectedTermInstanceId ? 'Every cohort this term is already committed — nothing left to plan.' : ''"
+        (click)="onAutoPlanAll()">
         @if (loading()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
         Auto-Plan All
       </button>
@@ -33,7 +35,9 @@
 
   @if (overview(); as o) {
     <div class="cap-alert anim-rise anim-rise--d2" [class.cap-alert--ok]="o.theorySufficient" [class.cap-alert--bad]="!o.theorySufficient">
-      @if (o.theorySufficient) {
+      @if (notPlannedCount() === 0) {
+        <span>Every cohort this term is already committed — nothing left to plan.</span>
+      } @else if (o.theorySufficient) {
         <span>Free classroom capacity ({{ o.totalFreeClassroomCapacity }}) covers every not-yet-planned cohort's headcount ({{ o.totalNotPlannedStrength }}).</span>
       } @else {
         <span>{{ o.theorySufficiencyMessage }} Committing is blocked until this is resolved — increase a room's capacity or add classrooms.</span>
@@ -63,16 +67,18 @@
           <span class="cap-tile__label">Not yet planned</span>
         </div>
         <div class="cap-tile" data-tone="sections">
-          <span class="cap-tile__value">{{ totalSuggestedSections() }}</span>
-          <span class="cap-tile__label">Suggested Theory sections</span>
+          <span class="cap-tile__value">{{ theorySectionsProgress().planned }}/{{ theorySectionsProgress().total }}</span>
+          <span class="cap-tile__label">Theory sections planned</span>
         </div>
         <div class="cap-tile" data-tone="batches">
-          <span class="cap-tile__value">{{ totalSuggestedBatches() }}</span>
-          <span class="cap-tile__label">Suggested Lab/Clinical batches</span>
+          <span class="cap-tile__value">{{ labClinicalBatchesProgress().planned }}/{{ labClinicalBatchesProgress().total }}</span>
+          <span class="cap-tile__label">Lab/Clinical batches planned</span>
         </div>
       </div>
     </div>
 
+    <div class="cap-layout">
+    <div class="cap-main-col">
     @if (o.cohorts.length === 0) {
       <cms-empty-state
         icon="groups_off"
@@ -82,7 +88,8 @@
     } @else {
       <h2 class="cap-cohorts-title anim-rise anim-rise--d3">Cohorts to Plan</h2>
 
-      <div class="cap-cohort-tabs anim-rise anim-rise--d3" role="tablist">
+      <div class="cap-cohort-panel anim-rise anim-rise--d3">
+      <div class="cap-cohort-tabs" role="tablist">
         @for (row of o.cohorts; track row.cohortId) {
           <button type="button" class="cap-cohort-tab" role="tab"
             [class.cap-cohort-tab--active]="selectedCohortId() === row.cohortId"
@@ -97,7 +104,7 @@
       </div>
 
       @if (selectedCohort(); as row) {
-        <div class="mlp-card cap-cohort-card anim-rise anim-rise--d3">
+        <div class="mlp-card cap-cohort-card">
           <div class="cap-cohort-card__head">
             <div class="cap-cohort-card__title-group">
               <span class="cap-cohort-card__title">{{ row.cohortLabel }}</span>
@@ -114,10 +121,72 @@
           }
 
           @if (row.hasCommittedAllocation) {
-            <p class="cap-cohort-card__hint">This cohort's rooms are already committed for this term.</p>
-            <div class="cap-cohort-card__actions">
-              <a class="btn-secondary" routerLink="/timetable/capacity-planner" [queryParams]="queryParamsFor(row)">View</a>
-            </div>
+            @if (loadingAllocation()) {
+              <p class="cap-cohort-card__hint">Loading committed allocation…</p>
+            } @else if (currentAllocation(); as alloc) {
+              <p class="cap-cohort-card__hint">Committed by {{ alloc.committedBy || 'unknown' }} on {{ alloc.committedAt | date:'medium' }} — planned against {{ alloc.plannedStrength }} students. Read-only — Revert to edit and re-commit.</p>
+
+              <div class="cap-cohort-card__sections">
+                @for (section of alloc.sections; track section.id) {
+                  <div class="cap-section-block">
+                    <div class="cap-section-block__head">
+                      <span class="cap-section-block__label">{{ section.sectionLabel }}</span>
+                      <span class="cap-section-block__size">{{ section.plannedSize }} students</span>
+                    </div>
+                    <div class="cap-subblock">
+                      <span class="cap-subblock__title">Theory</span>
+                      <div class="cap-alloc-row">
+                        <span class="cap-alloc-row__name">{{ section.classroomName }}</span>
+                        <span class="cap-alloc-row__meta">cap {{ section.classroomCapacity ?? '—' }}</span>
+                      </div>
+                    </div>
+
+                    @if (allocBatchesFor(alloc, section, 'LAB'); as labBatches) {
+                      @if (labBatches.length > 0) {
+                        <div class="cap-subblock">
+                          <span class="cap-subblock__title">Lab</span>
+                          @for (b of labBatches; track b.batchId) {
+                            <div class="cap-alloc-row">
+                              <span class="cap-alloc-row__name">{{ b.subjectName }}{{ b.batchName ? ' — ' + b.batchName : '' }}</span>
+                              <span class="cap-alloc-row__meta">{{ b.venueName }} · {{ b.plannedSize }}</span>
+                            </div>
+                          }
+                        </div>
+                      }
+                    }
+
+                    @if (allocBatchesFor(alloc, section, 'CLINICAL'); as clinicalBatches) {
+                      @if (clinicalBatches.length > 0) {
+                        <div class="cap-subblock">
+                          <span class="cap-subblock__title">Clinical</span>
+                          @for (b of clinicalBatches; track b.batchId) {
+                            <div class="cap-alloc-row">
+                              <span class="cap-alloc-row__name">{{ b.subjectName }}{{ b.batchName ? ' — ' + b.batchName : '' }}</span>
+                              <span class="cap-alloc-row__meta">{{ b.venueName }} · {{ b.plannedSize }}</span>
+                            </div>
+                          }
+                        </div>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+
+              <div class="cap-cohort-card__actions">
+                @if (canRevertAllocation()) {
+                  <button type="button" class="btn-ghost-danger" [disabled]="revertingAllocation()" (click)="revertAllocation(row)">
+                    @if (revertingAllocation()) { <mat-spinner diameter="14" class="btn-spinner"></mat-spinner> }
+                    Revert Allocation
+                  </button>
+                }
+                <a class="btn-secondary" routerLink="/timetable/capacity-planner" [queryParams]="queryParamsFor(row)">View in Capacity Planner</a>
+              </div>
+            } @else {
+              <p class="cap-cohort-card__hint">This cohort's rooms are already committed for this term.</p>
+              <div class="cap-cohort-card__actions">
+                <a class="btn-secondary" routerLink="/timetable/capacity-planner" [queryParams]="queryParamsFor(row)">View</a>
+              </div>
+            }
           } @else if (draftFor(row.cohortId); as draft) {
             <div class="cap-cohort-card__sections">
               @for (section of draft.sections; track section.sectionLabel) {
@@ -195,10 +264,16 @@
           }
         </div>
       }
+      </div>
     }
+    </div>
 
+    <div class="cap-side-col">
+    <h2 class="cap-section-title anim-rise anim-rise--d4">Room Inventory</h2>
     <div class="content-card cap-room-card anim-rise anim-rise--d4">
-      <h2 class="cap-section-title">Room Inventory</h2>
+      @if (selectedCohort(); as selRow) {
+        <p class="cap-room-card__hint">Highlighted rooms are the current picks for <strong>{{ selRow.cohortLabel }}</strong>.</p>
+      }
       @if (o.roomInventory.length === 0) {
         <p class="cap-empty-hint">No active Classroom, Lab, or Clinical Venue is configured yet.</p>
       } @else {
@@ -209,26 +284,30 @@
                 <h3 class="cap-room-group__title">{{ group.label }}</h3>
                 <div class="cap-room-chip-grid">
                   @for (room of group.rooms; track room.id) {
-                    <div class="cap-room-chip" [class.cap-room-chip--claimed]="room.claimedByCohortLabel">
+                    @let selectedSections = highlightedSectionsFor(room);
+                    <div class="cap-room-chip"
+                      [class.cap-room-chip--claimed]="room.claimedByCohortLabel"
+                      [class.cap-room-chip--active]="selectedSections.length > 0">
                       <div class="cap-room-chip__head">
                         <span class="cap-room-chip__name" [title]="room.name">{{ room.name }}</span>
-                        <span class="cap-room-chip__capacity">{{ room.capacity ?? '—' }} seats</span>
+                        <span class="cap-room-chip__capacity" [title]="(room.capacity ?? '—') + ' seats'">{{ room.capacity ?? '—' }}</span>
                       </div>
 
                       @if (group.roomType === 'CLASSROOM') {
-                        <!-- Theory rooms are full-or-empty for the whole term, not a percentage. -->
-                        <div class="cap-room-chip__foot">
-                          @if (room.claimedByCohortLabel) {
-                            <span class="cms-badge cms-badge--red">Claimed</span>
-                          } @else {
-                            <span class="cms-badge cms-badge--green">Free</span>
-                          }
-                          @if (room.suggestedBookingCount > 0) {
-                            <span class="cms-badge cms-badge--blue">{{ room.suggestedBookingCount }} suggested</span>
-                          }
-                        </div>
-                        @if (room.claimedByCohortLabel) {
-                          <div class="cap-room-chip__claim">{{ room.claimedByCohortLabel }}</div>
+                        <!-- Theory rooms are full-or-empty for the whole term -- a seat-map color
+                             (red/blue/plain, see .cap-room-chip modifiers) carries the status, so no
+                             separate Claimed/Free text badge is needed here. -->
+                        @if (selectedSections.length > 0 || room.claimedByCohortLabel || room.suggestedBookingCount > 0) {
+                          <div class="cap-room-chip__foot">
+                            @if (selectedSections.length > 0) {
+                              <span class="cap-room-chip__tag">{{ selectedSections.join(', ') }}</span>
+                            } @else if (room.claimedByCohortLabel) {
+                              <span class="cap-room-chip__tag" [title]="room.claimedByCohortLabel">{{ room.claimedByCohortLabel }}</span>
+                            }
+                            @if (room.suggestedBookingCount > 0) {
+                              <span class="cms-badge cms-badge--blue">{{ room.suggestedBookingCount }}</span>
+                            }
+                          </div>
                         }
                       } @else {
                         <!-- Lab/Clinical venues are shared -- real weekly period-slot occupancy
@@ -236,7 +315,7 @@
                              read over 100%, an honest "leaning on overflow" signal, not a bug. -->
                         <div class="cap-room-chip__occupancy">
                           <div class="cap-room-chip__occupancy-head">
-                            <span>{{ room.occupiedSlots }}/{{ room.totalSlots }} weekly slots</span>
+                            <span>{{ room.occupiedSlots }}/{{ room.totalSlots }}</span>
                             <span [class.cap-room-chip__occupancy-pct--over]="room.utilizationPercent > 100">{{ room.utilizationPercent | number:'1.0-0' }}%</span>
                           </div>
                           <div class="cap-room-chip__occupancy-track">
@@ -245,9 +324,14 @@
                               [style.width.%]="room.utilizationPercent > 100 ? 100 : room.utilizationPercent"></div>
                           </div>
                         </div>
-                        @if (room.suggestedBookingCount > 0) {
+                        @if (selectedSections.length > 0 || room.suggestedBookingCount > 0) {
                           <div class="cap-room-chip__foot">
-                            <span class="cms-badge cms-badge--blue">{{ room.suggestedBookingCount }} suggested</span>
+                            @if (selectedSections.length > 0) {
+                              <span class="cap-room-chip__tag">{{ selectedSections.join(', ') }}</span>
+                            }
+                            @if (room.suggestedBookingCount > 0) {
+                              <span class="cms-badge cms-badge--blue">{{ room.suggestedBookingCount }}</span>
+                            }
                           </div>
                         }
                       }
@@ -259,6 +343,8 @@
           }
         </div>
       }
+    </div>
+    </div>
     </div>
   } @else if (loading()) {
     <div class="cap-loading">

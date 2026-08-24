@@ -90,12 +90,14 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Course Offerings',    icon: 'event_available',    route: '/course-offerings',    permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
       { label: 'Elective Assignment', icon: 'how_to_reg',         route: '/elective-assignment', permissions: ['COURSE_REGISTRATION_ELECTIVE_ASSIGN'] },
       // Deliberately after Elective Assignment: only once electives are assigned do you know which
-      // options actually have real enrolled students and need a faculty at all. Capacity Planner
+      // options actually have real enrolled students and need a faculty at all. Capacity planning
       // must run before Assign Faculty, not after -- it's what decides whether a cohort's Theory
       // splits into 2+ CohortSection rows, and Assign Faculty's per-section "Section Faculty"
       // picker (CourseOfferingSectionFacultyService.getForOffering) only appears once those
-      // sections already exist.
-      { label: 'Capacity Planner',    icon: 'calculate',          route: '/timetable/capacity-planner', permissions: ['TIMETABLE_CAPACITY_PLANNER_VIEW'] },
+      // sections already exist. No separate "Capacity Planner" menu item -- it's still a real,
+      // fully standalone screen (own year/term/cohort pickers), just reached contextually from
+      // here, from Skeleton Builder, and from Staffing ("Adjust manually" / "size rooms first"
+      // links) rather than adding a 2nd top-level entry for what's largely the same job.
       { label: 'Capacity Auto-Plan',  icon: 'auto_awesome',       route: '/timetable/capacity-auto-plan', permissions: ['TIMETABLE_CAPACITY_PLANNER_VIEW'] },
       { label: 'Assign Faculty',      icon: 'person_edit',        route: '/assign-faculty',      permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
       { label: 'Lab Schedules',       icon: 'calendar_view_week', route: '/lab-schedules',       permissions: ['LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_CREATE', 'LAB_SCHEDULE_EDIT', 'LAB_SCHEDULE_DELETE', 'LAB_SCHEDULE_EXPORT', 'LAB_SCHEDULE_MANAGE'] },

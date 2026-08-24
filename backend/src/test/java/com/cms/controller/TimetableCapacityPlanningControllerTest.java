@@ -60,7 +60,7 @@ class TimetableCapacityPlanningControllerTest {
     @Test
     void shouldGetTermOverview() throws Exception {
         CohortAutoPlanSummaryResponse row = new CohortAutoPlanSummaryResponse(
-            5L, "BSc Nursing 2026 - Sem 1", 1, 60L, false, true, null, List.of(), List.of(), true, null);
+            5L, "BSc Nursing 2026 - Sem 1", 1, 60L, false, true, null, List.of(), List.of(), true, null, 0, 0);
         RoomInventoryRowResponse roomRow = new RoomInventoryRowResponse(1L, "Room 101", "CLASSROOM", 60, null, 0, 0L, 0, 0.0);
         TermCapacityOverviewResponse overview = new TermCapacityOverviewResponse(
             10L, true, 60, 60, null, List.of(row), List.of(roomRow), true, null);

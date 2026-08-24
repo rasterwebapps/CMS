@@ -1,3 +1,5 @@
+@use '../../../shared/styles/accent-bar.mixin' as *;
+
 .toolbar-right {
   display: flex;
   align-items: center;
@@ -5,17 +7,19 @@
   margin-left: auto;
 }
 
+// Direct child of .mlp-page (both this and the optional 2nd lab/clinical alert) -- deliberately
+// no margin, so .mlp-page's own 16px gap is the only spacing above/below it (see the mlp-page
+// spacing hard gate: a local margin here would stack on top of that gap instead of replacing it).
 .cap-alert {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 12px 20px;
+  padding: 12px 16px;
   border-radius: var(--cms-radius-md, 10px);
   font-size: 0.9rem;
   font-weight: 600;
-  margin-bottom: 16px;
   border: 1px solid transparent;
 
   &--ok {
@@ -52,9 +56,24 @@
   }
 }
 
+// Also a direct child of .mlp-page -- same no-local-margin rule as .cap-alert above.
 .cap-summary-card {
-  padding: 20px 24px;
-  margin-bottom: 16px;
+  padding: 16px;
+}
+
+// .content-card's dark-mode shadow (html.dark-theme .content-card, styles.scss) bleeds a big
+// "0 16px 32px" past the card's own border -- box-model gap is a genuinely correct 16px (verified
+// via DevTools: no margin on either side), but that shadow visually eats into the space below the
+// card, making the SAME 16px gap read as noticeably tighter here than next to the flat, shadowless
+// green alert above it. Tightened locally (scoped to this screen only, not the shared
+// .content-card class) so the gap reads as the true 16px regardless of mechanism. The .mlp-page
+// ancestor qualifier is required, not decorative -- html.dark-theme .content-card outranks a bare
+// .cap-summary-card override on specificity, so this needs the extra class to win.
+.mlp-page .cap-summary-card,
+.mlp-page .cap-room-card {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .05),
+    0 2px 6px rgba(0, 0, 0, .18);
 }
 
 .cap-tiles {
@@ -83,9 +102,48 @@
   color: var(--cms-text-secondary);
 }
 
+// Two-column layout for "Cohorts to Plan" (tabs + the selected cohort's card) on the left and
+// Room Inventory pinned to the right, sitting BELOW the full-width alert(s)/summary tiles above
+// -- those stay full-bleed rather than being capped into this grid too. Same "working flow left,
+// reference panel right" shape as Capacity Planner's own .cap-layout (sibling screen), reused
+// here rather than inventing a new pattern.
+.cap-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 960px) minmax(280px, 1fr);
+  align-items: start;
+  gap: 16px;
+
+  @media (max-width: 1300px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cap-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.cap-side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
 .cap-room-card {
-  margin-bottom: 16px;
-  padding: 16px 20px;
+  padding: 14px 16px;
+}
+
+.cap-room-card__hint {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  color: var(--cms-text-secondary);
+
+  strong {
+    color: var(--cms-text-primary);
+  }
 }
 
 // Standalone section heading sitting directly in .mlp-page's flex flow (not inside a card) --
@@ -99,11 +157,13 @@
   margin: 0;
 }
 
+// Standalone heading sitting directly in .cap-side-col's own flex flow -- same "no local margin,
+// let the flex gap do it" rule as .cap-cohorts-title (mlp-page spacing hard gate).
 .cap-section-title {
   font-size: 1rem;
   font-weight: 700;
   color: var(--cms-text-primary);
-  margin: 0 0 12px;
+  margin: 0;
 }
 
 .cap-empty-hint {
@@ -115,86 +175,152 @@
 .cap-room-groups {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .cap-room-group__title {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--cms-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin: 0 0 8px;
+  margin: 0 0 5px;
 }
 
+// Small enough that a term's whole room inventory reads like a theatre seat map -- as many chips
+// as fit per row at ~90px each, instead of the wide, text-heavy cards this used to be.
 .cap-room-chip-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 6px;
 }
 
+// Three flat states, color-coded like a seat map instead of relying on a text badge to say the
+// same thing: plain/bordered = free, soft-red tint = already claimed by a different (committed)
+// cohort this term, soft-blue tint = currently picked somewhere on the SELECTED cohort's own open
+// draft (see highlightedSectionsFor() in the component). Same translucent-tint-on-transparent-fill
+// formula as .btn-ghost-danger (Revert Allocation button, this same screen) -- rgba(...,.12)
+// background / rgba(...,.35) border / colored text -- instead of an opaque solid fill, so the
+// chip's own text/background contrast doesn't need a separate white-text override per state.
+// --claimed and --active never co-occur in practice (a room already committed elsewhere is
+// excluded from this draft's own pickers), but --active is listed after --claimed so it wins on
+// specificity if that ever changes.
 .cap-room-chip {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
-  border-radius: var(--cms-radius-md, 10px);
-  background: var(--cms-bg-muted);
-  border: 1px solid transparent;
+  gap: 3px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 
   &--claimed {
-    border-color: var(--cms-badge-red-bg);
+    background: rgba(239, 68, 68, .12);
+    border-color: rgba(239, 68, 68, .35);
+  }
+
+  &--active {
+    background: var(--cms-primary-alpha-8);
+    border-color: var(--cms-primary-alpha-30);
   }
 }
 
 .cap-room-chip__head {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
   min-width: 0;
 }
 
 .cap-room-chip__name {
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   color: var(--cms-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  .cap-room-chip--claimed & {
+    color: rgba(239, 68, 68, .95);
+  }
+
+  .cap-room-chip--active & {
+    color: var(--cms-primary);
+  }
 }
 
 .cap-room-chip__capacity {
-  font-size: 0.75rem;
+  flex-shrink: 0;
+  font-size: 0.64rem;
   color: var(--cms-text-secondary);
+
+  .cap-room-chip--claimed & {
+    color: rgba(239, 68, 68, .75);
+  }
+
+  .cap-room-chip--active & {
+    color: var(--cms-primary);
+  }
 }
 
 .cap-room-chip__foot {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
+
+  // Shrunk to fit this chip's own compact footprint -- scoped to .cap-room-card by Angular's
+  // ViewEncapsulation, so this doesn't touch the global .cms-badge used elsewhere in the app.
+  .cms-badge {
+    padding: 1px 6px;
+    font-size: 0.62rem;
+  }
 }
 
-.cap-room-chip__claim {
-  font-size: 0.72rem;
-  color: var(--cms-text-secondary);
+// Reused for both "which section picked this room" (active state) and "which cohort already
+// holds it" (claimed state) -- one compact pill either way, never both at once.
+.cap-room-chip__tag {
+  display: inline-block;
+  max-width: 100%;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  background: var(--cms-bg-muted);
+  color: var(--cms-text-secondary);
+
+  .cap-room-chip--claimed & {
+    background: rgba(239, 68, 68, .18);
+    color: rgba(239, 68, 68, .95);
+  }
+
+  .cap-room-chip--active & {
+    background: var(--cms-primary-alpha-30);
+    color: var(--cms-primary);
+  }
 }
 
 .cap-room-chip__occupancy {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .cap-room-chip__occupancy-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   color: var(--cms-text-secondary);
+
+  .cap-room-chip--active & {
+    color: var(--cms-primary);
+  }
 }
 
 .cap-room-chip__occupancy-pct--over {
@@ -203,7 +329,7 @@
 }
 
 .cap-room-chip__occupancy-track {
-  height: 4px;
+  height: 3px;
   border-radius: 99px;
   background: var(--cms-border-default);
   overflow: hidden;
@@ -220,18 +346,49 @@
   }
 }
 
+// The tab strip sits flush on top of the selected cohort's card below it -- zero gap, reading as
+// one attached tab-panel unit -- instead of floating as two separately-spaced elements. See
+// .cap-cohort-panel.
+// Same "overflow:hidden clips the accent bar to the container's own border-radius" trick as the
+// global .content-card (Room Inventory's card uses it) -- the bar itself needs no border-radius
+// of its own; the PANEL's radius + overflow:hidden shapes it, top corners matching
+// .cap-cohort-tabs' own 10px and bottom corners matching .cap-cohort-card's own 16px underneath.
+// Giving the bar its OWN independent border-radius (the previous version) isn't clipped by
+// anything, so at the seam it can visibly step past the tab strip's actual rounded edge instead
+// of following it -- the "extends straight out of the card" bug.
+.cap-cohort-panel {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--cms-radius-md, 10px) var(--cms-radius-md, 10px) 16px 16px;
+  // Reserves room for the static top accent bar below (::before) -- the tab strip's own top
+  // corners then sit just under it instead of the bar overlapping their rounded edge.
+  padding-top: 3px;
+
+  // One static accent bar topping the WHOLE attached tabs+card unit (see .cap-cohort-tabs /
+  // .cap-cohort-card below) -- not .mlp-card's own hover-only accent bar, which would sit
+  // squeezed at the seam between the flush-attached tabs and card and only appear on hover.
+  // Shared mixin (see shared/styles/accent-bar.mixin.scss) instead of a local hand-rolled
+  // gradient -- fades in on both ends, so it doesn't depend on .cap-cohort-tabs' flat
+  // var(--cms-bg-muted) background to disguise a hard solid starting edge.
+  &::before {
+    @include cms-accent-bar($height: 3px);
+  }
+}
+
 // ── Cohort tabs ───────────────────────────────────────────────
 // One cohort's full editable card shown at a time, picked via this strip, instead of every
 // cohort's card rendered in a grid at once -- got cluttered fast once each card grew a real
 // section/batch editor. Same segmented-pill visual language as Capacity Planner's own
 // .cap-tab-toggle (sibling screen), but a scrollable strip since the cohort count is unbounded
-// where that toggle's is a fixed 2 tabs.
+// where that toggle's is a fixed 2 tabs. Bottom corners square (not the full var(--cms-radius-md)
+// pill) since .cap-cohort-card sits flush against it with no gap -- see .cap-cohort-panel.
 .cap-cohort-tabs {
   display: flex;
   gap: 4px;
   padding: 4px;
-  margin-bottom: 4px;
-  border-radius: var(--cms-radius-md, 10px);
+  border-radius: var(--cms-radius-md, 10px) var(--cms-radius-md, 10px) 0 0;
   background: var(--cms-bg-muted);
   overflow-x: auto;
 }
@@ -284,6 +441,27 @@
   flex-direction: column;
   gap: 12px;
   max-width: 960px;
+  // Overrides .mlp-card's own 22px -- no spacing value on this screen exceeds 16px.
+  padding: 16px;
+  // Square top corners (overriding .mlp-card's 16px) so the card sits flush under
+  // .cap-cohort-tabs with no visible gap or corner mismatch -- see .cap-cohort-panel.
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+
+  // Not a clickable/hoverable nav card (unlike .mlp-cards-grid items) -- .mlp-card's hover
+  // lift+accent-bar was designed for those. Lifting THIS card away from the flush-attached
+  // .cap-cohort-tabs above it (see .cap-cohort-panel) on hover reopened a gap and revealed
+  // .mlp-card's own accent bar sitting inside it -- read as "a blue line between the tabs and
+  // the card." Neutralized; .cap-cohort-panel's own static top accent bar replaces it.
+  &:hover {
+    transform: none;
+    border-color: var(--cms-border-default);
+    box-shadow: none;
+
+    &::before {
+      opacity: 0;
+    }
+  }
 }
 
 .cap-cohort-card__head {
@@ -419,6 +597,67 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--cms-text-muted);
+}
+
+// One read-only line per committed room/venue on a COMMITTED cohort's card (see
+// currentAllocation/allocBatchesFor) -- the read-only counterpart of .cap-section-block__room /
+// .cap-batch-row above, name+meta on one line since there's no picker/count-box column to align
+// against here.
+.cap-alloc-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 6px;
+
+  &:not(:first-child) {
+    border-top: 1px dashed var(--cms-border-default);
+  }
+}
+
+.cap-alloc-row__name {
+  font-size: 0.82rem;
+  color: var(--cms-text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cap-alloc-row__meta {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--cms-text-secondary);
+}
+
+// Same soft red pill as Capacity Planner's own .btn-ghost-danger (sibling screen) -- duplicated,
+// not reused, since Angular's per-component ViewEncapsulation scopes that rule to
+// capacity-planner.component only.
+.btn-ghost-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(239, 68, 68, .35);
+  background: rgba(239, 68, 68, .12);
+  color: rgba(239, 68, 68, .85);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .18s, border-color .18s, color .18s;
+
+  &:hover:not(:disabled) {
+    background: rgba(239, 68, 68, .82);
+    border-color: transparent;
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
 }
 
 // Two lines per subject: the full name on its own line, then venue+batch-boxes together on the

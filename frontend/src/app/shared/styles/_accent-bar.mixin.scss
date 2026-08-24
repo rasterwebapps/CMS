@@ -1,0 +1,43 @@
+// Shared "accent bar" treatment: a thin gradient strip along an element's top edge, fading IN
+// from transparent on the left and fading OUT toward transparent on the right -- never a flat
+// solid color. A flat color's start edge only looks soft where the background happens to blend
+// it away; fading both ends removes that dependency, so it looks right regardless of what's
+// underneath.
+//
+// @use this instead of hand-rolling another local `linear-gradient(90deg, var(--cms-primary),
+// ...)`. This exact pattern was independently duplicated at least 4 times across styles.scss
+// (.content-card, .content-card.widget-card, and two more card variants) before this mixin
+// existed, each with a different fade percentage (20%, 25%, 30%) and no shared source -- those
+// existing global rules are left as-is for now (retrofitting them is separate, larger-
+// blast-radius work across every screen that uses those classes), but any NEW accent bar should
+// use this.
+//
+// Usage: on an `::before` (or `::after`) pseudo-element of a `position: relative` ancestor that
+// also has `overflow: hidden` (or a matching border-radius on the bar itself), so the bar's
+// corners are actually clipped to the container's shape rather than just visually approximated.
+//
+//   @use '../../shared/styles/accent-bar.mixin' as *;
+//
+//   .my-card {
+//     position: relative;
+//     overflow: hidden;
+//     border-radius: 12px;
+//
+//     &::before {
+//       @include cms-accent-bar();
+//     }
+//   }
+@mixin cms-accent-bar($color: var(--cms-primary), $fade: 25%, $height: 2px) {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: $height;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #{$color} 8%,
+    color-mix(in srgb, #{$color} $fade, transparent)
+  );
+}

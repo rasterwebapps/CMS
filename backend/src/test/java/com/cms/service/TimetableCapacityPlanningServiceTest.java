@@ -27,6 +27,7 @@ import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.ClinicalVenue;
 import com.cms.model.Cohort;
+import com.cms.model.CohortRoomAllocation;
 import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Lab;
@@ -40,6 +41,7 @@ import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.PlanningBasis;
 import com.cms.model.enums.TermType;
+import com.cms.repository.BatchRepository;
 import com.cms.repository.BlockedPeriodRepository;
 import com.cms.repository.CalendarEventRepository;
 import com.cms.repository.ClassScheduleRepository;
@@ -70,6 +72,7 @@ class TimetableCapacityPlanningServiceTest {
     @Mock private CourseOfferingRepository courseOfferingRepository;
     @Mock private BlockedPeriodRepository blockedPeriodRepository;
     @Mock private CohortRoomAllocationRepository cohortRoomAllocationRepository;
+    @Mock private BatchRepository batchRepository;
 
     private TimetableCapacityPlanningService service;
 
@@ -78,7 +81,7 @@ class TimetableCapacityPlanningServiceTest {
         service = new TimetableCapacityPlanningService(cohortRepository, cohortSectionRepository, termInstanceRepository,
             studentTermEnrollmentRepository, classroomRepository, labRepository, clinicalVenueRepository, periodRepository,
             classScheduleRepository, calendarEventRepository, courseOfferingRepository, blockedPeriodRepository,
-            cohortRoomAllocationRepository);
+            cohortRoomAllocationRepository, batchRepository);
     }
 
     private VenueOptionResponse venue(long id, String name, int capacity) {
@@ -380,10 +383,12 @@ class TimetableCapacityPlanningServiceTest {
 
         // Cohort B already has a committed allocation this term -- excluded from demand and
         // suggestions, even though it would otherwise fit fine.
-        when(cohortRoomAllocationRepository.existsByCohortIdAndTermInstanceIdAndStatus(1L, 10L, CohortRoomAllocationStatus.COMMITTED))
-            .thenReturn(false);
-        when(cohortRoomAllocationRepository.existsByCohortIdAndTermInstanceIdAndStatus(2L, 10L, CohortRoomAllocationStatus.COMMITTED))
-            .thenReturn(true);
+        CohortRoomAllocation cohortBAllocation = new CohortRoomAllocation();
+        cohortBAllocation.setId(99L);
+        when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(1L, 10L, CohortRoomAllocationStatus.COMMITTED))
+            .thenReturn(Optional.empty());
+        when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(2L, 10L, CohortRoomAllocationStatus.COMMITTED))
+            .thenReturn(Optional.of(cohortBAllocation));
 
         Classroom hallA = new Classroom();
         hallA.setId(1L);
@@ -459,10 +464,10 @@ class TimetableCapacityPlanningServiceTest {
             .thenReturn(Optional.empty());
 
         // Neither cohort has committed yet -- both are still "Not Planned".
-        when(cohortRoomAllocationRepository.existsByCohortIdAndTermInstanceIdAndStatus(1L, 10L, CohortRoomAllocationStatus.COMMITTED))
-            .thenReturn(false);
-        when(cohortRoomAllocationRepository.existsByCohortIdAndTermInstanceIdAndStatus(2L, 10L, CohortRoomAllocationStatus.COMMITTED))
-            .thenReturn(false);
+        when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(1L, 10L, CohortRoomAllocationStatus.COMMITTED))
+            .thenReturn(Optional.empty());
+        when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(2L, 10L, CohortRoomAllocationStatus.COMMITTED))
+            .thenReturn(Optional.empty());
 
         Classroom room101 = new Classroom("Room 101", null, null, 80);
         room101.setId(1L);
@@ -536,10 +541,10 @@ class TimetableCapacityPlanningServiceTest {
             .thenReturn(Optional.empty());
         when(studentTermEnrollmentRepository.findFirstByTermInstanceIdAndCohortIdAndStatus(10L, 2L, EnrollmentStatus.ENROLLED))
             .thenReturn(Optional.empty());
-        when(cohortRoomAllocationRepository.existsByCohortIdAndTermInstanceIdAndStatus(1L, 10L, CohortRoomAllocationStatus.COMMITTED))
-            .thenReturn(false);
-        when(cohortRoomAllocationRepository.existsByCohortIdAndTermInstanceIdAndStatus(2L, 10L, CohortRoomAllocationStatus.COMMITTED))
-            .thenReturn(false);
+        when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(1L, 10L, CohortRoomAllocationStatus.COMMITTED))
+            .thenReturn(Optional.empty());
+        when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(2L, 10L, CohortRoomAllocationStatus.COMMITTED))
+            .thenReturn(Optional.empty());
 
         Classroom room1 = new Classroom("Room 1", null, null, 80);
         room1.setId(1L);
@@ -682,8 +687,8 @@ class TimetableCapacityPlanningServiceTest {
             .thenReturn(10L);
         when(studentTermEnrollmentRepository.findFirstByTermInstanceIdAndCohortIdAndStatus(10L, 1L, EnrollmentStatus.ENROLLED))
             .thenReturn(Optional.empty());
-        when(cohortRoomAllocationRepository.existsByCohortIdAndTermInstanceIdAndStatus(1L, 10L, CohortRoomAllocationStatus.COMMITTED))
-            .thenReturn(false);
+        when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(1L, 10L, CohortRoomAllocationStatus.COMMITTED))
+            .thenReturn(Optional.empty());
 
         when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of());
         when(clinicalVenueRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of());

@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
+import { DatePipe, DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -14,7 +14,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { CapacityPlannerService } from '../capacity-planner/capacity-planner.service';
 import { CohortAutoPlanSummary, RoomInventoryRow, TermCapacityOverview } from '../capacity-planner/capacity-planner.model';
 import { CohortRoomAllocationService } from '../capacity-planner/cohort-room-allocation.service';
-import { CohortSectionRequest, VentureSplit } from '../capacity-planner/cohort-room-allocation.model';
+import { AllocatedBatch, CohortRoomAllocation, CohortSection, CohortSectionRequest, VentureSplit } from '../capacity-planner/cohort-room-allocation.model';
 
 /** One grouped section of the Room Inventory chip grid -- Classrooms / Labs / Clinical Venues,
  *  in that fixed display order regardless of how the backend orders the flat roomInventory list. */
@@ -77,7 +77,7 @@ interface BatchGroup {
   standalone: true,
   imports: [
     FormsModule, RouterLink, MatProgressSpinnerModule, MatDialogModule,
-    CmsEmptyStateComponent, CmsStatusBadgeComponent, NgTemplateOutlet, DecimalPipe,
+    CmsEmptyStateComponent, CmsStatusBadgeComponent, NgTemplateOutlet, DecimalPipe, DatePipe,
   ],
   templateUrl: './capacity-auto-plan.component.html',
   styleUrl: './capacity-auto-plan.component.scss',
@@ -108,15 +108,40 @@ export class CapacityAutoPlanComponent implements OnInit {
    *  not-yet-planned cohort (or just the first cohort if everything's committed). */
   protected readonly selectedCohortId = signal<number | null>(null);
 
+  /** The selected cohort's real committed allocation -- fetched lazily only when its tab shows a
+   *  COMMITTED cohort (see loadAllocationIfCommitted), since a not-yet-planned cohort has none to
+   *  fetch. Read-only in the template; the only way to change it is Revert -> a fresh draft ->
+   *  Confirm & Commit again, same two-step pattern Capacity Planner already uses for this exact
+   *  object -- there is no in-place update endpoint anywhere in this codebase. */
+  protected readonly currentAllocation = signal<CohortRoomAllocation | null>(null);
+  protected readonly loadingAllocation = signal(false);
+  protected readonly revertingAllocation = signal(false);
+
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
 
   protected readonly notPlannedCount = computed(() => (this.overview()?.cohorts ?? []).filter((r) => !r.hasCommittedAllocation).length);
   protected readonly committedCount = computed(() => (this.overview()?.cohorts ?? []).filter((r) => r.hasCommittedAllocation).length);
-  protected readonly totalSuggestedSections = computed(() =>
-    (this.overview()?.cohorts ?? []).reduce((sum, r) => sum + r.suggestedSections.length, 0));
-  protected readonly totalSuggestedBatches = computed(() =>
-    (this.overview()?.cohorts ?? []).reduce((sum, r) => sum + r.suggestedLabClinicalBatches.length, 0));
+  /** Committed (numerator) vs. total-across-the-term (denominator) -- a committed cohort
+   *  contributes its real committedSectionsCount/committedBatchesCount to BOTH; a not-yet-planned
+   *  cohort contributes 0 to the numerator and its suggestedSections/suggestedLabClinicalBatches
+   *  length to the denominator. Reads as "16/16" once everything's committed instead of silently
+   *  dropping to a bare "0" (suggestedSections goes empty for a committed cohort -- see
+   *  CohortAutoPlanSummary docs), and as e.g. "1/4" partway through committing a term. */
+  protected readonly theorySectionsProgress = computed(() => {
+    const rows = this.overview()?.cohorts ?? [];
+    return {
+      planned: rows.reduce((sum, r) => sum + (r.hasCommittedAllocation ? r.committedSectionsCount : 0), 0),
+      total: rows.reduce((sum, r) => sum + (r.hasCommittedAllocation ? r.committedSectionsCount : r.suggestedSections.length), 0),
+    };
+  });
+  protected readonly labClinicalBatchesProgress = computed(() => {
+    const rows = this.overview()?.cohorts ?? [];
+    return {
+      planned: rows.reduce((sum, r) => sum + (r.hasCommittedAllocation ? r.committedBatchesCount : 0), 0),
+      total: rows.reduce((sum, r) => sum + (r.hasCommittedAllocation ? r.committedBatchesCount : r.suggestedLabClinicalBatches.length), 0),
+    };
+  });
 
   protected readonly selectedCohort = computed<CohortAutoPlanSummary | null>(() => {
     const id = this.selectedCohortId();
@@ -151,6 +176,7 @@ export class CapacityAutoPlanComponent implements OnInit {
     this.overview.set(null);
     this.drafts.set(new Map());
     this.selectedCohortId.set(null);
+    this.currentAllocation.set(null);
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
@@ -173,10 +199,86 @@ export class CapacityAutoPlanComponent implements OnInit {
 
   protected selectCohortTab(cohortId: number): void {
     this.selectedCohortId.set(cohortId);
+    this.loadAllocationIfCommitted(cohortId);
   }
 
   protected canManageAllocation(): boolean {
     return this.permissionService.has('TIMETABLE_COHORT_ROOM_ALLOCATION_MANAGE');
+  }
+
+  protected canRevertAllocation(): boolean {
+    return this.permissionService.has('TIMETABLE_COHORT_ROOM_ALLOCATION_REVERT');
+  }
+
+  /** Lab/Clinical batches belonging to one committed section, scoped to ONE session type so the
+   *  template can render Lab/Clinical as separate labeled blocks -- same shape as the draft
+   *  card's own batchGroupsForSection, just reading the server's real AllocatedBatch rows instead
+   *  of an editable draft. cohortSectionLabel is only populated when the commit had 2+ sections
+   *  (see VentureSplit docs) -- with exactly one section every batch belongs to it regardless. */
+  protected allocBatchesFor(alloc: CohortRoomAllocation, section: CohortSection, sessionType: 'LAB' | 'CLINICAL'): AllocatedBatch[] {
+    const scoped = alloc.sections.length <= 1 ? alloc.batches : alloc.batches.filter((b) => b.cohortSectionLabel === section.sectionLabel);
+    return scoped.filter((b) => b.sessionType === sessionType);
+  }
+
+  /** Fetches the real committed allocation only for a cohort whose tab is actually showing a
+   *  COMMITTED status -- a not-yet-planned cohort has nothing to fetch, so this clears the signal
+   *  instead. Called on tab switch and after every overview refresh (a commit/revert elsewhere can
+   *  flip the selected cohort's own committed status without the tab selection itself changing).
+   *  Gated the same way Capacity Planner gates its own identical fetch (MANAGE or REVERT) -- a
+   *  user with neither just sees the plain "already committed" hint, same as before this existed,
+   *  instead of a failed-fetch toast from the backend's own VIEW-permission check. */
+  private loadAllocationIfCommitted(cohortId: number | null): void {
+    this.currentAllocation.set(null);
+    if (cohortId == null || !this.selectedTermInstanceId) return;
+    if (!this.canManageAllocation() && !this.canRevertAllocation()) return;
+    const row = this.overview()?.cohorts.find((r) => r.cohortId === cohortId);
+    if (!row?.hasCommittedAllocation) return;
+    this.loadingAllocation.set(true);
+    this.cohortRoomAllocationService.getCurrent(cohortId, this.selectedTermInstanceId).subscribe({
+      next: (alloc) => {
+        this.currentAllocation.set(alloc);
+        this.loadingAllocation.set(false);
+      },
+      error: () => {
+        this.toast.error('Failed to load the committed room allocation');
+        this.loadingAllocation.set(false);
+      },
+    });
+  }
+
+  /** Edit is nothing but Revert -- there is no in-place update endpoint anywhere in this codebase
+   *  (see Capacity Planner, which uses the same two-step pattern for this exact object). Reverting
+   *  flips the allocation to REVERTED and frees its rooms; the subsequent runOverview() refetch
+   *  then finds the cohort not-yet-committed again and rebuilds a fresh editable draft for it from
+   *  real server suggestions, ready for Confirm & Commit. */
+  protected revertAllocation(row: CohortAutoPlanSummary): void {
+    const alloc = this.currentAllocation();
+    if (!alloc) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Revert Room Allocation',
+        message: `Revert ${row.cohortLabel}'s committed room allocation for this term? This frees its rooms and rebuilds an editable draft you can adjust and re-commit.`,
+        confirmText: 'Revert Allocation',
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe((confirmed) => {
+      if (confirmed) this.doRevertAllocation(alloc.id);
+    });
+  }
+
+  private doRevertAllocation(allocationId: number): void {
+    this.revertingAllocation.set(true);
+    this.cohortRoomAllocationService.revert(allocationId).subscribe({
+      next: () => {
+        this.toast.success('Room allocation reverted — rebuild and re-commit when ready');
+        this.revertingAllocation.set(false);
+        this.runOverview();
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to revert room allocation');
+        this.revertingAllocation.set(false);
+      },
+    });
   }
 
   protected draftFor(cohortId: number): CohortDraft | undefined {
@@ -403,6 +505,53 @@ export class CapacityAutoPlanComponent implements OnInit {
     return options.filter((r) => eligible.has(r.id) || r.id === batch.venueId);
   }
 
+  /** Section label(s) the room is currently picked for on the SELECTED cohort -- its open editable
+   *  draft when not yet committed, or its real committed allocation when it IS committed (Room
+   *  Inventory's "active" highlight either way, distinct from claimedByCohortLabel, which flags a
+   *  room COMMITTED to a cohort). Without this second branch, a committed cohort's own rooms only
+   *  ever rendered as generic red "claimed" -- indistinguishable from some OTHER cohort's rooms --
+   *  since a committed cohort never has a draft (buildDrafts skips it entirely). --active is
+   *  declared after --claimed in the SCSS, so on a room that's both (the committed cohort's own
+   *  room, viewed on its own tab), --active's blue correctly wins over --claimed's red. */
+  protected highlightedSectionsFor(room: RoomInventoryRow): string[] {
+    const cohortId = this.selectedCohortId();
+    if (cohortId == null) return [];
+
+    const draft = this.draftFor(cohortId);
+    if (draft) return this.highlightedSectionsInDraft(room, draft);
+
+    const alloc = this.currentAllocation();
+    if (alloc && alloc.cohortId === cohortId) return this.highlightedSectionsInAllocation(room, alloc);
+
+    return [];
+  }
+
+  private highlightedSectionsInDraft(room: RoomInventoryRow, draft: CohortDraft): string[] {
+    if (room.roomType === 'CLASSROOM') {
+      return draft.sections.filter((s) => s.classroomId === room.id).map((s) => s.sectionLabel);
+    }
+    const labels = draft.batches
+      .filter((b) => b.sessionType === room.roomType && b.venueId === room.id)
+      .map((b) => b.sectionLabel);
+    return [...new Set(labels)];
+  }
+
+  /** Same shape as highlightedSectionsInDraft, reading the real committed rows (alloc.sections'
+   *  own classroomId, allocBatchesFor's Lab/Clinical venueId) instead of an editable draft's. */
+  private highlightedSectionsInAllocation(room: RoomInventoryRow, alloc: CohortRoomAllocation): string[] {
+    const labels: string[] = [];
+    for (const section of alloc.sections) {
+      if (room.roomType === 'CLASSROOM') {
+        if (section.classroomId === room.id) labels.push(section.sectionLabel);
+        continue;
+      }
+      if (this.allocBatchesFor(alloc, section, room.roomType).some((b) => b.venueId === room.id)) {
+        labels.push(section.sectionLabel);
+      }
+    }
+    return [...new Set(labels)];
+  }
+
   protected roomCapacity(id: number | null, options: RoomInventoryRow[]): number | null {
     if (id == null) return null;
     return options.find((o) => o.id === id)?.capacity ?? null;
@@ -453,12 +602,23 @@ export class CapacityAutoPlanComponent implements OnInit {
         return;
       }
     }
-    for (const section of draft.sections) {
-      const rows = draft.batches.filter((b) => b.sectionLabel === section.sectionLabel);
-      if (rows.length === 0) continue;
-      const total = rows.reduce((sum, b) => sum + (b.plannedSize ?? 0), 0);
-      if (total !== (section.plannedSize ?? 0)) {
-        this.toast.error(`${section.sectionLabel}'s batches must add up to exactly ${section.plannedSize} students`);
+    // Per (section, subject, session type) -- two subjects' Lab batches are independent partitions
+    // of the same section, so each subject's own batches must sum to the section's planned size,
+    // not the section's combined total across every subject. Mirrors the backend's own grouping
+    // exactly (see CohortRoomAllocationService's VentureKey check) -- summing every row in the
+    // section together (the old bug here) falsely rejected a perfectly valid split (e.g. two
+    // Lab subjects each correctly split 25+25 across a 50-student section summed to 100, not 50).
+    const ventureTotals = new Map<string, { sectionLabel: string; subjectName: string; sessionType: 'LAB' | 'CLINICAL'; total: number }>();
+    for (const batch of draft.batches) {
+      const key = `${batch.sectionLabel}|${batch.courseOfferingId}|${batch.sessionType}`;
+      const existing = ventureTotals.get(key);
+      if (existing) existing.total += batch.plannedSize ?? 0;
+      else ventureTotals.set(key, { sectionLabel: batch.sectionLabel, subjectName: batch.subjectName, sessionType: batch.sessionType, total: batch.plannedSize ?? 0 });
+    }
+    for (const venture of ventureTotals.values()) {
+      const sectionSize = draft.sections.find((s) => s.sectionLabel === venture.sectionLabel)?.plannedSize ?? 0;
+      if (venture.total !== sectionSize) {
+        this.toast.error(`${venture.subjectName}'s ${venture.sessionType} batches for ${venture.sectionLabel} plan ${venture.total} students, not exactly ${sectionSize}`);
         return;
       }
     }
@@ -533,6 +693,7 @@ export class CapacityAutoPlanComponent implements OnInit {
         this.overview.set(response);
         this.drafts.set(this.buildDrafts(response));
         this.selectDefaultCohortTab(response);
+        this.loadAllocationIfCommitted(this.selectedCohortId());
         this.loading.set(false);
       },
       error: (err) => {

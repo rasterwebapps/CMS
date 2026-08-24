@@ -6,7 +6,11 @@ import java.util.List;
  *  TermInstance. Committed cohorts are surfaced as-is (never re-planned); suggestedSections/
  *  suggestedLabClinicalBatches are always empty for a committed cohort — carrying the full lists
  *  (not just counts) lets the bulk screen render each cohort's suggested venue/capacity detail
- *  inline without a second per-cohort call. */
+ *  inline without a second per-cohort call. committedSectionsCount/committedBatchesCount are the
+ *  mirror image -- always 0 for a not-yet-committed cohort, and the real active CohortSection/
+ *  Batch row counts for a committed one -- so the term-wide stat tiles can report a genuine
+ *  planned-vs-total ratio (e.g. "16/16") instead of the count silently dropping to 0 once
+ *  everything commits (suggestedSections/suggestedLabClinicalBatches go empty at that point). */
 public record CohortAutoPlanSummaryResponse(
     Long cohortId,
     String cohortLabel,
@@ -18,5 +22,7 @@ public record CohortAutoPlanSummaryResponse(
     List<SuggestedSectionResponse> suggestedSections,
     List<SuggestedBatchResponse> suggestedLabClinicalBatches,
     boolean labClinicalMappingSufficient,
-    String labClinicalMappingIssuesMessage
+    String labClinicalMappingIssuesMessage,
+    int committedSectionsCount,
+    int committedBatchesCount
 ) {}
