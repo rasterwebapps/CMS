@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -24,9 +25,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.AutoPlaceUnplacedItem;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.FacultyCapacityCheckResult;
 import com.cms.dto.FacultyOverCapacity;
+import com.cms.dto.FacultyWorkloadDetail;
+import com.cms.dto.GlobalAutoSchedulePrerequisites;
 import com.cms.dto.GlobalCapacityPrecheckResult;
 import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellPlacementRequest;
@@ -247,6 +251,42 @@ class TimetableGlobalAutoScheduleServiceTest {
     }
 
     @Test
+    void precheckChargesEachTypedBatchOnlyItsOwnLabOrClinicalHours_notTheCombinedTotal() {
+        // Real-data regression: offering with 40 lab + 480 clinical hours (520 combined), primary
+        // faculty XYZ (500, no cap configured -- never looked up). One LAB-typed batch (linked to a
+        // Lab venue) and one CLINICAL-typed batch (linked to a ClinicalVenue), both coordinated by
+        // the SAME faculty (600, 1h/day = 100h capacity). Before the fix, each batch was wrongly
+        // charged the full 520h combined total (1040h total, wildly over); after the fix, the Lab
+        // batch owes only 40h and the Clinical batch owes only 60h -- 100h total, exactly at cap,
+        // never flagged.
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        Faculty coord = facultyWithDailyCap(600L, "Coordinator", 1); // 100h capacity
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A", 500L)));
+        offeringEntity(100L, 0, 40, 60, 500L);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+
+        com.cms.model.Lab lab = new com.cms.model.Lab();
+        Batch labBatch = new Batch();
+        labBatch.setIsActive(true);
+        labBatch.setCoordinatorFaculty(coord);
+        labBatch.setLab(lab);
+
+        com.cms.model.ClinicalVenue venue = new com.cms.model.ClinicalVenue();
+        Batch clinicalBatch = new Batch();
+        clinicalBatch.setIsActive(true);
+        clinicalBatch.setCoordinatorFaculty(coord);
+        clinicalBatch.setClinicalVenue(venue);
+
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(List.of(labBatch, clinicalBatch));
+
+        GlobalCapacityPrecheckResult result = service.precheckCapacity(10L);
+
+        assertThat(result.overCapacityFaculty()).isEmpty();
+    }
+
+    @Test
     void precheckCreditsEachSectionsOwnFacultyOverrideForTheoryHours_notThePrimaryFaculty() {
         // Offering: 100 theory hours, 0 lab/clinical, primary faculty XYZ (500) with a 1h/day cap
         // (100h capacity). Cohort has two active sections; Section B has an override to faculty
@@ -292,7 +332,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
         when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
 
-        assertThatThrownBy(() -> service.runGlobalAutoSchedule(10L))
+        assertThatThrownBy(() -> service.runGlobalAutoSchedule(10L, null))
             .isInstanceOf(TimetableConstraintViolationException.class);
 
         verify(timetableSkeletonService, never()).placeCell(any());
@@ -324,15 +364,19 @@ class TimetableGlobalAutoScheduleServiceTest {
                 ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50),
                 null, null, null, null, null, false, List.of(), null));
 
-        var result = service.runGlobalAutoSchedule(10L);
+        var result = service.runGlobalAutoSchedule(10L, null);
 
         assertThat(result.totalPlaced()).isEqualTo(1);
         assertThat(result.totalStaffed()).isEqualTo(1);
+        assertThat(result.cohortSummaries()).hasSize(1);
+        assertThat(result.cohortSummaries().get(0).unplaced()).isEmpty();
+        assertThat(result.cohortSummaries().get(0).usedSaturday()).isFalse();
+        assertThat(result.electiveUnplaced()).isEmpty();
         verify(timetableStaffingService).staffCell(900L, new StaffingAssignmentRequest(500L, null));
     }
 
     @Test
-    void runThrowsWithSpecificReason_whenNoSlotWorksForBothPlacementAndStaffing() {
+    void runReportsUnplacedInsteadOfThrowing_whenNoSlotWorksForBothPlacementAndStaffing() {
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
             .thenReturn(new HashSet<>(List.of(1L)));
         cohort(1L, "Cohort 1");
@@ -350,12 +394,108 @@ class TimetableGlobalAutoScheduleServiceTest {
         when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class)))
             .thenThrow(new TimetableConstraintViolationException(List.of(new com.cms.dto.ConstraintViolation("X", "no"))));
 
-        assertThatThrownBy(() -> service.runGlobalAutoSchedule(10L))
-            .isInstanceOf(TimetableConstraintViolationException.class);
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        assertThat(result.totalPlaced()).isEqualTo(0);
+        assertThat(result.cohortSummaries()).hasSize(1);
+        assertThat(result.cohortSummaries().get(0).unplaced()).hasSize(1);
+        assertThat(result.cohortSummaries().get(0).unplaced().get(0).reason())
+            .contains("no day/period found where both placement and staffing succeed");
 
         // 6 days x 1 period exhausted.
         verify(timetableSkeletonService, times(6)).placeCell(any());
         verify(timetableStaffingService, never()).staffCell(anyLong(), any());
+    }
+
+    @Test
+    void runReportsUnplacedInsteadOfThrowing_whenOfferingHasNoFacultyBound() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A", null)));
+        offeringEntity(100L, 10, 0, 0, null);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
+        SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of());
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        assertThat(result.totalPlaced()).isEqualTo(0);
+        assertThat(result.cohortSummaries().get(0).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
+            .containsExactly("no faculty assigned on its Course Offering");
+        verify(timetableSkeletonService, never()).placeCell(any());
+    }
+
+    @Test
+    void runContinuesPlacingOtherCohorts_whenOneCohortHasAnUnplaceableSession() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L, 2L)));
+        cohort(1L, "Cohort 1");
+        cohort(2L, "Cohort 2");
+        facultyWithDailyCap(500L, "Faculty A", 6);
+        facultyWithDailyCap(600L, "Faculty B", 6);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A", 500L)));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 2L)).thenReturn(List.of(offeringDto(200L, "Offering B", 600L)));
+        offeringEntity(100L, 10, 0, 0, 500L);
+        offeringEntity(200L, 10, 0, 0, 600L);
+        when(timetableSkeletonService.resolveActiveSections(anyLong(), eq(10L))).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        SkeletonSubjectBudget budgetA = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
+        SkeletonSubjectResponse subjectA = new SkeletonSubjectResponse(100L, "Offering A", "OFFA", List.of(budgetA), null, null);
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectA), List.of(), List.of(), List.of()));
+
+        SkeletonSubjectBudget budgetB = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
+        SkeletonSubjectResponse subjectB = new SkeletonSubjectResponse(200L, "Offering B", "OFFB", List.of(budgetB), null, null);
+        when(timetableSkeletonService.getCohortSkeleton(10L, 2L))
+            .thenReturn(new SkeletonBuilderResponse(2L, "Cohort 2", "Term", List.of(subjectB), List.of(), List.of(), List.of()));
+
+        // Cohort 1's offering (100L) can never be placed; cohort 2's (200L) succeeds every time.
+        when(timetableSkeletonService.placeCell(argThat(r -> r != null && r.courseOfferingId().equals(100L))))
+            .thenThrow(new TimetableConstraintViolationException(List.of(new com.cms.dto.ConstraintViolation("X", "no"))));
+        SkeletonCellResponse placedB = new SkeletonCellResponse(901L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",
+            LocalTime.of(9, 0), LocalTime.of(9, 50), null, null, null, null, false, null, null, List.of(),
+            200L, "Offering B", "OFFB", null, null, null);
+        when(timetableSkeletonService.placeCell(argThat(r -> r != null && r.courseOfferingId().equals(200L)))).thenReturn(placedB);
+        when(timetableStaffingService.staffCell(eq(901L), any(StaffingAssignmentRequest.class)))
+            .thenReturn(new UnstaffedCellResponse(901L, 200L, "Offering B", "OFFB", null, null,
+                ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50),
+                null, null, null, null, null, false, List.of(), null));
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        assertThat(result.totalPlaced()).isEqualTo(1);
+        var summaryByCohort = result.cohortSummaries().stream()
+            .collect(java.util.stream.Collectors.toMap(com.cms.dto.CohortPlacementSummary::cohortId, s -> s));
+        assertThat(summaryByCohort.get(1L).placedCount()).isEqualTo(0);
+        assertThat(summaryByCohort.get(1L).unplaced()).hasSize(1);
+        assertThat(summaryByCohort.get(2L).placedCount()).isEqualTo(1);
+        assertThat(summaryByCohort.get(2L).unplaced()).isEmpty();
+    }
+
+    @Test
+    void runScopesToOneCohort_whenCohortIdProvided() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L, 2L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "Faculty A", 6);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A", 500L)));
+        offeringEntity(100L, 10, 0, 0, 500L);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(), List.of(), List.of(), List.of()));
+
+        var result = service.runGlobalAutoSchedule(10L, 1L);
+
+        assertThat(result.cohortSummaries()).hasSize(1);
+        assertThat(result.cohortSummaries().get(0).cohortId()).isEqualTo(1L);
+        verify(timetableSkeletonService, never()).getCohortSkeleton(10L, 2L);
     }
 
     // ── Live single-faculty capacity check (Course Offerings) ─────────
@@ -421,5 +561,175 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         assertThat(result.projectedTotalHours()).isEqualTo(150.0);
         assertThat(result.overCapacity()).isFalse();
+    }
+
+    // ── Faculty workload detail ────────────────────────────────────────
+
+    @Test
+    void getFacultyWorkloadReturnsEveryAssignment_notJustTopTwo() {
+        // Same shape as the worked-example precheck test: offering A (2 sections, no override,
+        // 90h each = 180h) + offering B (90h) + offering C (90h) = 4 distinct contribution rows,
+        // all bound to faculty XYZ. The precheck's own topContributors would cap this at 2 for its
+        // warning card -- this method must return all 4, proving it doesn't reuse that limit.
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L, 2L, 3L)));
+        cohort(1L, "Cohort 1");
+        cohort(2L, "Cohort 2");
+        cohort(3L, "Cohort 3");
+
+        facultyWithDailyCap(500L, "XYZ", 3); // 3h/day x 100 days = 300h capacity
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A", 500L)));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 2L)).thenReturn(List.of(offeringDto(200L, "Offering B", 500L)));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 3L)).thenReturn(List.of(offeringDto(300L, "Offering C", 500L)));
+
+        offeringEntity(100L, 90, 0, 0, 500L);
+        offeringEntity(200L, 90, 0, 0, 500L);
+        offeringEntity(300L, 90, 0, 0, 500L);
+
+        CohortSection sectionA = new CohortSection();
+        sectionA.setId(1L);
+        CohortSection sectionB = new CohortSection();
+        sectionB.setId(2L);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of(sectionA, sectionB));
+        when(timetableSkeletonService.resolveActiveSections(2L, 10L)).thenReturn(List.of());
+        when(timetableSkeletonService.resolveActiveSections(3L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        FacultyWorkloadDetail result = service.getFacultyWorkload(500L, 10L);
+
+        assertThat(result.facultyId()).isEqualTo(500L);
+        assertThat(result.facultyName()).isEqualTo("XYZ Staff");
+        assertThat(result.assignments()).hasSize(4);
+        assertThat(result.totalDemandHours()).isEqualTo(360.0); // 90*2 + 90 + 90
+        assertThat(result.termCapacityHours()).isEqualTo(300.0);
+        assertThat(result.overCapacity()).isTrue();
+        assertThat(result.shortfallHours()).isEqualTo(60.0);
+    }
+
+    @Test
+    void getFacultyWorkloadReturnsEmptyAssignments_whenFacultyHasNothingThisTerm() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(999L, "Idle", 6);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A", 500L)));
+        offeringEntity(100L, 10, 0, 0, 500L);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        FacultyWorkloadDetail result = service.getFacultyWorkload(999L, 10L);
+
+        assertThat(result.assignments()).isEmpty();
+        assertThat(result.totalDemandHours()).isEqualTo(0.0);
+        assertThat(result.overCapacity()).isFalse();
+    }
+
+    @Test
+    void getFacultyWorkloadKeepsTheoryAndLabClinicalAsSeparateRows_evenWhenBothFallToPrimary() {
+        // Unsectioned, unbatched offering with BOTH theory and lab/clinical hours -- before
+        // threading sessionType into the merge key, both would land on the same (faculty, null,
+        // null) key and silently combine into one row with no way to tell what type it was.
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "XYZ", 6);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A", 500L)));
+        offeringEntity(100L, 30, 20, 10, 500L); // 30 theory, 20 lab + 10 clinical = 30 combined
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        FacultyWorkloadDetail result = service.getFacultyWorkload(500L, 10L);
+
+        assertThat(result.assignments()).hasSize(2);
+        assertThat(result.assignments()).extracting("sessionType", "termHoursContributed")
+            .containsExactlyInAnyOrder(
+                org.assertj.core.groups.Tuple.tuple("THEORY", 30.0),
+                org.assertj.core.groups.Tuple.tuple("LAB_CLINICAL", 30.0));
+    }
+
+    @Test
+    void getFacultyWorkloadSummariesRunsAggregationOnceAndCoversEveryRequestedId_includingIdle() {
+        // Two cohorts sharing the term: faculty A (500, tiny cap) ends up over capacity; faculty B
+        // (600, generous cap) fits. A third id (999, no demand this term at all) is requested too
+        // -- must still come back with totalDemandHours == 0, not be silently dropped.
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L, 2L)));
+        cohort(1L, "Cohort 1");
+        cohort(2L, "Cohort 2");
+        facultyWithDailyCap(500L, "Over", 1); // 100h capacity
+        facultyWithDailyCap(600L, "Fits", 6); // 600h capacity
+        facultyWithDailyCap(999L, "Idle", 6);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A", 500L)));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 2L)).thenReturn(List.of(offeringDto(200L, "Offering B", 600L)));
+        offeringEntity(100L, 200, 0, 0, 500L); // 200h > 100h cap
+        offeringEntity(200L, 90, 0, 0, 600L);  // 90h < 600h cap
+        when(timetableSkeletonService.resolveActiveSections(anyLong(), eq(10L))).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        List<com.cms.dto.FacultyWorkloadSummary> result = service.getFacultyWorkloadSummaries(List.of(500L, 600L, 999L), 10L);
+
+        assertThat(result).hasSize(3);
+        var byId = result.stream().collect(java.util.stream.Collectors.toMap(
+            com.cms.dto.FacultyWorkloadSummary::facultyId, s -> s));
+        assertThat(byId.get(500L).overCapacity()).isTrue();
+        assertThat(byId.get(500L).totalDemandHours()).isEqualTo(200.0);
+        assertThat(byId.get(500L).shortfallHours()).isEqualTo(100.0);
+        assertThat(byId.get(600L).overCapacity()).isFalse();
+        assertThat(byId.get(600L).totalDemandHours()).isEqualTo(90.0);
+        assertThat(byId.get(999L).overCapacity()).isFalse();
+        assertThat(byId.get(999L).totalDemandHours()).isEqualTo(0.0);
+    }
+
+    // ── Prerequisite check ─────────────────────────────────────────────
+
+    @Test
+    void checkPrerequisitesReportsOfferingsWithoutFacultyAndOverCapacityFaculty() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "XYZ", 1); // 100h capacity
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L))
+            .thenReturn(List.of(offeringDto(100L, "Offering A", null), offeringDto(200L, "Offering B", 500L)));
+        offeringEntity(100L, 10, 0, 0, null); // no faculty bound -- a real prerequisite gap
+        offeringEntity(200L, 200, 0, 0, 500L); // bound, but 200h > 100h capacity -- over capacity
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        SkeletonSubjectBudget budgetA = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
+        SkeletonSubjectResponse subjectA = new SkeletonSubjectResponse(100L, "Offering A", "OFFA", List.of(budgetA), null, null);
+        SkeletonSubjectResponse subjectB = new SkeletonSubjectResponse(200L, "Offering B", "OFFB",
+            List.of(new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0)), null, null);
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectA, subjectB), List.of(), List.of(), List.of()));
+
+        GlobalAutoSchedulePrerequisites result = service.checkPrerequisites(10L, null);
+
+        assertThat(result.ready()).isFalse();
+        assertThat(result.offeringsWithoutFaculty()).hasSize(1);
+        assertThat(result.offeringsWithoutFaculty().get(0).courseOfferingId()).isEqualTo(100L);
+        assertThat(result.capacityPrecheck().overCapacityFaculty()).extracting(FacultyOverCapacity::facultyId)
+            .containsExactly(500L);
+    }
+
+    @Test
+    void checkPrerequisitesReadyWhenNothingOutstanding() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "XYZ", 6); // plenty of capacity
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A", 500L)));
+        offeringEntity(100L, 10, 0, 0, 500L);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
+        SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFA", List.of(budget), null, null);
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of()));
+
+        GlobalAutoSchedulePrerequisites result = service.checkPrerequisites(10L, null);
+
+        assertThat(result.ready()).isTrue();
+        assertThat(result.offeringsWithoutFaculty()).isEmpty();
     }
 }

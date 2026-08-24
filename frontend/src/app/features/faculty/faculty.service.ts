@@ -10,6 +10,9 @@ import {
   FacultyRequest,
   FacultyStatus,
   FacultyDocumentReviewFilter,
+  FacultyScheduleWorkload,
+  FacultyWorkloadDetail,
+  FacultyWorkloadSummary,
   Page,
 } from './faculty.model';
 
@@ -49,6 +52,30 @@ export class FacultyService {
 
   getById(id: number): Observable<Faculty> {
     return this.http.get<Faculty>(`${this.baseUrl}/${id}`);
+  }
+
+  getWorkload(facultyId: number, termInstanceId: number): Observable<FacultyWorkloadDetail> {
+    return this.http.get<FacultyWorkloadDetail>(`${this.baseUrl}/${facultyId}/workload`, {
+      params: { termInstanceId: termInstanceId.toString() },
+    });
+  }
+
+  getWorkloadSummaries(facultyIds: number[], termInstanceId: number): Observable<FacultyWorkloadSummary[]> {
+    return this.http.get<FacultyWorkloadSummary[]>(`${this.baseUrl}/workload-summary`, {
+      params: { facultyIds: facultyIds.join(','), termInstanceId: termInstanceId.toString() },
+    });
+  }
+
+  getScheduleWorkload(facultyId: number, termInstanceId: number): Observable<FacultyScheduleWorkload> {
+    return this.http.get<FacultyScheduleWorkload>(`${this.baseUrl}/${facultyId}/schedule-workload`, {
+      params: { termInstanceId: termInstanceId.toString() },
+    });
+  }
+
+  /** Minimal single-field update — backend loads the faculty, sets only this field, saves.
+   *  Deliberately not routed through `update()` (which requires the full FacultyRequest payload). */
+  updateDailyCap(facultyId: number, plannedDailyHoursOverride: number | null): Observable<Faculty> {
+    return this.http.patch<Faculty>(`${this.baseUrl}/${facultyId}/daily-cap`, { plannedDailyHoursOverride });
   }
 
   getBySpecialityId(specialityId: number): Observable<Faculty[]> {

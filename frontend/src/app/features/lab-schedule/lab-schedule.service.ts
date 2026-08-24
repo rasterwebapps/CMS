@@ -18,6 +18,12 @@ export class LabScheduleService {
     return this.http.get<LabSchedule[]>(this.scheduleUrl);
   }
 
+  getByFacultyAndTerm(facultyId: number, termInstanceId: number): Observable<LabSchedule[]> {
+    return this.http.get<LabSchedule[]>(this.scheduleUrl, {
+      params: { facultyId: facultyId.toString(), termInstanceId: termInstanceId.toString() },
+    });
+  }
+
   getById(id: number): Observable<LabSchedule> {
     return this.http.get<LabSchedule>(`${this.scheduleUrl}/${id}`);
   }

@@ -216,6 +216,19 @@ public class FacultyService {
         return toResponse(updated);
     }
 
+    /** Minimal, single-field update for the "Raise Cap" action — deliberately not a full {@link
+     *  #update} call. {@link #update} requires the complete {@link FacultyRequest} payload;
+     *  reconstructing that shape client-side from a {@code Faculty} response object just to change
+     *  one field risks silently dropping/corrupting other fields on a mapping mistake. {@code null}
+     *  clears the override, same semantics as leaving the field blank on the full edit form. */
+    @Transactional
+    public FacultyResponse updateDailyCapOverride(Long id, Integer plannedDailyHoursOverride) {
+        Faculty faculty = facultyRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + id));
+        faculty.setPlannedDailyHoursOverride(plannedDailyHoursOverride);
+        return toResponse(facultyRepository.save(faculty));
+    }
+
     public boolean nrtsNumberExists(String nrtsNumber, Long excludeId) {
         String value = trim(nrtsNumber);
         if (value == null) return false;

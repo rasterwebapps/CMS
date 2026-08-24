@@ -40,3 +40,56 @@
 }
 
 // mat-tab visual upgrade lives in styles.scss under .detail-tabs (Phase 3 §7).
+
+// ── Courses tab (real term workload) ───────────────────────────────
+.workload-toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.workload-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 16px;
+
+  .field-hint {
+    margin: 0;
+  }
+}
+
+.workload-stats {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.workload-warning {
+  color: var(--cms-badge-amber-text);
+  font-weight: 600;
+}
+
+.workload-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--cms-text-sm);
+
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    color: var(--cms-text-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--cms-border-default);
+  }
+
+  td {
+    padding: 8px 12px;
+    color: var(--cms-text-primary);
+    box-shadow: inset 0 -1px 0 var(--cms-border-default);
+  }
+}

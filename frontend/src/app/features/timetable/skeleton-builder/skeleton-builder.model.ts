@@ -161,6 +161,20 @@ export interface OverageContributor {
   cohortId: number;
   cohortName: string;
   termHoursContributed: number;
+  /** At most one of these is non-null — which section (Theory) or batch (Lab/Clinical) this
+   *  contribution came from, so a spread-load suggestion can be turned into a real reassignment
+   *  (see {@link SpreadLoadSuggestion}) instead of only advisory text. Both null means the
+   *  offering's whole-cohort primary (no active sections/batches to split across). */
+  cohortSectionId: number | null;
+  batchId: number | null;
+  /** Display name matching cohortSectionId/batchId, so two rows for the same subject+cohort
+   *  render distinguishably instead of looking like unexplained duplicates. */
+  cohortSectionLabel: string | null;
+  batchName: string | null;
+  /** 'THEORY' | 'LAB' | 'CLINICAL' | 'LAB_CLINICAL' (legacy untyped batch or an unsectioned/
+   *  unbatched offering where lab+clinical can't be split further); null only for the synthetic
+   *  single-offering contributor used by the live Course Offerings capacity check. */
+  sessionType: string | null;
 }
 
 export interface RaiseCapSuggestion {
@@ -177,6 +191,11 @@ export interface SpreadLoadSuggestion {
   alternateSpareCapacityHours: number;
   courseOfferingId: number;
   subjectName: string;
+  /** At most one non-null — which section/batch this suggestion can actually be applied to via
+   *  "Assign as Section/Batch Faculty". Both null means no direct reassignment target exists
+   *  (whole-cohort primary) — resolve via the Staffing screen instead. */
+  cohortSectionId: number | null;
+  batchId: number | null;
 }
 
 export interface FacultyOverCapacity {
@@ -203,10 +222,32 @@ export interface CohortPlacementSummary {
   cohortName: string;
   placedCount: number;
   staffedCount: number;
+  unplaced: AutoPlaceUnplacedItem[];
+  /** True if any of placedCount landed on Saturday — Monday-Friday is always tried first, so this
+   *  is a visible "the automation had to overflow into Saturday" fact, not silently absorbed. */
+  usedSaturday: boolean;
 }
 
 export interface GlobalAutoScheduleResult {
   totalPlaced: number;
   totalStaffed: number;
   cohortSummaries: CohortPlacementSummary[];
+  /** Elective-group placement failures — not attributable to a single cohort since a group can
+   *  span students from more than one. */
+  electiveUnplaced: AutoPlaceUnplacedItem[];
+}
+
+export interface UnassignedOfferingSummary {
+  courseOfferingId: number;
+  subjectName: string;
+  cohortId: number | null;
+  cohortName: string | null;
+}
+
+/** Consolidated "is this ready to automate" report — see backend
+ *  {@code TimetableGlobalAutoScheduleService#checkPrerequisites}. Room-commit status is checked
+ *  separately, client-side, against Capacity Planner's own endpoints. */
+export interface GlobalAutoSchedulePrerequisites {
+  offeringsWithoutFaculty: UnassignedOfferingSummary[];
+  capacityPrecheck: GlobalCapacityPrecheckResult;
 }

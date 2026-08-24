@@ -481,4 +481,50 @@ class FacultyServiceTest {
         faculty.setUpdatedAt(now);
         return faculty;
     }
+
+    @Test
+    void updateDailyCapOverride_changesOnlyThatField_preservesEverythingElse() {
+        Faculty existingFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
+            testSpeciality, professor, FacultyStatus.ACTIVE);
+        existingFaculty.setSpecialization("Original Specialization");
+        existingFaculty.setPlannedDailyHoursOverride(null);
+
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(existingFaculty));
+        ArgumentCaptor<Faculty> savedCaptor = ArgumentCaptor.forClass(Faculty.class);
+        when(facultyRepository.save(savedCaptor.capture())).thenAnswer(inv -> inv.getArgument(0));
+
+        FacultyResponse response = facultyService.updateDailyCapOverride(1L, 6);
+
+        assertThat(response.plannedDailyHoursOverride()).isEqualTo(6);
+        Faculty saved = savedCaptor.getValue();
+        assertThat(saved.getPlannedDailyHoursOverride()).isEqualTo(6);
+        // Everything else on the entity is untouched -- proves this doesn't risk corrupting other
+        // fields the way reconstructing a full FacultyRequest client-side would.
+        assertThat(saved.getEmployeeCode()).isEqualTo("EMP001");
+        assertThat(saved.getFirstName()).isEqualTo("John");
+        assertThat(saved.getEmail()).isEqualTo("john@college.edu");
+        assertThat(saved.getSpecialization()).isEqualTo("Original Specialization");
+        assertThat(saved.getStatus()).isEqualTo(FacultyStatus.ACTIVE);
+    }
+
+    @Test
+    void updateDailyCapOverride_null_clearsExistingOverride() {
+        Faculty existingFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
+            testSpeciality, professor, FacultyStatus.ACTIVE);
+        existingFaculty.setPlannedDailyHoursOverride(4);
+
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(existingFaculty));
+        when(facultyRepository.save(any(Faculty.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        FacultyResponse response = facultyService.updateDailyCapOverride(1L, null);
+
+        assertThat(response.plannedDailyHoursOverride()).isNull();
+    }
+
+    @Test
+    void updateDailyCapOverride_throwsWhenFacultyNotFound() {
+        when(facultyRepository.findById(999L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> facultyService.updateDailyCapOverride(999L, 6))
+            .isInstanceOf(ResourceNotFoundException.class);
+    }
 }

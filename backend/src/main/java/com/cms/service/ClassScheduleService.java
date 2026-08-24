@@ -2,13 +2,16 @@ package com.cms.service;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.ClassScheduleRequest;
 import com.cms.dto.ClassScheduleResponse;
+import com.cms.dto.FacultyScheduleWorkload;
 import com.cms.dto.ScheduleConflictResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Batch;
@@ -220,6 +223,52 @@ public class ClassScheduleService {
             throw new ResourceNotFoundException("Faculty not found with id: " + facultyId);
         }
         return classScheduleRepository.findByFacultyId(facultyId).stream().map(this::toResponse).toList();
+    }
+
+    /** This faculty's real sessions for one term — both PUBLISHED and DRAFT, matching the same
+     *  convention {@link FacultyWorkloadCapacityService} already uses so this can never disagree
+     *  with the hard workload-cap gate: an unpublished DRAFT still represents a real committed
+     *  slot, not a hypothetical one. Backs the Faculty Detail Lab Schedules tab. */
+    public List<ClassScheduleResponse> findByFacultyIdAndTermInstanceId(Long facultyId, Long termInstanceId) {
+        if (!facultyRepository.existsById(facultyId)) {
+            throw new ResourceNotFoundException("Faculty not found with id: " + facultyId);
+        }
+        return classScheduleRepository.findByTermInstanceIdAndFacultyIdAndStatusIn(termInstanceId, facultyId,
+            List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT))
+            .stream().map(this::toResponse).toList();
+    }
+
+    /** Real, actually-placed per-day/per-week hours for one faculty in a term -- distinct from
+     *  {@code TimetableGlobalAutoScheduleService}'s curriculum-derived totals, which reflect what
+     *  a subject's hours *should* add up to, not what's actually on the real timetable. Same
+     *  PUBLISHED+DRAFT convention and {@code Period.getDurationMinutes() / 60.0} per-row hours
+     *  calculation as {@link FacultyWorkloadCapacityService#getTermWorkloadReport}, reused here
+     *  rather than re-derived so the two can never disagree. */
+    public FacultyScheduleWorkload getScheduleWorkload(Long facultyId, Long termInstanceId) {
+        if (!facultyRepository.existsById(facultyId)) {
+            throw new ResourceNotFoundException("Faculty not found with id: " + facultyId);
+        }
+        List<ClassSchedule> rows = classScheduleRepository.findByTermInstanceIdAndFacultyIdAndStatusIn(
+            termInstanceId, facultyId, List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT));
+
+        Map<DayOfWeek, Double> byDay = new LinkedHashMap<>();
+        for (DayOfWeek d : DayOfWeek.values()) {
+            byDay.put(d, 0.0);
+        }
+        double total = 0;
+        for (ClassSchedule cs : rows) {
+            if (cs.getPeriod() == null || cs.getPeriod().getDurationMinutes() == null) {
+                continue;
+            }
+            double hours = cs.getPeriod().getDurationMinutes() / 60.0;
+            byDay.merge(cs.getDayOfWeek(), hours, Double::sum);
+            total += hours;
+        }
+
+        List<FacultyScheduleWorkload.DayHours> dayHours = byDay.entrySet().stream()
+            .map(e -> new FacultyScheduleWorkload.DayHours(e.getKey().name(), e.getValue()))
+            .toList();
+        return new FacultyScheduleWorkload(facultyId, termInstanceId, dayHours, total);
     }
 
     public List<ClassScheduleResponse> findByBatchName(String batchName) {

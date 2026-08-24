@@ -17,6 +17,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { RotationSetupFlyoutComponent } from '../rotation-setup/rotation-setup-flyout.component';
 import { ElectiveSlotBlockFlyoutComponent } from './elective-slot-block-flyout.component';
 import { GlobalAutoScheduleReportFlyoutComponent } from './global-auto-schedule-report-flyout.component';
+import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { colorForSubject } from './subject-color.util';
 import { violationText } from '../../../shared/util/violation-text';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -26,7 +27,7 @@ import { SKELETON_BUILDER_TOUR, SKELETON_BUILDER_FLOW_MAP } from '../../../share
 @Component({
   selector: 'app-skeleton-builder',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatDialogModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent, ElectiveSlotBlockFlyoutComponent, GlobalAutoScheduleReportFlyoutComponent, DragDropModule, CmsTourButtonComponent],
+  imports: [FormsModule, RouterLink, MatDialogModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent, ElectiveSlotBlockFlyoutComponent, GlobalAutoScheduleReportFlyoutComponent, CmsEmptyStateComponent, DragDropModule, CmsTourButtonComponent],
   templateUrl: './skeleton-builder.component.html',
   styleUrl: './skeleton-builder.component.scss',
 })
@@ -117,6 +118,9 @@ export class SkeletonBuilderComponent implements OnInit {
   protected readonly showElectiveBlock = signal(false);
   protected readonly hasElectiveGroup = computed(() =>
     (this.skeleton()?.subjects ?? []).some((s) => s.electiveGroupId != null));
+  /** Drives the single-cohort "no schedule yet, run automation?" CTA — the grid itself still
+   *  renders unconditionally underneath, this only decides whether the CTA is prominent. */
+  protected readonly hasNoCells = computed(() => (this.skeleton()?.cells.length ?? 0) === 0);
 
   protected canManage(): boolean {
     return this.permissionService.has('TIMETABLE_SKELETON_MANAGE');
@@ -146,11 +150,16 @@ export class SkeletonBuilderComponent implements OnInit {
     this.showGlobalAutoSchedule.set(false);
   }
 
-  /** Only fires on an actual successful run (not just closing the panel) — falls back to a normal
-   *  single-cohort selection so the admin reviews/drag-edits the result exactly as today, reusing
-   *  the existing per-cohort load path with no new logic needed for that part. */
+  /** Only fires on an actual successful run (not just closing the panel). A single-cohort run just
+   *  reloads the cohort the admin was already on, so they land back exactly where they started
+   *  reviewing/drag-editing the result. An all-cohorts run falls back to a normal single-cohort
+   *  selection instead, reusing the existing per-cohort load path with no new logic needed. */
   protected onGlobalScheduleCompleted(): void {
     this.showGlobalAutoSchedule.set(false);
+    if (!this.allCohortsSelected()) {
+      this.reloadSkeleton();
+      return;
+    }
     this.allCohortsSelected.set(false);
     const fallbackCohortId = this.cohorts()[0]?.id ?? null;
     this.cohortSelection = fallbackCohortId;

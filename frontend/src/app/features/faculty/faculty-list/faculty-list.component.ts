@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, OnDestroy, AfterViewInit, signal, computed, ViewChild } from '@angular/core';
 import { ExportFormat } from '../../../shared/export-button/export-button.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { NgClass, TitleCasePipe } from '@angular/common';
+import { DecimalPipe, NgClass, TitleCasePipe } from '@angular/common';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -19,7 +19,10 @@ import {
   FacultyDocumentReviewFilter,
   FacultyDocumentReviewSummary,
   FacultyStatus,
+  FacultyWorkloadSummary,
 } from '../faculty.model';
+import { AcademicYearService } from '../../academic-year/academic-year.service';
+import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
 import { SpecialityService } from '../../speciality/speciality.service';
 import { Speciality } from '../../speciality/speciality.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -51,6 +54,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
     CmsRowActionButtonComponent,
     RouterLink,
     TitleCasePipe,
+    DecimalPipe,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
@@ -69,6 +73,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
 export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly facultyService    = inject(FacultyService);
   private readonly specialityService = inject(SpecialityService);
+  private readonly academicYearService = inject(AcademicYearService);
   private readonly router            = inject(Router);
   private readonly route             = inject(ActivatedRoute);
   private readonly toast             = inject(ToastService);
@@ -106,11 +111,15 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
       { key: 'designation',   label: 'Designation' },
       { key: 'status',        label: 'Status' },
       { key: 'documentReview',label: 'Documents' },
+      { key: 'workload',      label: 'Term Workload' },
       { key: 'actions',       label: 'Actions',      mandatory: true, pinnable: false },
     ],
     storageKey: 'faculty-list-cols-v1',
   });
-  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
+  protected readonly displayedColumns = computed(() => {
+    const columns = this.colState.visibleColumns();
+    return this.canViewWorkload() ? columns : columns.filter((key) => key !== 'workload');
+  });
   protected readonly dataSource = new MatTableDataSource<Faculty>([]);
   protected readonly loading    = signal(false);
   protected readonly exporting  = signal(false);
@@ -124,6 +133,13 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly selectedDocumentReview = signal<FacultyDocumentReviewFilter>('ALL');
   protected readonly statusOptions = FACULTY_STATUS_OPTIONS;
   protected readonly documentReviewOptions = FACULTY_DOCUMENT_REVIEW_FILTER_OPTIONS;
+
+  protected readonly academicYears = signal<AcademicYear[]>([]);
+  protected readonly termInstances = signal<TermInstance[]>([]);
+  protected readonly termsLoading = signal(false);
+  protected selectedAcademicYearId: number | null = null;
+  protected selectedTermInstanceId: number | null = null;
+  protected readonly workloadByFacultyId = signal<Map<number, FacultyWorkloadSummary>>(new Map());
 
   protected totalElements = 0;
   protected currentPage = 0;
@@ -165,6 +181,20 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
     });
     this.loadSpecialities();
     this.loadPage();
+
+    if (this.canViewWorkload()) {
+      this.academicYearService.getAllAcademicYears().subscribe({
+        next: (years) => {
+          this.academicYears.set(years);
+          const initialYearId = years.find((y) => y.isCurrent)?.id ?? years[0]?.id ?? null;
+          if (initialYearId) {
+            this.selectedAcademicYearId = initialYearId;
+            this.loadTermInstances(initialYearId);
+          }
+        },
+        error: () => this.toast.error('Failed to load academic years'),
+      });
+    }
   }
 
   ngAfterViewInit(): void {}
@@ -269,6 +299,12 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
     }).afterClosed().subscribe((confirmed) => {
       if (confirmed) this.performDelete(faculty);
     });
+  }
+
+  /** Null until the workload summary for this faculty (current page + selected term) has loaded —
+   *  callers should render a muted placeholder rather than treating null as "0h". */
+  protected workloadFor(faculty: Faculty): FacultyWorkloadSummary | null {
+    return this.workloadByFacultyId().get(faculty.id) ?? null;
   }
 
   protected statusAccentClass(status: string): string {
@@ -401,11 +437,57 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
           this._paginator.pageIndex = page.number;
         }
         this.loading.set(false);
+        this.loadWorkloadSummaries(page.content.map((f) => f.id));
       },
       error: () => {
         this.toast.error('Failed to load faculty');
         this.loading.set(false);
       },
+    });
+  }
+
+  protected canViewWorkload(): boolean {
+    return this.permissionService.has('FACULTY_WORKLOAD_VIEW');
+  }
+
+  protected onAcademicYearChange(academicYearId: number | null): void {
+    this.selectedAcademicYearId = academicYearId;
+    this.selectedTermInstanceId = null;
+    this.workloadByFacultyId.set(new Map());
+    if (academicYearId) this.loadTermInstances(academicYearId);
+  }
+
+  protected onTermChange(termInstanceId: number | null): void {
+    this.selectedTermInstanceId = termInstanceId;
+    this.loadWorkloadSummaries(this.dataSource.data.map((f) => f.id));
+  }
+
+  private loadTermInstances(academicYearId: number): void {
+    this.termsLoading.set(true);
+    this.academicYearService.getTermInstancesByAcademicYear(academicYearId).subscribe({
+      next: (terms) => {
+        this.termInstances.set(terms);
+        this.termsLoading.set(false);
+        this.selectedTermInstanceId = terms[0]?.id ?? null;
+        this.loadWorkloadSummaries(this.dataSource.data.map((f) => f.id));
+      },
+      error: () => { this.toast.error('Failed to load term instances'); this.termsLoading.set(false); },
+    });
+  }
+
+  /** Fetches only the faculty ids actually on the visible page — cheap regardless of institution
+   *  size, since the underlying aggregation still only runs once server-side (see
+   *  TimetableGlobalAutoScheduleService#getFacultyWorkloadSummaries). No-ops until both a term is
+   *  selected and the page has rows. */
+  private loadWorkloadSummaries(facultyIds: number[]): void {
+    if (!this.canViewWorkload() || !this.selectedTermInstanceId || facultyIds.length === 0) {
+      return;
+    }
+    this.facultyService.getWorkloadSummaries(facultyIds, this.selectedTermInstanceId).subscribe({
+      next: (summaries) => {
+        this.workloadByFacultyId.set(new Map(summaries.map((s) => [s.facultyId, s])));
+      },
+      error: () => this.toast.error('Failed to load workload summaries'),
     });
   }
 

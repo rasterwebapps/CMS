@@ -20,14 +20,6 @@
   padding: 18px 20px;
 }
 
-.gas-cta-card {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-}
-
 .skeleton-budget-card__title {
   margin: 0 0 14px;
   font-size: var(--cms-text-md);
@@ -128,14 +120,6 @@
   font-weight: 500;
   color: var(--cms-text-muted);
   margin-left: 4px;
-}
-
-.skeleton-budget-item__warn {
-  display: block;
-  margin-top: 4px;
-  font-size: var(--cms-text-xs);
-  font-weight: 500;
-  color: var(--cms-badge-amber-text);
 }
 
 .skeleton-budget-item__hours {
@@ -364,13 +348,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-}
-
-.skeleton-cell__staffed-tag {
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--cms-text-muted);
 }
 
 .skeleton-cell__empty {

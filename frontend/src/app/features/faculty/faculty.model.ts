@@ -284,3 +284,63 @@ export interface Page<T> {
   first: boolean;
   last: boolean;
 }
+
+/** One offering/section/batch contributing to a faculty's term workload — mirrors the backend's
+ *  OverageContributor shape. At most one of cohortSectionId/batchId is non-null (which role this
+ *  row is: a Theory section, or a Lab/Clinical batch); both null means the offering's whole-cohort
+ *  primary assignment. */
+export interface FacultyWorkloadAssignment {
+  courseOfferingId: number;
+  subjectName: string;
+  cohortId: number;
+  cohortName: string;
+  termHoursContributed: number;
+  cohortSectionId: number | null;
+  batchId: number | null;
+  cohortSectionLabel: string | null;
+  batchName: string | null;
+  /** 'THEORY' | 'LAB' | 'CLINICAL' | 'LAB_CLINICAL' (legacy untyped batch, or an unsectioned/
+   *  unbatched offering where lab+clinical can't be split further). */
+  sessionType: string | null;
+}
+
+/** Full, real term workload for one faculty — every assignment plus their resolved capacity.
+ *  Backs the Faculty Detail "Courses" tab. */
+export interface FacultyWorkloadDetail {
+  facultyId: number;
+  facultyName: string;
+  termInstanceId: number;
+  workingDaysInTerm: number;
+  effectiveDailyCapacityHours: number;
+  dailyCapacityTier: string;
+  termCapacityHours: number;
+  totalDemandHours: number;
+  overCapacity: boolean;
+  shortfallHours: number;
+  assignments: FacultyWorkloadAssignment[];
+}
+
+/** Lightweight per-faculty workload summary — backs a list-row badge (Faculty List), not a detail
+ *  view. See FacultyWorkloadDetail for the full per-assignment breakdown. */
+export interface FacultyWorkloadSummary {
+  facultyId: number;
+  totalDemandHours: number;
+  termCapacityHours: number;
+  overCapacity: boolean;
+  shortfallHours: number;
+}
+
+export interface FacultyDayHours {
+  dayOfWeek: string;
+  hours: number;
+}
+
+/** Real, actually-placed per-day/per-week hours for one faculty — sourced from real placed
+ *  sessions, distinct from FacultyWorkloadDetail's curriculum-derived totals. byDay always has
+ *  all 6 days present, even at 0h. */
+export interface FacultyScheduleWorkload {
+  facultyId: number;
+  termInstanceId: number;
+  byDay: FacultyDayHours[];
+  weeklyTotalHours: number;
+}

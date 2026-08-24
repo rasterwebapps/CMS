@@ -479,4 +479,44 @@ class ClassScheduleServiceTest {
         schedule.setUpdatedAt(now);
         return schedule;
     }
+
+    @Test
+    void getScheduleWorkloadSumsRealHoursPerDay_countingBothPublishedAndDraft() {
+        Period period60 = new Period("Slot 2", LocalTime.of(11, 0), LocalTime.of(12, 0), 2);
+        period60.setId(2L);
+        period60.setDurationMinutes(60);
+
+        ClassSchedule monday90 = createLabSchedule(10L, testLab, testCourse, testFaculty,
+            testPeriod, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true); // 90 min = 1.5h, PUBLISHED
+
+        ClassSchedule monday60Draft = createLabSchedule(11L, testLab, testCourse, testFaculty,
+            period60, "Batch-B", DayOfWeek.MONDAY, testTermInstance, true);
+        monday60Draft.setStatus(ClassScheduleStatus.DRAFT); // still counts -- same convention as the workload-cap gate
+
+        ClassSchedule wednesday90 = createLabSchedule(12L, testLab, testCourse, testFaculty,
+            testPeriod, "Batch-A", DayOfWeek.WEDNESDAY, testTermInstance, true); // 90 min = 1.5h
+
+        when(facultyRepository.existsById(1L)).thenReturn(true);
+        when(classScheduleRepository.findByTermInstanceIdAndFacultyIdAndStatusIn(1L, 1L,
+            List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)))
+            .thenReturn(List.of(monday90, monday60Draft, wednesday90));
+
+        var result = classScheduleService.getScheduleWorkload(1L, 1L);
+
+        assertThat(result.byDay()).hasSize(6); // every DayOfWeek present, even 0h days
+        assertThat(result.byDay()).filteredOn(d -> d.dayOfWeek().equals("MONDAY"))
+            .extracting(com.cms.dto.FacultyScheduleWorkload.DayHours::hours).containsExactly(2.5);
+        assertThat(result.byDay()).filteredOn(d -> d.dayOfWeek().equals("WEDNESDAY"))
+            .extracting(com.cms.dto.FacultyScheduleWorkload.DayHours::hours).containsExactly(1.5);
+        assertThat(result.byDay()).filteredOn(d -> d.dayOfWeek().equals("TUESDAY"))
+            .extracting(com.cms.dto.FacultyScheduleWorkload.DayHours::hours).containsExactly(0.0);
+        assertThat(result.weeklyTotalHours()).isEqualTo(4.0);
+    }
+
+    @Test
+    void findByFacultyIdAndTermInstanceId_throwsWhenFacultyNotFound() {
+        when(facultyRepository.existsById(999L)).thenReturn(false);
+        assertThatThrownBy(() -> classScheduleService.findByFacultyIdAndTermInstanceId(999L, 1L))
+            .isInstanceOf(ResourceNotFoundException.class);
+    }
 }

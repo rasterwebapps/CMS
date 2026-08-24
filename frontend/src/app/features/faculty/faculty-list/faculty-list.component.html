@@ -82,6 +82,25 @@
       <button class="btn-ghost" (click)="clearFilters()" aria-label="Clear all filters">Clear Filters</button>
     }
 
+    @if (canViewWorkload()) {
+      <select class="mlp-filter-select" [value]="selectedAcademicYearId ?? ''"
+        (change)="onAcademicYearChange(+$any($event.target).value || null)" aria-label="Academic year (workload term)">
+        @for (ay of academicYears(); track ay.id) {
+          <option [value]="ay.id">{{ ay.name }}</option>
+        }
+      </select>
+      <select class="mlp-filter-select" [value]="selectedTermInstanceId ?? ''"
+        (change)="onTermChange(+$any($event.target).value || null)"
+        [disabled]="termsLoading() || termInstances().length === 0" aria-label="Term (workload)">
+        @if (termInstances().length === 0) {
+          <option value="">No terms yet</option>
+        }
+        @for (term of termInstances(); track term.id) {
+          <option [value]="term.id">{{ term.termType }} · {{ term.status }}</option>
+        }
+      </select>
+    }
+
     <div class="toolbar-right">
       @if (viewMode() === 'table') {
         <cms-wrap-text-toggle [state]="colState" />
@@ -138,6 +157,14 @@
             <div class="fac-card__meta-row">
               <span class="cms-badge cms-badge--soft-accent">{{ item.specialityName }}</span>
               <cms-status-badge [status]="item.status" />
+              @if (canViewWorkload()) {
+                @let w = workloadFor(item);
+                @if (w) {
+                  <span class="cms-badge" [class.cms-badge--soft-red]="w.overCapacity" [class.cms-badge--soft-green]="!w.overCapacity">
+                    {{ w.totalDemandHours | number: '1.0-1' }}h / {{ w.termCapacityHours | number: '1.0-1' }}h
+                  </span>
+                }
+              }
               @let reviewBadge = documentReviewBadge(item);
               <button
                 type="button"
@@ -218,6 +245,20 @@
               >
                 {{ reviewBadge.label }}
               </button>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="workload" [sticky]="colState.isSticky('workload')">
+            <th mat-header-cell *matHeaderCellDef class="cell-align-center">Term Workload</th>
+            <td mat-cell *matCellDef="let faculty" class="cell-align-center">
+              @let w = workloadFor(faculty);
+              @if (w) {
+                <span class="cms-badge" [class.cms-badge--soft-red]="w.overCapacity" [class.cms-badge--soft-green]="!w.overCapacity">
+                  {{ w.totalDemandHours | number: '1.0-1' }}h / {{ w.termCapacityHours | number: '1.0-1' }}h
+                </span>
+              } @else {
+                <span class="cell-muted">—</span>
+              }
             </td>
           </ng-container>
 

@@ -46,6 +46,9 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     List<ClassSchedule> findByTermInstanceIdAndStatusAndFacultyId(
         Long termInstanceId, ClassScheduleStatus status, Long facultyId);
 
+    List<ClassSchedule> findByTermInstanceIdAndFacultyIdAndStatusIn(
+        Long termInstanceId, Long facultyId, List<ClassScheduleStatus> statuses);
+
     List<ClassSchedule> findByTermInstanceIdAndStatusAndCourseOfferingIdIn(
         Long termInstanceId, ClassScheduleStatus status, List<Long> courseOfferingIds);
 

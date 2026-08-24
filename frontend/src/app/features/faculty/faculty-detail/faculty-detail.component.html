@@ -41,6 +41,12 @@
             <span class="profile-stat__value">{{ getDesignationLabel(faculty()!) }}</span>
             <span class="profile-stat__label">Designation</span>
           </div>
+          @if (canViewWorkload() && workload(); as w) {
+            <div class="profile-stat">
+              <span class="profile-stat__value">{{ w.totalDemandHours | number: '1.0-1' }}h / {{ w.termCapacityHours | number: '1.0-1' }}h</span>
+              <span class="profile-stat__label">Hours Assigned This Term</span>
+            </div>
+          }
         </div>
       </div>
       @if (canManageFaculty()) {
@@ -127,33 +133,181 @@
         </div>
       </mat-tab>
 
-      <!-- Tab 3: Courses (placeholder) -->
+      <!-- Tab 3: Courses (real term workload) -->
       <mat-tab label="Courses">
         <div class="tab-content">
-          <div class="content-card">
-            <cms-empty-state
-              icon="menu_book"
-              title="No assigned courses yet"
-              subtitle="Assigned courses will appear here once mapped to this faculty member."
-              actionLabel="View Courses"
-              (actionClick)="viewCourses()"
-            />
-          </div>
+          @if (!canViewWorkload()) {
+            <div class="content-card">
+              <p class="field-hint">You don't have permission to view workload details.</p>
+            </div>
+          } @else {
+            <div class="content-card workload-toolbar">
+              <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
+                @for (ay of academicYears(); track ay.id) {
+                  <option [ngValue]="ay.id">{{ ay.name }}</option>
+                }
+              </select>
+              <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()"
+                [disabled]="termsLoading() || termInstances().length === 0" aria-label="Term">
+                @if (termInstances().length === 0) {
+                  <option [ngValue]="null">No terms yet</option>
+                }
+                @for (term of termInstances(); track term.id) {
+                  <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
+                }
+              </select>
+            </div>
+
+            @if (workloadLoading()) {
+              <div class="content-card">
+                <div class="loading-container">
+                  <mat-spinner diameter="36" aria-label="Loading workload"></mat-spinner>
+                </div>
+              </div>
+            } @else if (workload(); as w) {
+              <div class="content-card workload-summary">
+                <span class="cms-badge" [class.cms-badge--soft-red]="w.overCapacity" [class.cms-badge--soft-green]="!w.overCapacity">
+                  {{ w.overCapacity ? 'Over capacity' : 'Within capacity' }}
+                </span>
+                <div class="workload-stats">
+                  <div class="profile-stat">
+                    <span class="profile-stat__value">{{ w.totalDemandHours | number: '1.0-1' }}h</span>
+                    <span class="profile-stat__label">Total Hours Assigned</span>
+                  </div>
+                  <div class="profile-stat">
+                    <span class="profile-stat__value">{{ w.workingDaysInTerm }}</span>
+                    <span class="profile-stat__label">Working Days</span>
+                  </div>
+                  <div class="profile-stat">
+                    <span class="profile-stat__value">{{ w.termCapacityHours | number: '1.0-1' }}h</span>
+                    <span class="profile-stat__label">Capacity Hours</span>
+                  </div>
+                  <div class="profile-stat">
+                    <span class="profile-stat__value">{{ w.effectiveDailyCapacityHours | number: '1.0-1' }}h/day</span>
+                    <span class="profile-stat__label">Daily Cap ({{ tierLabel(w.dailyCapacityTier) }})</span>
+                  </div>
+                </div>
+                @if (w.overCapacity) {
+                  <p class="field-hint workload-warning">Short by {{ w.shortfallHours | number: '1.0-1' }}h.</p>
+                }
+                @if (canManageFaculty()) {
+                  <button type="button" class="btn-secondary" (click)="openRaiseCap()">Raise Cap…</button>
+                }
+              </div>
+
+              <div class="content-card">
+                <p class="form-section-title">Real Weekly Schedule</p>
+                <p class="field-hint">Actual placed sessions for this term, by day — not the average above.</p>
+                <div class="workload-stats">
+                  @for (day of weekDays; track day) {
+                    <div class="profile-stat">
+                      <span class="profile-stat__value">{{ hoursForDay(day) | number: '1.0-1' }}h</span>
+                      <span class="profile-stat__label">{{ dayLabels[day] }}</span>
+                    </div>
+                  }
+                  <div class="profile-stat">
+                    <span class="profile-stat__value">{{ (scheduleWorkload()?.weeklyTotalHours ?? 0) | number: '1.0-1' }}h</span>
+                    <span class="profile-stat__label">Weekly Total</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="content-card">
+                @if (w.assignments.length === 0) {
+                  <cms-empty-state
+                    icon="menu_book"
+                    title="No offerings assigned this term"
+                    subtitle="Assignments will appear here once this faculty is bound to a course offering, section, or batch for this term."
+                  />
+                } @else {
+                  <table class="workload-table">
+                    <thead>
+                      <tr>
+                        <th>Subject</th>
+                        <th>Cohort</th>
+                        <th>Type</th>
+                        <th>Role</th>
+                        <th>Hours</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (a of w.assignments; track a.courseOfferingId + '-' + a.cohortId + '-' + (a.cohortSectionId ? 's' + a.cohortSectionId : a.batchId ? 'b' + a.batchId : 'p')) {
+                        <tr>
+                          <td>{{ a.subjectName }}</td>
+                          <td>{{ a.cohortName }}</td>
+                          <td>{{ sessionTypeLabel(a.sessionType) }}</td>
+                          <td>{{ assignmentRoleLabel(a) }}</td>
+                          <td>{{ a.termHoursContributed | number: '1.0-1' }}h</td>
+                          <td>
+                            @if (canReassign()) {
+                              <button type="button" class="btn-secondary" (click)="onReassign(a)">Reassign…</button>
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              </div>
+            }
+          }
         </div>
       </mat-tab>
 
-      <!-- Tab 4: Lab Schedules (placeholder) -->
+      <!-- Tab 4: Lab Schedules (real term-scoped data) -->
       <mat-tab label="Lab Schedules">
         <div class="tab-content">
-          <div class="content-card">
-            <cms-empty-state
-              icon="schedule"
-              title="No lab schedules yet"
-              subtitle="Lab schedules will appear here once assigned to this faculty member."
-              actionLabel="View Lab Schedules"
-              (actionClick)="viewLabSchedules()"
-            />
-          </div>
+          @if (!canViewLabSchedules()) {
+            <div class="content-card">
+              <p class="field-hint">You don't have permission to view lab schedules.</p>
+            </div>
+          } @else if (labSchedulesLoading()) {
+            <div class="content-card">
+              <div class="loading-container">
+                <mat-spinner diameter="36" aria-label="Loading lab schedules"></mat-spinner>
+              </div>
+            </div>
+          } @else {
+            <div class="content-card">
+              @if (labSchedules().length === 0) {
+                <cms-empty-state
+                  icon="schedule"
+                  title="No lab schedules this term"
+                  subtitle="Sessions will appear here once this faculty is placed on the timetable for the selected term."
+                />
+              } @else {
+                <table class="workload-table">
+                  <thead>
+                    <tr>
+                      <th>Day</th>
+                      <th>Type</th>
+                      <th>Room</th>
+                      <th>Subject</th>
+                      <th>Code</th>
+                      <th>Batch</th>
+                      <th>Start</th>
+                      <th>End</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (s of labSchedules(); track s.id) {
+                      <tr>
+                        <td><cms-type-badge [value]="s.dayOfWeek" /></td>
+                        <td><cms-type-badge [value]="s.sessionType" /></td>
+                        <td>{{ s.roomName || '—' }}</td>
+                        <td>{{ s.subjectName }}</td>
+                        <td><span class="cell-code">{{ s.subjectCode }}</span></td>
+                        <td>{{ s.batchName || '—' }}</td>
+                        <td>{{ s.startTime }}</td>
+                        <td>{{ s.endTime }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+            </div>
+          }
         </div>
       </mat-tab>
 
@@ -169,6 +323,16 @@
         </div>
       </mat-tab>
     </mat-tab-group>
+
+    @if (showRaiseCap()) {
+      <app-raise-cap-flyout
+        [facultyId]="faculty()!.id"
+        [facultyName]="faculty()!.fullName"
+        [currentDailyCap]="faculty()!.plannedDailyHoursOverride ?? null"
+        (closed)="onRaiseCapClosed()"
+        (saved)="onRaiseCapSaved()">
+      </app-raise-cap-flyout>
+    }
     </div>
   } @else {
     <p>Faculty not found</p>

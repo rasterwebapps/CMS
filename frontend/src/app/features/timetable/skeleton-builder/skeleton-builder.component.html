@@ -55,6 +55,8 @@
     <app-global-auto-schedule-report-flyout
       [termInstanceId]="selectedTermInstanceId"
       [academicYearId]="selectedAcademicYearId"
+      [cohortId]="allCohortsSelected() ? null : selectedCohortId"
+      [cohortName]="skeleton()?.cohortName ?? null"
       (closed)="onGlobalAutoScheduleClosed()"
       (scheduled)="onGlobalScheduleCompleted()">
     </app-global-auto-schedule-report-flyout>
@@ -90,13 +92,14 @@
   </div>
 
   @if (allCohortsSelected()) {
-    <div class="content-card gas-cta-card">
-      <h2 class="skeleton-budget-card__title">Global Auto-Schedule</h2>
-      <p class="skeleton-empty-hint">
-        Places and staffs every cohort's remaining shortfall in this term at once, using each offering's assigned
-        faculty. Checks every faculty's real capacity first — nothing is placed for any cohort unless everyone fits.
-      </p>
-      <button type="button" class="btn-primary" (click)="openGlobalAutoSchedule()">Run Global Auto-Schedule</button>
+    <div class="content-card anim-rise anim-rise--d2">
+      <cms-empty-state
+        icon="auto_awesome"
+        title="Global Auto-Schedule"
+        subtitle="Places and staffs every cohort's remaining shortfall in this term at once, using each offering's assigned faculty. Checks prerequisites and every faculty's real capacity first — nothing is placed for any cohort unless everyone fits."
+        actionLabel="Run Global Auto-Schedule"
+        (actionClick)="openGlobalAutoSchedule()">
+      </cms-empty-state>
     </div>
   } @else if (skeletonLoading()) {
     <div class="content-card">
@@ -106,8 +109,20 @@
     </div>
   } @else if (skeleton()) {
 
+    @if (hasNoCells() && canGlobalAutoPlace()) {
+      <div class="content-card anim-rise anim-rise--d2">
+        <cms-empty-state
+          icon="auto_awesome"
+          [title]="'No schedule yet for ' + skeleton()!.cohortName"
+          subtitle="Run automation to place and staff this cohort's whole term shortfall at once, checking prerequisites and faculty capacity first. You can still place sessions manually below, or fix up anything the automation leaves out."
+          actionLabel="Run Automation"
+          (actionClick)="openGlobalAutoSchedule()">
+        </cms-empty-state>
+      </div>
+    }
+
     <div class="detail-split">
-      <div id="tour-skel-subjects" class="detail-split__sidebar content-card skeleton-subjects-card">
+      <div id="tour-skel-subjects" class="detail-split__sidebar content-card skeleton-subjects-card anim-rise anim-rise--d2">
         <h2 class="skeleton-budget-card__title">{{ skeleton()!.cohortName }} — {{ skeleton()!.termInstanceLabel }}</h2>
 
         @if (skeleton()!.subjects.length === 0) {
@@ -138,7 +153,7 @@
                         @if (b.batchName) { <span class="skeleton-budget-item__batch">({{ b.batchName }})</span> }
                         @if (b.cohortSectionLabel) { <span class="skeleton-budget-item__batch">({{ b.cohortSectionLabel }})</span> }
                         @if (!b.batchName && b.batchId === null && (b.sessionType === 'LAB' || b.sessionType === 'CLINICAL')) {
-                          <span class="skeleton-budget-item__warn">no batches defined yet</span>
+                          <span class="cms-badge cms-badge--soft-amber">no batches defined yet</span>
                         }
                       </div>
                       <div class="skeleton-budget-item__hours">{{ b.totalHours }} term hours</div>
@@ -166,7 +181,7 @@
       </div>
 
       <div class="detail-split__main skeleton-main-stack">
-        <div id="tour-skel-grid" class="content-card mlp-table-card skeleton-grid-card">
+        <div id="tour-skel-grid" class="content-card mlp-table-card skeleton-grid-card anim-rise anim-rise--d3">
           <div class="table-wrapper">
             <table class="skeleton-grid" cdkDropListGroup>
               <thead>
@@ -214,7 +229,7 @@
                               } @else if (cell.batchName) {
                                 <span class="skeleton-cell__batch">{{ cell.batchName }}</span>
                               }
-                              @if (cell.isStaffed) { <span class="skeleton-cell__staffed-tag">staffed</span> }
+                              @if (cell.isStaffed) { <span class="cms-badge cms-badge--green">staffed</span> }
                             </button>
                           }
                           <button type="button" class="skeleton-cell skeleton-cell--add"

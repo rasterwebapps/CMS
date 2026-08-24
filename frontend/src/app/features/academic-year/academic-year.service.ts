@@ -266,6 +266,10 @@ export class AcademicYearService {
     return this.http.put<CourseOffering>(`${environment.apiUrl}/course-offerings/${id}`, request);
   }
 
+  getCourseOfferingById(id: number): Observable<CourseOffering> {
+    return this.http.get<CourseOffering>(`${environment.apiUrl}/course-offerings/${id}`);
+  }
+
   checkFacultyCapacity(offeringId: number, facultyId: number, termInstanceId: number): Observable<FacultyCapacityCheckResult> {
     const params = new HttpParams().set('facultyId', facultyId.toString()).set('termInstanceId', termInstanceId.toString());
     return this.http.get<FacultyCapacityCheckResult>(`${environment.apiUrl}/course-offerings/${offeringId}/faculty-capacity-check`, { params });

@@ -48,10 +48,15 @@ public class ClassScheduleController {
     public ResponseEntity<List<ClassScheduleResponse>> findAll(
             @RequestParam(required = false) Long labId,
             @RequestParam(required = false) Long facultyId,
+            @RequestParam(required = false) Long termInstanceId,
             @RequestParam(required = false) String batchName,
             @RequestParam(required = false) DayOfWeek dayOfWeek) {
         List<ClassScheduleResponse> schedules;
-        if (labId != null) {
+        if (facultyId != null && termInstanceId != null) {
+            // Faculty Detail's Lab Schedules tab -- scoped to both PUBLISHED and DRAFT, same
+            // convention as everywhere else this session (see ClassScheduleService's javadoc).
+            schedules = classScheduleService.findByFacultyIdAndTermInstanceId(facultyId, termInstanceId);
+        } else if (labId != null) {
             schedules = classScheduleService.findByLabId(labId);
         } else if (facultyId != null) {
             schedules = classScheduleService.findByFacultyId(facultyId);

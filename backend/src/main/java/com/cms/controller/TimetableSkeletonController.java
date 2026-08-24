@@ -19,6 +19,7 @@ import com.cms.dto.AutoPlaceResult;
 import com.cms.dto.ElectiveGroupPlacementRequest;
 import com.cms.dto.ElectiveGroupScheduleResponse;
 import com.cms.dto.GlobalAutoScheduleResult;
+import com.cms.dto.GlobalAutoSchedulePrerequisites;
 import com.cms.dto.GlobalCapacityPrecheckResult;
 import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellMoveRequest;
@@ -89,6 +90,17 @@ public class TimetableSkeletonController {
         return ResponseEntity.ok(timetableSkeletonAutoPlaceService.autoPlace(termInstanceId, cohortId));
     }
 
+    /** Read-only, consolidated "is this ready to automate" report — offerings/elective members with
+     *  no faculty bound, plus every faculty over capacity. Call this first and surface every
+     *  shortfall as an actionable link before offering the Run action, rather than discovering gaps
+     *  one gate at a time. {@code cohortId} omitted checks every cohort in the term. */
+    @GetMapping("/global-auto-place/prerequisites")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE')")
+    public ResponseEntity<GlobalAutoSchedulePrerequisites> checkGlobalAutoPlacePrerequisites(
+            @RequestParam Long termInstanceId, @RequestParam(required = false) Long cohortId) {
+        return ResponseEntity.ok(timetableGlobalAutoScheduleService.checkPrerequisites(termInstanceId, cohortId));
+    }
+
     /** Read-only — sums every faculty's real total term-hour demand across every offering they're
      *  bound to, across every cohort in the term, against their real term capacity. The frontend
      *  must call this first and never call {@link #globalAutoPlace} if it comes back non-empty. */
@@ -98,13 +110,16 @@ public class TimetableSkeletonController {
         return ResponseEntity.ok(timetableGlobalAutoScheduleService.precheckCapacity(termInstanceId));
     }
 
-    /** Places and staffs every cohort's remaining shortfall in one atomic run — any single
-     *  unplaceable session aborts the whole thing (409, {@code TimetableConstraintViolationException}).
-     *  Re-runs the capacity precheck defensively even though the frontend already called it. */
+    /** Places and staffs every cohort's remaining shortfall — best-effort: commits everything it
+     *  can and reports the rest via {@link GlobalAutoScheduleResult}'s per-cohort {@code unplaced}
+     *  lists rather than aborting the whole run over one unplaceable session. Re-runs the capacity
+     *  precheck defensively even though the frontend already called it. {@code cohortId} omitted
+     *  runs every cohort enrolled in the term; provided scopes the run to just that cohort. */
     @PostMapping("/global-auto-place")
     @PreAuthorize("@perm.has('TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE')")
-    public ResponseEntity<GlobalAutoScheduleResult> globalAutoPlace(@RequestParam Long termInstanceId) {
-        return ResponseEntity.ok(timetableGlobalAutoScheduleService.runGlobalAutoSchedule(termInstanceId));
+    public ResponseEntity<GlobalAutoScheduleResult> globalAutoPlace(
+            @RequestParam Long termInstanceId, @RequestParam(required = false) Long cohortId) {
+        return ResponseEntity.ok(timetableGlobalAutoScheduleService.runGlobalAutoSchedule(termInstanceId, cohortId));
     }
 
     @PostMapping("/elective-groups/place")

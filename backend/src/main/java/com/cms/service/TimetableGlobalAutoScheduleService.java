@@ -10,17 +10,20 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.AutoPlaceUnplacedItem;
 import com.cms.dto.CohortPlacementSummary;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.FacultyCapacityCheckResult;
 import com.cms.dto.FacultyOverCapacity;
+import com.cms.dto.FacultyWorkloadDetail;
+import com.cms.dto.FacultyWorkloadSummary;
 import com.cms.dto.GlobalAutoScheduleResult;
+import com.cms.dto.GlobalAutoSchedulePrerequisites;
 import com.cms.dto.GlobalCapacityPrecheckResult;
 import com.cms.dto.OverageContributor;
 import com.cms.dto.RaiseCapSuggestion;
@@ -31,6 +34,7 @@ import com.cms.dto.SkeletonSubjectBudget;
 import com.cms.dto.SkeletonSubjectResponse;
 import com.cms.dto.SpreadLoadSuggestion;
 import com.cms.dto.StaffingAssignmentRequest;
+import com.cms.dto.UnassignedOfferingSummary;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.exception.TimetableConstraintViolationException;
@@ -67,21 +71,23 @@ import com.cms.repository.TermInstanceRepository;
  * TimetableSkeletonAutoPlaceService}/term-wide {@link TimetableStaffingAutoAssignService} tools
  * with a single action covering every cohort in a term at once, treating {@link
  * CourseOffering#getFacultyId()} as authoritative (unlike {@link TimetableStaffingAutoAssignService},
- * which picks freely from the eligible department pool). Two calls, always in this order:
- * {@link #precheckCapacity} (read-only — every faculty's real total term-hour demand across every
- * offering they're bound to, across every cohort, against their real term capacity) must come back
- * clean before {@link #runGlobalAutoSchedule} (write, fully atomic) is ever attempted — the
- * frontend enforces this by never calling the write endpoint otherwise, and this class re-checks it
- * defensively so a bad precheck can never be bypassed even via a direct API call.
+ * which picks freely from the eligible department pool). {@link #checkPrerequisites} should be
+ * called first so known-in-advance gaps (missing faculty, over-capacity faculty) are reported as
+ * actionable links before a run is even attempted; {@link #precheckCapacity} is re-run defensively
+ * inside {@link #runGlobalAutoSchedule} itself so a stale/bypassed prerequisite check can never let
+ * an over-capacity run through even via a direct API call. {@link #runGlobalAutoSchedule} itself is
+ * best-effort: it commits everything it successfully places/staffs and reports the rest via each
+ * {@link CohortPlacementSummary}'s {@code unplaced} list (plus {@code electiveUnplaced} at the top
+ * level), mirroring {@link TimetableSkeletonAutoPlaceService#autoPlace}'s existing reporting shape
+ * rather than aborting the whole term-wide run over one unplaceable session.
  *
- * <p>Deliberately scoped down from the per-cohort tool in two ways, both accepted trade-offs of the
- * "any single problem aborts the whole run" design (see {@link #runGlobalAutoSchedule}), not
- * oversights: (1) no bounded-backtrack displacement — {@link TimetableSkeletonAutoPlaceService}'s
- * heuristic only ever displaces a *placement*, never an already-staffed cell (there is no "unstaff"
- * capability to cheaply undo), and since here every placement is immediately staffed as one unit,
- * a failed backtrack attempt would still mean total failure anyway, so the extra complexity isn't
- * worth it for a run that aborts entirely on any remaining problem regardless; (2) elective groups
- * are only auto-scheduled for their one shared slot (mirroring the existing "Place Elective Block"
+ * <p>Deliberately scoped down from the per-cohort tool in two ways, not oversights: (1) no
+ * bounded-backtrack displacement — {@link TimetableSkeletonAutoPlaceService}'s heuristic only ever
+ * displaces a *placement*, never an already-staffed cell (there is no "unstaff" capability to
+ * cheaply undo), and since here every placement is immediately staffed as one unit, a failed
+ * backtrack attempt would still mean total failure for that unit anyway, so the extra complexity
+ * isn't worth it when the unit simply falls into {@code unplaced} instead; (2) elective groups are
+ * only auto-scheduled for their one shared slot (mirroring the existing "Place Elective Block"
  * admin action, {@link TimetableSkeletonService#placeElectiveGroup}) — {@link
  * TimetableSkeletonService#checkElectiveGroupSlot} already requires *every* placement for a group's
  * members to match one single anchor day/period, so a member needing more than one session/week has
@@ -216,7 +222,7 @@ public class TimetableGlobalAutoScheduleService {
             CourseOffering offering = courseOfferingRepository.findById(offeringId).orElse(null);
             if (offering != null) {
                 OverageContributor asContributor = new OverageContributor(offeringId, offering.getSubject() != null ? offering.getSubject().getName() : "",
-                    null, null, offeringHours);
+                    null, null, offeringHours, null, null, null, null, null);
                 spreadLoad = buildSpreadLoadSuggestions(List.of(asContributor), demand.secondaryFacultyByOffering(),
                     demand.demandByFaculty(), candidateFacultyId, demand.workingDaysInTerm(), demand.weeksInTerm());
             }
@@ -225,6 +231,56 @@ public class TimetableGlobalAutoScheduleService {
         return new FacultyCapacityCheckResult(overCapacity, currentDemand, offeringHours, projectedTotal,
             capacity != null ? capacity.termCapacityHours() : 0, capacity != null ? capacity.dailyCapForDisplay() : 0,
             capacity != null ? capacity.tier() : "NONE", demand.workingDaysInTerm(), suggestedMinDailyHours, spreadLoad);
+    }
+
+    /** One faculty's full, real term workload — every offering/section/batch contributing to their
+     *  demand, unlimited (unlike {@link #precheckCapacity}'s {@code topContributors}, which only
+     *  ever surfaces the top 2 per over-capacity faculty for its warning cards). Backs the Faculty
+     *  Detail "Courses" tab so management can see exactly what's assigned to one person before
+     *  deciding whether to raise their cap, reassign pieces of their load, or hire. Reuses the same
+     *  {@link #computeTermDemand} aggregation everything else in this class runs off, so this view
+     *  can never disagree with the precheck/global-run numbers for the same term. */
+    @Transactional(readOnly = true)
+    public FacultyWorkloadDetail getFacultyWorkload(Long facultyId, Long termInstanceId) {
+        Faculty faculty = facultyRepository.findById(facultyId)
+            .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + facultyId));
+        TermDemandAggregation demand = computeTermDemand(termInstanceId);
+
+        List<OverageContributor> assignments = demand.contributorsByFaculty().getOrDefault(facultyId, List.of());
+        double totalDemand = demand.demandByFaculty().getOrDefault(facultyId, 0.0);
+        CapacityResolution capacity = resolveEffectiveTermCapacity(faculty, demand.workingDaysInTerm(), demand.weeksInTerm());
+        boolean overCapacity = capacity != null && totalDemand > capacity.termCapacityHours() + CAPACITY_EPSILON;
+        double shortfall = overCapacity ? totalDemand - capacity.termCapacityHours() : 0;
+
+        return new FacultyWorkloadDetail(facultyId, faculty.getFullName(), termInstanceId,
+            demand.workingDaysInTerm(), capacity != null ? capacity.dailyCapForDisplay() : 0,
+            capacity != null ? capacity.tier() : "NONE", capacity != null ? capacity.termCapacityHours() : 0,
+            totalDemand, overCapacity, shortfall, assignments);
+    }
+
+    /** Lightweight per-faculty summaries for a list of faculty ids (e.g. one Faculty List page) —
+     *  runs {@link #computeTermDemand} exactly once regardless of how many ids are requested, then
+     *  extracts each one's numbers, so a paginated list screen can show a workload badge per row
+     *  without an N+1 query pattern. A requested id with no demand this term still comes back with
+     *  {@code totalDemandHours == 0} rather than being omitted, so every row gets a badge. */
+    @Transactional(readOnly = true)
+    public List<FacultyWorkloadSummary> getFacultyWorkloadSummaries(List<Long> facultyIds, Long termInstanceId) {
+        TermDemandAggregation demand = computeTermDemand(termInstanceId);
+
+        List<FacultyWorkloadSummary> summaries = new ArrayList<>();
+        for (Long facultyId : facultyIds) {
+            Faculty faculty = facultyRepository.findById(facultyId).orElse(null);
+            if (faculty == null) {
+                continue;
+            }
+            double totalDemand = demand.demandByFaculty().getOrDefault(facultyId, 0.0);
+            CapacityResolution capacity = resolveEffectiveTermCapacity(faculty, demand.workingDaysInTerm(), demand.weeksInTerm());
+            boolean overCapacity = capacity != null && totalDemand > capacity.termCapacityHours() + CAPACITY_EPSILON;
+            double shortfall = overCapacity ? totalDemand - capacity.termCapacityHours() : 0;
+            summaries.add(new FacultyWorkloadSummary(facultyId, totalDemand,
+                capacity != null ? capacity.termCapacityHours() : 0, overCapacity, shortfall));
+        }
+        return summaries;
     }
 
     private record TermDemandAggregation(int workingDaysInTerm, int weeksInTerm, Map<Long, Double> demandByFaculty,
@@ -267,17 +323,38 @@ public class TimetableGlobalAutoScheduleService {
                 if (offeringDto.secondaryFacultyId() != null) {
                     secondaryFacultyByOffering.putIfAbsent(offering.getId(), offeringDto.secondaryFacultyId());
                 }
-                for (Map.Entry<Long, Double> entry : split.hoursByFacultyId().entrySet()) {
-                    Long facultyId = entry.getKey();
-                    double contribution = entry.getValue();
-                    demandByFaculty.merge(facultyId, contribution, Double::sum);
-                    contributorsByFaculty.computeIfAbsent(facultyId, k -> new ArrayList<>())
-                        .add(new OverageContributor(offering.getId(), offeringDto.subjectName(), cohortId, cohort.getDisplayName(), contribution));
+                for (FacultyContribution contribution : split.contributions()) {
+                    demandByFaculty.merge(contribution.facultyId(), contribution.hours(), Double::sum);
+                    contributorsByFaculty.computeIfAbsent(contribution.facultyId(), k -> new ArrayList<>())
+                        .add(new OverageContributor(offering.getId(), offeringDto.subjectName(), cohortId, cohort.getDisplayName(),
+                            contribution.hours(), contribution.cohortSectionId(), contribution.batchId(),
+                            contribution.cohortSectionLabel(), contribution.batchName(), contribution.sessionType()));
                 }
             }
         }
         return new TermDemandAggregation(workingDaysInTerm, weeksInTerm, demandByFaculty, contributorsByFaculty, secondaryFacultyByOffering, demandByOffering);
     }
+
+    /** One faculty's share of an offering+cohort's term hours, attributed to exactly one of: a
+     *  specific {@link CohortSection} (THEORY), a specific {@link Batch} (LAB/CLINICAL), or neither
+     *  (both null — the offering's whole-cohort primary, when there are no active sections/batches
+     *  to split across). This granularity is what lets a "spread load" suggestion be turned into a
+     *  real reassignment (§ {@link #termHoursForOfferingInCohort}) rather than just advisory text.
+     *  {@code cohortSectionLabel}/{@code batchName} carry the display name so two rows for the same
+     *  subject+cohort don't render as unexplained-looking duplicates. {@code sessionType} is
+     *  "THEORY"/"LAB"/"CLINICAL", or "LAB_CLINICAL" for the untyped-legacy-batch/unbatched-fallback
+     *  case where lab and clinical hours are combined and can't be split further. */
+    private record FacultyContribution(Long facultyId, double hours, Long cohortSectionId, Long batchId,
+                                        String cohortSectionLabel, String batchName, String sessionType) {}
+
+    /** {@code sessionType} is part of the merge key (not just carried data) so a THEORY
+     *  contribution and a LAB/CLINICAL contribution never merge into one row even when both fall
+     *  to the same primary faculty with no section/batch to attribute to (both null) — without
+     *  this, an unsectioned/unbatched offering with both theory and lab/clinical hours would lose
+     *  the type distinction entirely. */
+    private record ContributionKey(Long facultyId, Long cohortSectionId, Long batchId, String sessionType) {}
+
+    private record OfferingHoursSplit(double totalHours, List<FacultyContribution> contributions) {}
 
     /** This offering+cohort pair's real term hours, split by whichever faculty actually delivers
      *  each part -- not just a lump total credited to the offering's primary. THEORY hours are owed
@@ -291,35 +368,46 @@ public class TimetableGlobalAutoScheduleService {
      *  {@code coordinatorFacultyId} (falling back to the primary for any batch left uncoordinated).
      *  With no active sections (a single, unsectioned cohort) or no active batches, the whole
      *  theory/lab/clinical total for that part falls to the primary, same as before either
-     *  mechanism existed. */
+     *  mechanism existed. Contributions sharing the same (faculty, section, batch) key are merged
+     *  so an unsectioned/unbatched offering still yields one combined contribution per faculty,
+     *  matching pre-existing aggregate totals exactly. Each active batch owes only its OWN type's
+     *  hours ({@link #batchHours} — a {@code Lab}-linked batch owes {@code labHours}, a {@code
+     *  ClinicalVenue}-linked batch owes {@code clinicalHours}, a legacy untyped batch created
+     *  outside the Cohort Room Allocation flow owes the combined total) -- not the full combined
+     *  lab+clinical total per batch, which would double-charge a faculty coordinating separate Lab
+     *  and Clinical batches for the same offering (confirmed against real data: an offering with 4
+     *  Lab batches + 2 Clinical batches, all uncoordinated, was inflating one faculty's demand by
+     *  ~2,500h by charging every batch the full lab+clinical sum instead of its own share). */
     private OfferingHoursSplit termHoursForOfferingInCohort(CourseOffering offering, Long cohortId, Long termInstanceId, Long primaryFacultyId) {
         CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
         int theoryHours = safe(csc.getTheoryHours());
-        int labClinicalHours = safe(csc.getLabHours()) + safe(csc.getClinicalHours());
+        int labHours = safe(csc.getLabHours());
+        int clinicalHours = safe(csc.getClinicalHours());
+        int labClinicalHours = labHours + clinicalHours;
 
         List<CohortSection> activeSections = timetableSkeletonService.resolveActiveSections(cohortId, termInstanceId);
         List<Batch> activeBatches = batchRepository.findByCourseOfferingId(offering.getId()).stream()
             .filter(b -> Boolean.TRUE.equals(b.getIsActive()))
             .toList();
 
-        Map<Long, Double> hoursByFacultyId = new LinkedHashMap<>();
+        Map<ContributionKey, Double> merged = new LinkedHashMap<>();
 
         double theoryTotal;
         if (activeSections.isEmpty()) {
             theoryTotal = theoryHours;
             if (theoryTotal > 0 && primaryFacultyId != null) {
-                hoursByFacultyId.merge(primaryFacultyId, theoryTotal, Double::sum);
+                merged.merge(new ContributionKey(primaryFacultyId, null, null, "THEORY"), theoryTotal, Double::sum);
             }
         } else {
             theoryTotal = theoryHours * (double) activeSections.size();
             if (theoryHours > 0) {
                 Map<Long, Long> sectionFacultyIdBySectionId = courseOfferingSectionFacultyRepository
                     .findByCourseOfferingId(offering.getId()).stream()
-                    .collect(Collectors.toMap(sf -> sf.getCohortSection().getId(), sf -> sf.getFaculty().getId()));
+                    .collect(java.util.stream.Collectors.toMap(sf -> sf.getCohortSection().getId(), sf -> sf.getFaculty().getId()));
                 for (CohortSection section : activeSections) {
                     Long facultyForSection = sectionFacultyIdBySectionId.getOrDefault(section.getId(), primaryFacultyId);
                     if (facultyForSection != null) {
-                        hoursByFacultyId.merge(facultyForSection, (double) theoryHours, Double::sum);
+                        merged.merge(new ContributionKey(facultyForSection, section.getId(), null, "THEORY"), (double) theoryHours, Double::sum);
                     }
                 }
             }
@@ -329,23 +417,69 @@ public class TimetableGlobalAutoScheduleService {
         if (activeBatches.isEmpty()) {
             labClinicalTotal = labClinicalHours;
             if (labClinicalTotal > 0 && primaryFacultyId != null) {
-                hoursByFacultyId.merge(primaryFacultyId, labClinicalTotal, Double::sum);
+                merged.merge(new ContributionKey(primaryFacultyId, null, null, "LAB_CLINICAL"), labClinicalTotal, Double::sum);
             }
         } else {
-            labClinicalTotal = labClinicalHours * (double) activeBatches.size();
+            labClinicalTotal = 0;
             for (Batch batch : activeBatches) {
+                double hoursForBatch = batchHours(batch, labHours, clinicalHours, labClinicalHours);
+                if (hoursForBatch <= 0) {
+                    continue;
+                }
+                labClinicalTotal += hoursForBatch;
                 Long facultyForBatch = batch.getCoordinatorFaculty() != null
                     ? batch.getCoordinatorFaculty().getId() : primaryFacultyId;
-                if (labClinicalHours > 0 && facultyForBatch != null) {
-                    hoursByFacultyId.merge(facultyForBatch, (double) labClinicalHours, Double::sum);
+                if (facultyForBatch != null) {
+                    merged.merge(new ContributionKey(facultyForBatch, null, batch.getId(), batchSessionType(batch)), hoursForBatch, Double::sum);
                 }
             }
         }
 
-        return new OfferingHoursSplit(theoryTotal + labClinicalTotal, hoursByFacultyId);
+        // Plain loops, not Collectors.toMap -- its merge-based accumulator throws NPE on a null
+        // value (sectionLabel/name can be null/unset on fixtures and legacy rows), which a
+        // key->value lookup map should tolerate rather than reject.
+        Map<Long, String> sectionLabelById = new LinkedHashMap<>();
+        for (CohortSection section : activeSections) {
+            sectionLabelById.put(section.getId(), section.getSectionLabel());
+        }
+        Map<Long, String> batchNameById = new LinkedHashMap<>();
+        for (Batch batch : activeBatches) {
+            batchNameById.put(batch.getId(), batch.getName());
+        }
+
+        List<FacultyContribution> contributions = merged.entrySet().stream()
+            .map(e -> new FacultyContribution(e.getKey().facultyId(), e.getValue(), e.getKey().cohortSectionId(), e.getKey().batchId(),
+                sectionLabelById.get(e.getKey().cohortSectionId()), batchNameById.get(e.getKey().batchId()), e.getKey().sessionType()))
+            .toList();
+        return new OfferingHoursSplit(theoryTotal + labClinicalTotal, contributions);
     }
 
-    private record OfferingHoursSplit(double totalHours, Map<Long, Double> hoursByFacultyId) {}
+    /** Mirrors {@link #batchHours}'s own type detection, for the {@code sessionType} carried on
+     *  each contribution/row rather than the hours themselves. */
+    private static String batchSessionType(Batch batch) {
+        if (batch.getLab() != null) {
+            return "LAB";
+        }
+        if (batch.getClinicalVenue() != null) {
+            return "CLINICAL";
+        }
+        return "LAB_CLINICAL";
+    }
+
+    /** A batch's real hours owed, by its actual venue type -- {@link Batch#getLab()} set means it's
+     *  a LAB batch (owes {@code labHours} only), {@link Batch#getClinicalVenue()} set means CLINICAL
+     *  (owes {@code clinicalHours} only). Neither set means a legacy batch created outside the
+     *  Cohort Room Allocation flow (see {@link Batch#getLab()}'s own javadoc) -- falls back to the
+     *  full combined total, the only case where the pre-existing behavior was actually correct. */
+    private static double batchHours(Batch batch, int labHours, int clinicalHours, int labClinicalHours) {
+        if (batch.getLab() != null) {
+            return labHours;
+        }
+        if (batch.getClinicalVenue() != null) {
+            return clinicalHours;
+        }
+        return labClinicalHours;
+    }
 
     private record CapacityResolution(double termCapacityHours, double dailyCapForDisplay, String tier) {}
 
@@ -442,20 +576,79 @@ public class TimetableGlobalAutoScheduleService {
             return null;
         }
         return new SpreadLoadSuggestion(candidate.getId(), candidate.getFullName(), isSecondary, spare,
-            contributor.courseOfferingId(), contributor.subjectName());
+            contributor.courseOfferingId(), contributor.subjectName(), contributor.cohortSectionId(), contributor.batchId());
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Prerequisite check
+    // ─────────────────────────────────────────────────────────────────────
+
+    /** Consolidated, read-only "is this term/cohort ready for automation" report — combines every
+     *  known-in-advance gap (offerings/elective members with no faculty bound, faculty over
+     *  capacity) into one call so the frontend can show all shortfalls as actionable links up front
+     *  instead of discovering them one gate at a time across multiple failed runs. Room-commit
+     *  status is deliberately not part of this DTO — that's Capacity Planner's domain and is
+     *  checked client-side against its own existing endpoints. */
+    @Transactional(readOnly = true)
+    public GlobalAutoSchedulePrerequisites checkPrerequisites(Long termInstanceId, Long cohortId) {
+        List<UnassignedOfferingSummary> unassigned = new ArrayList<>();
+        Set<Long> electiveGroupIdsSeen = new LinkedHashSet<>();
+
+        for (Long id : resolveCohortIds(termInstanceId, cohortId)) {
+            Cohort cohort = cohortRepository.findById(id).orElse(null);
+            if (cohort == null) {
+                continue;
+            }
+            SkeletonBuilderResponse skeleton = timetableSkeletonService.getCohortSkeleton(termInstanceId, id);
+            for (SkeletonSubjectResponse subject : skeleton.subjects()) {
+                CourseOffering offering = courseOfferingRepository.findById(subject.courseOfferingId()).orElse(null);
+                if (offering == null) {
+                    continue;
+                }
+                if (timetableSkeletonService.isElectiveOffering(offering)) {
+                    if (subject.electiveGroupId() != null) {
+                        electiveGroupIdsSeen.add(subject.electiveGroupId());
+                    }
+                    continue;
+                }
+                if (offering.getFacultyId() != null) {
+                    continue;
+                }
+                boolean hasShortfall = subject.budgets().stream()
+                    .anyMatch(b -> b.requiredSessionsPerWeek() > b.placedSessionsPerWeek());
+                if (hasShortfall) {
+                    unassigned.add(new UnassignedOfferingSummary(offering.getId(), subject.subjectName(), id, cohort.getDisplayName()));
+                }
+            }
+        }
+
+        for (Long electiveGroupId : electiveGroupIdsSeen) {
+            for (CourseOffering member : courseOfferingRepository
+                    .findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(termInstanceId, electiveGroupId)) {
+                if (Boolean.TRUE.equals(member.getIsActive()) && member.getFacultyId() == null
+                        && safe(member.getCurriculumSemesterCourse() != null ? member.getCurriculumSemesterCourse().getTheoryHours() : null) > 0) {
+                    unassigned.add(new UnassignedOfferingSummary(member.getId(),
+                        member.getSubject() != null ? member.getSubject().getName() + " (elective)" : "(elective)", null, null));
+                }
+            }
+        }
+
+        return new GlobalAutoSchedulePrerequisites(unassigned, precheckCapacity(termInstanceId));
     }
 
     // ─────────────────────────────────────────────────────────────────────
     // Placement + staffing run
     // ─────────────────────────────────────────────────────────────────────
 
-    /** Fully atomic -- any single unplaceable session (capacity, blocked period, faculty
-     *  double-booked, room conflict, ...) throws and rolls back everything via Spring's default
-     *  rollback-on-{@link RuntimeException} behavior, so nothing is left half-placed for any
-     *  cohort. Re-runs {@link #precheckCapacity} defensively so a bad precheck can never be
-     *  bypassed even via a direct API call. */
+    /** Best-effort — commits everything it successfully places/staffs and reports the rest, never
+     *  rolling back a cohort's real progress over a different cohort's (or a different session's)
+     *  failure. The capacity precheck stays a hard pre-flight gate (re-run defensively so a bad/
+     *  stale prerequisite check can never be bypassed even via a direct API call) — that's a
+     *  legitimate "don't even start" condition, distinct from the per-session best-effort behavior
+     *  below it. {@code cohortId} null runs every cohort enrolled in the term (today's existing
+     *  behavior); non-null scopes the run to just that cohort's shortfall. */
     @Transactional
-    public GlobalAutoScheduleResult runGlobalAutoSchedule(Long termInstanceId) {
+    public GlobalAutoScheduleResult runGlobalAutoSchedule(Long termInstanceId, Long cohortId) {
         GlobalCapacityPrecheckResult precheck = precheckCapacity(termInstanceId);
         if (!precheck.overCapacityFaculty().isEmpty()) {
             List<ConstraintViolation> violations = precheck.overCapacityFaculty().stream()
@@ -468,18 +661,20 @@ public class TimetableGlobalAutoScheduleService {
 
         TermInstance term = requireTermInstance(termInstanceId);
         List<Period> periods = periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc();
-        Set<Long> cohortIds = enumerateCohortIds(termInstanceId);
+        Set<Long> cohortIds = resolveCohortIds(termInstanceId, cohortId);
 
         int totalPlaced = 0;
         int totalStaffed = 0;
         List<CohortPlacementSummary> summaries = new ArrayList<>();
         Set<Long> electiveGroupIdsSeen = new LinkedHashSet<>();
 
-        for (Long cohortId : cohortIds) {
-            Cohort cohort = cohortRepository.findById(cohortId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cohort not found with id: " + cohortId));
-            SkeletonBuilderResponse skeleton = timetableSkeletonService.getCohortSkeleton(termInstanceId, cohortId);
+        for (Long id : cohortIds) {
+            Cohort cohort = cohortRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cohort not found with id: " + id));
+            SkeletonBuilderResponse skeleton = timetableSkeletonService.getCohortSkeleton(termInstanceId, id);
             int placedForCohort = 0;
+            boolean usedSaturdayForCohort = false;
+            List<AutoPlaceUnplacedItem> unplacedForCohort = new ArrayList<>();
 
             for (SkeletonSubjectResponse subject : skeleton.subjects()) {
                 CourseOffering offering = courseOfferingRepository.findById(subject.courseOfferingId()).orElse(null);
@@ -494,10 +689,15 @@ public class TimetableGlobalAutoScheduleService {
                 }
                 Long facultyId = offering.getFacultyId();
                 if (facultyId == null) {
-                    throw new TimetableConstraintViolationException(List.of(new ConstraintViolation(
-                        "GLOBAL_AUTO_SCHEDULE_NO_FACULTY_BOUND",
-                        subject.subjectName() + " (" + cohort.getDisplayName()
-                            + ") has no faculty assigned on its Course Offering — assign one before running the global scheduler")));
+                    for (SkeletonSubjectBudget budget : subject.budgets()) {
+                        int shortfall = budget.requiredSessionsPerWeek() - budget.placedSessionsPerWeek();
+                        if (shortfall <= 0) {
+                            continue;
+                        }
+                        unplacedForCohort.add(new AutoPlaceUnplacedItem(subject.subjectName(), budget.sessionType(),
+                            occupantLabel(budget), "no faculty assigned on its Course Offering"));
+                    }
+                    continue;
                 }
 
                 for (SkeletonSubjectBudget budget : subject.budgets()) {
@@ -507,13 +707,14 @@ public class TimetableGlobalAutoScheduleService {
                     }
                     Set<DayOfWeek> daysUsed = existingDaysForBudgetRow(skeleton.cells(), subject.courseOfferingId(), budget);
                     for (int i = 0; i < shortfall; i++) {
-                        DayOfWeek placedOn = tryPlaceAndStaff(cohortId, offering, budget, facultyId, term, periods, daysUsed);
+                        DayOfWeek placedOn = tryPlaceAndStaff(id, offering, budget, facultyId, term, periods, daysUsed);
                         if (placedOn == null) {
-                            throw new TimetableConstraintViolationException(List.of(new ConstraintViolation(
-                                "GLOBAL_AUTO_SCHEDULE_UNPLACEABLE",
-                                subject.subjectName() + " (" + budget.sessionType() + ") for " + cohort.getDisplayName()
-                                    + occupantSuffix(budget) + ": no day/period found where both placement and "
-                                    + offering.getFacultyId() + "'s staffing succeed")));
+                            unplacedForCohort.add(new AutoPlaceUnplacedItem(subject.subjectName(), budget.sessionType(),
+                                occupantLabel(budget), "no day/period found where both placement and staffing succeed"));
+                            continue;
+                        }
+                        if (placedOn == DayOfWeek.SATURDAY) {
+                            usedSaturdayForCohort = true;
                         }
                         daysUsed.add(placedOn);
                         placedForCohort++;
@@ -522,36 +723,47 @@ public class TimetableGlobalAutoScheduleService {
             }
             totalPlaced += placedForCohort;
             totalStaffed += placedForCohort;
-            summaries.add(new CohortPlacementSummary(cohortId, cohort.getDisplayName(), placedForCohort, placedForCohort));
+            summaries.add(new CohortPlacementSummary(id, cohort.getDisplayName(), placedForCohort, placedForCohort,
+                unplacedForCohort, usedSaturdayForCohort));
         }
 
         // Electives: only each group's one shared slot is automated (see class javadoc) -- counts
         // fold into the totals but aren't attributed to any single cohort summary row, since a
         // group can span students from more than one cohort.
+        List<AutoPlaceUnplacedItem> electiveUnplaced = new ArrayList<>();
         for (Long electiveGroupId : electiveGroupIdsSeen) {
-            int placed = placeAndStaffElectiveGroup(termInstanceId, electiveGroupId, term, periods);
+            int placed = placeAndStaffElectiveGroup(termInstanceId, electiveGroupId, term, periods, electiveUnplaced);
             totalPlaced += placed;
             totalStaffed += placed;
         }
 
-        return new GlobalAutoScheduleResult(totalPlaced, totalStaffed, summaries);
+        return new GlobalAutoScheduleResult(totalPlaced, totalStaffed, summaries, electiveUnplaced);
     }
 
-    private String occupantSuffix(SkeletonSubjectBudget budget) {
-        if (budget.cohortSectionLabel() != null) {
-            return "/" + budget.cohortSectionLabel();
+    /** {@code cohortId} null = every cohort enrolled in the term (existing behavior); non-null must
+     *  actually be enrolled in this term, else this is a caller error, not a "nothing to do." */
+    private Set<Long> resolveCohortIds(Long termInstanceId, Long cohortId) {
+        Set<Long> enrolled = enumerateCohortIds(termInstanceId);
+        if (cohortId == null) {
+            return enrolled;
         }
-        if (budget.batchName() != null) {
-            return "/" + budget.batchName();
+        if (!enrolled.contains(cohortId)) {
+            throw new ResourceNotFoundException("Cohort " + cohortId + " is not enrolled in term " + termInstanceId);
         }
-        return "";
+        return Set.of(cohortId);
+    }
+
+    private String occupantLabel(SkeletonSubjectBudget budget) {
+        return budget.cohortSectionLabel() != null ? budget.cohortSectionLabel() : budget.batchName();
     }
 
     /** Scans every free day/period until one is found where placement AND staffing the offering's
      *  bound faculty both succeed, undoing the placement and trying the next candidate on a
      *  staffing failure (that faculty is busy at that slot, not a shared resource another row could
-     *  be nudged out of — see class javadoc for why this doesn't attempt backtracking). Returns the
-     *  day it landed on, or null if every combination was exhausted. */
+     *  be nudged out of — see class javadoc for why this doesn't attempt backtracking). {@code
+     *  DayOfWeek.values()} is already Monday-first/Saturday-last by declaration order, so
+     *  Monday–Friday is always exhausted before Saturday is ever tried — Saturday is fallback-only,
+     *  never preferred. Returns the day it landed on, or null if every combination was exhausted. */
     private DayOfWeek tryPlaceAndStaff(Long cohortId, CourseOffering offering, SkeletonSubjectBudget budget, Long facultyId,
                                         TermInstance term, List<Period> periods, Set<DayOfWeek> daysUsed) {
         for (DayOfWeek day : DayOfWeek.values()) {
@@ -603,8 +815,11 @@ public class TimetableGlobalAutoScheduleService {
      *  already imposes on every other placement path). Only THEORY members are attempted — LAB/
      *  CLINICAL electives still need a Capacity-Planner-committed batch/venue exactly like
      *  non-electives, so there is no free-room search to build for them; they're simply left
-     *  unplaced by this pass, same as any other structural prerequisite gap. */
-    private int placeAndStaffElectiveGroup(Long termInstanceId, Long electiveGroupId, TermInstance term, List<Period> periods) {
+     *  unplaced by this pass, same as any other structural prerequisite gap. Best-effort: any
+     *  failure adds to {@code unplacedSink} and returns 0 instead of throwing, so one group's
+     *  problem never aborts the whole term-wide run. */
+    private int placeAndStaffElectiveGroup(Long termInstanceId, Long electiveGroupId, TermInstance term, List<Period> periods,
+                                            List<AutoPlaceUnplacedItem> unplacedSink) {
         List<CourseOffering> members = courseOfferingRepository
             .findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(termInstanceId, electiveGroupId);
         if (members.isEmpty()) {
@@ -613,9 +828,9 @@ public class TimetableGlobalAutoScheduleService {
         for (CourseOffering member : members) {
             if (Boolean.TRUE.equals(member.getIsActive()) && member.getFacultyId() == null
                     && safe(member.getCurriculumSemesterCourse() != null ? member.getCurriculumSemesterCourse().getTheoryHours() : null) > 0) {
-                throw new TimetableConstraintViolationException(List.of(new ConstraintViolation(
-                    "GLOBAL_AUTO_SCHEDULE_NO_FACULTY_BOUND",
-                    member.getSubject().getName() + " (elective) has no faculty assigned on its Course Offering")));
+                unplacedSink.add(new AutoPlaceUnplacedItem(member.getSubject().getName(), ClassSessionType.THEORY, null,
+                    "no faculty assigned on its Course Offering (elective)"));
+                return 0;
             }
         }
 
@@ -647,10 +862,10 @@ public class TimetableGlobalAutoScheduleService {
             Classroom classroom = period == null ? null
                 : firstFreeClassroom(activeClassrooms, registeredStrength, day, period, term);
             if (period == null || classroom == null || !placeAndStaffElectiveMembers(unplacedTheoryMembers, day, period, classroom, term)) {
-                throw new TimetableConstraintViolationException(List.of(new ConstraintViolation(
-                    "GLOBAL_AUTO_SCHEDULE_UNPLACEABLE",
-                    "Elective group " + electiveGroupId + " is already scheduled for " + day
-                        + (period != null ? ", " + period.getName() : "") + " — one or more new members can't join that exact slot")));
+                unplacedSink.add(new AutoPlaceUnplacedItem("Elective group " + electiveGroupId, ClassSessionType.THEORY, null,
+                    "already scheduled for " + day + (period != null ? ", " + period.getName() : "")
+                        + " — one or more new members can't join that exact slot"));
+                return 0;
             }
             return unplacedTheoryMembers.size();
         }
@@ -670,9 +885,9 @@ public class TimetableGlobalAutoScheduleService {
                 }
             }
         }
-        throw new TimetableConstraintViolationException(List.of(new ConstraintViolation(
-            "GLOBAL_AUTO_SCHEDULE_UNPLACEABLE",
-            "Elective group " + electiveGroupId + ": no day/period found where every member's bound faculty and a suitable room are all free")));
+        unplacedSink.add(new AutoPlaceUnplacedItem("Elective group " + electiveGroupId, ClassSessionType.THEORY, null,
+            "no day/period found where every member's bound faculty and a suitable room are all free"));
+        return 0;
     }
 
     /** Attempts every member at the given slot/room, undoing everything on the first failure so a

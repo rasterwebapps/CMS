@@ -6,6 +6,7 @@ import {
   AutoPlaceResult,
   ElectiveGroupPlacementRequest,
   ElectiveGroupScheduleResponse,
+  GlobalAutoSchedulePrerequisites,
   GlobalAutoScheduleResult,
   GlobalCapacityPrecheckResult,
   SkeletonBuilderResponse,
@@ -65,15 +66,21 @@ export class SkeletonBuilderService {
     });
   }
 
+  checkGlobalAutoPlacePrerequisites(termInstanceId: number, cohortId: number | null): Observable<GlobalAutoSchedulePrerequisites> {
+    const params: Record<string, string> = { termInstanceId: termInstanceId.toString() };
+    if (cohortId != null) params['cohortId'] = cohortId.toString();
+    return this.http.get<GlobalAutoSchedulePrerequisites>(`${this.baseUrl}/global-auto-place/prerequisites`, { params });
+  }
+
   precheckGlobalAutoPlace(termInstanceId: number): Observable<GlobalCapacityPrecheckResult> {
     return this.http.get<GlobalCapacityPrecheckResult>(`${this.baseUrl}/global-auto-place/precheck`, {
       params: { termInstanceId: termInstanceId.toString() },
     });
   }
 
-  globalAutoPlace(termInstanceId: number): Observable<GlobalAutoScheduleResult> {
-    return this.http.post<GlobalAutoScheduleResult>(`${this.baseUrl}/global-auto-place`, null, {
-      params: { termInstanceId: termInstanceId.toString() },
-    });
+  globalAutoPlace(termInstanceId: number, cohortId: number | null): Observable<GlobalAutoScheduleResult> {
+    const params: Record<string, string> = { termInstanceId: termInstanceId.toString() };
+    if (cohortId != null) params['cohortId'] = cohortId.toString();
+    return this.http.post<GlobalAutoScheduleResult>(`${this.baseUrl}/global-auto-place`, null, { params });
   }
 }
