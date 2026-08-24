@@ -100,6 +100,13 @@ export class AssignFacultyListComponent implements OnInit {
     return this.permissionService.has('COURSE_MANAGE');
   }
 
+  /** Manage Batches hits BatchController endpoints gated on BATCH_MANAGE (see V273), not
+   *  COURSE_MANAGE -- a role holding one but not the other must not see a button that then
+   *  403s on every action inside the dialog. */
+  protected canManageBatches(): boolean {
+    return this.permissionService.has('BATCH_MANAGE');
+  }
+
   protected canViewClassIncharge(): boolean {
     return this.permissionService.has('CLASS_INCHARGE_VIEW');
   }
