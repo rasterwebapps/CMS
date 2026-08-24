@@ -1,6 +1,8 @@
 // Component-unique styles only.
 // entry-form-*, field-*, btn-* classes come from global styles.scss.
 
+@use '../../../shared/styles/accent-bar.mixin' as *;
+
 .conv-page {
   padding: 16px var(--cms-page-padding) 0;
   display: flex;
@@ -26,13 +28,7 @@
   box-shadow: 0 2px 14px color-mix(in srgb, var(--cms-primary) 6%, rgba(0,0,0,.04));
 
   &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--cms-primary), color-mix(in srgb, var(--cms-primary) 20%, transparent));
+    @include cms-accent-bar($fade: 20%);
     pointer-events: none;
   }
 
@@ -107,13 +103,7 @@
   box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.04);
 
   &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--cms-primary), color-mix(in srgb, var(--cms-primary) 20%, transparent));
+    @include cms-accent-bar($fade: 20%);
     z-index: 1;
   }
 

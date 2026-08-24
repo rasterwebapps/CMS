@@ -2,6 +2,8 @@
 // Enquiry Detail — Elevated Editorial Revamp
 // ═══════════════════════════════════════════════════════════════
 
+@use '../../../shared/styles/accent-bar.mixin' as *;
+
 // ── Page shell ───────────────────────────────────────────────
 .detail-page {
   padding: 16px;
@@ -77,15 +79,7 @@
 
   // Subtle primary-tinted accent bar at top
   &::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 3px;
-    background: linear-gradient(
-        90deg,
-        var(--cms-primary) 0%,
-        color-mix(in srgb, var(--cms-primary) 30%, transparent) 100%
-    );
+    @include cms-accent-bar($fade: 30%, $height: 3px);
     border-radius: 20px 20px 0 0;
   }
 

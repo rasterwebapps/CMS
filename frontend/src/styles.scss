@@ -1,5 +1,6 @@
 @use '@angular/material' as mat;
 @use 'tailwindcss';
+@use 'app/shared/styles/accent-bar.mixin' as *;
 
 // ──────────────────────────────────────────────────
 // 🎨 Dynamic Primary Palette — Tailwind v4
@@ -1434,15 +1435,7 @@ app-root {
     0 8px 32px color-mix(in srgb, var(--cms-primary) 4%, transparent);
 
   &::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(
-      90deg,
-      var(--cms-primary),
-      color-mix(in srgb, var(--cms-primary) 25%, transparent)
-    );
+    @include cms-accent-bar();
     z-index: 1;
     pointer-events: none;
   }
@@ -1463,15 +1456,7 @@ app-root {
   transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
 
   &::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(
-      90deg,
-      var(--ca, var(--cms-primary)),
-      color-mix(in srgb, var(--ca, var(--cms-primary)) 30%, transparent)
-    );
+    @include cms-accent-bar($color: var(--ca, var(--cms-primary)), $fade: 30%);
     border-radius: var(--cms-radius-lg) var(--cms-radius-lg) 0 0;
     z-index: 1;
   }
@@ -2475,14 +2460,7 @@ th.cms-th-resize-hover .mat-sort-header-container {
   box-shadow: 0 2px 14px color-mix(in srgb, var(--cms-primary) 6%, rgba(0,0,0,.04));
 
   &::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(
-      90deg,
-      var(--cms-primary) 0%,
-      color-mix(in srgb, var(--cms-primary) 20%, transparent) 100%
-    );
+    @include cms-accent-bar($fade: 20%);
     pointer-events: none;
   }
 
@@ -2578,14 +2556,7 @@ th.cms-th-resize-hover .mat-sort-header-container {
     0 4px 16px color-mix(in srgb, var(--cms-primary) 7%, rgba(0,0,0,.04));
 
   &::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(
-      90deg,
-      var(--cms-primary),
-      color-mix(in srgb, var(--cms-primary) 20%, transparent)
-    );
+    @include cms-accent-bar($fade: 20%);
     border-radius: var(--cms-radius-lg) var(--cms-radius-lg) 0 0;
     pointer-events: none;
   }

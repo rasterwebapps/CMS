@@ -481,9 +481,25 @@ export class App implements OnInit, AfterViewInit {
     });
   }
 
+  /**
+   * Routes that are reachable in the app but deliberately have NO nav menu entry of their own
+   * (reached via in-page contextual links instead), where the generic prefix-fallback below
+   * would otherwise highlight an unrelated SIBLING screen that just happens to share the same
+   * first path segment. Prefix-fallback exists for genuine detail pages (e.g. a student id
+   * route falling back to highlighting "Student Explorer"); it is not meant to claim a
+   * coincidental URL-namespace-mate as its own sub-page. Concretely: Capacity Planner
+   * (/timetable/capacity-planner, no nav entry -- see nav-config.ts) starts with
+   * "/timetable/", which is ALSO the exact route of the unrelated "Timetable" calendar screen --
+   * without this exclusion it wrongly highlighted "Timetable" while viewing Capacity Planner.
+   */
+  private static readonly NAV_PREFIX_MATCH_EXCLUDED_ROUTES = new Set<string>([
+    '/timetable/capacity-planner',
+  ]);
+
   /** Returns true when any item inside the group matches the current route. */
   protected isGroupActive(entry: NavGroup): boolean {
     const url = this.currentUrl();
+    if (App.NAV_PREFIX_MATCH_EXCLUDED_ROUTES.has(url)) return false;
     return entry.items.some((item) => {
       if (url === item.route) return true;
       // Prefix match only when the URL has no dedicated nav entry of its own.
@@ -496,6 +512,7 @@ export class App implements OnInit, AfterViewInit {
   protected isNavItemActive(item: NavItem): boolean {
     const url = this.currentUrl();
     if (url === item.route) return true;
+    if (App.NAV_PREFIX_MATCH_EXCLUDED_ROUTES.has(url)) return false;
     // Prefix match only when the URL has no dedicated nav entry of its own.
     if (url.startsWith(item.route + '/')) return !this.hasExactNavMatch(url);
     return false;

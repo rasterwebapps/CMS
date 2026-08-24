@@ -4,6 +4,8 @@
 //           .widget-loading, .sk-line shimmer animation, light-mode override.
 // ─────────────────────────────────────────────────────────────────────────────
 
+@use '../../../shared/styles/accent-bar.mixin' as *;
+
 // flex:1 fills the .widget-cell flex container so the widget card stretches to
 // the full grid area height (both single-row and multi-row spans).
 :host { display: flex; flex-direction: column; flex: 1; }
@@ -30,15 +32,7 @@
 
   // Accent top bar — per-widget colour via --ca, falls back to primary
   &::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(
-      90deg,
-      var(--ca, var(--cms-primary)),
-      color-mix(in srgb, var(--ca, var(--cms-primary)) 30%, transparent)
-    );
+    @include cms-accent-bar($color: var(--ca, var(--cms-primary)), $fade: 30%);
     border-radius: 16px 16px 0 0;
     box-shadow: 0 0 10px color-mix(in srgb, var(--ca, var(--cms-primary)) 55%, transparent);
     z-index: 1;
