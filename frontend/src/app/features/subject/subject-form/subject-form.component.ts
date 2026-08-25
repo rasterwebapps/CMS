@@ -13,6 +13,8 @@ import { LabService } from '../../lab/lab.service';
 import { Lab } from '../../lab/lab.model';
 import { ClinicalVenueService } from '../../clinical-venue/clinical-venue.service';
 import { ClinicalVenue } from '../../clinical-venue/clinical-venue.model';
+import { FacultyService } from '../../faculty/faculty.service';
+import { Faculty } from '../../faculty/faculty.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
 import { CmsTipsCardComponent, CmsTip } from '../../../shared/tips-card/tips-card.component';
@@ -43,6 +45,7 @@ export class SubjectFormComponent implements OnInit {
   private readonly specialityService = inject(SpecialityService);
   private readonly labService = inject(LabService);
   private readonly clinicalVenueService = inject(ClinicalVenueService);
+  private readonly facultyService = inject(FacultyService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly http = inject(HttpClient);
@@ -60,6 +63,12 @@ export class SubjectFormComponent implements OnInit {
   protected readonly activeClinicalVenues = signal<ClinicalVenue[]>([]);
   protected readonly selectedLabIds = signal<Set<number>>(new Set());
   protected readonly selectedClinicalVenueIds = signal<Set<number>>(new Set());
+
+  /** Faculty explicitly widened onto this subject on top of the Speciality-match rule — additive
+   *  only (see backend FacultyEligibility). Empty means Speciality-match-only, identical behavior
+   *  to before this list existed. Sourced from active faculty, admin picks 0+. */
+  protected readonly activeFaculty = signal<Faculty[]>([]);
+  protected readonly selectedFacultyIds = signal<Set<number>>(new Set());
 
   // Live preview signals
   protected readonly previewName = signal('');
@@ -122,6 +131,18 @@ export class SubjectFormComponent implements OnInit {
     });
   }
 
+  protected isFacultyChecked(id: number): boolean {
+    return this.selectedFacultyIds().has(id);
+  }
+
+  protected toggleFaculty(id: number): void {
+    this.selectedFacultyIds.update((set) => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
   protected onCodeInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     const upper = input.value.toUpperCase();
@@ -134,6 +155,7 @@ export class SubjectFormComponent implements OnInit {
     this.loadSpecialities();
     this.loadActiveLabs();
     this.loadActiveClinicalVenues();
+    this.loadActiveFaculty();
 
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
@@ -179,6 +201,7 @@ export class SubjectFormComponent implements OnInit {
       isActive: this.form.value.isActive,
       eligibleLabIds: [...this.selectedLabIds()],
       eligibleClinicalVenueIds: [...this.selectedClinicalVenueIds()],
+      eligibleFacultyIds: [...this.selectedFacultyIds()],
     };
 
     this.saving.set(true);
@@ -244,6 +267,13 @@ export class SubjectFormComponent implements OnInit {
     });
   }
 
+  private loadActiveFaculty(): void {
+    this.facultyService.getAll().subscribe({
+      next: (faculty) => this.activeFaculty.set(faculty.filter((f) => f.status === 'ACTIVE')),
+      error: () => this.toast.error('Failed to load faculty'),
+    });
+  }
+
   private loadSubject(): void {
     if (!this.subjectId) return;
 
@@ -262,6 +292,7 @@ export class SubjectFormComponent implements OnInit {
         });
         this.selectedLabIds.set(new Set(subject.eligibleLabs.map((l) => l.id)));
         this.selectedClinicalVenueIds.set(new Set(subject.eligibleClinicalVenues.map((v) => v.id)));
+        this.selectedFacultyIds.set(new Set(subject.eligibleFaculty.map((f) => f.id)));
         this.loading.set(false);
       },
       error: () => {

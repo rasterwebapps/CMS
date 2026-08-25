@@ -321,6 +321,9 @@ export interface CourseOffering {
   subjectCode: string;
   subjectSpecialityId: number | null;
   subjectSpecialityName: string | null;
+  /** Faculty explicitly widened onto this subject on top of the Speciality-match rule — additive
+   *  only (see backend FacultyEligibility). Empty means Speciality-match-only. */
+  subjectEligibleFacultyIds: number[];
   termNumber: number;
   facultyId: number | null;
   /** Co-instructor, department-eligibility-checked same as the primary — a vetted substitute

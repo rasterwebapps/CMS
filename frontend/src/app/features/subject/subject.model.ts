@@ -18,6 +18,14 @@ export interface SubjectEligibleVenue {
   capacity: number | null;
 }
 
+/** Faculty explicitly widened onto this subject on top of the Speciality-match rule — additive
+ *  only, see backend FacultyEligibility. Empty means Speciality-match-only. */
+export interface SubjectEligibleFaculty {
+  id: number;
+  fullName: string;
+  specialityName: string | null;
+}
+
 export interface Subject {
   id: number;
   name: string;
@@ -35,6 +43,7 @@ export interface Subject {
    *  preference configured. */
   eligibleLabs: SubjectEligibleVenue[];
   eligibleClinicalVenues: SubjectEligibleVenue[];
+  eligibleFaculty: SubjectEligibleFaculty[];
 }
 
 export interface SubjectRequest {
@@ -48,6 +57,7 @@ export interface SubjectRequest {
   isActive?: boolean;
   eligibleLabIds?: number[];
   eligibleClinicalVenueIds?: number[];
+  eligibleFacultyIds?: number[];
 }
 
 export interface SubjectStatusUpdateRequest {

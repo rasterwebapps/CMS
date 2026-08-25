@@ -211,6 +211,30 @@ class CourseOfferingSectionFacultyServiceTest {
     }
 
     @Test
+    void upsert_allowsFacultyExplicitlyOnTheSubjectsEligibleFacultyListDespiteSpecialityMismatch() {
+        Cohort matchingCohort = cohort(1L, "2023-2027 Batch");
+        CohortSection targetSection = section(201L, matchingCohort, "A");
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Set.of(1L));
+        when(cohortRepository.findById(1L)).thenReturn(Optional.of(matchingCohort));
+        when(studentTermEnrollmentRepository.findByTermInstanceIdAndCohortId(10L, 1L))
+            .thenReturn(List.of(enrollmentAtSemester(3)));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of(targetSection));
+        when(sectionFacultyRepository.findByCourseOfferingIdAndCohortSectionId(100L, 201L)).thenReturn(Optional.empty());
+        Speciality otherSpeciality = new Speciality("Pediatrics", "PED", "dept", null, null);
+        otherSpeciality.setId(2L);
+        Faculty widenedFaculty = faculty(5L, otherSpeciality);
+        subject.setEligibleFaculty(new java.util.HashSet<>(java.util.Set.of(widenedFaculty)));
+        when(facultyRepository.findById(5L)).thenReturn(Optional.of(widenedFaculty));
+        when(sectionFacultyRepository.save(any(CourseOfferingSectionFaculty.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SectionFacultyAssignment result = service.upsert(100L, 201L, 5L);
+
+        assertThat(result.facultyId()).isEqualTo(5L);
+    }
+
+    @Test
     void upsert_savesEligibleFacultyOverride() {
         Cohort matchingCohort = cohort(1L, "2023-2027 Batch");
         CohortSection targetSection = section(201L, matchingCohort, "A");

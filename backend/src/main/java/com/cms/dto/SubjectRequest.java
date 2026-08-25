@@ -44,5 +44,9 @@ public record SubjectRequest(
     /** Labs/Clinical Venues suitable for this subject's practical sessions -- a soft preference,
      *  optional. Null/empty means no preference configured, matching pre-existing behavior. */
     List<Long> eligibleLabIds,
-    List<Long> eligibleClinicalVenueIds
+    List<Long> eligibleClinicalVenueIds,
+
+    /** Faculty explicitly widened onto this subject on top of the Speciality-match rule -- optional,
+     *  additive-only (see FacultyEligibility). Null/empty means Speciality-match-only. */
+    List<Long> eligibleFacultyIds
 ) {}

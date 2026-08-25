@@ -69,6 +69,16 @@ public class Subject {
         inverseJoinColumns = @JoinColumn(name = "clinical_venue_id"))
     private Set<ClinicalVenue> eligibleClinicalVenues = new HashSet<>();
 
+    /** Admin-curated widening of who can be assigned as this subject's primary/secondary/section
+     *  faculty, on top of (never instead of) the Speciality-match rule in {@code FacultyEligibility}
+     *  -- see that class for the actual OR logic. An empty set means Speciality-match-only, i.e.
+     *  identical behavior to before this field existed; unlike {@link #eligibleLabs}, an empty set
+     *  here never removes anyone's existing eligibility. */
+    @ManyToMany
+    @JoinTable(name = "subject_eligible_faculty", joinColumns = @JoinColumn(name = "subject_id"),
+        inverseJoinColumns = @JoinColumn(name = "faculty_id"))
+    private Set<Faculty> eligibleFaculty = new HashSet<>();
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -182,6 +192,14 @@ public class Subject {
 
     public void setEligibleClinicalVenues(Set<ClinicalVenue> eligibleClinicalVenues) {
         this.eligibleClinicalVenues = eligibleClinicalVenues;
+    }
+
+    public Set<Faculty> getEligibleFaculty() {
+        return eligibleFaculty;
+    }
+
+    public void setEligibleFaculty(Set<Faculty> eligibleFaculty) {
+        this.eligibleFaculty = eligibleFaculty;
     }
 
     public Instant getCreatedAt() {

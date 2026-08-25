@@ -12,12 +12,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
+import com.cms.dto.FacultyOptionResponse;
 import com.cms.dto.SpecialityResponse;
 import com.cms.dto.SubjectRequest;
 import com.cms.dto.SubjectResponse;
 import com.cms.dto.VenueOptionResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.ClinicalVenue;
+import com.cms.model.Faculty;
 import com.cms.model.Lab;
 import com.cms.model.Speciality;
 import com.cms.model.Subject;
@@ -27,6 +29,7 @@ import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
+import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.SpecialityRepository;
 import com.cms.repository.SubjectRepository;
@@ -44,6 +47,7 @@ public class SubjectService {
     private final BatchRepository batchRepository;
     private final LabRepository labRepository;
     private final ClinicalVenueRepository clinicalVenueRepository;
+    private final FacultyRepository facultyRepository;
 
     public SubjectService(SubjectRepository subjectRepository, CourseRepository courseRepository,
                           SpecialityRepository specialityRepository,
@@ -52,7 +56,8 @@ public class SubjectService {
                           ClassScheduleRepository classScheduleRepository,
                           BatchRepository batchRepository,
                           LabRepository labRepository,
-                          ClinicalVenueRepository clinicalVenueRepository) {
+                          ClinicalVenueRepository clinicalVenueRepository,
+                          FacultyRepository facultyRepository) {
         this.subjectRepository = subjectRepository;
         this.courseRepository = courseRepository;
         this.specialityRepository = specialityRepository;
@@ -62,6 +67,7 @@ public class SubjectService {
         this.batchRepository = batchRepository;
         this.labRepository = labRepository;
         this.clinicalVenueRepository = clinicalVenueRepository;
+        this.facultyRepository = facultyRepository;
     }
 
     @Transactional
@@ -95,6 +101,7 @@ public class SubjectService {
         }
         subject.setEligibleLabs(resolveLabs(request.eligibleLabIds()));
         subject.setEligibleClinicalVenues(resolveClinicalVenues(request.eligibleClinicalVenueIds()));
+        subject.setEligibleFaculty(resolveFaculty(request.eligibleFacultyIds()));
         Subject saved = subjectRepository.save(subject);
         return toResponse(saved);
     }
@@ -107,6 +114,11 @@ public class SubjectService {
     private Set<ClinicalVenue> resolveClinicalVenues(List<Long> clinicalVenueIds) {
         if (clinicalVenueIds == null || clinicalVenueIds.isEmpty()) return new HashSet<>();
         return new HashSet<>(clinicalVenueRepository.findAllById(clinicalVenueIds));
+    }
+
+    private Set<Faculty> resolveFaculty(List<Long> facultyIds) {
+        if (facultyIds == null || facultyIds.isEmpty()) return new HashSet<>();
+        return new HashSet<>(facultyRepository.findAllById(facultyIds));
     }
 
     public List<SubjectResponse> findAll(boolean activeOnly) {
@@ -201,6 +213,7 @@ public class SubjectService {
         }
         subject.setEligibleLabs(resolveLabs(request.eligibleLabIds()));
         subject.setEligibleClinicalVenues(resolveClinicalVenues(request.eligibleClinicalVenueIds()));
+        subject.setEligibleFaculty(resolveFaculty(request.eligibleFacultyIds()));
 
         Subject updated = subjectRepository.save(subject);
         return toResponse(updated);
@@ -285,6 +298,10 @@ public class SubjectService {
         List<VenueOptionResponse> eligibleClinicalVenues = subject.getEligibleClinicalVenues().stream()
             .map(v -> new VenueOptionResponse(v.getId(), v.getName(), v.getCapacity()))
             .toList();
+        List<FacultyOptionResponse> eligibleFaculty = subject.getEligibleFaculty().stream()
+            .map(f -> new FacultyOptionResponse(f.getId(), f.getFullName(),
+                f.getSpeciality() != null ? f.getSpeciality().getName() : null))
+            .toList();
 
         return new SubjectResponse(
             subject.getId(),
@@ -299,7 +316,8 @@ public class SubjectService {
             subject.getCreatedAt(),
             subject.getUpdatedAt(),
             eligibleLabs,
-            eligibleClinicalVenues
+            eligibleClinicalVenues,
+            eligibleFaculty
         );
     }
 }

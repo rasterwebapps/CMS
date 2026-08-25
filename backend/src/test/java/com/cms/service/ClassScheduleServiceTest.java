@@ -401,6 +401,30 @@ class ClassScheduleServiceTest {
     }
 
     @Test
+    void shouldAllowFacultyExplicitlyOnTheSubjectsEligibleFacultyListDespiteSpecialityMismatch() {
+        Speciality nursingSpeciality = new Speciality("Nursing", "NUR", "Nursing Dept", null, null);
+        nursingSpeciality.setId(2L);
+        Subject nursingSubject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
+        nursingSubject.setId(2L);
+        nursingSubject.setEligibleFaculty(new java.util.HashSet<>(java.util.Set.of(testFaculty)));
+
+        ClassScheduleRequest request = labRequest(1L, 2L, 1L, 1L, "Batch-A", DayOfWeek.MONDAY, 1L);
+        ClassSchedule saved = createLabSchedule(1L, testLab, nursingSubject, testFaculty,
+            testPeriod, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
+
+        when(labRepository.findById(1L)).thenReturn(Optional.of(testLab));
+        when(subjectRepository.findById(2L)).thenReturn(Optional.of(nursingSubject));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(testFaculty));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(testPeriod));
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(testTermInstance));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenReturn(saved);
+
+        ClassScheduleResponse response = classScheduleService.create(request);
+
+        assertThat(response.id()).isEqualTo(1L);
+    }
+
+    @Test
     void shouldAllowFacultyFromTheSameSpecialityAsTheSubject() {
         Subject csSubject = new Subject("Algorithms", "CS301", 3, 3, 0, testSpeciality, 3);
         csSubject.setId(3L);

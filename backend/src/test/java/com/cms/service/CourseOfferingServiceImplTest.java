@@ -496,6 +496,32 @@ class CourseOfferingServiceImplTest {
     }
 
     @Test
+    void updateOffering_allowsFacultyExplicitlyOnTheSubjectsEligibleFacultyListDespiteSpecialityMismatch() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BCA", 3);
+        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
+        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
+        subject.setId(1L);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        Speciality csSpeciality = createSpeciality(2L, "Computer Science", "CS");
+        Faculty widenedFaculty = createFaculty(42L, csSpeciality);
+        subject.setEligibleFaculty(new java.util.HashSet<>(java.util.Set.of(widenedFaculty)));
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(facultyRepository.findById(42L)).thenReturn(Optional.of(widenedFaculty));
+        when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForOffering(anyLong(), eq(1L), eq(42L)))
+            .thenReturn(fitsWithinCapacity());
+
+        service.updateOffering(1L, 42L, null);
+
+        assertThat(offering.getFacultyId()).isEqualTo(42L);
+    }
+
+    @Test
     void updateOffering_allowsFacultyFromTheSameSpecialityAsTheSubject() {
         AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);

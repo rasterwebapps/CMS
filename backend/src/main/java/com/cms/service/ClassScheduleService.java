@@ -165,26 +165,16 @@ public class ClassScheduleService {
     }
 
     /**
-     * Department-level (Speciality) eligibility gate: a faculty can only be assigned to teach a
-     * subject from their own department. Skipped when the subject has no speciality set (not
-     * every subject is department-scoped) and grandfathered when the requested faculty is the
-     * same one already on the row — this blocks new/changed mismatched assignments without
-     * retroactively breaking rows saved before this rule existed on an otherwise-unrelated edit.
-     * Static + package-visible so {@link TimetableSkeletonService}'s R3 Phase 5 staffing pass
-     * reuses the exact same rule rather than a second copy that could drift.
+     * Department-level (Speciality) eligibility gate, widened by a subject's admin-curated
+     * Eligible Faculty list -- delegates entirely to {@link FacultyEligibility#require(Subject,
+     * Faculty, Faculty)}, the single shared rule also used by {@code CourseOfferingServiceImpl}
+     * and {@code CourseOfferingSectionFacultyService}, so this staffing pass can never drift from
+     * what the offering-level pickers already allow. Static + package-visible so {@link
+     * TimetableSkeletonService}'s/{@link TimetableStaffingService}'s staffing passes reuse the
+     * exact same rule rather than a second copy that could drift.
      */
     static void requireEligibleFaculty(Subject subject, Faculty faculty, Faculty previousFaculty) {
-        if (subject.getSpeciality() == null) {
-            return;
-        }
-        if (previousFaculty != null && previousFaculty.getId().equals(faculty.getId())) {
-            return;
-        }
-        if (!subject.getSpeciality().getId().equals(faculty.getSpeciality().getId())) {
-            throw new IllegalArgumentException("Faculty '" + faculty.getFullName() + "' belongs to the "
-                + faculty.getSpeciality().getName() + " department and is not eligible to teach '"
-                + subject.getName() + "' (" + subject.getSpeciality().getName() + ")");
-        }
+        FacultyEligibility.require(subject, faculty, previousFaculty);
     }
 
     private Batch resolveBatch(Long batchId) {

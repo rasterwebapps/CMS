@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
+import com.cms.dto.FacultyOptionResponse;
 import com.cms.dto.SubjectRequest;
 import com.cms.dto.SubjectResponse;
 import com.cms.dto.VenueOptionResponse;
@@ -34,6 +35,7 @@ import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
+import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.SpecialityRepository;
 import com.cms.repository.SubjectRepository;
@@ -68,6 +70,9 @@ class SubjectServiceTest {
     @Mock
     private ClinicalVenueRepository clinicalVenueRepository;
 
+    @Mock
+    private FacultyRepository facultyRepository;
+
     private SubjectService subjectService;
 
     private Speciality speciality;
@@ -78,7 +83,7 @@ class SubjectServiceTest {
     void setUp() {
         subjectService = new SubjectService(subjectRepository, courseRepository, specialityRepository,
             curriculumSemesterCourseRepository, courseOfferingRepository, classScheduleRepository, batchRepository,
-            labRepository, clinicalVenueRepository);
+            labRepository, clinicalVenueRepository, facultyRepository);
 
         speciality = new Speciality();
         speciality.setId(1L);
@@ -95,7 +100,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldCreateSubject() {
-        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 1L, 1, null, null, null);
+        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 1L, 1, null, null, null, null);
 
         when(specialityRepository.findById(1L)).thenReturn(Optional.of(speciality));
         when(subjectRepository.save(any(Subject.class))).thenReturn(testSubject);
@@ -119,7 +124,7 @@ class SubjectServiceTest {
     @Test
     void shouldRoundTripEligibleLabsAndClinicalVenuesThroughCreateAndResponse() {
         SubjectRequest request = new SubjectRequest("OBG Nursing", "OBG101", 4, 3, 1, 1L, 1, null,
-            List.of(11L), List.of(21L));
+            List.of(11L), List.of(21L), List.of(31L));
 
         Lab obgLab = new Lab();
         obgLab.setId(11L);
@@ -129,10 +134,15 @@ class SubjectServiceTest {
         obgWard.setId(21L);
         obgWard.setName("OBG Ward");
         obgWard.setCapacity(20);
+        com.cms.model.Faculty widenedFaculty = new com.cms.model.Faculty();
+        widenedFaculty.setId(31L);
+        widenedFaculty.setFirstName("Nandini");
+        widenedFaculty.setLastName("Pillai");
 
         when(specialityRepository.findById(1L)).thenReturn(Optional.of(speciality));
         when(labRepository.findAllById(List.of(11L))).thenReturn(List.of(obgLab));
         when(clinicalVenueRepository.findAllById(List.of(21L))).thenReturn(List.of(obgWard));
+        when(facultyRepository.findAllById(List.of(31L))).thenReturn(List.of(widenedFaculty));
         when(subjectRepository.save(any(Subject.class))).thenAnswer(inv -> {
             Subject s = inv.getArgument(0);
             s.setId(10L);
@@ -146,17 +156,20 @@ class SubjectServiceTest {
         assertThat(response.eligibleLabs()).extracting(VenueOptionResponse::id).containsExactly(11L);
         assertThat(response.eligibleLabs()).extracting(VenueOptionResponse::name).containsExactly("OBG Lab");
         assertThat(response.eligibleClinicalVenues()).extracting(VenueOptionResponse::id).containsExactly(21L);
+        assertThat(response.eligibleFaculty()).extracting(FacultyOptionResponse::id).containsExactly(31L);
+        assertThat(response.eligibleFaculty()).extracting(FacultyOptionResponse::fullName).containsExactly("Nandini Pillai");
 
         ArgumentCaptor<Subject> captor = ArgumentCaptor.forClass(Subject.class);
         verify(subjectRepository).save(captor.capture());
         assertThat(captor.getValue().getEligibleLabs()).extracting(Lab::getId).containsExactly(11L);
         assertThat(captor.getValue().getEligibleClinicalVenues()).extracting(ClinicalVenue::getId).containsExactly(21L);
+        assertThat(captor.getValue().getEligibleFaculty()).extracting(com.cms.model.Faculty::getId).containsExactly(31L);
     }
 
     @Test
     void shouldClearEligibleLabsWhenRequestOmitsThem() {
         testSubject.setEligibleLabs(new java.util.HashSet<>(List.of(new Lab())));
-        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 1L, 1, null, null, null);
+        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 1L, 1, null, null, null, null);
 
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
         when(specialityRepository.findById(1L)).thenReturn(Optional.of(speciality));
@@ -171,7 +184,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldCreateSubjectWithoutSpeciality() {
-        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, null, 1, null, null, null);
+        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, null, 1, null, null, null, null);
         Subject subjectNoDept = new Subject("Anatomy", "ANAT101", 4, 3, 1, null, 1);
         subjectNoDept.setId(2L);
         subjectNoDept.setCreatedAt(now);
@@ -188,7 +201,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldThrowWhenSpecialityNotFoundOnCreate() {
-        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 999L, 1, null, null, null);
+        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 999L, 1, null, null, null, null);
         when(specialityRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> subjectService.create(request))
@@ -280,7 +293,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldUpdateSubject() {
-        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 1L, 2, null, null, null);
+        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 1L, 2, null, null, null, null);
 
         Subject updatedSubject = new Subject("Physiology", "PHYS101", 5, 4, 1, speciality, 2);
         updatedSubject.setId(1L);
@@ -303,7 +316,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldUpdateSubjectWithoutSpeciality() {
-        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, null, 2, null, null, null);
+        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, null, 2, null, null, null, null);
 
         Subject updatedSubject = new Subject("Physiology", "PHYS101", 5, 4, 1, null, 2);
         updatedSubject.setId(1L);
@@ -323,7 +336,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldThrowWhenUpdatingSubjectWithDuplicateName() {
-        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 5, 4, 1, null, 1, null, null, null);
+        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 5, 4, 1, null, 1, null, null, null, null);
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
         when(subjectRepository.existsByNameIgnoreCaseAndIdNot("Anatomy", 1L)).thenReturn(true);
 
@@ -337,7 +350,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldThrowWhenUpdatingSubjectWithDuplicateCode() {
-        SubjectRequest request = new SubjectRequest("Physiology", "ANAT101", 5, 4, 1, null, 1, null, null, null);
+        SubjectRequest request = new SubjectRequest("Physiology", "ANAT101", 5, 4, 1, null, 1, null, null, null, null);
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
         when(subjectRepository.existsByNameIgnoreCaseAndIdNot("Physiology", 1L)).thenReturn(false);
         when(subjectRepository.existsByCodeIgnoreCaseAndIdNot("ANAT101", 1L)).thenReturn(true);
@@ -352,7 +365,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldThrowWhenSubjectNotFoundOnUpdate() {
-        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, null, 2, null, null, null);
+        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, null, 2, null, null, null, null);
         when(subjectRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> subjectService.update(999L, request))
@@ -362,7 +375,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldThrowWhenSpecialityNotFoundOnUpdate() {
-        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 999L, 2, null, null, null);
+        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 999L, 2, null, null, null, null);
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
         when(specialityRepository.findById(999L)).thenReturn(Optional.empty());
 

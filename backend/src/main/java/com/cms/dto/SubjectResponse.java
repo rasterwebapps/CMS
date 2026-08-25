@@ -16,5 +16,6 @@ public record SubjectResponse(
     Instant createdAt,
     Instant updatedAt,
     List<VenueOptionResponse> eligibleLabs,
-    List<VenueOptionResponse> eligibleClinicalVenues
+    List<VenueOptionResponse> eligibleClinicalVenues,
+    List<FacultyOptionResponse> eligibleFaculty
 ) {}

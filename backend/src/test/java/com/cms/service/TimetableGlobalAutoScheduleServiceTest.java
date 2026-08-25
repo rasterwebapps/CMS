@@ -137,7 +137,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
     private CourseOfferingDto offeringDto(Long id, String subjectName, Long facultyId) {
         return new CourseOfferingDto(id, 10L, null, null, null, id, subjectName, subjectName.substring(0, 4).toUpperCase(),
-            null, null, 1, facultyId, null, true, null, false, null, null, null, null, null, null, null, null, List.of());
+            null, null, List.of(), 1, facultyId, null, true, null, false, null, null, null, null, null, null, null, null, List.of());
     }
 
     private CourseOffering offeringEntity(Long id, int theoryHours, int labHours, int clinicalHours, Long facultyId) {

@@ -408,6 +408,7 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
             o.getSubject().getCode(),
             o.getSubject().getSpeciality() != null ? o.getSubject().getSpeciality().getId() : null,
             o.getSubject().getSpeciality() != null ? o.getSubject().getSpeciality().getName() : null,
+            o.getSubject().getEligibleFaculty().stream().map(Faculty::getId).toList(),
             o.getSemesterNumber(),
             o.getFacultyId(),
             o.getSecondaryFacultyId(),

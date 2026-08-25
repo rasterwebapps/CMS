@@ -17,6 +17,9 @@ public record CourseOfferingDto(
     String subjectCode,
     Long subjectSpecialityId,
     String subjectSpecialityName,
+    /** Faculty explicitly widened onto this subject on top of the Speciality-match rule -- see
+     *  FacultyEligibility. Empty means Speciality-match-only. */
+    List<Long> subjectEligibleFacultyIds,
     Integer termNumber,
     Long facultyId,
     /** Informational-only backup/co-instructor note — never eligible for staffing/substitution. */

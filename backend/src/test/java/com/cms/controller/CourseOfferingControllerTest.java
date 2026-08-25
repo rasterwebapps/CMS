@@ -53,7 +53,7 @@ class CourseOfferingControllerTest {
         return new CourseOfferingDto(
             id, termInstanceId, "2024-2025 ODD",
             1L, "CV-2024",
-            1L, "Mathematics", "MATH101", null, null,
+            1L, "Mathematics", "MATH101", null, null, List.of(),
             semNum, null, null, true,
             null, false, com.cms.model.enums.SubjectType.CORE,
             null, null, null,

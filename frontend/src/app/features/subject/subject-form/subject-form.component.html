@@ -152,6 +152,25 @@
             </div>
 
             <div class="field-group" style="margin-top: 12px;">
+              <label class="field-label">Eligible Faculty</label>
+              <p class="field-hint">Optional — widens who can be assigned to teach this subject beyond a matching Speciality alone (e.g. a short-staffed department). Never removes anyone already eligible by Speciality.</p>
+              @if (activeFaculty().length === 0) {
+                <p class="field-hint">No active faculty configured yet.</p>
+              } @else {
+                <div class="subj-venue-checklist">
+                  @for (faculty of activeFaculty(); track faculty.id) {
+                    <label class="subj-venue-item" [class.subj-venue-item--checked]="isFacultyChecked(faculty.id)">
+                      <input type="checkbox" class="subj-venue-checkbox"
+                        [checked]="isFacultyChecked(faculty.id)" (change)="toggleFaculty(faculty.id)" />
+                      <span class="subj-venue-item__name">{{ faculty.fullName }}</span>
+                      <span class="subj-venue-item__capacity">{{ faculty.specialityName }}</span>
+                    </label>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="field-group" style="margin-top: 12px;">
               <label for="subj-status" class="field-label">Status</label>
               <select id="subj-status" class="field-select" formControlName="isActive">
                 <option [ngValue]="true">Active</option>

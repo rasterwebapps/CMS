@@ -90,36 +90,43 @@ export class CourseOfferingEditDialogComponent implements OnInit {
     initialValue: this.data.offering.secondaryFacultyId,
   });
 
-  /** Faculty must belong to the subject's own department (Speciality) to be assignable — the
-   *  faculty already on this offering stays visible/selectable even if it predates the rule
-   *  (grandfathered), so an admin editing just the section label doesn't lose their current
-   *  faculty from the list. No restriction at all when the subject has no speciality set.
-   *  Also excludes whoever is live-selected as the secondary faculty — the same person can't be
-   *  their own substitute — except the primary's own current selection stays visible so a
-   *  same-person pairing saved before this rule existed still renders instead of going blank. */
+  /** Faculty must belong to the subject's own department (Speciality) — OR be explicitly listed on
+   *  the subject's admin-curated Eligible Faculty list (Subject form, additive-only widening, e.g.
+   *  for a short-staffed department) — to be assignable. The faculty already on this offering stays
+   *  visible/selectable even if it predates the rule (grandfathered), so an admin editing just the
+   *  section label doesn't lose their current faculty from the list. No restriction at all when the
+   *  subject has no speciality set. Also excludes whoever is live-selected as the secondary faculty
+   *  — the same person can't be their own substitute — except the primary's own current selection
+   *  stays visible so a same-person pairing saved before this rule existed still renders instead of
+   *  going blank. */
   protected readonly eligibleFacultyOptions = computed<FacultyOption[]>(() => {
     const specialityId = this.data.offering.subjectSpecialityId;
+    const eligibleIds = this.data.offering.subjectEligibleFacultyIds;
     const secondaryId = this.secondaryFacultyIdLive();
     const currentPrimaryId = this.primaryFacultyIdLive();
     const base = !specialityId
       ? this.data.facultyOptions
       : this.data.facultyOptions.filter((f) =>
-          f.specialityId === specialityId || f.id === this.data.offering.facultyId || f.id === this.data.suggestedFacultyId);
+          f.specialityId === specialityId || eligibleIds.includes(f.id)
+          || f.id === this.data.offering.facultyId || f.id === this.data.suggestedFacultyId);
     return base.filter((f) => f.id !== secondaryId || f.id === currentPrimaryId);
   });
 
   /** OC-127 gap-closure follow-up: secondaryFacultyId reopened from informational-only to a real
-   *  substitute-matching-eligible co-instructor, so it now needs the same department-eligibility
-   *  filter as the primary — grandfathered against its own current value (not the primary's) so an
-   *  existing secondary faculty predating this rule stays visible/selectable. Same live-exclusion
-   *  of the primary's current selection, for the same same-person reason as above. */
+   *  substitute-matching-eligible co-instructor, so it now needs the same eligibility filter as the
+   *  primary (Speciality match OR the subject's Eligible Faculty list) — grandfathered against its
+   *  own current value (not the primary's) so an existing secondary faculty predating this rule
+   *  stays visible/selectable. Same live-exclusion of the primary's current selection, for the same
+   *  same-person reason as above. */
   protected readonly eligibleSecondaryFacultyOptions = computed<FacultyOption[]>(() => {
     const specialityId = this.data.offering.subjectSpecialityId;
+    const eligibleIds = this.data.offering.subjectEligibleFacultyIds;
     const primaryId = this.primaryFacultyIdLive();
     const currentSecondaryId = this.secondaryFacultyIdLive();
     const base = !specialityId
       ? this.data.facultyOptions
-      : this.data.facultyOptions.filter((f) => f.specialityId === specialityId || f.id === this.data.offering.secondaryFacultyId);
+      : this.data.facultyOptions.filter((f) =>
+          f.specialityId === specialityId || eligibleIds.includes(f.id) || f.id === this.data.offering.secondaryFacultyId);
     return base.filter((f) => f.id !== primaryId || f.id === currentSecondaryId);
   });
 
@@ -171,13 +178,16 @@ export class CourseOfferingEditDialogComponent implements OnInit {
     });
   }
 
-  /** Same department-eligibility filter as the primary Faculty field, grandfathered against this
-   *  specific section's own current value (not the primary's) — a section faculty predating this
-   *  rule, or overridden before the subject had a speciality set, stays visible/selectable. */
+  /** Same eligibility filter as the primary Faculty field (Speciality match OR the subject's
+   *  Eligible Faculty list), grandfathered against this specific section's own current value (not
+   *  the primary's) — a section faculty predating this rule, or overridden before the subject had a
+   *  speciality set, stays visible/selectable. */
   protected sectionFacultyOptionsFor(row: SectionFacultyAssignment): FacultyOption[] {
     const specialityId = this.data.offering.subjectSpecialityId;
     if (!specialityId) return this.data.facultyOptions;
-    return this.data.facultyOptions.filter((f) => f.specialityId === specialityId || f.id === row.facultyId);
+    const eligibleIds = this.data.offering.subjectEligibleFacultyIds;
+    return this.data.facultyOptions.filter((f) =>
+      f.specialityId === specialityId || eligibleIds.includes(f.id) || f.id === row.facultyId);
   }
 
   protected onSectionFacultyChange(row: SectionFacultyAssignment, facultyId: number | null): void {
