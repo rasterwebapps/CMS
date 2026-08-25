@@ -176,12 +176,13 @@ export class FacultyDetailComponent implements OnInit {
       next: (offering) => {
         this.dialog.open(CourseOfferingEditDialogComponent, {
           data: { offering, suggestedFacultyId: null },
-          width: '480px',
-        }).afterClosed().subscribe((updated) => {
-          if (updated) {
-            this.loadWorkload();
-            this.loadScheduleWorkload();
-          }
+          width: '640px',
+        }).afterClosed().subscribe(() => {
+          // Reload unconditionally -- every pick inside saves immediately regardless of how the
+          // dialog is dismissed (Close button, backdrop click, Escape), so there's no reliable
+          // "nothing changed" signal to gate on.
+          this.loadWorkload();
+          this.loadScheduleWorkload();
         });
       },
       error: () => this.toast.error('Failed to load offering details'),

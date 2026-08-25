@@ -14,6 +14,8 @@ import { CmsEmptyStateComponent } from '../../shared/empty-state/empty-state.com
 import { CmsRowActionButtonComponent } from '../../shared/row-action-button/row-action-button.component';
 import { CmsStatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { CmsIconEditComponent } from '../../shared/icons';
+import { ColumnPickerState, CmsColumnPickerComponent } from '../../shared/column-picker';
+import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../shared/column-resize';
 import { PermissionService } from '../../core/permissions/permission.service';
 import { ToastService } from '../../core/toast/toast.service';
 import {
@@ -45,6 +47,7 @@ import {
     FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatDialogModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsStatusBadgeComponent, CmsIconEditComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
   ],
   templateUrl: './assign-faculty-list.component.html',
   styleUrl: './assign-faculty-list.component.scss',
@@ -57,6 +60,7 @@ export class AssignFacultyListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
 
+  @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
     if (value) this.dataSource.paginator = value;
   }
@@ -64,7 +68,19 @@ export class AssignFacultyListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['subjectCode', 'subjectName', 'termNumber', 'cohort', 'faculty', 'status', 'actions'];
+  protected readonly colState = new ColumnPickerState({
+    storageKey: 'assign-faculty-list-cols',
+    columns: [
+      { key: 'subjectCode', label: 'Code' },
+      { key: 'subjectName', label: 'Subject', mandatory: true },
+      { key: 'termNumber', label: 'Semester' },
+      { key: 'cohort', label: 'Cohort' },
+      { key: 'faculty', label: 'Faculty' },
+      { key: 'status', label: 'Status' },
+      { key: 'actions', label: 'Actions', mandatory: true, pinnable: false },
+    ],
+  });
+  protected readonly displayedColumns = computed(() => this.colState.visibleColumns());
   protected readonly dataSource = new MatTableDataSource<CourseOffering>([]);
   protected readonly loading = signal(false);
   protected readonly termsLoading = signal(false);
@@ -99,6 +115,8 @@ export class AssignFacultyListComponent implements OnInit {
 
   protected readonly selectedTerm = computed(() =>
     this.termInstances().find((t) => t.id === this.selectedTermInstanceId) ?? null);
+
+  protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
   protected canManage(): boolean {
     return this.permissionService.has('COURSE_MANAGE');
@@ -200,9 +218,12 @@ export class AssignFacultyListComponent implements OnInit {
       offering: row,
       suggestedFacultyId,
     };
-    this.dialog.open(CourseOfferingEditDialogComponent, { data, width: '480px' })
-      .afterClosed().subscribe((updated) => {
-        if (updated && this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId);
+    this.dialog.open(CourseOfferingEditDialogComponent, { data, width: '640px' })
+      .afterClosed().subscribe(() => {
+        // Reload unconditionally, not just when the dialog reports a change -- every pick inside
+        // saves immediately regardless of how the dialog is dismissed (Close button, backdrop
+        // click, Escape), so there's no reliable "nothing changed" signal to gate on.
+        if (this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId);
       });
   }
 

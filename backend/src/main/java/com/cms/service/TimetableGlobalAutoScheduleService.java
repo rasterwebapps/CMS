@@ -301,11 +301,15 @@ public class TimetableGlobalAutoScheduleService {
     /** Every eligible (Speciality match OR the subject's Eligible Faculty list) active faculty for
      *  this offering's subject, annotated with real *standing* remaining term capacity (no
      *  hypothetical projection -- there's no single offering-wide slot to project against anymore),
-     *  sorted most-free-first -- backs the Faculty Pool checklist. Anyone currently assigned to any
-     *  cohort/section of this offering is grandfathered in even if they no longer pass eligibility,
-     *  so an existing assignment predating a stricter subject/eligibility setup never silently
-     *  disappears. No speciality on the subject means no restriction at all (whole active roster
-     *  returned). */
+     *  sorted most-free-first -- backs the Faculty Pool checklist. Grandfathered by pool membership,
+     *  not by "currently assigned somewhere on this offering": {@code updateFacultyPool} only ever
+     *  lets a strictly-eligible faculty member into the persisted pool in the first place, so anyone
+     *  merely holding some other section/cohort of this offering without being eligible can never
+     *  actually be saved into the pool and is left off this checklist entirely -- showing them as
+     *  checkable was misleading (checking them and saving always failed). An existing pool member who
+     *  predates a stricter subject/eligibility setup is still grandfathered in so they never silently
+     *  disappear and become unremovable. No speciality on the subject means no restriction at all
+     *  (whole active roster returned). */
     @Transactional(readOnly = true)
     public List<EligibleFacultyCandidateDto> getEligibleFacultyForOffering(Long offeringId) {
         CourseOffering offering = courseOfferingRepository.findById(offeringId)
@@ -313,8 +317,8 @@ public class TimetableGlobalAutoScheduleService {
         Subject subject = offering.getSubject();
         Set<Long> currentlyAssignedIds = courseOfferingSectionFacultyRepository.findByCourseOfferingId(offeringId).stream()
             .map(sf -> sf.getFaculty().getId()).collect(java.util.stream.Collectors.toSet());
-        List<Faculty> pool = eligiblePoolGrandfathering(subject, currentlyAssignedIds);
         Set<Long> poolFacultyIds = poolFacultyIds(offering);
+        List<Faculty> pool = eligiblePoolGrandfathering(subject, poolFacultyIds);
 
         TermDemandAggregation demand = computeTermDemand(offering.getTermInstance().getId());
         List<EligibleFacultyCandidateDto> candidates = new ArrayList<>();
@@ -325,10 +329,12 @@ public class TimetableGlobalAutoScheduleService {
         return sortMostFreeFirst(candidates);
     }
 
-    /** Section-scoped counterpart of {@link #getEligibleFacultyForOffering} -- the candidate
-     *  currently holding this section is grandfathered in the same way, and each candidate's
-     *  projected load is computed against just this section's own Theory hours rather than the
-     *  whole offering's, since every section is assigned independently ({@link
+    /** Section-scoped counterpart of {@link #getEligibleFacultyForOffering} -- candidates are every
+     *  member of the offering's persisted Faculty Pool (that's the whole point of the pool: build it
+     *  once, assign from it on any row), plus whoever currently holds this exact section even if
+     *  they've since fallen out of the pool, so an existing pick is never silently unrepresented.
+     *  Each candidate's projected load is computed against just this section's own Theory hours
+     *  rather than the whole offering's, since every section is assigned independently ({@link
      *  #checkFacultyCapacityForSection}). */
     @Transactional(readOnly = true)
     public List<EligibleFacultyCandidateDto> getEligibleFacultyForSection(Long offeringId, Long cohortSectionId) {
@@ -336,9 +342,12 @@ public class TimetableGlobalAutoScheduleService {
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + offeringId));
         Subject subject = offering.getSubject();
         Long currentSectionFacultyId = currentSectionFacultyId(offering, cohortSectionId);
-        List<Faculty> pool = eligiblePoolGrandfathering(subject,
-            currentSectionFacultyId != null ? Set.of(currentSectionFacultyId) : Set.of());
         Set<Long> poolFacultyIds = poolFacultyIds(offering);
+        Set<Long> grandfatherIds = new java.util.HashSet<>(poolFacultyIds);
+        if (currentSectionFacultyId != null) {
+            grandfatherIds.add(currentSectionFacultyId);
+        }
+        List<Faculty> pool = eligiblePoolGrandfathering(subject, grandfatherIds);
 
         double sectionHours = safe(offering.getCurriculumSemesterCourse() != null
             ? offering.getCurriculumSemesterCourse().getTheoryHours() : null);
@@ -352,19 +361,23 @@ public class TimetableGlobalAutoScheduleService {
     }
 
     /** Cohort-scoped counterpart of {@link #getEligibleFacultyForSection} -- for a cohort with no
-     *  active section split. The candidate currently holding the whole-cohort row is grandfathered
-     *  in the same way, and each candidate's projected load is computed against this cohort's
-     *  *whole* theory+lab+clinical hours ({@link #checkFacultyCapacityForCohort}) rather than one
-     *  section's theory hours. */
+     *  active section split. Candidates are the offering's persisted Faculty Pool, plus whoever
+     *  currently holds the whole-cohort row even if they've since fallen out of the pool, same
+     *  grandfathering rule as the section-scoped variant. Each candidate's projected load is computed
+     *  against this cohort's *whole* theory+lab+clinical hours ({@link #checkFacultyCapacityForCohort})
+     *  rather than one section's theory hours. */
     @Transactional(readOnly = true)
     public List<EligibleFacultyCandidateDto> getEligibleFacultyForCohort(Long offeringId, Long cohortId) {
         CourseOffering offering = courseOfferingRepository.findById(offeringId)
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + offeringId));
         Subject subject = offering.getSubject();
         Long currentCohortFacultyId = currentCohortFacultyId(offering, cohortId);
-        List<Faculty> pool = eligiblePoolGrandfathering(subject,
-            currentCohortFacultyId != null ? Set.of(currentCohortFacultyId) : Set.of());
         Set<Long> poolFacultyIds = poolFacultyIds(offering);
+        Set<Long> grandfatherIds = new java.util.HashSet<>(poolFacultyIds);
+        if (currentCohortFacultyId != null) {
+            grandfatherIds.add(currentCohortFacultyId);
+        }
+        List<Faculty> pool = eligiblePoolGrandfathering(subject, grandfatherIds);
 
         double cohortHours = termHoursForOfferingInCohort(offering, cohortId, offering.getTermInstance().getId(), null).totalHours();
         TermDemandAggregation demand = computeTermDemand(offering.getTermInstance().getId());

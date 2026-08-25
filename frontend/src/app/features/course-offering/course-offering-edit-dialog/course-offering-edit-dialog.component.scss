@@ -59,10 +59,14 @@ mat-dialog-content {
 }
 
 .coed-section-faculty__row {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 
   &:last-child {
     margin-bottom: 0;
+  }
+
+  .field-hint {
+    margin: 4px 0 0;
   }
 }
 
@@ -120,6 +124,7 @@ mat-dialog-content {
 }
 
 .coed-save-pool-btn {
+  align-self: flex-start;
   margin-top: 10px;
 }
 
@@ -172,7 +177,9 @@ mat-dialog-content {
   flex-shrink: 0;
   font-size: var(--cms-text-xs);
   font-weight: 600;
-  color: var(--cms-badge-green-text);
+  // --cms-badge-green-text is white-on-green-background text, not standalone colored text -- it was
+  // invisible in light theme rendered directly on the row's card background.
+  color: var(--cms-success);
   min-width: 70px;
   text-align: right;
 

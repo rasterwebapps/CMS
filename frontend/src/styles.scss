@@ -4684,6 +4684,22 @@ html.dark-theme .detail-card {
     padding: 14px var(--cms-page-padding);
     gap: 12px;
   }
+
+  // .entry-form-header (built for standalone *-form pages) carries its own margin-bottom: 16px,
+  // which stacks on top of this flex gap instead of replacing it wherever a screen uses it as an
+  // .mlp-page header instead of .mlp-hdr — zero it out here rather than on the base class, since
+  // .entry-form-header's own margin is correct everywhere else it's used outside .mlp-page.
+  > .entry-form-header {
+    margin-bottom: 0;
+  }
+
+  // Same double-gap issue as above: .command-bar carries its own margin-bottom: 16px (correct on
+  // older .list-page-only screens with no flex gap), which stacks on top of this 16px flex gap
+  // wherever a screen combines it with .mlp-toolbar under .mlp-page (assign-faculty-list,
+  // lab-schedule-list), producing 32px instead of 16px between toolbar and table card.
+  > .command-bar {
+    margin-bottom: 0;
+  }
 }
 
 // ── Page Header ───────────────────────────────────────────────

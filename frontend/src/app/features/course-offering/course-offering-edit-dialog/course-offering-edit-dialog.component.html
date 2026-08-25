@@ -69,32 +69,19 @@
               <mat-spinner diameter="14" class="btn-spinner"></mat-spinner>
             }
           </div>
-          <div class="coed-candidate-list" role="radiogroup" [attr.aria-label]="row.cohortName + ' faculty'">
-            <label class="coed-candidate-row coed-candidate-row--none">
-              <input type="radio" [name]="'coed-row-' + rowKey(row)" [checked]="row.facultyId === null"
-                [disabled]="!canManageAssignment() || assignmentSavingKey() === rowKey(row)"
-                (change)="onAssignmentChange(row, null)">
-              <span class="coed-candidate-row__name">Unassigned</span>
-            </label>
+          <select class="field-select"
+            [ngModel]="row.facultyId"
+            (ngModelChange)="onAssignmentChange(row, $event)"
+            [disabled]="!canManageAssignment() || assignmentSavingKey() === rowKey(row)"
+            [attr.aria-label]="row.cohortName + ' faculty'">
+            <option [ngValue]="null">Unassigned</option>
             @for (c of candidatesFor(row); track c.facultyId) {
-              <label class="coed-candidate-row" [class.coed-candidate-row--over]="c.overCapacity">
-                <input type="radio" [name]="'coed-row-' + rowKey(row)" [checked]="row.facultyId === c.facultyId"
-                  [disabled]="!canManageAssignment() || assignmentSavingKey() === rowKey(row)"
-                  (change)="onAssignmentChange(row, c.facultyId)">
-                <span class="coed-candidate-row__name">{{ c.facultyName }}</span>
-                <span class="coed-candidate-row__badge" [class.coed-candidate-row__badge--eligible-list]="c.viaEligibleList"
-                  [class.coed-candidate-row__badge--grandfathered]="!c.specialityMatch && !c.viaEligibleList">
-                  {{ candidateBadgeText(c) }}
-                </span>
-                <span class="coed-candidate-row__hours" [class.coed-candidate-row__hours--over]="c.overCapacity">
-                  {{ candidateHoursText(c) }}
-                </span>
-              </label>
+              <option [ngValue]="c.facultyId">{{ c.facultyName }} — {{ candidateBadgeText(c) }} — {{ candidateHoursText(c) }}</option>
             }
-            @if (candidatesFor(row).length === 0) {
-              <p class="field-hint">No one's in the Faculty Pool yet — mark eligible faculty above first.</p>
-            }
-          </div>
+          </select>
+          @if (candidatesFor(row).length === 0) {
+            <p class="field-hint">No one's in the Faculty Pool yet — mark eligible faculty above first.</p>
+          }
         </div>
       }
     }

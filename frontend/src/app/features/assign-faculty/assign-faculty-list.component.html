@@ -1,8 +1,10 @@
 <div class="list-page mlp-page">
-  <div class="entry-form-header">
-    <div class="entry-form-hdr-text">
-      <h1 class="page-title">Assign <em>Faculty</em></h1>
-      <p class="page-subtitle">
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="mlp-title">Assign <em>Faculty</em></h1>
+      </div>
+      <p class="mlp-sub">
         @if (selectedTerm(); as term) {
           {{ term.academicYearName }} · {{ term.termType }} Term — assign who teaches each offering, once you know which subjects and electives are actually running
         } @else {
@@ -98,6 +100,10 @@
         </span>
       }
     </div>
+    <div class="toolbar-right">
+      <cms-wrap-text-toggle [state]="colState" />
+      <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
+    </div>
   </div>
 
   <div class="content-card mlp-table-card">
@@ -107,46 +113,46 @@
       </div>
     } @else {
       <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort class="modern-table">
-          <ng-container matColumnDef="subjectCode">
+        <table mat-table [dataSource]="dataSource" matSort [cmsResizableColumns]="colState" class="modern-table">
+          <ng-container matColumnDef="subjectCode" [sticky]="colState.isSticky('subjectCode')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
             <td mat-cell *matCellDef="let row">
               <span class="cell-code">{{ row.subjectCode }}</span>
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="subjectName">
+          <ng-container matColumnDef="subjectName" [sticky]="colState.isSticky('subjectName')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Subject</th>
             <td mat-cell *matCellDef="let row">
               <span class="cell-name">{{ row.subjectName }}</span>
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="termNumber">
+          <ng-container matColumnDef="termNumber" [sticky]="colState.isSticky('termNumber')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Semester</th>
             <td mat-cell *matCellDef="let row">{{ row.termNumber }}</td>
           </ng-container>
 
-          <ng-container matColumnDef="cohort">
+          <ng-container matColumnDef="cohort" [sticky]="colState.isSticky('cohort')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Cohort</th>
             <td mat-cell *matCellDef="let row">{{ cohortLabel(row) }}</td>
           </ng-container>
 
-          <ng-container matColumnDef="faculty">
+          <ng-container matColumnDef="faculty" [sticky]="colState.isSticky('faculty')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Faculty</th>
             <td mat-cell *matCellDef="let row">
-              <span class="af-faculty-cell" [title]="facultySummaryText(row)">{{ facultySummaryText(row) }}</span>
+              <span class="cell-name">{{ facultySummaryText(row) }}</span>
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="status">
+          <ng-container matColumnDef="status" [sticky]="colState.isSticky('status')">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
             <td mat-cell *matCellDef="let row">
               <cms-status-badge [status]="row.isActive ? 'ACTIVE' : 'INACTIVE'" />
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="actions">
+          <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
             <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
             <td mat-cell *matCellDef="let row">
               @if (canManageBatches() || canManage()) {
@@ -166,11 +172,11 @@
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="table-row"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0; border: none;">
+            <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding: 0; border: none;">
               <cms-empty-state
                 icon="person_edit"
                 [title]="(searchValue() || selectedSemester() !== 'ALL' || selectedCohort() !== 'ALL') ? 'No offerings found' : 'No offerings yet'"

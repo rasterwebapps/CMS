@@ -1,4 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -31,7 +32,7 @@ export interface CourseOfferingEditDialogData {
 @Component({
   selector: 'app-course-offering-edit-dialog',
   standalone: true,
-  imports: [MatDialogModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [MatDialogModule, MatIconModule, MatProgressSpinnerModule, FormsModule],
   templateUrl: './course-offering-edit-dialog.component.html',
   styleUrl: './course-offering-edit-dialog.component.scss',
 })
@@ -147,6 +148,18 @@ export class CourseOfferingEditDialogComponent implements OnInit {
     });
   }
 
+  /** Re-fetches the pool checklist's capacity figures and drops both per-row candidate caches, so a
+   *  just-made assignment's effect on everyone's remaining hours shows up immediately elsewhere in
+   *  this dialog (another row's dropdown, the pool checklist above) rather than only after closing
+   *  and reopening it. */
+  private refreshCapacityFigures(): void {
+    this.sectionCandidatesCache.set(new Map());
+    this.cohortCandidatesCache.set(new Map());
+    this.academicYearService.getEligibleFaculty(this.data.offering.id).subscribe({
+      next: (candidates) => this.eligibleCandidates.set(candidates),
+    });
+  }
+
   /** A unique key per row regardless of type — cohortSectionId and cohortId are different id
    *  spaces, so a plain numeric key alone could collide between a section row and a cohort row. */
   protected rowKey(row: SectionFacultyAssignment): string {
@@ -169,6 +182,7 @@ export class CourseOfferingEditDialogComponent implements OnInit {
       this.sectionCandidatesLoading.add(cohortSectionId);
       this.academicYearService.getEligibleFacultyForSection(this.data.offering.id, cohortSectionId).subscribe({
         next: (candidates) => {
+          this.sectionCandidatesLoading.delete(cohortSectionId);
           this.sectionCandidatesCache.update((m) => new Map(m).set(cohortSectionId, candidates));
         },
         error: () => { this.sectionCandidatesLoading.delete(cohortSectionId); },
@@ -184,6 +198,7 @@ export class CourseOfferingEditDialogComponent implements OnInit {
       this.cohortCandidatesLoading.add(cohortId);
       this.academicYearService.getEligibleFacultyForCohort(this.data.offering.id, cohortId).subscribe({
         next: (candidates) => {
+          this.cohortCandidatesLoading.delete(cohortId);
           this.cohortCandidatesCache.update((m) => new Map(m).set(cohortId, candidates));
         },
         error: () => { this.cohortCandidatesLoading.delete(cohortId); },
@@ -220,6 +235,9 @@ export class CourseOfferingEditDialogComponent implements OnInit {
         this.assignmentSavingKey.set(null);
         this.assignmentRows.update((rows) => rows.map((r) => (this.rowKey(r) === key ? updated : r)));
         this.toast.success(`${row.sectionLabel ?? row.cohortName} updated`);
+        // This pick changes the assigned faculty's remaining hours everywhere else in this dialog
+        // (the pool checklist above and every other row's own candidate list) -- refresh both.
+        this.refreshCapacityFigures();
       },
       error: (err) => {
         this.assignmentSavingKey.set(null);
