@@ -14,4 +14,13 @@ public interface CourseOfferingSectionFacultyRepository extends JpaRepository<Co
     Optional<CourseOfferingSectionFaculty> findByCourseOfferingIdAndCohortSectionId(Long courseOfferingId, Long cohortSectionId);
 
     void deleteByCourseOfferingIdAndCohortSectionId(Long courseOfferingId, Long cohortSectionId);
+
+    /** The whole-cohort row (no section split) for this offering+cohort, if one exists. */
+    Optional<CourseOfferingSectionFaculty> findByCourseOfferingIdAndCohortIdAndCohortSectionIdIsNull(Long courseOfferingId, Long cohortId);
+
+    void deleteByCourseOfferingIdAndCohortIdAndCohortSectionIdIsNull(Long courseOfferingId, Long cohortId);
+
+    /** Every assignment row for every offering in a term instance, in one query -- backs the
+     *  Assign Faculty list table's Faculty column summary without an N+1 per-row fetch. */
+    List<CourseOfferingSectionFaculty> findByCourseOffering_TermInstanceId(Long termInstanceId);
 }

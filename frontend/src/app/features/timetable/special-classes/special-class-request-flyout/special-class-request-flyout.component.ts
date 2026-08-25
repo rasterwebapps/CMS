@@ -151,9 +151,20 @@ export class SpecialClassRequestFlyoutComponent {
       });
   }
 
+  /** Prefills the (still freely editable) Faculty dropdown from the offering's whole-cohort
+   *  assignment, if one exists — cohortSectionId isn't entered yet at this point in the form, so a
+   *  split cohort with independently-assigned sections has no single answer to prefill and is left
+   *  blank for the admin to pick themselves. */
   protected onCourseOfferingChange(): void {
     const offering = this.selectedOffering();
-    this.requestedFacultyId = offering?.facultyId ?? null;
+    this.requestedFacultyId = null;
+    if (!offering || this.selectedCohortId == null) return;
+    this.academicYearService.getSectionFaculty(offering.id).subscribe({
+      next: (res) => {
+        const row = res.sections.find((r) => r.cohortId === this.selectedCohortId && r.cohortSectionId === null);
+        this.requestedFacultyId = row?.facultyId ?? null;
+      },
+    });
   }
 
   protected venueOptionsFor(type: SpecialClassSessionType): { id: number; name: string }[] {

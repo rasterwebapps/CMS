@@ -71,8 +71,8 @@
           <div class="staffing-row__assign">
             <select class="field-select" [(ngModel)]="row.facultyId" [disabled]="!canManage() || row.saving" aria-label="Faculty">
               <option [ngValue]="null" disabled>Select faculty</option>
-              @for (f of eligibleFacultyFor(row); track f.id) {
-                <option [ngValue]="f.id">{{ facultyOptionLabel(row, f) }}</option>
+              @for (c of eligibleCandidatesFor(row); track c.facultyId) {
+                <option [ngValue]="c.facultyId">{{ candidateOptionLabel(row, c) }}</option>
               }
             </select>
 

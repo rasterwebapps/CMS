@@ -17,14 +17,12 @@ import com.cms.dto.FacultyWorkloadRow;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.ClassSchedule;
 import com.cms.model.CourseOffering;
-import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
 import com.cms.model.FacultyAvailability;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.repository.ClassScheduleRepository;
-import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -45,21 +43,21 @@ import com.cms.repository.TermInstanceRepository;
 public class FacultyWorkloadCapacityService {
 
     private final TermInstanceRepository termInstanceRepository;
-    private final CourseOfferingRepository courseOfferingRepository;
     private final ClassScheduleRepository classScheduleRepository;
     private final FacultyRepository facultyRepository;
     private final FacultyAvailabilityRepository facultyAvailabilityRepository;
+    private final TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
 
     public FacultyWorkloadCapacityService(TermInstanceRepository termInstanceRepository,
-                                           CourseOfferingRepository courseOfferingRepository,
                                            ClassScheduleRepository classScheduleRepository,
                                            FacultyRepository facultyRepository,
-                                           FacultyAvailabilityRepository facultyAvailabilityRepository) {
+                                           FacultyAvailabilityRepository facultyAvailabilityRepository,
+                                           TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService) {
         this.termInstanceRepository = termInstanceRepository;
-        this.courseOfferingRepository = courseOfferingRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.facultyRepository = facultyRepository;
         this.facultyAvailabilityRepository = facultyAvailabilityRepository;
+        this.timetableGlobalAutoScheduleService = timetableGlobalAutoScheduleService;
     }
 
     public FacultyWorkloadReportResponse getTermWorkloadReport(Long termInstanceId) {
@@ -67,16 +65,13 @@ public class FacultyWorkloadCapacityService {
             .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
         int weeksInTerm = CurriculumHoursCalculator.weeksInTerm(term);
 
+        // Reuses TimetableGlobalAutoScheduleService's per-cohort/per-section/per-batch demand
+        // attribution (term-total hours) rather than a second, coarser computation here -- the old
+        // version summed each offering's curriculum hours exactly once regardless of how many
+        // cohorts shared it, silently under-counting shared offerings.
         Map<Long, Double> demandByFaculty = new HashMap<>();
-        for (CourseOffering offering : courseOfferingRepository.findByTermInstanceId(termInstanceId)) {
-            Long facultyId = offering.getFacultyId();
-            CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
-            if (facultyId == null || csc == null) {
-                continue;
-            }
-            int totalHours = safe(csc.getTheoryHours()) + safe(csc.getLabHours()) + safe(csc.getClinicalHours());
-            demandByFaculty.merge(facultyId, totalHours / (double) weeksInTerm, Double::sum);
-        }
+        timetableGlobalAutoScheduleService.getTermTotalDemandByFaculty(termInstanceId)
+            .forEach((facultyId, totalHours) -> demandByFaculty.put(facultyId, totalHours / weeksInTerm));
 
         // Matches TimetableStaffingService.checkWithinWorkloadCaps's own {PUBLISHED, DRAFT}
         // filter -- previously this summed every status, which could silently disagree with the
@@ -170,9 +165,5 @@ public class FacultyWorkloadCapacityService {
     private static String designationName(Faculty faculty) {
         DesignationMaster designation = faculty.getDesignation();
         return designation != null ? designation.getName() : null;
-    }
-
-    private static int safe(Integer value) {
-        return value != null ? value : 0;
     }
 }

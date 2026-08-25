@@ -9,7 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { environment } from '../../../environments/environment';
 import { AcademicYearService } from '../academic-year/academic-year.service';
-import { AcademicYear, CourseOffering, TermInstance } from '../academic-year/academic-year.model';
+import { AcademicYear, CourseOffering, CourseOfferingFacultySummary, TermInstance } from '../academic-year/academic-year.model';
 import { CmsEmptyStateComponent } from '../../shared/empty-state/empty-state.component';
 import { CmsRowActionButtonComponent } from '../../shared/row-action-button/row-action-button.component';
 import { CmsStatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
@@ -64,7 +64,7 @@ export class AssignFacultyListComponent implements OnInit {
     if (value) this.dataSource.sort = value;
   }
 
-  protected readonly displayedColumns = ['subjectCode', 'subjectName', 'termNumber', 'cohort', 'faculty', 'secondaryFaculty', 'status', 'actions'];
+  protected readonly displayedColumns = ['subjectCode', 'subjectName', 'termNumber', 'cohort', 'faculty', 'status', 'actions'];
   protected readonly dataSource = new MatTableDataSource<CourseOffering>([]);
   protected readonly loading = signal(false);
   protected readonly termsLoading = signal(false);
@@ -73,7 +73,11 @@ export class AssignFacultyListComponent implements OnInit {
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
   protected readonly faculty = signal<FacultyOption[]>([]);
-  private readonly facultyById = computed(() => new Map(this.faculty().map((f) => [f.id, f.name])));
+
+  /** Assigned-faculty names per offering, keyed by offering id — an offering absent from this map
+   *  has zero assignment rows at all. Assignment is per-cohort (per-section, if split) now, so a
+   *  single offering can list more than one name when it's shared by more than one cohort. */
+  private readonly facultySummaryByOfferingId = signal<Map<number, string[]>>(new Map());
 
   private readonly offerings = signal<CourseOffering[]>([]);
   protected readonly selectedSemester = signal<number | 'ALL'>('ALL');
@@ -112,13 +116,12 @@ export class AssignFacultyListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Same client-side sort-accessor fix as Course Offerings — 'faculty'/'secondaryFaculty'/'status'
-    // are rendered from facultyId/secondaryFacultyId/isActive, not fields of those literal names.
+    // Same client-side sort-accessor fix as Course Offerings — 'faculty'/'status' are rendered
+    // from facultyId/isActive, not fields of those literal names.
     this.dataSource.sortingDataAccessor = (row: CourseOffering, sortHeaderId: string) => {
       switch (sortHeaderId) {
         case 'cohort': return row.cohortNames.join(', ').toLowerCase();
-        case 'faculty': return this.facultyName(row.facultyId).toLowerCase();
-        case 'secondaryFaculty': return row.secondaryFacultyId ? this.facultyName(row.secondaryFacultyId).toLowerCase() : '';
+        case 'faculty': return this.facultySummaryText(row).toLowerCase();
         case 'status': return row.isActive ? 1 : 0;
         default: return (row as unknown as Record<string, string | number>)[sortHeaderId] ?? '';
       }
@@ -195,7 +198,6 @@ export class AssignFacultyListComponent implements OnInit {
   protected assignFaculty(row: CourseOffering, suggestedFacultyId: number | null = null): void {
     const data: CourseOfferingEditDialogData = {
       offering: row,
-      facultyOptions: this.faculty(),
       suggestedFacultyId,
     };
     this.dialog.open(CourseOfferingEditDialogComponent, { data, width: '480px' })
@@ -229,9 +231,11 @@ export class AssignFacultyListComponent implements OnInit {
     this.dialog.open(ClassInchargeDialogComponent, { data, width: '560px' });
   }
 
-  protected facultyName(id: number | null): string {
-    if (id == null) return 'Unassigned';
-    return this.facultyById().get(id) ?? 'Unassigned';
+  /** Comma-joined assigned faculty names for this offering's row, or "Unassigned" if it has no
+   *  assignment rows at all yet — open the Assign Faculty dialog for the per-cohort/section detail. */
+  protected facultySummaryText(row: CourseOffering): string {
+    const names = this.facultySummaryByOfferingId().get(row.id);
+    return names && names.length > 0 ? names.join(', ') : 'Unassigned';
   }
 
   private loadTermInstances(academicYearId: number, preselectTermInstanceId?: number): void {
@@ -261,6 +265,13 @@ export class AssignFacultyListComponent implements OnInit {
         this.consumePendingDeepLinkEdit(data);
       },
       error: () => { this.toast.error('Failed to load course offerings'); this.loading.set(false); },
+    });
+
+    this.academicYearService.getFacultyAssignmentSummary(termInstanceId).subscribe({
+      next: (summaries) => {
+        this.facultySummaryByOfferingId.set(new Map(summaries.map((s) => [s.offeringId, s.assignedFacultyNames])));
+      },
+      error: () => { /* non-fatal — column falls back to "Unassigned" for every row */ },
     });
   }
 

@@ -9,112 +9,100 @@
 </div>
 
 <mat-dialog-content>
-  @if (prefilledFromSuggestion) {
+  @if (suggestedFacultyName(); as name) {
     <div class="coed-prefill-banner">
-      Opened from a Global Auto-Schedule capacity suggestion — the Faculty field below has been pre-filled with the
-      suggested reassignment. Nothing is saved until you confirm with Save.
+      Opened from a Global Auto-Schedule capacity suggestion — it suggests reassigning to <strong>{{ name }}</strong>.
+      Pick them from the row(s) below to apply it; nothing is changed until you do.
     </div>
   }
-  <form [formGroup]="form" class="coed-form">
-
-    <div class="field-group">
-      <label for="coed-faculty" class="field-label">Faculty</label>
-      <select id="coed-faculty" class="field-select" formControlName="facultyId">
-        <option [ngValue]="null">Unassigned</option>
-        @for (f of eligibleFacultyOptions(); track f.id) {
-          <option [ngValue]="f.id">{{ f.name }}</option>
+  <div class="field-group">
+    <span class="field-label">Faculty Pool</span>
+    <p class="field-hint">
+      Step 1 — mark every faculty who could teach this offering. Step 2 (below) assigns one of them per cohort
+      (or per section, for a cohort whose Theory delivery has split).
+    </p>
+    @if (eligibleCandidatesLoading()) {
+      <p class="field-hint">Loading eligible faculty…</p>
+    } @else {
+      <div class="coed-candidate-list" role="group" aria-label="Faculty Pool">
+        @for (c of eligibleCandidates(); track c.facultyId) {
+          <label class="coed-candidate-row">
+            <input type="checkbox" [checked]="poolSelection().has(c.facultyId)" [disabled]="poolSaving()"
+              (change)="toggleInPool(c.facultyId)">
+            <span class="coed-candidate-row__name">{{ c.facultyName }}</span>
+            <span class="coed-candidate-row__badge" [class.coed-candidate-row__badge--eligible-list]="c.viaEligibleList"
+              [class.coed-candidate-row__badge--grandfathered]="!c.specialityMatch && !c.viaEligibleList">
+              {{ candidateBadgeText(c) }}
+            </span>
+            <span class="coed-candidate-row__hours" [class.coed-candidate-row__hours--over]="c.overCapacity">
+              {{ candidateHoursText(c) }}
+            </span>
+          </label>
         }
-      </select>
-      @if (data.offering.subjectSpecialityName) {
-        <p class="field-hint">Showing {{ data.offering.subjectSpecialityName }} department faculty only</p>
-      }
-      @if (capacityChecking()) {
-        <p class="field-hint">Checking capacity…</p>
-      } @else if (capacityCheck(); as check) {
-        @if (check.overCapacity) {
-          <div class="coed-capacity-warning">
-            <p>
-              This would put them at {{ check.projectedTotalHours | number: '1.0-1' }}h against a capacity of
-              {{ check.capacityHours | number: '1.0-1' }}h ({{ check.dailyCap | number: '1.0-1' }}h/day) — raise their cap to at
-              least {{ check.suggestedMinDailyHours | number: '1.0-1' }}h/day to save this assignment.
-            </p>
-            @if (check.spreadLoad.length > 0) {
-              <p>
-                Or assign {{ check.spreadLoad[0].alternateFacultyName }} instead
-                ({{ check.spreadLoad[0].alternateSpareCapacityHours | number: '1.0-1' }}h spare capacity).
-              </p>
-            }
-            @if (canManageFaculty() && capacityCheckFacultyId(); as fid) {
-              <a class="coed-capacity-fix-link" [routerLink]="['/faculty', fid, 'edit']" target="_blank" rel="noopener">
-                Fix their work hours
-                <mat-icon>open_in_new</mat-icon>
-              </a>
+        @if (eligibleCandidates().length === 0) {
+          <p class="field-hint">No eligible faculty found for this subject — widen it from the Subject form's Eligible Faculty list.</p>
+        }
+      </div>
+      <button class="btn-secondary coed-save-pool-btn" type="button" [disabled]="poolSaving() || !poolDirty()" (click)="saveFacultyPool()">
+        @if (poolSaving()) { <mat-spinner diameter="14" class="btn-spinner"></mat-spinner> }
+        Save Pool
+      </button>
+    }
+  </div>
+
+  <div class="coed-section-faculty">
+    <label class="field-label">Faculty Assignment</label>
+    @if (assignmentLoading()) {
+      <p class="field-hint">Loading assignment…</p>
+    } @else if (!assignmentApplicable() || assignmentRows().length === 0) {
+      <p class="field-hint">No cohort is currently enrolled against this offering's term/semester — nothing to assign yet.</p>
+    } @else {
+      <p class="field-hint">
+        Every cohort using this offering gets its own row — one per section for a cohort whose Theory delivery has
+        split, otherwise one row for the whole cohort. Each pick saves immediately.
+      </p>
+      @for (row of assignmentRows(); track rowKey(row)) {
+        <div class="coed-section-faculty__row">
+          <div class="coed-section-faculty__row-header">
+            <span class="coed-section-faculty__label">{{ row.cohortName }}{{ row.sectionLabel ? ' — ' + row.sectionLabel : '' }}</span>
+            @if (assignmentSavingKey() === rowKey(row)) {
+              <mat-spinner diameter="14" class="btn-spinner"></mat-spinner>
             }
           </div>
-        } @else {
-          <p class="coed-capacity-ok">Fits — {{ (check.capacityHours - check.projectedTotalHours) | number: '1.0-1' }}h spare after this assignment.</p>
-        }
-      }
-    </div>
-
-    <div class="field-group">
-      <label for="coed-secondary-faculty" class="field-label">Secondary Faculty (optional)</label>
-      <select id="coed-secondary-faculty" class="field-select" formControlName="secondaryFacultyId">
-        <option [ngValue]="null">None</option>
-        @for (f of eligibleSecondaryFacultyOptions(); track f.id) {
-          <option [ngValue]="f.id">{{ f.name }}</option>
-        }
-      </select>
-      @if (sameFacultyConflict()) {
-        <p class="field-hint field-hint--error">Primary and secondary faculty can't be the same person — they can't substitute for themselves.</p>
-      } @else {
-        <p class="field-hint">Co-instructor — eligible as a substitute if the primary faculty is marked absent</p>
-      }
-    </div>
-
-  </form>
-
-  @if (showSectionFaculty()) {
-    <div class="coed-section-faculty">
-      <label class="field-label">Section Faculty</label>
-      <p class="field-hint">
-        This cohort's Theory delivery is split into {{ sectionFacultySections().length }} active sections — assign
-        a different faculty per section, or leave blank to use the primary faculty above.
-      </p>
-      @for (row of sectionFacultySections(); track row.cohortSectionId) {
-        <div class="coed-section-faculty__row">
-          <span class="coed-section-faculty__label">{{ row.cohortName }} — {{ row.sectionLabel }}</span>
-          <select
-            class="field-select"
-            [ngModel]="row.facultyId"
-            (ngModelChange)="onSectionFacultyChange(row, $event)"
-            [disabled]="!canManageSectionFaculty() || sectionFacultySavingId() === row.cohortSectionId"
-            [attr.aria-label]="row.cohortName + ' ' + row.sectionLabel + ' faculty'">
-            <option [ngValue]="null">Uses primary faculty</option>
-            @for (f of sectionFacultyOptionsFor(row); track f.id) {
-              <option [ngValue]="f.id">{{ f.name }}</option>
+          <div class="coed-candidate-list" role="radiogroup" [attr.aria-label]="row.cohortName + ' faculty'">
+            <label class="coed-candidate-row coed-candidate-row--none">
+              <input type="radio" [name]="'coed-row-' + rowKey(row)" [checked]="row.facultyId === null"
+                [disabled]="!canManageAssignment() || assignmentSavingKey() === rowKey(row)"
+                (change)="onAssignmentChange(row, null)">
+              <span class="coed-candidate-row__name">Unassigned</span>
+            </label>
+            @for (c of candidatesFor(row); track c.facultyId) {
+              <label class="coed-candidate-row" [class.coed-candidate-row--over]="c.overCapacity">
+                <input type="radio" [name]="'coed-row-' + rowKey(row)" [checked]="row.facultyId === c.facultyId"
+                  [disabled]="!canManageAssignment() || assignmentSavingKey() === rowKey(row)"
+                  (change)="onAssignmentChange(row, c.facultyId)">
+                <span class="coed-candidate-row__name">{{ c.facultyName }}</span>
+                <span class="coed-candidate-row__badge" [class.coed-candidate-row__badge--eligible-list]="c.viaEligibleList"
+                  [class.coed-candidate-row__badge--grandfathered]="!c.specialityMatch && !c.viaEligibleList">
+                  {{ candidateBadgeText(c) }}
+                </span>
+                <span class="coed-candidate-row__hours" [class.coed-candidate-row__hours--over]="c.overCapacity">
+                  {{ candidateHoursText(c) }}
+                </span>
+              </label>
             }
-          </select>
-          @if (sectionFacultySavingId() === row.cohortSectionId) {
-            <mat-spinner diameter="14" class="btn-spinner"></mat-spinner>
-          }
+            @if (candidatesFor(row).length === 0) {
+              <p class="field-hint">No one's in the Faculty Pool yet — mark eligible faculty above first.</p>
+            }
+          </div>
         </div>
       }
-    </div>
-  }
+    }
+  </div>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button class="btn-secondary" type="button" (click)="onCancel()" [disabled]="saving()">
-    Cancel
-  </button>
-  <button class="btn-primary" type="button" (click)="onSubmit()"
-    [disabled]="saving() || capacityChecking() || !!capacityCheck()?.overCapacity || sameFacultyConflict()">
-    @if (saving()) {
-      <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-    } @else {
-      <mat-icon>save</mat-icon>
-    }
-    Save
+  <button class="btn-primary" type="button" (click)="onClose()">
+    Close
   </button>
 </mat-dialog-actions>

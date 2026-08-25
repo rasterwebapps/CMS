@@ -26,6 +26,12 @@ export interface UnstaffedCell {
   /** Non-empty only for a cell that's part of a Rotation Group — batchName is null on those
    *  (there's no single fixed occupant); this lists who alternates through it instead. */
   rotatingBatchNames: string[];
+  /** The CohortSection this THEORY row was placed for, once its cohort's committed Theory room
+   *  has been split into sections — null means "whole cohort" and, for LAB/CLINICAL, always null.
+   *  Drives which eligible-faculty list (offering-level or section-level) backs the picker below,
+   *  and which one's designated faculty (Course Offering Section Faculty override, if any) it
+   *  pre-fills from. */
+  cohortSectionId: number | null;
 }
 
 export interface StaffingAssignmentRequest {

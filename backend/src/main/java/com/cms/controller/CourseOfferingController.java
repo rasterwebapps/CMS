@@ -17,9 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.dto.CourseOfferingDto;
+import com.cms.dto.CourseOfferingFacultySummaryDto;
 import com.cms.dto.CourseOfferingSectionFacultyResponse;
-import com.cms.dto.CourseOfferingUpdateRequest;
+import com.cms.dto.EligibleFacultyCandidateDto;
 import com.cms.dto.FacultyCapacityCheckResult;
+import com.cms.dto.FacultyPoolUpdateRequest;
 import com.cms.dto.GenerateOfferingsResponse;
 import com.cms.dto.SectionFacultyAssignment;
 import com.cms.dto.SectionFacultyUpsertRequest;
@@ -85,13 +87,42 @@ public class CourseOfferingController {
         return ResponseEntity.ok(courseOfferingService.generateOfferingsForTermInstance(termInstanceId));
     }
 
-    @PutMapping("/{id}")
+    /** Every eligible (Speciality match OR the subject's Eligible Faculty list) active faculty for
+     *  this offering, each annotated with real remaining term capacity and sorted most-free-first —
+     *  backs the Assign Faculty picker's primary Faculty field. */
+    @GetMapping("/{id}/eligible-faculty")
     @PreAuthorize("@perm.has('COURSE_MANAGE')")
-    public ResponseEntity<CourseOfferingDto> update(
-            @PathVariable Long id,
-            @RequestBody CourseOfferingUpdateRequest request) {
-        return ResponseEntity.ok(
-            courseOfferingService.updateOffering(id, request.facultyId(), request.secondaryFacultyId()));
+    public ResponseEntity<List<EligibleFacultyCandidateDto>> getEligibleFaculty(@PathVariable Long id) {
+        return ResponseEntity.ok(timetableGlobalAutoScheduleService.getEligibleFacultyForOffering(id));
+    }
+
+    /** Section-scoped counterpart of {@link #getEligibleFaculty} — backs the per-section picker in
+     *  the Section Faculty sub-widget, projecting each candidate's load against just this section's
+     *  own Theory hours rather than the whole offering's. */
+    @GetMapping("/{id}/sections/{cohortSectionId}/eligible-faculty")
+    @PreAuthorize("@perm.has('SECTION_FACULTY_VIEW')")
+    public ResponseEntity<List<EligibleFacultyCandidateDto>> getEligibleFacultyForSection(
+            @PathVariable Long id, @PathVariable Long cohortSectionId) {
+        return ResponseEntity.ok(timetableGlobalAutoScheduleService.getEligibleFacultyForSection(id, cohortSectionId));
+    }
+
+    /** Cohort-scoped counterpart of {@link #getEligibleFacultyForSection} — for a cohort with no
+     *  active section split, projecting each candidate's load against this cohort's whole
+     *  theory+lab+clinical hours rather than one section's theory hours. */
+    @GetMapping("/{id}/cohorts/{cohortId}/eligible-faculty")
+    @PreAuthorize("@perm.has('SECTION_FACULTY_VIEW')")
+    public ResponseEntity<List<EligibleFacultyCandidateDto>> getEligibleFacultyForCohort(
+            @PathVariable Long id, @PathVariable Long cohortId) {
+        return ResponseEntity.ok(timetableGlobalAutoScheduleService.getEligibleFacultyForCohort(id, cohortId));
+    }
+
+    /** Replaces this offering's admin-curated faculty pool wholesale — the primary/section pickers
+     *  are then scoped to just this pool rather than the full eligible list. */
+    @PutMapping("/{id}/faculty-pool")
+    @PreAuthorize("@perm.has('COURSE_MANAGE')")
+    public ResponseEntity<List<EligibleFacultyCandidateDto>> updateFacultyPool(
+            @PathVariable Long id, @RequestBody FacultyPoolUpdateRequest request) {
+        return ResponseEntity.ok(courseOfferingService.updateFacultyPool(id, request.facultyIds()));
     }
 
     @PatchMapping("/{id}/status")
@@ -102,19 +133,31 @@ public class CourseOfferingController {
         return ResponseEntity.ok(courseOfferingService.updateStatus(id, request));
     }
 
-    /** Live, pre-save check for the edit dialog's Faculty picker — same math {@link
-     *  #update} hard-blocks on, surfaced early so the admin sees it before even clicking Save. */
-    @GetMapping("/{id}/faculty-capacity-check")
-    @PreAuthorize("@perm.has('COURSE_MANAGE')")
-    public ResponseEntity<FacultyCapacityCheckResult> checkFacultyCapacity(
+    /** Live, pre-save check for a whole-cohort assignment (no section split) — same math {@link
+     *  #upsertCohortFaculty} hard-blocks on, surfaced early so the admin sees it before saving. */
+    @GetMapping("/{id}/cohort-faculty-capacity-check")
+    @PreAuthorize("@perm.has('SECTION_FACULTY_VIEW')")
+    public ResponseEntity<FacultyCapacityCheckResult> checkFacultyCapacityForCohort(
             @PathVariable Long id,
-            @RequestParam Long facultyId,
-            @RequestParam Long termInstanceId) {
-        return ResponseEntity.ok(timetableGlobalAutoScheduleService.checkFacultyCapacityForOffering(termInstanceId, id, facultyId));
+            @RequestParam Long cohortId,
+            @RequestParam Long facultyId) {
+        return ResponseEntity.ok(timetableGlobalAutoScheduleService.checkFacultyCapacityForCohort(id, cohortId, facultyId));
     }
 
-    /** Per-section Theory faculty overrides for this offering's cohort — advisory/accounting-only,
-     *  feeds the same capacity math above without touching Skeleton Builder placement or Staffing. */
+    /** Roll-up of every offering's currently-assigned faculty in a term instance, in one call --
+     *  backs the Assign Faculty list table's Faculty column. See {@link
+     *  CourseOfferingSectionFacultyService#getAssignmentSummaryForTermInstance}. */
+    @GetMapping("/faculty-assignment-summary")
+    @PreAuthorize("@perm.has('SECTION_FACULTY_VIEW')")
+    public ResponseEntity<List<CourseOfferingFacultySummaryDto>> getFacultyAssignmentSummary(
+            @RequestParam Long termInstanceId) {
+        return ResponseEntity.ok(sectionFacultyService.getAssignmentSummaryForTermInstance(termInstanceId));
+    }
+
+    /** Every cohort using this offering, each with one row per active section if its Theory
+     *  delivery has split, or exactly one whole-cohort row if it hasn't -- authoritative for
+     *  placement, not just accounting (Global Auto-Schedule and Staffing's auto-assign both
+     *  resolve a Theory row's faculty from here). */
     @GetMapping("/{id}/section-faculty")
     @PreAuthorize("@perm.has('SECTION_FACULTY_VIEW')")
     public ResponseEntity<CourseOfferingSectionFacultyResponse> getSectionFaculty(@PathVariable Long id) {
@@ -128,5 +171,16 @@ public class CourseOfferingController {
             @PathVariable Long cohortSectionId,
             @RequestBody SectionFacultyUpsertRequest request) {
         return ResponseEntity.ok(sectionFacultyService.upsert(id, cohortSectionId, request.facultyId()));
+    }
+
+    /** Whole-cohort counterpart of {@link #upsertSectionFaculty} -- for a cohort with no active
+     *  section split. */
+    @PutMapping("/{id}/cohort-faculty/{cohortId}")
+    @PreAuthorize("@perm.has('SECTION_FACULTY_MANAGE')")
+    public ResponseEntity<SectionFacultyAssignment> upsertCohortFaculty(
+            @PathVariable Long id,
+            @PathVariable Long cohortId,
+            @RequestBody SectionFacultyUpsertRequest request) {
+        return ResponseEntity.ok(sectionFacultyService.upsertForCohort(id, cohortId, request.facultyId()));
     }
 }

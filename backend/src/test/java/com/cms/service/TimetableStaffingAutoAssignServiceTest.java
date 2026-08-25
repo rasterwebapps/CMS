@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,15 +18,20 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.AutoStaffResult;
+import com.cms.dto.FacultyCapacityCheckResult;
 import com.cms.dto.StaffingAssignmentRequest;
 import com.cms.dto.UnstaffedCellResponse;
 import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.ClassSchedule;
+import com.cms.model.CourseOffering;
+import com.cms.model.CourseOfferingSectionFaculty;
 import com.cms.model.Faculty;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.CourseOfferingRepository;
+import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.FacultyRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,18 +40,36 @@ class TimetableStaffingAutoAssignServiceTest {
     @Mock private TimetableStaffingService timetableStaffingService;
     @Mock private FacultyRepository facultyRepository;
     @Mock private ClassScheduleRepository classScheduleRepository;
+    @Mock private CourseOfferingRepository courseOfferingRepository;
+    @Mock private CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository;
+    @Mock private TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
 
     private TimetableStaffingAutoAssignService service;
 
     @BeforeEach
     void setUp() {
-        service = new TimetableStaffingAutoAssignService(timetableStaffingService, facultyRepository, classScheduleRepository);
+        service = new TimetableStaffingAutoAssignService(timetableStaffingService, facultyRepository, classScheduleRepository,
+            courseOfferingRepository, courseOfferingSectionFacultyRepository, timetableGlobalAutoScheduleService);
     }
 
     private UnstaffedCellResponse cell(Long id, Long offeringId, String subjectName, Long specialityId, Long venueId, boolean elective) {
         return new UnstaffedCellResponse(id, offeringId, subjectName, subjectName.substring(0, 4).toUpperCase(),
             specialityId, "Nursing", ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",
-            LocalTime.of(9, 0), LocalTime.of(9, 50), null, 40, venueId, "Room 101", 60, elective, List.of(), null);
+            LocalTime.of(9, 0), LocalTime.of(9, 50), null, 40, venueId, "Room 101", 60, elective, List.of(), null, null);
+    }
+
+    private UnstaffedCellResponse cellWithSection(Long id, Long offeringId, Long cohortSectionId, Long specialityId, Long venueId) {
+        return new UnstaffedCellResponse(id, offeringId, "Anatomy", "ANAT",
+            specialityId, "Nursing", ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",
+            LocalTime.of(9, 0), LocalTime.of(9, 50), null, 40, venueId, "Room 101", 60, false, List.of(), null, cohortSectionId);
+    }
+
+    private FacultyCapacityCheckResult fitsWithinCapacity() {
+        return new FacultyCapacityCheckResult(false, 0, 0, 0, 100, 5, "NONE", 100, 0, List.of());
+    }
+
+    private FacultyCapacityCheckResult overCapacity() {
+        return new FacultyCapacityCheckResult(true, 90, 40, 130, 100, 5, "FACULTY_OVERRIDE", 100, 2, List.of());
     }
 
     private Faculty faculty(Long id) {
@@ -156,5 +180,50 @@ class TimetableStaffingAutoAssignServiceTest {
         assertThat(result.staffedCount()).isZero();
         assertThat(result.unplaced()).hasSize(1);
         assertThat(result.unplaced().get(0).subjectName()).isEqualTo("Anatomy");
+    }
+
+    @Test
+    void shouldPreferASectionsFacultyOverrideWhenItHasCapacity() {
+        CourseOffering offering = new CourseOffering();
+        offering.setId(100L);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(timetableStaffingService.getUnstaffedCells(10L))
+            .thenReturn(List.of(cellWithSection(1L, 100L, 20L, 5L, 9L)));
+        CourseOfferingSectionFaculty override = new CourseOfferingSectionFaculty();
+        override.setFaculty(faculty(60L));
+        when(courseOfferingSectionFacultyRepository.findByCourseOfferingIdAndCohortSectionId(100L, 20L))
+            .thenReturn(Optional.of(override));
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 20L, 60L))
+            .thenReturn(fitsWithinCapacity());
+
+        AutoStaffResult result = service.autoStaff(10L);
+
+        assertThat(result.staffedCount()).isEqualTo(1);
+        verify(timetableStaffingService).staffCell(1L, new StaffingAssignmentRequest(60L, null));
+        verify(facultyRepository, times(0)).findBySpecialityIdAndStatus(any(), any());
+    }
+
+    @Test
+    void shouldFallBackToRankedPoolWhenSectionOverrideIsOverCapacity() {
+        CourseOffering offering = new CourseOffering();
+        offering.setId(100L);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(timetableStaffingService.getUnstaffedCells(10L))
+            .thenReturn(List.of(cellWithSection(1L, 100L, 20L, 5L, 9L)));
+        CourseOfferingSectionFaculty override = new CourseOfferingSectionFaculty();
+        override.setFaculty(faculty(60L));
+        when(courseOfferingSectionFacultyRepository.findByCourseOfferingIdAndCohortSectionId(100L, 20L))
+            .thenReturn(Optional.of(override));
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 20L, 60L))
+            .thenReturn(overCapacity());
+        when(facultyRepository.findBySpecialityIdAndStatus(5L, FacultyStatus.ACTIVE))
+            .thenReturn(List.of(faculty(50L)));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+
+        AutoStaffResult result = service.autoStaff(10L);
+
+        assertThat(result.staffedCount()).isEqualTo(1);
+        verify(timetableStaffingService).staffCell(1L, new StaffingAssignmentRequest(50L, null));
+        verify(timetableStaffingService, times(0)).staffCell(1L, new StaffingAssignmentRequest(60L, null));
     }
 }

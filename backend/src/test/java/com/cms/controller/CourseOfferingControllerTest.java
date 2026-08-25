@@ -54,7 +54,7 @@ class CourseOfferingControllerTest {
             id, termInstanceId, "2024-2025 ODD",
             1L, "CV-2024",
             1L, "Mathematics", "MATH101", null, null, List.of(),
-            semNum, null, null, true,
+            semNum, true,
             null, false, com.cms.model.enums.SubjectType.CORE,
             null, null, null,
             0, 0,
@@ -117,17 +117,33 @@ class CourseOfferingControllerTest {
     }
 
     @Test
-    void update() throws Exception {
-        CourseOfferingDto dto = createDto(1L, 1L, 1);
-        when(service.updateOffering(1L, 42L, null)).thenReturn(dto);
+    void upsertCohortFaculty() throws Exception {
+        com.cms.dto.SectionFacultyAssignment assignment =
+            new com.cms.dto.SectionFacultyAssignment(9L, null, "2023-2027 Batch", null, 42L, "Jane Doe");
+        when(sectionFacultyService.upsertForCohort(1L, 9L, 42L)).thenReturn(assignment);
 
-        mockMvc.perform(put("/course-offerings/1")
+        mockMvc.perform(put("/course-offerings/1/cohort-faculty/9")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"facultyId\":42}"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.id").value(1));
+            .andExpect(jsonPath("$.facultyId").value(42));
 
-        verify(service).updateOffering(1L, 42L, null);
+        verify(sectionFacultyService).upsertForCohort(1L, 9L, 42L);
+    }
+
+    @Test
+    void checkFacultyCapacityForCohort() throws Exception {
+        com.cms.dto.FacultyCapacityCheckResult check =
+            new com.cms.dto.FacultyCapacityCheckResult(false, 0, 10, 10, 100, 5, "NONE", 100, 0, List.of());
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForCohort(1L, 9L, 42L)).thenReturn(check);
+
+        mockMvc.perform(get("/course-offerings/1/cohort-faculty-capacity-check")
+                .param("cohortId", "9")
+                .param("facultyId", "42"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.overCapacity").value(false));
+
+        verify(timetableGlobalAutoScheduleService).checkFacultyCapacityForCohort(1L, 9L, 42L);
     }
 
     @Test
@@ -139,5 +155,17 @@ class CourseOfferingControllerTest {
                 .content("{\"isActive\":false}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.isActive").value(false));
+    }
+
+    @Test
+    void updateFacultyPool() throws Exception {
+        when(service.updateFacultyPool(1L, List.of(42L, 43L))).thenReturn(List.of());
+
+        mockMvc.perform(put("/course-offerings/1/faculty-pool")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"facultyIds\":[42,43]}"))
+            .andExpect(status().isOk());
+
+        verify(service).updateFacultyPool(1L, List.of(42L, 43L));
     }
 }

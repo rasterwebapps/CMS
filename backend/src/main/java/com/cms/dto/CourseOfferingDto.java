@@ -21,9 +21,6 @@ public record CourseOfferingDto(
      *  FacultyEligibility. Empty means Speciality-match-only. */
     List<Long> subjectEligibleFacultyIds,
     Integer termNumber,
-    Long facultyId,
-    /** Informational-only backup/co-instructor note — never eligible for staffing/substitution. */
-    Long secondaryFacultyId,
     Boolean isActive,
     Long curriculumTermCourseId,
     Boolean isElective,

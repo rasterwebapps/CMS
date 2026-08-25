@@ -14,11 +14,12 @@ import {
   CohortSeatsRequest,
   CohortSummary,
   CourseOffering,
+  CourseOfferingFacultySummary,
   CourseOfferingSectionFacultyResponse,
   CourseOfferingStatusUpdateRequest,
   CourseOfferingStatusUpdateResponse,
-  CourseOfferingUpdateRequest,
   CourseRegistration,
+  EligibleFacultyCandidate,
   ElectiveBulkAssignmentResponse,
   ElectiveGroupSummary,
   ElectiveSelectionMode,
@@ -262,32 +263,73 @@ export class AcademicYearService {
     );
   }
 
-  updateCourseOffering(id: number, request: CourseOfferingUpdateRequest): Observable<CourseOffering> {
-    return this.http.put<CourseOffering>(`${environment.apiUrl}/course-offerings/${id}`, request);
-  }
-
   getCourseOfferingById(id: number): Observable<CourseOffering> {
     return this.http.get<CourseOffering>(`${environment.apiUrl}/course-offerings/${id}`);
   }
 
-  checkFacultyCapacity(offeringId: number, facultyId: number, termInstanceId: number): Observable<FacultyCapacityCheckResult> {
-    const params = new HttpParams().set('facultyId', facultyId.toString()).set('termInstanceId', termInstanceId.toString());
-    return this.http.get<FacultyCapacityCheckResult>(`${environment.apiUrl}/course-offerings/${offeringId}/faculty-capacity-check`, { params });
+  /** Live pre-save check for a whole-cohort assignment (no section split) — same math the save
+   *  hard-blocks on, surfaced early so the admin sees it before saving. */
+  checkFacultyCapacityForCohort(offeringId: number, cohortId: number, facultyId: number): Observable<FacultyCapacityCheckResult> {
+    const params = new HttpParams().set('cohortId', cohortId.toString()).set('facultyId', facultyId.toString());
+    return this.http.get<FacultyCapacityCheckResult>(
+      `${environment.apiUrl}/course-offerings/${offeringId}/cohort-faculty-capacity-check`, { params });
+  }
+
+  /** Every eligible (Speciality match OR the subject's Eligible Faculty list) active faculty for
+   *  this offering, annotated with remaining term capacity, sorted most-free-first by the backend. */
+  getEligibleFaculty(offeringId: number): Observable<EligibleFacultyCandidate[]> {
+    return this.http.get<EligibleFacultyCandidate[]>(`${environment.apiUrl}/course-offerings/${offeringId}/eligible-faculty`);
+  }
+
+  /** Section-scoped counterpart of {@link getEligibleFaculty} — each candidate's remaining capacity
+   *  is projected against just this section's own Theory hours rather than the whole offering's. */
+  getEligibleFacultyForSection(offeringId: number, cohortSectionId: number): Observable<EligibleFacultyCandidate[]> {
+    return this.http.get<EligibleFacultyCandidate[]>(
+      `${environment.apiUrl}/course-offerings/${offeringId}/sections/${cohortSectionId}/eligible-faculty`);
+  }
+
+  /** Cohort-scoped counterpart of {@link getEligibleFacultyForSection} — for a cohort with no
+   *  active section split, projecting each candidate's load against the cohort's whole
+   *  theory+lab+clinical hours. */
+  getEligibleFacultyForCohort(offeringId: number, cohortId: number): Observable<EligibleFacultyCandidate[]> {
+    return this.http.get<EligibleFacultyCandidate[]>(
+      `${environment.apiUrl}/course-offerings/${offeringId}/cohorts/${cohortId}/eligible-faculty`);
+  }
+
+  /** Replaces the offering's admin-curated faculty pool wholesale — the primary/section assignment
+   *  pickers are then scoped to just this pool. Returns the refreshed eligible-faculty list. */
+  updateFacultyPool(offeringId: number, facultyIds: number[]): Observable<EligibleFacultyCandidate[]> {
+    return this.http.put<EligibleFacultyCandidate[]>(
+      `${environment.apiUrl}/course-offerings/${offeringId}/faculty-pool`, { facultyIds });
   }
 
   updateCourseOfferingStatus(id: number, request: CourseOfferingStatusUpdateRequest): Observable<CourseOfferingStatusUpdateResponse> {
     return this.http.patch<CourseOfferingStatusUpdateResponse>(`${environment.apiUrl}/course-offerings/${id}/status`, request);
   }
 
+  /** Roll-up of every offering's currently-assigned faculty in a term instance, in one call —
+   *  backs the Assign Faculty list table's Faculty column. */
+  getFacultyAssignmentSummary(termInstanceId: number): Observable<CourseOfferingFacultySummary[]> {
+    const params = new HttpParams().set('termInstanceId', termInstanceId.toString());
+    return this.http.get<CourseOfferingFacultySummary[]>(
+      `${environment.apiUrl}/course-offerings/faculty-assignment-summary`, { params });
+  }
+
   getSectionFaculty(offeringId: number): Observable<CourseOfferingSectionFacultyResponse> {
     return this.http.get<CourseOfferingSectionFacultyResponse>(`${environment.apiUrl}/course-offerings/${offeringId}/section-faculty`);
   }
 
-  /** facultyId null clears the override for this section, falling back to the offering's own
-   *  primary faculty. */
+  /** facultyId null clears this section's assignment. */
   updateSectionFaculty(offeringId: number, cohortSectionId: number, facultyId: number | null): Observable<SectionFacultyAssignment> {
     return this.http.put<SectionFacultyAssignment>(
       `${environment.apiUrl}/course-offerings/${offeringId}/section-faculty/${cohortSectionId}`, { facultyId });
+  }
+
+  /** Whole-cohort counterpart of {@link updateSectionFaculty} — for a cohort with no active
+   *  section split. facultyId null clears the assignment. */
+  updateCohortFaculty(offeringId: number, cohortId: number, facultyId: number | null): Observable<SectionFacultyAssignment> {
+    return this.http.put<SectionFacultyAssignment>(
+      `${environment.apiUrl}/course-offerings/${offeringId}/cohort-faculty/${cohortId}`, { facultyId });
   }
 
   getClassIncharge(termInstanceId: number): Observable<ClassInchargeAssignment[]> {

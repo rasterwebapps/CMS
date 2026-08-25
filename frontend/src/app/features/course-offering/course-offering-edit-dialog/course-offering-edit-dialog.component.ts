@@ -1,16 +1,10 @@
-import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
 import {
   CourseOffering,
-  CourseOfferingUpdateRequest,
-  FacultyCapacityCheckResult,
+  EligibleFacultyCandidate,
   SectionFacultyAssignment,
 } from '../../academic-year/academic-year.model';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
@@ -18,6 +12,8 @@ import { PermissionService } from '../../../core/permissions/permission.service'
 import { ToastService } from '../../../core/toast/toast.service';
 import { violationText } from '../../../shared/util/violation-text';
 
+/** Kept for the other dialogs (Batch Manage, Class Incharge) that still import this shape from
+ *  here — this dialog itself no longer uses a flat FacultyOption list. */
 export interface FacultyOption {
   id: number;
   name: string;
@@ -26,226 +22,213 @@ export interface FacultyOption {
 
 export interface CourseOfferingEditDialogData {
   offering: CourseOffering;
-  facultyOptions: FacultyOption[];
   /** Set when opened via a "reassign this offering" deep link (e.g. Skeleton Builder's Global
-   *  Auto-Schedule capacity report) — pre-fills the Faculty picker with the suggested candidate
-   *  and runs the capacity check immediately, but never saves anything on its own; the admin
-   *  still has to review and click Save themselves. */
+   *  Auto-Schedule capacity report) — shown as an informational hint once the suggested faculty's
+   *  name resolves; the admin still has to pick them from the right row themselves and save. */
   suggestedFacultyId?: number | null;
 }
 
 @Component({
   selector: 'app-course-offering-edit-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule, MatDialogModule, MatIconModule, MatProgressSpinnerModule, DecimalPipe, RouterLink],
+  imports: [MatDialogModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './course-offering-edit-dialog.component.html',
   styleUrl: './course-offering-edit-dialog.component.scss',
 })
 export class CourseOfferingEditDialogComponent implements OnInit {
-  private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(MatDialogRef<CourseOfferingEditDialogComponent>);
   protected readonly data: CourseOfferingEditDialogData = inject(MAT_DIALOG_DATA);
   private readonly academicYearService = inject(AcademicYearService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
-  private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly saving = signal(false);
-  protected readonly capacityChecking = signal(false);
-  protected readonly capacityCheck = signal<FacultyCapacityCheckResult | null>(null);
-  /** The faculty id the current capacityCheck() result is for — captured alongside the check
-   *  itself since FacultyCapacityCheckResult carries no facultyId of its own, so the "fix their
-   *  work hours" deep link always points at the right person even after the picker moves on. */
-  protected readonly capacityCheckFacultyId = signal<number | null>(null);
-  protected readonly canManageFaculty = computed(() => this.permissionService.has('FACULTY_MANAGE'));
+  protected readonly canManageAssignment = computed(() => this.permissionService.has('SECTION_FACULTY_MANAGE'));
 
-  /** Per-section Theory faculty overrides — accounting-only (see CourseOfferingSectionFaculty on
-   *  the backend), fetched separately from the main form since it's an independent, immediately-
-   *  saved-per-row concern, not part of the primary Save/Cancel flow. Hidden entirely (not an
-   *  error state) when the backend can't uniquely resolve this offering's cohort, or when the
-   *  cohort has fewer than 2 active sections — there's nothing to split in either case. */
-  protected readonly sectionFacultyLoading = signal(false);
-  protected readonly sectionFacultySections = signal<SectionFacultyAssignment[]>([]);
-  private readonly sectionFacultyApplicable = signal(false);
-  protected readonly sectionFacultySavingId = signal<number | null>(null);
-  protected readonly canManageSectionFaculty = computed(() => this.permissionService.has('SECTION_FACULTY_MANAGE'));
-  protected readonly showSectionFaculty = computed(() =>
-    this.sectionFacultyApplicable() && this.sectionFacultySections().length >= 2);
+  /** One row per cohort using this offering — a row with cohortSectionId set is one active section
+   *  of a split cohort (assign via updateSectionFaculty); cohortSectionId null means the whole
+   *  cohort has no split (assign via updateCohortFaculty). Every cohort always gets at least one
+   *  row now — there is no separate offering-wide primary field anymore. */
+  protected readonly assignmentLoading = signal(false);
+  protected readonly assignmentRows = signal<SectionFacultyAssignment[]>([]);
+  protected readonly assignmentApplicable = signal(true);
+  protected readonly assignmentSavingKey = signal<string | null>(null);
 
-  /** True when this dialog was opened via a "reassign" deep link and the suggested faculty
-   *  differs from who's currently assigned — drives the pre-fill hint banner in the template so
-   *  the admin knows why the picker didn't open on the offering's existing faculty. */
-  protected readonly prefilledFromSuggestion =
-    this.data.suggestedFacultyId != null && this.data.suggestedFacultyId !== this.data.offering.facultyId;
+  /** Every eligible (Speciality match OR the subject's Eligible Faculty list) active faculty for
+   *  this offering, each annotated with real remaining term capacity and sorted most-free-first by
+   *  the backend — backs the Faculty Pool checklist below. */
+  protected readonly eligibleCandidates = signal<EligibleFacultyCandidate[]>([]);
+  protected readonly eligibleCandidatesLoading = signal(false);
 
-  protected readonly form: FormGroup = this.fb.group({
-    facultyId: [this.prefilledFromSuggestion ? this.data.suggestedFacultyId : this.data.offering.facultyId],
-    secondaryFacultyId: [this.data.offering.secondaryFacultyId],
+  /** Pending faculty-pool edit buffer — seeded from eligibleCandidates()'s inPool flags on load
+   *  and after every successful pool save, mutated by checkbox toggles in between. Every
+   *  assignment row below stays scoped to the last-SAVED pool (each candidate's real inPool flag),
+   *  not this buffer, so "who can be assigned" only ever reflects what's actually persisted —
+   *  building the pool and assigning from it are deliberately two separate steps. */
+  protected readonly poolSelection = signal<Set<number>>(new Set());
+  protected readonly poolSaving = signal(false);
+  protected readonly poolDirty = computed(() => {
+    const persisted = new Set(this.eligibleCandidates().filter((c) => c.inPool).map((c) => c.facultyId));
+    const pending = this.poolSelection();
+    if (persisted.size !== pending.size) return true;
+    for (const id of pending) if (!persisted.has(id)) return true;
+    return false;
   });
 
-  private readonly primaryFacultyIdLive = toSignal(this.form.get('facultyId')!.valueChanges, {
-    initialValue: this.data.offering.facultyId,
-  });
-  private readonly secondaryFacultyIdLive = toSignal(this.form.get('secondaryFacultyId')!.valueChanges, {
-    initialValue: this.data.offering.secondaryFacultyId,
-  });
-
-  /** Faculty must belong to the subject's own department (Speciality) — OR be explicitly listed on
-   *  the subject's admin-curated Eligible Faculty list (Subject form, additive-only widening, e.g.
-   *  for a short-staffed department) — to be assignable. The faculty already on this offering stays
-   *  visible/selectable even if it predates the rule (grandfathered), so an admin editing just the
-   *  section label doesn't lose their current faculty from the list. No restriction at all when the
-   *  subject has no speciality set. Also excludes whoever is live-selected as the secondary faculty
-   *  — the same person can't be their own substitute — except the primary's own current selection
-   *  stays visible so a same-person pairing saved before this rule existed still renders instead of
-   *  going blank. */
-  protected readonly eligibleFacultyOptions = computed<FacultyOption[]>(() => {
-    const specialityId = this.data.offering.subjectSpecialityId;
-    const eligibleIds = this.data.offering.subjectEligibleFacultyIds;
-    const secondaryId = this.secondaryFacultyIdLive();
-    const currentPrimaryId = this.primaryFacultyIdLive();
-    const base = !specialityId
-      ? this.data.facultyOptions
-      : this.data.facultyOptions.filter((f) =>
-          f.specialityId === specialityId || eligibleIds.includes(f.id)
-          || f.id === this.data.offering.facultyId || f.id === this.data.suggestedFacultyId);
-    return base.filter((f) => f.id !== secondaryId || f.id === currentPrimaryId);
+  /** Name of the deep-link-suggested faculty, resolved once eligibleCandidates loads — null until
+   *  then, or if they're not actually in the eligible list. */
+  protected readonly suggestedFacultyName = computed(() => {
+    const id = this.data.suggestedFacultyId;
+    if (id == null) return null;
+    return this.eligibleCandidates().find((c) => c.facultyId === id)?.facultyName ?? null;
   });
 
-  /** OC-127 gap-closure follow-up: secondaryFacultyId reopened from informational-only to a real
-   *  substitute-matching-eligible co-instructor, so it now needs the same eligibility filter as the
-   *  primary (Speciality match OR the subject's Eligible Faculty list) — grandfathered against its
-   *  own current value (not the primary's) so an existing secondary faculty predating this rule
-   *  stays visible/selectable. Same live-exclusion of the primary's current selection, for the same
-   *  same-person reason as above. */
-  protected readonly eligibleSecondaryFacultyOptions = computed<FacultyOption[]>(() => {
-    const specialityId = this.data.offering.subjectSpecialityId;
-    const eligibleIds = this.data.offering.subjectEligibleFacultyIds;
-    const primaryId = this.primaryFacultyIdLive();
-    const currentSecondaryId = this.secondaryFacultyIdLive();
-    const base = !specialityId
-      ? this.data.facultyOptions
-      : this.data.facultyOptions.filter((f) =>
-          f.specialityId === specialityId || eligibleIds.includes(f.id) || f.id === this.data.offering.secondaryFacultyId);
-    return base.filter((f) => f.id !== primaryId || f.id === currentSecondaryId);
-  });
-
-  /** True when the offering already has (or was just edited into) the same person as both
-   *  primary and secondary faculty — a pre-existing bad pairing that predates this fix, or an
-   *  edge case the dropdown filtering above can't fully rule out on its own. Blocks Save with the
-   *  same hard-block styling as the capacity check, matching the backend's own same-person guard
-   *  in CourseOfferingServiceImpl. */
-  protected readonly sameFacultyConflict = computed(() => {
-    const primaryId = this.primaryFacultyIdLive();
-    const secondaryId = this.secondaryFacultyIdLive();
-    return primaryId != null && primaryId === secondaryId;
-  });
-
-  /** Live pre-save capacity check — fires whenever the Faculty picker settles on a new value, so
-   *  the admin sees "this would put them over capacity" before ever clicking Save, not just as a
-   *  hard-block surprise afterward. Debounced since every keyboard/pointer change to a native
-   *  `<select>` still emits a full valueChanges event; skips re-assigning the offering's own
-   *  already-current faculty (matches the backend's own grandfathering — nothing to change,
-   *  can't change anyone's workload). Also re-runs on window focus so an admin who follows the
-   *  "Fix their work hours" link into a new tab, raises the cap there, and switches back to this
-   *  still-open dialog sees the warning clear without touching the picker again. */
-  constructor() {
-    this.form.get('facultyId')!.valueChanges
-      .pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-      .subscribe((facultyId: number | null) => this.runCapacityCheck(facultyId));
-
-    const onWindowFocus = () => this.runCapacityCheck(this.form.get('facultyId')!.value, { force: true });
-    window.addEventListener('focus', onWindowFocus);
-    this.destroyRef.onDestroy(() => window.removeEventListener('focus', onWindowFocus));
-
-    // A pre-filled suggestion is the form's INITIAL value, which valueChanges never emits for —
-    // run the same check manually so the admin sees Fits/Over-capacity immediately on open,
-    // instead of only after they touch the picker themselves.
-    if (this.prefilledFromSuggestion) this.runCapacityCheck(this.data.suggestedFacultyId ?? null);
-  }
+  /** Section-level and cohort-level eligible-candidate lists, fetched lazily and cached per row the
+   *  first time it renders — avoids firing every row's request up front. */
+  private readonly sectionCandidatesCache = signal<Map<number, EligibleFacultyCandidate[]>>(new Map());
+  private readonly sectionCandidatesLoading = new Set<number>();
+  private readonly cohortCandidatesCache = signal<Map<number, EligibleFacultyCandidate[]>>(new Map());
+  private readonly cohortCandidatesLoading = new Set<number>();
 
   ngOnInit(): void {
-    this.sectionFacultyLoading.set(true);
+    this.assignmentLoading.set(true);
     this.academicYearService.getSectionFaculty(this.data.offering.id).subscribe({
       next: (res) => {
-        this.sectionFacultyApplicable.set(res.applicable);
-        this.sectionFacultySections.set(res.sections);
-        this.sectionFacultyLoading.set(false);
+        this.assignmentApplicable.set(res.applicable);
+        this.assignmentRows.set(res.sections);
+        this.assignmentLoading.set(false);
       },
-      // Advisory-only feature — a lookup failure (e.g. lacking SECTION_FACULTY_VIEW) just hides
-      // the block silently rather than interrupting the primary edit flow with a toast.
-      error: () => { this.sectionFacultyLoading.set(false); },
+      error: () => {
+        this.assignmentLoading.set(false);
+        this.toast.error('Failed to load faculty assignment');
+      },
+    });
+
+    this.eligibleCandidatesLoading.set(true);
+    this.academicYearService.getEligibleFaculty(this.data.offering.id).subscribe({
+      next: (candidates) => {
+        this.eligibleCandidates.set(candidates);
+        this.poolSelection.set(new Set(candidates.filter((c) => c.inPool).map((c) => c.facultyId)));
+        this.eligibleCandidatesLoading.set(false);
+      },
+      error: () => { this.eligibleCandidatesLoading.set(false); },
     });
   }
 
-  /** Same eligibility filter as the primary Faculty field (Speciality match OR the subject's
-   *  Eligible Faculty list), grandfathered against this specific section's own current value (not
-   *  the primary's) — a section faculty predating this rule, or overridden before the subject had a
-   *  speciality set, stays visible/selectable. */
-  protected sectionFacultyOptionsFor(row: SectionFacultyAssignment): FacultyOption[] {
-    const specialityId = this.data.offering.subjectSpecialityId;
-    if (!specialityId) return this.data.facultyOptions;
-    const eligibleIds = this.data.offering.subjectEligibleFacultyIds;
-    return this.data.facultyOptions.filter((f) =>
-      f.specialityId === specialityId || eligibleIds.includes(f.id) || f.id === row.facultyId);
+  /** Flips a candidate's membership in the pending pool-edit buffer — does not save anything on
+   *  its own; the admin still has to click "Save Pool". */
+  protected toggleInPool(facultyId: number): void {
+    this.poolSelection.update((current) => {
+      const next = new Set(current);
+      if (next.has(facultyId)) next.delete(facultyId); else next.add(facultyId);
+      return next;
+    });
   }
 
-  protected onSectionFacultyChange(row: SectionFacultyAssignment, facultyId: number | null): void {
-    this.sectionFacultySavingId.set(row.cohortSectionId);
-    this.academicYearService.updateSectionFaculty(this.data.offering.id, row.cohortSectionId, facultyId).subscribe({
-      next: (updated) => {
-        this.sectionFacultySavingId.set(null);
-        this.sectionFacultySections.update((rows) =>
-          rows.map((r) => (r.cohortSectionId === updated.cohortSectionId ? updated : r)));
-        this.toast.success(`${row.sectionLabel} updated`);
+  /** Persists the pending buffer as this offering's faculty pool. The backend blocks removing
+   *  anyone currently relied upon (holding any assignment row) with a clear error — surfaced the
+   *  same way every other save path in this dialog reports a violation. On success, refreshes
+   *  eligibleCandidates (updating every inPool flag) and drops both candidate caches so every row
+   *  re-fetches against the newly-saved pool next render. */
+  protected saveFacultyPool(): void {
+    this.poolSaving.set(true);
+    this.academicYearService.updateFacultyPool(this.data.offering.id, [...this.poolSelection()]).subscribe({
+      next: (candidates) => {
+        this.poolSaving.set(false);
+        this.eligibleCandidates.set(candidates);
+        this.poolSelection.set(new Set(candidates.filter((c) => c.inPool).map((c) => c.facultyId)));
+        this.sectionCandidatesCache.set(new Map());
+        this.cohortCandidatesCache.set(new Map());
+        this.toast.success('Faculty pool updated');
       },
       error: (err) => {
-        this.sectionFacultySavingId.set(null);
-        this.toast.error(violationText(err) ?? err?.error?.message ?? 'Failed to update section faculty');
+        this.poolSaving.set(false);
+        this.toast.error(violationText(err) ?? err?.error?.message ?? 'Failed to update faculty pool');
       },
     });
   }
 
-  private runCapacityCheck(facultyId: number | null, opts?: { force?: boolean }): void {
-    if (!opts?.force) {
-      this.capacityCheck.set(null);
-      this.capacityCheckFacultyId.set(null);
+  /** A unique key per row regardless of type — cohortSectionId and cohortId are different id
+   *  spaces, so a plain numeric key alone could collide between a section row and a cohort row. */
+  protected rowKey(row: SectionFacultyAssignment): string {
+    return row.cohortSectionId != null ? `section-${row.cohortSectionId}` : `cohort-${row.cohortId}`;
+  }
+
+  /** Assignment options for a row, scoped to the persisted pool only — routes to the section- or
+   *  cohort-scoped eligible-candidate fetch depending on the row's shape. */
+  protected candidatesFor(row: SectionFacultyAssignment): EligibleFacultyCandidate[] {
+    const raw = row.cohortSectionId != null
+      ? this.sectionCandidatesRawFor(row.cohortSectionId)
+      : this.cohortCandidatesRawFor(row.cohortId);
+    return raw.filter((c) => c.inPool);
+  }
+
+  private sectionCandidatesRawFor(cohortSectionId: number): EligibleFacultyCandidate[] {
+    const cached = this.sectionCandidatesCache().get(cohortSectionId);
+    if (cached) return cached;
+    if (!this.sectionCandidatesLoading.has(cohortSectionId)) {
+      this.sectionCandidatesLoading.add(cohortSectionId);
+      this.academicYearService.getEligibleFacultyForSection(this.data.offering.id, cohortSectionId).subscribe({
+        next: (candidates) => {
+          this.sectionCandidatesCache.update((m) => new Map(m).set(cohortSectionId, candidates));
+        },
+        error: () => { this.sectionCandidatesLoading.delete(cohortSectionId); },
+      });
     }
-    if (facultyId == null || facultyId === this.data.offering.facultyId) return;
-    if (opts?.force && this.capacityCheckFacultyId() !== facultyId) return;
-    this.capacityChecking.set(true);
-    this.academicYearService.checkFacultyCapacity(this.data.offering.id, facultyId, this.data.offering.termInstanceId).subscribe({
-      next: (result) => {
-        this.capacityChecking.set(false);
-        this.capacityCheck.set(result);
-        this.capacityCheckFacultyId.set(facultyId);
-      },
-      error: () => { this.capacityChecking.set(false); },
-    });
+    return [];
   }
 
-  protected onSubmit(): void {
-    const v = this.form.value;
-    const request: CourseOfferingUpdateRequest = {
-      facultyId: v.facultyId ?? null,
-      secondaryFacultyId: v.secondaryFacultyId ?? null,
-    };
+  private cohortCandidatesRawFor(cohortId: number): EligibleFacultyCandidate[] {
+    const cached = this.cohortCandidatesCache().get(cohortId);
+    if (cached) return cached;
+    if (!this.cohortCandidatesLoading.has(cohortId)) {
+      this.cohortCandidatesLoading.add(cohortId);
+      this.academicYearService.getEligibleFacultyForCohort(this.data.offering.id, cohortId).subscribe({
+        next: (candidates) => {
+          this.cohortCandidatesCache.update((m) => new Map(m).set(cohortId, candidates));
+        },
+        error: () => { this.cohortCandidatesLoading.delete(cohortId); },
+      });
+    }
+    return [];
+  }
 
-    this.saving.set(true);
-    this.academicYearService.updateCourseOffering(this.data.offering.id, request).subscribe({
+  /** Shared label for a candidate row's eligibility badge. */
+  protected candidateBadgeText(c: EligibleFacultyCandidate): string {
+    if (c.viaEligibleList) return 'Eligible list';
+    if (c.specialityMatch) return 'Speciality match';
+    return 'Currently assigned';
+  }
+
+  /** Shared label for a candidate row's remaining-capacity figure. */
+  protected candidateHoursText(c: EligibleFacultyCandidate): string {
+    if (c.capacityTier === 'NONE') return 'No cap configured';
+    if (c.overCapacity) return 'Over capacity';
+    return `${Math.round(c.remainingHours * 10) / 10}h free`;
+  }
+
+  /** Instant-save per row, same as Section Faculty already worked before this dialog was
+   *  generalized — the backend hard-blocks an over-capacity or ineligible pick and the violation
+   *  surfaces via toast, rather than a separate live pre-save preview. */
+  protected onAssignmentChange(row: SectionFacultyAssignment, facultyId: number | null): void {
+    const key = this.rowKey(row);
+    this.assignmentSavingKey.set(key);
+    const request$ = row.cohortSectionId != null
+      ? this.academicYearService.updateSectionFaculty(this.data.offering.id, row.cohortSectionId, facultyId)
+      : this.academicYearService.updateCohortFaculty(this.data.offering.id, row.cohortId, facultyId);
+    request$.subscribe({
       next: (updated) => {
-        this.saving.set(false);
-        this.toast.success('Course offering updated');
-        this.dialogRef.close(updated);
+        this.assignmentSavingKey.set(null);
+        this.assignmentRows.update((rows) => rows.map((r) => (this.rowKey(r) === key ? updated : r)));
+        this.toast.success(`${row.sectionLabel ?? row.cohortName} updated`);
       },
       error: (err) => {
-        this.saving.set(false);
-        this.toast.error(violationText(err) ?? err?.error?.message ?? 'Failed to update course offering');
+        this.assignmentSavingKey.set(null);
+        this.toast.error(violationText(err) ?? err?.error?.message ?? 'Failed to update faculty assignment');
       },
     });
   }
 
-  protected onCancel(): void {
+  protected onClose(): void {
     this.dialogRef.close();
   }
 }

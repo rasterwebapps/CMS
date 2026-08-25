@@ -23,7 +23,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.CourseOfferingDto;
-import com.cms.dto.FacultyCapacityCheckResult;
 import com.cms.dto.GenerateOfferingsResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
@@ -50,6 +49,7 @@ import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CourseOfferingRepository;
+import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
 import com.cms.repository.FacultyRepository;
@@ -78,6 +78,8 @@ class CourseOfferingServiceImplTest {
     @Mock
     private BatchRepository batchRepository;
     @Mock
+    private CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository;
+    @Mock
     private TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
 
     private CourseOfferingServiceImpl service;
@@ -87,12 +89,9 @@ class CourseOfferingServiceImplTest {
         service = new CourseOfferingServiceImpl(
             courseOfferingRepository, termInstanceRepository, cohortRepository,
             curriculumVersionRepository, curriculumSemesterCourseRepository, facultyRepository,
-            studentTermEnrollmentRepository, classScheduleRepository, batchRepository);
+            studentTermEnrollmentRepository, classScheduleRepository, batchRepository,
+            courseOfferingSectionFacultyRepository);
         service.setTimetableGlobalAutoScheduleService(timetableGlobalAutoScheduleService);
-    }
-
-    private FacultyCapacityCheckResult fitsWithinCapacity() {
-        return new FacultyCapacityCheckResult(false, 0, 0, 0, 100, 5, "NONE", 100, 0, List.of());
     }
 
     private Speciality createSpeciality(Long id, String name, String code) {
@@ -452,216 +451,100 @@ class CourseOfferingServiceImplTest {
     }
 
     @Test
-    void updateOffering_updatesFaculty() {
-        AcademicYear ay = createAY(1L, "2024-2025");
-        Program program = createProgram(1L, "BCA", 3);
-        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
-        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
-        Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, course, ay);
-        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
-
-        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
-        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForOffering(anyLong(), eq(1L), eq(42L)))
-            .thenReturn(fitsWithinCapacity());
-
-        service.updateOffering(1L, 42L, null);
-
-        assertThat(offering.getFacultyId()).isEqualTo(42L);
-    }
-
-    @Test
-    void updateOffering_blocksFacultyFromADifferentSpecialityThanTheSubject() {
-        AcademicYear ay = createAY(1L, "2024-2025");
-        Program program = createProgram(1L, "BCA", 3);
-        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
-        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+    void updateFacultyPool_rejectsAnIneligibleFaculty() {
         Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
         Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
         subject.setId(1L);
-        CurriculumVersion cv = createCV(1L, program, course, ay);
-        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
-        Speciality csSpeciality = createSpeciality(2L, "Computer Science", "CS");
-        Faculty mismatchedFaculty = createFaculty(42L, csSpeciality);
-
+        CourseOffering offering = createOffering(1L, createTermInstance(1L, createAY(1L, "2024-2025"), TermType.ODD),
+            createCV(1L, createProgram(1L, "BCA", 3), createCourse(1L, "BCA Course", "BCA-C", createProgram(1L, "BCA", 3)), createAY(1L, "2024-2025")),
+            subject, 1);
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(facultyRepository.findById(42L)).thenReturn(Optional.of(mismatchedFaculty));
+        Speciality csSpeciality = createSpeciality(2L, "Computer Science", "CS");
+        Faculty ineligible = createFaculty(42L, csSpeciality);
+        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of(ineligible));
 
-        assertThatThrownBy(() -> service.updateOffering(1L, 42L, null))
+        assertThatThrownBy(() -> service.updateFacultyPool(1L, List.of(42L)))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("not eligible to teach");
-
+            .hasMessageContaining("not eligible");
         verify(courseOfferingRepository, never()).save(any());
     }
 
     @Test
-    void updateOffering_allowsFacultyExplicitlyOnTheSubjectsEligibleFacultyListDespiteSpecialityMismatch() {
-        AcademicYear ay = createAY(1L, "2024-2025");
-        Program program = createProgram(1L, "BCA", 3);
-        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
-        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+    void updateFacultyPool_savesAValidPoolAndReturnsRefreshedEligibleList() {
         Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
         Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
         subject.setId(1L);
-        CurriculumVersion cv = createCV(1L, program, course, ay);
-        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
-        Speciality csSpeciality = createSpeciality(2L, "Computer Science", "CS");
-        Faculty widenedFaculty = createFaculty(42L, csSpeciality);
-        subject.setEligibleFaculty(new java.util.HashSet<>(java.util.Set.of(widenedFaculty)));
-
+        Program program = createProgram(1L, "BCA", 3);
+        CourseOffering offering = createOffering(1L, createTermInstance(1L, createAY(1L, "2024-2025"), TermType.ODD),
+            createCV(1L, program, createCourse(1L, "BCA Course", "BCA-C", program), createAY(1L, "2024-2025")), subject, 1);
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(facultyRepository.findById(42L)).thenReturn(Optional.of(widenedFaculty));
         when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
-        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForOffering(anyLong(), eq(1L), eq(42L)))
-            .thenReturn(fitsWithinCapacity());
+        when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(1L)).thenReturn(List.of());
+        Faculty eligible = createFaculty(42L, nursingSpeciality);
+        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of(eligible));
+        List<com.cms.dto.EligibleFacultyCandidateDto> refreshed = List.of();
+        when(timetableGlobalAutoScheduleService.getEligibleFacultyForOffering(1L)).thenReturn(refreshed);
 
-        service.updateOffering(1L, 42L, null);
+        List<com.cms.dto.EligibleFacultyCandidateDto> result = service.updateFacultyPool(1L, List.of(42L));
 
-        assertThat(offering.getFacultyId()).isEqualTo(42L);
+        assertThat(offering.getFacultyPool()).extracting(Faculty::getId).containsExactly(42L);
+        assertThat(result).isSameAs(refreshed);
     }
 
     @Test
-    void updateOffering_allowsFacultyFromTheSameSpecialityAsTheSubject() {
-        AcademicYear ay = createAY(1L, "2024-2025");
-        Program program = createProgram(1L, "BCA", 3);
-        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
-        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+    void updateFacultyPool_blocksRemovingAWholeCohortAssignmentHolder() {
         Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
         Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
         subject.setId(1L);
-        CurriculumVersion cv = createCV(1L, program, course, ay);
-        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
-        Faculty matchingFaculty = createFaculty(42L, nursingSpeciality);
-
-        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(facultyRepository.findById(42L)).thenReturn(Optional.of(matchingFaculty));
-        when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
-        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForOffering(anyLong(), eq(1L), eq(42L)))
-            .thenReturn(fitsWithinCapacity());
-
-        service.updateOffering(1L, 42L, null);
-
-        assertThat(offering.getFacultyId()).isEqualTo(42L);
-    }
-
-    @Test
-    void updateOffering_grandfathersAnUnchangedMismatchedFaculty() {
-        // A row assigned before this eligibility rule existed may already carry a mismatched
-        // pairing. Resubmitting the SAME faculty unchanged must not suddenly start failing, and
-        // must not require a facultyRepository lookup.
-        AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
-        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
-        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
-        Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
-        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
-        subject.setId(1L);
-        CurriculumVersion cv = createCV(1L, program, course, ay);
-        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
-        offering.setFacultyId(42L);
-
+        CourseOffering offering = createOffering(1L, createTermInstance(1L, createAY(1L, "2024-2025"), TermType.ODD),
+            createCV(1L, program, createCourse(1L, "BCA Course", "BCA-C", program), createAY(1L, "2024-2025")), subject, 1);
+        Faculty current = createFaculty(42L, nursingSpeciality);
+        offering.setFacultyPool(new java.util.HashSet<>(java.util.Set.of(current)));
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
+        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of(current));
 
-        service.updateOffering(1L, 42L, null);
+        com.cms.model.Cohort cohort = new com.cms.model.Cohort();
+        cohort.setId(9L);
+        com.cms.model.CourseOfferingSectionFaculty wholeCohortRow =
+            new com.cms.model.CourseOfferingSectionFaculty(offering, cohort, current);
+        when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(1L)).thenReturn(List.of(wholeCohortRow));
 
-        assertThat(offering.getFacultyId()).isEqualTo(42L);
-        verify(facultyRepository, never()).findById(any());
-    }
-
-    @Test
-    void updateOffering_blocksASecondaryFacultyFromADifferentSpecialityThanTheSubject() {
-        // OC-127 gap-closure follow-up: secondaryFacultyId now has the same department-eligibility
-        // gate as the primary, checked independently against its own prior value.
-        AcademicYear ay = createAY(1L, "2024-2025");
-        Program program = createProgram(1L, "BCA", 3);
-        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
-        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
-        Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
-        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
-        subject.setId(1L);
-        CurriculumVersion cv = createCV(1L, program, course, ay);
-        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
-        Speciality csSpeciality = createSpeciality(2L, "Computer Science", "CS");
-        Faculty mismatchedFaculty = createFaculty(43L, csSpeciality);
-
-        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(facultyRepository.findById(43L)).thenReturn(Optional.of(mismatchedFaculty));
-
-        assertThatThrownBy(() -> service.updateOffering(1L, null, 43L))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("not eligible to teach");
-
+        assertThatThrownBy(() -> service.updateFacultyPool(1L, List.of()))
+            .isInstanceOf(IllegalArgumentException.class);
         verify(courseOfferingRepository, never()).save(any());
     }
 
     @Test
-    void updateOffering_allowsASecondaryFacultyFromTheSameSpecialityAsTheSubject() {
-        AcademicYear ay = createAY(1L, "2024-2025");
-        Program program = createProgram(1L, "BCA", 3);
-        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
-        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+    void updateFacultyPool_blocksRemovingASectionOverrideHolder() {
         Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
         Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
         subject.setId(1L);
-        CurriculumVersion cv = createCV(1L, program, course, ay);
-        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
-        Faculty matchingFaculty = createFaculty(43L, nursingSpeciality);
-
-        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(facultyRepository.findById(43L)).thenReturn(Optional.of(matchingFaculty));
-        when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
-
-        service.updateOffering(1L, null, 43L);
-
-        assertThat(offering.getSecondaryFacultyId()).isEqualTo(43L);
-    }
-
-    @Test
-    void updateOffering_grandfathersAnUnchangedMismatchedSecondaryFacultyIndependentlyOfThePrimary() {
-        // The secondary's own prior value is the grandfather baseline -- not the primary's --
-        // so resubmitting it unchanged doesn't suddenly require the secondary to also match.
-        AcademicYear ay = createAY(1L, "2024-2025");
         Program program = createProgram(1L, "BCA", 3);
-        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
-        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
-        Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
-        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
-        subject.setId(1L);
-        CurriculumVersion cv = createCV(1L, program, course, ay);
-        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
-        offering.setSecondaryFacultyId(43L);
-
+        CourseOffering offering = createOffering(1L, createTermInstance(1L, createAY(1L, "2024-2025"), TermType.ODD),
+            createCV(1L, program, createCourse(1L, "BCA Course", "BCA-C", program), createAY(1L, "2024-2025")), subject, 1);
+        Faculty sectionFaculty = createFaculty(43L, nursingSpeciality);
+        offering.setFacultyPool(new java.util.HashSet<>(java.util.Set.of(sectionFaculty)));
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
+        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of(sectionFaculty));
 
-        service.updateOffering(1L, null, 43L);
+        com.cms.model.Cohort cohort = new com.cms.model.Cohort();
+        cohort.setId(9L);
+        com.cms.model.CohortSection section = new com.cms.model.CohortSection();
+        section.setSectionLabel("A");
+        com.cms.model.CourseOfferingSectionFaculty override = new com.cms.model.CourseOfferingSectionFaculty();
+        override.setCourseOffering(offering);
+        override.setCohort(cohort);
+        override.setCohortSection(section);
+        override.setFaculty(sectionFaculty);
+        when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(1L)).thenReturn(List.of(override));
 
-        assertThat(offering.getSecondaryFacultyId()).isEqualTo(43L);
-        verify(facultyRepository, never()).findById(any());
-    }
-
-    @Test
-    void updateOffering_blocksTheSameFacultyAsBothPrimaryAndSecondary() {
-        AcademicYear ay = createAY(1L, "2024-2025");
-        Program program = createProgram(1L, "BCA", 3);
-        Course course = createCourse(1L, "BCA Course", "BCA-C", program);
-        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
-        Subject subject = createSubject(1L, "Math", "MATH101");
-        CurriculumVersion cv = createCV(1L, program, course, ay);
-        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
-
-        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForOffering(anyLong(), eq(1L), eq(42L)))
-            .thenReturn(fitsWithinCapacity());
-
-        assertThatThrownBy(() -> service.updateOffering(1L, 42L, 42L))
+        assertThatThrownBy(() -> service.updateFacultyPool(1L, List.of()))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("cannot be the same person");
-
+            .hasMessageContaining("section");
         verify(courseOfferingRepository, never()).save(any());
     }
+
 
     @Test
     void updateStatus_deactivatesWhenNothingIsAttached() {

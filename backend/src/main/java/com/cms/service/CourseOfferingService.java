@@ -5,6 +5,7 @@ import java.util.List;
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.dto.CourseOfferingDto;
+import com.cms.dto.EligibleFacultyCandidateDto;
 import com.cms.dto.GenerateOfferingsResponse;
 import com.cms.model.Cohort;
 
@@ -23,7 +24,11 @@ public interface CourseOfferingService {
     List<CourseOfferingDto> getOfferingsByTermInstanceAndCohort(Long termInstanceId, Long cohortId);
     List<CourseOfferingDto> getOfferingsByTermInstanceAndElectiveGroup(Long termInstanceId, Long electiveGroupId);
     CourseOfferingDto getById(Long id);
-    CourseOfferingDto updateOffering(Long id, Long facultyId, Long secondaryFacultyId);
+    /** Replaces the offering's admin-curated faculty pool wholesale -- see {@code
+     *  CourseOfferingServiceImpl#updateFacultyPool} for the eligibility/removal-block rules. Returns
+     *  the refreshed eligible-faculty list (same shape as the eligible-faculty GET) so the frontend
+     *  can swap it in directly. */
+    List<EligibleFacultyCandidateDto> updateFacultyPool(Long id, List<Long> facultyIds);
     /** Bidirectional -- deactivating (true -> false) is blocked when the offering already has
      *  sessions placed in Skeleton Builder or batches with students rostered, since flipping the
      *  flag out from under either would silently orphan them. Reactivating (false -> true) has no

@@ -11,7 +11,7 @@ import { FacultyService } from '../faculty.service';
 import { Faculty, FacultyQualification, FacultyScheduleWorkload, FacultyWorkloadAssignment, FacultyWorkloadDetail, FACULTY_QUALIFICATION_OPTIONS } from '../faculty.model';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
-import { CourseOfferingEditDialogComponent, FacultyOption } from '../../course-offering/course-offering-edit-dialog/course-offering-edit-dialog.component';
+import { CourseOfferingEditDialogComponent } from '../../course-offering/course-offering-edit-dialog/course-offering-edit-dialog.component';
 import { RaiseCapFlyoutComponent } from './raise-cap-flyout.component';
 import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/week-grid.model';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
@@ -77,7 +77,6 @@ export class FacultyDetailComponent implements OnInit {
    *  Skeleton Builder automation's own Mon-Fri-first/Saturday-fallback rule), so it's included. */
   protected readonly weekDays = WEEK_GRID_DAYS;
 
-  protected readonly facultyOptions = signal<FacultyOption[]>([]);
   protected readonly showRaiseCap = signal(false);
 
   /** First + last initial of the faculty's full name. */
@@ -115,13 +114,6 @@ export class FacultyDetailComponent implements OnInit {
           }
         },
         error: () => this.toast.error('Failed to load academic years'),
-      });
-    }
-
-    if (this.canReassign()) {
-      this.facultyService.getAll().subscribe({
-        next: (all) => this.facultyOptions.set(all.map((f) => ({ id: f.id, name: f.fullName, specialityId: f.specialityId }))),
-        error: () => this.toast.error('Failed to load faculty options'),
       });
     }
   }
@@ -183,7 +175,7 @@ export class FacultyDetailComponent implements OnInit {
     this.academicYearService.getCourseOfferingById(assignment.courseOfferingId).subscribe({
       next: (offering) => {
         this.dialog.open(CourseOfferingEditDialogComponent, {
-          data: { offering, facultyOptions: this.facultyOptions(), suggestedFacultyId: null },
+          data: { offering, suggestedFacultyId: null },
           width: '480px',
         }).afterClosed().subscribe((updated) => {
           if (updated) {

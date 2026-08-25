@@ -325,10 +325,6 @@ export interface CourseOffering {
    *  only (see backend FacultyEligibility). Empty means Speciality-match-only. */
   subjectEligibleFacultyIds: number[];
   termNumber: number;
-  facultyId: number | null;
-  /** Co-instructor, department-eligibility-checked same as the primary — a vetted substitute
-   *  candidate for FacultyAbsenceService and TimetableGlobalAutoScheduleService (OC-127). */
-  secondaryFacultyId: number | null;
   isActive: boolean;
   curriculumTermCourseId: number | null;
   isElective: boolean;
@@ -347,11 +343,6 @@ export interface CourseOffering {
   cohortNames: string[];
 }
 
-export interface CourseOfferingUpdateRequest {
-  facultyId?: number | null;
-  secondaryFacultyId?: number | null;
-}
-
 /** Deactivating (isActive: false) is blocked server-side when the offering already has sessions
  *  placed in Skeleton Builder or batches with students rostered — reactivating has no such guard. */
 export interface CourseOfferingStatusUpdateRequest {
@@ -365,13 +356,41 @@ export interface CourseOfferingStatusUpdateResponse {
   updatedAt: string;
 }
 
+/** Per-offering roll-up of who's currently assigned (see backend CourseOfferingFacultySummaryDto) —
+ *  backs the Assign Faculty list table's Faculty column. An offering absent from the response map
+ *  has zero assignment rows at all (render as "Unassigned"). */
+export interface CourseOfferingFacultySummary {
+  offeringId: number;
+  assignedFacultyNames: string[];
+}
+
 export interface FacultyCapacitySpreadLoadSuggestion {
   alternateFacultyId: number;
   alternateFacultyName: string;
-  isOfferingsSecondaryFaculty: boolean;
   alternateSpareCapacityHours: number;
   courseOfferingId: number;
   subjectName: string;
+}
+
+/** One candidate in an eligible-faculty picker (offering-level or section-level) — mirrors the
+ *  backend's EligibleFacultyCandidateDto exactly. Sorted most-free-first by the backend; render in
+ *  the order received. capacityTier === 'NONE' means no cap is configured for this candidate at
+ *  any tier — show "no cap configured" rather than a 0h remaining figure. */
+export interface EligibleFacultyCandidate {
+  facultyId: number;
+  facultyName: string;
+  specialityMatch: boolean;
+  viaEligibleList: boolean;
+  currentlyAssigned: boolean;
+  /** Member of the offering's admin-curated faculty pool — the primary/section assignment pickers
+   *  filter down to just these; the full candidate list (regardless of this flag) backs the
+   *  pool-builder checklist. */
+  inPool: boolean;
+  currentDemandHours: number;
+  capacityHours: number;
+  capacityTier: string;
+  remainingHours: number;
+  overCapacity: boolean;
 }
 
 /** Live pre-save capacity check for the Course Offering edit dialog's Faculty picker — mirrors
@@ -389,21 +408,25 @@ export interface FacultyCapacityCheckResult {
   spreadLoad: FacultyCapacitySpreadLoadSuggestion[];
 }
 
-/** cohortName exists because a CourseOffering can be shared by more than one cohort on the same
- *  curriculum version — sections from every matching cohort are listed together, distinguished by
- *  this label. */
+/** One cohort's faculty assignment for an offering — cohortId is always set (cohortName exists
+ *  because a CourseOffering can be shared by more than one cohort on the same curriculum version,
+ *  each assigned independently). cohortSectionId/sectionLabel are null when that cohort's Theory
+ *  delivery has no active section split (a single whole-cohort row), or set to identify exactly
+ *  which section this row covers when it does. */
 export interface SectionFacultyAssignment {
-  cohortSectionId: number;
+  cohortId: number;
+  cohortSectionId: number | null;
   cohortName: string;
-  sectionLabel: string;
+  sectionLabel: string | null;
   facultyId: number | null;
   facultyName: string | null;
 }
 
-/** applicable=false means this offering's cohort couldn't be uniquely resolved (shared across
- *  cohorts, or none currently enrolled) — reason explains why, sections is empty. Fewer than 2
- *  sections should also be treated as "nothing to show" even when applicable is true, since a
- *  single-section cohort has no split to assign. */
+/** applicable=false means this offering's cohort couldn't be uniquely resolved (none currently
+ *  enrolled against this offering's curriculum version + semester) — reason explains why, sections
+ *  is empty. Otherwise every cohort using the offering gets at least one row, always — one per
+ *  active section if split, or exactly one whole-cohort row if not; there's no "nothing to show"
+ *  case anymore now that Section Faculty is the sole assignment mechanism. */
 export interface CourseOfferingSectionFacultyResponse {
   applicable: boolean;
   reason: string | null;

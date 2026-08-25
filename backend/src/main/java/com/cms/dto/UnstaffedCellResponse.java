@@ -39,5 +39,12 @@ public record UnstaffedCellResponse(
 
     /** OC-127 periodSpan: non-null only for a cell that's part of a multi-period session — every
      *  sibling row sharing this id is staffed/removed together as one atomic unit. */
-    UUID sessionGroupId
+    UUID sessionGroupId,
+
+    /** The {@code CohortSection} this THEORY row was placed for, once its cohort's committed
+     *  Theory room has been split into sections (see V368) -- null means "whole cohort" (no split)
+     *  and, for LAB/CLINICAL, always null (their occupant is a {@code Batch} instead). Lets
+     *  auto-staffing prefer this section's own {@code CourseOfferingSectionFaculty} override
+     *  before falling back to the ranked department pool. */
+    Long cohortSectionId
 ) {}

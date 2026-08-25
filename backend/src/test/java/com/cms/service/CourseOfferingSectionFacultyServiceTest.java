@@ -3,6 +3,8 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -16,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.CourseOfferingSectionFacultyResponse;
+import com.cms.dto.FacultyCapacityCheckResult;
 import com.cms.dto.SectionFacultyAssignment;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Classroom;
@@ -50,6 +53,7 @@ class CourseOfferingSectionFacultyServiceTest {
     @Mock private StudentTermEnrollmentRepository studentTermEnrollmentRepository;
     @Mock private FacultyRepository facultyRepository;
     @Mock private TimetableSkeletonService timetableSkeletonService;
+    @Mock private TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
 
     private CourseOfferingSectionFacultyService service;
 
@@ -62,7 +66,8 @@ class CourseOfferingSectionFacultyServiceTest {
     @BeforeEach
     void setUp() {
         service = new CourseOfferingSectionFacultyService(courseOfferingRepository, sectionFacultyRepository,
-            cohortRepository, studentTermEnrollmentRepository, facultyRepository, timetableSkeletonService);
+            cohortRepository, studentTermEnrollmentRepository, facultyRepository, timetableSkeletonService,
+            timetableGlobalAutoScheduleService);
 
         program = new Program("BSc Nursing", "BSCN", 4);
         program.setId(1L);
@@ -111,6 +116,10 @@ class CourseOfferingSectionFacultyServiceTest {
         CohortSection section = new CohortSection(allocation, termInstance, sectionLabel, classroom, 60);
         section.setId(id);
         return section;
+    }
+
+    private FacultyCapacityCheckResult fitsWithinCapacity() {
+        return new FacultyCapacityCheckResult(false, 0, 0, 0, 100, 5, "NONE", 100, 0, List.of());
     }
 
     private Faculty faculty(Long id, Speciality speciality) {
@@ -228,6 +237,7 @@ class CourseOfferingSectionFacultyServiceTest {
         subject.setEligibleFaculty(new java.util.HashSet<>(java.util.Set.of(widenedFaculty)));
         when(facultyRepository.findById(5L)).thenReturn(Optional.of(widenedFaculty));
         when(sectionFacultyRepository.save(any(CourseOfferingSectionFaculty.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 5L)).thenReturn(fitsWithinCapacity());
 
         SectionFacultyAssignment result = service.upsert(100L, 201L, 5L);
 
@@ -249,11 +259,35 @@ class CourseOfferingSectionFacultyServiceTest {
         Faculty eligibleFaculty = faculty(6L, subject.getSpeciality());
         when(facultyRepository.findById(6L)).thenReturn(Optional.of(eligibleFaculty));
         when(sectionFacultyRepository.save(any(CourseOfferingSectionFaculty.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 6L)).thenReturn(fitsWithinCapacity());
 
         SectionFacultyAssignment result = service.upsert(100L, 201L, 6L);
 
         assertThat(result.facultyId()).isEqualTo(6L);
         assertThat(result.cohortName()).isEqualTo("2023-2027 Batch");
+    }
+
+    @Test
+    void upsert_blocksAnOverCapacityFacultyAssignment() {
+        Cohort matchingCohort = cohort(1L, "2023-2027 Batch");
+        CohortSection targetSection = section(201L, matchingCohort, "A");
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Set.of(1L));
+        when(cohortRepository.findById(1L)).thenReturn(Optional.of(matchingCohort));
+        when(studentTermEnrollmentRepository.findByTermInstanceIdAndCohortId(10L, 1L))
+            .thenReturn(List.of(enrollmentAtSemester(3)));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of(targetSection));
+        when(sectionFacultyRepository.findByCourseOfferingIdAndCohortSectionId(100L, 201L)).thenReturn(Optional.empty());
+        Faculty overCapacityFaculty = faculty(6L, subject.getSpeciality());
+        when(facultyRepository.findById(6L)).thenReturn(Optional.of(overCapacityFaculty));
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 6L))
+            .thenReturn(new FacultyCapacityCheckResult(true, 90, 40, 130, 100, 5, "FACULTY_OVERRIDE", 100, 2, List.of()));
+
+        assertThatThrownBy(() -> service.upsert(100L, 201L, 6L))
+            .isInstanceOf(com.cms.exception.TimetableConstraintViolationException.class);
+
+        verify(sectionFacultyRepository, never()).save(any());
     }
 
     @Test

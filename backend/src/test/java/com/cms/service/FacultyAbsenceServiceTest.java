@@ -216,20 +216,18 @@ class FacultyAbsenceServiceTest {
     }
 
     @Test
-    void shouldIncludeACourseOfferingsSecondaryFacultyAsAnEqualSubstituteCandidate() {
-        // OC-127 gap-closure follow-up: secondaryFacultyId reopened for substitute-matching. No
-        // code here reads secondaryFacultyId directly -- CourseOfferingServiceImpl's eligibility
-        // gate already guarantees a secondary shares the subject's speciality, so they surface
-        // through the same speciality-based candidate pool as any other faculty, undistinguished.
-        Faculty secondaryFaculty = new Faculty("EMP003", "Sam", "Lee", "sam@college.edu", "1234567892",
+    void shouldIncludeEverySameSpecialityFacultyAsAnEqualSubstituteCandidate() {
+        // Every same-speciality active faculty is an equal, undistinguished candidate here -- there
+        // is no separate "co-instructor" concept in this pool, just the speciality-based match.
+        Faculty anotherEligibleFaculty = new Faculty("EMP003", "Sam", "Lee", "sam@college.edu", "1234567892",
             speciality, absentFaculty.getDesignation(), "Nursing", null, null, FacultyStatus.ACTIVE);
-        secondaryFaculty.setId(3L);
+        anotherEligibleFaculty.setId(3L);
 
         when(classScheduleRepository.findById(300L)).thenReturn(Optional.of(schedule));
         when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, LocalTime.of(9, 0), LocalTime.of(10, 0),
             ClassScheduleStatus.PUBLISHED, 300L)).thenReturn(Collections.emptyList());
         when(facultyRepository.findBySpecialityIdAndStatus(1L, FacultyStatus.ACTIVE))
-            .thenReturn(List.of(absentFaculty, eligibleFaculty, secondaryFaculty));
+            .thenReturn(List.of(absentFaculty, eligibleFaculty, anotherEligibleFaculty));
         when(facultyAvailabilityRepository.findOverlapping(2L, DayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)))
             .thenReturn(Collections.emptyList());
         when(facultyAvailabilityRepository.findOverlapping(3L, DayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(10, 0)))

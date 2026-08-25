@@ -1,2 +1,10 @@
 // Assign Faculty list — uses global list-page + entry-form-header classes from styles.scss
 // No component-specific overrides needed
+
+.af-faculty-cell {
+  display: block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

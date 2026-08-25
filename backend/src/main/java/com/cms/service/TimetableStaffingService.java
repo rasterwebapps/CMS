@@ -848,7 +848,8 @@ public class TimetableStaffingService {
             venueCapacity,
             elective,
             rotatingBatchNames,
-            cs.getSessionGroupId()
+            cs.getSessionGroupId(),
+            cs.getCohortSection() != null ? cs.getCohortSection().getId() : null
         );
     }
 }

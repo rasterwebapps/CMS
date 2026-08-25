@@ -18,6 +18,7 @@ import com.cms.dto.AutoPlaceUnplacedItem;
 import com.cms.dto.CohortPlacementSummary;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
+import com.cms.dto.EligibleFacultyCandidateDto;
 import com.cms.dto.FacultyCapacityCheckResult;
 import com.cms.dto.FacultyOverCapacity;
 import com.cms.dto.FacultyWorkloadDetail;
@@ -48,6 +49,7 @@ import com.cms.model.CourseOfferingSectionFaculty;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Faculty;
 import com.cms.model.Period;
+import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
@@ -69,9 +71,14 @@ import com.cms.repository.TermInstanceRepository;
 /**
  * Global multi-cohort "generate a first draft" auto-scheduler — extends the per-cohort {@link
  * TimetableSkeletonAutoPlaceService}/term-wide {@link TimetableStaffingAutoAssignService} tools
- * with a single action covering every cohort in a term at once, treating {@link
- * CourseOffering#getFacultyId()} as authoritative (unlike {@link TimetableStaffingAutoAssignService},
- * which picks freely from the eligible department pool). {@link #checkPrerequisites} should be
+ * with a single action covering every cohort in a term at once, treating each budget row's own
+ * bound faculty as authoritative (unlike {@link TimetableStaffingAutoAssignService}, which picks
+ * freely from the eligible department pool) -- that row's own {@link CourseOfferingSectionFaculty}
+ * assignment: the section-scoped override for a sectioned THEORY row, or the whole-cohort row for
+ * an unsectioned THEORY row or a LAB/CLINICAL batch with no coordinator of its own (see {@link
+ * #resolveBudgetFacultyId}). There is no offering-wide "primary" faculty anymore -- a single
+ * CourseOffering can be shared by more than one cohort, each assigned independently. {@link
+ * #checkPrerequisites} should be
  * called first so known-in-advance gaps (missing faculty, over-capacity faculty) are reported as
  * actionable links before a run is even attempted; {@link #precheckCapacity} is re-run defensively
  * inside {@link #runGlobalAutoSchedule} itself so a stale/bypassed prerequisite check can never let
@@ -180,7 +187,7 @@ public class TimetableGlobalAutoScheduleService {
 
             RaiseCapSuggestion raiseCap = new RaiseCapSuggestion(facultyId, capacity.dailyCapForDisplay(), capacity.tier(), suggestedMinDailyHours);
             List<SpreadLoadSuggestion> spreadLoad = buildSpreadLoadSuggestions(
-                topContributors, demand.secondaryFacultyByOffering(), demand.demandByFaculty(), facultyId, demand.workingDaysInTerm(), demand.weeksInTerm());
+                topContributors, demand.demandByFaculty(), facultyId, demand.workingDaysInTerm(), demand.weeksInTerm());
 
             overCapacity.add(new FacultyOverCapacity(facultyId, faculty.getFullName(), capacity.dailyCapForDisplay(), capacity.tier(),
                 demand.workingDaysInTerm(), capacity.termCapacityHours(), totalDemand, shortfall, suggestedMinDailyHours,
@@ -190,27 +197,26 @@ public class TimetableGlobalAutoScheduleService {
         return new GlobalCapacityPrecheckResult(overCapacity);
     }
 
-    /** Live, single-(faculty, offering) counterpart to {@link #precheckCapacity} -- used by Course
-     *  Offerings to check, before save, whether assigning {@code candidateFacultyId} to {@code
-     *  offeringId} would push their real term-wide load over capacity. Reuses the exact same
-     *  aggregation {@link #precheckCapacity} runs (via {@link #computeTermDemand}) so the two can
-     *  never disagree. {@code demand.demandByFaculty()} already excludes {@code offeringId}'s own
-     *  contribution for a candidate who isn't currently bound to it (the aggregation keys off each
-     *  offering's *current* DB faculty, not the candidate under consideration) -- so "projected
-     *  total" is simply the candidate's current demand plus this one offering's own contribution,
-     *  no separate exclusion logic needed even when re-checking the offering's already-assigned
-     *  faculty (whose current demand already includes it exactly once). */
+    /** Live, single-(faculty, offering+cohort) counterpart to {@link #precheckCapacity} -- used by
+     *  Assign Faculty to check, before save, whether assigning {@code candidateFacultyId} to this
+     *  cohort's whole-cohort row would push their real term-wide load over capacity. Reuses the
+     *  exact same aggregation {@link #precheckCapacity} runs (via {@link #computeTermDemand}) so
+     *  the two can never disagree. Mirrors {@link #checkFacultyCapacityForSection}'s shape but
+     *  projects the cohort's *whole* theory+lab+clinical hours (via {@link
+     *  #termHoursForOfferingInCohort}) instead of just one section's theory hours. */
     @Transactional(readOnly = true)
-    public FacultyCapacityCheckResult checkFacultyCapacityForOffering(Long termInstanceId, Long offeringId, Long candidateFacultyId) {
-        TermDemandAggregation demand = computeTermDemand(termInstanceId);
+    public FacultyCapacityCheckResult checkFacultyCapacityForCohort(Long offeringId, Long cohortId, Long candidateFacultyId) {
+        CourseOffering offering = courseOfferingRepository.findById(offeringId)
+            .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + offeringId));
         Faculty candidate = facultyRepository.findById(candidateFacultyId)
             .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + candidateFacultyId));
+        Long currentCohortFacultyId = currentCohortFacultyId(offering, cohortId);
+        double cohortHours = termHoursForOfferingInCohort(offering, cohortId, offering.getTermInstance().getId(), null).totalHours();
 
+        TermDemandAggregation demand = computeTermDemand(offering.getTermInstance().getId());
         double currentDemand = demand.demandByFaculty().getOrDefault(candidateFacultyId, 0.0);
-        boolean alreadyAssignedHere = courseOfferingRepository.findById(offeringId)
-            .map(o -> candidateFacultyId.equals(o.getFacultyId())).orElse(false);
-        double offeringHours = demand.demandByOffering().getOrDefault(offeringId, 0.0);
-        double projectedTotal = alreadyAssignedHere ? currentDemand : currentDemand + offeringHours;
+        boolean alreadyHoldsCohort = candidateFacultyId.equals(currentCohortFacultyId);
+        double projectedTotal = alreadyHoldsCohort ? currentDemand : currentDemand + cohortHours;
 
         CapacityResolution capacity = resolveEffectiveTermCapacity(candidate, demand.workingDaysInTerm(), demand.weeksInTerm());
         boolean overCapacity = capacity != null && projectedTotal > capacity.termCapacityHours() + CAPACITY_EPSILON;
@@ -219,16 +225,15 @@ public class TimetableGlobalAutoScheduleService {
         double suggestedMinDailyHours = 0;
         if (overCapacity) {
             suggestedMinDailyHours = Math.ceil(projectedTotal / demand.workingDaysInTerm());
-            CourseOffering offering = courseOfferingRepository.findById(offeringId).orElse(null);
-            if (offering != null) {
-                OverageContributor asContributor = new OverageContributor(offeringId, offering.getSubject() != null ? offering.getSubject().getName() : "",
-                    null, null, offeringHours, null, null, null, null, null);
-                spreadLoad = buildSpreadLoadSuggestions(List.of(asContributor), demand.secondaryFacultyByOffering(),
+            if (offering.getSubject() != null) {
+                OverageContributor asContributor = new OverageContributor(offeringId, offering.getSubject().getName(),
+                    cohortId, null, cohortHours, null, null, null, null, null);
+                spreadLoad = buildSpreadLoadSuggestions(List.of(asContributor),
                     demand.demandByFaculty(), candidateFacultyId, demand.workingDaysInTerm(), demand.weeksInTerm());
             }
         }
 
-        return new FacultyCapacityCheckResult(overCapacity, currentDemand, offeringHours, projectedTotal,
+        return new FacultyCapacityCheckResult(overCapacity, currentDemand, cohortHours, projectedTotal,
             capacity != null ? capacity.termCapacityHours() : 0, capacity != null ? capacity.dailyCapForDisplay() : 0,
             capacity != null ? capacity.tier() : "NONE", demand.workingDaysInTerm(), suggestedMinDailyHours, spreadLoad);
     }
@@ -258,6 +263,16 @@ public class TimetableGlobalAutoScheduleService {
             totalDemand, overCapacity, shortfall, assignments);
     }
 
+    /** Term-total (not per-week) demand hours per faculty, correctly attributed per-cohort and
+     *  per-section/batch via {@link #computeTermDemand} -- exposed for {@link
+     *  FacultyWorkloadCapacityService#getTermWorkloadReport}, which needs these same figures
+     *  converted to its own per-week reporting granularity, rather than recomputing a coarser,
+     *  cohort-blind version on its own. */
+    @Transactional(readOnly = true)
+    public Map<Long, Double> getTermTotalDemandByFaculty(Long termInstanceId) {
+        return computeTermDemand(termInstanceId).demandByFaculty();
+    }
+
     /** Lightweight per-faculty summaries for a list of faculty ids (e.g. one Faculty List page) —
      *  runs {@link #computeTermDemand} exactly once regardless of how many ids are requested, then
      *  extracts each one's numbers, so a paginated list screen can show a workload badge per row
@@ -283,16 +298,203 @@ public class TimetableGlobalAutoScheduleService {
         return summaries;
     }
 
-    private record TermDemandAggregation(int workingDaysInTerm, int weeksInTerm, Map<Long, Double> demandByFaculty,
-                                          Map<Long, List<OverageContributor>> contributorsByFaculty,
-                                          Map<Long, Long> secondaryFacultyByOffering, Map<Long, Double> demandByOffering) {}
+    /** Every eligible (Speciality match OR the subject's Eligible Faculty list) active faculty for
+     *  this offering's subject, annotated with real *standing* remaining term capacity (no
+     *  hypothetical projection -- there's no single offering-wide slot to project against anymore),
+     *  sorted most-free-first -- backs the Faculty Pool checklist. Anyone currently assigned to any
+     *  cohort/section of this offering is grandfathered in even if they no longer pass eligibility,
+     *  so an existing assignment predating a stricter subject/eligibility setup never silently
+     *  disappears. No speciality on the subject means no restriction at all (whole active roster
+     *  returned). */
+    @Transactional(readOnly = true)
+    public List<EligibleFacultyCandidateDto> getEligibleFacultyForOffering(Long offeringId) {
+        CourseOffering offering = courseOfferingRepository.findById(offeringId)
+            .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + offeringId));
+        Subject subject = offering.getSubject();
+        Set<Long> currentlyAssignedIds = courseOfferingSectionFacultyRepository.findByCourseOfferingId(offeringId).stream()
+            .map(sf -> sf.getFaculty().getId()).collect(java.util.stream.Collectors.toSet());
+        List<Faculty> pool = eligiblePoolGrandfathering(subject, currentlyAssignedIds);
+        Set<Long> poolFacultyIds = poolFacultyIds(offering);
 
-    /** The shared per-term aggregation both {@link #precheckCapacity} and {@link
-     *  #checkFacultyCapacityForOffering} run off, so the two can never compute a faculty's demand
-     *  differently. Loops every cohort active in the term, then every offering that cohort has,
-     *  summing each offering+cohort pair's contribution both per bound faculty and per offering
-     *  (an offering shared across cohorts on the same curriculum version contributes once per
-     *  cohort to each map, correctly -- see class javadoc / {@link #precheckCapacity}'s original
+        TermDemandAggregation demand = computeTermDemand(offering.getTermInstance().getId());
+        List<EligibleFacultyCandidateDto> candidates = new ArrayList<>();
+        for (Faculty faculty : pool) {
+            boolean currentlyAssigned = currentlyAssignedIds.contains(faculty.getId());
+            candidates.add(candidateDto(subject, faculty, demand, currentlyAssigned, 0, poolFacultyIds));
+        }
+        return sortMostFreeFirst(candidates);
+    }
+
+    /** Section-scoped counterpart of {@link #getEligibleFacultyForOffering} -- the candidate
+     *  currently holding this section is grandfathered in the same way, and each candidate's
+     *  projected load is computed against just this section's own Theory hours rather than the
+     *  whole offering's, since every section is assigned independently ({@link
+     *  #checkFacultyCapacityForSection}). */
+    @Transactional(readOnly = true)
+    public List<EligibleFacultyCandidateDto> getEligibleFacultyForSection(Long offeringId, Long cohortSectionId) {
+        CourseOffering offering = courseOfferingRepository.findById(offeringId)
+            .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + offeringId));
+        Subject subject = offering.getSubject();
+        Long currentSectionFacultyId = currentSectionFacultyId(offering, cohortSectionId);
+        List<Faculty> pool = eligiblePoolGrandfathering(subject,
+            currentSectionFacultyId != null ? Set.of(currentSectionFacultyId) : Set.of());
+        Set<Long> poolFacultyIds = poolFacultyIds(offering);
+
+        double sectionHours = safe(offering.getCurriculumSemesterCourse() != null
+            ? offering.getCurriculumSemesterCourse().getTheoryHours() : null);
+        TermDemandAggregation demand = computeTermDemand(offering.getTermInstance().getId());
+        List<EligibleFacultyCandidateDto> candidates = new ArrayList<>();
+        for (Faculty faculty : pool) {
+            boolean alreadyHoldsSection = faculty.getId().equals(currentSectionFacultyId);
+            candidates.add(candidateDto(subject, faculty, demand, alreadyHoldsSection, sectionHours, poolFacultyIds));
+        }
+        return sortMostFreeFirst(candidates);
+    }
+
+    /** Cohort-scoped counterpart of {@link #getEligibleFacultyForSection} -- for a cohort with no
+     *  active section split. The candidate currently holding the whole-cohort row is grandfathered
+     *  in the same way, and each candidate's projected load is computed against this cohort's
+     *  *whole* theory+lab+clinical hours ({@link #checkFacultyCapacityForCohort}) rather than one
+     *  section's theory hours. */
+    @Transactional(readOnly = true)
+    public List<EligibleFacultyCandidateDto> getEligibleFacultyForCohort(Long offeringId, Long cohortId) {
+        CourseOffering offering = courseOfferingRepository.findById(offeringId)
+            .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + offeringId));
+        Subject subject = offering.getSubject();
+        Long currentCohortFacultyId = currentCohortFacultyId(offering, cohortId);
+        List<Faculty> pool = eligiblePoolGrandfathering(subject,
+            currentCohortFacultyId != null ? Set.of(currentCohortFacultyId) : Set.of());
+        Set<Long> poolFacultyIds = poolFacultyIds(offering);
+
+        double cohortHours = termHoursForOfferingInCohort(offering, cohortId, offering.getTermInstance().getId(), null).totalHours();
+        TermDemandAggregation demand = computeTermDemand(offering.getTermInstance().getId());
+        List<EligibleFacultyCandidateDto> candidates = new ArrayList<>();
+        for (Faculty faculty : pool) {
+            boolean alreadyHoldsCohort = faculty.getId().equals(currentCohortFacultyId);
+            candidates.add(candidateDto(subject, faculty, demand, alreadyHoldsCohort, cohortHours, poolFacultyIds));
+        }
+        return sortMostFreeFirst(candidates);
+    }
+
+    /** Live, single-(faculty, section) capacity check -- same math {@link
+     *  CourseOfferingSectionFacultyService#upsert} hard-blocks on, surfaced early by the section
+     *  picker before Save, mirroring {@link #checkFacultyCapacityForCohort}'s role for a
+     *  whole-cohort row. */
+    @Transactional(readOnly = true)
+    public FacultyCapacityCheckResult checkFacultyCapacityForSection(Long offeringId, Long cohortSectionId, Long candidateFacultyId) {
+        CourseOffering offering = courseOfferingRepository.findById(offeringId)
+            .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + offeringId));
+        Faculty candidate = facultyRepository.findById(candidateFacultyId)
+            .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + candidateFacultyId));
+        Long currentSectionFacultyId = currentSectionFacultyId(offering, cohortSectionId);
+        double sectionHours = safe(offering.getCurriculumSemesterCourse() != null
+            ? offering.getCurriculumSemesterCourse().getTheoryHours() : null);
+
+        TermDemandAggregation demand = computeTermDemand(offering.getTermInstance().getId());
+        double currentDemand = demand.demandByFaculty().getOrDefault(candidateFacultyId, 0.0);
+        boolean alreadyHoldsSection = candidateFacultyId.equals(currentSectionFacultyId);
+        double projectedTotal = alreadyHoldsSection ? currentDemand : currentDemand + sectionHours;
+
+        CapacityResolution capacity = resolveEffectiveTermCapacity(candidate, demand.workingDaysInTerm(), demand.weeksInTerm());
+        boolean overCapacity = capacity != null && projectedTotal > capacity.termCapacityHours() + CAPACITY_EPSILON;
+
+        List<SpreadLoadSuggestion> spreadLoad = List.of();
+        double suggestedMinDailyHours = 0;
+        if (overCapacity) {
+            suggestedMinDailyHours = Math.ceil(projectedTotal / demand.workingDaysInTerm());
+            if (offering.getSubject() != null) {
+                OverageContributor asContributor = new OverageContributor(offeringId, offering.getSubject().getName(),
+                    null, null, sectionHours, cohortSectionId, null, null, null, "THEORY");
+                spreadLoad = buildSpreadLoadSuggestions(List.of(asContributor),
+                    demand.demandByFaculty(), candidateFacultyId, demand.workingDaysInTerm(), demand.weeksInTerm());
+            }
+        }
+
+        return new FacultyCapacityCheckResult(overCapacity, currentDemand, sectionHours, projectedTotal,
+            capacity != null ? capacity.termCapacityHours() : 0, capacity != null ? capacity.dailyCapForDisplay() : 0,
+            capacity != null ? capacity.tier() : "NONE", demand.workingDaysInTerm(), suggestedMinDailyHours, spreadLoad);
+    }
+
+    /** This section's current faculty -- its own {@link CourseOfferingSectionFaculty} override, or
+     *  null if unassigned. No offering-wide fallback anymore -- a split cohort's sections are
+     *  assigned independently, with no single "primary" to fall back to. */
+    private Long currentSectionFacultyId(CourseOffering offering, Long cohortSectionId) {
+        return courseOfferingSectionFacultyRepository
+            .findByCourseOfferingIdAndCohortSectionId(offering.getId(), cohortSectionId)
+            .map(sf -> sf.getFaculty().getId())
+            .orElse(null);
+    }
+
+    /** This cohort's whole-cohort faculty -- the {@link CourseOfferingSectionFaculty} row with no
+     *  section (only meaningful/settable for a cohort with no active section split), or null if
+     *  unassigned. */
+    private Long currentCohortFacultyId(CourseOffering offering, Long cohortId) {
+        return courseOfferingSectionFacultyRepository
+            .findByCourseOfferingIdAndCohortIdAndCohortSectionIdIsNull(offering.getId(), cohortId)
+            .map(sf -> sf.getFaculty().getId())
+            .orElse(null);
+    }
+
+    /** {@link FacultyEligibility#eligibleFaculty}'s active pool, with every id in {@code
+     *  currentHolderIds} added back in if eligibility alone would have excluded them -- shared
+     *  grandfathering helper for the offering-level, section-level, and cohort-level candidate
+     *  lists. */
+    private List<Faculty> eligiblePoolGrandfathering(Subject subject, Set<Long> currentHolderIds) {
+        List<Faculty> activePool = facultyRepository.findByStatus(FacultyStatus.ACTIVE);
+        List<Faculty> eligible = subject != null
+            ? new ArrayList<>(FacultyEligibility.eligibleFaculty(subject, activePool))
+            : new ArrayList<>(activePool);
+        Set<Long> eligibleIds = eligible.stream().map(Faculty::getId).collect(java.util.stream.Collectors.toSet());
+        for (Long holderId : currentHolderIds) {
+            if (holderId != null && !eligibleIds.contains(holderId)) {
+                facultyRepository.findById(holderId).ifPresent(eligible::add);
+            }
+        }
+        return eligible;
+    }
+
+    private static Set<Long> poolFacultyIds(CourseOffering offering) {
+        return offering.getFacultyPool().stream().map(Faculty::getId).collect(java.util.stream.Collectors.toSet());
+    }
+
+    private EligibleFacultyCandidateDto candidateDto(Subject subject, Faculty faculty, TermDemandAggregation demand,
+            boolean alreadyHoldsSlot, double slotHours, Set<Long> poolFacultyIds) {
+        double currentDemand = demand.demandByFaculty().getOrDefault(faculty.getId(), 0.0);
+        double projectedTotal = alreadyHoldsSlot ? currentDemand : currentDemand + slotHours;
+        CapacityResolution capacity = resolveEffectiveTermCapacity(faculty, demand.workingDaysInTerm(), demand.weeksInTerm());
+        double capacityHours = capacity != null ? capacity.termCapacityHours() : 0;
+        String tier = capacity != null ? capacity.tier() : "NONE";
+        double remaining = capacity != null ? capacityHours - projectedTotal : 0;
+        boolean overCapacity = capacity != null && remaining < -CAPACITY_EPSILON;
+        boolean specialityMatch = subject != null && FacultyEligibility.specialityMatches(subject, faculty);
+        boolean viaEligibleList = subject != null && FacultyEligibility.viaEligibleList(subject, faculty);
+        return new EligibleFacultyCandidateDto(faculty.getId(), faculty.getFullName(), specialityMatch, viaEligibleList,
+            alreadyHoldsSlot, poolFacultyIds.contains(faculty.getId()), currentDemand, capacityHours, tier, remaining, overCapacity);
+    }
+
+    /** Uncapped candidates ({@code capacityTier == "NONE"}) sort first -- no configured limit reads
+     *  as "most free" -- then the rest by descending remaining hours. */
+    private static List<EligibleFacultyCandidateDto> sortMostFreeFirst(List<EligibleFacultyCandidateDto> candidates) {
+        return candidates.stream()
+            .sorted((a, b) -> {
+                boolean aUncapped = "NONE".equals(a.capacityTier());
+                boolean bUncapped = "NONE".equals(b.capacityTier());
+                if (aUncapped != bUncapped) {
+                    return aUncapped ? -1 : 1;
+                }
+                return Double.compare(b.remainingHours(), a.remainingHours());
+            })
+            .toList();
+    }
+
+    private record TermDemandAggregation(int workingDaysInTerm, int weeksInTerm, Map<Long, Double> demandByFaculty,
+                                          Map<Long, List<OverageContributor>> contributorsByFaculty) {}
+
+    /** The shared per-term aggregation every capacity check in this class runs off, so none of them
+     *  can ever compute a faculty's demand differently. Loops every cohort active in the term, then
+     *  every offering that cohort has, summing each offering+cohort pair's contribution per bound
+     *  faculty (an offering shared across cohorts on the same curriculum version contributes once
+     *  per cohort, correctly -- see class javadoc / {@link #precheckCapacity}'s original
      *  double-counting note). */
     private TermDemandAggregation computeTermDemand(Long termInstanceId) {
         TermInstance term = requireTermInstance(termInstanceId);
@@ -302,8 +504,6 @@ public class TimetableGlobalAutoScheduleService {
 
         Map<Long, Double> demandByFaculty = new LinkedHashMap<>();
         Map<Long, List<OverageContributor>> contributorsByFaculty = new LinkedHashMap<>();
-        Map<Long, Long> secondaryFacultyByOffering = new LinkedHashMap<>();
-        Map<Long, Double> demandByOffering = new LinkedHashMap<>();
 
         for (Long cohortId : enumerateCohortIds(termInstanceId)) {
             Cohort cohort = cohortRepository.findById(cohortId).orElse(null);
@@ -315,13 +515,10 @@ public class TimetableGlobalAutoScheduleService {
                 if (offering == null || offering.getCurriculumSemesterCourse() == null) {
                     continue;
                 }
-                OfferingHoursSplit split = termHoursForOfferingInCohort(offering, cohortId, termInstanceId, offeringDto.facultyId());
+                Long wholeCohortFacultyId = currentCohortFacultyId(offering, cohortId);
+                OfferingHoursSplit split = termHoursForOfferingInCohort(offering, cohortId, termInstanceId, wholeCohortFacultyId);
                 if (split.totalHours() <= 0) {
                     continue;
-                }
-                demandByOffering.merge(offering.getId(), split.totalHours(), Double::sum);
-                if (offeringDto.secondaryFacultyId() != null) {
-                    secondaryFacultyByOffering.putIfAbsent(offering.getId(), offeringDto.secondaryFacultyId());
                 }
                 for (FacultyContribution contribution : split.contributions()) {
                     demandByFaculty.merge(contribution.facultyId(), contribution.hours(), Double::sum);
@@ -332,7 +529,7 @@ public class TimetableGlobalAutoScheduleService {
                 }
             }
         }
-        return new TermDemandAggregation(workingDaysInTerm, weeksInTerm, demandByFaculty, contributorsByFaculty, secondaryFacultyByOffering, demandByOffering);
+        return new TermDemandAggregation(workingDaysInTerm, weeksInTerm, demandByFaculty, contributorsByFaculty);
     }
 
     /** One faculty's share of an offering+cohort's term hours, attributed to exactly one of: a
@@ -517,44 +714,26 @@ public class TimetableGlobalAutoScheduleService {
         return null;
     }
 
-    /** Advisory-only, nothing applied automatically -- checks the offering's own {@code
-     *  secondaryFacultyId} first (already a college-vetted co-instructor candidate for that exact
-     *  offering), then the wider candidate pool, for each of the faculty's top contributing
-     *  offerings, picking the first candidate whose own existing demand plus this offering's hours
-     *  still fits their own capacity. Candidate pool is same-speciality when the subject has one,
-     *  same as {@link ClassScheduleService#requireEligibleFaculty} -- but mirrors that method's own
-     *  "no speciality on the subject means no eligibility constraint, anyone can teach it" rule
-     *  rather than skipping the subject entirely, since a real subject having no speciality tag is
-     *  the common case in this data set (unfilled master data), not the exception. */
+    /** Advisory-only, nothing applied automatically -- for each of the faculty's top contributing
+     *  offerings, scans the eligible candidate pool ({@link FacultyEligibility#eligibleFaculty},
+     *  Speciality match OR the subject's Eligible Faculty list -- no restriction at all when the
+     *  subject has no speciality tag, the common case in this data set), picking the first candidate
+     *  whose own existing demand plus this offering's hours still fits their own capacity. */
     private List<SpreadLoadSuggestion> buildSpreadLoadSuggestions(List<OverageContributor> topContributors,
-            Map<Long, Long> secondaryFacultyByOffering, Map<Long, Double> demandByFaculty,
-            Long overCapacityFacultyId, int workingDaysInTerm, int weeksInTerm) {
+            Map<Long, Double> demandByFaculty, Long overCapacityFacultyId, int workingDaysInTerm, int weeksInTerm) {
         List<SpreadLoadSuggestion> suggestions = new ArrayList<>();
         for (OverageContributor contributor : topContributors) {
             CourseOffering offering = courseOfferingRepository.findById(contributor.courseOfferingId()).orElse(null);
             if (offering == null || offering.getSubject() == null) {
                 continue;
             }
-            var speciality = offering.getSubject().getSpeciality();
-
-            Long secondaryId = secondaryFacultyByOffering.get(contributor.courseOfferingId());
-            Faculty secondary = secondaryId != null && !secondaryId.equals(overCapacityFacultyId)
-                ? facultyRepository.findById(secondaryId).orElse(null) : null;
-            SpreadLoadSuggestion secondarySuggestion = secondary == null ? null
-                : spreadLoadSuggestionIfSpare(secondary, true, contributor, demandByFaculty, workingDaysInTerm, weeksInTerm);
-            if (secondarySuggestion != null) {
-                suggestions.add(secondarySuggestion);
-                continue;
-            }
-
-            List<Faculty> pool = speciality != null
-                ? facultyRepository.findBySpecialityIdAndStatus(speciality.getId(), FacultyStatus.ACTIVE)
-                : facultyRepository.findByStatus(FacultyStatus.ACTIVE);
+            List<Faculty> pool = FacultyEligibility.eligibleFaculty(
+                offering.getSubject(), facultyRepository.findByStatus(FacultyStatus.ACTIVE));
             for (Faculty candidate : pool) {
                 if (candidate.getId().equals(overCapacityFacultyId)) {
                     continue;
                 }
-                SpreadLoadSuggestion suggestion = spreadLoadSuggestionIfSpare(candidate, false, contributor, demandByFaculty, workingDaysInTerm, weeksInTerm);
+                SpreadLoadSuggestion suggestion = spreadLoadSuggestionIfSpare(candidate, contributor, demandByFaculty, workingDaysInTerm, weeksInTerm);
                 if (suggestion != null) {
                     suggestions.add(suggestion);
                     break;
@@ -564,7 +743,7 @@ public class TimetableGlobalAutoScheduleService {
         return suggestions;
     }
 
-    private SpreadLoadSuggestion spreadLoadSuggestionIfSpare(Faculty candidate, boolean isSecondary, OverageContributor contributor,
+    private SpreadLoadSuggestion spreadLoadSuggestionIfSpare(Faculty candidate, OverageContributor contributor,
             Map<Long, Double> demandByFaculty, int workingDaysInTerm, int weeksInTerm) {
         CapacityResolution capacity = resolveEffectiveTermCapacity(candidate, workingDaysInTerm, weeksInTerm);
         if (capacity == null) {
@@ -575,7 +754,7 @@ public class TimetableGlobalAutoScheduleService {
         if (spare + CAPACITY_EPSILON < contributor.termHoursContributed()) {
             return null;
         }
-        return new SpreadLoadSuggestion(candidate.getId(), candidate.getFullName(), isSecondary, spare,
+        return new SpreadLoadSuggestion(candidate.getId(), candidate.getFullName(), spare,
             contributor.courseOfferingId(), contributor.subjectName(), contributor.cohortSectionId(), contributor.batchId());
     }
 
@@ -611,11 +790,8 @@ public class TimetableGlobalAutoScheduleService {
                     }
                     continue;
                 }
-                if (offering.getFacultyId() != null) {
-                    continue;
-                }
                 boolean hasShortfall = subject.budgets().stream()
-                    .anyMatch(b -> b.requiredSessionsPerWeek() > b.placedSessionsPerWeek());
+                    .anyMatch(b -> b.requiredSessionsPerWeek() > b.placedSessionsPerWeek() && resolveBudgetFacultyId(offering, b, id) == null);
                 if (hasShortfall) {
                     unassigned.add(new UnassignedOfferingSummary(offering.getId(), subject.subjectName(), id, cohort.getDisplayName()));
                 }
@@ -625,7 +801,7 @@ public class TimetableGlobalAutoScheduleService {
         for (Long electiveGroupId : electiveGroupIdsSeen) {
             for (CourseOffering member : courseOfferingRepository
                     .findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(termInstanceId, electiveGroupId)) {
-                if (Boolean.TRUE.equals(member.getIsActive()) && member.getFacultyId() == null
+                if (Boolean.TRUE.equals(member.getIsActive()) && resolveElectiveMemberFacultyId(member) == null
                         && safe(member.getCurriculumSemesterCourse() != null ? member.getCurriculumSemesterCourse().getTheoryHours() : null) > 0) {
                     unassigned.add(new UnassignedOfferingSummary(member.getId(),
                         member.getSubject() != null ? member.getSubject().getName() + " (elective)" : "(elective)", null, null));
@@ -687,22 +863,15 @@ public class TimetableGlobalAutoScheduleService {
                     }
                     continue;
                 }
-                Long facultyId = offering.getFacultyId();
-                if (facultyId == null) {
-                    for (SkeletonSubjectBudget budget : subject.budgets()) {
-                        int shortfall = budget.requiredSessionsPerWeek() - budget.placedSessionsPerWeek();
-                        if (shortfall <= 0) {
-                            continue;
-                        }
-                        unplacedForCohort.add(new AutoPlaceUnplacedItem(subject.subjectName(), budget.sessionType(),
-                            occupantLabel(budget), "no faculty assigned on its Course Offering"));
-                    }
-                    continue;
-                }
-
                 for (SkeletonSubjectBudget budget : subject.budgets()) {
                     int shortfall = budget.requiredSessionsPerWeek() - budget.placedSessionsPerWeek();
                     if (shortfall <= 0) {
+                        continue;
+                    }
+                    Long facultyId = resolveBudgetFacultyId(offering, budget, id);
+                    if (facultyId == null) {
+                        unplacedForCohort.add(new AutoPlaceUnplacedItem(subject.subjectName(), budget.sessionType(),
+                            occupantLabel(budget), "no faculty assigned on its Course Offering"));
                         continue;
                     }
                     Set<DayOfWeek> daysUsed = existingDaysForBudgetRow(skeleton.cells(), subject.courseOfferingId(), budget);
@@ -755,6 +924,19 @@ public class TimetableGlobalAutoScheduleService {
 
     private String occupantLabel(SkeletonSubjectBudget budget) {
         return budget.cohortSectionLabel() != null ? budget.cohortSectionLabel() : budget.batchName();
+    }
+
+    /** The faculty who should actually staff this budget row -- a THEORY row split across active
+     *  {@link CohortSection}s resolves its own {@link CourseOfferingSectionFaculty} section-level
+     *  override; every other row shape (unsectioned THEORY, or a LAB/CLINICAL batch with no
+     *  coordinator of its own -- {@link Batch#getCoordinatorFaculty()} stays advisory-only,
+     *  unaffected by this change) resolves this cohort's whole-cohort row instead. Returns null
+     *  (unplaced, reported as "no faculty assigned") when nothing has been assigned yet. */
+    private Long resolveBudgetFacultyId(CourseOffering offering, SkeletonSubjectBudget budget, Long cohortId) {
+        if (budget.cohortSectionId() != null) {
+            return currentSectionFacultyId(offering, budget.cohortSectionId());
+        }
+        return currentCohortFacultyId(offering, cohortId);
     }
 
     /** Scans every free day/period until one is found where placement AND staffing the offering's
@@ -826,7 +1008,7 @@ public class TimetableGlobalAutoScheduleService {
             return 0;
         }
         for (CourseOffering member : members) {
-            if (Boolean.TRUE.equals(member.getIsActive()) && member.getFacultyId() == null
+            if (Boolean.TRUE.equals(member.getIsActive()) && resolveElectiveMemberFacultyId(member) == null
                     && safe(member.getCurriculumSemesterCourse() != null ? member.getCurriculumSemesterCourse().getTheoryHours() : null) > 0) {
                 unplacedSink.add(new AutoPlaceUnplacedItem(member.getSubject().getName(), ClassSessionType.THEORY, null,
                     "no faculty assigned on its Course Offering (elective)"));
@@ -905,7 +1087,7 @@ public class TimetableGlobalAutoScheduleService {
             }
             placedCellIds.add(placed.id());
             try {
-                timetableStaffingService.staffCell(placed.id(), new StaffingAssignmentRequest(member.getFacultyId(), classroom.getId()));
+                timetableStaffingService.staffCell(placed.id(), new StaffingAssignmentRequest(resolveElectiveMemberFacultyId(member), classroom.getId()));
             } catch (TimetableConstraintViolationException | LifecycleConflictException | IllegalArgumentException ex) {
                 rollbackElectiveCells(placedCellIds);
                 return false;
@@ -918,6 +1100,21 @@ public class TimetableGlobalAutoScheduleService {
         for (Long id : cellIds) {
             timetableSkeletonService.removeCell(id);
         }
+    }
+
+    /** Elective member offerings don't loop per-cohort in this class -- a group's shared slot spans
+     *  every enrolled cohort's students by design (see class javadoc), so there's no single
+     *  cohortId in scope to resolve a per-cohort assignment against here. Resolves the member's own
+     *  {@link CourseOfferingSectionFaculty} rows (whole-cohort and/or per-section) and returns their
+     *  shared faculty if every row agrees on exactly one (including the common case of just one row);
+     *  returns null (treated as unassigned) if they disagree, rather than guessing which one wins --
+     *  a deliberately narrow exception to the per-cohort model, matching this class's existing
+     *  elective scope limits. */
+    private Long resolveElectiveMemberFacultyId(CourseOffering member) {
+        Set<Long> facultyIds = courseOfferingSectionFacultyRepository.findByCourseOfferingId(member.getId()).stream()
+            .map(sf -> sf.getFaculty().getId())
+            .collect(java.util.stream.Collectors.toSet());
+        return facultyIds.size() == 1 ? facultyIds.iterator().next() : null;
     }
 
     private Classroom firstFreeClassroom(List<Classroom> candidates, int requiredStrength, DayOfWeek day, Period period, TermInstance term) {

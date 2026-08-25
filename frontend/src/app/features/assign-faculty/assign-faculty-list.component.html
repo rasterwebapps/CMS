@@ -134,12 +134,9 @@
 
           <ng-container matColumnDef="faculty">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Faculty</th>
-            <td mat-cell *matCellDef="let row">{{ facultyName(row.facultyId) }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="secondaryFaculty">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Secondary Faculty</th>
-            <td mat-cell *matCellDef="let row">{{ row.secondaryFacultyId ? facultyName(row.secondaryFacultyId) : '—' }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span class="af-faculty-cell" [title]="facultySummaryText(row)">{{ facultySummaryText(row) }}</span>
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="status">

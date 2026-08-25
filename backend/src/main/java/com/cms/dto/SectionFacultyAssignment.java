@@ -1,10 +1,12 @@
 package com.cms.dto;
 
-/** {@code cohortName} exists because a CourseOffering can be shared by more than one cohort on
- *  the same curriculum version -- each CohortSection unambiguously belongs to exactly one cohort
- *  regardless, so sections from every matching cohort are listed together, distinguished by this
- *  label rather than picking just one cohort to show. */
+/** One cohort's faculty assignment for an offering -- {@code cohortId} is always set ({@code
+ *  cohortName} exists because a CourseOffering can be shared by more than one cohort on the same
+ *  curriculum version, each assigned independently); {@code cohortSectionId}/{@code sectionLabel}
+ *  are null when the cohort's Theory delivery has no active section split (a single whole-cohort
+ *  row), or set to identify exactly which section this row covers when it does. */
 public record SectionFacultyAssignment(
+    Long cohortId,
     Long cohortSectionId,
     String cohortName,
     String sectionLabel,

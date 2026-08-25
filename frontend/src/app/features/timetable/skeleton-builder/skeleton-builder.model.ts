@@ -187,7 +187,6 @@ export interface RaiseCapSuggestion {
 export interface SpreadLoadSuggestion {
   alternateFacultyId: number;
   alternateFacultyName: string;
-  isOfferingsSecondaryFaculty: boolean;
   alternateSpareCapacityHours: number;
   courseOfferingId: number;
   subjectName: string;

@@ -1,10 +1,9 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
-import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
+import { AcademicYear, EligibleFacultyCandidate, TermInstance } from '../../academic-year/academic-year.model';
 import { ClassroomService } from '../../classroom/classroom.service';
 import { Classroom } from '../../classroom/classroom.model';
 import { StaffingService } from './staffing.service';
@@ -12,7 +11,6 @@ import { UnstaffedCell } from './staffing.model';
 import { WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/week-grid.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
-import { environment } from '../../../../environments/environment';
 import { violationText } from '../../../shared/util/violation-text';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
@@ -37,15 +35,19 @@ export class StaffingComponent implements OnInit {
   private readonly staffingService = inject(StaffingService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
-  private readonly http = inject(HttpClient);
   private readonly tourService = inject(TourService);
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
   protected readonly rows = signal<StaffingRow[]>([]);
 
-  protected readonly faculty = signal<{ id: number; name: string; specialityId: number | null }[]>([]);
   protected readonly classrooms = signal<Classroom[]>([]);
+
+  /** Eligible+free-hours candidate lists (offering-level or section-level), fetched lazily per
+   *  row the first time it renders and cached by "courseOfferingId:cohortSectionId" so rows
+   *  sharing the same offering/section reuse one request. */
+  private readonly candidatesCache = signal<Map<string, EligibleFacultyCandidate[]>>(new Map());
+  private readonly candidatesLoading = new Set<string>();
 
   /** Non-binding faculty-reuse tally, keyed by subjectCode|dayOfWeek|facultyId — incremented as
    *  assignments succeed in this session, used only to rank/hint the faculty dropdown toward
@@ -99,10 +101,6 @@ export class StaffingComponent implements OnInit {
     this.tourService.register('staffing', STAFFING_TOUR);
     this.tourService.registerFlowMap('staffing', STAFFING_FLOW_MAP);
 
-    this.http.get<{ id: number; fullName: string; specialityId: number | null }[]>(`${environment.apiUrl}/faculty`).subscribe({
-      next: (data) => this.faculty.set(data.map((f) => ({ id: f.id, name: f.fullName, specialityId: f.specialityId }))),
-      error: () => this.toast.error('Failed to load faculty'),
-    });
     this.classroomService.getAll(true).subscribe({
       next: (data) => this.classrooms.set(data),
       error: () => this.toast.error('Failed to load classrooms'),
@@ -132,21 +130,48 @@ export class StaffingComponent implements OnInit {
     else this.rows.set([]);
   }
 
-  protected eligibleFacultyFor(row: StaffingRow): { id: number; name: string; specialityId: number | null }[] {
-    const base = !row.subjectSpecialityId ? this.faculty()
-      : this.faculty().filter((f) => f.specialityId === row.subjectSpecialityId);
-    const counts = this.facultyReuseCounts();
-    return [...base].sort((a, b) =>
-      (counts.get(this.reuseKey(row, b.id)) ?? 0) - (counts.get(this.reuseKey(row, a.id)) ?? 0));
+  private candidateKey(row: StaffingRow): string | null {
+    if (row.courseOfferingId == null) return null;
+    return row.cohortSectionId != null ? `${row.courseOfferingId}:${row.cohortSectionId}` : `${row.courseOfferingId}:primary`;
   }
 
-  /** Appends a non-binding hint when this faculty is already teaching the same subject on the
-   *  same day elsewhere in this staffing session — reusing them keeps total instructor headcount
-   *  down instead of spreading the same subject across more staff than necessary. */
-  protected facultyOptionLabel(row: StaffingRow, f: { name: string; id: number }): string {
-    const count = this.facultyReuseCounts().get(this.reuseKey(row, f.id)) ?? 0;
-    if (count === 0) return f.name;
-    return `${f.name} — already teaching ${count} session${count > 1 ? 's' : ''} today`;
+  /** Eligible (Speciality match OR the subject's Eligible Faculty list) faculty for this row,
+   *  each annotated with real remaining term capacity and sorted most-free-first by the backend —
+   *  section-scoped when this row belongs to a split cohort section, offering-scoped otherwise.
+   *  Fetched once per distinct offering/section and cached; the first response also pre-fills the
+   *  row's picker with whoever's designated for it (the offering's primary, or that section's own
+   *  Course Offering Section Faculty override) — but only if the admin hasn't already picked
+   *  someone for this specific row. */
+  protected eligibleCandidatesFor(row: StaffingRow): EligibleFacultyCandidate[] {
+    const key = this.candidateKey(row);
+    if (!key) return [];
+    const cached = this.candidatesCache().get(key);
+    if (cached) return cached;
+    if (!this.candidatesLoading.has(key)) {
+      this.candidatesLoading.add(key);
+      const request$ = row.cohortSectionId != null
+        ? this.academicYearService.getEligibleFacultyForSection(row.courseOfferingId!, row.cohortSectionId)
+        : this.academicYearService.getEligibleFaculty(row.courseOfferingId!);
+      request$.subscribe({
+        next: (candidates) => {
+          this.candidatesCache.update((m) => new Map(m).set(key, candidates));
+          const designated = candidates.find((c) => c.currentlyAssigned);
+          if (designated && row.facultyId === null) row.facultyId = designated.facultyId;
+        },
+        error: () => { this.candidatesLoading.delete(key); },
+      });
+    }
+    return [];
+  }
+
+  /** Remaining-capacity figure plus the same-day-same-subject reuse hint, non-binding — reusing an
+   *  already-teaching faculty keeps total instructor headcount down instead of spreading the same
+   *  subject across more staff than necessary. */
+  protected candidateOptionLabel(row: StaffingRow, c: EligibleFacultyCandidate): string {
+    const hours = c.capacityTier === 'NONE' ? 'no cap configured' : c.overCapacity ? 'over capacity' : `${Math.round(c.remainingHours * 10) / 10}h free`;
+    const count = this.facultyReuseCounts().get(this.reuseKey(row, c.facultyId)) ?? 0;
+    const reuseSuffix = count > 0 ? `, already teaching ${count} session${count > 1 ? 's' : ''} today` : '';
+    return `${c.facultyName} — ${hours}${reuseSuffix}`;
   }
 
   private reuseKey(row: StaffingRow, facultyId: number): string {

@@ -44,15 +44,7 @@
 
 // ── Dialog content / form ─────────────────────────────────────
 mat-dialog-content {
-  padding: 0 24px !important;
-}
-
-.coed-form {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-top: 20px;
-  padding-bottom: 4px;
+  padding: 20px 24px 0 !important;
 }
 
 .coed-section-faculty {
@@ -67,24 +59,21 @@ mat-dialog-content {
 }
 
 .coed-section-faculty__row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 
   &:last-child {
     margin-bottom: 0;
   }
+}
 
-  .field-select {
-    flex: 1;
-    min-width: 0;
-  }
+.coed-section-faculty__row-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .coed-section-faculty__label {
-  flex-shrink: 0;
-  max-width: 45%;
   font-size: var(--cms-text-xs);
   font-weight: 600;
   color: var(--cms-text-secondary);
@@ -93,8 +82,107 @@ mat-dialog-content {
   white-space: nowrap;
 }
 
+// ── Eligible-faculty candidate list (primary + per-section) ───
+.coed-candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.coed-candidate-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  cursor: pointer;
+
+  &:has(input:checked) {
+    border-color: var(--cms-primary);
+    background: var(--cms-primary-light);
+  }
+
+  &:has(input:disabled) {
+    cursor: default;
+    opacity: 0.7;
+  }
+
+  input[type='radio'],
+  input[type='checkbox'] {
+    flex-shrink: 0;
+    accent-color: var(--cms-primary);
+  }
+}
+
+.coed-save-pool-btn {
+  margin-top: 10px;
+}
+
+.coed-candidate-row--none {
+  .coed-candidate-row__name {
+    color: var(--cms-text-secondary);
+    font-style: italic;
+  }
+}
+
+.coed-candidate-row--over {
+  &:has(input:checked) {
+    border-color: var(--cms-danger);
+    background: color-mix(in srgb, var(--cms-danger) 8%, var(--cms-bg-card));
+  }
+}
+
+.coed-candidate-row__name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coed-candidate-row__badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--cms-badge-blue-bg);
+  color: var(--cms-badge-blue-text);
+
+  &--eligible-list {
+    background: var(--cms-badge-violet-bg);
+    color: var(--cms-badge-violet-text);
+  }
+
+  &--grandfathered {
+    background: var(--cms-badge-gray-bg);
+    color: var(--cms-badge-gray-text);
+  }
+}
+
+.coed-candidate-row__hours {
+  flex-shrink: 0;
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  color: var(--cms-badge-green-text);
+  min-width: 70px;
+  text-align: right;
+
+  &--over {
+    color: var(--cms-danger);
+  }
+}
+
 .coed-prefill-banner {
-  margin-top: 20px;
+  margin: 0 0 20px;
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid var(--cms-primary-alpha-30);
@@ -102,55 +190,6 @@ mat-dialog-content {
   font-size: var(--cms-text-xs);
   color: var(--cms-text-primary);
   line-height: 1.4;
-}
-
-.coed-capacity-warning {
-  margin-top: 6px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--cms-badge-amber-text) 30%, var(--cms-border-default));
-  background: color-mix(in srgb, var(--cms-badge-amber-text) 8%, var(--cms-bg-card));
-
-  p {
-    margin: 0;
-    font-size: var(--cms-text-xs);
-    color: var(--cms-text-primary);
-
-    & + p {
-      margin-top: 4px;
-    }
-  }
-}
-
-.field-hint--error {
-  color: var(--cms-danger);
-}
-
-.coed-capacity-fix-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 6px;
-  font-size: var(--cms-text-xs);
-  font-weight: 600;
-  color: var(--cms-primary);
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-
-  mat-icon {
-    font-size: 0.9rem;
-    width: 13px;
-    height: 13px;
-  }
-}
-
-.coed-capacity-ok {
-  margin: 6px 0 0;
-  font-size: var(--cms-text-xs);
-  color: var(--cms-badge-green-text);
 }
 
 // ── Dialog actions ────────────────────────────────────────────
