@@ -2,13 +2,16 @@
 
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">Timetable <em>Capacity Auto-Plan</em></h1>
+      <div class="page-title-row">
+        <h1 class="mlp-title">Timetable <em>Capacity Auto-Plan</em></h1>
+        <cms-tour-button tourKey="capacity-auto-plan" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">Every cohort enrolled this term, the rooms available to plan into, and fewest-rooms Theory/Lab/Clinical suggestions ready to review — nothing here commits automatically.</p>
       <p class="page-subtitle">Need to fine-tune one cohort by hand? Open the <a routerLink="/timetable/capacity-planner">Capacity Planner</a>.</p>
     </div>
   </div>
 
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-cap-auto-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
       @for (ay of academicYears(); track ay.id) {
         <option [ngValue]="ay.id">{{ ay.name }}</option>
@@ -52,7 +55,7 @@
       </div>
     }
 
-    <div class="content-card cap-summary-card anim-rise anim-rise--d2">
+    <div id="tour-cap-auto-summary" class="content-card cap-summary-card anim-rise anim-rise--d2">
       <div class="cap-tiles">
         <div class="cap-tile" data-tone="total">
           <span class="cap-tile__value">{{ o.cohorts.length }}</span>
@@ -88,7 +91,7 @@
     } @else {
       <h2 class="cap-cohorts-title anim-rise anim-rise--d3">Cohorts to Plan</h2>
 
-      <div class="cap-cohort-panel anim-rise anim-rise--d3">
+      <div id="tour-cap-auto-cohorts" class="cap-cohort-panel anim-rise anim-rise--d3">
       <div class="cap-cohort-tabs" role="tablist">
         @for (row of o.cohorts; track row.cohortId) {
           <button type="button" class="cap-cohort-tab" role="tab"

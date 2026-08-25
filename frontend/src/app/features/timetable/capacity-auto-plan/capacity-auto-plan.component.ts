@@ -15,6 +15,9 @@ import { CapacityPlannerService } from '../capacity-planner/capacity-planner.ser
 import { CohortAutoPlanSummary, RoomInventoryRow, TermCapacityOverview } from '../capacity-planner/capacity-planner.model';
 import { CohortRoomAllocationService } from '../capacity-planner/cohort-room-allocation.service';
 import { AllocatedBatch, CohortRoomAllocation, CohortSection, CohortSectionRequest, VentureSplit } from '../capacity-planner/cohort-room-allocation.model';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CAPACITY_AUTO_PLAN_TOUR, CAPACITY_AUTO_PLAN_FLOW_MAP } from '../../../shared/tour/tours/capacity-auto-plan.tours';
 
 /** One grouped section of the Room Inventory chip grid -- Classrooms / Labs / Clinical Venues,
  *  in that fixed display order regardless of how the backend orders the flat roomInventory list. */
@@ -78,6 +81,7 @@ interface BatchGroup {
   imports: [
     FormsModule, RouterLink, MatProgressSpinnerModule, MatDialogModule,
     CmsEmptyStateComponent, CmsStatusBadgeComponent, NgTemplateOutlet, DecimalPipe, DatePipe,
+    CmsTourButtonComponent,
   ],
   templateUrl: './capacity-auto-plan.component.html',
   styleUrl: './capacity-auto-plan.component.scss',
@@ -87,6 +91,7 @@ export class CapacityAutoPlanComponent implements OnInit {
   private readonly capacityPlannerService = inject(CapacityPlannerService);
   private readonly cohortRoomAllocationService = inject(CohortRoomAllocationService);
   private readonly permissionService = inject(PermissionService);
+  private readonly tourService = inject(TourService);
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
 
@@ -158,6 +163,9 @@ export class CapacityAutoPlanComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tourService.register('capacity-auto-plan', CAPACITY_AUTO_PLAN_TOUR);
+    this.tourService.registerFlowMap('capacity-auto-plan', CAPACITY_AUTO_PLAN_FLOW_MAP);
+
     this.academicYearService.getAllAcademicYears().subscribe({
       next: (years) => {
         this.academicYears.set(years);

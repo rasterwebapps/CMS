@@ -3,6 +3,7 @@
     <div class="mlp-hdr-left">
       <div class="page-title-row">
         <h1 class="mlp-title">Assign <em>Faculty</em></h1>
+        <cms-tour-button tourKey="assign-faculty" [iconOnly]="true" iconVariant="info-circle" />
       </div>
       <p class="mlp-sub">
         @if (selectedTerm(); as term) {
@@ -22,7 +23,7 @@
     }
   </div>
 
-  <div class="command-bar mlp-toolbar">
+  <div id="tour-af-toolbar" class="command-bar mlp-toolbar">
     <div class="command-bar__left">
       <select
         class="mlp-filter-select"
@@ -106,7 +107,7 @@
     </div>
   </div>
 
-  <div class="content-card mlp-table-card">
+  <div id="tour-af-table" class="content-card mlp-table-card">
     @if (loading()) {
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading offerings"></mat-spinner>

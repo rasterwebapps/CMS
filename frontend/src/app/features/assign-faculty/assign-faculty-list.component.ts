@@ -18,6 +18,9 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../shared/column
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../shared/column-resize';
 import { PermissionService } from '../../core/permissions/permission.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { TourService } from '../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
+import { ASSIGN_FACULTY_TOUR, ASSIGN_FACULTY_FLOW_MAP } from '../../shared/tour/tours/assign-faculty.tours';
 import {
   CourseOfferingEditDialogComponent,
   CourseOfferingEditDialogData,
@@ -47,7 +50,7 @@ import {
     FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatDialogModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsStatusBadgeComponent, CmsIconEditComponent,
-    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent,
   ],
   templateUrl: './assign-faculty-list.component.html',
   styleUrl: './assign-faculty-list.component.scss',
@@ -59,6 +62,7 @@ export class AssignFacultyListComponent implements OnInit {
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   @ViewChild(MatTable) private _matTable?: MatTable<unknown>;
   @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
@@ -134,6 +138,9 @@ export class AssignFacultyListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.tourService.register('assign-faculty', ASSIGN_FACULTY_TOUR);
+    this.tourService.registerFlowMap('assign-faculty', ASSIGN_FACULTY_FLOW_MAP);
+
     // Same client-side sort-accessor fix as Course Offerings — 'faculty'/'status' are rendered
     // from facultyId/isActive, not fields of those literal names.
     this.dataSource.sortingDataAccessor = (row: CourseOffering, sortHeaderId: string) => {
