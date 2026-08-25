@@ -71,6 +71,14 @@
   }
 }
 
+// ── Tour FAB (mirrors .customize-fab, opposite corner so the two never collide) ─
+.tour-fab {
+  position: fixed;
+  bottom:   28px;
+  left:     28px;
+  z-index:  100;
+}
+
 // ── 4-column widget grid ──────────────────────────────────────────────────────
 .widget-grid {
   position: relative;

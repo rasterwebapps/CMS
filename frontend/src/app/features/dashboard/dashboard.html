@@ -1,6 +1,10 @@
 <div class="dynamic-dashboard">
   <div class="dash-aurora" aria-hidden="true"></div>
 
+  <div class="tour-fab">
+    <cms-tour-button tourKey="dashboard" [iconOnly]="true" iconVariant="info-circle" />
+  </div>
+
   @if (canCustomize()) {
     <a class="customize-fab" routerLink="/dashboard/configure" aria-label="Customize dashboard">
       <mat-icon>tune</mat-icon>
@@ -44,7 +48,7 @@
   } @else {
 
     <!-- ── Widget grid ────────────────────────────────────────────────────── -->
-    <div class="widget-grid">
+    <div id="tour-dash-grid" class="widget-grid">
       @for (item of widgetItems(); track item.key) {
         <div class="widget-cell"
              [style.--cs]="item.colSpan"

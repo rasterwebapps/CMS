@@ -145,7 +145,8 @@
         }
       </div>
 
-      <div class="hero__actions">
+      <div class="hero__actions" id="tour-profile-actions">
+        <span class="hero__tour-btn"><cms-tour-button tourKey="profile" [iconOnly]="true" iconVariant="info-circle" /></span>
         <button class="btn-edit-profile" type="button" (click)="enterEditMode()">
           <mat-icon>edit</mat-icon> Edit Profile
         </button>
@@ -163,7 +164,7 @@
     </section>
 
     <!-- ══ Bento grid ══════════════════════════════════════════════════════════ -->
-    <div class="bento-grid bento-grid--profile">
+    <div id="tour-profile-grid" class="bento-grid bento-grid--profile">
 
       <!-- Column A: Bio + Security -->
       <div class="bcol bcol-a">

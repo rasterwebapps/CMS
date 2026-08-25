@@ -30,6 +30,9 @@ import {
   PhotoCropDialogData,
   PhotoCropDialogResult,
 } from '../../shared/photo-crop-dialog/photo-crop-dialog.component';
+import { TourService } from '../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
+import { PROFILE_TOUR, PROFILE_FLOW_MAP } from '../../shared/tour/tours/profile.tours';
 
 export interface InfoItem { icon: string; label: string; value: string; }
 
@@ -98,7 +101,7 @@ const MODULE_LABELS: Record<string, { label: string; icon: string }> = {
   imports: [
     RouterLink, TitleCasePipe, DecimalPipe, FormsModule,
     MatButtonModule, MatIconModule, MatTooltipModule, MatDialogModule,
-    ProfileDocumentsComponent, AppDatePipe,
+    ProfileDocumentsComponent, AppDatePipe, CmsTourButtonComponent,
   ],
   templateUrl: './profile.component.html',
   styleUrl:    './profile.component.scss',
@@ -116,6 +119,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   private readonly toast             = inject(ToastService);
   private readonly docSlots          = inject(DocumentSlotsService);
   private readonly dialog            = inject(MatDialog);
+  private readonly tourService       = inject(TourService);
 
   protected readonly bloodGroups = signal<BloodGroup[]>([]);
 
@@ -398,6 +402,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    this.tourService.register('profile', PROFILE_TOUR);
+    this.tourService.registerFlowMap('profile', PROFILE_FLOW_MAP);
+
     // Reapply saved accessibility prefs on page load
     document.documentElement.classList.toggle('reduce-motion', this.reduceMotion());
     document.documentElement.classList.toggle('large-text',    this.largeText());

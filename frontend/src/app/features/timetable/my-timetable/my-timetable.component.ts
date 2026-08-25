@@ -14,6 +14,9 @@ import { ClassScheduleOccurrence } from '../timetable.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { LogProgressDialogComponent } from '../log-progress-dialog/log-progress-dialog.component';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { MY_TIMETABLE_TOUR, MY_TIMETABLE_FLOW_MAP } from '../../../shared/tour/tours/my-timetable.tours';
 
 export type TimetableViewMode = 'week' | 'month' | 'day';
 
@@ -37,7 +40,7 @@ function mondayOf(date: Date): string {
 @Component({
   selector: 'app-my-timetable',
   standalone: true,
-  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule, CmsWeekGridComponent, CmsMonthGridComponent, CmsDayAgendaComponent],
+  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule, CmsWeekGridComponent, CmsMonthGridComponent, CmsDayAgendaComponent, CmsTourButtonComponent],
   templateUrl: './my-timetable.component.html',
   styleUrl: './my-timetable.component.scss',
 })
@@ -47,6 +50,7 @@ export class MyTimetableComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly permissionService = inject(PermissionService);
+  private readonly tourService = inject(TourService);
 
   protected readonly canLogProgress = computed(() => this.permissionService.has('PROGRESS_LOG_CREATE'));
 
@@ -78,6 +82,9 @@ export class MyTimetableComponent implements OnInit {
   protected readonly weekMax = computed(() => this.selectedTerm()?.endDate ?? null);
 
   ngOnInit(): void {
+    this.tourService.register('my-timetable', MY_TIMETABLE_TOUR);
+    this.tourService.registerFlowMap('my-timetable', MY_TIMETABLE_FLOW_MAP);
+
     this.academicYearService.getAllAcademicYears().subscribe({
       next: (years) => {
         this.academicYears.set(years);

@@ -2,12 +2,15 @@
 
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
-      <h1 class="mlp-title">My <em>Timetable</em></h1>
+      <div class="page-title-row">
+        <h1 class="mlp-title">My <em>Timetable</em></h1>
+        <cms-tour-button tourKey="my-timetable" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
       <p class="page-subtitle">Your published theory and lab schedule for the selected term</p>
     </div>
   </div>
 
-  <div class="mlp-toolbar anim-rise anim-rise--d1">
+  <div id="tour-mytt-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
       @for (ay of academicYears(); track ay.id) {
         <option [ngValue]="ay.id">{{ ay.name }}</option>
@@ -45,7 +48,7 @@
     }
   </div>
 
-  <div class="content-card">
+  <div id="tour-mytt-view" class="content-card">
     @if (viewMode() === 'week') {
       @if (loading()) {
         <div class="loading-container">

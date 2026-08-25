@@ -787,6 +787,10 @@
   display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;
 }
 
+.hero__tour-btn {
+  align-self: flex-end;
+}
+
 .btn-primary {
   display: inline-flex; align-items: center; gap: 7px;
   padding: 11px 22px; border-radius: 12px; border: none;

@@ -1,4 +1,4 @@
-import { Component, Type, computed, inject } from '@angular/core';
+import { Component, OnInit, Type, computed, inject } from '@angular/core';
 import { NgComponentOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,6 +8,9 @@ import { PermissionService }      from '../../core/permissions/permission.servic
 import { AuthService }            from '../../core/auth/auth.service';
 import { DEFAULT_WIDGET_KEYS, widgetByKey } from './widget-registry';
 import { WidgetPlaceholderComponent } from './widgets/widget-placeholder/widget-placeholder.component';
+import { TourService } from '../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
+import { DASHBOARD_TOUR, DASHBOARD_FLOW_MAP } from '../../shared/tour/tours/dashboard.tours';
 
 interface WidgetItem {
   key:       string;
@@ -25,14 +28,20 @@ const KNOWN_ROLES = [
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [NgComponentOutlet, RouterLink, MatIconModule],
+  imports: [NgComponentOutlet, RouterLink, MatIconModule, CmsTourButtonComponent],
   templateUrl: './dashboard.html',
   styleUrl:    './dashboard.scss',
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
   protected readonly permissionService  = inject(PermissionService);
   private   readonly authService        = inject(AuthService);
   protected readonly dashboardConfigSvc = inject(DashboardConfigService);
+  private   readonly tourService        = inject(TourService);
+
+  ngOnInit(): void {
+    this.tourService.register('dashboard', DASHBOARD_TOUR);
+    this.tourService.registerFlowMap('dashboard', DASHBOARD_FLOW_MAP);
+  }
 
   protected readonly canCustomize = computed(() =>
     this.dashboardConfigSvc.canCustomize()

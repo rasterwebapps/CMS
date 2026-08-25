@@ -75,6 +75,9 @@ export class ResourceTimetableGridComponent implements OnInit {
   protected readonly isEmpty = computed(() => this.rows().every((r) => r.sessions.length === 0));
 
   ngOnInit(): void {
+    this.tourService.register('resource-timetable-grid', RESOURCE_TIMETABLE_GRID_TOUR);
+    this.tourService.registerFlowMap('resource-timetable-grid', RESOURCE_TIMETABLE_GRID_FLOW_MAP);
+
     this.resourceType.set(this.canViewFaculty() ? 'FACULTY' : 'CLASSROOM');
 
     this.academicYearService.getAllAcademicYears().subscribe({
