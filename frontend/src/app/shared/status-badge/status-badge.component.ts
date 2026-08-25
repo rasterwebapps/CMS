@@ -53,11 +53,13 @@ export class CmsStatusBadgeComponent {
       case 'PAID':
       case 'APPROVED':
       case 'ENROLLED':
+      case 'REGISTERED':
       case 'VERIFIED':
       case 'YES':
       case 'EDITABLE':
       case 'PUBLISHED':
       case 'COMMITTED':
+      case 'SANCTIONED':
         return 'status-active';
 
       // ── In-progress / warning states ────────────────────────────────────
@@ -108,6 +110,7 @@ export class CmsStatusBadgeComponent {
       case 'WITHHELD':
       case 'DAMAGED':
       case 'DISPOSED':
+      case 'OUT_OF_ORDER':
         return 'status-inactive';
 
       // ── Returned / handed-back documents ────────────────────────────────
