@@ -160,14 +160,127 @@ continuation. Do not attempt to schedule a follow-up cron session yourself —
 that requires editing the system crontab, which you cannot do unattended;
 leave that decision for the user.
 
-## Current Screen Inventory (rebuild in Step 0 — placeholder until then)
+## Current Screen Inventory (Step 0, rebuilt 2026-08-25 21:0X)
 
-*To be filled in by Step 0. Do not assume the old TOUR_FLOWMAP checklist's
-Tour/FM columns are still accurate for any screen shipped or touched after
-2026-08-19.*
+Built by cross-referencing `core/nav/nav-config.ts` (94 nav items, single
+source of truth) against `app.routes.ts` (201 route entries — 0 orphan nav
+items, 0 dead links; the extra routes are `/new`, `/:id/edit`, etc. variants
+not in nav) and grepping each nav item's routed component for
+`tourService.register(`/`registerFlowMap(`. All 94 nav items resolved to a
+real component file — no orphaned routes or dead nav links found.
+
+Tour/FlowMap columns below reflect state **after** OC-169 (Overview module
+fixes committed). Two gaps remain open, both in Academics (see Progress Log).
+
+| Module | Screen | Route | Tour | FlowMap |
+|---|---|---|---|---|
+| Overview | Dashboard | `/dashboard` | Y | Y |
+| Overview | My Profile | `/profile` | Y | Y |
+| Overview | My Timetable | `/my-timetable` | Y | Y |
+| Admission Management | Enquiries | `/enquiries` | Y | Y |
+| Admission Management | Finalize Fee | `/student-fees/finalize` | Y | Y |
+| Admission Management | Collect Payment | `/fee-collection` | Y | Y |
+| Admission Management | Submit Documents | `/enquiries/document-submission` | Y | Y |
+| Admission Management | Verify Documents | `/enquiries/document-verification` | Y | Y |
+| Admission Management | Complete Admission | `/enquiries/admission-completion` | Y | Y |
+| Admission Management | Admission Explorer | `/admissions` | Y | Y |
+| Admission Management | Retro Admit | `/students/retro-admit` | Y | Y |
+| Student Management | Student Explorer | `/students` | Y | Y |
+| Student Management | Assign Roll Numbers | `/students/roll-numbers` | Y | Y |
+| Student Management | Scholarship Applications | `/scholarship-applications` | Y | Y |
+| Student Management | Data Import | `/import` | Y | Y |
+| Finance | Fee Explorer | `/student-fees` | Y | Y |
+| Finance | Receipts | `/receipts` | Y | Y |
+| Finance | Refunds | `/refund-approvals` | Y | Y |
+| Finance | Commissions | `/commission-explorer` | Y | Y |
+| Academics | Curriculum Versions | `/curriculum-versions` | Y | Y |
+| Academics | Syllabus | `/syllabi` | Y | Y |
+| Academics | Experiments | `/experiments` | Y | Y |
+| Academics | CO/PO Mapping | `/curriculum-mappings` | Y | Y |
+| Academics | Course Offerings | `/course-offerings` | Y | Y |
+| Academics | Elective Assignment | `/elective-assignment` | Y | Y |
+| Academics | **Capacity Auto-Plan** | `/timetable/capacity-auto-plan` | **N** | **N** |
+| Academics | **Assign Faculty** | `/assign-faculty` | **N** | **N** |
+| Academics | Lab Schedules | `/lab-schedules` | Y | Y |
+| Academics | Faculty Availability | `/faculty-availability` | Y | Y |
+| Academics | Faculty Workload Rules | `/timetable/workload-rules` | Y | Y |
+| Academics | Skeleton Builder | `/timetable/skeleton-builder` | Y | Y |
+| Academics | Staffing | `/timetable/staffing` | Y | Y |
+| Academics | Conflict Inspector | `/timetable/conflict-inspector` | Y | Y |
+| Academics | Timetable Draft Review | `/timetable/draft-review` | Y | Y |
+| Academics | Timetable | `/timetable` | Y | Y |
+| Academics | Resource Timetable | `/timetable/resource-grid` | Y | Y |
+| Academics | Faculty Absence | `/faculty-absence` | Y | Y |
+| Academics | Staff Session Swap | `/timetable/staff-swap` | Y | Y |
+| Academics | My Special Classes | `/timetable/special-classes/my-requests` | Y | Y |
+| Academics | Special Class Approvals | `/timetable/special-classes/approval-queue` | Y | Y |
+| Academics | Attendance | `/attendance` | Y | Y |
+| Academics | Progress Report | `/progress-report` | Y | Y |
+| Academics | Manage Exams | `/examinations` | Y | Y |
+| Academics | Exam Results | `/exam-results` | Y | Y |
+| Academics | Student Promotion | `/student-promotions` | Y | Y |
+| Library | Issue Books | `/library/issues/new` | Y | Y |
+| Library | Issue Explorer | `/library/issues` | Y | Y |
+| Library | Overdue Books | `/library/reports` | Y | Y |
+| Library | Book Explorer | `/library/books` | Y | Y |
+| Library | Journal Explorer | `/library/periodicals` | Y | Y |
+| Library | My Library | `/library/my-issues` | Y | Y |
+| Library | Fines | `/library/fines` | Y | Y |
+| Library | Racks & Shelves | `/library/racks` | Y | Y |
+| Library | Import | `/library/import` | Y | Y |
+| Library | Library Settings | `/library/settings` | Y | Y |
+| Core Infrastructure | Campus Infrastructure | `/campus-infrastructure` | Y | Y |
+| Core Infrastructure | Room Purpose Categories | `/room-purpose-categories` | Y | Y |
+| Core Infrastructure | Room Sub-Types | `/room-sub-types` | Y | Y |
+| Inventory Management | Inventory | `/inventory` | Y | Y |
+| Inventory Management | Maintenance | `/maintenance` | Y | Y |
+| Hostel Management | Hostel Room Types | `/hostel-room-types` | Y | Y |
+| Hostel Management | Room Preferences | `/room-preferences` | Y | Y |
+| Hostel Management | Room Allocation | `/room-allocations` | Y | Y |
+| Reports & Analytics | General Reports | `/reports` | Y | Y |
+| Reports & Analytics | Fee Reports | `/fee-reports` | Y | Y |
+| Preferences | Academic Calendar | `/academic-calendar` | Y | Y |
+| Preferences | Academic Years | `/academic-years` | Y | Y |
+| Preferences | Agents | `/agents` | Y | Y |
+| Preferences | Blood Groups | `/blood-groups` | Y | Y |
+| Preferences | Classrooms | `/classrooms` | Y | Y |
+| Preferences | Clinical Venues | `/clinical-venues` | Y | Y |
+| Preferences | Communities | `/communities` | Y | Y |
+| Preferences | Courses | `/courses` | Y | Y |
+| Preferences | Designations | `/designations` | Y | Y |
+| Preferences | Equipment | `/equipment` | Y | Y |
+| Preferences | Faculty | `/faculty` | Y | Y |
+| Preferences | Faculty Doc Config | `/faculty/document-config` | Y | Y |
+| Preferences | Fee Structures | `/fee-structures` | Y | Y |
+| Preferences | Holiday Templates | `/holiday-templates` | Y | Y |
+| Preferences | Institutions | `/institutions` | Y | Y |
+| Preferences | Labs | `/labs` | Y | Y |
+| Preferences | Location Master | `/india-locations` | Y | Y |
+| Preferences | Number Sequences | `/number-sequences` | Y | Y |
+| Preferences | Periods | `/periods` | Y | Y |
+| Preferences | Programs | `/programs` | Y | Y |
+| Preferences | Referral Types | `/referral-types` | Y | Y |
+| Preferences | Scholarship Types | `/scholarships` | Y | Y |
+| Preferences | Settings | `/settings` | Y | Y |
+| Preferences | Specialities | `/specialities` | Y | Y |
+| Preferences | Staff Referrers | `/staff-referrers` | Y | Y |
+| Preferences | Subjects | `/subjects` | Y | Y |
+| User Management | Users | `/user-management` | Y | Y |
+| User Management | Roles & Permissions | `/role-management` | Y | Y |
+| User Management | Permission Tiers | `/permission-tiers` | Y | Y |
+
+Note: this table covers nav-visible screens only (Step 0's cross-reference
+scope). It does not include non-nav detail/sub-screens reached contextually
+(e.g. `student-detail`, `faculty-detail`, `enquiry-detail`, `capacity-planner`)
+— those get swept during the Step 2 hard-gate pass and Step 3 multi-tab pass
+by module, not enumerated here individually.
 
 ## Progress Log
 
 Format: `- YYYY-MM-DD HH:MM | <screen/area> | DONE|PARTIAL|BLOCKED|SKIPPED | <ticket> | <note>`
 
 - 2026-08-25 18:4X | setup | DONE | OC-168 | Parent ticket created, this audit doc scaffolded, cron session scheduled for 21:00 tonight via `scripts/screen-audit-autonomous-run.sh`. No screens checked yet — this is the pre-work commit.
+- 2026-08-25 21:00 | setup | DONE | OC-168 | Night run started. Committed the 3 setup-scaffold files as their own commit (`159b2f90`) per the prompt's instruction. Pre-existing uncommitted WIP (Skeleton Builder: 4 backend services + 6 frontend files + its tours file) found in the tree at session start — left untouched, not folded into any audit commit (same handling as the OC-149 precedent this doc cites).
+- 2026-08-25 21:00-21:05 | Step 0 inventory | DONE | OC-168 | Rebuilt ground truth: 94 nav items in `nav-config.ts` × 201 route entries in `app.routes.ts`. Cross-reference found 0 orphaned nav links and 0 dead routes. Grepped every nav-routed component for `tourService.register(`/`registerFlowMap(` — found 6 real gaps: Dashboard, My Profile, My Timetable (zero tour infra at all) + Resource Timetable (tour constants imported and `<cms-tour-button>` rendered in template, but `register()`/`registerFlowMap()` never called — a dead button) + Capacity Auto-Plan, Assign Faculty (zero tour infra). Full table written into this doc's Current Screen Inventory section.
+- 2026-08-25 21:05-21:06 | Overview: Dashboard, My Profile, My Timetable, Resource Timetable | DONE | OC-169 | Fixed all 4 Step-1 gaps in this batch. Dashboard: role-conditional widget grid had no header/toolbar to anchor to — added a small fixed `.tour-fab` (bottom-left, mirrors the existing `.customize-fab` bottom-right so they never collide) plus `#tour-dash-grid` anchor on the widget grid; new `dashboard.tours.ts`, single-entry funnel (standalone Overview landing screen, no natural multi-screen journey per tour README). My Profile: added tour button into existing `.hero__actions` column (new `.hero__tour-btn { align-self: flex-end }` so the icon button doesn't get stretched full-width by the column's flex `align-items` default) + anchors on hero actions and the bento-grid; new `profile.tours.ts`. My Timetable: standard `mlp-hdr`/`mlp-toolbar` pattern, added `page-title-row` + toolbar/view anchors matching the existing Timetable/Capacity Planner tour shape; new `my-timetable.tours.ts`. Resource Timetable: one-line fix — added the two missing `.register()`/`.registerFlowMap()` calls in `ngOnInit`, reusing its already-imported (but previously unwired) tour constants. `npx tsc -p tsconfig.app.json --noEmit` clean. Committed `088b511d`. **Manual light/dark/role click-through still needed** for all 4 (no browser in this unattended session) — flagging per the tour README's Verification section, same convention as OC-139.
+- 2026-08-25 21:06 | Academics: Capacity Auto-Plan, Assign Faculty | OPEN | OC-168 | Two remaining Step-1 gaps, both zero tour infra. Continuing into Academics module next (matches priority order); will close these alongside the rest of the Academics hard-gate + tour sweep rather than as an isolated fix, since Academics is next in priority order anyway.
