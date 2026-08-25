@@ -15,10 +15,13 @@
   } @else if (faculty()) {
     <div class="detail-card">
     <!-- ── Hero ────────────────────────────────────────── -->
-    <header class="profile-hero">
+    <header id="tour-fac-detail-hero" class="profile-hero">
       <div class="profile-hero__avatar" aria-hidden="true">{{ initials() }}</div>
       <div class="profile-hero__body">
-        <h1 class="profile-hero__name">{{ faculty()!.fullName }}</h1>
+        <div class="page-title-row">
+          <h1 class="profile-hero__name">{{ faculty()!.fullName }}</h1>
+          <cms-tour-button tourKey="faculty-detail" [iconOnly]="true" iconVariant="info-circle" />
+        </div>
         <div class="profile-hero__meta">
           <cms-status-badge [status]="faculty()!.status"></cms-status-badge>
           <span class="cms-badge cms-badge--soft-blue">{{ getDesignationLabel(faculty()!) }}</span>
@@ -59,7 +62,7 @@
     </header>
 
     <!-- ── Tabs ────────────────────────────────────────── -->
-    <mat-tab-group class="detail-tabs" [selectedIndex]="selectedTabIndex()">
+    <mat-tab-group id="tour-fac-detail-tabs" class="detail-tabs" [selectedIndex]="selectedTabIndex()">
       <!-- Tab 1: Profile -->
       <mat-tab label="Profile">
         <div class="tab-content">

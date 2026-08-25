@@ -25,6 +25,9 @@ import { ProfileDocumentsComponent } from '../../../shared/profile-documents/pro
 import { computeInitials } from '../../../shared/utils/initials';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
+import { TourService } from '../../../shared/tour/tour.service';
+import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { FACULTY_DETAIL_TOUR, FACULTY_DETAIL_FLOW_MAP } from '../../../shared/tour/tours/faculty-detail.tours';
 
 @Component({
   selector: 'app-faculty-detail',
@@ -43,7 +46,8 @@ import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
     CmsEmptyStateComponent,
     CmsTypeBadgeComponent,
     RaiseCapFlyoutComponent,
-    ProfileDocumentsComponent],
+    ProfileDocumentsComponent,
+    CmsTourButtonComponent],
   templateUrl: './faculty-detail.component.html',
   styleUrl: './faculty-detail.component.scss',
 })
@@ -56,6 +60,7 @@ export class FacultyDetailComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly permissionService = inject(PermissionService);
   private readonly dialog = inject(MatDialog);
+  private readonly tourService = inject(TourService);
 
   protected readonly faculty = signal<Faculty | null>(null);
   protected readonly loading = signal(true);
@@ -83,6 +88,9 @@ export class FacultyDetailComponent implements OnInit {
   protected readonly initials = computed(() => computeInitials(this.faculty()?.fullName));
 
   ngOnInit(): void {
+    this.tourService.register('faculty-detail', FACULTY_DETAIL_TOUR);
+    this.tourService.registerFlowMap('faculty-detail', FACULTY_DETAIL_FLOW_MAP);
+
     this.route.fragment.subscribe((fragment) => {
       this.selectedTabIndex.set(fragment === 'documents' ? 4 : fragment === 'courses' ? 2 : 0);
     });
