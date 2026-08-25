@@ -311,8 +311,8 @@
   <!-- ── Table ───────────────────────────────────────────────────────────────── -->
   <div id="tour-comm-table" class="mlp-table-wrap mlp-table-card anim-rise anim-rise--d3">
     @if (loading()) {
-      <div class="mlp-loading">
-        <mat-spinner diameter="36" />
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading commissions" />
       </div>
     } @else if (dataSource.data.length === 0) {
       <cms-empty-state
