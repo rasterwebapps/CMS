@@ -373,9 +373,13 @@
             <option [ngValue]="opt.id">{{ opt.name }} (cap {{ opt.capacity ?? '—' }})</option>
           }
         </select>
+        <!-- Deterministically capped at the first 2 batches so the venue select always stays on
+             the same line as Batch 1/2 -- batch 3+ (splitIntoSequentialBatches can produce far
+             more than 2 turns, e.g. 100 students / a 10-cap venue = 10) render in
+             .cap-batch-row__overflow below instead of fighting this line for room. -->
         <div class="cap-batch-row__boxes">
           @if (group.batches.length > 1) {
-            @for (batch of group.batches; track batch.batchLabel ?? 'solo') {
+            @for (batch of group.batches.slice(0, 2); track batch.batchLabel ?? 'solo') {
               <div class="cap-batch-box">
                 <span class="cap-batch-box__label">{{ batch.batchLabel }}</span>
                 <input type="number" class="field-input field-input--inline field-input--narrow" min="1"
@@ -390,6 +394,20 @@
           }
         </div>
       </div>
+      @if (group.batches.length > 2) {
+        <div class="cap-batch-row__overflow">
+          <div class="cap-batch-row__boxes cap-batch-row__boxes--overflow">
+            @for (batch of group.batches.slice(2); track batch.batchLabel ?? 'solo') {
+              <div class="cap-batch-box">
+                <span class="cap-batch-box__label">{{ batch.batchLabel }}</span>
+                <input type="number" class="field-input field-input--inline field-input--narrow" min="1"
+                  [(ngModel)]="batch.plannedSize" [disabled]="!canManageAllocation()"
+                  [attr.aria-label]="group.subjectName + ' ' + batch.batchLabel + ' planned size'" />
+              </div>
+            }
+          </div>
+        </div>
+      }
     </div>
   </ng-template>
 </div>

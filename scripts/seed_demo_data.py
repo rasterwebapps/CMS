@@ -1209,51 +1209,76 @@ def seed_academics_core_infra_gaps() -> int:
     print(f'  ✅ Committed {allocations_committed}/{allocations_attempted} cohort room allocations')
 
     # -------------------------------------------------------------------
-    # 10. Student Promotion — preview + execute for a few cohorts
+    # 10. Student Promotion — preview + execute a few cohorts, atomically per
+    #     shared from-term. A real institution runs one calendar: every cohort
+    #     sits in the SAME currently-open term instance (differing only by
+    #     year_of_study/term_number) until that term closes and everyone moves
+    #     together. Promoting cohorts one at a time and silently `continue`-ing
+    #     past any that lack a preview/next-term used to let some cohorts reach
+    #     the next term while their from-term siblings stayed behind — splitting
+    #     one college across two term instances at once (BSc 2023-2027 and
+    #     2024-2028 alone reached 2026-2027 EVEN while 2025-2029 and 2026-2030
+    #     stayed in ODD). Grouping by from-term and only executing a group once
+    #     every cohort in it has a valid preview keeps that invariant intact.
     # -------------------------------------------------------------------
-    promotions_executed = 0
-    promotions_attempted = 0
+    cohorts_by_from_term: dict[int, list[dict[str, Any]]] = {}
     for cohort in cohorts:
-        if promotions_attempted >= 4:
-            break
         active_terms = get_list(token, f"/student-promotions/active-terms?cohortId={cohort['id']}")
         if not active_terms:
             continue
         from_term_id = min(active_terms, key=lambda t: t['termInstanceId'])['termInstanceId']
-        next_term = try_request(token, 'GET', f"/student-promotions/suggested-next-term?fromTermInstanceId={from_term_id}",
-                                 None, f"suggested next term for cohort {cohort['id']}")
-        if not next_term:
-            continue
-        to_term_id = next_term['termInstanceId']
-        promotions_attempted += 1
-        preview = try_request(token, 'POST', '/student-promotions/preview', {
-            'cohortId': cohort['id'],
-            'fromTermInstanceId': from_term_id,
-            'toTermInstanceId': to_term_id,
-        }, f"promotion preview for cohort {cohort['id']}")
-        if not preview or not preview.get('students'):
-            continue
-        decisions = [
-            {
-                'studentId': row['studentId'],
-                'outcome': row['recommendedOutcome'] if not row.get('blockReasons') else 'DETAINED_REPEAT',
-                'remarks': 'Auto-decided from preview during demo data seeding.',
+        cohorts_by_from_term.setdefault(from_term_id, []).append(cohort)
+
+    promotions_executed = 0
+    promotions_attempted = 0
+    groups_promoted = 0
+    for from_term_id, group in cohorts_by_from_term.items():
+        if groups_promoted >= 4:
+            break
+        group_plans: list[tuple[dict[str, Any], int, dict[str, Any]]] = []
+        for cohort in group:
+            next_term = try_request(token, 'GET', f"/student-promotions/suggested-next-term?fromTermInstanceId={from_term_id}",
+                                     None, f"suggested next term for cohort {cohort['id']}")
+            if not next_term:
+                group_plans = []
+                break
+            to_term_id = next_term['termInstanceId']
+            preview = try_request(token, 'POST', '/student-promotions/preview', {
+                'cohortId': cohort['id'],
+                'fromTermInstanceId': from_term_id,
+                'toTermInstanceId': to_term_id,
+            }, f"promotion preview for cohort {cohort['id']}")
+            if not preview or not preview.get('students'):
+                group_plans = []
+                break
+            group_plans.append((cohort, to_term_id, preview))
+        if not group_plans:
+            continue  # leave the whole group where it is rather than promoting part of it
+
+        groups_promoted += 1
+        for cohort, to_term_id, preview in group_plans:
+            promotions_attempted += 1
+            decisions = [
+                {
+                    'studentId': row['studentId'],
+                    'outcome': row['recommendedOutcome'] if not row.get('blockReasons') else 'DETAINED_REPEAT',
+                    'remarks': 'Auto-decided from preview during demo data seeding.',
+                }
+                for row in preview['students']
+            ]
+            execute_payload = {
+                'cohortId': cohort['id'],
+                'fromTermInstanceId': from_term_id,
+                'toTermInstanceId': to_term_id,
+                'decisions': decisions,
+                'generateCourseRegistrations': False,
+                'generateFeeDemands': False,
             }
-            for row in preview['students']
-        ]
-        execute_payload = {
-            'cohortId': cohort['id'],
-            'fromTermInstanceId': from_term_id,
-            'toTermInstanceId': to_term_id,
-            'decisions': decisions,
-            'generateCourseRegistrations': False,
-            'generateFeeDemands': False,
-        }
-        result = try_request(token, 'POST', '/student-promotions/execute', execute_payload,
-                              f"promotion execute for cohort {cohort.get('displayName', cohort['id'])}")
-        if result is not None:
-            promotions_executed += 1
-            print(f"    → {cohort.get('displayName', cohort['id'])}: {len(decisions)} student decisions")
+            result = try_request(token, 'POST', '/student-promotions/execute', execute_payload,
+                                  f"promotion execute for cohort {cohort.get('displayName', cohort['id'])}")
+            if result is not None:
+                promotions_executed += 1
+                print(f"    → {cohort.get('displayName', cohort['id'])}: {len(decisions)} student decisions")
     print(f'  ✅ Executed promotions for {promotions_executed}/{promotions_attempted} cohorts attempted')
 
     print(f'\n{"=" * 60}')

@@ -90,7 +90,7 @@ public class TimetableConflictInspectorService {
         LocalTime end = cs.getPeriod().getEndTime();
         List<ConstraintViolation> violations = new ArrayList<>();
 
-        blockedPeriodChecker.blockReason(cs.getDayOfWeek(), start, end, term.getStartDate(), term.getEndDate())
+        blockedPeriodChecker.blockReason(cs.getDayOfWeek(), start, end, term)
             .ifPresent(reason -> violations.add(new ConstraintViolation(
                 "CONFLICT_PERIOD_BLOCKED", "This day and period is blocked: " + reason)));
 

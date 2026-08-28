@@ -8,11 +8,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.CapacityPlanResponse;
+import com.cms.dto.FacultyWorkloadOverviewReport;
 import com.cms.dto.FacultyWorkloadReportResponse;
 import com.cms.dto.TermCapacityOverviewResponse;
 import com.cms.model.enums.PlanningBasis;
 import com.cms.service.FacultyWorkloadCapacityService;
 import com.cms.service.TimetableCapacityPlanningService;
+import com.cms.service.TimetableGlobalAutoScheduleService;
 
 @RestController
 @RequestMapping("/timetables/capacity-plan")
@@ -20,11 +22,14 @@ public class TimetableCapacityPlanningController {
 
     private final TimetableCapacityPlanningService timetableCapacityPlanningService;
     private final FacultyWorkloadCapacityService facultyWorkloadCapacityService;
+    private final TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
 
     public TimetableCapacityPlanningController(TimetableCapacityPlanningService timetableCapacityPlanningService,
-                                                 FacultyWorkloadCapacityService facultyWorkloadCapacityService) {
+                                                 FacultyWorkloadCapacityService facultyWorkloadCapacityService,
+                                                 TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService) {
         this.timetableCapacityPlanningService = timetableCapacityPlanningService;
         this.facultyWorkloadCapacityService = facultyWorkloadCapacityService;
+        this.timetableGlobalAutoScheduleService = timetableGlobalAutoScheduleService;
     }
 
     @GetMapping
@@ -41,6 +46,17 @@ public class TimetableCapacityPlanningController {
     @PreAuthorize("@perm.has('TIMETABLE_CAPACITY_PLANNER_VIEW')")
     public ResponseEntity<FacultyWorkloadReportResponse> getFacultyWorkload(@RequestParam Long termInstanceId) {
         return ResponseEntity.ok(facultyWorkloadCapacityService.getTermWorkloadReport(termInstanceId));
+    }
+
+    /** Same permission as {@link #getPlan} — the term-total "required vs assigned per faculty"
+     *  breakdown, distinct from {@link #getFacultyWorkload}'s per-week figures (that report backs
+     *  the weekly hard-cap gate; this one backs the same daily-cap/term-total numbers the Global
+     *  Auto-Schedule checklist and Faculty Detail's workload tab already show, just for every
+     *  active faculty at once instead of only the ones already in trouble). */
+    @GetMapping("/faculty-workload-overview")
+    @PreAuthorize("@perm.has('TIMETABLE_CAPACITY_PLANNER_VIEW')")
+    public ResponseEntity<FacultyWorkloadOverviewReport> getFacultyWorkloadOverview(@RequestParam Long termInstanceId) {
+        return ResponseEntity.ok(timetableGlobalAutoScheduleService.getFullFacultyWorkloadOverview(termInstanceId));
     }
 
     /** Same permission as {@link #getPlan} — the bulk Capacity Auto-Plan screen is a read/navigate

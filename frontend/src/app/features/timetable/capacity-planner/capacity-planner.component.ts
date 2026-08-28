@@ -8,7 +8,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, CohortSummary, CourseOffering, TermInstance } from '../../academic-year/academic-year.model';
 import { CapacityPlannerService } from './capacity-planner.service';
-import { CapacityPlan, FacultyWorkloadReport, PlanningBasis, VenueOption } from './capacity-planner.model';
+import { CapacityPlan, FacultyWorkloadOverviewReport, FacultyWorkloadOverviewRow, FacultyWorkloadReport, PlanningBasis, VenueOption } from './capacity-planner.model';
+import { OverageContributor } from '../skeleton-builder/skeleton-builder.model';
+import { RaiseCapFlyoutComponent } from '../../faculty/faculty-detail/raise-cap-flyout.component';
+import { FacultyService } from '../../faculty/faculty.service';
+import { CourseOfferingEditDialogComponent, FacultyOption } from '../../course-offering/course-offering-edit-dialog/course-offering-edit-dialog.component';
+import { BatchManageDialogComponent } from '../../course-offering/batch-manage-dialog/batch-manage-dialog.component';
 import { CmsCapacityMeterComponent } from '../../../shared/capacity-meter/capacity-meter.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -61,7 +66,7 @@ interface DraftSection {
   standalone: true,
   imports: [
     FormsModule, MatDialogModule, MatProgressSpinnerModule, MatIconModule,
-    CmsCapacityMeterComponent, CmsEmptyStateComponent, CmsTourButtonComponent, DecimalPipe, DatePipe,
+    CmsCapacityMeterComponent, CmsEmptyStateComponent, CmsTourButtonComponent, RaiseCapFlyoutComponent, DecimalPipe, DatePipe,
   ],
   templateUrl: './capacity-planner.component.html',
   styleUrl: './capacity-planner.component.scss',
@@ -69,6 +74,7 @@ interface DraftSection {
 export class CapacityPlannerComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly capacityPlannerService = inject(CapacityPlannerService);
+  private readonly facultyService = inject(FacultyService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly portionBlueprintService = inject(PortionBlueprintService);
@@ -90,6 +96,22 @@ export class CapacityPlannerComponent implements OnInit {
   protected readonly activeTab = signal<'rooms' | 'faculty'>('rooms');
   protected readonly facultyWorkload = signal<FacultyWorkloadReport | null>(null);
   protected readonly loadingFacultyWorkload = signal(false);
+  /** Term-total "required vs assigned" overview — every active faculty, not just the ones already
+   *  over/near capacity — with an in-page edit action for their daily cap. Distinct from
+   *  facultyWorkload above (that one backs the real per-week hard-cap gate); this backs the same
+   *  daily-cap/term-total numbers the Global Auto-Schedule checklist already shows. */
+  protected readonly facultyWorkloadOverview = signal<FacultyWorkloadOverviewReport | null>(null);
+  protected readonly loadingFacultyWorkloadOverview = signal(false);
+  protected readonly raiseCapTarget = signal<{ facultyId: number; facultyName: string; currentDailyCap: number | null } | null>(null);
+  /** Which row's per-offering breakdown is open — at most one at a time, same click-to-toggle
+   *  pattern as Batch Manage's roster expand. */
+  protected readonly expandedFacultyId = signal<number | null>(null);
+  /** Lazily loaded the first time the Faculty Workload tab is opened -- only Manage Batches
+   *  (Lab/Clinical reassignment) actually needs the flat id/name list; Theory reassignment goes
+   *  through the same Assign Faculty dialog Course Offerings already uses, which fetches its own
+   *  eligible-candidate list per offering. */
+  protected readonly facultyOptions = signal<FacultyOption[]>([]);
+  private facultyOptionsLoaded = false;
 
   // ─── Cohort Room Allocation (physical Theory/Lab/Clinical room commit) ───
   // Theory/Lab/Clinical pickers below source real Classroom/Lab/ClinicalVenue entities from the
@@ -705,6 +727,7 @@ export class CapacityPlannerComponent implements OnInit {
     this.shortfall.set(null);
     this.resetAllocationDraft();
     this.facultyWorkload.set(null);
+    this.facultyWorkloadOverview.set(null);
     if (this.selectedAcademicYearId) {
       this.loadTermInstances(this.selectedAcademicYearId);
       this.loadCohorts(this.selectedAcademicYearId);
@@ -717,8 +740,12 @@ export class CapacityPlannerComponent implements OnInit {
     this.shortfall.set(null);
     this.resetAllocationDraft();
     this.facultyWorkload.set(null);
+    this.facultyWorkloadOverview.set(null);
     this.autoLoadPlanIfReady();
-    if (this.activeTab() === 'faculty') this.loadFacultyWorkload();
+    if (this.activeTab() === 'faculty') {
+      this.loadFacultyWorkload();
+      this.loadFacultyWorkloadOverview();
+    }
   }
 
   /** Faculty Workload is term-wide (no cohort selector), so switching to it just needs a term
@@ -727,8 +754,14 @@ export class CapacityPlannerComponent implements OnInit {
    *  admin may never open it in a given session. */
   protected setActiveTab(tab: 'rooms' | 'faculty'): void {
     this.activeTab.set(tab);
-    if (tab === 'faculty' && this.selectedTermInstanceId && !this.facultyWorkload() && !this.loadingFacultyWorkload()) {
-      this.loadFacultyWorkload();
+    if (tab === 'faculty' && this.selectedTermInstanceId) {
+      if (!this.facultyWorkload() && !this.loadingFacultyWorkload()) {
+        this.loadFacultyWorkload();
+      }
+      if (!this.facultyWorkloadOverview() && !this.loadingFacultyWorkloadOverview()) {
+        this.loadFacultyWorkloadOverview();
+      }
+      if (this.canManageBatches()) this.loadFacultyOptionsIfNeeded();
     }
   }
 
@@ -759,6 +792,120 @@ export class CapacityPlannerComponent implements OnInit {
         this.toast.error(err?.error?.message ?? 'Failed to load faculty workload report');
         this.loadingFacultyWorkload.set(false);
       },
+    });
+  }
+
+  protected loadFacultyWorkloadOverview(): void {
+    if (!this.selectedTermInstanceId) return;
+    this.loadingFacultyWorkloadOverview.set(true);
+    this.capacityPlannerService.getFacultyWorkloadOverview(this.selectedTermInstanceId).subscribe({
+      next: (report) => {
+        this.facultyWorkloadOverview.set(report);
+        this.loadingFacultyWorkloadOverview.set(false);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to load faculty workload overview');
+        this.loadingFacultyWorkloadOverview.set(false);
+      },
+    });
+  }
+
+  protected canManageFaculty(): boolean {
+    return this.permissionService.has('FACULTY_MANAGE');
+  }
+
+  protected openRaiseCap(row: FacultyWorkloadOverviewRow): void {
+    if (!this.canManageFaculty()) return;
+    this.raiseCapTarget.set({ facultyId: row.facultyId, facultyName: row.facultyName, currentDailyCap: row.plannedDailyHoursOverride });
+  }
+
+  protected onRaiseCapClosed(): void {
+    this.raiseCapTarget.set(null);
+  }
+
+  protected onRaiseCapSaved(): void {
+    this.raiseCapTarget.set(null);
+    this.loadFacultyWorkloadOverview();
+  }
+
+  protected tierLabel(tier: string): string {
+    switch (tier) {
+      case 'FACULTY_OVERRIDE': return 'this faculty’s own override';
+      case 'DESIGNATION_DEFAULT': return 'their designation’s default';
+      default: return 'the institution-wide default';
+    }
+  }
+
+  protected toggleFacultyExpand(facultyId: number): void {
+    this.expandedFacultyId.update((id) => (id === facultyId ? null : facultyId));
+  }
+
+  /** Matches Faculty Detail's own workload table -- cohortSectionId set means a Theory section
+   *  row, batchId set means a Lab/Clinical batch row, both null means the offering's whole-cohort
+   *  primary (no active section/batch split). */
+  protected assignmentRoleLabel(a: OverageContributor): string {
+    if (a.cohortSectionId != null) return a.cohortSectionLabel ?? 'Section';
+    if (a.batchId != null) return a.batchName ?? 'Batch';
+    return 'Primary';
+  }
+
+  protected sessionTypeLabel(sessionType: string | null): string {
+    switch (sessionType) {
+      case 'THEORY': return 'Theory';
+      case 'LAB': return 'Lab';
+      case 'CLINICAL': return 'Clinical';
+      case 'LAB_CLINICAL': return 'Lab/Clinical';
+      default: return '—';
+    }
+  }
+
+  /** Gates Reassign for Theory/whole-cohort-primary contributor rows -- matches the permission the
+   *  underlying `PUT /course-offerings/{id}/section-faculty|cohort-faculty` save actually enforces
+   *  (SECTION_FACULTY_MANAGE is checked inside the dialog itself; this just matches Faculty
+   *  Detail's own COURSE_MANAGE gate for opening it in the first place). */
+  protected canReassign(): boolean {
+    return this.permissionService.has('COURSE_MANAGE');
+  }
+
+  /** Gates Reassign for Lab/Clinical contributor rows -- these have no CourseOfferingSectionFaculty
+   *  row at all (Batch.coordinatorFaculty is a separate mechanism), so they route to Manage
+   *  Batches instead, same permission Assign Faculty's own "Manage Batches" button already uses. */
+  protected canManageBatches(): boolean {
+    return this.permissionService.has('BATCH_MANAGE');
+  }
+
+  private loadFacultyOptionsIfNeeded(): void {
+    if (this.facultyOptionsLoaded) return;
+    this.facultyOptionsLoaded = true;
+    this.facultyService.getAll().subscribe({
+      next: (faculty) => this.facultyOptions.set(
+        faculty.map((f) => ({ id: f.id, name: f.fullName, specialityId: f.specialityId }))),
+      error: () => { this.facultyOptionsLoaded = false; },
+    });
+  }
+
+  /** Theory/whole-cohort-primary contributions reassign via the exact same Assign Faculty dialog
+   *  Faculty Detail's own "Reassign…" already opens -- fetches the full offering first since the
+   *  dialog needs the complete CourseOffering shape, not just the id this row carries. Lab/Clinical
+   *  contributions have no section-faculty row to edit there at all, so they open Manage Batches
+   *  instead, scoped to the same offering. Either way, reload unconditionally on close: every pick
+   *  inside both dialogs saves immediately regardless of how the dialog is dismissed, so there's no
+   *  reliable "nothing changed" signal to gate the refresh on. */
+  protected onReassignContributor(contributor: OverageContributor): void {
+    this.academicYearService.getCourseOfferingById(contributor.courseOfferingId).subscribe({
+      next: (offering) => {
+        const ref = contributor.batchId != null
+          ? this.dialog.open(BatchManageDialogComponent, {
+            data: { offering, facultyOptions: this.facultyOptions() },
+            width: '560px',
+          })
+          : this.dialog.open(CourseOfferingEditDialogComponent, {
+            data: { offering, suggestedFacultyId: null },
+            width: '640px',
+          });
+        ref.afterClosed().subscribe(() => this.loadFacultyWorkloadOverview());
+      },
+      error: () => this.toast.error('Failed to load offering details'),
     });
   }
 

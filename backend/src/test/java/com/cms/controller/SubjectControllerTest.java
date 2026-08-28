@@ -48,12 +48,12 @@ class SubjectControllerTest {
 
     private SubjectResponse createTestResponse(Long id, String name, String code) {
         SpecialityResponse dept = new SpecialityResponse(1L, "MSN", "MSN", "Desc", null, "Dr. X", now, now);
-        return new SubjectResponse(id, name, code, 4, 3, 1, dept, 1, true, now, now, List.of(), List.of(), List.of());
+        return new SubjectResponse(id, name, code, 4, 3, 1, dept, 1, true, 1, 1, now, now, List.of(), List.of(), List.of());
     }
 
     @Test
     void shouldCreateSubject() throws Exception {
-        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 1L, 1, null, null, null, null);
+        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 1L, 1, null, null, null, null, null, null);
         SubjectResponse response = createTestResponse(1L, "Anatomy", "ANAT101");
 
         when(subjectService.create(any(SubjectRequest.class))).thenReturn(response);
@@ -133,7 +133,7 @@ class SubjectControllerTest {
 
     @Test
     void shouldUpdateSubject() throws Exception {
-        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 1L, 2, null, null, null, null);
+        SubjectRequest request = new SubjectRequest("Physiology", "PHYS101", 5, 4, 1, 1L, 2, null, null, null, null, null, null);
         SubjectResponse response = createTestResponse(1L, "Physiology", "PHYS101");
 
         when(subjectService.update(eq(1L), any(SubjectRequest.class))).thenReturn(response);

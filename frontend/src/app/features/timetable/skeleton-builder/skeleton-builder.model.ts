@@ -5,9 +5,10 @@ export interface SkeletonSubjectBudget {
   sessionType: SkeletonSessionType;
   batchId: number | null;
   batchName: string | null;
-  /** Non-null only for a THEORY row once the cohort has a committed Cohort Room Allocation with
-   *  one or more active sections — one budget row per section instead of a single whole-cohort
-   *  row. Kept separate from batchId/batchName since they're semantically distinct occupants. */
+  /** Non-null for a THEORY row once the cohort has a committed Cohort Room Allocation with one or
+   *  more active sections (one budget row per section instead of a single whole-cohort row), or
+   *  for a LAB/CLINICAL row whose batch itself belongs to a section. Kept separate from
+   *  batchId/batchName since they're semantically distinct occupants. */
   cohortSectionId: number | null;
   cohortSectionLabel: string | null;
   totalHours: number;
@@ -37,7 +38,9 @@ export interface SkeletonCell {
   endTime: string;
   batchId: number | null;
   batchName: string | null;
-  /** Non-null only for a sectioned THEORY cell — which CohortSection it was placed for. */
+  /** Which CohortSection this cell belongs to — set directly for a sectioned THEORY cell, or
+   *  (LAB/CLINICAL) derived server-side from the placed batch's own CohortSection. Null only for a
+   *  cell with no section at all (unsectioned cohort, or a legacy batch predating sectioning). */
   cohortSectionId: number | null;
   cohortSectionLabel: string | null;
   isStaffed: boolean;
@@ -79,7 +82,11 @@ export interface SkeletonSectionOption {
 /** Cohort-wide since R3.1 — one response covers every non-elective subject a cohort has in a
  *  term, merging their cells/batches so cross-subject placement conflicts are visible in a
  *  single grid instead of hidden behind a per-subject filter. `sections` lists the cohort's
- *  active Cohort Room Allocation sections for this term (empty if none committed). */
+ *  active Cohort Room Allocation sections for this term (empty if none committed).
+ *  `weeksInTerm`/`workingSaturdayCount` are term-wide constants (not per-subject) used to compute
+ *  an honest scheduled-hours total from `cells`: a Mon-Fri cell recurs `weeksInTerm` times, a
+ *  Saturday-placed one only recurs `workingSaturdayCount` times (0 if no working-Saturday pattern
+ *  is configured for the term — Saturday is opt-in, off by default). */
 export interface SkeletonBuilderResponse {
   cohortId: number;
   cohortName: string;
@@ -88,6 +95,8 @@ export interface SkeletonBuilderResponse {
   cells: SkeletonCell[];
   batches: SkeletonBatchOption[];
   sections: SkeletonSectionOption[];
+  weeksInTerm: number;
+  workingSaturdayCount: number;
 }
 
 export interface SkeletonCellPlacementRequest {
@@ -117,17 +126,23 @@ export interface SkeletonCellMoveRequest {
   cohortId: number;
 }
 
+/** Atomically exchanges two already-placed DRAFT cells' day/period — fired instead of a plain
+ *  move when a drag lands on a slot that's already occupied by exactly one other cell. */
+export interface SkeletonCellSwapRequest {
+  targetCellId: number;
+  cohortId: number;
+}
+
 export interface AutoPlaceUnplacedItem {
   subjectName: string;
   sessionType: SkeletonSessionType;
   occupantLabel: string | null;
   reason: string;
+  /** Null only for a whole-elective-group failure (no single offering to point at) — used to
+   *  deep-link a Special Class request pre-filled with the right subject. */
+  courseOfferingId: number | null;
 }
 
-export interface AutoPlaceResult {
-  placedCount: number;
-  unplaced: AutoPlaceUnplacedItem[];
-}
 
 export interface ElectiveGroupMemberPlacement {
   courseOfferingId: number;
@@ -212,8 +227,23 @@ export interface FacultyOverCapacity {
   spreadLoad: SpreadLoadSuggestion[];
 }
 
+/** Not over capacity (a run may proceed once acknowledged) but at/near 100% utilization — real
+ *  day/period packing isn't guaranteed to succeed even though the aggregate hours "fit". */
+export interface FacultyTightCapacity {
+  facultyId: number;
+  facultyName: string;
+  effectiveDailyCapacityHours: number;
+  dailyCapacityTier: string;
+  workingDaysInTerm: number;
+  termCapacityHours: number;
+  totalTermDemandHours: number;
+  utilizationPercent: number;
+  topContributors: OverageContributor[];
+}
+
 export interface GlobalCapacityPrecheckResult {
   overCapacityFaculty: FacultyOverCapacity[];
+  tightCapacityFaculty: FacultyTightCapacity[];
 }
 
 export interface CohortPlacementSummary {
@@ -234,6 +264,10 @@ export interface GlobalAutoScheduleResult {
   /** Elective-group placement failures — not attributable to a single cohort since a group can
    *  span students from more than one. */
   electiveUnplaced: AutoPlaceUnplacedItem[];
+  /** Count of stale over-budget DRAFT sessions the run cleared before placing anything, via a
+   *  TEMPORARY backend safety net (see `TimetableGlobalAutoScheduleService#purgeStaleOverBudgetDrafts`).
+   *  Always shown when nonzero — never a silent cleanup. */
+  staleDraftsCleared: number;
 }
 
 export interface UnassignedOfferingSummary {

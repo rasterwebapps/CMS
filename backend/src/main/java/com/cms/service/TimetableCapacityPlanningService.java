@@ -741,14 +741,23 @@ public class TimetableCapacityPlanningService {
         return dates;
     }
 
-    /** Actual working days across this term's real date range -- Sundays and any HOLIDAY/EXAM day
-     *  don't count. Distinct from the fixed weekly {@code WORKING_DAYS_PER_WEEK} constant used by
-     *  venue utilization below (a per-week denominator); this is a term-total count used for the
+    /** Actual working days across this term's real date range -- Sundays, any HOLIDAY/EXAM day, and
+     *  any Saturday not opted into the term's {@code workingSaturdayWeeks} pattern don't count. The
+     *  Saturday rule mirrors {@link WorkingSaturdayCalculator#isNonWorkingSaturday} exactly --
+     *  {@link TimetableBlockedPeriodChecker} already refuses to place anything on a non-opted-in
+     *  Saturday, so counting it here as if it were real available capacity would silently overstate
+     *  every hours-based total downstream (buffer-hours here, and {@code
+     *  TimetableGlobalAutoScheduleService#computeTermDemand}'s term capacity hours) by every
+     *  Saturday in the term, and made toggling the working-Saturday pattern look like it had no
+     *  effect on capacity at all when in fact the baseline was simply wrong regardless of the
+     *  pattern. Distinct from the fixed weekly {@code WORKING_DAYS_PER_WEEK} constant used by venue
+     *  utilization below (a per-week denominator); this is a term-total count used for the
      *  buffer-hours calculation. */
     int countWorkingDays(TermInstance term, Set<LocalDate> nonTeachingDates) {
         int workingDays = 0;
         for (LocalDate d = term.getStartDate(); !d.isAfter(term.getEndDate()); d = d.plusDays(1)) {
-            if (d.getDayOfWeek() != DayOfWeek.SUNDAY && !nonTeachingDates.contains(d)) {
+            if (d.getDayOfWeek() != DayOfWeek.SUNDAY && !nonTeachingDates.contains(d)
+                    && !WorkingSaturdayCalculator.isNonWorkingSaturday(d, term)) {
                 workingDays++;
             }
         }

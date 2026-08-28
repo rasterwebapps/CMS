@@ -42,6 +42,13 @@ import com.cms.repository.DayMappingOverrideRepository;
  * filtering is applied afterward, unchanged, so a borrowed-in date can still be independently
  * blocked.
  *
+ * <p>A third axis: a schedule whose {@code dayOfWeek} is SATURDAY only fires on dates matching its
+ * {@link TermInstance}'s opt-in {@code workingSaturdayWeeks} pattern (e.g. "1st Saturday of every
+ * month") — see {@link WorkingSaturdayCalculator}. An empty pattern means every Saturday is
+ * suppressed (the term hasn't opted in); this never applies to a borrowed-IN date from a {@link
+ * DayMappingOverride}, since that override is itself a deliberate, explicit decision that this
+ * specific Saturday is a working day.
+ *
  * <p>Never writes anything, never leaks into generation (which stays a weekly-recurring placement
  * problem per {@link TimetableGenerationService}'s own javadoc).
  */
@@ -69,7 +76,9 @@ public class ClassScheduleOccurrenceService {
      *  {@link AttendanceService#findAvailableSubjects} so the attendance-marking screen doesn't
      *  re-derive this resolution independently. */
     public List<ClassSchedule> schedulesEffectiveOn(LocalDate date, Long facultyId) {
-        Optional<com.cms.model.enums.DayOfWeek> effectiveDay = dayMappingOverrideRepository.findByMappedDate(date)
+        Optional<DayMappingOverride> mapping = dayMappingOverrideRepository.findByMappedDate(date);
+        boolean isBorrowedInDate = mapping.isPresent();
+        Optional<com.cms.model.enums.DayOfWeek> effectiveDay = mapping
             .map(DayMappingOverride::getBorrowedDayOfWeek)
             .or(() -> date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY
                 ? Optional.empty()
@@ -85,6 +94,12 @@ public class ClassScheduleOccurrenceService {
         for (ClassSchedule cs : candidates) {
             TermInstance term = cs.getTermInstance();
             if (date.isBefore(term.getStartDate()) || date.isAfter(term.getEndDate())) {
+                continue;
+            }
+            // A borrowed-in date (see weeklyDatesInRange) is a deliberate compensatory override
+            // and is never subject to the Saturday-pattern check; a date that's naturally its own
+            // actual Saturday still is.
+            if (!isBorrowedInDate && WorkingSaturdayCalculator.isNonWorkingSaturday(date, term)) {
                 continue;
             }
             List<BlockedPeriod> blocks = blockedPeriodRepository.findApplicableForPeriodInRange(
@@ -216,14 +231,18 @@ public class ClassScheduleOccurrenceService {
         // exactly with java.time.DayOfWeek's, so valueOf() is a safe direct mapping.
         java.time.DayOfWeek targetDay = java.time.DayOfWeek.valueOf(schedule.getDayOfWeek().name());
         LocalDate first = start.with(TemporalAdjusters.nextOrSame(targetDay));
+        TermInstance term = schedule.getTermInstance();
 
         List<LocalDate> dates = new ArrayList<>();
         for (LocalDate date = first; !date.isAfter(end); date = date.plusWeeks(1)) {
-            if (!mappingsInWindow.containsKey(date)) {
+            if (!mappingsInWindow.containsKey(date) && !WorkingSaturdayCalculator.isNonWorkingSaturday(date, term)) {
                 dates.add(date);
             }
-            // else: this date is mapped away to a different weekday's schedule -- suppress it
-            // entirely from this schedule's own occurrence list.
+            // else: this date is either mapped away to a different weekday's schedule, or a
+            // Saturday not matching the term's working-Saturday pattern -- either way, no real
+            // class happens on it, so it's suppressed entirely from this schedule's own
+            // occurrence list (a borrowed-IN date below is a deliberate compensatory override and
+            // is never subject to the Saturday-pattern check -- that override IS the authority).
         }
 
         if (!mappingsInWindow.isEmpty()) {

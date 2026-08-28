@@ -41,6 +41,17 @@ public record SubjectRequest(
 
     Boolean isActive,
 
+    /** How many consecutive periods one single Lab/Clinical session must occupy for this subject
+     *  (e.g. a 3-hour lab runs as 3 back-to-back periods on the same day, not scattered
+     *  single-period placements) -- optional, defaults to 1 (today's existing behavior) when null. */
+    @Min(value = 1, message = "Lab session length must be at least 1 period")
+    @Max(value = 12, message = "Lab session length must not exceed 12 periods")
+    Integer labSessionBlockPeriods,
+
+    @Min(value = 1, message = "Clinical session length must be at least 1 period")
+    @Max(value = 12, message = "Clinical session length must not exceed 12 periods")
+    Integer clinicalSessionBlockPeriods,
+
     /** Labs/Clinical Venues suitable for this subject's practical sessions -- a soft preference,
      *  optional. Null/empty means no preference configured, matching pre-existing behavior. */
     List<Long> eligibleLabIds,

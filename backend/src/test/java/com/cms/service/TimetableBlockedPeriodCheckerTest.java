@@ -17,8 +17,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.model.BlockedPeriod;
 import com.cms.model.CalendarEvent;
+import com.cms.model.TermInstance;
 import com.cms.model.enums.BlockType;
 import com.cms.model.enums.DayOfWeek;
+import com.cms.model.enums.WeekOfMonth;
 import com.cms.repository.BlockedPeriodRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,10 +34,16 @@ class TimetableBlockedPeriodCheckerTest {
     private final LocalDate termEnd = LocalDate.of(2024, 11, 30);
     private final LocalTime slotStart = LocalTime.of(9, 0);
     private final LocalTime slotEnd = LocalTime.of(10, 0);
+    private TermInstance term;
 
     @BeforeEach
     void setUp() {
         checker = new TimetableBlockedPeriodChecker(blockedPeriodRepository);
+        term = new TermInstance();
+        term.setStartDate(termStart);
+        term.setEndDate(termEnd);
+        // Non-empty so the Saturday opt-in gate never interferes with these Mon/Tue tests.
+        term.setWorkingSaturdayWeeks(java.util.Set.of(WeekOfMonth.FIRST));
     }
 
     @Test
@@ -45,7 +53,7 @@ class TimetableBlockedPeriodCheckerTest {
         when(blockedPeriodRepository.findHolidayOneOffBlocksInRange(slotStart, slotEnd, termStart, termEnd))
             .thenReturn(Collections.emptyList());
 
-        assertThat(checker.blockReason(DayOfWeek.MONDAY, slotStart, slotEnd, termStart, termEnd)).isEmpty();
+        assertThat(checker.blockReason(DayOfWeek.MONDAY, slotStart, slotEnd, term)).isEmpty();
     }
 
     @Test
@@ -56,7 +64,7 @@ class TimetableBlockedPeriodCheckerTest {
         when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.MONDAY, slotStart, slotEnd, termStart, termEnd))
             .thenReturn(List.of(block));
 
-        assertThat(checker.blockReason(DayOfWeek.MONDAY, slotStart, slotEnd, termStart, termEnd)).contains("Staff meeting");
+        assertThat(checker.blockReason(DayOfWeek.MONDAY, slotStart, slotEnd, term)).contains("Staff meeting");
     }
 
     @Test
@@ -74,7 +82,7 @@ class TimetableBlockedPeriodCheckerTest {
         when(blockedPeriodRepository.findHolidayOneOffBlocksInRange(slotStart, slotEnd, termStart, termEnd))
             .thenReturn(List.of(block));
 
-        assertThat(checker.blockReason(DayOfWeek.MONDAY, slotStart, slotEnd, termStart, termEnd))
+        assertThat(checker.blockReason(DayOfWeek.MONDAY, slotStart, slotEnd, term))
             .contains("Auto-blocked — Independence Day");
     }
 
@@ -92,7 +100,7 @@ class TimetableBlockedPeriodCheckerTest {
         when(blockedPeriodRepository.findHolidayOneOffBlocksInRange(slotStart, slotEnd, termStart, termEnd))
             .thenReturn(List.of(block));
 
-        assertThat(checker.blockReason(DayOfWeek.TUESDAY, slotStart, slotEnd, termStart, termEnd)).isEmpty();
+        assertThat(checker.blockReason(DayOfWeek.TUESDAY, slotStart, slotEnd, term)).isEmpty();
     }
 
     @Test
@@ -103,7 +111,7 @@ class TimetableBlockedPeriodCheckerTest {
         when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.MONDAY, slotStart, slotEnd, termStart, termEnd))
             .thenReturn(List.of(recurring));
 
-        assertThat(checker.blockReason(DayOfWeek.MONDAY, slotStart, slotEnd, termStart, termEnd)).contains("Recurring lock");
+        assertThat(checker.blockReason(DayOfWeek.MONDAY, slotStart, slotEnd, term)).contains("Recurring lock");
     }
 
     @Test
@@ -119,7 +127,27 @@ class TimetableBlockedPeriodCheckerTest {
         when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.MONDAY, combinedStart, combinedEnd, termStart, termEnd))
             .thenReturn(List.of(block));
 
-        assertThat(checker.blockReason(DayOfWeek.MONDAY, combinedStart, combinedEnd, termStart, termEnd))
+        assertThat(checker.blockReason(DayOfWeek.MONDAY, combinedStart, combinedEnd, term))
             .contains("Assembly");
+    }
+
+    @Test
+    void shouldBlockSaturdayOutrightWhenNoWorkingSaturdayPatternIsConfigured() {
+        term.setWorkingSaturdayWeeks(java.util.Set.of());
+
+        assertThat(checker.blockReason(DayOfWeek.SATURDAY, slotStart, slotEnd, term)).isPresent();
+    }
+
+    @Test
+    void shouldNotBlockSaturdayAtThisCoarseCheckOnceAWorkingSaturdayPatternExists() {
+        term.setWorkingSaturdayWeeks(java.util.Set.of(WeekOfMonth.FIRST));
+        when(blockedPeriodRepository.findOverlappingRecurringBlocks(DayOfWeek.SATURDAY, slotStart, slotEnd, termStart, termEnd))
+            .thenReturn(Collections.emptyList());
+        when(blockedPeriodRepository.findHolidayOneOffBlocksInRange(slotStart, slotEnd, termStart, termEnd))
+            .thenReturn(Collections.emptyList());
+
+        // The exact date-level precision (which Saturdays actually get a real occurrence) is
+        // enforced downstream by ClassScheduleOccurrenceService, not this coarse weekly check.
+        assertThat(checker.blockReason(DayOfWeek.SATURDAY, slotStart, slotEnd, term)).isEmpty();
     }
 }

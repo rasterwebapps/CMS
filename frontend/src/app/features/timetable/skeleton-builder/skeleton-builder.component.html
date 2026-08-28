@@ -6,16 +6,13 @@
         <h1 class="mlp-title">Timetable <em>Skeleton Builder</em></h1>
         <cms-tour-button tourKey="skeleton-builder" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="page-subtitle">Place Theory, Lab, and Clinical sessions into periods for a cohort's whole term at once — staff and rooms are assigned afterward</p>
+      <p class="page-subtitle">Run Automation places every Theory, Lab, and Clinical session for a cohort's whole term at once — staff and rooms are assigned afterward. Drag a placed session to move it, or click it to remove.</p>
       <p class="page-subtitle">Need to size rooms/batches first? Open the <a routerLink="/timetable/capacity-planner">Capacity Planner</a>.</p>
     </div>
-    @if (selectedTermInstanceId && (canManageRotation() || (canAutoPlace() && selectedCohortId) || (canPlaceElectiveGroup() && hasElectiveGroup()))) {
+    @if (selectedTermInstanceId && (canManageRotation() || (canGlobalAutoPlace() && selectedCohortId && !allCohortsSelected()) || (canPlaceElectiveGroup() && hasElectiveGroup()) || canManageWorkingSaturdays())) {
       <div class="mlp-hdr-right">
-        @if (canAutoPlace() && selectedCohortId) {
-          <button type="button" class="btn-secondary" [disabled]="autoPlacing()" (click)="onAutoPlaceClick()">
-            @if (autoPlacing()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
-            Auto-place remaining
-          </button>
+        @if (canGlobalAutoPlace() && selectedCohortId && !allCohortsSelected()) {
+          <button type="button" class="btn-secondary" (click)="openGlobalAutoSchedule()">Run Automation</button>
         }
         @if (canManageRotation()) {
           <button type="button" class="btn-secondary" (click)="openRotationSetup()">Set up Rotation</button>
@@ -23,9 +20,20 @@
         @if (canPlaceElectiveGroup() && hasElectiveGroup()) {
           <button type="button" class="btn-secondary" (click)="openElectiveBlock()">Place Elective Block</button>
         }
+        @if (canManageWorkingSaturdays()) {
+          <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+        }
       </div>
     }
   </div>
+
+  @if (showWorkingSaturdays() && selectedTermInstanceId) {
+    <app-working-saturdays-flyout
+      [termInstanceId]="selectedTermInstanceId"
+      (closed)="onWorkingSaturdaysClosed()"
+      (saved)="onWorkingSaturdaysSaved()">
+    </app-working-saturdays-flyout>
+  }
 
   @if (showRotationSetup() && selectedTermInstanceId) {
     <app-rotation-setup-flyout
@@ -114,199 +122,143 @@
         <cms-empty-state
           icon="auto_awesome"
           [title]="'No schedule yet for ' + skeleton()!.cohortName"
-          subtitle="Run automation to place and staff this cohort's whole term shortfall at once, checking prerequisites and faculty capacity first. You can still place sessions manually below, or fix up anything the automation leaves out."
+          subtitle="Run automation to place and staff this cohort's whole term shortfall at once, checking prerequisites and faculty capacity first. Edit the result afterward by dragging a session to move it, or clicking it to remove."
           actionLabel="Run Automation"
           (actionClick)="openGlobalAutoSchedule()">
         </cms-empty-state>
       </div>
     }
 
-    <div class="detail-split">
-      <div id="tour-skel-subjects" class="detail-split__sidebar content-card skeleton-subjects-card anim-rise anim-rise--d2">
-        <h2 class="skeleton-budget-card__title">{{ skeleton()!.cohortName }} — {{ skeleton()!.termInstanceLabel }}</h2>
+    <h2 class="skeleton-cohort-hdr anim-rise anim-rise--d2">{{ skeleton()!.cohortName }} — {{ skeleton()!.termInstanceLabel }}</h2>
 
-        @if (skeleton()!.subjects.length === 0) {
-          <p class="skeleton-empty-hint">This cohort has no non-elective subjects in this term yet.</p>
-        } @else {
-          <div class="skeleton-subject-rail">
-            @for (subject of skeleton()!.subjects; track subject.courseOfferingId) {
-              <div class="skeleton-subject-card"
-                [class.skeleton-subject-card--active]="activeOfferingId === subject.courseOfferingId"
-                [style.--subject-color]="subjectColor(subject.electiveGroupId ?? subject.courseOfferingId)"
-                role="button" tabindex="0"
-                [attr.aria-pressed]="activeOfferingId === subject.courseOfferingId"
-                (click)="onSubjectSelect(subject.courseOfferingId)"
-                (keydown.enter)="onSubjectSelect(subject.courseOfferingId)">
-                <div class="skeleton-subject-card__hdr">
-                  <span class="skeleton-subject-card__dot"></span>
-                  <span class="skeleton-subject-card__name">{{ subject.subjectName }}</span>
-                  <span class="skeleton-subject-card__code">({{ subject.subjectCode }})</span>
-                </div>
-                @if (subject.electiveGroupName) {
-                  <span class="skeleton-subject-card__elective-badge">Elective · {{ subject.electiveGroupName }}</span>
-                }
-                <div class="skeleton-budget-grid">
-                  @for (b of subject.budgets; track (b.sessionType + '-' + b.batchId + '-' + b.cohortSectionId)) {
-                    <div class="skeleton-budget-item">
-                      <div class="skeleton-budget-item__label">
-                        {{ b.sessionType }}
-                        @if (b.batchName) { <span class="skeleton-budget-item__batch">({{ b.batchName }})</span> }
-                        @if (b.cohortSectionLabel) { <span class="skeleton-budget-item__batch">({{ b.cohortSectionLabel }})</span> }
-                        @if (!b.batchName && b.batchId === null && (b.sessionType === 'LAB' || b.sessionType === 'CLINICAL')) {
-                          <span class="cms-badge cms-badge--soft-amber">no batches defined yet</span>
-                        }
-                      </div>
-                      <div class="skeleton-budget-item__hours">{{ b.totalHours }} term hours</div>
-                      <div class="skeleton-budget-item__count">{{ b.placedSessionsPerWeek }} / {{ b.requiredSessionsPerWeek }} weekly sessions</div>
-                      <div class="skeleton-budget-item__bar">
-                        <div class="skeleton-budget-item__fill"
-                          [class.skeleton-budget-item__fill--done]="b.placedSessionsPerWeek >= b.requiredSessionsPerWeek"
-                          [style.width.%]="b.requiredSessionsPerWeek > 0 ? (b.placedSessionsPerWeek / b.requiredSessionsPerWeek * 100) : 0">
-                        </div>
-                      </div>
-                      @if (canManage() && b.placedSessionsPerWeek < b.requiredSessionsPerWeek && (b.sessionType === 'THEORY' || b.batchId)) {
-                        <button type="button" class="btn-secondary skeleton-budget-item__suggest"
-                          [disabled]="suggesting()"
-                          (click)="onSuggestClick(subject.courseOfferingId, b.sessionType, b.batchId, b.cohortSectionId, $event)">
-                          Suggest
-                        </button>
-                      }
-                    </div>
-                  }
-                </div>
-              </div>
-            }
+    @if (hoursSummary(); as hours) {
+      <div class="skeleton-hours-summary anim-rise anim-rise--d2">
+        <div class="stat-grid skeleton-hours-summary__row">
+          <div class="stat-card" title="Raw weekly-grid capacity for one section across the whole term — Theory's real ceiling; Lab/Clinical can exceed it since batches run in parallel rooms.">
+            <div class="stat-label">Total Hours Available (Term)</div>
+            <div class="stat-value">{{ hours.availableHours | number: '1.0-1' }}h</div>
           </div>
-        }
-      </div>
-
-      <div class="detail-split__main skeleton-main-stack">
-        <div id="tour-skel-grid" class="content-card mlp-table-card skeleton-grid-card anim-rise anim-rise--d3">
-          <div class="table-wrapper">
-            <table class="skeleton-grid" cdkDropListGroup>
-              <thead>
-                <tr>
-                  <th class="skeleton-grid__corner"></th>
-                  @for (period of periods(); track period.id) {
-                    <th class="skeleton-grid__period-hdr">{{ period.name }}<br><span class="skeleton-grid__period-time">{{ period.startTime }}–{{ period.endTime }}</span></th>
-                  }
-                </tr>
-              </thead>
-              <tbody>
-                @for (day of days; track day) {
-                  <tr>
-                    <td class="skeleton-grid__day-hdr">{{ dayLabels[day] }}</td>
-                    @for (period of periods(); track period.id) {
-                      <td class="skeleton-grid__cell">
-                        <div class="skeleton-cell-stack" cdkDropList (cdkDropListDropped)="onCellDrop($event, day, period.id)">
-                          @if (hasAdvisory(day, period.id)) {
-                            <span class="skeleton-cell-stack__advisory"
-                              title="Multiple subjects' Lab/Clinical sessions share this slot — batch rosters aren't tracked across subjects, confirm there's no student overlap.">
-                              ⚠ shared slot
-                            </span>
-                          }
-                          @for (cell of cellsFor(day, period.id); track cell.id) {
-                            <button type="button" class="skeleton-cell"
-                              [style.--subject-color]="subjectColor(cell.electiveGroupId ?? cell.courseOfferingId)"
-                              [class.skeleton-cell--theory]="cell.sessionType === 'THEORY'"
-                              [class.skeleton-cell--lab]="cell.sessionType === 'LAB'"
-                              [class.skeleton-cell--clinical]="cell.sessionType === 'CLINICAL'"
-                              [class.skeleton-cell--staffed]="cell.isStaffed"
-                              [disabled]="!canManage()"
-                              cdkDrag
-                              [cdkDragData]="cell"
-                              [cdkDragDisabled]="!canManage() || !canMove() || !!cell.sessionGroupId"
-                              (click)="onCellChipClick(cell)">
-                              <span class="skeleton-cell__subject">{{ cell.subjectCode }}</span>
-                              <span class="skeleton-cell__type">{{ cell.sessionType }}</span>
-                              @if (cell.rotationGroupLabel) {
-                                <span class="skeleton-cell__rotation-badge"
-                                  [title]="'Rotates: ' + cell.rotatingBatchNames.join(' / ')">
-                                  ⟳ {{ cell.rotationGroupLabel }}
-                                </span>
-                              } @else if (cell.cohortSectionLabel) {
-                                <span class="skeleton-cell__batch">{{ cell.cohortSectionLabel }}</span>
-                              } @else if (cell.batchName) {
-                                <span class="skeleton-cell__batch">{{ cell.batchName }}</span>
-                              }
-                              @if (cell.isStaffed) { <span class="cms-badge cms-badge--green">staffed</span> }
-                            </button>
-                          }
-                          <button type="button" class="skeleton-cell skeleton-cell--add"
-                            [class.skeleton-cell--selected]="selectedCell()?.day === day && selectedCell()?.periodId === period.id"
-                            [class.skeleton-cell--candidate]="isCandidate(day, period.id)"
-                            [disabled]="!canManage() || !activeOfferingId"
-                            [attr.aria-label]="cellsFor(day, period.id).length ? 'Add another session to this slot' : 'Place a session'"
-                            (click)="onAddClick(day, period.id)">
-                            <span class="skeleton-cell__empty">+</span>
-                          </button>
-                        </div>
-                      </td>
-                    }
-                  </tr>
-                }
-              </tbody>
-            </table>
+          <div class="stat-card">
+            <div class="stat-label">Total Hours Required (Term)</div>
+            <div class="stat-value">{{ hours.overall.total | number: '1.0-1' }}h</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Assigned</div>
+            <div class="stat-value">{{ hours.overall.assigned | number: '1.0-1' }}h</div>
+          </div>
+          <div class="stat-card" [class.stat-card--accent]="hours.overall.unassigned > 0.05">
+            <div class="stat-label">Total Unassigned</div>
+            <div class="stat-value" [class.penalty]="hours.overall.unassigned > 0.05">{{ hours.overall.unassigned | number: '1.0-1' }}h</div>
           </div>
         </div>
 
-        @if (selectedCell()) {
-          <div class="content-card skeleton-placement-panel">
-            <h3 class="skeleton-placement-panel__title">
-              Place a session for {{ activeSubject()?.subjectName }} — {{ dayLabels[selectedCell()!.day] }}, {{ selectedPeriod()?.name }}
-              ({{ selectedPeriod()?.startTime }}–{{ selectedPeriod()?.endTime }})
-            </h3>
-            <div class="skeleton-placement-panel__row">
-              <div class="session-type-toggle" role="radiogroup" aria-label="Session type">
-                <label class="session-type-option" [class.session-type-option--active]="selectedSessionType === 'THEORY'">
-                  <input type="radio" name="skeletonSessionType" [(ngModel)]="selectedSessionType" value="THEORY" (ngModelChange)="onSessionTypeChange()" />
-                  Theory
-                </label>
-                <label class="session-type-option" [class.session-type-option--active]="selectedSessionType === 'LAB'">
-                  <input type="radio" name="skeletonSessionType" [(ngModel)]="selectedSessionType" value="LAB" (ngModelChange)="onSessionTypeChange()" />
-                  Lab
-                </label>
-                <label class="session-type-option" [class.session-type-option--active]="selectedSessionType === 'CLINICAL'">
-                  <input type="radio" name="skeletonSessionType" [(ngModel)]="selectedSessionType" value="CLINICAL" (ngModelChange)="onSessionTypeChange()" />
-                  Clinical
-                </label>
-              </div>
-
-              @if (needsSection()) {
-                <select class="mlp-filter-select" [(ngModel)]="selectedCohortSectionId" aria-label="Cohort section"
-                  [disabled]="activeSections().length === 1">
-                  <option [ngValue]="null">Select a section…</option>
-                  @for (section of activeSections(); track section.id) {
-                    <option [ngValue]="section.id">{{ section.sectionLabel }} — {{ section.classroomName }}</option>
-                  }
-                </select>
-              } @else {
-                <select class="mlp-filter-select" [(ngModel)]="selectedBatchId" aria-label="Batch">
-                  <option [ngValue]="null">{{ needsBatch() ? 'Select a batch…' : 'Whole cohort (no section split)' }}</option>
-                  @for (batch of activeBatches(); track batch.id) {
-                    <option [ngValue]="batch.id">{{ batch.name }} ({{ batch.enrolledCount }}/{{ batch.capacity }})</option>
-                  }
-                </select>
-              }
-
-              @if (spanOptions().length > 0) {
-                <select class="mlp-filter-select" [(ngModel)]="selectedSpanThroughPeriodId" aria-label="Also occupies through period">
-                  <option [ngValue]="null">Single period</option>
-                  @for (spanPeriod of spanOptions(); track spanPeriod.id) {
-                    <option [ngValue]="spanPeriod.id">Also occupies through {{ spanPeriod.name }}</option>
-                  }
-                </select>
+        <div class="stat-grid skeleton-hours-summary__row">
+          @if (hours.theory.total > 0) {
+            <div class="stat-card" [class.stat-card--accent]="hours.theory.unassigned > 0.05">
+              <div class="stat-label">Theory — Assigned / Total</div>
+              <div class="stat-value">{{ hours.theory.assigned | number: '1.0-1' }}h <span class="text-muted">/ {{ hours.theory.total | number: '1.0-1' }}h</span></div>
+              @if (hours.theory.unassigned > 0.05) {
+                <div class="stat-value penalty skeleton-hours-gap">{{ hours.theory.unassigned | number: '1.0-1' }}h unassigned</div>
               }
             </div>
-            <div class="skeleton-placement-panel__actions">
-              <button type="button" class="btn-secondary" (click)="cancelPlacement()">Cancel</button>
-              <button type="button" class="btn-primary" [disabled]="placing()" (click)="confirmPlacement()">
-                @if (placing()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
-                Place
-              </button>
+          }
+          @if (hours.lab.total > 0) {
+            <div class="stat-card" [class.stat-card--accent]="hours.lab.unassigned > 0.05">
+              <div class="stat-label">Lab — Assigned / Total</div>
+              <div class="stat-value">{{ hours.lab.assigned | number: '1.0-1' }}h <span class="text-muted">/ {{ hours.lab.total | number: '1.0-1' }}h</span></div>
+              @if (hours.lab.unassigned > 0.05) {
+                <div class="stat-value penalty skeleton-hours-gap">{{ hours.lab.unassigned | number: '1.0-1' }}h unassigned</div>
+              }
             </div>
-          </div>
+          }
+          @if (hours.clinical.total > 0) {
+            <div class="stat-card" [class.stat-card--accent]="hours.clinical.unassigned > 0.05">
+              <div class="stat-label">Clinical — Assigned / Total</div>
+              <div class="stat-value">{{ hours.clinical.assigned | number: '1.0-1' }}h <span class="text-muted">/ {{ hours.clinical.total | number: '1.0-1' }}h</span></div>
+              @if (hours.clinical.unassigned > 0.05) {
+                <div class="stat-value penalty skeleton-hours-gap">{{ hours.clinical.unassigned | number: '1.0-1' }}h unassigned</div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (skeleton()!.sections.length > 1) {
+      <div class="skeleton-section-tabs anim-rise anim-rise--d2" role="tablist" aria-label="Filter by section">
+        <button type="button" class="skeleton-section-tab" role="tab" [class.skeleton-section-tab--active]="selectedSectionId() === 'ALL'"
+          [attr.aria-selected]="selectedSectionId() === 'ALL'" (click)="selectSection('ALL')">All Sections</button>
+        @for (section of skeleton()!.sections; track section.id) {
+          <button type="button" class="skeleton-section-tab" role="tab" [class.skeleton-section-tab--active]="selectedSectionId() === section.id"
+            [attr.aria-selected]="selectedSectionId() === section.id" (click)="selectSection(section.id)">{{ section.sectionLabel }}</button>
         }
+      </div>
+    }
+
+    <div id="tour-skel-grid" class="content-card mlp-table-card skeleton-grid-card anim-rise anim-rise--d3">
+      <div class="table-wrapper">
+        <table class="skeleton-grid" cdkDropListGroup>
+          <thead>
+            <tr>
+              <th class="skeleton-grid__corner"></th>
+              @for (period of periods(); track period.id) {
+                <th class="skeleton-grid__period-hdr">{{ period.name }}<br><span class="skeleton-grid__period-time">{{ period.startTime }}–{{ period.endTime }}</span></th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (day of days; track day) {
+              <tr>
+                <td class="skeleton-grid__day-hdr">{{ dayLabels[day] }}</td>
+                @for (period of periods(); track period.id) {
+                  <td class="skeleton-grid__cell" [attr.data-period-id]="period.id" [attr.data-day]="day">
+                    <div class="skeleton-cell-stack" cdkDropList (cdkDropListDropped)="onCellDrop($event, day, period.id)">
+                      @if (hasAdvisory(day, period.id)) {
+                        <span class="skeleton-cell-stack__advisory"
+                          title="Multiple subjects' Lab/Clinical sessions share this slot — batch rosters aren't tracked across subjects, confirm there's no student overlap.">
+                          ⚠ shared slot
+                        </span>
+                      }
+                      @for (cell of cellsFor(day, period.id); track cell.id) {
+                        <button type="button" class="skeleton-cell"
+                          [style.--subject-color]="subjectColor(cell.electiveGroupId ?? cell.courseOfferingId)"
+                          [class.skeleton-cell--theory]="cell.sessionType === 'THEORY'"
+                          [class.skeleton-cell--lab]="cell.sessionType === 'LAB'"
+                          [class.skeleton-cell--clinical]="cell.sessionType === 'CLINICAL'"
+                          [class.skeleton-cell--staffed]="cell.isStaffed"
+                          [class.skeleton-cell--joined-next]="hasMatchingAdjacent(cell, 1)"
+                          [class.skeleton-cell--joined-prev]="hasMatchingAdjacent(cell, -1)"
+                          [disabled]="!canManage()"
+                          cdkDrag
+                          [cdkDragData]="cell"
+                          [cdkDragDisabled]="!canManage() || !canMove() || !!cell.sessionGroupId"
+                          (click)="onCellChipClick(cell)">
+                          <span class="skeleton-cell__subject">{{ cell.subjectCode }}</span>
+                          <span class="skeleton-cell__type">{{ cell.sessionType }}</span>
+                          @if (cell.rotationGroupLabel) {
+                            <span class="skeleton-cell__rotation-badge"
+                              [title]="'Rotates: ' + cell.rotatingBatchNames.join(' / ')">
+                              ⟳ {{ cell.rotationGroupLabel }}
+                            </span>
+                          } @else if (cell.cohortSectionLabel) {
+                            <span class="skeleton-cell__batch">{{ cell.cohortSectionLabel }}</span>
+                          } @else if (cell.batchName) {
+                            <span class="skeleton-cell__batch">{{ cell.batchName }}</span>
+                          }
+                          @if (cell.isStaffed) { <span class="cms-badge cms-badge--green">staffed</span> }
+                          @if (!cell.isStaffed && canManage() && !cell.sessionGroupId) {
+                            <span class="skeleton-cell__resize-handle" title="Drag to extend into the next period(s)"
+                              (mousedown)="onResizeHandleMouseDown($event, cell)" (click)="$event.stopPropagation()"></span>
+                          }
+                        </button>
+                      }
+                    </div>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
     </div>
 

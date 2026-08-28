@@ -1,9 +1,11 @@
 package com.cms.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -132,7 +134,7 @@ class TimetableSkeletonServiceTest {
         period.setId(1L);
         period.setDurationMinutes(50);
 
-        period2 = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(10, 50), 2);
+        period2 = new Period("2nd Period", LocalTime.of(9, 50), LocalTime.of(10, 40), 2);
         period2.setId(2L);
         period2.setDurationMinutes(50);
     }
@@ -146,6 +148,7 @@ class TimetableSkeletonServiceTest {
         cs.setStatus(staffed ? ClassScheduleStatus.PUBLISHED : ClassScheduleStatus.DRAFT);
         cs.setCourseOffering(offering);
         cs.setSubject(offering.getSubject());
+        cs.setIsActive(true);
         if (staffed) {
             Faculty f = new Faculty();
             f.setId(9L);
@@ -163,6 +166,7 @@ class TimetableSkeletonServiceTest {
         cs.setStatus(ClassScheduleStatus.DRAFT);
         cs.setCourseOffering(off);
         cs.setSubject(off.getSubject());
+        cs.setIsActive(true);
         return cs;
     }
 
@@ -498,6 +502,7 @@ class TimetableSkeletonServiceTest {
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period, period2));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -522,10 +527,124 @@ class TimetableSkeletonServiceTest {
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(periodRepository.findById(3L)).thenReturn(Optional.of(period3));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period, period2, period3));
 
         assertThatThrownBy(() -> service.placeCell(request))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("consecutive");
+    }
+
+    @Test
+    void shouldRejectSpanPeriodsThatAreAdjacentByPositionButCrossARealTimeGap() {
+        // Two periods can sit next to each other in the active-period list (no dead/retired row
+        // between them) yet still have a real clock-time gap -- a recess/lunch break isn't modeled
+        // as a Period row of its own. Position adjacency alone must not be enough to accept a span
+        // across that gap.
+        Period periodAfterGap = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(10, 50), 2);
+        periodAfterGap.setId(2L);
+
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(
+            100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, List.of(2L));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(periodRepository.findById(2L)).thenReturn(Optional.of(periodAfterGap));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period, periodAfterGap));
+
+        assertThatThrownBy(() -> service.placeCell(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("break");
+    }
+
+    @Test
+    void shouldAllowAClinicalSpanToCrossARecessGapWithinAHalfDay() {
+        // Real forenoon layout: P1 9:00-9:50, P2 9:50-10:40 (no gap), P3 10:55-11:45 (15-min
+        // recess after P2), P4 11:45-12:35 (no gap), P5 13:20-14:10 (45-min LUNCH after P4 -- the
+        // day's longest gap). A 4-period CLINICAL block spanning P1..P4 crosses only the recess,
+        // never lunch -- per the college's real rule, a half-day clinical posting runs straight
+        // through a short recess, unlike THEORY/LAB.
+        Period p3 = new Period("3rd Period", LocalTime.of(10, 55), LocalTime.of(11, 45), 3);
+        p3.setId(3L);
+        Period p4 = new Period("4th Period", LocalTime.of(11, 45), LocalTime.of(12, 35), 4);
+        p4.setId(4L);
+        Period p5 = new Period("5th Period", LocalTime.of(13, 20), LocalTime.of(14, 10), 5);
+        p5.setId(5L);
+
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(
+            100L, ClassSessionType.CLINICAL, DayOfWeek.MONDAY, 1L, 7L, 5L, null, List.of(2L, 3L, 4L));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
+        when(periodRepository.findById(3L)).thenReturn(Optional.of(p3));
+        when(periodRepository.findById(4L)).thenReturn(Optional.of(p4));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period, period2, p3, p4, p5));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        Batch batch = new Batch();
+        batch.setId(7L);
+        batch.setCourseOffering(offering);
+        when(batchRepository.findById(7L)).thenReturn(Optional.of(batch));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SkeletonCellResponse response = service.placeCell(request);
+
+        assertThat(response.sessionGroupId()).isNotNull();
+        verify(classScheduleRepository, org.mockito.Mockito.times(4)).save(any(ClassSchedule.class));
+    }
+
+    @Test
+    void shouldStillRejectAClinicalSpanCrossingTheLongerLunchGap() {
+        // Same layout as the recess test above -- but this span crosses P4 -> P5, the day's
+        // longest (45-min) gap, i.e. lunch. CLINICAL's recess exception must never extend to lunch.
+        Period p4 = new Period("4th Period", LocalTime.of(11, 45), LocalTime.of(12, 35), 4);
+        p4.setId(4L);
+        Period p5 = new Period("5th Period", LocalTime.of(13, 20), LocalTime.of(14, 10), 5);
+        p5.setId(5L);
+        Period p3 = new Period("3rd Period", LocalTime.of(10, 55), LocalTime.of(11, 45), 3);
+        p3.setId(3L);
+
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(
+            100L, ClassSessionType.CLINICAL, DayOfWeek.MONDAY, 4L, 7L, 5L, null, List.of(5L));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(4L)).thenReturn(Optional.of(p4));
+        when(periodRepository.findById(5L)).thenReturn(Optional.of(p5));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc())
+            .thenReturn(List.of(period, period2, p3, p4, p5));
+        Batch batch = new Batch();
+        batch.setId(7L);
+        batch.setCourseOffering(offering);
+        when(batchRepository.findById(7L)).thenReturn(Optional.of(batch));
+
+        assertThatThrownBy(() -> service.placeCell(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("break");
+    }
+
+    @Test
+    void shouldStillRejectALabSpanCrossingARecessGap_theClinicalExceptionDoesNotApply() {
+        // Identical recess-crossing scenario as the CLINICAL success test above, but LAB -- the
+        // relaxation is CLINICAL-only, LAB must stay exactly as strict as before.
+        Period p3 = new Period("3rd Period", LocalTime.of(10, 55), LocalTime.of(11, 45), 3);
+        p3.setId(3L);
+        Period p4 = new Period("4th Period", LocalTime.of(11, 45), LocalTime.of(12, 35), 4);
+        p4.setId(4L);
+        Period p5 = new Period("5th Period", LocalTime.of(13, 20), LocalTime.of(14, 10), 5);
+        p5.setId(5L);
+
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(
+            100L, ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, 7L, 5L, null, List.of(2L, 3L, 4L));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
+        when(periodRepository.findById(3L)).thenReturn(Optional.of(p3));
+        when(periodRepository.findById(4L)).thenReturn(Optional.of(p4));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period, period2, p3, p4, p5));
+        Batch batch = new Batch();
+        batch.setId(7L);
+        batch.setCourseOffering(offering);
+        when(batchRepository.findById(7L)).thenReturn(Optional.of(batch));
+
+        assertThatThrownBy(() -> service.placeCell(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("break");
     }
 
     @Test
@@ -540,10 +659,37 @@ class TimetableSkeletonServiceTest {
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period, period2));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(existingAtPeriod2));
 
         assertThatThrownBy(() -> service.placeCell(request))
             .isInstanceOf(TimetableConstraintViolationException.class);
+
+        verify(classScheduleRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldHardBlockPlacementOnceTheSubjectsWeeklyBudgetIsAlreadyMet() {
+        // csc.theoryHours = 54 over a 27-week term at 50-min periods -> 3 required sessions/week
+        // (see setUp's comment). 3 THEORY sessions are already placed for this offering -- a 4th
+        // manual placement must be hard-blocked rather than silently pushing Assigned past Required.
+        ClassSchedule s1 = existingRow(ClassSessionType.THEORY, null, false);
+        s1.setDayOfWeek(DayOfWeek.MONDAY);
+        ClassSchedule s2 = existingRow(ClassSessionType.THEORY, null, false);
+        s2.setDayOfWeek(DayOfWeek.TUESDAY);
+        ClassSchedule s3 = existingRow(ClassSessionType.THEORY, null, false);
+        s3.setDayOfWeek(DayOfWeek.WEDNESDAY);
+
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(
+            100L, ClassSessionType.THEORY, DayOfWeek.THURSDAY, 1L, null, 5L, null, null);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(s1, s2, s3));
+
+        assertThatThrownBy(() -> service.placeCell(request))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("budget is already met");
 
         verify(classScheduleRepository, never()).save(any());
     }
@@ -614,7 +760,7 @@ class TimetableSkeletonServiceTest {
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
         when(blockedPeriodChecker.blockReason(
-            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance.getStartDate(), termInstance.getEndDate()))
+            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance))
             .thenReturn(Optional.of("Staff meeting"));
 
         assertThatThrownBy(() -> service.placeCell(request))
@@ -629,7 +775,7 @@ class TimetableSkeletonServiceTest {
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
         when(blockedPeriodChecker.blockReason(
-            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance.getStartDate(), termInstance.getEndDate()))
+            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance))
             .thenReturn(Optional.of("Auto-blocked — Independence Day"));
 
         assertThatThrownBy(() -> service.placeCell(request))
@@ -996,8 +1142,8 @@ class TimetableSkeletonServiceTest {
         SkeletonCellMoveRequest request = new SkeletonCellMoveRequest(DayOfWeek.TUESDAY, 2L, 5L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
-        when(blockedPeriodChecker.blockReason(DayOfWeek.TUESDAY, period2.getStartTime(), period2.getEndTime(),
-                termInstance.getStartDate(), termInstance.getEndDate()))
+        when(blockedPeriodChecker.blockReason(
+            DayOfWeek.TUESDAY, period2.getStartTime(), period2.getEndTime(), termInstance))
             .thenReturn(Optional.of("Staff meeting"));
 
         assertThatThrownBy(() -> service.moveCell(100L, request))
@@ -1021,6 +1167,25 @@ class TimetableSkeletonServiceTest {
         assertThatThrownBy(() -> service.moveCell(100L, request))
             .isInstanceOf(TimetableConstraintViolationException.class)
             .hasMessageContaining("mandatory");
+    }
+
+    @Test
+    void shouldAllowMovingIntoASlotWhereOnlyAnInactiveGhostCellSitsForCohortExclusivity() {
+        ClassSchedule cs = existingRow(ClassSessionType.THEORY, null, false);
+        cs.setId(100L);
+        ClassSchedule ghostAtTarget = rowFor(otherOffering, ClassSessionType.LAB, null, DayOfWeek.TUESDAY, period2);
+        ghostAtTarget.setIsActive(false);
+
+        SkeletonCellMoveRequest request = new SkeletonCellMoveRequest(DayOfWeek.TUESDAY, 2L, 5L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
+        when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L))
+            .thenReturn(List.of(offeringDto(100L, false), offeringDto(200L, false)));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L, 200L)))
+            .thenReturn(List.of(ghostAtTarget));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThatCode(() -> service.moveCell(100L, request)).doesNotThrowAnyException();
     }
 
     @Test
@@ -1065,6 +1230,25 @@ class TimetableSkeletonServiceTest {
     }
 
     @Test
+    void shouldAllowMovingOntoASlotOnlyOccupiedByAnInactiveGhostCell() {
+        ClassSchedule cs = existingRow(ClassSessionType.THEORY, null, false);
+        cs.setId(100L);
+        ClassSchedule ghostAtTarget = existingRow(ClassSessionType.THEORY, null, false);
+        ghostAtTarget.setId(101L);
+        ghostAtTarget.setDayOfWeek(DayOfWeek.TUESDAY);
+        ghostAtTarget.setPeriod(period2);
+        ghostAtTarget.setIsActive(false);
+
+        SkeletonCellMoveRequest request = new SkeletonCellMoveRequest(DayOfWeek.TUESDAY, 2L, 5L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
+        when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(cs, ghostAtTarget));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThatCode(() -> service.moveCell(100L, request)).doesNotThrowAnyException();
+    }
+
+    @Test
     void shouldRejectMovingCellToItsOwnCurrentSlot() {
         ClassSchedule cs = existingRow(ClassSessionType.THEORY, null, false);
         cs.setId(100L);
@@ -1102,6 +1286,8 @@ class TimetableSkeletonServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
 
         SkeletonCellResponse response = service.moveCell(100L, request);
 
@@ -1120,8 +1306,10 @@ class TimetableSkeletonServiceTest {
         SkeletonCellMoveRequest request = new SkeletonCellMoveRequest(DayOfWeek.TUESDAY, 2L, 5L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
-        when(timetableStaffingService.checkFacultyFree(9L, cs, DayOfWeek.TUESDAY, period2.getStartTime(), period2.getEndTime()))
-            .thenReturn(Optional.of(new ConstraintViolation("STAFFING_FACULTY_CONFLICT", "Already busy")));
+        when(timetableStaffingService.validateAssignment(eq(cs), eq(DayOfWeek.TUESDAY), eq(period2.getStartTime()),
+                eq(period2.getEndTime()), eq(faculty), isNull(), isNull(), isNull(), isNull()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(
+                List.of(new ConstraintViolation("STAFFING_FACULTY_CONFLICT", "Already busy")), null));
 
         assertThatThrownBy(() -> service.moveCell(100L, request))
             .isInstanceOf(TimetableConstraintViolationException.class)
@@ -1142,9 +1330,10 @@ class TimetableSkeletonServiceTest {
         SkeletonCellMoveRequest request = new SkeletonCellMoveRequest(DayOfWeek.TUESDAY, 2L, 5L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
-        when(timetableStaffingService.checkRoomFree(eq(ClassSessionType.THEORY), eq(1L), any(), eq(cs),
-                eq(DayOfWeek.TUESDAY), eq(period2.getStartTime()), eq(period2.getEndTime())))
-            .thenReturn(Optional.of(new ConstraintViolation("STAFFING_ROOM_CONFLICT", "Room busy")));
+        when(timetableStaffingService.validateAssignment(eq(cs), eq(DayOfWeek.TUESDAY), eq(period2.getStartTime()),
+                eq(period2.getEndTime()), eq(faculty), isNull(), any(), isNull(), isNull()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(
+                List.of(new ConstraintViolation("STAFFING_ROOM_CONFLICT", "Room busy")), null));
 
         assertThatThrownBy(() -> service.moveCell(100L, request))
             .isInstanceOf(TimetableConstraintViolationException.class)
@@ -1162,8 +1351,10 @@ class TimetableSkeletonServiceTest {
         SkeletonCellMoveRequest request = new SkeletonCellMoveRequest(DayOfWeek.TUESDAY, 2L, 5L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
-        when(timetableStaffingService.checkWithinWorkloadCaps(faculty, cs, DayOfWeek.TUESDAY, period2.getStartTime(), period2.getEndTime()))
-            .thenReturn(List.of(new ConstraintViolation("STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED", "Over cap")));
+        when(timetableStaffingService.validateAssignment(eq(cs), eq(DayOfWeek.TUESDAY), eq(period2.getStartTime()),
+                eq(period2.getEndTime()), eq(faculty), isNull(), isNull(), isNull(), isNull()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(
+                List.of(new ConstraintViolation("STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED", "Over cap")), null));
 
         assertThatThrownBy(() -> service.moveCell(100L, request))
             .isInstanceOf(TimetableConstraintViolationException.class)

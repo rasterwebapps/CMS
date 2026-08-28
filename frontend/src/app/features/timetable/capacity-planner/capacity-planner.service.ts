@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments';
-import { CapacityPlan, FacultyWorkloadReport, PlanningBasis, TermCapacityOverview } from './capacity-planner.model';
+import { CapacityPlan, FacultyWorkloadOverviewReport, FacultyWorkloadReport, PlanningBasis, TermCapacityOverview } from './capacity-planner.model';
 
 @Injectable({ providedIn: 'root' })
 export class CapacityPlannerService {
@@ -20,6 +20,12 @@ export class CapacityPlannerService {
 
   getFacultyWorkloadReport(termInstanceId: number): Observable<FacultyWorkloadReport> {
     return this.http.get<FacultyWorkloadReport>(`${this.baseUrl}/faculty-workload`, {
+      params: { termInstanceId: termInstanceId.toString() },
+    });
+  }
+
+  getFacultyWorkloadOverview(termInstanceId: number): Observable<FacultyWorkloadOverviewReport> {
+    return this.http.get<FacultyWorkloadOverviewReport>(`${this.baseUrl}/faculty-workload-overview`, {
       params: { termInstanceId: termInstanceId.toString() },
     });
   }

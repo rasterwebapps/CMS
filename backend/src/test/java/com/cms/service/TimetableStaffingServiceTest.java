@@ -543,7 +543,7 @@ class TimetableStaffingServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
         when(blockedPeriodChecker.blockReason(
-            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance.getStartDate(), termInstance.getEndDate()))
+            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance))
             .thenReturn(Optional.of("Staff meeting"));
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
@@ -557,7 +557,7 @@ class TimetableStaffingServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
         when(blockedPeriodChecker.blockReason(
-            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance.getStartDate(), termInstance.getEndDate()))
+            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance))
             .thenReturn(Optional.of("Auto-blocked — Independence Day"));
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
@@ -810,7 +810,7 @@ class TimetableStaffingServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
         when(blockedPeriodChecker.blockReason(
-            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance.getStartDate(), termInstance.getEndDate()))
+            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance))
             .thenReturn(Optional.of("Staff meeting"));
         when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
             ClassScheduleStatus.PUBLISHED, 100L)).thenReturn(List.of(alreadyBusyElsewhere));
@@ -944,10 +944,10 @@ class TimetableStaffingServiceTest {
         when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
             .thenReturn(Collections.emptyList());
         when(blockedPeriodChecker.blockReason(
-            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance.getStartDate(), termInstance.getEndDate()))
+            DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance))
             .thenReturn(Optional.empty());
         when(blockedPeriodChecker.blockReason(
-            DayOfWeek.MONDAY, period2.getStartTime(), period2.getEndTime(), termInstance.getStartDate(), termInstance.getEndDate()))
+            DayOfWeek.MONDAY, period2.getStartTime(), period2.getEndTime(), termInstance))
             .thenReturn(Optional.of("Staff meeting"));
 
         assertThatThrownBy(() -> service.staffCell(100L, request))

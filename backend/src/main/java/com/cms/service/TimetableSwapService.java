@@ -17,7 +17,6 @@ import com.cms.model.ClassSchedule;
 import com.cms.model.Period;
 import com.cms.model.Room;
 import com.cms.model.enums.ClassScheduleStatus;
-import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.PeriodRepository;
@@ -25,15 +24,15 @@ import com.cms.repository.PeriodRepository;
 /**
  * Moves a DRAFT session to a different day/period, or — when the target slot is already occupied
  * by another DRAFT session in the same room — exchanges the two sessions' day+slot. Room never
- * changes; a candidate slot is only offered/accepted when the session's existing classroom/lab is
- * free at that day+time. THEORY, LAB, and CLINICAL rows all share the one Period master (V331
- * merged the formerly-separate LabSlot master into it). Room/audience resolution in {@link
- * #evaluateSlot} only branches THEORY vs non-THEORY (never reads {@code getClinicalVenue()}) —
- * safe today only because {@link TimetableGenerationService}, the sole producer of DRAFT rows,
- * never emits CLINICAL (see its class javadoc). Revisit this once R3 Phase 4's manual skeleton
- * builder can place a genuine DRAFT CLINICAL row. Scoped to DRAFT sessions only — swapping a
+ * changes; a candidate slot is only offered/accepted when the session's existing venue (classroom,
+ * lab, or clinical venue — {@link #evaluateSlot} resolves via {@link
+ * TimetableStaffingService#venueIdOf}/{@code physicalRoomOf}, correct for all three session types)
+ * is free at that day+time. THEORY, LAB, and CLINICAL rows all share the one Period master (V331
+ * merged the formerly-separate LabSlot master into it). Scoped to DRAFT sessions only — swapping a
  * PUBLISHED/live timetable isn't supported by this feature (see TimetableDraftReviewComponent,
- * the only consumer).
+ * one consumer; {@link TimetableSkeletonService#swapCells} is a second, independent one for the
+ * Skeleton Builder grid — that one additionally re-runs Skeleton's own subject/section-exclusivity
+ * rules, which this service's generic same-session-type audience check does not replicate).
  */
 @Service
 @Transactional(readOnly = true)
@@ -161,13 +160,15 @@ public class TimetableSwapService {
      *  (OC-113) — a candidate slot that's both room- and faculty-conflicted now reports both. */
     private SlotEvaluation evaluateSlot(ClassSchedule moving, DayOfWeek day, LocalTime start, LocalTime end,
                                          Long alsoExcludeId) {
-        boolean isTheory = moving.getSessionType() == ClassSessionType.THEORY;
-        Long roomId = isTheory
-            ? (moving.getClassroom() != null ? moving.getClassroom().getId() : null)
-            : (moving.getLab() != null ? moving.getLab().getId() : null);
-        Room physicalRoom = isTheory
-            ? (moving.getClassroom() != null ? moving.getClassroom().getRoom() : null)
-            : (moving.getLab() != null ? moving.getLab().getRoom() : null);
+        // Was a hand-rolled isTheory ? classroom : lab ternary, which silently resolved to
+        // null/null for a CLINICAL row (its venue lives on Batch.clinicalVenue, never
+        // ClassSchedule.lab) -- the room-conflict check below then saw "no venue" and treated the
+        // clinical venue as unconstrained, letting a real double-booking go undetected. Skeleton
+        // Builder has placed genuine DRAFT CLINICAL rows since R3 Phase 4, so this is no longer the
+        // dead branch it was when this method predated that (see class javadoc). venueIdOf/
+        // physicalRoomOf already switch on all three session types correctly for staffCell.
+        Long roomId = TimetableStaffingService.venueIdOf(moving);
+        Room physicalRoom = TimetableStaffingService.physicalRoomOf(moving);
         Long audienceId = TimetableStaffingService.resolveAudienceId(moving);
 
         var roomCheck = new TimetableStaffingService.RoomCheckSpec(

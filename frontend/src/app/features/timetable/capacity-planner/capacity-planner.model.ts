@@ -1,3 +1,5 @@
+import { OverageContributor } from '../skeleton-builder/skeleton-builder.model';
+
 export type PlanningBasis = 'ENROLLED' | 'SANCTIONED';
 
 /** One faculty's row in the advisory, term-wide Faculty Workload capacity report — see
@@ -24,6 +26,42 @@ export interface FacultyWorkloadReport {
   totalCommittedHoursPerWeek: number;
   totalConfiguredCapacityHoursPerWeek: number;
   unconfiguredFacultyCount: number;
+}
+
+/** One active faculty member's full term standing — "should be assigned" (termCapacityHours, from
+ *  their daily cap × working days) vs "has been assigned" (totalTermDemandHours, real curriculum
+ *  hours bound to them across every cohort). Every active faculty appears here regardless of how
+ *  close they are to a capacity problem — unlike the Global Auto-Schedule checklist's over/tight
+ *  lists, which only ever surface faculty already in trouble — so an under-used faculty is just as
+ *  visible as an over-committed one. `plannedDailyHoursOverride` is the raw editable value (null =
+ *  falls through to their designation's default); edited via the same `PATCH /faculty/{id}/daily-cap`
+ *  Faculty Detail's "Raise Cap" already uses. */
+export interface FacultyWorkloadOverviewRow {
+  facultyId: number;
+  facultyName: string;
+  designationName: string | null;
+  plannedDailyHoursOverride: number | null;
+  capacityConfigured: boolean;
+  effectiveDailyCapacityHours: number;
+  dailyCapacityTier: string;
+  workingDaysInTerm: number;
+  termCapacityHours: number;
+  totalTermDemandHours: number;
+  utilizationPercent: number;
+  shortfallHours: number;
+  spareHours: number;
+  overCapacity: boolean;
+  tightCapacity: boolean;
+  contributors: OverageContributor[];
+}
+
+export interface FacultyWorkloadOverviewReport {
+  termInstanceId: number;
+  rows: FacultyWorkloadOverviewRow[];
+  totalCurriculumRequiredHours: number;
+  totalAssignedHours: number;
+  totalFacultyCapacityHours: number;
+  unassignedOfferingsCount: number;
 }
 
 export interface VenueOption {

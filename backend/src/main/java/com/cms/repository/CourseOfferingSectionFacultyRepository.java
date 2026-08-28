@@ -23,4 +23,10 @@ public interface CourseOfferingSectionFacultyRepository extends JpaRepository<Co
     /** Every assignment row for every offering in a term instance, in one query -- backs the
      *  Assign Faculty list table's Faculty column summary without an N+1 per-row fetch. */
     List<CourseOfferingSectionFaculty> findByCourseOffering_TermInstanceId(Long termInstanceId);
+
+    /** Every row still pinned to a since-deactivated section sharing this label, for this cohort --
+     *  backs {@link com.cms.service.CohortRoomAllocationService}'s carry-forward onto a freshly
+     *  committed replacement section with the same label. */
+    List<CourseOfferingSectionFaculty> findByCohort_IdAndCohortSection_IsActiveFalseAndCohortSection_SectionLabel(
+        Long cohortId, String sectionLabel);
 }

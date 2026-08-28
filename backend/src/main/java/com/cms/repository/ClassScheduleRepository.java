@@ -61,6 +61,16 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     List<ClassSchedule> findByTermInstanceIdAndStatusAndBatchIdIn(
         Long termInstanceId, ClassScheduleStatus status, List<Long> batchIds);
 
+    /** Every still-active row riding on one of these batches, regardless of status — used by
+     *  {@link com.cms.service.CohortRoomAllocationService#revert} to find LAB/CLINICAL cells that
+     *  would otherwise be orphaned (still isActive=true, still blocking conflict checks) once their
+     *  batch is deactivated. */
+    List<ClassSchedule> findByBatchIdInAndIsActiveTrue(List<Long> batchIds);
+
+    /** THEORY sibling of {@link #findByBatchIdInAndIsActiveTrue} — THEORY cells carry a
+     *  cohortSection reference instead of a batch. */
+    List<ClassSchedule> findByCohortSectionIdInAndIsActiveTrue(List<Long> cohortSectionIds);
+
     /** OC-127 periodSpan: fetches every row of a multi-period session's linked group, in period
      *  order, so callers (staffing/removal) can treat them as one atomic unit. */
     List<ClassSchedule> findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(UUID sessionGroupId);

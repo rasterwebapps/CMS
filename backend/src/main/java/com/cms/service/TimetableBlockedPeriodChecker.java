@@ -1,6 +1,5 @@
 package com.cms.service;
 
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
@@ -8,6 +7,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import com.cms.model.BlockedPeriod;
+import com.cms.model.TermInstance;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.repository.BlockedPeriodRepository;
 
@@ -32,18 +32,38 @@ public class TimetableBlockedPeriodChecker {
         this.blockedPeriodRepository = blockedPeriodRepository;
     }
 
-    /** Returns the block's reason text, or empty if this day/time-range/term window is free. */
+    /** Returns the block's reason text, or empty if this day/time-range/term window is free.
+     *  Saturday gets one extra, coarse gate on top of the usual BlockedPeriod checks: if {@code
+     *  termInstance} has no working-Saturday pattern configured at all, every Saturday is blocked
+     *  outright (Mon-Fri only, matching this term's default); once a pattern exists, the weekly
+     *  slot is left open here (some Saturdays in the term will match it) and the exact date-level
+     *  precision — which Saturdays actually produce a real class — is enforced downstream by
+     *  {@code ClassScheduleOccurrenceService}, not here (this check has no specific calendar date
+     *  to test against, only a recurring day-of-week). */
     public Optional<String> blockReason(DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime,
-                                         LocalDate termStart, LocalDate termEnd) {
+                                         TermInstance termInstance) {
+        String memoKey = dayOfWeek + "|" + startTime + "|" + endTime + "|" + termInstance.getId();
+        return AutoScheduleRunCache.current()
+            .map(cache -> cache.memoizedBlockReason(memoKey, () -> computeBlockReason(dayOfWeek, startTime, endTime, termInstance)))
+            .orElseGet(() -> computeBlockReason(dayOfWeek, startTime, endTime, termInstance));
+    }
+
+    private Optional<String> computeBlockReason(DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime,
+                                                 TermInstance termInstance) {
+        if (dayOfWeek == DayOfWeek.SATURDAY && termInstance.getWorkingSaturdayWeeks().isEmpty()) {
+            return Optional.of("Saturday isn't enabled as a working day for this term yet — "
+                + "configure a working-Saturday pattern first");
+        }
+
         List<BlockedPeriod> conflicts = blockedPeriodRepository.findOverlappingRecurringBlocks(
-            dayOfWeek, startTime, endTime, termStart, termEnd);
+            dayOfWeek, startTime, endTime, termInstance.getStartDate(), termInstance.getEndDate());
         if (!conflicts.isEmpty()) {
             return Optional.of(conflicts.get(0).getReason());
         }
 
         java.time.DayOfWeek targetDay = java.time.DayOfWeek.valueOf(dayOfWeek.name());
         List<BlockedPeriod> holidayConflicts = blockedPeriodRepository.findHolidayOneOffBlocksInRange(
-                startTime, endTime, termStart, termEnd)
+                startTime, endTime, termInstance.getStartDate(), termInstance.getEndDate())
             .stream()
             .filter(bp -> bp.getSpecificDate().getDayOfWeek() == targetDay)
             .toList();

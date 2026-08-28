@@ -114,6 +114,17 @@
             </div>
 
             <div class="field-group" style="margin-top: 12px;">
+              <label for="subj-lab-block-periods" class="field-label">Lab Session Length (consecutive periods) <span class="required-star">*</span></label>
+              <input id="subj-lab-block-periods" class="field-input" formControlName="labSessionBlockPeriods"
+                type="number" min="1" max="12" autocomplete="off"
+                [class.field-input--error]="form.get('labSessionBlockPeriods')?.invalid && form.get('labSessionBlockPeriods')?.touched" />
+              <p class="field-hint">How many consecutive periods one Lab session runs for (e.g. 3 for a 3-hour lab) — the auto-scheduler places that many periods back-to-back on the same day instead of scattering them across the week. Leave at 1 for a theory-only subject.</p>
+              @if (form.get('labSessionBlockPeriods')?.invalid && form.get('labSessionBlockPeriods')?.touched) {
+                <p class="field-error">{{ getErrorMessage('labSessionBlockPeriods') }}</p>
+              }
+            </div>
+
+            <div class="field-group" style="margin-top: 12px;">
               <label class="field-label">Eligible Labs</label>
               <p class="field-hint">Optional — rooms suitable for this subject's practical sessions. Preferred by auto-suggest and manual pickers, but not required; leave empty for a theory-only subject.</p>
               @if (activeLabs().length === 0) {
@@ -129,6 +140,17 @@
                     </label>
                   }
                 </div>
+              }
+            </div>
+
+            <div class="field-group" style="margin-top: 12px;">
+              <label for="subj-clinical-block-periods" class="field-label">Clinical Session Length (consecutive periods) <span class="required-star">*</span></label>
+              <input id="subj-clinical-block-periods" class="field-input" formControlName="clinicalSessionBlockPeriods"
+                type="number" min="1" max="12" autocomplete="off"
+                [class.field-input--error]="form.get('clinicalSessionBlockPeriods')?.invalid && form.get('clinicalSessionBlockPeriods')?.touched" />
+              <p class="field-hint">Same as Lab Session Length above, for Clinical postings.</p>
+              @if (form.get('clinicalSessionBlockPeriods')?.invalid && form.get('clinicalSessionBlockPeriods')?.touched) {
+                <p class="field-error">{{ getErrorMessage('clinicalSessionBlockPeriods') }}</p>
               }
             </div>
 

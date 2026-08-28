@@ -682,6 +682,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  // Deterministic, not width-dependent: the template caps this line's own boxes container at the
+  // first 2 batches (group.batches.slice(0, 2)) -- batch 3+ render in .cap-batch-row__overflow
+  // below instead -- so this line never needs to wrap; the venue select always stays next to
+  // Batch 1/2 regardless of how many total batches splitIntoSequentialBatches produced (it can
+  // produce far more than 2, e.g. 100 students / a 10-cap Computer Lab is 10 turns -- letting all
+  // of them fight this line for room is what shipped as a visible clipping/overlap bug).
   flex-wrap: nowrap;
 
   select.field-select--inline {
@@ -690,12 +696,11 @@
   }
 }
 
-// Fixed 104px column (2x48px box + 8px gap, matching .cap-section-block__room's count input
-// exactly) -- reserved whether this subject has 1 or 2+ batches, so the boxes always start at the
-// SAME X position as every other row's count column, not just line up with each other when counts
-// match. flex-shrink: 0 -- boxes never shrink to make room; the venue select absorbs any squeeze
-// instead. Also reused (unchanged) by Theory's own count input above, wrapping its single
-// .cap-count-plain the same way.
+// Fixed 104px column (2x48px box + 8px gap, matching .cap-section-block__room's count input) --
+// safe as a hard cap now that the template only ever puts the first 2 batches (or a single plain
+// count input) in here; batch 3+ go in .cap-batch-row__overflow below instead of being crammed
+// into this same 104px zone (see the flex-wrap note on .cap-batch-row__controls above for how an
+// unbounded version of this shipped as a real clipping/overlap bug).
 .cap-batch-row__boxes {
   display: flex;
   flex: 0 0 104px;
@@ -703,10 +708,31 @@
   gap: 8px;
 }
 
+// Batch 3+ for a heavily-split subject (group.batches.slice(2) in the template) -- its own
+// full-width row below the venue-select/Batch-1-2 line, so it never has to compete with the
+// select for horizontal room. margin-top leaves clearance for .cap-batch-box__label floating 11px
+// above its input, same reasoning as .cap-batch-row's own gap.
+.cap-batch-row__overflow {
+  display: flex;
+  margin-top: 16px;
+}
+
+// Same fixed-104px box sizing as .cap-batch-row__boxes, but wraps (2 boxes per line, deterministic
+// regardless of the row's actual width -- see max-width) and is pushed flush right to align with
+// Batch 1/2's box column above, rather than starting from the row's left edge.
+.cap-batch-row__boxes--overflow {
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 104px;
+  flex-wrap: wrap;
+  row-gap: 16px;
+  margin-left: auto;
+}
+
 // A plain, unboxed count input -- used for Theory's classroom count and any Lab/Clinical subject
 // that ISN'T split into sequential batches (see splitIntoSequentialBatches). No fieldset/legend
 // styling; just a normal field-input--narrow, sized to match one .cap-batch-box (48px) so it still
-// lines up with split rows' first box even though it doesn't fill the whole 104px reserved column.
+// lines up with a split row's first box.
 .cap-count-plain {
   flex: 0 0 48px;
   width: 48px;

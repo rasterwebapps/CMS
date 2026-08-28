@@ -40,6 +40,7 @@ import {
   TermInstanceUpdateRequest,
   TermBillingSchedule,
   TermBillingScheduleRequest,
+  WeekOfMonth,
 } from './academic-year.model';
 
 @Injectable({
@@ -198,6 +199,16 @@ export class AcademicYearService {
     return this.http.get<TermAdvanceChecklist>(`${environment.apiUrl}/term-instances/${id}/advance-checklist`, {
       params: { targetStatus },
     });
+  }
+
+  /** Empty means this term hasn't opted in to Saturday scheduling at all — Mon-Fri only. */
+  getWorkingSaturdays(termInstanceId: number): Observable<WeekOfMonth[]> {
+    return this.http.get<WeekOfMonth[]>(`${environment.apiUrl}/term-instances/${termInstanceId}/working-saturdays`);
+  }
+
+  updateWorkingSaturdays(termInstanceId: number, weeks: WeekOfMonth[]): Observable<WeekOfMonth[]> {
+    return this.http.put<WeekOfMonth[]>(
+      `${environment.apiUrl}/term-instances/${termInstanceId}/working-saturdays`, { weeks });
   }
 
   // TermBillingSchedule methods

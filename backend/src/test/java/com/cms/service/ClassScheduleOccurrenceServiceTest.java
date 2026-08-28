@@ -77,6 +77,41 @@ class ClassScheduleOccurrenceServiceTest {
         return schedule;
     }
 
+    private ClassSchedule saturdaySchedule() {
+        ClassSchedule schedule = new ClassSchedule();
+        schedule.setId(101L);
+        schedule.setTermInstance(termInstance);
+        schedule.setDayOfWeek(DayOfWeek.SATURDAY);
+        schedule.setPeriod(period);
+        return schedule;
+    }
+
+    @Test
+    void shouldSuppressEverySaturdayWhenNoWorkingSaturdayPatternIsConfigured() {
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(anyLong(), any(), any()))
+            .thenReturn(Collections.emptyList());
+
+        // Term runs Mon 2024-08-05 through Mon 2024-08-26, covering Saturdays Aug 10/17/24 --
+        // all three must be suppressed since termInstance.getWorkingSaturdayWeeks() is empty.
+        List<LocalDate> dates = service.occurrenceDatesFor(
+            saturdaySchedule(), LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+
+        assertThat(dates).isEmpty();
+    }
+
+    @Test
+    void shouldOnlyKeepSaturdaysMatchingTheConfiguredWorkingSaturdayPattern() {
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(anyLong(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        // Aug 10 is the 2nd Saturday of August 2024 (Aug 3 is the 1st); Aug 17/24 are 3rd/4th.
+        termInstance.setWorkingSaturdayWeeks(java.util.Set.of(com.cms.model.enums.WeekOfMonth.SECOND));
+
+        List<LocalDate> dates = service.occurrenceDatesFor(
+            saturdaySchedule(), LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+
+        assertThat(dates).containsExactly(LocalDate.of(2024, 8, 10));
+    }
+
     @Test
     void shouldReturnEveryMatchingWeekdayWithinTermBounds() {
         when(blockedPeriodRepository.findApplicableForPeriodInRange(anyLong(), any(), any()))

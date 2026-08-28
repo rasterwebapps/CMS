@@ -140,6 +140,25 @@ public class TermInstanceService {
         return toDto(instance);
     }
 
+    /** Empty means the term hasn't opted in to Saturday scheduling at all — see {@link
+     *  TimetableBlockedPeriodChecker}/{@link ClassScheduleOccurrenceService} for what an empty vs.
+     *  non-empty pattern actually gates. */
+    public java.util.Set<com.cms.model.enums.WeekOfMonth> getWorkingSaturdays(Long termInstanceId) {
+        TermInstance instance = termInstanceRepository.findById(termInstanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
+        return instance.getWorkingSaturdayWeeks();
+    }
+
+    @Transactional
+    public java.util.Set<com.cms.model.enums.WeekOfMonth> updateWorkingSaturdays(
+            Long termInstanceId, java.util.Set<com.cms.model.enums.WeekOfMonth> weeks) {
+        TermInstance instance = termInstanceRepository.findById(termInstanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
+        instance.setWorkingSaturdayWeeks(new java.util.HashSet<>(weeks));
+        termInstanceRepository.save(instance);
+        return instance.getWorkingSaturdayWeeks();
+    }
+
     /** Live data for the term-advance checklist shown before a PLANNED→OPEN or OPEN→LOCKED
      *  transition — every field is system-verified from real state (never a guessed/self-reported
      *  value), but nothing here blocks the transition itself; the admin still ticks each item and

@@ -13,6 +13,8 @@ public record SubjectResponse(
     SpecialityResponse speciality,
     Integer termNumber,
     Boolean isActive,
+    Integer labSessionBlockPeriods,
+    Integer clinicalSessionBlockPeriods,
     Instant createdAt,
     Instant updatedAt,
     List<VenueOptionResponse> eligibleLabs,

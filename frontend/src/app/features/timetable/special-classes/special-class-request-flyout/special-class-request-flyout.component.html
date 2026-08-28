@@ -21,6 +21,11 @@
     }
 
     @if (mode() === 'SINGLE_SUBJECT') {
+      @if (hasPrefill()) {
+        <p class="field-hint scf-prefill-hint">
+          Pre-filled from the auto-schedule shortfall — term, cohort, and subject are already set below; just add a date, period, venue, and faculty.
+        </p>
+      }
       <div class="field-group">
         <label class="field-label" for="scf-year">Academic Year</label>
         <select id="scf-year" class="field-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()">

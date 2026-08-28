@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments';
 import {
-  AutoPlaceResult,
   ElectiveGroupPlacementRequest,
   ElectiveGroupScheduleResponse,
   GlobalAutoSchedulePrerequisites,
@@ -13,6 +12,7 @@ import {
   SkeletonCell,
   SkeletonCellMoveRequest,
   SkeletonCellPlacementRequest,
+  SkeletonCellSwapRequest,
   SkeletonPlacementCandidate,
   SkeletonSessionType,
 } from './skeleton-builder.model';
@@ -50,10 +50,8 @@ export class SkeletonBuilderService {
     return this.http.put<SkeletonCell>(`${this.baseUrl}/cells/${id}/move`, request);
   }
 
-  autoPlace(termInstanceId: number, cohortId: number): Observable<AutoPlaceResult> {
-    return this.http.post<AutoPlaceResult>(`${this.baseUrl}/auto-place`, null, {
-      params: { termInstanceId: termInstanceId.toString(), cohortId: cohortId.toString() },
-    });
+  swapCells(id: number, request: SkeletonCellSwapRequest): Observable<SkeletonCell[]> {
+    return this.http.put<SkeletonCell[]>(`${this.baseUrl}/cells/${id}/swap`, request);
   }
 
   placeElectiveGroup(request: ElectiveGroupPlacementRequest): Observable<SkeletonCell[]> {

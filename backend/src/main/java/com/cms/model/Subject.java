@@ -55,6 +55,19 @@ public class Subject {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    /** How many consecutive periods one single Lab session must occupy for this subject (e.g. a
+     *  3-hour lab runs as 3 back-to-back periods on the same day, not 3 independent single-period
+     *  placements scattered across the week) — consumed by {@code TimetableGlobalAutoScheduleService}'s
+     *  auto-scheduler via {@code ClassSchedule}'s existing periodSpan mechanism (see V331/OC-127).
+     *  Default 1 = today's existing behavior (independent single-period placements). Not applicable
+     *  when this subject has no lab hours. */
+    @Column(name = "lab_session_block_periods", nullable = false)
+    private Integer labSessionBlockPeriods = 1;
+
+    /** Same as {@link #labSessionBlockPeriods}, for Clinical sessions. */
+    @Column(name = "clinical_session_block_periods", nullable = false)
+    private Integer clinicalSessionBlockPeriods = 1;
+
     /** Labs/Clinical Venues suitable for this subject's practical sessions -- a soft PREFERENCE for
      *  the auto-suggest algorithm and manual pickers (TimetableCapacityPlanningService), not a hard
      *  restriction: an empty set means no preference has been configured yet, in which case every
@@ -176,6 +189,22 @@ public class Subject {
 
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
+    }
+
+    public Integer getLabSessionBlockPeriods() {
+        return labSessionBlockPeriods;
+    }
+
+    public void setLabSessionBlockPeriods(Integer labSessionBlockPeriods) {
+        this.labSessionBlockPeriods = labSessionBlockPeriods;
+    }
+
+    public Integer getClinicalSessionBlockPeriods() {
+        return clinicalSessionBlockPeriods;
+    }
+
+    public void setClinicalSessionBlockPeriods(Integer clinicalSessionBlockPeriods) {
+        this.clinicalSessionBlockPeriods = clinicalSessionBlockPeriods;
     }
 
     public Set<Lab> getEligibleLabs() {

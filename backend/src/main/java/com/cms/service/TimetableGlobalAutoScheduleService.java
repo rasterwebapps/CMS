@@ -1,11 +1,14 @@
 package com.cms.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -21,7 +24,10 @@ import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.EligibleFacultyCandidateDto;
 import com.cms.dto.FacultyCapacityCheckResult;
 import com.cms.dto.FacultyOverCapacity;
+import com.cms.dto.FacultyTightCapacity;
 import com.cms.dto.FacultyWorkloadDetail;
+import com.cms.dto.FacultyWorkloadOverviewReport;
+import com.cms.dto.FacultyWorkloadOverviewRow;
 import com.cms.dto.FacultyWorkloadSummary;
 import com.cms.dto.GlobalAutoScheduleResult;
 import com.cms.dto.GlobalAutoSchedulePrerequisites;
@@ -85,26 +91,29 @@ import com.cms.repository.TermInstanceRepository;
  * an over-capacity run through even via a direct API call. {@link #runGlobalAutoSchedule} itself is
  * best-effort: it commits everything it successfully places/staffs and reports the rest via each
  * {@link CohortPlacementSummary}'s {@code unplaced} list (plus {@code electiveUnplaced} at the top
- * level), mirroring {@link TimetableSkeletonAutoPlaceService#autoPlace}'s existing reporting shape
- * rather than aborting the whole term-wide run over one unplaceable session.
+ * level) rather than aborting the whole term-wide run over one unplaceable session.
  *
- * <p>Deliberately scoped down from the per-cohort tool in two ways, not oversights: (1) no
- * bounded-backtrack displacement — {@link TimetableSkeletonAutoPlaceService}'s heuristic only ever
- * displaces a *placement*, never an already-staffed cell (there is no "unstaff" capability to
- * cheaply undo), and since here every placement is immediately staffed as one unit, a failed
- * backtrack attempt would still mean total failure for that unit anyway, so the extra complexity
- * isn't worth it when the unit simply falls into {@code unplaced} instead; (2) elective groups are
- * only auto-scheduled for their one shared slot (mirroring the existing "Place Elective Block"
+ * <p>Scoped down from the per-cohort tool in one deliberate way, not an oversight: elective groups
+ * are only auto-scheduled for their one shared slot (mirroring the existing "Place Elective Block"
  * admin action, {@link TimetableSkeletonService#placeElectiveGroup}) — {@link
  * TimetableSkeletonService#checkElectiveGroupSlot} already requires *every* placement for a group's
  * members to match one single anchor day/period, so a member needing more than one session/week has
  * never been placeable beyond its first session by any existing mechanism in this codebase; this
  * class doesn't attempt to solve that pre-existing gap, it just automates what's already achievable.
+ * ({@link #attemptBacktrack} below used to be a second deliberate omission here too — every
+ * placement in this class is staffed in the same step it's placed, and there was no way to cheaply
+ * undo a staffed cell. {@link TimetableSkeletonService#forceRemoveCell} closed that gap, so this
+ * class now backtracks too.)
  */
 @Service
 public class TimetableGlobalAutoScheduleService {
 
     private static final double CAPACITY_EPSILON = 0.001;
+    /** A faculty at or above this fraction of their term capacity gets flagged as "tight" (see
+     *  {@link com.cms.dto.FacultyTightCapacity}) even though they're not technically over — real
+     *  day/period packing at near-100% utilization routinely fails even when the aggregate sum
+     *  fits, since every other cohort/subject is competing for the same slots. */
+    private static final double TIGHT_CAPACITY_THRESHOLD = 0.95;
 
     private final TimetableSkeletonService timetableSkeletonService;
     private final TimetableStaffingService timetableStaffingService;
@@ -166,6 +175,7 @@ public class TimetableGlobalAutoScheduleService {
         TermDemandAggregation demand = computeTermDemand(termInstanceId);
 
         List<FacultyOverCapacity> overCapacity = new ArrayList<>();
+        List<FacultyTightCapacity> tightCapacity = new ArrayList<>();
         for (Map.Entry<Long, Double> entry : demand.demandByFaculty().entrySet()) {
             Long facultyId = entry.getKey();
             double totalDemand = entry.getValue();
@@ -174,7 +184,24 @@ public class TimetableGlobalAutoScheduleService {
                 continue;
             }
             CapacityResolution capacity = resolveEffectiveTermCapacity(faculty, demand.workingDaysInTerm(), demand.weeksInTerm());
-            if (capacity == null || totalDemand <= capacity.termCapacityHours() + CAPACITY_EPSILON) {
+            if (capacity == null) {
+                continue;
+            }
+
+            if (totalDemand <= capacity.termCapacityHours() + CAPACITY_EPSILON) {
+                // Not over capacity -- but "fits on paper" and "packs into a real grid every other
+                // cohort/subject is also competing for" are different questions. Flag the ones
+                // with near-zero slack so an admin can see the real risk before running, not just
+                // after the fact as an unexplained unplaced session.
+                if (totalDemand >= capacity.termCapacityHours() * TIGHT_CAPACITY_THRESHOLD) {
+                    List<OverageContributor> topContributors = demand.contributorsByFaculty().getOrDefault(facultyId, List.of()).stream()
+                        .sorted(Comparator.comparingDouble(OverageContributor::termHoursContributed).reversed())
+                        .limit(2)
+                        .toList();
+                    double utilizationPercent = (totalDemand / capacity.termCapacityHours()) * 100;
+                    tightCapacity.add(new FacultyTightCapacity(facultyId, faculty.getFullName(), capacity.dailyCapForDisplay(), capacity.tier(),
+                        demand.workingDaysInTerm(), capacity.termCapacityHours(), totalDemand, utilizationPercent, topContributors));
+                }
                 continue;
             }
 
@@ -194,7 +221,8 @@ public class TimetableGlobalAutoScheduleService {
                 topContributors, raiseCap, spreadLoad));
         }
         overCapacity.sort(Comparator.comparing(FacultyOverCapacity::facultyName, String.CASE_INSENSITIVE_ORDER));
-        return new GlobalCapacityPrecheckResult(overCapacity);
+        tightCapacity.sort(Comparator.comparing(FacultyTightCapacity::facultyName, String.CASE_INSENSITIVE_ORDER));
+        return new GlobalCapacityPrecheckResult(overCapacity, tightCapacity);
     }
 
     /** Live, single-(faculty, offering+cohort) counterpart to {@link #precheckCapacity} -- used by
@@ -501,7 +529,7 @@ public class TimetableGlobalAutoScheduleService {
     }
 
     private record TermDemandAggregation(int workingDaysInTerm, int weeksInTerm, Map<Long, Double> demandByFaculty,
-                                          Map<Long, List<OverageContributor>> contributorsByFaculty) {}
+                                          Map<Long, List<OverageContributor>> contributorsByFaculty, double totalRequiredHours) {}
 
     /** The shared per-term aggregation every capacity check in this class runs off, so none of them
      *  can ever compute a faculty's demand differently. Loops every cohort active in the term, then
@@ -517,6 +545,7 @@ public class TimetableGlobalAutoScheduleService {
 
         Map<Long, Double> demandByFaculty = new LinkedHashMap<>();
         Map<Long, List<OverageContributor>> contributorsByFaculty = new LinkedHashMap<>();
+        double totalRequiredHours = 0;
 
         for (Long cohortId : enumerateCohortIds(termInstanceId)) {
             Cohort cohort = cohortRepository.findById(cohortId).orElse(null);
@@ -533,6 +562,10 @@ public class TimetableGlobalAutoScheduleService {
                 if (split.totalHours() <= 0) {
                     continue;
                 }
+                // Counted regardless of whether any contribution below actually resolved a faculty --
+                // this is "what the curriculum needs", not "what's currently bound to someone" (see
+                // FacultyWorkloadOverviewReport#totalCurriculumRequiredHours).
+                totalRequiredHours += split.totalHours();
                 for (FacultyContribution contribution : split.contributions()) {
                     demandByFaculty.merge(contribution.facultyId(), contribution.hours(), Double::sum);
                     contributorsByFaculty.computeIfAbsent(contribution.facultyId(), k -> new ArrayList<>())
@@ -542,7 +575,7 @@ public class TimetableGlobalAutoScheduleService {
                 }
             }
         }
-        return new TermDemandAggregation(workingDaysInTerm, weeksInTerm, demandByFaculty, contributorsByFaculty);
+        return new TermDemandAggregation(workingDaysInTerm, weeksInTerm, demandByFaculty, contributorsByFaculty, totalRequiredHours);
     }
 
     /** One faculty's share of an offering+cohort's term hours, attributed to exactly one of: a
@@ -825,6 +858,54 @@ public class TimetableGlobalAutoScheduleService {
         return new GlobalAutoSchedulePrerequisites(unassigned, precheckCapacity(termInstanceId));
     }
 
+    /** Every active faculty member's full term standing — "how many hours should they be carrying
+     *  vs how many are they actually carrying" — regardless of whether they're anywhere near a
+     *  capacity problem. Unlike {@link #precheckCapacity} (which only ever surfaces faculty already
+     *  over or near their limit), this also reports faculty sitting well under capacity, so an
+     *  admin can settle an "am I overworked" dispute or spot genuinely idle capacity before
+     *  concluding the department is short-staffed. Reuses the exact same {@link
+     *  #computeTermDemand}/{@link #resolveEffectiveTermCapacity} numbers every other capacity view
+     *  in this class runs off, so this report, the checklist, and Faculty Detail's own workload tab
+     *  can never disagree for the same term. */
+    @Transactional(readOnly = true)
+    public FacultyWorkloadOverviewReport getFullFacultyWorkloadOverview(Long termInstanceId) {
+        TermDemandAggregation demand = computeTermDemand(termInstanceId);
+        int unassignedOfferingsCount = checkPrerequisites(termInstanceId, null).offeringsWithoutFaculty().size();
+
+        List<FacultyWorkloadOverviewRow> rows = new ArrayList<>();
+        double totalAssignedHours = 0;
+        double totalFacultyCapacityHours = 0;
+        for (Faculty faculty : facultyRepository.findByStatus(FacultyStatus.ACTIVE)) {
+            double totalDemand = demand.demandByFaculty().getOrDefault(faculty.getId(), 0.0);
+            List<OverageContributor> contributors = demand.contributorsByFaculty().getOrDefault(faculty.getId(), List.of())
+                .stream().sorted(Comparator.comparingDouble(OverageContributor::termHoursContributed).reversed()).toList();
+            CapacityResolution capacity = resolveEffectiveTermCapacity(faculty, demand.workingDaysInTerm(), demand.weeksInTerm());
+            boolean configured = capacity != null;
+            double termCapacityHours = configured ? capacity.termCapacityHours() : 0;
+            double utilizationPercent = configured && termCapacityHours > 0 ? (totalDemand / termCapacityHours) * 100 : 0;
+            boolean overCapacity = configured && totalDemand > termCapacityHours + CAPACITY_EPSILON;
+            boolean tightCapacity = configured && !overCapacity && totalDemand >= termCapacityHours * TIGHT_CAPACITY_THRESHOLD;
+
+            rows.add(new FacultyWorkloadOverviewRow(faculty.getId(), faculty.getFullName(),
+                faculty.getDesignation() != null ? faculty.getDesignation().getName() : null,
+                faculty.getPlannedDailyHoursOverride(), configured,
+                configured ? capacity.dailyCapForDisplay() : 0, configured ? capacity.tier() : "NONE",
+                demand.workingDaysInTerm(), termCapacityHours, totalDemand, utilizationPercent,
+                overCapacity ? totalDemand - termCapacityHours : 0,
+                configured ? Math.max(0, termCapacityHours - totalDemand) : 0,
+                overCapacity, tightCapacity, contributors));
+
+            totalAssignedHours += totalDemand;
+            if (configured) {
+                totalFacultyCapacityHours += termCapacityHours;
+            }
+        }
+        rows.sort(Comparator.comparing(FacultyWorkloadOverviewRow::facultyName, String.CASE_INSENSITIVE_ORDER));
+
+        return new FacultyWorkloadOverviewReport(termInstanceId, rows,
+            demand.totalRequiredHours(), totalAssignedHours, totalFacultyCapacityHours, unassignedOfferingsCount);
+    }
+
     // ─────────────────────────────────────────────────────────────────────
     // Placement + staffing run
     // ─────────────────────────────────────────────────────────────────────
@@ -838,6 +919,18 @@ public class TimetableGlobalAutoScheduleService {
      *  behavior); non-null scopes the run to just that cohort's shortfall. */
     @Transactional
     public GlobalAutoScheduleResult runGlobalAutoSchedule(Long termInstanceId, Long cohortId) {
+        return AutoScheduleRunCache.run(termInstanceId, classScheduleRepository,
+            () -> doRunGlobalAutoSchedule(termInstanceId, cohortId));
+    }
+
+    /** The real run body, wrapped by {@link #runGlobalAutoSchedule} in an {@link AutoScheduleRunCache}
+     *  so every placement/staffing attempt below reads/writes an in-memory mirror of this term's
+     *  {@code ClassSchedule} rows instead of re-querying the database on every single (day, period)
+     *  candidate — see that cache's own javadoc for why that was previously the dominant cost of an
+     *  "All Cohorts" run (thousands of attempts × several fresh queries + a REQUIRES_NEW transaction
+     *  each, not any one slow query). No placement/ordering behavior changes here — same inputs
+     *  produce the same placed/unplaced result as before, just far fewer database round trips. */
+    private GlobalAutoScheduleResult doRunGlobalAutoSchedule(Long termInstanceId, Long cohortId) {
         GlobalCapacityPrecheckResult precheck = precheckCapacity(termInstanceId);
         if (!precheck.overCapacityFaculty().isEmpty()) {
             List<ConstraintViolation> violations = precheck.overCapacityFaculty().stream()
@@ -852,6 +945,8 @@ public class TimetableGlobalAutoScheduleService {
         List<Period> periods = periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc();
         Set<Long> cohortIds = resolveCohortIds(termInstanceId, cohortId);
 
+        int staleDraftsCleared = purgeStaleOverBudgetDrafts(termInstanceId, cohortIds);
+
         int totalPlaced = 0;
         int totalStaffed = 0;
         List<CohortPlacementSummary> summaries = new ArrayList<>();
@@ -861,10 +956,16 @@ public class TimetableGlobalAutoScheduleService {
             Cohort cohort = cohortRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cohort not found with id: " + id));
             SkeletonBuilderResponse skeleton = timetableSkeletonService.getCohortSkeleton(termInstanceId, id);
-            int placedForCohort = 0;
-            boolean usedSaturdayForCohort = false;
             List<AutoPlaceUnplacedItem> unplacedForCohort = new ArrayList<>();
 
+            // Flatten every still-short (subject, budget) row up front and sort most-constrained
+            // first (LAB/CLINICAL before THEORY, larger shortfall before smaller within the same
+            // type) instead of walking them in whatever order the curriculum/DB happens to return.
+            // Pure greedy-in-DB-order let whichever row was iterated first permanently claim slots
+            // a later, harder-to-place row could only ever have fit into -- attemptBacktrack below
+            // is the other half of the fix (recovering from a bad claim after the fact); this half
+            // reduces how often a bad claim happens in the first place.
+            List<ShortfallRow> rows = new ArrayList<>();
             for (SkeletonSubjectResponse subject : skeleton.subjects()) {
                 CourseOffering offering = courseOfferingRepository.findById(subject.courseOfferingId()).orElse(null);
                 if (offering == null) {
@@ -884,25 +985,63 @@ public class TimetableGlobalAutoScheduleService {
                     Long facultyId = resolveBudgetFacultyId(offering, budget, id);
                     if (facultyId == null) {
                         unplacedForCohort.add(new AutoPlaceUnplacedItem(subject.subjectName(), budget.sessionType(),
-                            occupantLabel(budget), "no faculty assigned on its Course Offering"));
+                            occupantLabel(budget), "no faculty assigned on its Course Offering", subject.courseOfferingId()));
                         continue;
                     }
-                    Set<DayOfWeek> daysUsed = existingDaysForBudgetRow(skeleton.cells(), subject.courseOfferingId(), budget);
-                    for (int i = 0; i < shortfall; i++) {
-                        DayOfWeek placedOn = tryPlaceAndStaff(id, offering, budget, facultyId, term, periods, daysUsed);
-                        if (placedOn == null) {
-                            unplacedForCohort.add(new AutoPlaceUnplacedItem(subject.subjectName(), budget.sessionType(),
-                                occupantLabel(budget), "no day/period found where both placement and staffing succeed"));
-                            continue;
-                        }
-                        if (placedOn == DayOfWeek.SATURDAY) {
-                            usedSaturdayForCohort = true;
-                        }
-                        daysUsed.add(placedOn);
-                        placedForCohort++;
-                    }
+                    rows.add(new ShortfallRow(subject.subjectName(), offering, budget, facultyId, shortfall,
+                        resolveBlockSize(offering, budget.sessionType())));
                 }
             }
+            rows.sort(SHORTFALL_ROW_ORDER);
+
+            // Whole-cohort daily load, seeded from every already-placed cell (any subject, any
+            // session type, any section/batch) so the day-candidate order in tryPlaceAndStaff below
+            // reflects how busy each day already looks to these students, not just to one subject's
+            // own row. Without this, every row independently tries Monday first (see
+            // tryPlaceAndStaff's old fixed DayOfWeek.values() order), so several single-session
+            // subjects pile onto the same day's early periods and never come back to fill that same
+            // day's afternoon -- leaving it structurally empty while a later, harder-to-place LAB/
+            // CLINICAL block fills a different day to capacity. Least-loaded-day-first spreads the
+            // week's real content evenly instead.
+            Map<DayOfWeek, Integer> dayLoad = new EnumMap<>(DayOfWeek.class);
+            for (DayOfWeek d : DayOfWeek.values()) {
+                dayLoad.put(d, 0);
+            }
+            for (SkeletonCellResponse cell : skeleton.cells()) {
+                dayLoad.merge(cell.dayOfWeek(), 1, Integer::sum);
+            }
+
+            List<Placement> placedThisCohortRun = new ArrayList<>();
+            for (ShortfallRow row : rows) {
+                Set<DayOfWeek> daysUsed = existingDaysForBudgetRow(skeleton.cells(), row.offering().getId(), row.budget());
+                // Group this row's shortfall into blockSize-sized chunks (the last chunk gets
+                // whatever remainder is left when shortfall isn't an exact multiple) instead of
+                // placing one period at a time -- each chunk is requested as ONE session spanning
+                // that many consecutive periods (see tryPlaceAndStaff), so a 3-hour Lab lands as 3
+                // back-to-back periods on one day, never as 3 independent placements scattered
+                // across the week. THEORY rows always have blockSize 1, so this is a no-op for them.
+                int remaining = row.shortfall();
+                while (remaining > 0) {
+                    int thisBlockSize = Math.min(row.blockSize(), remaining);
+                    PlacementAttempt attempt = tryPlaceAndStaff(id, row.offering(), row.budget(), row.facultyId(), term, periods, daysUsed, thisBlockSize, dayLoad);
+                    if (attempt.dayPlaced() != null) {
+                        daysUsed.add(attempt.dayPlaced());
+                        dayLoad.merge(attempt.dayPlaced(), thisBlockSize, Integer::sum);
+                        placedThisCohortRun.add(new Placement(attempt.cellId(), row.offering().getId(), row.budget().sessionType(),
+                            row.budget().batchId(), row.budget().cohortSectionId(), row.facultyId(), row.subjectName(),
+                            occupantLabel(row.budget()), attempt.dayPlaced(), attempt.periodIds()));
+                    } else if (!attemptBacktrack(id, row, term, periods, daysUsed, placedThisCohortRun, unplacedForCohort, thisBlockSize, dayLoad)) {
+                        unplacedForCohort.add(new AutoPlaceUnplacedItem(row.subjectName(), row.budget().sessionType(),
+                            occupantLabel(row.budget()), attempt.failureReason(), row.offering().getId()));
+                    }
+                    remaining -= thisBlockSize;
+                }
+            }
+
+            placedThisCohortRun.addAll(fillSelfStudyGaps(id, skeleton, term, periods, dayLoad));
+
+            int placedForCohort = placedThisCohortRun.size();
+            boolean usedSaturdayForCohort = placedThisCohortRun.stream().anyMatch(p -> p.dayOfWeek() == DayOfWeek.SATURDAY);
             totalPlaced += placedForCohort;
             totalStaffed += placedForCohort;
             summaries.add(new CohortPlacementSummary(id, cohort.getDisplayName(), placedForCohort, placedForCohort,
@@ -919,7 +1058,94 @@ public class TimetableGlobalAutoScheduleService {
             totalStaffed += placed;
         }
 
-        return new GlobalAutoScheduleResult(totalPlaced, totalStaffed, summaries, electiveUnplaced);
+        return new GlobalAutoScheduleResult(totalPlaced, totalStaffed, summaries, electiveUnplaced, staleDraftsCleared);
+    }
+
+    /** TEMPORARY safety net -- added 2026-08-28 after a repeated-re-run bug let this same method
+     *  place ~2,118h of duplicate DRAFT sessions before {@link TimetableSkeletonService#placeCell}
+     *  grew its own {@code checkBudgetNotExceeded} hard-block. That hard-block should already make
+     *  this method impossible to reproduce going forward, so this is deliberately a belt-and-braces
+     *  pre-flight cleanup, not a replacement for it -- remove this call (and this method) once a
+     *  run history confirms the hard-block alone is sufficient and no new excess is ever created.
+     *
+     *  <p>Runs once, for every {@code cohortIds} in scope, before this run places anything on top.
+     *  Clears two shapes, both DRAFT-only -- a PUBLISHED/staffed row is never touched automatically:
+     *  <ol>
+     *  <li>a scope already visibly over its {@link SkeletonSubjectBudget#requiredSessionsPerWeek}
+     *  -- keeps the earliest {@code required} cells (lowest id, i.e. placement order) and clears
+     *  the rest;
+     *  <li>a non-elective THEORY cell with no {@code cohortSectionId}, left over from before its
+     *  cohort's section split was committed -- {@link TimetableSkeletonService#getCohortSkeleton}
+     *  never emits a budget row for that scope once a split exists (its {@code theoryBudgets} only
+     *  ever iterates active sections), so these are entirely invisible to case 1 above and would
+     *  otherwise sit as permanent ghosts occupying a day/period slot forever. Elective cells
+     *  legitimately keep a null {@code cohortSectionId} always (their audience isn't section-scoped
+     *  -- see {@link TimetableSkeletonService#isElectiveOffering}), so those are never touched here.
+     *  </ol>
+     *  Returns how many were cleared, purely for {@link GlobalAutoScheduleResult#staleDraftsCleared()}'s
+     *  visibility -- deliberately never silent, per the incident that motivated this method. */
+    private int purgeStaleOverBudgetDrafts(Long termInstanceId, Set<Long> cohortIds) {
+        Set<Long> idsToDeactivate = new LinkedHashSet<>();
+        for (Long cohortId : cohortIds) {
+            SkeletonBuilderResponse skeleton = timetableSkeletonService.getCohortSkeleton(termInstanceId, cohortId);
+            Map<String, List<SkeletonCellResponse>> cellsByGroup = skeleton.cells().stream()
+                .collect(java.util.stream.Collectors.groupingBy(c -> budgetGroupKey(c.courseOfferingId(), c.sessionType(),
+                    c.sessionType() == ClassSessionType.THEORY ? c.cohortSectionId() : c.batchId())));
+
+            for (SkeletonSubjectResponse subject : skeleton.subjects()) {
+                for (SkeletonSubjectBudget budget : subject.budgets()) {
+                    if (budget.placedSessionsPerWeek() <= budget.requiredSessionsPerWeek()) {
+                        continue;
+                    }
+                    Long scope = budget.sessionType() == ClassSessionType.THEORY ? budget.cohortSectionId() : budget.batchId();
+                    List<SkeletonCellResponse> sorted = cellsByGroup
+                        .getOrDefault(budgetGroupKey(subject.courseOfferingId(), budget.sessionType(), scope), List.of())
+                        .stream().sorted(Comparator.comparing(SkeletonCellResponse::id)).toList();
+                    for (int i = budget.requiredSessionsPerWeek(); i < sorted.size(); i++) {
+                        if (sorted.get(i).status() == com.cms.model.enums.ClassScheduleStatus.DRAFT) {
+                            idsToDeactivate.add(sorted.get(i).id());
+                        }
+                    }
+                }
+            }
+
+            if (!skeleton.sections().isEmpty()) {
+                Set<Long> electiveOfferingIds = subjectElectiveOfferingIds(skeleton);
+                for (SkeletonCellResponse cell : skeleton.cells()) {
+                    if (cell.sessionType() == ClassSessionType.THEORY && cell.cohortSectionId() == null
+                        && !electiveOfferingIds.contains(cell.courseOfferingId())
+                        && cell.status() == com.cms.model.enums.ClassScheduleStatus.DRAFT) {
+                        idsToDeactivate.add(cell.id());
+                    }
+                }
+            }
+        }
+
+        if (idsToDeactivate.isEmpty()) {
+            return 0;
+        }
+        List<ClassSchedule> toDeactivate = classScheduleRepository.findAllById(idsToDeactivate);
+        for (ClassSchedule cs : toDeactivate) {
+            cs.setIsActive(false);
+            classScheduleRepository.save(cs);
+            AutoScheduleRunCache.current().ifPresent(cache -> cache.recordRemoval(cs));
+        }
+        return toDeactivate.size();
+    }
+
+    private String budgetGroupKey(Long offeringId, ClassSessionType sessionType, Long scope) {
+        return offeringId + "|" + sessionType + "|" + scope;
+    }
+
+    private Set<Long> subjectElectiveOfferingIds(SkeletonBuilderResponse skeleton) {
+        Set<Long> ids = new LinkedHashSet<>();
+        for (SkeletonSubjectResponse subject : skeleton.subjects()) {
+            CourseOffering offering = courseOfferingRepository.findById(subject.courseOfferingId()).orElse(null);
+            if (offering != null && timetableSkeletonService.isElectiveOffering(offering)) {
+                ids.add(subject.courseOfferingId());
+            }
+        }
+        return ids;
     }
 
     /** {@code cohortId} null = every cohort enrolled in the term (existing behavior); non-null must
@@ -952,53 +1178,424 @@ public class TimetableGlobalAutoScheduleService {
         return currentCohortFacultyId(offering, cohortId);
     }
 
-    /** Scans every free day/period until one is found where placement AND staffing the offering's
-     *  bound faculty both succeed, undoing the placement and trying the next candidate on a
-     *  staffing failure (that faculty is busy at that slot, not a shared resource another row could
-     *  be nudged out of — see class javadoc for why this doesn't attempt backtracking). {@code
-     *  DayOfWeek.values()} is already Monday-first/Saturday-last by declaration order, so
-     *  Monday–Friday is always exhausted before Saturday is ever tried — Saturday is fallback-only,
-     *  never preferred. Returns the day it landed on, or null if every combination was exhausted. */
-    private DayOfWeek tryPlaceAndStaff(Long cohortId, CourseOffering offering, SkeletonSubjectBudget budget, Long facultyId,
-                                        TermInstance term, List<Period> periods, Set<DayOfWeek> daysUsed) {
-        for (DayOfWeek day : DayOfWeek.values()) {
-            if (daysUsed.contains(day)) {
+    /** One still-short (subject, budget) row, already resolved to a real faculty id — flattened out
+     *  of the per-subject/per-budget nested loop so the whole cohort's rows can be sorted together
+     *  before any placement is attempted (see {@link #SHORTFALL_ROW_ORDER}). {@code blockSize} is
+     *  how many consecutive periods one single session of this row must occupy (see {@link
+     *  Subject#getLabSessionBlockPeriods()}/{@link Subject#getClinicalSessionBlockPeriods()}) —
+     *  always 1 for THEORY, and defensively clamped to at least 1 for LAB/CLINICAL in case a
+     *  subject's configured value is ever null/invalid. */
+    private record ShortfallRow(String subjectName, CourseOffering offering, SkeletonSubjectBudget budget, Long facultyId, int shortfall, int blockSize) {}
+
+    private static int resolveBlockSize(CourseOffering offering, ClassSessionType sessionType) {
+        Subject subject = offering.getSubject();
+        if (subject == null) {
+            return 1;
+        }
+        Integer configured = switch (sessionType) {
+            case LAB -> subject.getLabSessionBlockPeriods();
+            case CLINICAL -> subject.getClinicalSessionBlockPeriods();
+            default -> 1;
+        };
+        return configured != null && configured >= 1 ? configured : 1;
+    }
+
+    /** Most-constrained-first: LAB/CLINICAL rows (venue- and batch-scoped, generally far fewer
+     *  interchangeable slots than a THEORY lecture) are attempted before THEORY, and within the
+     *  same session type, a row with a bigger remaining shortfall (more sessions still needing a
+     *  home) goes before one with a smaller one. This is a cheap ordering heuristic, not an actual
+     *  per-row feasible-slot count — a real constraint-count scan would be more precise but isn't
+     *  worth the complexity for a first cut; {@link #attemptBacktrack} is what actually recovers
+     *  from a wrong ordering guess, not this comparator alone. */
+    private static final Comparator<ShortfallRow> SHORTFALL_ROW_ORDER = Comparator
+        .comparing((ShortfallRow r) -> r.budget().sessionType() == ClassSessionType.THEORY ? 1 : 0)
+        .thenComparing((ShortfallRow r) -> -r.shortfall());
+
+    /** {@code dayPlaced} null means every day/period combination was exhausted — {@code
+     *  failureReason} then names the constraint that blocked the largest share of attempts (see
+     *  {@link #tryPlaceAndStaff}), instead of the old one-size-fits-all "no day/period found"
+     *  message that gave an admin no way to tell a faculty-capacity problem from a room clash
+     *  without re-deriving it from raw data by hand. {@code cellId}/{@code periodIds} are populated
+     *  on success so a caller can track this placement for possible later backtracking (see
+     *  {@link #attemptBacktrack}) without a second lookup — {@code periodIds} is every period in
+     *  the placed block, ordered, primary first (a single-element list for an ordinary blockSize-1
+     *  placement). */
+    private record PlacementAttempt(DayOfWeek dayPlaced, Long cellId, List<Long> periodIds, String failureReason) {
+        static PlacementAttempt success(DayOfWeek day, Long cellId, List<Long> periodIds) {
+            return new PlacementAttempt(day, cellId, periodIds, null);
+        }
+
+        static PlacementAttempt failure(Map<String, Integer> failureTally) {
+            return new PlacementAttempt(null, null, null, summarizeFailures(failureTally));
+        }
+    }
+
+    /** Scans every free day for a run of {@code blockSize} immediately-consecutive periods (by
+     *  {@link Period#getPeriodOrder()}) where placement AND staffing the offering's bound faculty
+     *  both succeed for every period in the block, undoing the placement and trying the next
+     *  candidate on a staffing failure (that faculty is busy at that slot, not a shared resource
+     *  another row could be nudged out of here — see {@link #attemptBacktrack} for the one bounded
+     *  exception a caller may apply on top of this method's own result). {@code blockSize} is
+     *  always 1 for THEORY (see {@link #resolveBlockSize}) — that case behaves exactly as before
+     *  block-size support existed. Monday-Friday candidates are tried least-loaded-first ({@code
+     *  dayLoad}, a running count of periods already placed for this cohort on each day — see the
+     *  caller), not in fixed Monday-first order: a static order let every independently-processed
+     *  row grab Monday's early periods first and then move on once its own weekly quota was met, so
+     *  several one-session-a-week subjects piled onto the same day's morning and nothing ever came
+     *  back to fill that day's afternoon, while a later, harder-to-place LAB/CLINICAL block packed a
+     *  different day solid — an uneven week, not a defensible one. Saturday stays a true fallback,
+     *  tried only after every Monday-Friday day/period combination has failed — real curriculum
+     *  content for a cohort is typically well under a full Monday-Friday week (see {@link
+     *  #fillSelfStudyGaps} for what closes that genuine remainder), so pulling Saturday in on equal
+     *  footing would activate it far more than actually needed; it is still not the old "just 2-3
+     *  periods" outcome, since whatever a genuine overflow does land there is still tried
+     *  earliest-period-first within the day, not scattered. Tallies every {@link ConstraintViolation}
+     *  code hit along the way so a total failure can report *which* constraint actually blocked it,
+     *  not just that one did. */
+    private PlacementAttempt tryPlaceAndStaff(Long cohortId, CourseOffering offering, SkeletonSubjectBudget budget, Long facultyId,
+                                        TermInstance term, List<Period> periods, Set<DayOfWeek> daysUsed, int blockSize,
+                                        Map<DayOfWeek, Integer> dayLoad) {
+        Map<String, Integer> failureTally = new LinkedHashMap<>();
+        List<DayOfWeek> candidateDays = Arrays.stream(DayOfWeek.values())
+            .filter(d -> d != DayOfWeek.SATURDAY)
+            .sorted(Comparator.comparingInt(dayLoad::get))
+            .toList();
+        List<DayOfWeek> orderedWithSaturdayLast = new ArrayList<>(candidateDays);
+        orderedWithSaturdayLast.add(DayOfWeek.SATURDAY);
+        for (DayOfWeek day : orderedWithSaturdayLast) {
+            // Saturday with no working-Saturday pattern configured is never a real candidate at
+            // all (every period on it fails the exact same institutional gate) -- skip the whole
+            // day rather than let 8 doomed attempts dilute the reported failure fraction down
+            // below, the same way an already-used day is skipped outright rather than counted.
+            if (daysUsed.contains(day) || (day == DayOfWeek.SATURDAY && term.getWorkingSaturdayWeeks().isEmpty())) {
                 continue;
             }
-            for (Period period : periods) {
-                if (blockedPeriodChecker.blockReason(day, period.getStartTime(), period.getEndTime(),
-                        term.getStartDate(), term.getEndDate()).isPresent()) {
+            for (int startIdx = 0; startIdx + blockSize <= periods.size(); startIdx++) {
+                // periods is already active-only, periodOrder-sorted (see caller) -- a contiguous
+                // subList of it IS, by construction, "the next blockSize real periods with none
+                // skipped." No further periodOrder check is needed or correct here: periodOrder
+                // itself can carry gaps left by long-retired period rows (e.g. the old standalone
+                // LabSlot master's rows, inactive since V331 merged them into Period) that have no
+                // bearing on anything real -- re-checking against those raw integers used to cap
+                // every block size at whatever the retired rows' accidental gap pattern allowed.
+                List<Period> block = periods.subList(startIdx, startIdx + blockSize);
+                // Adjacent-by-position doesn't mean adjacent-in-time -- a recess/lunch break can
+                // sit between two periods that are still next to each other in periods' active-list
+                // ordering (no Period row models the break itself). Placing a block across that gap
+                // would silently split the session around it, so require true back-to-back clock
+                // times before this candidate is even attempted (matches the same requirement
+                // TimetableSkeletonService.resolveSpanPeriods enforces on the manual-placement
+                // side) -- UNLESS this is a CLINICAL block crossing a recess rather than the day's
+                // lunch break, per PeriodGapPolicy: a half-day clinical posting runs straight
+                // through a short recess in real institutional practice.
+                boolean hasGap = false;
+                for (int i = 1; i < block.size(); i++) {
+                    if (!block.get(i - 1).getEndTime().equals(block.get(i).getStartTime())
+                        && !PeriodGapPolicy.gapCrossableFor(budget.sessionType(), block.get(i - 1), block.get(i), periods)) {
+                        hasGap = true;
+                        break;
+                    }
+                }
+                if (hasGap) {
+                    failureTally.merge("PERIOD_NOT_CONTIGUOUS", 1, Integer::sum);
                     continue;
                 }
+                boolean anyBlocked = false;
+                for (Period p : block) {
+                    if (blockedPeriodChecker.blockReason(day, p.getStartTime(), p.getEndTime(), term).isPresent()) {
+                        anyBlocked = true;
+                        break;
+                    }
+                }
+                if (anyBlocked) {
+                    failureTally.merge("PERIOD_BLOCKED", 1, Integer::sum);
+                    continue;
+                }
+                Period primary = block.get(0);
+                List<Long> spanPeriodIds = block.size() > 1
+                    ? block.subList(1, block.size()).stream().map(Period::getId).toList()
+                    : null;
                 SkeletonCellResponse placed;
                 try {
                     placed = timetableSkeletonService.placeCell(new SkeletonCellPlacementRequest(
-                        offering.getId(), budget.sessionType(), day, period.getId(),
-                        budget.batchId(), cohortId, budget.cohortSectionId(), null));
-                } catch (TimetableConstraintViolationException | IllegalArgumentException ex) {
+                        offering.getId(), budget.sessionType(), day, primary.getId(),
+                        budget.batchId(), cohortId, budget.cohortSectionId(), spanPeriodIds));
+                } catch (TimetableConstraintViolationException ex) {
+                    tallyViolations(failureTally, ex.getViolations());
+                    continue;
+                } catch (IllegalArgumentException ex) {
+                    failureTally.merge("PLACEMENT_ERROR", 1, Integer::sum);
                     continue;
                 }
                 try {
                     timetableStaffingService.staffCell(placed.id(), new StaffingAssignmentRequest(facultyId, null));
-                } catch (TimetableConstraintViolationException | LifecycleConflictException | IllegalArgumentException ex) {
+                } catch (TimetableConstraintViolationException ex) {
                     timetableSkeletonService.removeCell(placed.id());
+                    tallyViolations(failureTally, ex.getViolations());
+                    continue;
+                } catch (LifecycleConflictException | IllegalArgumentException ex) {
+                    timetableSkeletonService.removeCell(placed.id());
+                    failureTally.merge("STAFFING_ERROR", 1, Integer::sum);
                     continue;
                 }
-                return day;
+                return PlacementAttempt.success(day, placed.id(), block.stream().map(Period::getId).toList());
             }
         }
-        return null;
+        return PlacementAttempt.failure(failureTally);
+    }
+
+    /** Real curriculum content for a semester routinely undershoots a full Monday-Friday week (a
+     *  first-semester BSc Nursing cohort's actual theory+lab+clinical hours convert to well under
+     *  40 periods — see the class's own capacity math discussion), so even a perfectly balanced
+     *  run above still leaves genuine gaps. Rather than leave those blank, this pass backfills every
+     *  Monday-Friday day/period still empty for each Self-Study/Co-curricular budget row (matched
+     *  by subject name — see {@link #isSelfStudySubject}) with an EXTRA session of that same
+     *  subject, deliberately exceeding its own curriculum-derived weekly quota via {@link
+     *  TimetableSkeletonService#placeCell(SkeletonCellPlacementRequest, boolean)}'s budget-bypass
+     *  overload — Self-Study/Co-curricular is curriculum-sanctioned flexible time, unlike any other
+     *  subject here, so growing it to soak up real leftover capacity is the intended use, not an
+     *  exploit of the cap. Every other placement rule still applies in full (already-placed,
+     *  audience exclusivity, blocked periods) — a slot genuinely occupied by something else is
+     *  correctly skipped, not overwritten. Saturday is deliberately excluded here: the whole point
+     *  is to make Saturday unnecessary for cohorts whose real content already fits Monday-Friday
+     *  once self-study soaks up the remainder, not to make Saturday look busy with filler. */
+    private List<Placement> fillSelfStudyGaps(Long cohortId, SkeletonBuilderResponse skeleton, TermInstance term,
+                                               List<Period> periods, Map<DayOfWeek, Integer> dayLoad) {
+        List<DayOfWeek> weekdays = List.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+            DayOfWeek.THURSDAY, DayOfWeek.FRIDAY);
+        List<Placement> filled = new ArrayList<>();
+        for (SkeletonSubjectResponse subject : skeleton.subjects()) {
+            if (!isSelfStudySubject(subject.subjectName())) {
+                continue;
+            }
+            CourseOffering offering = courseOfferingRepository.findById(subject.courseOfferingId()).orElse(null);
+            if (offering == null || timetableSkeletonService.isElectiveOffering(offering)) {
+                continue;
+            }
+            for (SkeletonSubjectBudget budget : subject.budgets()) {
+                if (budget.sessionType() != ClassSessionType.THEORY) {
+                    continue;
+                }
+                Long facultyId = resolveBudgetFacultyId(offering, budget, cohortId);
+                if (facultyId == null) {
+                    continue;
+                }
+                for (DayOfWeek day : weekdays) {
+                    for (Period period : periods) {
+                        if (blockedPeriodChecker.blockReason(day, period.getStartTime(), period.getEndTime(), term).isPresent()) {
+                            continue;
+                        }
+                        SkeletonCellResponse placed;
+                        try {
+                            placed = timetableSkeletonService.placeCell(new SkeletonCellPlacementRequest(
+                                offering.getId(), ClassSessionType.THEORY, day, period.getId(),
+                                budget.batchId(), cohortId, budget.cohortSectionId(), null), false);
+                        } catch (TimetableConstraintViolationException ex) {
+                            continue;
+                        }
+                        try {
+                            timetableStaffingService.staffCell(placed.id(), new StaffingAssignmentRequest(facultyId, null));
+                        } catch (TimetableConstraintViolationException | LifecycleConflictException | IllegalArgumentException ex) {
+                            timetableSkeletonService.removeCell(placed.id());
+                            continue;
+                        }
+                        dayLoad.merge(day, 1, Integer::sum);
+                        filled.add(new Placement(placed.id(), offering.getId(), ClassSessionType.THEORY,
+                            budget.batchId(), budget.cohortSectionId(), facultyId, subject.subjectName(),
+                            occupantLabel(budget), day, List.of(period.getId())));
+                    }
+                }
+            }
+        }
+        return filled;
+    }
+
+    /** Name-pattern match, not a typed curriculum flag — no such flag exists in the schema today.
+     *  Matches this curriculum's actual naming ("Self-Study/Co-curricular I/III/V"); a differently-
+     *  named self-study line in a future curriculum would silently not be picked up here. */
+    private static boolean isSelfStudySubject(String subjectName) {
+        if (subjectName == null) {
+            return false;
+        }
+        String lower = subjectName.toLowerCase(Locale.ROOT);
+        return lower.contains("self-study") || lower.contains("self study")
+            || lower.contains("co-curricular") || lower.contains("cocurricular");
+    }
+
+    /** One cell (or, for a multi-period block, the whole linked group) this cohort's run has
+     *  successfully placed+staffed — carries enough to identify its own row (for {@link
+     *  #attemptBacktrack}'s "different row" check) and to fully restore it (exact slot, every
+     *  period in its block, and the faculty who was staffing it) if a later row ends up displacing
+     *  it. {@code periodIds} is ordered, primary first — a single-element list for an ordinary
+     *  blockSize-1 placement. */
+    private record Placement(Long cellId, Long courseOfferingId, ClassSessionType sessionType, Long batchId,
+                              Long cohortSectionId, Long facultyId, String subjectName, String occupantLabel,
+                              DayOfWeek dayOfWeek, List<Long> periodIds) {
+        // Section equality is only required for a THEORY row (batchId null) -- a LAB/CLINICAL row's
+        // cohortSectionId carries its batch's own section (see resolveBudgetFacultyId), but a placed
+        // LAB/CLINICAL cell's own section is always null (TimetableSkeletonService never persists
+        // one for those types), so comparing it directly would always be null-vs-real and never match.
+        boolean sameRowAs(ShortfallRow row) {
+            return courseOfferingId.equals(row.offering().getId()) && sessionType == row.budget().sessionType()
+                && Objects.equals(batchId, row.budget().batchId())
+                && (row.budget().batchId() != null || Objects.equals(cohortSectionId, row.budget().cohortSectionId()));
+        }
+    }
+
+    /** Bounded, single-attempt backtrack: displaces the single most-recently-placed cell from a
+     *  *different* row this cohort's run itself placed, retries {@code row}, and — only if that
+     *  retry succeeds — tries to restore the displaced cell to its exact original slot with its
+     *  original faculty. Mirrors {@code TimetableSkeletonAutoPlaceService#attemptBacktrack}'s
+     *  pattern (that service's own per-cohort tool has carried this since R3 Step 6), with one
+     *  necessary divergence: {@code bumped} here is always already staffed (every placement in this
+     *  class is staffed in the same step it's placed — see {@link #tryPlaceAndStaff}), so displacing
+     *  it goes through {@link TimetableSkeletonService#forceRemoveCell} rather than the ordinary
+     *  {@link TimetableSkeletonService#removeCell}, which would reject a staffed cell outright. Never
+     *  leaves the run with fewer total placements than before the attempt: if the retry fails, the
+     *  bumped cell is put straight back and nothing changes; if the retry succeeds but the restore
+     *  fails, the bumped row is reported unplaced (a wash, not a loss) instead of silently
+     *  disappearing from the report. */
+    private boolean attemptBacktrack(Long cohortId, ShortfallRow row, TermInstance term, List<Period> periods,
+                                      Set<DayOfWeek> daysUsed, List<Placement> placedThisCohortRun,
+                                      List<AutoPlaceUnplacedItem> unplacedForCohort, int blockSize,
+                                      Map<DayOfWeek, Integer> dayLoad) {
+        for (int idx = placedThisCohortRun.size() - 1; idx >= 0; idx--) {
+            Placement bumped = placedThisCohortRun.get(idx);
+            if (bumped.sameRowAs(row)) {
+                continue;
+            }
+            // Bumped is removed from both the database and this run's own tracking list up front,
+            // unconditionally — its cell no longer exists either way once forceRemoveCell runs, so
+            // the list must never keep a stale reference to it regardless of how the retry below
+            // goes. forceRemoveCell (not the ordinary removeCell) because bumped is always staffed
+            // by this point — every global-auto-schedule placement is staffed in the same step it's
+            // placed in (see tryPlaceAndStaff), so there is never an unstaffed cell here to bump.
+            timetableSkeletonService.forceRemoveCell(bumped.cellId());
+            placedThisCohortRun.remove(idx);
+            dayLoad.merge(bumped.dayOfWeek(), -bumped.periodIds().size(), Integer::sum);
+            PlacementAttempt retry = tryPlaceAndStaff(cohortId, row.offering(), row.budget(), row.facultyId(), term, periods, daysUsed, blockSize, dayLoad);
+            if (retry.dayPlaced() == null) {
+                // No better off than before -- put the bumped cell straight back and give up on `row`.
+                restoreBumpedOrReportUnplaced(bumped, cohortId, placedThisCohortRun, unplacedForCohort, dayLoad);
+                return false;
+            }
+            dayLoad.merge(retry.dayPlaced(), blockSize, Integer::sum);
+            daysUsed.add(retry.dayPlaced());
+            placedThisCohortRun.add(new Placement(retry.cellId(), row.offering().getId(), row.budget().sessionType(),
+                row.budget().batchId(), row.budget().cohortSectionId(), row.facultyId(), row.subjectName(),
+                occupantLabel(row.budget()), retry.dayPlaced(), retry.periodIds()));
+            restoreBumpedOrReportUnplaced(bumped, cohortId, placedThisCohortRun, unplacedForCohort, dayLoad);
+            // Whether or not the restore worked, `row` is now placed and the total count never
+            // dropped below what it was before this attempt (net zero at worst, a genuine swap).
+            return true;
+        }
+        return false;
+    }
+
+    /** Shared tail of both {@link #attemptBacktrack} outcomes: try to put {@code bumped} back
+     *  exactly where it was (already removed from {@code placedThisCohortRun} by the caller); if
+     *  that fails, record it as a fresh unplaced item instead of letting it silently vanish from
+     *  the report. */
+    private void restoreBumpedOrReportUnplaced(Placement bumped, Long cohortId, List<Placement> placedThisCohortRun,
+                                                List<AutoPlaceUnplacedItem> unplacedForCohort, Map<DayOfWeek, Integer> dayLoad) {
+        Optional<Placement> restored = tryRestoreExact(bumped, cohortId);
+        if (restored.isPresent()) {
+            placedThisCohortRun.add(restored.get());
+            dayLoad.merge(bumped.dayOfWeek(), bumped.periodIds().size(), Integer::sum);
+            return;
+        }
+        unplacedForCohort.add(new AutoPlaceUnplacedItem(bumped.subjectName(), bumped.sessionType(), bumped.occupantLabel(),
+            "displaced during a backtrack attempt and could not be restored to its original slot", bumped.courseOfferingId()));
+    }
+
+    /** Re-places {@code placement} at its exact original day/period(s) — the full block, not just
+     *  its primary period, so a displaced multi-period Lab/Clinical session is restored whole, never
+     *  collapsed down to a single period — and re-staffs it with its original faculty. Either half
+     *  failing (the exact slot got taken by the retry itself — the genuine-swap case — or the
+     *  original faculty is no longer free there) means the restore as a whole failed; a
+     *  half-placed-but-unstaffed cell is never left behind. */
+    private Optional<Placement> tryRestoreExact(Placement placement, Long cohortId) {
+        Long primaryPeriodId = placement.periodIds().get(0);
+        List<Long> spanPeriodIds = placement.periodIds().size() > 1
+            ? placement.periodIds().subList(1, placement.periodIds().size())
+            : null;
+        SkeletonCellResponse restored;
+        try {
+            restored = timetableSkeletonService.placeCell(new SkeletonCellPlacementRequest(
+                placement.courseOfferingId(), placement.sessionType(), placement.dayOfWeek(), primaryPeriodId,
+                placement.batchId(), cohortId, placement.cohortSectionId(), spanPeriodIds));
+        } catch (TimetableConstraintViolationException ex) {
+            return Optional.empty();
+        }
+        try {
+            timetableStaffingService.staffCell(restored.id(), new StaffingAssignmentRequest(placement.facultyId(), null));
+        } catch (TimetableConstraintViolationException | LifecycleConflictException | IllegalArgumentException ex) {
+            timetableSkeletonService.removeCell(restored.id());
+            return Optional.empty();
+        }
+        return Optional.of(new Placement(restored.id(), placement.courseOfferingId(), placement.sessionType(),
+            placement.batchId(), placement.cohortSectionId(), placement.facultyId(), placement.subjectName(),
+            placement.occupantLabel(), placement.dayOfWeek(), placement.periodIds()));
+    }
+
+    private static void tallyViolations(Map<String, Integer> failureTally, List<ConstraintViolation> violations) {
+        for (ConstraintViolation violation : violations) {
+            failureTally.merge(violation.code(), 1, Integer::sum);
+        }
+    }
+
+    /** Picks the single most-frequent failure code across every attempted day/period combination
+     *  and names it in plain language, with the count so an admin can judge how close/far this
+     *  was from succeeding — one occupied slot reads very differently from every slot failing the
+     *  same way. Falls back to the old generic message only when nothing was ever actually
+     *  attempted (e.g. every day was already used by this row). */
+    private static String summarizeFailures(Map<String, Integer> failureTally) {
+        if (failureTally.isEmpty()) {
+            return "no day/period found where both placement and staffing succeed";
+        }
+        Map.Entry<String, Integer> topReason = failureTally.entrySet().stream()
+            .max(Map.Entry.comparingByValue())
+            .orElseThrow();
+        int totalAttempts = failureTally.values().stream().mapToInt(Integer::intValue).sum();
+        return friendlyFailureReason(topReason.getKey())
+            + " (" + topReason.getValue() + " of " + totalAttempts + " day/period combinations tried)";
+    }
+
+    private static String friendlyFailureReason(String violationCode) {
+        return switch (violationCode) {
+            case "STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED" -> "the assigned faculty's daily workload cap was reached";
+            case "STAFFING_WORKLOAD_WEEKLY_CAP_EXCEEDED" -> "the assigned faculty's weekly workload cap was reached";
+            case "STAFFING_WORKLOAD_CONTINUOUS_CAP_EXCEEDED" -> "the assigned faculty's continuous-teaching cap was reached";
+            case "STAFFING_FACULTY_CONFLICT" -> "the assigned faculty was already committed to another session at every remaining slot";
+            case "STAFFING_FACULTY_UNAVAILABLE", "STAFFING_FACULTY_ABSENT" -> "the assigned faculty was marked unavailable or absent";
+            case "STAFFING_ROOM_CONFLICT" -> "the committed venue was already booked at every remaining slot";
+            case "STAFFING_VENUE_NOT_COMMITTED" -> "no committed venue exists for this session yet";
+            case "SKELETON_CELL_COHORT_CLASH" -> "another mandatory session already occupies this audience's slot everywhere free";
+            case "SKELETON_CELL_ALREADY_PLACED" -> "this subject already has a session at every remaining day/period";
+            case "SKELETON_CELL_PERIOD_BLOCKED", "STAFFING_PERIOD_BLOCKED", "PERIOD_BLOCKED" ->
+                "every remaining day/period is institutionally blocked (holiday, recurring lock, or Saturday not enabled for this term)";
+            case "PERIOD_NOT_CONTIGUOUS" ->
+                "no remaining run of periods for this block size is free of a recess/lunch break in between";
+            case "SKELETON_CELL_BUDGET_EXCEEDED" ->
+                "this subject's curriculum-hours budget for this session type is already fully placed";
+            default -> "a scheduling constraint (" + violationCode + ") blocked every remaining day/period";
+        };
     }
 
     /** Mirrors {@code TimetableSkeletonAutoPlaceService#existingDaysForRow} — which days this exact
      *  budget row (subject/session-type/batch-or-section) already has a session on, so the shortfall
-     *  loop never clusters two of that row's own sessions on the same day. */
+     *  loop never clusters two of that row's own sessions on the same day. Section equality is only
+     *  required for a THEORY row (batchId null): a LAB/CLINICAL row's {@code cohortSectionId} now
+     *  carries its batch's own section (populated by {@code TimetableSkeletonService#batchScopedBudgets}
+     *  for faculty resolution), but the placed cell's own section is always null for LAB/CLINICAL
+     *  (see {@code TimetableSkeletonService#checkAlreadyPlaced}) — batchId alone already uniquely
+     *  identifies the row there, same as it does everywhere else in this class. */
     private Set<DayOfWeek> existingDaysForBudgetRow(List<SkeletonCellResponse> cells, Long courseOfferingId, SkeletonSubjectBudget budget) {
         Set<DayOfWeek> days = new HashSet<>();
         for (SkeletonCellResponse cell : cells) {
             if (cell.courseOfferingId().equals(courseOfferingId) && cell.sessionType() == budget.sessionType()
                     && Objects.equals(cell.batchId(), budget.batchId())
-                    && Objects.equals(cell.cohortSectionId(), budget.cohortSectionId())) {
+                    && (budget.batchId() != null || Objects.equals(cell.cohortSectionId(), budget.cohortSectionId()))) {
                 days.add(cell.dayOfWeek());
             }
         }
@@ -1024,14 +1621,16 @@ public class TimetableGlobalAutoScheduleService {
             if (Boolean.TRUE.equals(member.getIsActive()) && resolveElectiveMemberFacultyId(member) == null
                     && safe(member.getCurriculumSemesterCourse() != null ? member.getCurriculumSemesterCourse().getTheoryHours() : null) > 0) {
                 unplacedSink.add(new AutoPlaceUnplacedItem(member.getSubject().getName(), ClassSessionType.THEORY, null,
-                    "no faculty assigned on its Course Offering (elective)"));
+                    "no faculty assigned on its Course Offering (elective)", member.getId()));
                 return 0;
             }
         }
 
         List<Long> memberIds = members.stream().map(CourseOffering::getId).toList();
         List<ClassSchedule> existingGroupCells = classScheduleRepository
-            .findByTermInstanceIdAndCourseOfferingIdIn(termInstanceId, memberIds);
+            .findByTermInstanceIdAndCourseOfferingIdIn(termInstanceId, memberIds).stream()
+            .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
+            .toList();
 
         List<CourseOffering> unplacedTheoryMembers = members.stream()
             .filter(m -> Boolean.TRUE.equals(m.getIsActive()))
@@ -1059,7 +1658,7 @@ public class TimetableGlobalAutoScheduleService {
             if (period == null || classroom == null || !placeAndStaffElectiveMembers(unplacedTheoryMembers, day, period, classroom, term)) {
                 unplacedSink.add(new AutoPlaceUnplacedItem("Elective group " + electiveGroupId, ClassSessionType.THEORY, null,
                     "already scheduled for " + day + (period != null ? ", " + period.getName() : "")
-                        + " — one or more new members can't join that exact slot"));
+                        + " — one or more new members can't join that exact slot", null));
                 return 0;
             }
             return unplacedTheoryMembers.size();
@@ -1067,8 +1666,7 @@ public class TimetableGlobalAutoScheduleService {
 
         for (DayOfWeek day : DayOfWeek.values()) {
             for (Period period : periods) {
-                if (blockedPeriodChecker.blockReason(day, period.getStartTime(), period.getEndTime(),
-                        term.getStartDate(), term.getEndDate()).isPresent()) {
+                if (blockedPeriodChecker.blockReason(day, period.getStartTime(), period.getEndTime(), term).isPresent()) {
                     continue;
                 }
                 Classroom classroom = firstFreeClassroom(activeClassrooms, registeredStrength, day, period, term);
@@ -1081,7 +1679,7 @@ public class TimetableGlobalAutoScheduleService {
             }
         }
         unplacedSink.add(new AutoPlaceUnplacedItem("Elective group " + electiveGroupId, ClassSessionType.THEORY, null,
-            "no day/period found where every member's bound faculty and a suitable room are all free"));
+            "no day/period found where every member's bound faculty and a suitable room are all free", null));
         return 0;
     }
 
@@ -1109,9 +1707,19 @@ public class TimetableGlobalAutoScheduleService {
         return true;
     }
 
+    /** {@code cellIds} accumulates a member's id right after it's placed, before its own staffing
+     *  attempt runs (see {@link #placeAndStaffElectiveMembers}) -- so by the time a later member's
+     *  placement or staffing fails and this rollback runs, every earlier id in the list is already
+     *  staffed, not a bare unstaffed draft. Must go through {@link
+     *  TimetableSkeletonService#forceRemoveCell}, not the ordinary {@link
+     *  TimetableSkeletonService#removeCell}, which rejects a staffed cell outright -- the same
+     *  staffed-cell-undo need {@link #attemptBacktrack} has, just for a whole elective group instead
+     *  of one row. Using the guarded {@code removeCell} here previously threw
+     *  SKELETON_CELL_NOT_REMOVABLE uncaught, aborting the entire run the moment any elective group's
+     *  second-or-later member failed after an earlier member had already placed and staffed. */
     private void rollbackElectiveCells(List<Long> cellIds) {
         for (Long id : cellIds) {
-            timetableSkeletonService.removeCell(id);
+            timetableSkeletonService.forceRemoveCell(id);
         }
     }
 

@@ -1,3 +1,11 @@
+.scf-prefill-hint {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: rgba(var(--cms-primary-rgb), 0.08);
+  color: var(--cms-text-primary);
+}
+
 .scf-mode-cards {
   display: flex;
   flex-direction: column;

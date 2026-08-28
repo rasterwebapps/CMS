@@ -1,0 +1,15 @@
+.wsat-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.wsat-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-primary);
+  cursor: pointer;
+}

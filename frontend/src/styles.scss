@@ -3443,7 +3443,7 @@ th.cms-th-resize-hover .mat-sort-header-container {
   text-decoration: none;
   white-space: nowrap;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--cms-bg-muted);
     color: var(--cms-text-primary);
   }
@@ -3451,6 +3451,11 @@ th.cms-th-resize-hover .mat-sort-header-container {
   &:focus-visible {
     outline: 2px solid var(--cms-primary);
     outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 }
 

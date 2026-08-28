@@ -2,6 +2,8 @@ package com.cms.model;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -9,8 +11,11 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
+import com.cms.model.enums.WeekOfMonth;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
@@ -51,6 +56,17 @@ public class TermInstance {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private TermInstanceStatus status = TermInstanceStatus.PLANNED;
+
+    /** Which nth-Saturday-of-the-month occurrences count as real working days for this term.
+     *  Empty means no restriction is configured -- Saturday is not used by automation at all
+     *  (Mon-Fri only) until an admin opts in by picking at least one value here; once non-empty,
+     *  ONLY Saturdays matching one of these ever get placed or produce a real class occurrence —
+     *  see TimetableBlockedPeriodChecker/ClassScheduleOccurrenceService's isSaturdayWorkingDay. */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "term_working_saturdays", joinColumns = @JoinColumn(name = "term_instance_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "week_of_month")
+    private Set<WeekOfMonth> workingSaturdayWeeks = new HashSet<>();
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -118,6 +134,14 @@ public class TermInstance {
 
     public void setStatus(TermInstanceStatus status) {
         this.status = status;
+    }
+
+    public Set<WeekOfMonth> getWorkingSaturdayWeeks() {
+        return workingSaturdayWeeks;
+    }
+
+    public void setWorkingSaturdayWeeks(Set<WeekOfMonth> workingSaturdayWeeks) {
+        this.workingSaturdayWeeks = workingSaturdayWeeks;
     }
 
     public Instant getCreatedAt() {

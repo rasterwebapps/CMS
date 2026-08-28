@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.ConstraintViolation;
@@ -129,7 +130,17 @@ public class TimetableStaffingService {
      *  collect, and every check after it needs a resolved room's identity to even run; skipping it
      *  whenever a faculty-side violation already exists also keeps this from probing Capacity
      *  Planner room commitments that were never going to matter for a rejected attempt. */
-    @Transactional
+    /** {@code REQUIRES_NEW} — {@code TimetableGlobalAutoScheduleService},
+     *  {@code TimetableSkeletonAutoPlaceService}, and {@code TimetableStaffingAutoAssignService} all
+     *  call this in a loop over candidate faculty, catching {@link TimetableConstraintViolationException}/
+     *  {@link LifecycleConflictException} as routine "try the next candidate" control flow. With the
+     *  default {@code REQUIRED} propagation, the first rejected candidate in any of those runs
+     *  (near-certain on real data) marked the caller's *entire* enclosing transaction rollback-only
+     *  the instant the exception propagated out of this method's proxy — even though the caller
+     *  catches it — silently discarding every successful placement/staffing in that run once it
+     *  finally tried to commit. {@code REQUIRES_NEW} gives this its own independent transaction so a
+     *  routine per-candidate failure can never poison a caller's broader unit of work. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public UnstaffedCellResponse staffCell(Long classScheduleId, StaffingAssignmentRequest request) {
         ClassSchedule cs = classScheduleRepository.findById(classScheduleId)
             .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + classScheduleId));
@@ -167,6 +178,7 @@ public class TimetableStaffingService {
             stagings.get(i).applyRoom().run();
             member.setFaculty(faculty);
             classScheduleRepository.save(member);
+            AutoScheduleRunCache.current().ifPresent(cache -> cache.recordStaffing(member.getId(), faculty));
         }
         return toResponse(cs);
     }
@@ -297,8 +309,7 @@ public class TimetableStaffingService {
         String roomViolationCode = roomCheck.mode() == RoomMode.STRICT ? "STAFFING_ROOM_CONFLICT" : "SWAP_ROOM_CONFLICT";
 
         for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
-            List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
-                day, cs.getTermInstance().getId(), start, end, status, cs.getId());
+            List<ClassSchedule> overlapping = findOverlappingCached(day, cs.getTermInstance().getId(), start, end, status, cs.getId());
             for (ClassSchedule other : overlapping) {
                 if (alsoExcludeId != null && other.getId().equals(alsoExcludeId)) {
                     continue;
@@ -341,7 +352,7 @@ public class TimetableStaffingService {
      *  TimetableSwapService} use — re-checked here separately (not just at placement time) since a
      *  skeleton cell can sit unstaffed for a while and a block could be added/changed in between. */
     private Optional<ConstraintViolation> checkBlocked(DayOfWeek dayOfWeek, LocalTime start, LocalTime end, TermInstance termInstance) {
-        return blockedPeriodChecker.blockReason(dayOfWeek, start, end, termInstance.getStartDate(), termInstance.getEndDate())
+        return blockedPeriodChecker.blockReason(dayOfWeek, start, end, termInstance)
             .map(reason -> new ConstraintViolation("STAFFING_PERIOD_BLOCKED", "This day and period is blocked: " + reason));
     }
 
@@ -511,8 +522,7 @@ public class TimetableStaffingService {
     private Optional<ConstraintViolation> checkFacultyFree(Long facultyId, ClassSchedule cs, DayOfWeek day, LocalTime start,
                                                             LocalTime end, Long alsoExcludeId) {
         for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
-            List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
-                day, cs.getTermInstance().getId(), start, end, status, cs.getId());
+            List<ClassSchedule> overlapping = findOverlappingCached(day, cs.getTermInstance().getId(), start, end, status, cs.getId());
             boolean conflict = overlapping.stream()
                 .filter(other -> alsoExcludeId == null || !other.getId().equals(alsoExcludeId))
                 .anyMatch(other -> other.getFaculty() != null && other.getFaculty().getId().equals(facultyId));
@@ -522,6 +532,18 @@ public class TimetableStaffingService {
             }
         }
         return Optional.empty();
+    }
+
+    /** Cache-through wrapper around {@code ClassScheduleRepository#findOverlapping} — reads from
+     *  the active {@link AutoScheduleRunCache} (an in-memory mirror kept in sync with this run's
+     *  own writes) when one is bound to this thread, otherwise falls back to the direct repository
+     *  query exactly as before. Every non-auto-schedule caller (manual staffing, swaps) never
+     *  activates the cache, so it always takes the direct-query path unchanged. */
+    private List<ClassSchedule> findOverlappingCached(DayOfWeek day, Long termInstanceId, LocalTime start, LocalTime end,
+                                                        ClassScheduleStatus status, Long excludeId) {
+        return AutoScheduleRunCache.current()
+            .map(cache -> cache.overlapping(day, start, end, status, excludeId))
+            .orElseGet(() -> classScheduleRepository.findOverlapping(day, termInstanceId, start, end, status, excludeId));
     }
 
     /** Tuple-shaped overload of {@link #checkFacultyFree(Long, ClassSchedule, DayOfWeek, LocalTime, LocalTime)}
@@ -566,9 +588,12 @@ public class TimetableStaffingService {
         }
 
         double newSessionHours = Duration.between(start, end).toMinutes() / 60.0;
+        Optional<AutoScheduleRunCache> runCache = AutoScheduleRunCache.current();
         List<ClassSchedule> otherSessions = Stream.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)
-            .flatMap(status -> classScheduleRepository
-                .findByTermInstanceIdAndStatusAndFacultyId(cs.getTermInstance().getId(), status, faculty.getId())
+            .flatMap(status -> runCache
+                .map(cache -> cache.byStatusAndFacultyId(status, faculty.getId()))
+                .orElseGet(() -> classScheduleRepository
+                    .findByTermInstanceIdAndStatusAndFacultyId(cs.getTermInstance().getId(), status, faculty.getId()))
                 .stream())
             .filter(other -> !other.getId().equals(cs.getId()))
             .filter(other -> other.getPeriod() != null)

@@ -68,6 +68,151 @@
   </div>
 
   @if (activeTab() === 'faculty') {
+    @if (loadingFacultyWorkloadOverview()) {
+      <div class="content-card">
+        <div class="loading-container"><mat-spinner diameter="40"></mat-spinner></div>
+      </div>
+    } @else if (facultyWorkloadOverview(); as ov) {
+      <div class="content-card cap-summary-card">
+        <div class="cap-summary-card__row">
+          <div class="cap-summary-card__main">
+            <h2 class="cap-summary-card__title">Required vs Assigned — Term Total — {{ selectedTermLabel() }}</h2>
+            <p class="cap-summary-card__strength">
+              {{ ov.totalCurriculumRequiredHours | number:'1.0-1' }} hrs required this term across every cohort
+              &nbsp;·&nbsp; {{ ov.totalAssignedHours | number:'1.0-1' }} hrs actually bound to a faculty
+              &nbsp;·&nbsp; {{ ov.totalFacultyCapacityHours | number:'1.0-1' }} hrs total faculty capacity
+              @if (ov.unassignedOfferingsCount > 0) {
+                &nbsp;·&nbsp; <span class="cap-fw-warn">{{ ov.unassignedOfferingsCount }} offering(s) still have no faculty at all</span>
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-card mlp-table-card">
+        <div class="table-wrapper">
+          <table class="cap-fw-table">
+            <thead>
+              <tr>
+                <th>Faculty</th>
+                <th>Designation</th>
+                <th class="cell-align-right">Should be assigned (term)</th>
+                <th class="cell-align-right">Has been assigned (term)</th>
+                <th class="cell-align-right">Utilization</th>
+                <th class="cell-align-center">Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of ov.rows; track row.facultyId) {
+                <tr>
+                  <td>{{ row.facultyName }}</td>
+                  <td>{{ row.designationName || '—' }}</td>
+                  <td class="cell-align-right">
+                    @if (row.capacityConfigured) {
+                      {{ row.termCapacityHours | number:'1.0-1' }}h
+                      <span class="text-muted">({{ row.effectiveDailyCapacityHours | number:'1.0-1' }}h/day × {{ row.workingDaysInTerm }}d, {{ tierLabel(row.dailyCapacityTier) }})</span>
+                    } @else {
+                      <span class="cap-fw-unconfigured">Not configured</span>
+                    }
+                  </td>
+                  <td class="cell-align-right">{{ row.totalTermDemandHours | number:'1.0-1' }}h</td>
+                  <td class="cell-align-right">
+                    @if (row.capacityConfigured) {
+                      {{ row.utilizationPercent | number:'1.0-1' }}%
+                    } @else {
+                      —
+                    }
+                  </td>
+                  <td class="cell-align-center">
+                    @if (row.overCapacity) {
+                      <span class="cap-fw-badge cap-fw-badge--danger">Over by {{ row.shortfallHours | number:'1.0-1' }}h</span>
+                    } @else if (row.tightCapacity) {
+                      <span class="cap-fw-badge cap-fw-badge--warn">Tight</span>
+                    } @else if (row.capacityConfigured) {
+                      <span class="cap-fw-badge cap-fw-badge--ok">{{ row.spareHours | number:'1.0-1' }}h spare</span>
+                    }
+                  </td>
+                  <td class="cap-fw-actions">
+                    <button type="button" class="btn-secondary" (click)="toggleFacultyExpand(row.facultyId)">
+                      <mat-icon>{{ expandedFacultyId() === row.facultyId ? 'expand_less' : 'expand_more' }}</mat-icon>
+                      Offerings
+                    </button>
+                    @if (canManageFaculty()) {
+                      <button type="button" class="btn-secondary" (click)="openRaiseCap(row)">Edit hours…</button>
+                    }
+                  </td>
+                </tr>
+                @if (expandedFacultyId() === row.facultyId) {
+                  <tr class="cap-fw-detail-row">
+                    <td colspan="7">
+                      <div class="cap-fw-detail-wrap">
+                        @if (row.contributors.length === 0) {
+                          <cms-empty-state icon="menu_book" title="No offerings assigned this term"></cms-empty-state>
+                        } @else {
+                          <table class="cap-fw-table">
+                            <thead>
+                              <tr>
+                                <th>Subject</th>
+                                <th>Cohort</th>
+                                <th>Type</th>
+                                <th>Role</th>
+                                <th class="cell-align-right">Hours</th>
+                                <th></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (c of row.contributors; track c.courseOfferingId + '-' + c.cohortId + '-' + (c.cohortSectionId ? 's' + c.cohortSectionId : c.batchId ? 'b' + c.batchId : 'p')) {
+                                <tr>
+                                  <td>{{ c.subjectName }}</td>
+                                  <td>{{ c.cohortName }}</td>
+                                  <td>{{ sessionTypeLabel(c.sessionType) }}</td>
+                                  <td>{{ assignmentRoleLabel(c) }}</td>
+                                  <td class="cell-align-right">{{ c.termHoursContributed | number:'1.0-1' }}h</td>
+                                  <td>
+                                    @if (c.batchId != null) {
+                                      @if (canManageBatches()) {
+                                        <button type="button" class="btn-secondary" (click)="onReassignContributor(c)">Reassign…</button>
+                                      }
+                                    } @else if (canReassign()) {
+                                      <button type="button" class="btn-secondary" (click)="onReassignContributor(c)">Reassign…</button>
+                                    }
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              } @empty {
+                <tr>
+                  <td colspan="7">
+                    <cms-empty-state icon="groups" title="No active faculty found"></cms-empty-state>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    @if (raiseCapTarget(); as target) {
+      <app-raise-cap-flyout
+        [facultyId]="target.facultyId"
+        [facultyName]="target.facultyName"
+        [currentDailyCap]="target.currentDailyCap"
+        (closed)="onRaiseCapClosed()"
+        (saved)="onRaiseCapSaved()">
+      </app-raise-cap-flyout>
+    }
+
+    <h3 class="cap-sizing-card__title">Weekly Hard-Cap Snapshot</h3>
+    <p class="field-hint">Feeds the real per-week placement/staffing hard cap — a per-week average, distinct from the term totals above.</p>
+
     @if (loadingFacultyWorkload()) {
       <div class="content-card">
         <div class="loading-container"><mat-spinner diameter="40"></mat-spinner></div>
@@ -76,7 +221,7 @@
       <div class="content-card cap-summary-card">
         <div class="cap-summary-card__row">
           <div class="cap-summary-card__main">
-            <h2 class="cap-summary-card__title">Faculty Workload — {{ selectedTermLabel() }}</h2>
+            <h2 class="cap-summary-card__title">Weekly Averages — {{ selectedTermLabel() }}</h2>
             <p class="cap-summary-card__strength">
               {{ w.totalDemandHoursPerWeek | number:'1.0-1' }} hrs/wk curriculum demand
               &nbsp;·&nbsp; {{ w.totalCommittedHoursPerWeek | number:'1.0-1' }} hrs/wk committed

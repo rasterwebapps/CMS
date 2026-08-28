@@ -99,6 +99,12 @@ public class SubjectService {
         if (request.isActive() != null) {
             subject.setIsActive(request.isActive());
         }
+        if (request.labSessionBlockPeriods() != null) {
+            subject.setLabSessionBlockPeriods(request.labSessionBlockPeriods());
+        }
+        if (request.clinicalSessionBlockPeriods() != null) {
+            subject.setClinicalSessionBlockPeriods(request.clinicalSessionBlockPeriods());
+        }
         subject.setEligibleLabs(resolveLabs(request.eligibleLabIds()));
         subject.setEligibleClinicalVenues(resolveClinicalVenues(request.eligibleClinicalVenueIds()));
         subject.setEligibleFaculty(resolveFaculty(request.eligibleFacultyIds()));
@@ -211,6 +217,12 @@ public class SubjectService {
         if (request.isActive() != null) {
             subject.setIsActive(request.isActive());
         }
+        if (request.labSessionBlockPeriods() != null) {
+            subject.setLabSessionBlockPeriods(request.labSessionBlockPeriods());
+        }
+        if (request.clinicalSessionBlockPeriods() != null) {
+            subject.setClinicalSessionBlockPeriods(request.clinicalSessionBlockPeriods());
+        }
         subject.setEligibleLabs(resolveLabs(request.eligibleLabIds()));
         subject.setEligibleClinicalVenues(resolveClinicalVenues(request.eligibleClinicalVenueIds()));
         subject.setEligibleFaculty(resolveFaculty(request.eligibleFacultyIds()));
@@ -313,6 +325,8 @@ public class SubjectService {
             specialityResponse,
             subject.getTermNumber(),
             subject.getIsActive(),
+            subject.getLabSessionBlockPeriods(),
+            subject.getClinicalSessionBlockPeriods(),
             subject.getCreatedAt(),
             subject.getUpdatedAt(),
             eligibleLabs,

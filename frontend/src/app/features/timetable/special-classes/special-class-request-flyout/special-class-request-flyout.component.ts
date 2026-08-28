@@ -1,4 +1,4 @@
-import { Component, computed, inject, output, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TitleCasePipe } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -37,7 +37,7 @@ const WEEKDAYS: WeekDay[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRID
   templateUrl: './special-class-request-flyout.component.html',
   styleUrl: './special-class-request-flyout.component.scss',
 })
-export class SpecialClassRequestFlyoutComponent {
+export class SpecialClassRequestFlyoutComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly periodService = inject(PeriodService);
   private readonly classroomService = inject(ClassroomService);
@@ -46,6 +46,16 @@ export class SpecialClassRequestFlyoutComponent {
   private readonly facultyService = inject(FacultyService);
   private readonly specialClassService = inject(SpecialClassService);
   private readonly toast = inject(ToastService);
+
+  /** Deep-link entry point (e.g. from Global Auto-Schedule's "last remaining subject" alert) —
+   *  when set, skips straight to the single-subject form with term/cohort/offering pre-selected
+   *  instead of making the admin re-pick everything they just saw was short. All four (bar
+   *  sessionType) are required together; a partial set is treated as no prefill at all. */
+  readonly prefillAcademicYearId = input<number | null>(null);
+  readonly prefillTermInstanceId = input<number | null>(null);
+  readonly prefillCohortId = input<number | null>(null);
+  readonly prefillCourseOfferingId = input<number | null>(null);
+  readonly prefillSessionType = input<SpecialClassSessionType | null>(null);
 
   readonly closed = output<void>();
   readonly saved = output<void>();
@@ -94,9 +104,14 @@ export class SpecialClassRequestFlyoutComponent {
     this.labService.getAll().subscribe({ next: (data) => this.labs.set(data) });
     this.clinicalVenueService.getAll(true).subscribe({ next: (data) => this.clinicalVenues.set(data) });
     this.facultyService.getAll().subscribe({ next: (data) => this.faculty.set(data) });
+    // Both callbacks below fire asynchronously (well after ngOnInit), so reading the prefill
+    // inputs here is safe (unlike a synchronous constructor-body read, which would throw NG0950)
+    // — this only guards against the deep-link's own selections being clobbered once these lists
+    // resolve; the lists themselves always load normally either way.
     this.academicYearService.getAllAcademicYears().subscribe({
       next: (years) => {
         this.academicYears.set(years);
+        if (this.hasPrefill()) return;
         const initialYearId = years.find((y) => y.isCurrent)?.id ?? years[0]?.id ?? null;
         if (initialYearId) {
           this.selectedAcademicYearId = initialYearId;
@@ -105,8 +120,47 @@ export class SpecialClassRequestFlyoutComponent {
       },
     });
     this.academicYearService.getAllCohorts().subscribe({
-      next: (cohorts) => { this.cohorts.set(cohorts); this.selectedCohortId = cohorts[0]?.id ?? null; },
+      next: (cohorts) => {
+        this.cohorts.set(cohorts);
+        if (!this.hasPrefill()) this.selectedCohortId = cohorts[0]?.id ?? null;
+      },
     });
+  }
+
+  protected hasPrefill(): boolean {
+    return this.prefillTermInstanceId() != null && this.prefillCohortId() != null && this.prefillCourseOfferingId() != null;
+  }
+
+  /** Required signal inputs aren't guaranteed bound until ngOnInit — reading them any earlier
+   *  (e.g. the constructor body) throws NG0950. */
+  ngOnInit(): void {
+    if (!this.hasPrefill()) return;
+    this.selectedAcademicYearId = this.prefillAcademicYearId();
+    this.selectedTermInstanceId = this.prefillTermInstanceId();
+    this.selectedCohortId = this.prefillCohortId();
+    if (this.prefillSessionType()) {
+      this.sessionType = this.prefillSessionType()!;
+    }
+    if (this.selectedAcademicYearId != null) {
+      this.academicYearService.getTermInstancesByAcademicYear(this.selectedAcademicYearId).subscribe({
+        next: (terms) => this.termInstances.set(terms),
+        error: () => this.toast.error('Failed to load term instances'),
+      });
+    }
+    this.mode.set('SINGLE_SUBJECT');
+    this.loadingOfferings.set(true);
+    const termInstanceId = this.prefillTermInstanceId()!;
+    const cohortId = this.prefillCohortId()!;
+    this.academicYearService.getCourseOfferingsByTermInstance(termInstanceId, undefined, cohortId)
+      .subscribe({
+        next: (offerings) => {
+          this.courseOfferings.set(offerings);
+          this.loadingOfferings.set(false);
+          this.selectedCourseOfferingId = this.prefillCourseOfferingId();
+          this.onCourseOfferingChange();
+        },
+        error: () => { this.toast.error('Failed to load course offerings'); this.loadingOfferings.set(false); },
+      });
   }
 
   protected pickMode(next: 'SINGLE_SUBJECT' | 'DAY_REPEAT'): void {

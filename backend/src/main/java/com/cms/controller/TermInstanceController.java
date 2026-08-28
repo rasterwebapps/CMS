@@ -12,10 +12,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Set;
+
 import com.cms.dto.TermAdvanceChecklistResponse;
 import com.cms.dto.TermInstanceDto;
 import com.cms.dto.TermInstanceUpdateRequest;
+import com.cms.dto.WorkingSaturdaysRequest;
 import com.cms.model.enums.TermInstanceStatus;
+import com.cms.model.enums.WeekOfMonth;
 import com.cms.service.TermInstanceService;
 
 @RestController
@@ -55,5 +59,21 @@ public class TermInstanceController {
     public ResponseEntity<TermAdvanceChecklistResponse> getAdvanceChecklist(
             @PathVariable Long id, @RequestParam TermInstanceStatus targetStatus) {
         return ResponseEntity.ok(termInstanceService.getAdvanceChecklist(id, targetStatus));
+    }
+
+    /** Empty means this term hasn't opted in to Saturday scheduling at all — Mon-Fri only, hard
+     *  blocked otherwise (see TimetableBlockedPeriodChecker). Read-gated the same as the write
+     *  below rather than left open: this is scheduling-policy detail, not general term info. */
+    @GetMapping("/{id}/working-saturdays")
+    @PreAuthorize("@perm.has('TIMETABLE_WORKING_SATURDAYS_MANAGE')")
+    public ResponseEntity<Set<WeekOfMonth>> getWorkingSaturdays(@PathVariable Long id) {
+        return ResponseEntity.ok(termInstanceService.getWorkingSaturdays(id));
+    }
+
+    @PutMapping("/{id}/working-saturdays")
+    @PreAuthorize("@perm.has('TIMETABLE_WORKING_SATURDAYS_MANAGE')")
+    public ResponseEntity<Set<WeekOfMonth>> updateWorkingSaturdays(
+            @PathVariable Long id, @RequestBody WorkingSaturdaysRequest request) {
+        return ResponseEntity.ok(termInstanceService.updateWorkingSaturdays(id, request.weeks()));
     }
 }

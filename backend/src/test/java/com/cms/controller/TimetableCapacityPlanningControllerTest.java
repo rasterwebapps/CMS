@@ -36,6 +36,9 @@ class TimetableCapacityPlanningControllerTest {
     @MockitoBean
     private FacultyWorkloadCapacityService facultyWorkloadCapacityService;
 
+    @MockitoBean
+    private com.cms.service.TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
+
     @Test
     void shouldGetFacultyWorkloadReport() throws Exception {
         FacultyWorkloadRow row = new FacultyWorkloadRow(

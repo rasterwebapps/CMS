@@ -19,25 +19,30 @@ import com.cms.dto.VentureSplitRequest;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Batch;
+import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.ClinicalVenue;
 import com.cms.model.Cohort;
 import com.cms.model.CohortRoomAllocation;
 import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
+import com.cms.model.CourseOfferingSectionFaculty;
 import com.cms.model.Lab;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.PlanningBasis;
 import com.cms.repository.BatchRepository;
+import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseOfferingRepository;
+import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -65,6 +70,8 @@ public class CohortRoomAllocationService {
     private final CourseOfferingRepository courseOfferingRepository;
     private final BatchRepository batchRepository;
     private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
+    private final ClassScheduleRepository classScheduleRepository;
+    private final CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository;
 
     public CohortRoomAllocationService(CohortRoomAllocationRepository allocationRepository,
                                         CohortSectionRepository cohortSectionRepository,
@@ -75,7 +82,9 @@ public class CohortRoomAllocationService {
                                         ClinicalVenueRepository clinicalVenueRepository,
                                         CourseOfferingRepository courseOfferingRepository,
                                         BatchRepository batchRepository,
-                                        StudentTermEnrollmentRepository studentTermEnrollmentRepository) {
+                                        StudentTermEnrollmentRepository studentTermEnrollmentRepository,
+                                        ClassScheduleRepository classScheduleRepository,
+                                        CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository) {
         this.allocationRepository = allocationRepository;
         this.cohortSectionRepository = cohortSectionRepository;
         this.cohortRepository = cohortRepository;
@@ -86,6 +95,8 @@ public class CohortRoomAllocationService {
         this.courseOfferingRepository = courseOfferingRepository;
         this.batchRepository = batchRepository;
         this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
+        this.classScheduleRepository = classScheduleRepository;
+        this.courseOfferingSectionFacultyRepository = courseOfferingSectionFacultyRepository;
     }
 
     public CohortRoomAllocationResponse getCurrent(Long cohortId, Long termInstanceId) {
@@ -216,6 +227,7 @@ public class CohortRoomAllocationService {
                     "COHORT_ROOM_ALLOCATION_CONFLICT", "CohortSection", null, null);
             }
             sectionsByLabel.put(sectionRequest.sectionLabel(), section);
+            migrateFacultyAssignmentsToNewSection(cohort.getId(), sectionRequest.sectionLabel(), section);
         }
 
         for (VentureSplitRequest split : request.ventureSplits()) {
@@ -237,21 +249,81 @@ public class CohortRoomAllocationService {
                 "COHORT_ROOM_ALLOCATION_ALREADY_REVERTED", "CohortRoomAllocation", allocation.getId(), null);
         }
 
+        List<Batch> batches = batchRepository.findByCohortRoomAllocationId(allocationId);
+        List<CohortSection> sections = cohortSectionRepository.findByCohortRoomAllocationId(allocationId);
+        List<Long> batchIds = batches.stream().map(Batch::getId).toList();
+        List<Long> sectionIds = sections.stream().map(CohortSection::getId).toList();
+
+        List<ClassSchedule> ridingCells = new java.util.ArrayList<>();
+        if (!batchIds.isEmpty()) ridingCells.addAll(classScheduleRepository.findByBatchIdInAndIsActiveTrue(batchIds));
+        if (!sectionIds.isEmpty()) ridingCells.addAll(classScheduleRepository.findByCohortSectionIdInAndIsActiveTrue(sectionIds));
+
+        // A already-published cell riding on this allocation means real faculty/students are
+        // already relying on it -- reverting the allocation underneath it would silently orphan a
+        // live timetable (still isActive=true, still blocking every conflict check, but invisible
+        // to Skeleton Builder's per-batch/per-section hour tally once its batch/section is
+        // deactivated below). Force an explicit unpublish first rather than let that happen quietly.
+        boolean hasPublished = ridingCells.stream().anyMatch(cs -> cs.getStatus() == ClassScheduleStatus.PUBLISHED);
+        if (hasPublished) {
+            throw new LifecycleConflictException(
+                "This allocation has already-published timetable sessions riding on it — unpublish or remove those "
+                    + "sessions before reverting the room allocation underneath them.",
+                "COHORT_ROOM_ALLOCATION_HAS_PUBLISHED_SESSIONS", "CohortRoomAllocation", allocation.getId(), null);
+        }
+
         allocation.setStatus(CohortRoomAllocationStatus.REVERTED);
         allocation.setRevertedBy(revertedBy);
         allocation.setRevertedAt(java.time.Instant.now());
         allocationRepository.save(allocation);
 
-        for (Batch batch : batchRepository.findByCohortRoomAllocationId(allocationId)) {
+        for (Batch batch : batches) {
             batch.setIsActive(false);
             batchRepository.save(batch);
         }
-        for (CohortSection section : cohortSectionRepository.findByCohortRoomAllocationId(allocationId)) {
+        for (CohortSection section : sections) {
             section.setIsActive(false);
             cohortSectionRepository.save(section);
         }
+        // DRAFT cells riding on the now-deactivated batches/sections would otherwise sit orphaned
+        // forever: still isActive=true, so still fully blocking their faculty/room/day/period in
+        // every future conflict check, yet no longer counted anywhere as "placed" since Skeleton
+        // Builder's tally only looks at the currently-active batch/section list. Deactivating them
+        // here frees the slot for re-placement and keeps the tally honest.
+        for (ClassSchedule cell : ridingCells) {
+            cell.setIsActive(false);
+            classScheduleRepository.save(cell);
+        }
 
         return toResponse(allocation);
+    }
+
+    /** Carries forward existing per-section faculty assignments (Assign Faculty) onto a freshly
+     *  committed section that replaces an earlier, now-reverted one with the same label -- without
+     *  this, every {@link CourseOfferingSectionFaculty} row for the old section stays pinned to it
+     *  forever once it's deactivated, invisibly orphaned exactly like the {@code class_schedules}
+     *  ghost-cell bug this mirrors (both stem from {@link #revert} creating a new generation of
+     *  {@link CohortSection} ids without anything downstream following along). Repeated
+     *  revert/recommit cycles can leave several stale generations sharing the same label; only the
+     *  most-recently-updated orphaned row per course offering is revived -- the rest are harmless
+     *  dead rows nothing will ever query again. */
+    private void migrateFacultyAssignmentsToNewSection(Long cohortId, String sectionLabel, CohortSection newSection) {
+        List<CourseOfferingSectionFaculty> orphaned = courseOfferingSectionFacultyRepository
+            .findByCohort_IdAndCohortSection_IsActiveFalseAndCohortSection_SectionLabel(cohortId, sectionLabel);
+        Map<Long, CourseOfferingSectionFaculty> freshestByOffering = new HashMap<>();
+        for (CourseOfferingSectionFaculty row : orphaned) {
+            Long offeringId = row.getCourseOffering().getId();
+            CourseOfferingSectionFaculty existing = freshestByOffering.get(offeringId);
+            java.time.Instant rowUpdatedAt = row.getUpdatedAt();
+            java.time.Instant existingUpdatedAt = existing != null ? existing.getUpdatedAt() : null;
+            if (existing == null || existingUpdatedAt == null
+                || (rowUpdatedAt != null && rowUpdatedAt.isAfter(existingUpdatedAt))) {
+                freshestByOffering.put(offeringId, row);
+            }
+        }
+        for (CourseOfferingSectionFaculty row : freshestByOffering.values()) {
+            row.setCohortSection(newSection);
+            courseOfferingSectionFacultyRepository.save(row);
+        }
     }
 
     private int resolveStrength(Cohort cohort, Long termInstanceId, Long cohortId, PlanningBasis basis) {

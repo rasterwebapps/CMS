@@ -7,84 +7,219 @@
         <p class="field-hint">Checking faculty assignments, capacity, and committed rooms…</p>
       }
 
-      @case ('prerequisites-incomplete') {
-        <p class="field-hint gas-warning">
-          Nothing has been placed yet — resolve the items below, then re-check.
+      @case ('checklist') {
+        <p class="field-hint">
+          Tick every milestone below to confirm you've reviewed it, then acknowledge to enable Run.
+          Nothing is placed until you do.
         </p>
 
-        @if ((prerequisites()?.offeringsWithoutFaculty ?? []).length > 0) {
-          <div class="gas-prereq-group">
-            <div class="gas-prereq-group__title">Offerings without faculty assigned</div>
-            <ul class="gas-contributors">
-              @for (o of prerequisites()!.offeringsWithoutFaculty; track o.courseOfferingId) {
-                <li>
-                  {{ o.subjectName }}{{ o.cohortName ? ' (' + o.cohortName + ')' : '' }}
-                  <a class="btn-secondary" routerLink="/assign-faculty"
-                    [queryParams]="{ academicYearId: academicYearId(), termInstanceId: termInstanceId(), editOfferingId: o.courseOfferingId }"
-                    target="_blank" rel="noopener">Assign faculty</a>
-                </li>
-              }
-            </ul>
-          </div>
-        }
-
-        @if (cohortsNeedingRoom().length > 0) {
-          <div class="gas-prereq-group">
-            <div class="gas-prereq-group__title">Cohorts without a committed room allocation</div>
-            <ul class="gas-contributors">
-              @for (c of cohortsNeedingRoom(); track c.cohortId) {
-                <li>{{ c.cohortName }}</li>
-              }
-            </ul>
-            <a class="btn-secondary" routerLink="/timetable/capacity-auto-plan"
-              [queryParams]="{ academicYearId: academicYearId(), termInstanceId: termInstanceId() }"
-              target="_blank" rel="noopener">Open Capacity Auto-Plan</a>
-          </div>
-        }
-
-        @if (overCapacityFaculty().length > 0) {
-          <div class="gas-prereq-group">
-            <div class="gas-prereq-group__title">Faculty over capacity</div>
-            @for (f of overCapacityFaculty(); track f.facultyId) {
-              <div class="gas-faculty-card">
-                <div class="gas-faculty-card__name">{{ f.facultyName }}</div>
-                <div class="gas-faculty-card__stat">
-                  Needs {{ f.totalTermDemandHours | number: '1.0-1' }}h across the term's {{ f.workingDaysInTerm }} working
-                  days — capacity is {{ f.termCapacityHours | number: '1.0-1' }}h ({{ f.effectiveDailyCapacityHours | number: '1.0-1' }}h/day
-                  from {{ tierLabel(f.dailyCapacityTier) }}), short by {{ f.shortfallHours | number: '1.0-1' }}h.
-                </div>
-                @if (f.topContributors.length > 0) {
-                  <ul class="gas-contributors">
-                    @for (c of f.topContributors; track c.courseOfferingId + '-' + c.cohortId + '-' + (c.cohortSectionId ? 's' + c.cohortSectionId : c.batchId ? 'b' + c.batchId : 'p')) {
-                      <li>
-                        {{ c.subjectName }} ({{ c.cohortName }}{{ c.cohortSectionLabel ? ' · ' + c.cohortSectionLabel : (c.batchName ? ' · ' + c.batchName : '') }}) — {{ sessionTypeLabel(c.sessionType) }}, {{ c.termHoursContributed | number: '1.0-1' }}h
-                      </li>
-                    }
-                  </ul>
-                }
-
-                <a class="btn-primary" [routerLink]="['/faculty', f.facultyId]"
-                  [queryParams]="{ termInstanceId: termInstanceId(), academicYearId: academicYearId() }" fragment="courses"
-                  target="_blank" rel="noopener">
-                  View full workload →
-                </a>
+        <ul class="gas-checklist">
+          @for (item of checklistItems(); track item.key) {
+            <li class="gas-checklist__item" [class.gas-checklist__item--warn]="item.warn">
+              <div class="gas-checklist__row">
+                <mat-checkbox [checked]="item.checked" [disabled]="!item.viewed" (change)="toggleChecklistItem(item.key)">
+                  @if (item.warn) { <span class="gas-checklist__icon">⚠</span> } @else { <span class="gas-checklist__icon">✓</span> }
+                  {{ item.label }}
+                </mat-checkbox>
+                <button type="button" class="btn-secondary gas-checklist__view" [class.gas-checklist__view--expanded]="item.expanded"
+                  (click)="toggleChecklistDetail(item.key)">
+                  {{ item.expanded ? '▾ Hide' : (item.viewed ? '▸ View again' : '▸ Open to review') }}
+                </button>
               </div>
-            }
-          </div>
-        }
-      }
 
-      @case ('ready') {
-        <p class="field-hint">Every prerequisite is clean. Nothing will be placed until you confirm.</p>
+              @if (item.expanded) {
+                <div class="gas-checklist__detail">
+                  @switch (item.key) {
+                    @case ('faculty') {
+                      @if ((prerequisites()?.offeringsWithoutFaculty ?? []).length > 0) {
+                        <ul class="gas-contributors">
+                          @for (o of prerequisites()!.offeringsWithoutFaculty; track o.courseOfferingId) {
+                            <li>
+                              {{ o.subjectName }}{{ o.cohortName ? ' (' + o.cohortName + ')' : '' }}
+                              <button type="button" class="btn-secondary" (click)="onAssignFaculty(o.courseOfferingId)">Assign faculty</button>
+                            </li>
+                          }
+                        </ul>
+                      } @else {
+                        <p class="field-hint">Every offering in this run already has faculty assigned — nothing to fix here.</p>
+                      }
+                    }
+
+                    @case ('room') {
+                      @if (cohortsNeedingRoom().length > 0) {
+                        <ul class="gas-contributors">
+                          @for (c of cohortsNeedingRoom(); track c.cohortId) {
+                            <li>{{ c.cohortName }}</li>
+                          }
+                        </ul>
+                        <a class="btn-secondary" routerLink="/timetable/capacity-auto-plan"
+                          [queryParams]="{ academicYearId: academicYearId(), termInstanceId: termInstanceId() }"
+                          target="_blank" rel="noopener">Open Capacity Auto-Plan</a>
+                      } @else {
+                        <p class="field-hint">Every cohort in this run already has a committed room allocation.</p>
+                      }
+                    }
+
+                    @case ('over-capacity') {
+                      @if (overCapacityFaculty().length > 0) {
+                        @for (f of overCapacityFaculty(); track f.facultyId) {
+                          <div class="gas-faculty-card">
+                            <div class="gas-faculty-card__name">{{ f.facultyName }}</div>
+                            <div class="gas-faculty-card__stat">
+                              Needs {{ f.totalTermDemandHours | number: '1.0-1' }}h across the term's {{ f.workingDaysInTerm }} working
+                              days — capacity is {{ f.termCapacityHours | number: '1.0-1' }}h ({{ f.effectiveDailyCapacityHours | number: '1.0-1' }}h/day
+                              from {{ tierLabel(f.dailyCapacityTier) }}), short by {{ f.shortfallHours | number: '1.0-1' }}h.
+                            </div>
+                            @if (f.topContributors.length > 0) {
+                              <ul class="gas-contributors">
+                                @for (c of f.topContributors; track c.courseOfferingId + '-' + c.cohortId + '-' + (c.cohortSectionId ? 's' + c.cohortSectionId : c.batchId ? 'b' + c.batchId : 'p')) {
+                                  <li>
+                                    {{ c.subjectName }} ({{ c.cohortName }}{{ c.cohortSectionLabel ? ' · ' + c.cohortSectionLabel : (c.batchName ? ' · ' + c.batchName : '') }}) — {{ sessionTypeLabel(c.sessionType) }}, {{ c.termHoursContributed | number: '1.0-1' }}h
+                                  </li>
+                                }
+                              </ul>
+                            }
+                            <a class="btn-primary" [routerLink]="['/faculty', f.facultyId]"
+                              [queryParams]="{ termInstanceId: termInstanceId(), academicYearId: academicYearId() }" fragment="courses"
+                              target="_blank" rel="noopener">
+                              View full workload →
+                            </a>
+                          </div>
+                        }
+                      } @else {
+                        <p class="field-hint">No faculty in this run exceeds their term capacity.</p>
+                      }
+                    }
+
+                    @case ('capacity-gap') {
+                      @if (capacityOverview(); as o) {
+                        <div class="gas-faculty-card" [class.gas-faculty-card--tight]="hasCapacityGap()">
+                          <div class="gas-faculty-card__stat">
+                            This term's curriculum needs {{ o.totalCurriculumRequiredHours | number: '1.0-0' }}h total —
+                            the faculty pool's combined term capacity is {{ o.totalFacultyCapacityHours | number: '1.0-0' }}h.
+                            @if (hasCapacityGap()) {
+                              That's short by {{ capacityGapHours() | number: '1.0-0' }}h, structurally — no amount of
+                              rescheduling closes this on its own.
+                            } @else {
+                              Capacity covers the term's full demand; any remaining unplaced sessions come down to
+                              scheduling conflicts, not a raw hours shortfall.
+                            }
+                          </div>
+
+                          <div class="gas-shortfall__actions">
+                            @if (canManageWorkloadRules()) {
+                              <button type="button" class="btn-secondary" (click)="openWorkloadRulesEditor()">Raise workload caps</button>
+                            }
+                            @if (canManageWorkingSaturdays()) {
+                              <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+                            }
+                            @if (canManageFaculty()) {
+                              <a class="btn-secondary" routerLink="/faculty/new" target="_blank" rel="noopener">Add Faculty →</a>
+                            }
+                            <a class="btn-secondary" routerLink="/timetable/capacity-planner"
+                              [queryParams]="{ termInstanceId: termInstanceId(), academicYearId: academicYearId() }"
+                              target="_blank" rel="noopener">View full Capacity Planner →</a>
+                          </div>
+
+                          @if (editingWorkloadRules()) {
+                            <div class="gas-workload-edit">
+                              <label>
+                                Max daily hours (institution-wide)
+                                <input type="number" min="0" step="0.5" name="draftMaxDailyHours"
+                                  [ngModel]="draftMaxDailyHours()" (ngModelChange)="draftMaxDailyHours.set($event)" />
+                              </label>
+                              <label>
+                                Max weekly hours (institution-wide)
+                                <input type="number" min="0" step="0.5" name="draftMaxWeeklyHours"
+                                  [ngModel]="draftMaxWeeklyHours()" (ngModelChange)="draftMaxWeeklyHours.set($event)" />
+                              </label>
+                              @if (overriddenFacultyCount() > 0) {
+                                <label class="gas-workload-edit__checkbox">
+                                  <input type="checkbox" name="bulkRaiseOverrides"
+                                    [ngModel]="bulkRaiseOverrides()" (ngModelChange)="bulkRaiseOverrides.set($event)" />
+                                  Also raise {{ overriddenFacultyCount() }} faculty member(s)' own personal override to this daily value
+                                </label>
+                                <p class="field-hint">
+                                  {{ overriddenFacultyCount() }} of {{ (capacityOverview()?.rows ?? []).length }} faculty already have
+                                  their own personal daily cap — a personal override always wins over this institution-wide default, so
+                                  without ticking this, saving here won't change their actual capacity at all.
+                                </p>
+                              } @else {
+                                <p class="field-hint">
+                                  No faculty currently has a personal override, so this institution-wide default is what everyone
+                                  actually uses today.
+                                </p>
+                              }
+                              <div class="gas-shortfall__actions">
+                                <button type="button" class="btn-cancel" (click)="cancelWorkloadRulesEdit()">Cancel</button>
+                                <button type="button" class="btn-primary" (click)="saveWorkloadRules()">Save</button>
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+                    }
+
+                    @case ('tight-capacity') {
+                      @if (tightCapacityFaculty().length > 0) {
+                        @for (f of tightCapacityFaculty(); track f.facultyId) {
+                          <div class="gas-faculty-card gas-faculty-card--tight">
+                            <div class="gas-faculty-card__name">{{ f.facultyName }} — {{ f.utilizationPercent | number: '1.0-1' }}% utilized</div>
+                            <div class="gas-faculty-card__stat">
+                              Needs {{ f.totalTermDemandHours | number: '1.0-1' }}h against a {{ f.termCapacityHours | number: '1.0-1' }}h capacity
+                              ({{ f.effectiveDailyCapacityHours | number: '1.0-1' }}h/day from {{ tierLabel(f.dailyCapacityTier) }}) — the aggregate
+                              hours fit, but there's little to no room for real day/period packing to also succeed perfectly.
+                            </div>
+                            @if (f.topContributors.length > 0) {
+                              <ul class="gas-contributors">
+                                @for (c of f.topContributors; track c.courseOfferingId + '-' + c.cohortId + '-' + (c.cohortSectionId ? 's' + c.cohortSectionId : c.batchId ? 'b' + c.batchId : 'p')) {
+                                  <li>
+                                    {{ c.subjectName }} ({{ c.cohortName }}{{ c.cohortSectionLabel ? ' · ' + c.cohortSectionLabel : (c.batchName ? ' · ' + c.batchName : '') }}) — {{ sessionTypeLabel(c.sessionType) }}, {{ c.termHoursContributed | number: '1.0-1' }}h
+                                  </li>
+                                }
+                              </ul>
+                            }
+                            <a class="btn-secondary" [routerLink]="['/faculty', f.facultyId]"
+                              [queryParams]="{ termInstanceId: termInstanceId(), academicYearId: academicYearId() }" fragment="courses"
+                              target="_blank" rel="noopener">
+                              View full workload →
+                            </a>
+                          </div>
+                        }
+                      } @else {
+                        <p class="field-hint">No faculty in this run is at zero-slack capacity.</p>
+                      }
+                    }
+                  }
+                </div>
+              }
+            </li>
+          }
+        </ul>
+
+        <div class="gas-ack">
+          <mat-checkbox [checked]="acknowledged()" (change)="toggleAcknowledged()">
+            I've reviewed every milestone above and understand what running now will (and won't) place.
+          </mat-checkbox>
+        </div>
       }
 
       @case ('running') {
-        <p class="field-hint">Placing and staffing every remaining session…</p>
+        <div class="gas-running">
+          <mat-spinner diameter="28" />
+          <div>
+            <p class="field-hint">Placing and staffing every remaining session… this can take several minutes for "All cohorts" — please wait, this panel can't be closed until it finishes.</p>
+            <p class="field-hint gas-elapsed">{{ elapsedSeconds() }}s elapsed — still working, each session is committed as soon as it's placed.</p>
+          </div>
+        </div>
       }
 
       @case ('success') {
         @if (result(); as r) {
           <p class="field-hint">Placed and staffed {{ r.totalPlaced }} session(s) across {{ r.cohortSummaries.length }} cohort(s).</p>
+          @if (r.staleDraftsCleared > 0) {
+            <p class="field-hint gas-warning">Cleared {{ r.staleDraftsCleared }} stale over-budget draft session(s) left over from before this run started.</p>
+          }
           <ul class="gas-contributors">
             @for (c of r.cohortSummaries; track c.cohortId) {
               <li>
@@ -110,6 +245,25 @@
               </ul>
             </div>
           }
+
+          @if (hasShortfall()) {
+            <div class="gas-prereq-group gas-shortfall">
+              <div class="gas-prereq-group__title">Monday–Friday didn't have room for everything above</div>
+              <p class="field-hint">
+                Two ways to close the gap: open up specific Saturdays for automation to use next run,
+                or request a one-off Special Class for whatever's still short.
+              </p>
+              <div class="gas-shortfall__actions">
+                <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+                @if (singleShortfallSubject(); as subject) {
+                  <button type="button" class="btn-primary" (click)="openSpecialClass(subject)">
+                    Schedule Special Class for {{ subject.subjectName }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
           <a class="btn-secondary" routerLink="/timetable/draft-review"
             [queryParams]="{ academicYearId: academicYearId(), termInstanceId: termInstanceId() }">
             Review and approve on Draft Review →
@@ -124,12 +278,32 @@
   </div>
 
   <div flyoutFooter>
-    <button type="button" class="btn-cancel" (click)="onClose()">Close</button>
-    @if (step() === 'prerequisites-incomplete' || step() === 'run-failed') {
+    <button type="button" class="btn-cancel" [disabled]="step() === 'running'" (click)="onClose()">Close</button>
+    @if (step() === 'checklist' || step() === 'run-failed') {
       <button type="button" class="btn-secondary" (click)="runCheckPrerequisites()">Re-check</button>
     }
-    @if (step() === 'ready') {
-      <button type="button" class="btn-primary" (click)="runGlobalSchedule()">Run Global Auto-Schedule</button>
+    @if (step() === 'checklist') {
+      <button type="button" class="btn-primary" [disabled]="!canRun()" (click)="runGlobalSchedule()">Run Global Auto-Schedule</button>
     }
   </div>
 </cms-flyout-panel>
+
+@if (showWorkingSaturdaysFlyout()) {
+  <app-working-saturdays-flyout
+    [termInstanceId]="termInstanceId()"
+    (closed)="onWorkingSaturdaysClosed()"
+    (saved)="onWorkingSaturdaysSaved()">
+  </app-working-saturdays-flyout>
+}
+
+@if (specialClassPrefill(); as subject) {
+  <app-special-class-request-flyout
+    [prefillAcademicYearId]="academicYearId()"
+    [prefillTermInstanceId]="termInstanceId()"
+    [prefillCohortId]="subject.cohortId"
+    [prefillCourseOfferingId]="subject.courseOfferingId"
+    [prefillSessionType]="subject.sessionType"
+    (closed)="onSpecialClassClosed()"
+    (saved)="onSpecialClassSaved()">
+  </app-special-class-request-flyout>
+}

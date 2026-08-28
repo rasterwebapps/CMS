@@ -1,15 +1,18 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
+import { from } from 'rxjs';
+import { concatMap } from 'rxjs/operators';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, CohortSummary, TermInstance } from '../../academic-year/academic-year.model';
 import { PeriodService } from '../../period/period.service';
 import { Period } from '../../period/period.model';
 import { SkeletonBuilderService } from './skeleton-builder.service';
-import { SkeletonBuilderResponse, SkeletonCell, SkeletonPlacementCandidate, SkeletonSectionOption, SkeletonSessionType, SkeletonSubject } from './skeleton-builder.model';
+import { SkeletonBuilderResponse, SkeletonCell, SkeletonCellPlacementRequest, SkeletonSessionType } from './skeleton-builder.model';
 import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/week-grid.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
@@ -17,6 +20,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { RotationSetupFlyoutComponent } from '../rotation-setup/rotation-setup-flyout.component';
 import { ElectiveSlotBlockFlyoutComponent } from './elective-slot-block-flyout.component';
 import { GlobalAutoScheduleReportFlyoutComponent } from './global-auto-schedule-report-flyout.component';
+import { WorkingSaturdaysFlyoutComponent } from './working-saturdays-flyout.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { colorForSubject } from './subject-color.util';
 import { violationText } from '../../../shared/util/violation-text';
@@ -24,10 +28,40 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { SKELETON_BUILDER_TOUR, SKELETON_BUILDER_FLOW_MAP } from '../../../shared/tour/tours/skeleton-builder.tours';
 
+/** "HH:mm:ss" -> decimal hours between two times on the same day. */
+function hoursBetween(startTime: string, endTime: string): number {
+  const toMinutes = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+  return (toMinutes(endTime) - toMinutes(startTime)) / 60;
+}
+
+interface HoursBreakdown {
+  total: number;
+  assigned: number;
+  unassigned: number;
+}
+
+interface HoursSummary {
+  /** Raw weekly-grid capacity for a single section's timetable — every active period's own
+   *  duration, summed across Monday-Friday plus this term's real working-Saturday count, over the
+   *  whole term. This is the ceiling Theory (one exclusive session per slot) is actually bound by;
+   *  Lab/Clinical can exceed it since multiple batches run the same slot in parallel rooms, so
+   *  don't read "unassigned > available" as impossible for those two. */
+  availableHours: number;
+  /** Sum of theory+lab+clinical — "how many hours this term needs/has in total", independent of
+   *  session type. */
+  overall: HoursBreakdown;
+  theory: HoursBreakdown;
+  lab: HoursBreakdown;
+  clinical: HoursBreakdown;
+}
+
 @Component({
   selector: 'app-skeleton-builder',
   standalone: true,
-  imports: [FormsModule, RouterLink, MatDialogModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent, ElectiveSlotBlockFlyoutComponent, GlobalAutoScheduleReportFlyoutComponent, CmsEmptyStateComponent, DragDropModule, CmsTourButtonComponent],
+  imports: [FormsModule, DecimalPipe, RouterLink, MatDialogModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent, ElectiveSlotBlockFlyoutComponent, GlobalAutoScheduleReportFlyoutComponent, WorkingSaturdaysFlyoutComponent, CmsEmptyStateComponent, DragDropModule, CmsTourButtonComponent],
   templateUrl: './skeleton-builder.component.html',
   styleUrl: './skeleton-builder.component.scss',
 })
@@ -49,9 +83,6 @@ export class SkeletonBuilderComponent implements OnInit {
   protected readonly termsLoading = signal(false);
   protected readonly cohortsLoading = signal(false);
   protected readonly skeletonLoading = signal(false);
-  protected readonly placing = signal(false);
-  protected readonly suggesting = signal(false);
-  protected readonly autoPlacing = signal(false);
 
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
@@ -65,62 +96,81 @@ export class SkeletonBuilderComponent implements OnInit {
   protected readonly allCohortsSelected = signal(false);
   protected readonly showGlobalAutoSchedule = signal(false);
 
-  /** Which subject in the rail is currently "active" for placement/suggest — the grid itself
-   *  always shows every subject's cells together, this only scopes the placement panel + Suggest
-   *  affordance. */
-  protected activeOfferingId: number | null = null;
-
   protected readonly days = WEEK_GRID_DAYS;
   protected readonly dayLabels = WEEK_GRID_DAY_LABELS;
 
-  protected readonly selectedCell = signal<{ day: string; periodId: number } | null>(null);
-  protected selectedSessionType: SkeletonSessionType = 'THEORY';
-  protected selectedBatchId: number | null = null;
-  protected selectedCohortSectionId: number | null = null;
-  /** OC-127 periodSpan: null means an ordinary single-period session; otherwise the id of the last
-   *  period this one session also occupies (every period between the selected cell's own period
-   *  and this one, inclusive, per {@link spanPeriodIds}). */
-  protected selectedSpanThroughPeriodId: number | null = null;
-
-  protected readonly candidates = signal<SkeletonPlacementCandidate[]>([]);
-
-  protected readonly needsBatch = computed(() => this.selectedSessionType !== 'THEORY');
-  protected readonly needsSection = computed(() => this.selectedSessionType === 'THEORY' && this.activeSections().length > 0);
-  protected readonly selectedPeriod = computed(() => {
-    const cell = this.selectedCell();
-    if (!cell) return null;
-    return this.periods().find((p) => p.id === cell.periodId) ?? null;
-  });
-  /** OC-127 periodSpan: the periods immediately after the selected cell's own period, offered as
-   *  "spans through period X" choices — picking one implicitly spans every period in between too,
-   *  so the placement panel never asks the user to hand-pick a set of periods that could contain
-   *  a gap. */
-  protected readonly spanOptions = computed<Period[]>(() => {
-    const cell = this.selectedCell();
-    if (!cell) return [];
-    const periods = this.periods();
-    const idx = periods.findIndex((p) => p.id === cell.periodId);
-    return idx === -1 ? [] : periods.slice(idx + 1);
-  });
-  protected readonly activeSubject = computed<SkeletonSubject | null>(() => {
-    const id = this.activeOfferingId;
-    if (!id) return null;
-    return this.skeleton()?.subjects.find((s) => s.courseOfferingId === id) ?? null;
-  });
-  protected readonly activeBatches = computed(() => {
-    const id = this.activeOfferingId;
-    if (!id) return [];
-    return this.skeleton()?.batches.filter((b) => b.courseOfferingId === id) ?? [];
-  });
-  protected readonly activeSections = computed<SkeletonSectionOption[]>(() => this.skeleton()?.sections ?? []);
-
   protected readonly showRotationSetup = signal(false);
   protected readonly showElectiveBlock = signal(false);
+  protected readonly showWorkingSaturdays = signal(false);
   protected readonly hasElectiveGroup = computed(() =>
     (this.skeleton()?.subjects ?? []).some((s) => s.electiveGroupId != null));
   /** Drives the single-cohort "no schedule yet, run automation?" CTA — the grid itself still
    *  renders unconditionally underneath, this only decides whether the CTA is prominent. */
   protected readonly hasNoCells = computed(() => (this.skeleton()?.cells.length ?? 0) === 0);
+
+  /** 'ALL' (default) shows every section combined, matching pre-existing behavior. A cohort with
+   *  more than one committed Theory section otherwise renders every section's cells stacked into
+   *  the same slot, which reads as clutter rather than a real scheduling conflict — this lets an
+   *  admin isolate one section's actual week at a time. Reset on every cohort/term reload so a
+   *  stale section id from a previous cohort can never silently linger. */
+  protected readonly selectedSectionId = signal<number | 'ALL'>('ALL');
+
+  protected selectSection(sectionId: number | 'ALL'): void {
+    this.selectedSectionId.set(sectionId);
+  }
+
+  /** Theory/Lab/Clinical total (curriculum-required) vs. assigned (actually placed) vs.
+   *  unassigned hours for the whole term, scoped to whatever the section tabs are currently
+   *  showing — a cell/budget row with no section at all (cohortSectionId null) always counts,
+   *  matching {@link cellsFor}'s own "applies to every section" rule. {@link
+   *  HoursSummary#overall} sums all three types together. Assigned hours use each cell's REAL
+   *  occurrence rate, not a flat "sessions placed" count: a Mon-Fri cell recurs every one of the
+   *  term's {@link SkeletonBuilderResponse#weeksInTerm} weeks, but a Saturday-placed one only
+   *  recurs {@link SkeletonBuilderResponse#workingSaturdayCount} times — 0 whenever this term
+   *  hasn't opted into a working-Saturday pattern, since such a cell could only exist as
+   *  pre-existing legacy data from before that pattern was configured (today's placement/swap/
+   *  move all hard-block it). */
+  protected readonly hoursSummary = computed<HoursSummary | null>(() => {
+    const sk = this.skeleton();
+    if (!sk) return null;
+    const sectionFilter = this.selectedSectionId();
+    const appliesToFilter = (cohortSectionId: number | null) =>
+      sectionFilter === 'ALL' || cohortSectionId == null || cohortSectionId === sectionFilter;
+
+    const total: Record<SkeletonSessionType, number> = { THEORY: 0, LAB: 0, CLINICAL: 0 };
+    for (const subject of sk.subjects) {
+      for (const budget of subject.budgets) {
+        if (!appliesToFilter(budget.cohortSectionId)) continue;
+        total[budget.sessionType] += budget.totalHours;
+      }
+    }
+
+    const assigned: Record<SkeletonSessionType, number> = { THEORY: 0, LAB: 0, CLINICAL: 0 };
+    for (const cell of sk.cells) {
+      if (!appliesToFilter(cell.cohortSectionId)) continue;
+      const occurrences = cell.dayOfWeek === 'SATURDAY' ? sk.workingSaturdayCount : sk.weeksInTerm;
+      assigned[cell.sessionType] += hoursBetween(cell.startTime, cell.endTime) * occurrences;
+    }
+
+    const breakdown = (type: SkeletonSessionType): HoursBreakdown => ({
+      total: total[type],
+      assigned: assigned[type],
+      unassigned: Math.max(0, total[type] - assigned[type]),
+    });
+    const theory = breakdown('THEORY');
+    const lab = breakdown('LAB');
+    const clinical = breakdown('CLINICAL');
+    const overall: HoursBreakdown = {
+      total: theory.total + lab.total + clinical.total,
+      assigned: theory.assigned + lab.assigned + clinical.assigned,
+      unassigned: theory.unassigned + lab.unassigned + clinical.unassigned,
+    };
+
+    const dailyGridHours = this.periods().reduce((sum, p) => sum + p.durationMinutes / 60, 0);
+    const availableHours = dailyGridHours * (5 * sk.weeksInTerm + sk.workingSaturdayCount);
+
+    return { availableHours, overall, theory, lab, clinical };
+  });
 
   protected canManage(): boolean {
     return this.permissionService.has('TIMETABLE_SKELETON_MANAGE');
@@ -128,10 +178,6 @@ export class SkeletonBuilderComponent implements OnInit {
 
   protected canMove(): boolean {
     return this.permissionService.has('TIMETABLE_SKELETON_MOVE');
-  }
-
-  protected canAutoPlace(): boolean {
-    return this.permissionService.has('TIMETABLE_SKELETON_AUTO_PLACE');
   }
 
   protected canPlaceElectiveGroup(): boolean {
@@ -180,33 +226,6 @@ export class SkeletonBuilderComponent implements OnInit {
     this.reloadSkeleton();
   }
 
-  /** Fills whatever shortfall remains for the current cohort/term in one shot — electives are
-   *  skipped server-side (they need a free room pick and same-slot group coordination, left
-   *  manual for now), and every other constraint (blocked periods, cohort-exclusivity, ...) is the
-   *  same check manual placement already goes through. Manual placement stays fully available
-   *  alongside this — it only fills what's short, never touches an already-placed cell. */
-  protected onAutoPlaceClick(): void {
-    const termInstanceId = this.selectedTermInstanceId;
-    const cohortId = this.selectedCohortId;
-    if (!termInstanceId || !cohortId || this.autoPlacing()) return;
-    this.autoPlacing.set(true);
-    this.skeletonService.autoPlace(termInstanceId, cohortId).subscribe({
-      next: (result) => {
-        this.autoPlacing.set(false);
-        if (result.placedCount > 0) this.toast.success(`Placed ${result.placedCount} session(s)`);
-        if (result.unplaced.length > 0) {
-          this.toast.warning(result.unplaced.map((u) => `${u.subjectName} (${u.sessionType}): ${u.reason}`).join('\n'));
-        }
-        if (result.placedCount === 0 && result.unplaced.length === 0) this.toast.info('Nothing left to auto-place');
-        this.reloadSkeleton();
-      },
-      error: (err) => {
-        this.autoPlacing.set(false);
-        this.toast.error(err?.error?.message ?? 'Failed to auto-place');
-      },
-    });
-  }
-
   protected canManageRotation(): boolean {
     return this.permissionService.has('TIMETABLE_ROTATION_MANAGE');
   }
@@ -221,6 +240,25 @@ export class SkeletonBuilderComponent implements OnInit {
 
   protected onRotationSaved(): void {
     this.showRotationSetup.set(false);
+    this.reloadSkeleton();
+  }
+
+  protected canManageWorkingSaturdays(): boolean {
+    return this.permissionService.has('TIMETABLE_WORKING_SATURDAYS_MANAGE');
+  }
+
+  protected openWorkingSaturdays(): void {
+    this.showWorkingSaturdays.set(true);
+  }
+
+  protected onWorkingSaturdaysClosed(): void {
+    this.showWorkingSaturdays.set(false);
+  }
+
+  /** A new/changed pattern changes which Saturdays are usable, which changes real occurrence
+   *  counts — reload so the hours summary and grid both reflect it immediately. */
+  protected onWorkingSaturdaysSaved(): void {
+    this.showWorkingSaturdays.set(false);
     this.reloadSkeleton();
   }
 
@@ -249,7 +287,6 @@ export class SkeletonBuilderComponent implements OnInit {
   protected onAcademicYearChange(): void {
     this.selectedTermInstanceId = null;
     this.skeleton.set(null);
-    this.activeOfferingId = null;
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
@@ -269,7 +306,6 @@ export class SkeletonBuilderComponent implements OnInit {
       this.allCohortsSelected.set(true);
       this.selectedCohortId = null;
       this.skeleton.set(null);
-      this.cancelPlacement();
       return;
     }
     this.allCohortsSelected.set(false);
@@ -309,11 +345,13 @@ export class SkeletonBuilderComponent implements OnInit {
 
   /** Term instances and cohorts load independently (in parallel) — this only fires the skeleton
    *  fetch once both a term and a cohort are actually selected, regardless of which one resolves
-   *  last. */
+   *  last. A genuine cohort/term switch resets the section filter — a section id from the
+   *  previous cohort has no meaning for this one — but {@link reloadSkeleton} (post-edit refresh
+   *  of the *same* cohort) must not, or every drag/remove would silently kick the admin back to
+   *  the combined "All Sections" view they'd deliberately narrowed away from. */
   private tryLoadSkeleton(): void {
-    this.cancelPlacement();
-    this.activeOfferingId = null;
     if (this.selectedTermInstanceId && this.selectedCohortId) {
+      this.selectedSectionId.set('ALL');
       this.loadSkeleton(this.selectedTermInstanceId, this.selectedCohortId);
     } else {
       this.skeleton.set(null);
@@ -328,14 +366,10 @@ export class SkeletonBuilderComponent implements OnInit {
 
   private loadSkeleton(termInstanceId: number, cohortId: number): void {
     this.skeletonLoading.set(true);
-    this.cancelPlacement();
-    this.candidates.set([]);
     this.skeletonService.getCohortSkeleton(termInstanceId, cohortId).subscribe({
       next: (data) => {
         this.skeleton.set(data);
         this.skeletonLoading.set(false);
-        const stillPresent = data.subjects.some((s) => s.courseOfferingId === this.activeOfferingId);
-        if (!stillPresent) this.activeOfferingId = data.subjects[0]?.courseOfferingId ?? null;
       },
       error: (err) => {
         this.toast.error(err?.error?.message ?? 'Failed to load skeleton');
@@ -345,25 +379,116 @@ export class SkeletonBuilderComponent implements OnInit {
     });
   }
 
-  protected onSubjectSelect(courseOfferingId: number): void {
-    this.activeOfferingId = courseOfferingId;
-    this.cancelPlacement();
-    this.candidates.set([]);
-  }
-
   /** A (day, period) slot can hold more than one cell — e.g. two parallel Lab batches in
    *  different rooms, a Rotation Group's linked cells, or (now cohort-wide) another subject
    *  entirely — so this returns every cell sharing that slot across the whole cohort. */
   protected cellsFor(day: string, periodId: number): SkeletonCell[] {
-    return this.skeleton()?.cells.filter((c) => c.dayOfWeek === day && c.periodId === periodId) ?? [];
+    const sectionFilter = this.selectedSectionId();
+    return this.skeleton()?.cells.filter((c) => c.dayOfWeek === day && c.periodId === periodId
+      && (sectionFilter === 'ALL' || c.cohortSectionId == null || c.cohortSectionId === sectionFilter)) ?? [];
   }
 
   protected subjectColor(courseOfferingId: number): string {
     return colorForSubject(courseOfferingId);
   }
 
-  protected isCandidate(day: string, periodId: number): boolean {
-    return this.candidates().some((c) => c.dayOfWeek === day && c.periodId === periodId);
+  /** Whether {@code cell} has a same-subject/type/occupant cell in the immediately adjacent period
+   *  of the same day — used purely to decide the visual "joined" border treatment for a run of
+   *  periods extended via {@link onResizeHandleMouseDown}. Every period in the run is still its
+   *  own fully independent {@link SkeletonCell} (own id, individually movable/removable/staffable)
+   *  — this never implies or requires a shared {@code sessionGroupId}, unlike the separate
+   *  periodSpan mechanism. */
+  protected hasMatchingAdjacent(cell: SkeletonCell, direction: 1 | -1): boolean {
+    const periods = this.periods();
+    const idx = periods.findIndex((p) => p.id === cell.periodId);
+    const neighbor = periods[idx + direction];
+    if (idx < 0 || !neighbor) return false;
+    return this.cellsFor(cell.dayOfWeek, neighbor.id).some((c) => this.sameOccupant(c, cell));
+  }
+
+  private sameOccupant(a: SkeletonCell, b: SkeletonCell): boolean {
+    return a.courseOfferingId === b.courseOfferingId && a.sessionType === b.sessionType
+      && a.batchId === b.batchId && a.cohortSectionId === b.cohortSectionId;
+  }
+
+  /** Drag-resize handle on an unstaffed cell's trailing edge — extends it into the following
+   *  period(s) of the same day by placing ordinary new single-period cells for the same subject/
+   *  type/batch/section, one {@link SkeletonBuilderService#placeCell} call per period (never
+   *  {@code spanPeriodIds}), so each stays independently editable afterward; {@link
+   *  hasMatchingAdjacent} then draws them as one continuous-looking block. Tracks the pointer via
+   *  plain DOM events (not CDK drag-drop, which is for moving between drop lists, not resizing)
+   *  and resolves the hovered period from {@code elementFromPoint} against the `data-period-id`/
+   *  `data-day` attributes stamped on every grid `<td>`. */
+  protected onResizeHandleMouseDown(event: MouseEvent, cell: SkeletonCell): void {
+    event.preventDefault();
+    event.stopPropagation();
+    let extraPeriods = 0;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const target = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+      const td = target?.closest('td[data-period-id]') as HTMLElement | null;
+      if (!td || td.getAttribute('data-day') !== cell.dayOfWeek) return;
+      const targetPeriodId = Number(td.getAttribute('data-period-id'));
+      const periods = this.periods();
+      const startIdx = periods.findIndex((p) => p.id === cell.periodId);
+      const targetIdx = periods.findIndex((p) => p.id === targetPeriodId);
+      extraPeriods = Math.max(0, targetIdx - startIdx);
+    };
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      if (extraPeriods > 0) {
+        this.extendCellForward(cell, extraPeriods);
+      }
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }
+
+  /** Places one new independent cell per period in {@code cell}'s next {@code extraPeriods}
+   *  periods (same day) — stops and reports the first period that's already occupied by something
+   *  else, silently skipping one that already matches (e.g. automation already placed this same
+   *  subject there). Sequenced with {@code concatMap} rather than fired in parallel so a mid-range
+   *  conflict is reported against the exact period it failed at, not a jumble of concurrent
+   *  responses; the skeleton is reloaded either way so whatever did succeed before a failure is
+   *  never left invisible. */
+  private extendCellForward(cell: SkeletonCell, extraPeriods: number): void {
+    const cohortId = this.selectedCohortId;
+    const periods = this.periods();
+    const startIdx = periods.findIndex((p) => p.id === cell.periodId);
+    if (!cohortId || startIdx < 0) return;
+
+    const requests: SkeletonCellPlacementRequest[] = [];
+    for (const period of periods.slice(startIdx + 1, startIdx + 1 + extraPeriods)) {
+      const occupants = this.cellsFor(cell.dayOfWeek, period.id);
+      if (occupants.some((c) => this.sameOccupant(c, cell))) continue;
+      if (occupants.length > 0) {
+        this.toast.error(`Can't extend into ${period.name} — already occupied by another session.`);
+        break;
+      }
+      requests.push({
+        courseOfferingId: cell.courseOfferingId,
+        sessionType: cell.sessionType,
+        dayOfWeek: cell.dayOfWeek,
+        periodId: period.id,
+        batchId: cell.batchId,
+        cohortId,
+        cohortSectionId: cell.cohortSectionId,
+        spanPeriodIds: null,
+      });
+    }
+    if (requests.length === 0) return;
+
+    from(requests).pipe(concatMap((req) => this.skeletonService.placeCell(req))).subscribe({
+      error: (err) => {
+        this.toast.error(violationText(err) ?? 'Failed to extend session');
+        this.reloadSkeleton();
+      },
+      complete: () => {
+        this.toast.success('Extended');
+        this.reloadSkeleton();
+      },
+    });
   }
 
   /** Lab/Clinical sessions from two different subjects sharing a slot aren't hard-blocked (batch
@@ -386,97 +511,47 @@ export class SkeletonBuilderComponent implements OnInit {
 
   protected onCellChipClick(cell: SkeletonCell): void {
     if (!this.canManage()) return;
-    if (cell.isStaffed) return; // read-only once staffed -- edit via Class Schedule screen
+    if (cell.isStaffed) {
+      // Read-only once staffed via click (edit through the Class Schedule screen instead) — this
+      // used to just silently do nothing, which is indistinguishable from a broken click on a grid
+      // where every cell is staffed.
+      this.toast.error('This session is already staffed — remove or reassign its faculty on the Class Schedule screen first.');
+      return;
+    }
     this.confirmRemove(cell);
   }
 
-  /** Opens the placement panel for this slot — always available, even when the slot already
-   *  has one or more cells, so a second parallel batch (or another subject) can be added. */
-  protected onAddClick(day: string, periodId: number): void {
-    if (!this.canManage() || !this.activeOfferingId) return;
-    this.selectedCell.set({ day, periodId });
-    this.selectedSessionType = 'THEORY';
-    this.selectedBatchId = null;
-    this.selectedSpanThroughPeriodId = null;
-    this.autoSelectSoleSection();
-  }
-
-  /** Re-run the auto-select whenever the panel's session-type radio flips (back) to THEORY, so
-   *  the trivial single-section case never forces an extra click regardless of which type was
-   *  picked first. */
-  protected onSessionTypeChange(): void {
-    this.selectedBatchId = null;
-    this.selectedCohortSectionId = null;
-    this.autoSelectSoleSection();
-  }
-
-  private autoSelectSoleSection(): void {
-    const sections = this.activeSections();
-    this.selectedCohortSectionId = sections.length === 1 ? sections[0].id : null;
-  }
-
-  /** OC-127 periodSpan: every period strictly between {@code fromPeriodId} and the chosen
-   *  "spans through" period, inclusive of the latter — null when no span was chosen. */
-  private spanPeriodIds(fromPeriodId: number): number[] | null {
-    const throughId = this.selectedSpanThroughPeriodId;
-    if (!throughId) return null;
-    const periods = this.periods();
-    const fromIdx = periods.findIndex((p) => p.id === fromPeriodId);
-    const throughIdx = periods.findIndex((p) => p.id === throughId);
-    if (fromIdx === -1 || throughIdx === -1 || throughIdx <= fromIdx) return null;
-    return periods.slice(fromIdx + 1, throughIdx + 1).map((p) => p.id);
-  }
-
-  protected cancelPlacement(): void {
-    this.selectedCell.set(null);
-  }
-
-  protected confirmPlacement(): void {
-    const cell = this.selectedCell();
-    const offeringId = this.activeOfferingId;
-    const cohortId = this.selectedCohortId;
-    if (!cell || !offeringId || !cohortId) return;
-    if (this.needsBatch() && !this.selectedBatchId) {
-      this.toast.error('A batch is required for a Lab or Clinical session');
-      return;
-    }
-    if (this.needsSection() && !this.selectedCohortSectionId) {
-      this.toast.error('A cohort section is required to place a Theory session for this cohort');
-      return;
-    }
-    this.placing.set(true);
-    this.skeletonService.placeCell({
-      courseOfferingId: offeringId,
-      sessionType: this.selectedSessionType,
-      dayOfWeek: cell.day,
-      periodId: cell.periodId,
-      batchId: this.selectedBatchId,
-      cohortId,
-      cohortSectionId: this.selectedSessionType === 'THEORY' ? this.selectedCohortSectionId : null,
-      spanPeriodIds: this.spanPeriodIds(cell.periodId),
-    }).subscribe({
-      next: () => {
-        this.toast.success('Placed');
-        this.placing.set(false);
-        this.cancelPlacement();
-        this.candidates.set([]);
-        this.reloadSkeleton();
-      },
-      error: (err) => {
-        this.toast.error(violationText(err) ?? 'Failed to place session');
-        this.placing.set(false);
-      },
-    });
-  }
-
   /** Drops onto the same slot the cell was already in are a no-op — CDK still fires the event
-   *  for a same-list drop, so this guards it before ever calling the backend. Reloads the whole
-   *  skeleton on success rather than patching the dragged cell's day/period locally, matching the
-   *  reload-after-mutation pattern {@link confirmPlacement}/remove already use. */
+   *  for a same-list drop, so this guards it before ever calling the backend. A target slot with
+   *  exactly one existing cell triggers an atomic swap (exchange both cells' day/period) instead
+   *  of a plain move — dropping onto an occupied slot used to just fail with a conflict violation,
+   *  so this is the only way to actually exchange two sessions rather than remove-then-re-place
+   *  twice. A slot with more than one occupant is ambiguous (which one is the swap partner?), so
+   *  that's left as an error rather than guessing. Reloads the whole skeleton on success rather
+   *  than patching cells locally, matching the reload-after-mutation pattern {@link doRemove}
+   *  already uses. */
   protected onCellDrop(event: CdkDragDrop<unknown>, day: string, periodId: number): void {
     const cell = event.item.data as SkeletonCell;
     const cohortId = this.selectedCohortId;
     if (!cell || !cohortId || (cell.dayOfWeek === day && cell.periodId === periodId)) return;
+
+    const occupants = this.cellsFor(day, periodId);
+    if (occupants.length > 1) {
+      this.toast.error('This slot already has more than one session — remove one first before moving here.');
+      return;
+    }
+    if (occupants.length === 1) {
+      this.skeletonService.swapCells(cell.id, { targetCellId: occupants[0].id, cohortId }).subscribe({
+        next: () => {
+          this.toast.success('Swapped');
+          this.reloadSkeleton();
+        },
+        error: (err) => {
+          this.toast.error(violationText(err) ?? 'Failed to swap sessions');
+        },
+      });
+      return;
+    }
 
     this.skeletonService.moveCell(cell.id, { dayOfWeek: day, periodId, cohortId }).subscribe({
       next: () => {
@@ -485,24 +560,6 @@ export class SkeletonBuilderComponent implements OnInit {
       },
       error: (err) => {
         this.toast.error(violationText(err) ?? 'Failed to move session');
-      },
-    });
-  }
-
-  protected onSuggestClick(courseOfferingId: number, sessionType: SkeletonSessionType, batchId: number | null, cohortSectionId: number | null, event: Event): void {
-    event.stopPropagation();
-    if (!this.canManage()) return;
-    this.activeOfferingId = courseOfferingId;
-    this.suggesting.set(true);
-    this.skeletonService.suggestCandidates(courseOfferingId, sessionType, batchId, cohortSectionId).subscribe({
-      next: (candidates) => {
-        this.candidates.set(candidates);
-        this.suggesting.set(false);
-        if (candidates.length === 0) this.toast.error('No free slot could be found — try clearing a blocked period or check faculty/room load elsewhere');
-      },
-      error: (err) => {
-        this.toast.error(err?.error?.message ?? 'Failed to load suggestions');
-        this.suggesting.set(false);
       },
     });
   }

@@ -36,6 +36,11 @@ export interface Subject {
   speciality: Speciality | null;
   termNumber: number;
   isActive: boolean;
+  /** How many consecutive periods one single Lab/Clinical session must occupy for this subject
+   *  (e.g. a 3-hour lab runs as 3 back-to-back periods on the same day, not scattered
+   *  single-period placements). Default 1 = independent single-period placements. */
+  labSessionBlockPeriods: number;
+  clinicalSessionBlockPeriods: number;
   createdAt: string;
   updatedAt: string;
   /** Labs/Clinical Venues suitable for this subject's practical sessions — a soft preference for
@@ -55,6 +60,8 @@ export interface SubjectRequest {
   specialityId: number | null;
   termNumber: number;
   isActive?: boolean;
+  labSessionBlockPeriods?: number;
+  clinicalSessionBlockPeriods?: number;
   eligibleLabIds?: number[];
   eligibleClinicalVenueIds?: number[];
   eligibleFacultyIds?: number[];

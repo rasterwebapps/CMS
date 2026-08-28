@@ -1,0 +1,29 @@
+<cms-flyout-panel width="440px" ariaLabel="Configure working Saturdays" (closed)="closed.emit()">
+  <div flyoutHeader>Working Saturdays</div>
+
+  <div flyoutBody>
+    <p class="field-hint">
+      Automation only uses Monday–Friday by default. Pick which Saturdays should also count as
+      real working days — every other Saturday stays off-limits to automation, and no class will
+      ever actually happen on it. Applies to this whole term, every cohort.
+    </p>
+
+    @if (loading()) {
+      <p class="field-hint">Loading…</p>
+    } @else {
+      <div class="wsat-options">
+        @for (week of weeks; track week.value) {
+          <label class="wsat-option">
+            <input type="checkbox" [checked]="week.checked" (change)="toggle(week)" />
+            {{ week.label }}
+          </label>
+        }
+      </div>
+    }
+  </div>
+
+  <div flyoutFooter>
+    <button type="button" class="btn-cancel" [disabled]="saving()" (click)="closed.emit()">Close</button>
+    <button type="button" class="btn-primary" [disabled]="loading() || saving()" (click)="save()">Save</button>
+  </div>
+</cms-flyout-panel>

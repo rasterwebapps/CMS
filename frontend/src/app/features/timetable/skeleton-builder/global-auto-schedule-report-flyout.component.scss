@@ -3,6 +3,18 @@
   font-weight: 600;
 }
 
+.gas-running {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.gas-elapsed {
+  margin-top: 6px;
+  color: var(--cms-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .gas-prereq-group {
   display: flex;
   flex-direction: column;
@@ -51,5 +63,143 @@
   padding-left: 18px;
   font-size: var(--cms-text-xs);
   color: var(--cms-text-secondary);
+}
+
+.gas-shortfall {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-warning);
+  background: var(--cms-warning-light);
+}
+
+.gas-shortfall__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+// ── Pre-run checklist (mirrors TermAdvanceChecklistDialogComponent's own .tac-* pattern) ───
+.gas-checklist {
+  list-style: none;
+  margin: 4px 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gas-checklist__item {
+  border-radius: 8px;
+  padding: 6px 8px;
+
+  ::ng-deep .mdc-label {
+    font-size: var(--cms-text-sm);
+    line-height: 1.4;
+  }
+
+  &--warn {
+    background: var(--cms-warning-light);
+  }
+}
+
+.gas-checklist__icon {
+  margin-right: 4px;
+}
+
+.gas-checklist__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gas-checklist__view {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 12px;
+  font-size: var(--cms-text-xs);
+
+  // Distinct "currently open" state -- the collapsed/expanded difference must be unmistakable at
+  // a glance, not just a text-label change easy to miss when the revealed content is a single
+  // plain sentence (e.g. a clean, nothing-to-fix milestone).
+  &--expanded {
+    background: var(--cms-primary);
+    color: #fff;
+    border-color: var(--cms-primary);
+  }
+}
+
+.gas-checklist__detail {
+  margin: 10px 0 6px 32px;
+  padding: 12px 14px;
+  border: 1px solid var(--cms-border-default);
+  border-left: 3px solid var(--cms-primary);
+  border-radius: 8px;
+  background: var(--cms-bg-muted, rgba(0, 0, 0, 0.03));
+
+  .field-hint {
+    margin: 0;
+  }
+}
+
+.gas-ack {
+  margin: 16px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  background: var(--cms-bg-muted, rgba(0, 0, 0, 0.03));
+
+  ::ng-deep .mdc-label {
+    font-size: var(--cms-text-sm);
+    font-weight: 600;
+  }
+}
+
+.gas-faculty-card--tight {
+  border-color: var(--cms-warning);
+}
+
+.gas-workload-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--cms-border-default);
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: var(--cms-text-xs);
+    font-weight: 600;
+    color: var(--cms-text-secondary);
+  }
+
+  input {
+    width: 140px;
+    padding: 6px 10px;
+    border: 1px solid var(--cms-border-default);
+    border-radius: 6px;
+    font-size: var(--cms-text-sm);
+  }
+
+  .field-hint {
+    margin: 0;
+  }
+
+  &__checkbox {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--cms-text-xs);
+    font-weight: 600;
+    color: var(--cms-text-primary);
+
+    input {
+      width: auto;
+    }
+  }
 }
 

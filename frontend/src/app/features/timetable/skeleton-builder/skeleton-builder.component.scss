@@ -15,152 +15,59 @@
   margin: 0;
 }
 
-// ── Subjects rail (cohort-wide since R3.1) ────────────────────────
-.skeleton-subjects-card {
-  padding: 18px 20px;
-}
-
-.skeleton-budget-card__title {
-  margin: 0 0 14px;
+// ── Cohort/term heading (grid is full-width since the R4 automate-first revamp) ────
+.skeleton-cohort-hdr {
+  margin: 0;
   font-size: var(--cms-text-md);
   font-weight: 600;
   color: var(--cms-text-primary);
 }
 
-.skeleton-subject-rail {
+// ── Hours summary (reuses global .stat-grid/.stat-card — see styles.scss) ─────────
+.skeleton-hours-summary {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.skeleton-subject-card {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: transparent;
-  border: 1px solid var(--cms-border-default);
-  border-radius: 14px;
-  padding: 14px 16px;
-  cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-
-  &:hover {
-    border-color: rgba(var(--cms-primary-rgb), 0.3);
-  }
-
-  &--active {
-    border-color: var(--subject-color, var(--cms-primary));
-    box-shadow: 0 0 0 1px var(--subject-color, var(--cms-primary));
-  }
+.skeleton-hours-summary__row {
+  margin-bottom: 0;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 }
 
-.skeleton-subject-card__hdr {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.skeleton-subject-card__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--subject-color, var(--cms-primary));
-  flex-shrink: 0;
-}
-
-.skeleton-subject-card__name {
-  font-size: var(--cms-text-base);
-  font-weight: 700;
-  color: var(--cms-text-primary);
-}
-
-.skeleton-subject-card__code {
-  font-size: var(--cms-text-sm);
-  color: var(--cms-text-muted);
-}
-
-.skeleton-subject-card__elective-badge {
-  display: inline-block;
-  margin-bottom: 12px;
-  padding: 2px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--subject-color, var(--cms-border-default));
-  color: var(--subject-color, var(--cms-text-muted));
-  font-size: var(--cms-text-xs);
+.skeleton-hours-gap {
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
-.skeleton-budget-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 14px;
-}
-
-.skeleton-budget-item {
-  border: 1px solid var(--cms-border-default);
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-
-.skeleton-budget-item__suggest {
-  margin-top: 10px;
-  padding: 4px 12px;
-  font-size: var(--cms-text-xs);
-}
-
-.skeleton-budget-item__label {
-  font-size: var(--cms-text-sm);
-  font-weight: 700;
-  color: var(--cms-text-primary);
-  letter-spacing: 0.02em;
-}
-
-.skeleton-budget-item__batch {
-  font-weight: 500;
-  color: var(--cms-text-muted);
-  margin-left: 4px;
-}
-
-.skeleton-budget-item__hours {
-  margin-top: 4px;
-  font-size: var(--cms-text-xs);
-  color: var(--cms-text-muted);
-}
-
-.skeleton-budget-item__count {
-  margin-top: 2px;
-  font-size: var(--cms-text-xs);
-  color: var(--cms-text-muted);
-}
-
-.skeleton-budget-item__bar {
-  margin-top: 8px;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--cms-bg-muted);
-  overflow: hidden;
-}
-
-.skeleton-budget-item__fill {
-  height: 100%;
-  background: var(--cms-primary);
-  border-radius: 3px;
-  transition: width 0.2s ease;
-
-  &--done {
-    background: var(--cms-badge-green-text);
-  }
-}
-
-// ── Layout ───────────────────────────────────────────────────────
-// .detail-split's own __main region has no gap of its own between stacked children (unlike
-// __sidebar, which does) -- without this, the grid card and the placement panel below it would
-// sit flush against each other with zero spacing.
-.skeleton-main-stack {
+// ── Section filter tabs (mirrors Capacity Planner's .cap-tab-toggle pattern) ──────
+.skeleton-section-tabs {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--cms-radius-md, 10px);
+  background: var(--cms-bg-muted);
+  width: fit-content;
+}
+
+.skeleton-section-tab {
+  padding: 6px 16px;
+  border: none;
+  border-radius: var(--cms-radius-sm, 6px);
+  background: transparent;
+  color: var(--cms-text-secondary);
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+
+  &--active {
+    background: var(--cms-bg-card);
+    color: var(--cms-primary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  }
 }
 
 // ── Grid ─────────────────────────────────────────────────────────
@@ -233,6 +140,7 @@
 }
 
 .skeleton-cell {
+  position: relative;
   width: 100%;
   min-height: 52px;
   display: flex;
@@ -258,9 +166,9 @@
     border-color: rgba(var(--cms-primary-rgb), 0.35);
   }
 
-  // Draggable placed cells (not the dashed "add" affordance, which never carries cdkDrag) get a
-  // grab cursor; .cdk-drag-disabled is the class CDK itself applies when [cdkDragDisabled] is
-  // true, so a user without TIMETABLE_SKELETON_MOVE still sees the plain pointer cursor.
+  // Draggable placed cells get a grab cursor; .cdk-drag-disabled is the class CDK itself applies
+  // when [cdkDragDisabled] is true, so a user without TIMETABLE_SKELETON_MOVE still sees the
+  // plain pointer cursor.
   &[cdkDrag]:not(.cdk-drag-disabled):not(:disabled) {
     cursor: grab;
   }
@@ -275,18 +183,6 @@
   }
   &.cdk-drag-animating {
     transition: transform 220ms cubic-bezier(0.2, 0, 0, 1);
-  }
-
-  &--selected {
-    border-color: var(--cms-primary);
-    border-style: solid;
-  }
-
-  &--candidate {
-    border-color: var(--cms-badge-green-text);
-    border-style: solid;
-    background: var(--cms-badge-green-bg);
-    opacity: 1;
   }
 
   &--theory {
@@ -306,17 +202,35 @@
     opacity: 0.75;
   }
 
-  // The trailing "add another session" affordance — visually much lighter than a placed
-  // session so it reads as an empty-slot action, not a third occupant of the slot.
-  &--add {
-    min-height: 26px;
-    border-style: dashed;
-    opacity: 0.7;
-    box-shadow: none;
+  // Purely visual: a run of same-subject/type/occupant cells across consecutive periods (built by
+  // dragging .skeleton-cell__resize-handle) flattens its touching border/corner so the run reads
+  // as one continuous block — each period underneath stays its own independent, individually
+  // movable/removable/staffable cell; nothing here implies a shared sessionGroupId.
+  &--joined-next {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right-style: none;
+  }
+  &--joined-prev {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left-style: none;
+  }
+}
 
-    &:hover:not(:disabled) {
-      opacity: 1;
-    }
+.skeleton-cell__resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 6px;
+  bottom: 6px;
+  width: 6px;
+  border-radius: 3px;
+  cursor: ew-resize;
+  background: transparent;
+  transition: background 0.12s ease;
+
+  &:hover {
+    background: rgba(var(--cms-primary-rgb), 0.35);
   }
 }
 
@@ -350,70 +264,3 @@
   max-width: 100%;
 }
 
-.skeleton-cell__empty {
-  font-size: var(--cms-text-md);
-  color: var(--cms-text-muted);
-  opacity: 0.5;
-}
-
-// ── Placement panel ────────────────────────────────────────────
-.skeleton-placement-panel {
-  padding: 18px 20px;
-}
-
-.skeleton-placement-panel__title {
-  margin: 0 0 14px;
-  font-size: var(--cms-text-base);
-  font-weight: 600;
-  color: var(--cms-text-primary);
-}
-
-.skeleton-placement-panel__row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.skeleton-placement-panel__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-// ── Session Type toggle (shared pattern with lab-schedule-form) ──
-.session-type-toggle {
-  display: flex;
-  gap: 8px;
-}
-
-.session-type-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--cms-border-default);
-  background: var(--cms-bg-card);
-  color: var(--cms-text-secondary);
-  font-size: var(--cms-text-sm);
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-
-  input[type="radio"] {
-    accent-color: var(--cms-primary);
-    margin: 0;
-  }
-
-  &:hover {
-    border-color: rgba(var(--cms-primary-rgb), 0.3);
-  }
-
-  &--active {
-    background: rgba(var(--cms-primary-rgb), 0.10);
-    border-color: rgba(var(--cms-primary-rgb), 0.35);
-    color: var(--cms-primary);
-  }
-}

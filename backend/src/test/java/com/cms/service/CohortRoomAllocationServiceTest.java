@@ -24,26 +24,32 @@ import com.cms.dto.VentureSplitRequest;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Batch;
+import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.Cohort;
 import com.cms.model.CohortRoomAllocation;
 import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
+import com.cms.model.CourseOfferingSectionFaculty;
+import com.cms.model.Faculty;
 import com.cms.model.Lab;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.PlanningBasis;
 import com.cms.model.enums.TermType;
 import com.cms.repository.BatchRepository;
+import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseOfferingRepository;
+import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -61,6 +67,8 @@ class CohortRoomAllocationServiceTest {
     @Mock private CourseOfferingRepository courseOfferingRepository;
     @Mock private BatchRepository batchRepository;
     @Mock private StudentTermEnrollmentRepository studentTermEnrollmentRepository;
+    @Mock private ClassScheduleRepository classScheduleRepository;
+    @Mock private CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository;
 
     private CohortRoomAllocationService service;
 
@@ -73,7 +81,8 @@ class CohortRoomAllocationServiceTest {
     void setUp() {
         service = new CohortRoomAllocationService(allocationRepository, cohortSectionRepository, cohortRepository,
             termInstanceRepository, classroomRepository, labRepository, clinicalVenueRepository,
-            courseOfferingRepository, batchRepository, studentTermEnrollmentRepository);
+            courseOfferingRepository, batchRepository, studentTermEnrollmentRepository, classScheduleRepository,
+            courseOfferingSectionFacultyRepository);
 
         cohort = new Cohort();
         cohort.setId(1L);
@@ -345,6 +354,47 @@ class CohortRoomAllocationServiceTest {
     }
 
     @Test
+    void shouldCarryForwardOrphanedFacultyAssignmentOntoFreshlyCommittedSection() {
+        stubCohortAndTerm(60);
+        when(classroomRepository.findById(10L)).thenReturn(Optional.of(theoryClassroom));
+        when(allocationRepository.save(any(CohortRoomAllocation.class))).thenAnswer(inv -> {
+            CohortRoomAllocation a = inv.getArgument(0);
+            a.setId(100L);
+            return a;
+        });
+        when(cohortSectionRepository.save(any(CohortSection.class))).thenAnswer(inv -> {
+            CohortSection s = inv.getArgument(0);
+            s.setId(400L);
+            return s;
+        });
+        when(cohortSectionRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of());
+        when(batchRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of());
+
+        Faculty faculty = new Faculty();
+        faculty.setId(9L);
+        CohortSection oldSection = new CohortSection();
+        oldSection.setId(300L);
+        oldSection.setSectionLabel("Section 1");
+        oldSection.setIsActive(false);
+        CourseOfferingSectionFaculty orphaned = new CourseOfferingSectionFaculty();
+        orphaned.setCourseOffering(offering);
+        orphaned.setCohortSection(oldSection);
+        orphaned.setCohort(cohort);
+        orphaned.setFaculty(faculty);
+        when(courseOfferingSectionFacultyRepository.findByCohort_IdAndCohortSection_IsActiveFalseAndCohortSection_SectionLabel(1L, "Section 1"))
+            .thenReturn(List.of(orphaned));
+
+        CohortSectionRequest section = new CohortSectionRequest("Section 1", 10L, 60);
+        CohortRoomAllocationCommitRequest request =
+            new CohortRoomAllocationCommitRequest(1L, 1L, PlanningBasis.ENROLLED, List.of(section), List.of());
+
+        service.commit(request, "admin");
+
+        assertThat(orphaned.getCohortSection().getId()).isEqualTo(400L);
+        verify(courseOfferingSectionFacultyRepository).save(orphaned);
+    }
+
+    @Test
     void shouldRejectCommitWhenTheoryClassroomAlreadyClaimedThisTerm() {
         stubCohortAndTerm(60);
         when(classroomRepository.findById(10L)).thenReturn(Optional.of(theoryClassroom));
@@ -381,12 +431,68 @@ class CohortRoomAllocationServiceTest {
         when(cohortSectionRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of(section));
         when(cohortSectionRepository.save(any(CohortSection.class))).thenAnswer(inv -> inv.getArgument(0));
 
+        when(classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(200L, 201L))).thenReturn(List.of());
+        when(classScheduleRepository.findByCohortSectionIdInAndIsActiveTrue(List.of(300L))).thenReturn(List.of());
+
         service.revert(100L, "admin");
 
         assertThat(allocation.getStatus()).isEqualTo(CohortRoomAllocationStatus.REVERTED);
         assertThat(batch1.getIsActive()).isFalse();
         assertThat(batch2.getIsActive()).isFalse();
         assertThat(section.getIsActive()).isFalse();
+    }
+
+    @Test
+    void shouldDeactivateRidingDraftClassSchedulesOnRevert() {
+        CohortRoomAllocation allocation = new CohortRoomAllocation(cohort, term, PlanningBasis.ENROLLED, 60, "admin");
+        allocation.setId(100L);
+        when(allocationRepository.findById(100L)).thenReturn(Optional.of(allocation));
+        when(allocationRepository.save(any(CohortRoomAllocation.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Batch batch = new Batch(offering, "Batch A", 30, term);
+        batch.setId(200L);
+        when(batchRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of(batch));
+        when(batchRepository.save(any(Batch.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(cohortSectionRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of());
+
+        ClassSchedule labCell = new ClassSchedule();
+        labCell.setId(9000L);
+        labCell.setStatus(ClassScheduleStatus.DRAFT);
+        labCell.setIsActive(true);
+        when(classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(200L))).thenReturn(List.of(labCell));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.revert(100L, "admin");
+
+        assertThat(batch.getIsActive()).isFalse();
+        assertThat(labCell.getIsActive()).isFalse();
+        verify(classScheduleRepository).save(labCell);
+    }
+
+    @Test
+    void shouldRejectRevertWhenPublishedSessionsRideOnAllocation() {
+        CohortRoomAllocation allocation = new CohortRoomAllocation(cohort, term, PlanningBasis.ENROLLED, 60, "admin");
+        allocation.setId(100L);
+        when(allocationRepository.findById(100L)).thenReturn(Optional.of(allocation));
+
+        Batch batch = new Batch(offering, "Batch A", 30, term);
+        batch.setId(200L);
+        when(batchRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of(batch));
+        when(cohortSectionRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of());
+
+        ClassSchedule publishedCell = new ClassSchedule();
+        publishedCell.setId(9001L);
+        publishedCell.setStatus(ClassScheduleStatus.PUBLISHED);
+        publishedCell.setIsActive(true);
+        when(classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(200L))).thenReturn(List.of(publishedCell));
+
+        assertThatThrownBy(() -> service.revert(100L, "admin"))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("published");
+
+        assertThat(allocation.getStatus()).isNotEqualTo(CohortRoomAllocationStatus.REVERTED);
+        verify(batchRepository, never()).save(any());
+        verify(classScheduleRepository, never()).save(any());
     }
 
     @Test

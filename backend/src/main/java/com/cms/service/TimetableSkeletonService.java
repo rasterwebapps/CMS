@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.CohortSectionResponse;
@@ -21,6 +22,7 @@ import com.cms.dto.ElectiveGroupPlacementRequest;
 import com.cms.dto.ElectiveGroupScheduleResponse;
 import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellMoveRequest;
+import com.cms.dto.SkeletonCellSwapRequest;
 import com.cms.dto.SkeletonCellPlacementRequest;
 import com.cms.dto.SkeletonCellResponse;
 import com.cms.dto.SkeletonPlacementCandidateResponse;
@@ -138,7 +140,8 @@ public class TimetableSkeletonService {
         List<Long> offeringIds = new ArrayList<>(nonElectiveOfferingIds(termInstanceId, cohortId));
         offeringIds.addAll(electiveOfferingIds(termInstanceId, cohortId));
         if (offeringIds.isEmpty()) {
-            return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, List.of(), List.of(), List.of(), sectionResponses);
+            return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, List.of(), List.of(), List.of(), sectionResponses,
+                CurriculumHoursCalculator.weeksInTerm(termInstance), WorkingSaturdayCalculator.workingSaturdayCount(termInstance));
         }
 
         Map<Long, CourseOffering> offeringById = new LinkedHashMap<>();
@@ -151,7 +154,12 @@ public class TimetableSkeletonService {
         double periodDurationMinutes = CurriculumHoursCalculator.averageDurationMinutes(
             periods.stream().map(Period::getDurationMinutes).toList());
 
-        List<ClassSchedule> allCells = classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(termInstanceId, offeringIds);
+        // isActive=false filters out cells orphaned by a since-reverted CohortRoomAllocation --
+        // riding on a batch/section that no longer exists in the currently-active plan; without
+        // this they'd render as ghost cells in the grid and double up against freshly-placed ones.
+        List<ClassSchedule> allCells = classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(termInstanceId, offeringIds).stream()
+            .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
+            .toList();
         Map<Long, List<ClassSchedule>> cellsByOffering = allCells.stream()
             .filter(cs -> cs.getCourseOffering() != null)
             .collect(java.util.stream.Collectors.groupingBy(cs -> cs.getCourseOffering().getId(), LinkedHashMap::new, java.util.stream.Collectors.toList()));
@@ -193,7 +201,8 @@ public class TimetableSkeletonService {
 
         List<SkeletonCellResponse> cells = allCells.stream().map(this::toCellResponse).toList();
 
-        return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, subjects, cells, batches, sectionResponses);
+        return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, subjects, cells, batches, sectionResponses,
+            weeksInTerm, WorkingSaturdayCalculator.workingSaturdayCount(termInstance));
     }
 
     /** Active sections of the cohort's committed Cohort Room Allocation for this term, or empty if
@@ -275,7 +284,23 @@ public class TimetableSkeletonService {
 
     /** LAB/CLINICAL need their own full quota per batch (batches run in parallel, not shared) —
      *  one budget row per existing batch, or one placeholder row (batchId null) flagging the
-     *  hours are needed but there's nothing to place them against yet if no batch exists. */
+     *  hours are needed but there's nothing to place them against yet if no batch exists. Each
+     *  row carries the batch's own {@link Batch#getCohortSection()} (set at commit time by {@link
+     *  CohortRoomAllocationService#createVentureBatch}) so faculty resolution
+     *  ({@code TimetableGlobalAutoScheduleService#resolveBudgetFacultyId}) can look up that
+     *  section's own {@code CourseOfferingSectionFaculty} row exactly like a split Theory row does
+     *  — a section-split cohort has no whole-cohort faculty row to fall back to, so leaving this
+     *  null here made every Lab/Clinical row permanently unstaffable for a split cohort.
+     *
+     *  <p>{@code batches} is the offering's WHOLE active-batch pool (Lab and Clinical batches
+     *  mixed together, e.g. Cohort Room Allocation committing both a "Lab - Section 1" and a
+     *  "Clinical - Section 1" batch for the same offering) — a batch definitively wrong for {@code
+     *  type} (it has the *other* type's venue committed) is skipped, or every Lab batch would also
+     *  get a spurious Clinical budget row demanding hours against a batch with no clinical venue
+     *  at all (and vice versa), inflating required-hours totals by however many unrelated batches
+     *  exist and leaving automation trying to place sessions nothing can ever satisfy. A batch with
+     *  neither venue committed yet (legacy/manual-create path, see {@link Batch#getLab()}'s own
+     *  javadoc) is kept for both — no signal yet to say which it's meant to be. */
     private List<SkeletonSubjectBudget> batchScopedBudgets(ClassSessionType type, Integer hoursObj, List<Batch> batches,
                                                             List<ClassSchedule> existing, int weeksInTerm,
                                                             double periodDurationMinutes) {
@@ -289,15 +314,82 @@ public class TimetableSkeletonService {
             .filter(cs -> cs.getSessionType() == type && cs.getBatch() != null)
             .collect(java.util.stream.Collectors.groupingBy(cs -> cs.getBatch().getId(), LinkedHashMap::new, java.util.stream.Collectors.counting()));
 
-        if (batches.isEmpty()) {
+        List<Batch> matchingBatches = batches.stream()
+            .filter(b -> !(type == ClassSessionType.LAB && b.getClinicalVenue() != null))
+            .filter(b -> !(type == ClassSessionType.CLINICAL && b.getLab() != null))
+            .toList();
+
+        if (matchingBatches.isEmpty()) {
             return List.of(new SkeletonSubjectBudget(type, null, null, null, null, hours, weeksInTerm, required, 0));
         }
         List<SkeletonSubjectBudget> rows = new ArrayList<>();
-        for (Batch batch : batches) {
+        for (Batch batch : matchingBatches) {
             long placed = placedByBatchId.getOrDefault(batch.getId(), 0L);
-            rows.add(new SkeletonSubjectBudget(type, batch.getId(), batch.getName(), null, null, hours, weeksInTerm, required, (int) placed));
+            CohortSection section = batch.getCohortSection();
+            rows.add(new SkeletonSubjectBudget(type, batch.getId(), batch.getName(),
+                section != null ? section.getId() : null, section != null ? section.getSectionLabel() : null,
+                hours, weeksInTerm, required, (int) placed));
         }
         return rows;
+    }
+
+    /** Hard-blocks a placement that would push a subject's placed-sessions-per-week past its
+     *  curriculum-derived {@code requiredSessionsPerWeek} budget (the same number shown on the
+     *  Skeleton Builder summary cards) -- applies uniformly to manual drag/drop and both
+     *  auto-schedulers, since every placement path funnels through {@link #placeCell}. Automated
+     *  placement was already self-limiting (the {@code ShortfallRow} queue stops enqueueing a row
+     *  once its shortfall hits zero), but that stop condition was never enforced as an invariant on
+     *  placement itself, so manual placement -- or automated re-placement against stale budgets
+     *  after a curriculum-hours edit -- could freely push Assigned past Required with no warning.
+     *  If more sessions are genuinely needed, the fix is to raise the subject's curriculum hours
+     *  (which raises {@code requiredSessionsPerWeek} here too), not to bypass this check.
+     *
+     *  <p>{@code sessionsToAdd} is {@code spanPeriods.size()} -- a multi-period block must fit
+     *  entirely within the remaining budget, not just start under it. Silently no-ops (no violation)
+     *  when the offering has no resolved curriculum mapping or the session type's hours are 0/unset,
+     *  matching how {@link #batchScopedBudgets} treats the same case. */
+    private Optional<ConstraintViolation> checkBudgetNotExceeded(CourseOffering offering, ClassSessionType sessionType,
+                                                                   Batch batch, CohortSection cohortSection, int sessionsToAdd) {
+        CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
+        if (csc == null) {
+            return Optional.empty();
+        }
+        Integer hoursObj = switch (sessionType) {
+            case THEORY -> csc.getTheoryHours();
+            case LAB -> csc.getLabHours();
+            case CLINICAL -> csc.getClinicalHours();
+        };
+        int hours = hoursObj != null ? hoursObj : 0;
+        if (hours <= 0) {
+            return Optional.empty();
+        }
+
+        TermInstance term = offering.getTermInstance();
+        int weeksInTerm = CurriculumHoursCalculator.weeksInTerm(term);
+        List<Period> activePeriods = periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc();
+        double periodDurationMinutes = CurriculumHoursCalculator.averageDurationMinutes(
+            activePeriods.stream().map(Period::getDurationMinutes).toList());
+        int required = CurriculumHoursCalculator.sessionsPerWeek(hours, weeksInTerm, periodDurationMinutes);
+
+        Long scopeBatchId = batch != null ? batch.getId() : null;
+        Long scopeSectionId = cohortSection != null ? cohortSection.getId() : null;
+        List<ClassSchedule> candidates = AutoScheduleRunCache.current()
+            .map(cache -> cache.byCourseOfferingId(offering.getId()))
+            .orElseGet(() -> classScheduleRepository.findByCourseOfferingId(offering.getId()));
+        long placed = candidates.stream()
+            .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
+            .filter(cs -> cs.getSessionType() == sessionType)
+            .filter(cs -> sessionType == ClassSessionType.THEORY
+                ? Objects.equals(cs.getCohortSection() != null ? cs.getCohortSection().getId() : null, scopeSectionId)
+                : Objects.equals(cs.getBatch() != null ? cs.getBatch().getId() : null, scopeBatchId))
+            .count();
+
+        if (placed + sessionsToAdd > required) {
+            return Optional.of(new ConstraintViolation("SKELETON_CELL_BUDGET_EXCEEDED",
+                offering.getSubject().getName() + "'s " + sessionType + " budget is already met (" + placed + "/" + required
+                    + " sessions/week) — increase the subject's curriculum hours first if more sessions are genuinely needed."));
+        }
+        return Optional.empty();
     }
 
     /** Hard-blocks placing a session at a day+period covered by a RECURRING blocked-period rule
@@ -314,8 +406,7 @@ public class TimetableSkeletonService {
      *  TimetableBlockedPeriodChecker} {@link TimetableStaffingService} and {@link
      *  TimetableSwapService} also use. */
     private Optional<ConstraintViolation> checkBlocked(DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
-        return blockedPeriodChecker.blockReason(dayOfWeek, period.getStartTime(), period.getEndTime(),
-                termInstance.getStartDate(), termInstance.getEndDate())
+        return blockedPeriodChecker.blockReason(dayOfWeek, period.getStartTime(), period.getEndTime(), termInstance)
             .map(reason -> new ConstraintViolation("SKELETON_CELL_PERIOD_BLOCKED", "This day and period is blocked: " + reason));
     }
 
@@ -323,15 +414,19 @@ public class TimetableSkeletonService {
      *  distinct violation — there's no per-candidate UI affordance to explain "why" a slot didn't
      *  appear. Returns the block reason, or null if the slot is free. */
     private String blockReason(DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
-        return blockedPeriodChecker.blockReason(dayOfWeek, period.getStartTime(), period.getEndTime(),
-                termInstance.getStartDate(), termInstance.getEndDate())
+        return blockedPeriodChecker.blockReason(dayOfWeek, period.getStartTime(), period.getEndTime(), termInstance)
             .orElse(null);
     }
 
     private SkeletonCellResponse toCellResponse(ClassSchedule cs) {
         Period period = cs.getPeriod();
         Batch batch = cs.getBatch();
-        CohortSection cohortSection = cs.getCohortSection();
+        // THEORY cells carry their own cohortSection directly; a LAB/CLINICAL cell's is always
+        // null there (placement never sets it for those types — see SkeletonCellPlacementRequest),
+        // so it falls back to the batch's own real cohortSection FK instead, the same fallback
+        // scopeKeyForSectionId's callers already rely on elsewhere in this class.
+        CohortSection cohortSection = cs.getCohortSection() != null ? cs.getCohortSection()
+            : (batch != null ? batch.getCohortSection() : null);
         var electiveGroup = cs.getCourseOffering() != null && cs.getCourseOffering().getCurriculumSemesterCourse() != null
             ? cs.getCourseOffering().getCurriculumSemesterCourse().getElectiveGroup()
             : null;
@@ -373,8 +468,35 @@ public class TimetableSkeletonService {
         );
     }
 
-    @Transactional
+    /** {@code REQUIRES_NEW}: both auto-schedulers ({@code TimetableGlobalAutoScheduleService},
+     *  {@code TimetableSkeletonAutoPlaceService}) call this in a loop, catching {@link
+     *  TimetableConstraintViolationException} as routine "try the next candidate slot" control
+     *  flow — a candidate failing is the expected common case, not exceptional. With the default
+     *  {@code REQUIRED} propagation, any exception thrown by a nested {@code @Transactional} call
+     *  marks the *whole* enclosing transaction rollback-only the instant it propagates out of this
+     *  method's proxy, regardless of whether the caller catches it — so the very first unplaceable
+     *  candidate in an auto-schedule run (near-certain on real data) silently doomed the entire run
+     *  to roll back everything, while the algorithm kept burning through the rest of the search
+     *  space unaware it was already discarded. {@code REQUIRES_NEW} gives this call its own
+     *  independent physical transaction, so a routine failure here can never poison a caller's
+     *  broader unit of work — matching every actual caller's real intent (none rely on this
+     *  method's failure rolling back anything beyond itself). */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public SkeletonCellResponse placeCell(SkeletonCellPlacementRequest request) {
+        return placeCell(request, true);
+    }
+
+    /** {@code enforceBudgetCap=false} skips {@link #checkBudgetNotExceeded} only — every other
+     *  check (already-placed, audience exclusivity, blocked period) still applies in full. This
+     *  exists for exactly one caller: {@code TimetableGlobalAutoScheduleService#fillSelfStudyGaps},
+     *  which deliberately places Self-Study/Co-curricular sessions beyond that offering's own
+     *  curriculum-derived weekly quota to soak up periods nothing else needs — the whole point of
+     *  that pass is to exceed the normal budget, so the cap would defeat it outright. Never call
+     *  this with {@code false} from anywhere else; the cap exists to keep every other subject
+     *  honest against its real curriculum hours, and weakening it generally would silently let a
+     *  future caller over-schedule real curriculum content instead of filler time. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    SkeletonCellResponse placeCell(SkeletonCellPlacementRequest request, boolean enforceBudgetCap) {
         CourseOffering offering = courseOfferingRepository.findById(request.courseOfferingId())
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + request.courseOfferingId()));
         Period period = periodRepository.findById(request.periodId())
@@ -410,7 +532,7 @@ public class TimetableSkeletonService {
             }
         }
 
-        List<Period> spanPeriods = resolveSpanPeriods(period, request.spanPeriodIds());
+        List<Period> spanPeriods = resolveSpanPeriods(request.sessionType(), period, request.spanPeriodIds());
 
         List<ConstraintViolation> violations = new ArrayList<>();
         for (Period spanPeriod : spanPeriods) {
@@ -428,6 +550,9 @@ public class TimetableSkeletonService {
 
             checkBlocked(request.dayOfWeek(), spanPeriod, offering.getTermInstance()).ifPresent(violations::add);
         }
+
+        checkBudgetNotExceeded(offering, request.sessionType(), batch, cohortSection, spanPeriods.size())
+            .ifPresent(violations::add);
 
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
@@ -453,6 +578,7 @@ public class TimetableSkeletonService {
             cs.setIsActive(true);
             cs.setSessionGroupId(sessionGroupId);
             ClassSchedule saved = classScheduleRepository.save(cs);
+            AutoScheduleRunCache.current().ifPresent(cache -> cache.recordPlacement(saved));
             if (primary == null) {
                 primary = saved;
             }
@@ -465,8 +591,27 @@ public class TimetableSkeletonService {
      *  periodOrder-sorted list, hard-requiring they form an unbroken consecutive run starting at
      *  {@code primary} -- a gap (e.g. periods 2 and 4 without 3) would silently place a session
      *  across a period nobody selected, so it's rejected rather than guessed. Empty/null
-     *  {@code spanPeriodIds} returns just {@code primary} (the ordinary single-period case). */
-    private List<Period> resolveSpanPeriods(Period primary, List<Long> spanPeriodIds) {
+     *  {@code spanPeriodIds} returns just {@code primary} (the ordinary single-period case).
+     *
+     *  <p>Adjacency is checked against this term's real, currently-active teaching periods only --
+     *  never against the raw {@code periodOrder} integer. {@code periodOrder} still carries gaps
+     *  left by long-retired period rows (e.g. the old standalone LabSlot master's rows, still
+     *  sitting in the table with {@code isActive=false} since V331 merged them into {@link Period})
+     *  that have no bearing on anything real. Checking raw {@code periodOrder+1} instead of
+     *  position-in-the-active-list would wrongly reject (and used to reject) a perfectly valid span
+     *  that only "skips" one of those dead rows -- capping every block size at whatever the
+     *  accidental gap pattern of retired rows happened to allow, regardless of how many real
+     *  consecutive periods the day actually has.
+     *
+     *  <p>List-position adjacency alone isn't sufficient, though: two periods can be next to each
+     *  other in the active list yet still have a real clock-time gap between them (a recess/lunch
+     *  break that isn't itself modeled as a {@link Period} row). Placing a block across that gap
+     *  would silently split the session in half around the break, so each pair of adjacent periods
+     *  in the span must also have back-to-back clock times ({@code endTime == startTime}) — UNLESS
+     *  {@code sessionType} is CLINICAL and the gap is a recess rather than the day's lunch break,
+     *  per {@link PeriodGapPolicy#gapCrossableFor} (a half-day clinical posting runs straight
+     *  through a short recess; it still never crosses lunch). */
+    private List<Period> resolveSpanPeriods(ClassSessionType sessionType, Period primary, List<Long> spanPeriodIds) {
         if (spanPeriodIds == null || spanPeriodIds.isEmpty()) {
             return List.of(primary);
         }
@@ -477,10 +622,26 @@ public class TimetableSkeletonService {
                 .orElseThrow(() -> new ResourceNotFoundException("Period not found with id: " + id)));
         }
         all.sort(Comparator.comparing(Period::getPeriodOrder));
-        for (int i = 1; i < all.size(); i++) {
-            if (!all.get(i).getPeriodOrder().equals(all.get(i - 1).getPeriodOrder() + 1)) {
+
+        List<Period> activeOrderedPeriods = periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc();
+        List<Long> activeOrderedIds = activeOrderedPeriods.stream().map(Period::getId).toList();
+        int previousPosition = -1;
+        Period previousPeriod = null;
+        for (Period p : all) {
+            int position = activeOrderedIds.indexOf(p.getId());
+            if (position < 0) {
+                throw new IllegalArgumentException("Spanned periods must be currently active");
+            }
+            if (previousPosition >= 0 && position != previousPosition + 1) {
                 throw new IllegalArgumentException("Spanned periods must be immediately consecutive");
             }
+            if (previousPeriod != null && !previousPeriod.getEndTime().equals(p.getStartTime())
+                && !PeriodGapPolicy.gapCrossableFor(sessionType, previousPeriod, p, activeOrderedPeriods)) {
+                throw new IllegalArgumentException(
+                    "Spanned periods must be back-to-back with no break in between");
+            }
+            previousPosition = position;
+            previousPeriod = p;
         }
         return all;
     }
@@ -494,14 +655,36 @@ public class TimetableSkeletonService {
      *  the exact same type/day/period/batch/section combination — checked by both {@link
      *  #placeCell} (against a not-yet-created row) and {@link #moveCell} (against the target slot;
      *  the moving cell itself always sits at its *old* slot when this runs, so it never spuriously
-     *  matches itself here). */
+     *  matches itself here). Section equality is only required for THEORY: {@link #placeCell} only
+     *  ever persists a {@code ClassSchedule.cohortSection} for THEORY rows (LAB/CLINICAL's real
+     *  scope comes from its batch's own section — see {@link #scopeKeyForCell}), so a placed
+     *  LAB/CLINICAL cell's section is always null even once {@code request.cohortSectionId()}
+     *  carries the batch's real section (populated by {@link #batchScopedBudgets} for faculty
+     *  resolution) — requiring section equality there would always be null-vs-real and silently
+     *  stop matching the batch's own already-placed cell. */
     private Optional<ConstraintViolation> checkAlreadyPlaced(CourseOffering offering, SkeletonCellPlacementRequest request) {
-        boolean alreadyPlaced = classScheduleRepository.findByCourseOfferingId(offering.getId()).stream()
+        return checkAlreadyPlaced(offering, request, null);
+    }
+
+    /** {@code excludeCellId} lets {@link #swapCells} validate each side moving into the *other's*
+     *  current slot without that other cell (which is vacating the slot as part of the very same
+     *  swap) spuriously counting as "already placed" there — every other caller passes null.
+     *  isActive=false rows (ghosts orphaned by a since-reverted CohortRoomAllocation — see {@link
+     *  #getCohortSkeleton}'s own filter) are excluded here too: without this, a ghost cell invisible
+     *  in the grid would still silently claim its old slot as "already placed" forever. */
+    private Optional<ConstraintViolation> checkAlreadyPlaced(CourseOffering offering, SkeletonCellPlacementRequest request, Long excludeCellId) {
+        List<ClassSchedule> candidates = AutoScheduleRunCache.current()
+            .map(cache -> cache.byCourseOfferingId(offering.getId()))
+            .orElseGet(() -> classScheduleRepository.findByCourseOfferingId(offering.getId()));
+        boolean alreadyPlaced = candidates.stream()
+            .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
+            .filter(cs -> excludeCellId == null || !cs.getId().equals(excludeCellId))
             .anyMatch(cs -> cs.getSessionType() == request.sessionType()
                 && cs.getDayOfWeek() == request.dayOfWeek()
                 && cs.getPeriod() != null && cs.getPeriod().getId().equals(request.periodId())
                 && Objects.equals(cs.getBatch() != null ? cs.getBatch().getId() : null, request.batchId())
-                && Objects.equals(cs.getCohortSection() != null ? cs.getCohortSection().getId() : null, request.cohortSectionId()));
+                && (request.sessionType() != ClassSessionType.THEORY
+                    || Objects.equals(cs.getCohortSection() != null ? cs.getCohortSection().getId() : null, request.cohortSectionId())));
         return alreadyPlaced ? Optional.of(new ConstraintViolation("SKELETON_CELL_ALREADY_PLACED",
             "This subject already has a session placed at this exact day and period")) : Optional.empty();
     }
@@ -535,37 +718,7 @@ public class TimetableSkeletonService {
             throw new IllegalArgumentException("A multi-period session can't be moved here yet — remove and re-place it instead");
         }
 
-        CourseOffering offering = cs.getCourseOffering();
-        SkeletonCellPlacementRequest asPlacementRequest = new SkeletonCellPlacementRequest(
-            offering.getId(), cs.getSessionType(), request.dayOfWeek(), targetPeriod.getId(),
-            cs.getBatch() != null ? cs.getBatch().getId() : null,
-            request.cohortId(),
-            cs.getCohortSection() != null ? cs.getCohortSection().getId() : null,
-            null);
-
-        List<ConstraintViolation> violations = new ArrayList<>();
-        checkAlreadyPlaced(offering, asPlacementRequest).ifPresent(violations::add);
-        if (isElectiveOffering(offering)) {
-            checkElectiveGroupSlot(offering, asPlacementRequest).ifPresent(violations::add);
-        } else {
-            checkCohortExclusivity(asPlacementRequest, offering, cs.getBatch(), cs.getCohortSection()).ifPresent(violations::add);
-        }
-        checkBlocked(request.dayOfWeek(), targetPeriod, offering.getTermInstance()).ifPresent(violations::add);
-
-        if (cs.getFaculty() != null) {
-            LocalTime start = targetPeriod.getStartTime();
-            LocalTime end = targetPeriod.getEndTime();
-            Long facultyId = cs.getFaculty().getId();
-            timetableStaffingService.checkFacultyAvailable(facultyId, request.dayOfWeek(), start, end, null).ifPresent(violations::add);
-            timetableStaffingService.checkFacultyFree(facultyId, cs, request.dayOfWeek(), start, end).ifPresent(violations::add);
-            violations.addAll(timetableStaffingService.checkWithinWorkloadCaps(cs.getFaculty(), cs, request.dayOfWeek(), start, end));
-            Long venueId = TimetableStaffingService.venueIdOf(cs);
-            if (venueId != null) {
-                timetableStaffingService.checkRoomFree(cs.getSessionType(), venueId, TimetableStaffingService.physicalRoomOf(cs),
-                    cs, request.dayOfWeek(), start, end).ifPresent(violations::add);
-            }
-        }
-
+        List<ConstraintViolation> violations = validateMoveTarget(cs, request.dayOfWeek(), targetPeriod, request.cohortId(), null);
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
         }
@@ -573,6 +726,92 @@ public class TimetableSkeletonService {
         cs.setDayOfWeek(request.dayOfWeek());
         cs.setPeriod(targetPeriod);
         return toCellResponse(classScheduleRepository.save(cs));
+    }
+
+    /** Atomically exchanges two already-placed DRAFT cells' day/period — e.g. dragging one cell
+     *  onto another occupied slot in the grid, rather than the fragile remove-then-re-place-twice
+     *  dance that was the only way to do this before. Each side is validated against the *other's*
+     *  current slot via {@link #validateMoveTarget} with that other cell excluded from every
+     *  check — it's vacating the slot as part of this very swap, so its own still-unmutated row
+     *  must never count as a blocker against the side moving in. Scoped identically to {@link
+     *  #moveCell}: both cells must be DRAFT, and neither may belong to a periodSpan group (OC-127
+     *  group-aware swapping is out of scope for this pass, same restriction as moving one). */
+    @Transactional
+    public List<SkeletonCellResponse> swapCells(Long cellAId, SkeletonCellSwapRequest request) {
+        Long cellBId = request.targetCellId();
+        if (cellAId.equals(cellBId)) {
+            throw new IllegalArgumentException("Cannot swap a cell with itself");
+        }
+        ClassSchedule csA = classScheduleRepository.findById(cellAId)
+            .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + cellAId));
+        ClassSchedule csB = classScheduleRepository.findById(cellBId)
+            .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + cellBId));
+
+        if (csA.getStatus() != ClassScheduleStatus.DRAFT || csB.getStatus() != ClassScheduleStatus.DRAFT) {
+            throw new LifecycleConflictException(
+                "Only draft skeleton cells can be swapped here.",
+                "SKELETON_CELL_NOT_DRAFT", "ClassSchedule", cellAId, null);
+        }
+        if (csA.getSessionGroupId() != null || csB.getSessionGroupId() != null) {
+            throw new IllegalArgumentException("A multi-period session can't be swapped here yet — remove and re-place it instead");
+        }
+
+        DayOfWeek dayA = csA.getDayOfWeek();
+        Period periodA = csA.getPeriod();
+        DayOfWeek dayB = csB.getDayOfWeek();
+        Period periodB = csB.getPeriod();
+
+        List<ConstraintViolation> violations = new ArrayList<>();
+        violations.addAll(validateMoveTarget(csA, dayB, periodB, request.cohortId(), csB.getId()));
+        violations.addAll(validateMoveTarget(csB, dayA, periodA, request.cohortId(), csA.getId()));
+        if (!violations.isEmpty()) {
+            throw new TimetableConstraintViolationException(violations);
+        }
+
+        csA.setDayOfWeek(dayB);
+        csA.setPeriod(periodB);
+        csB.setDayOfWeek(dayA);
+        csB.setPeriod(periodA);
+        ClassSchedule savedA = classScheduleRepository.save(csA);
+        ClassSchedule savedB = classScheduleRepository.save(csB);
+        return List.of(toCellResponse(savedA), toCellResponse(savedB));
+    }
+
+    /** Every check a placed cell moving to (day, targetPeriod) must pass — shared by {@link
+     *  #moveCell} (excludeCellId null) and {@link #swapCells} (excludeCellId = the swap partner's
+     *  id, so its about-to-vacate row is never mistaken for a blocker). Room/capacity/faculty-
+     *  eligibility are deliberately NOT rechecked: none of them change on a pure day/period move
+     *  (the room, audience, and faculty all stay exactly what they already were). */
+    private List<ConstraintViolation> validateMoveTarget(ClassSchedule cs, DayOfWeek day, Period targetPeriod, Long cohortId, Long excludeCellId) {
+        CourseOffering offering = cs.getCourseOffering();
+        SkeletonCellPlacementRequest asPlacementRequest = new SkeletonCellPlacementRequest(
+            offering.getId(), cs.getSessionType(), day, targetPeriod.getId(),
+            cs.getBatch() != null ? cs.getBatch().getId() : null,
+            cohortId,
+            cs.getCohortSection() != null ? cs.getCohortSection().getId() : null,
+            null);
+
+        List<ConstraintViolation> violations = new ArrayList<>();
+        checkAlreadyPlaced(offering, asPlacementRequest, excludeCellId).ifPresent(violations::add);
+        if (isElectiveOffering(offering)) {
+            checkElectiveGroupSlot(offering, asPlacementRequest).ifPresent(violations::add);
+        } else {
+            checkCohortExclusivity(asPlacementRequest, offering, cs.getBatch(), cs.getCohortSection(), excludeCellId).ifPresent(violations::add);
+        }
+        checkBlocked(day, targetPeriod, offering.getTermInstance()).ifPresent(violations::add);
+
+        if (cs.getFaculty() != null) {
+            LocalTime start = targetPeriod.getStartTime();
+            LocalTime end = targetPeriod.getEndTime();
+            Long venueId = TimetableStaffingService.venueIdOf(cs);
+            TimetableStaffingService.RoomCheckSpec roomCheck = venueId != null
+                ? new TimetableStaffingService.RoomCheckSpec(cs.getSessionType(), venueId, TimetableStaffingService.physicalRoomOf(cs),
+                    TimetableStaffingService.RoomMode.STRICT)
+                : null;
+            violations.addAll(timetableStaffingService.validateAssignment(
+                cs, day, start, end, cs.getFaculty(), excludeCellId, roomCheck, null, null).violations());
+        }
+        return violations;
     }
 
     private String scopeKeyForSectionId(Long cohortSectionId) {
@@ -608,13 +847,24 @@ public class TimetableSkeletonService {
      *  yet; the frontend surfaces that case as an advisory instead of a hard error. */
     private Optional<ConstraintViolation> checkCohortExclusivity(SkeletonCellPlacementRequest request, CourseOffering offering,
                                          Batch batch, CohortSection cohortSection) {
+        return checkCohortExclusivity(request, offering, batch, cohortSection, null);
+    }
+
+    /** {@code excludeCellId}: see {@link #checkAlreadyPlaced(CourseOffering, SkeletonCellPlacementRequest, Long)} —
+     *  same reason, same swap-only use. */
+    private Optional<ConstraintViolation> checkCohortExclusivity(SkeletonCellPlacementRequest request, CourseOffering offering,
+                                         Batch batch, CohortSection cohortSection, Long excludeCellId) {
         List<Long> cohortOfferingIds = nonElectiveOfferingIds(offering.getTermInstance().getId(), request.cohortId());
         if (cohortOfferingIds.isEmpty()) {
             return Optional.empty();
         }
-        List<ClassSchedule> cohortCellsAtSlot = classScheduleRepository
-            .findByTermInstanceIdAndCourseOfferingIdIn(offering.getTermInstance().getId(), cohortOfferingIds)
+        List<ClassSchedule> cohortCellsAtSlot = AutoScheduleRunCache.current()
+            .map(cache -> cache.byCourseOfferingIdIn(cohortOfferingIds))
+            .orElseGet(() -> classScheduleRepository
+                .findByTermInstanceIdAndCourseOfferingIdIn(offering.getTermInstance().getId(), cohortOfferingIds))
             .stream()
+            .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
+            .filter(cs -> excludeCellId == null || !cs.getId().equals(excludeCellId))
             .filter(cs -> cs.getDayOfWeek() == request.dayOfWeek()
                 && cs.getPeriod() != null && cs.getPeriod().getId().equals(request.periodId()))
             .toList();
@@ -677,7 +927,9 @@ public class TimetableSkeletonService {
         }
 
         List<ClassSchedule> existingGroupCells = classScheduleRepository
-            .findByTermInstanceIdAndCourseOfferingIdIn(offering.getTermInstance().getId(), siblingIds);
+            .findByTermInstanceIdAndCourseOfferingIdIn(offering.getTermInstance().getId(), siblingIds).stream()
+            .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
+            .toList();
         ClassSchedule anyExisting = resolveGroupAnchor(existingGroupCells).orElse(null);
         if (anyExisting == null) {
             return Optional.empty();
@@ -723,7 +975,9 @@ public class TimetableSkeletonService {
 
         List<Long> siblingIds = siblingOfferings.stream().map(CourseOffering::getId).toList();
         List<ClassSchedule> existingGroupCells = siblingIds.isEmpty() ? List.of()
-            : classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(request.termInstanceId(), siblingIds);
+            : classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(request.termInstanceId(), siblingIds).stream()
+                .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
+                .toList();
         ClassSchedule anchor = resolveGroupAnchor(existingGroupCells).orElse(null);
         if (anchor != null) {
             boolean matchesAnchor = anchor.getDayOfWeek() == request.dayOfWeek()
@@ -812,7 +1066,9 @@ public class TimetableSkeletonService {
             .findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(termInstanceId, electiveGroupId)
             .stream().map(CourseOffering::getId).toList();
         List<ClassSchedule> existingGroupCells = siblingIds.isEmpty() ? List.of()
-            : classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(termInstanceId, siblingIds);
+            : classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(termInstanceId, siblingIds).stream()
+                .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
+                .toList();
         ClassSchedule anchor = resolveGroupAnchor(existingGroupCells).orElse(null);
         if (anchor == null || anchor.getPeriod() == null) {
             return new ElectiveGroupScheduleResponse(false, null, null, null, null);
@@ -856,6 +1112,7 @@ public class TimetableSkeletonService {
 
         List<ClassSchedule> existingForOffering = classScheduleRepository.findByCourseOfferingId(courseOfferingId);
         List<ClassSchedule> existingForThis = existingForOffering.stream()
+            .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
             .filter(cs -> cs.getSessionType() == sessionType
                 && Objects.equals(cs.getBatch() != null ? cs.getBatch().getId() : null, batchId)
                 && Objects.equals(cs.getCohortSection() != null ? cs.getCohortSection().getId() : null, cohortSectionId))
@@ -882,7 +1139,15 @@ public class TimetableSkeletonService {
         return candidates;
     }
 
-    @Transactional
+    /** {@code REQUIRES_NEW} — see {@link #placeCell}'s javadoc: both auto-schedulers call this to
+     *  undo a just-placed cell after its staffing attempt failed, and that undo must not depend on
+     *  (or be undone by) whatever rollback state the caller's own broader transaction is in. Guarded
+     *  to an unstaffed draft only — this is the manual "click a skeleton cell to remove it" path
+     *  (and the auto-schedulers' own undo-on-staffing-failure path, which is always unstaffed by
+     *  construction), so a staffed/published session can never be destroyed by a stray click here;
+     *  {@link TimetableGlobalAutoScheduleService#attemptBacktrack} — which does need to remove one
+     *  of its own already-staffed placements — uses {@link #forceRemoveCell} instead, never this. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void removeCell(Long classScheduleId) {
         ClassSchedule cs = classScheduleRepository.findById(classScheduleId)
             .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + classScheduleId));
@@ -891,6 +1156,31 @@ public class TimetableSkeletonService {
                 "Only an unstaffed draft skeleton cell can be removed here — edit or delete a staffed session from the Class Schedule screen instead",
                 "SKELETON_CELL_NOT_REMOVABLE", "ClassSchedule", classScheduleId, null);
         }
+        deleteCellAndSiblings(cs);
+    }
+
+    /** Package-private escape hatch from {@link #removeCell}'s staffed-cell guard — for
+     *  {@link TimetableGlobalAutoScheduleService#attemptBacktrack} (displacing a cell its own run
+     *  just placed *and staffed* in one step) and {@code TimetableGlobalAutoScheduleService
+     *  #rollbackElectiveCells} (unwinding an elective group's earlier, already-staffed members after
+     *  a later member fails). Both need this because every global-auto-schedule placement is staffed
+     *  immediately, so by the time either needs to undo an earlier placement, that earlier one is
+     *  never still a bare unstaffed draft the ordinary {@link #removeCell} guard would allow.
+     *  No controller exposes this — it only ever runs against a cell the calling run itself placed a
+     *  moment earlier as part of the same best-effort pass, restorable via a fresh {@code
+     *  placeCell}+{@code staffCell} if the backtrack/rollback doesn't pan out, never against a
+     *  pre-existing published/committed session from before the run started. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    void forceRemoveCell(Long classScheduleId) {
+        ClassSchedule cs = classScheduleRepository.findById(classScheduleId)
+            .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + classScheduleId));
+        deleteCellAndSiblings(cs);
+    }
+
+    /** Shared tail of {@link #removeCell}/{@link #forceRemoveCell} — keeps the {@link
+     *  AutoScheduleRunCache} sync and the periodSpan sibling-group delete in exactly one place. */
+    private void deleteCellAndSiblings(ClassSchedule cs) {
+        AutoScheduleRunCache.current().ifPresent(cache -> cache.recordRemoval(cs));
         // OC-127 periodSpan: a multi-period session's rows are one atomic unit -- removing any one
         // of them removes every sibling sharing the same groupId.
         if (cs.getSessionGroupId() != null) {
@@ -898,6 +1188,6 @@ public class TimetableSkeletonService {
                 .forEach(sibling -> classScheduleRepository.deleteById(sibling.getId()));
             return;
         }
-        classScheduleRepository.deleteById(classScheduleId);
+        classScheduleRepository.deleteById(cs.getId());
     }
 }
