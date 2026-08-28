@@ -467,6 +467,27 @@ export class CurriculumMapComponent implements OnInit {
     return Array.from(byGroup.values());
   }
 
+  /**
+   * Total theory/lab/clinical hours for a term. Regular subjects all count; for each
+   * elective group only one representative subject's hours count, since a student only
+   * ever takes 1 of N options — summing every option would overstate the term's real hours.
+   */
+  protected getTermHoursSummary(termNumber: number): { total: number; theory: number; lab: number; clinical: number } {
+    const regular = this.getRegularCoursesForTerm(termNumber);
+    const electiveReps = this.getElectiveGroupsForTerm(termNumber)
+      .map(group => group.courses[0])
+      .filter((c): c is CurriculumSemesterCourse => !!c);
+    const totals = [...regular, ...electiveReps].reduce(
+      (acc, c) => ({
+        theory: acc.theory + c.theoryHours,
+        lab: acc.lab + c.labHours,
+        clinical: acc.clinical + c.clinicalHours,
+      }),
+      { theory: 0, lab: 0, clinical: 0 }
+    );
+    return { total: totals.theory + totals.lab + totals.clinical, ...totals };
+  }
+
   protected backToVersions(): void {
     const c = this.curriculum();
     void this.router.navigate(['/curriculum-versions'], {

@@ -154,6 +154,21 @@
                 </ul>
               </div>
             }
+
+            @if (getTermHoursSummary(sem); as summary) {
+              <div class="term-card__summary">
+                <span class="term-card__summary-label">Term Total {{ summary.total }}h</span>
+                @if (summary.theory > 0) {
+                  <span class="hours-chip hours-chip--total">Theory {{ summary.theory }}h</span>
+                }
+                @if (summary.lab > 0) {
+                  <span class="hours-chip hours-chip--total">Lab {{ summary.lab }}h</span>
+                }
+                @if (summary.clinical > 0) {
+                  <span class="hours-chip hours-chip--total">Clinical {{ summary.clinical }}h</span>
+                }
+              </div>
+            }
           }
           }
 

@@ -35,6 +35,23 @@
     font-style: italic;
     padding: 0.25rem 0;
   }
+
+  &__summary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin-top: 0.75rem;
+    padding-top: 0.625rem;
+    border-top: 1px dashed var(--cms-border-default);
+  }
+
+  &__summary-label {
+    font-size: var(--cms-text-sm);
+    font-weight: 600;
+    color: var(--cms-text-secondary);
+    margin-right: 0.125rem;
+  }
 }
 
 .add-course-btn {
@@ -198,6 +215,13 @@
 
   &--elective {
     color: #8b5cf6;
+  }
+
+  &--total {
+    font-weight: 600;
+    color: var(--cms-text-primary);
+    background: var(--cms-bg-hover);
+    border: 1px solid var(--cms-border-default);
   }
 }
 
