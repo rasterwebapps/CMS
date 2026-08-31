@@ -45,6 +45,14 @@ export class SubjectService {
     return this.http.patch<SubjectStatusUpdateResponse>(`${this.baseUrl}/${id}/status`, request);
   }
 
+  /** Additive-only — adds `venueId` to every listed subject's eligible-venue set without touching
+   *  any other field. Used by the Lab/Clinical venue-create forms to auto-link a freshly created
+   *  venue back to the subjects a capacity checklist flagged as stuck on an over-capacity venue
+   *  (see `linkSubjectIds` query param on `/labs/new` and `/clinical-venues/new`). */
+  addEligibleVenue(subjectIds: number[], venueType: 'LAB' | 'CLINICAL', venueId: number): Observable<void> {
+    return this.http.patch<void>(`${this.baseUrl}/eligible-venues`, { subjectIds, venueType, venueId });
+  }
+
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }

@@ -16,6 +16,7 @@ import { uniqueFieldValidator } from '../../../shared/validators/unique-field.va
 import { CmsRoomPickerComponent } from '../../../shared/room-picker/room-picker.component';
 import { RoomPurposeCategoryService } from '../../hostel/room-purpose-category/room-purpose-category.service';
 import { Room } from '../../hostel/campus-infrastructure/campus-infrastructure.model';
+import { SubjectService } from '../../subject/subject.service';
 
 @Component({
   selector: 'app-clinical-venue-form',
@@ -37,6 +38,7 @@ export class ClinicalVenueFormComponent implements OnInit {
   private readonly route              = inject(ActivatedRoute);
   private readonly router             = inject(Router);
   private readonly clinicalVenueService = inject(ClinicalVenueService);
+  private readonly subjectService     = inject(SubjectService);
   private readonly toast              = inject(ToastService);
   private readonly destroyRef         = inject(DestroyRef);
   private readonly http               = inject(HttpClient);
@@ -62,8 +64,15 @@ export class ClinicalVenueFormComponent implements OnInit {
   protected readonly currentRoomLabel = signal<string | null>(null);
   /** This venue's own already-linked room, so its picker doesn't exclude it as "taken." */
   protected keepRoomId: number | null = null;
+  /** Whether a room is (or, before a genuine unlink, was) actually linked — see {@link
+   *  onSelectedRoomChange}'s javadoc for why this exists. */
+  private hadRoomLinked = false;
 
   private venueId: number | null = null;
+  /** From the `linkSubjectIds` query param — set only when arriving via the Lab/Clinical
+   *  venue-capacity checklist's "Add a second venue" remedy (see `GlobalAutoScheduleReportFlyoutComponent
+   *  .venueNewQueryParams`). Empty on a normal "create a venue" visit. */
+  private linkSubjectIds: number[] = [];
 
   protected readonly form: FormGroup = this.fb.group({
     name:         ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(255), noConsecutiveSpaces()]],
@@ -89,6 +98,9 @@ export class ClinicalVenueFormComponent implements OnInit {
       this.isEditMode.set(true);
       this.pageTitle.set('Edit Clinical Venue');
       this.loadVenue();
+    } else {
+      const raw = this.route.snapshot.queryParamMap.get('linkSubjectIds');
+      this.linkSubjectIds = raw ? raw.split(',').map(Number).filter((n) => !isNaN(n)) : [];
     }
     this.setupUniquenessValidators();
     this.roomPurposeCategoryService.getAll(true).subscribe({
@@ -105,14 +117,24 @@ export class ClinicalVenueFormComponent implements OnInit {
    *  (ClinicalVenueService.resolveCapacity). Unlinking (or an external hospital posting that never
    *  links a room at all) leaves it a plain manual field, since there's no physical figure to
    *  derive from off-campus. */
+  /** `CmsRoomPickerComponent.selectedRoomChange` fires both on a real user pick/unlink AND, purely
+   *  as an echo, once the picker's own room list finishes (re)loading — including for an
+   *  off-campus venue that never had a room to begin with, which fires with `room: null` on every
+   *  edit-page load. Treating that echo the same as a genuine unlink used to blank this venue's
+   *  real, server-loaded capacity the instant the room list resolved — invisibly, since the field
+   *  just looks empty rather than obviously wrong — and Update would then persist the wipe. {@link
+   *  hadRoomLinked} distinguishes "this is confirming there was never a room" (ignore) from "a room
+   *  just got detached" (genuinely clear/re-enable). */
   protected onSelectedRoomChange(room: Room | null): void {
     const capacityCtrl = this.form.get('capacity');
     if (room) {
       capacityCtrl?.setValue(room.capacity ?? null);
       capacityCtrl?.disable();
-    } else {
+      this.hadRoomLinked = true;
+    } else if (this.hadRoomLinked) {
       capacityCtrl?.enable();
       capacityCtrl?.setValue(null);
+      this.hadRoomLinked = false;
     }
   }
 
@@ -146,15 +168,26 @@ export class ClinicalVenueFormComponent implements OnInit {
       : this.clinicalVenueService.create(request);
 
     op$.subscribe({
-      next: () => {
+      next: (venue) => {
         this.toast.success(this.isEditMode() ? 'Clinical venue updated successfully' : 'Clinical venue created successfully');
         this.saving.set(false);
+        this.linkToAffectedSubjects(venue.id);
         void this.router.navigate(['/clinical-venues']);
       },
       error: (err) => {
         this.toast.error(err?.error?.message ?? (this.isEditMode() ? 'Failed to update clinical venue' : 'Failed to create clinical venue'));
         this.saving.set(false);
       },
+    });
+  }
+
+  /** Best-effort — a failure here doesn't undo the just-created venue, it only means the admin
+   *  still has to go add it manually via Subjects (same as before this shortcut existed). */
+  private linkToAffectedSubjects(venueId: number): void {
+    if (this.linkSubjectIds.length === 0) return;
+    this.subjectService.addEligibleVenue(this.linkSubjectIds, 'CLINICAL', venueId).subscribe({
+      next: () => this.toast.success(`Also linked as an eligible venue for ${this.linkSubjectIds.length} subject(s)`),
+      error: () => this.toast.error('Venue created, but linking it to the affected subject(s) failed — add it manually via Subjects'),
     });
   }
 
@@ -179,6 +212,7 @@ export class ClinicalVenueFormComponent implements OnInit {
         });
         this.selectedRoomId = v.roomId ?? null;
         this.keepRoomId = v.roomId ?? null;
+        this.hadRoomLinked = v.roomId != null;
         this.currentRoomLabel.set(v.roomLabel ?? null);
         this.loading.set(false);
       },

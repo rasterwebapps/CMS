@@ -120,6 +120,16 @@ export interface SkeletonPlacementCandidate {
   periodId: number;
 }
 
+/** One grid slot's live legality for dragging a specific already-placed cell there — powers the
+ *  drag-highlight preview. `reason` is a human-readable violation message when `valid` is false
+ *  (matching the backend's first-violation-wins order), null when valid. */
+export interface SkeletonSlotPreview {
+  dayOfWeek: string;
+  periodId: number;
+  valid: boolean;
+  reason: string | null;
+}
+
 export interface SkeletonCellMoveRequest {
   dayOfWeek: string;
   periodId: number;
@@ -268,6 +278,31 @@ export interface GlobalAutoScheduleResult {
    *  TEMPORARY backend safety net (see `TimetableGlobalAutoScheduleService#purgeStaleOverBudgetDrafts`).
    *  Always shown when nonzero — never a silent cleanup. */
   staleDraftsCleared: number;
+  /** This run's real, exact "still couldn't fill it after trying every eligible faculty" hours —
+   *  distinct from `FacultyWorkloadOverviewReport.recommendedAdditionalFacultyCount`'s pre-run
+   *  whole-pool estimate, which never reflects real day/period feasibility. 0 when nothing was
+   *  genuinely unfillable this run. */
+  capacityCausedGapHours: number;
+  recommendedAdditionalFacultyCount: number;
+  /** LAB/CLINICAL analogue of the self-study capacity gap above: every venue whose own weekly
+   *  window capacity (not faculty, not a room/schedule conflict) is why this run couldn't place
+   *  everything still short against it. Empty when no venue was the real ceiling this run. */
+  venueCapacityGaps: VenueCapacityGap[];
+}
+
+/** One Lab or Clinical venue this run genuinely couldn't place enough sessions against because of
+ *  its own capacity — see `VenueCapacityGap` (backend) for the full mechanism. Purely informational:
+ *  the admin decides whether to raise `currentCapacity` or add a second venue; nothing here is
+ *  applied automatically. */
+export interface VenueCapacityGap {
+  venueId: number;
+  venueType: 'LAB' | 'CLINICAL';
+  venueName: string;
+  currentCapacity: number | null;
+  unplacedHours: number;
+  affectedSubjectNames: string[];
+  /** See `VenueOverCapacity.affectedSubjectIds`. */
+  affectedSubjectIds: number[];
 }
 
 export interface UnassignedOfferingSummary {
@@ -277,10 +312,50 @@ export interface UnassignedOfferingSummary {
   cohortName: string | null;
 }
 
+/** One Lab/Clinical venue whose total real weekly demand exceeds its real weekly (day, period)
+ *  window — physically cannot fit regardless of arrangement. See backend `VenueOverCapacity`. */
+export interface VenueOverCapacity {
+  venueId: number;
+  venueType: 'LAB' | 'CLINICAL';
+  venueName: string;
+  capacity: number | null;
+  weeklyAvailablePeriods: number;
+  weeklyDemandPeriods: number;
+  shortfallPeriods: number;
+  affectedSubjectNames: string[];
+  /** Parallel to `affectedSubjectNames` — passed through to the new venue's create form
+   *  (`linkSubjectIds` query param) so saving it immediately makes it eligible for these exact
+   *  subjects, closing the gap where a freshly created venue is otherwise invisible to the
+   *  suggestion engine until an admin separately edits each Subject. */
+  affectedSubjectIds: number[];
+}
+
+/** Not over capacity (a run may proceed once acknowledged) but at/near 100% of its weekly window —
+ *  real placement isn't guaranteed to succeed even though the raw period totals "fit". */
+export interface VenueTightCapacity {
+  venueId: number;
+  venueType: 'LAB' | 'CLINICAL';
+  venueName: string;
+  capacity: number | null;
+  weeklyAvailablePeriods: number;
+  weeklyDemandPeriods: number;
+  utilizationPercent: number;
+  affectedSubjectNames: string[];
+  /** See `VenueOverCapacity.affectedSubjectIds`. */
+  affectedSubjectIds: number[];
+}
+
+export interface LabClinicalVenueCapacityResult {
+  overCapacityVenues: VenueOverCapacity[];
+  tightCapacityVenues: VenueTightCapacity[];
+}
+
 /** Consolidated "is this ready to automate" report — see backend
- *  {@code TimetableGlobalAutoScheduleService#checkPrerequisites}. Room-commit status is checked
- *  separately, client-side, against Capacity Planner's own endpoints. */
+ *  {@code TimetableGlobalAutoScheduleService#checkPrerequisites}. General room-commit status is
+ *  still checked separately, client-side, against Capacity Planner's own endpoints — Lab/Clinical
+ *  venue capacity is the one deliberate exception, since Run Automation itself can fail on it. */
 export interface GlobalAutoSchedulePrerequisites {
   offeringsWithoutFaculty: UnassignedOfferingSummary[];
   capacityPrecheck: GlobalCapacityPrecheckResult;
+  labClinicalVenueCapacity: LabClinicalVenueCapacityResult;
 }

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
+import com.cms.dto.AddEligibleVenueRequest;
 import com.cms.dto.FacultyOptionResponse;
 import com.cms.dto.SpecialityResponse;
 import com.cms.dto.SubjectRequest;
@@ -229,6 +230,36 @@ public class SubjectService {
 
         Subject updated = subjectRepository.save(subject);
         return toResponse(updated);
+    }
+
+    /** Additive-only eligibility grant — see {@code AddEligibleVenueRequest}'s javadoc. Idempotent:
+     *  adding a venue already present in a subject's eligible set is a no-op (backed by a
+     *  {@code Set}), so this can be called again safely (e.g. a retried request) without effect. */
+    @Transactional
+    public void addEligibleVenue(AddEligibleVenueRequest request) {
+        boolean isLab = "LAB".equalsIgnoreCase(request.venueType());
+        if (!isLab && !"CLINICAL".equalsIgnoreCase(request.venueType())) {
+            throw new IllegalArgumentException("Unknown venue type: " + request.venueType());
+        }
+        Lab lab = isLab
+            ? labRepository.findById(request.venueId())
+                .orElseThrow(() -> new ResourceNotFoundException("Lab not found with id: " + request.venueId()))
+            : null;
+        ClinicalVenue clinicalVenue = isLab
+            ? null
+            : clinicalVenueRepository.findById(request.venueId())
+                .orElseThrow(() -> new ResourceNotFoundException("Clinical venue not found with id: " + request.venueId()));
+
+        for (Long subjectId : request.subjectIds()) {
+            Subject subject = subjectRepository.findById(subjectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + subjectId));
+            if (isLab) {
+                subject.getEligibleLabs().add(lab);
+            } else {
+                subject.getEligibleClinicalVenues().add(clinicalVenue);
+            }
+            subjectRepository.save(subject);
+        }
     }
 
     @Transactional

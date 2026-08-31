@@ -486,4 +486,71 @@ class SubjectServiceTest {
         verify(classScheduleRepository, never()).existsByCourseOffering_Subject_Id(any());
         verify(batchRepository, never()).existsAnyStudentInBatchesForSubject(any());
     }
+
+    @Test
+    void addEligibleVenue_lab_addsToEverySubjectWithoutTouchingOtherFields() {
+        Lab lab = new Lab();
+        lab.setId(50L);
+        lab.setName("Anatomy Lab");
+        Subject other = new Subject("Physiology", "PHY101", 4, 3, 1, speciality, 1);
+        other.setId(2L);
+        when(labRepository.findById(50L)).thenReturn(Optional.of(lab));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
+        when(subjectRepository.findById(2L)).thenReturn(Optional.of(other));
+        when(subjectRepository.save(any(Subject.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        subjectService.addEligibleVenue(new com.cms.dto.AddEligibleVenueRequest(List.of(1L, 2L), "LAB", 50L));
+
+        assertThat(testSubject.getEligibleLabs()).contains(lab);
+        assertThat(other.getEligibleLabs()).contains(lab);
+        assertThat(testSubject.getName()).isEqualTo("Anatomy");
+    }
+
+    @Test
+    void addEligibleVenue_clinical_addsToSubject() {
+        ClinicalVenue venue = new ClinicalVenue();
+        venue.setId(60L);
+        venue.setName("Community Health Center II");
+        when(clinicalVenueRepository.findById(60L)).thenReturn(Optional.of(venue));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
+        when(subjectRepository.save(any(Subject.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        subjectService.addEligibleVenue(new com.cms.dto.AddEligibleVenueRequest(List.of(1L), "CLINICAL", 60L));
+
+        assertThat(testSubject.getEligibleClinicalVenues()).contains(venue);
+    }
+
+    @Test
+    void addEligibleVenue_alreadyEligible_isIdempotentNoOp() {
+        ClinicalVenue venue = new ClinicalVenue();
+        venue.setId(60L);
+        testSubject.setEligibleClinicalVenues(new java.util.HashSet<>(List.of(venue)));
+        when(clinicalVenueRepository.findById(60L)).thenReturn(Optional.of(venue));
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
+        when(subjectRepository.save(any(Subject.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        subjectService.addEligibleVenue(new com.cms.dto.AddEligibleVenueRequest(List.of(1L), "CLINICAL", 60L));
+
+        assertThat(testSubject.getEligibleClinicalVenues()).hasSize(1);
+    }
+
+    @Test
+    void addEligibleVenue_unknownVenueType_throws() {
+        assertThatThrownBy(() -> subjectService.addEligibleVenue(
+            new com.cms.dto.AddEligibleVenueRequest(List.of(1L), "EQUIPMENT", 60L)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unknown venue type");
+    }
+
+    @Test
+    void addEligibleVenue_subjectNotFound_throws() {
+        ClinicalVenue venue = new ClinicalVenue();
+        venue.setId(60L);
+        when(clinicalVenueRepository.findById(60L)).thenReturn(Optional.of(venue));
+        when(subjectRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> subjectService.addEligibleVenue(
+            new com.cms.dto.AddEligibleVenueRequest(List.of(99L), "CLINICAL", 60L)))
+            .isInstanceOf(ResourceNotFoundException.class);
+    }
 }

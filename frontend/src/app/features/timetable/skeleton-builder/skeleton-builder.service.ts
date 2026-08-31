@@ -15,6 +15,7 @@ import {
   SkeletonCellSwapRequest,
   SkeletonPlacementCandidate,
   SkeletonSessionType,
+  SkeletonSlotPreview,
 } from './skeleton-builder.model';
 
 @Injectable({ providedIn: 'root' })
@@ -52,6 +53,12 @@ export class SkeletonBuilderService {
 
   swapCells(id: number, request: SkeletonCellSwapRequest): Observable<SkeletonCell[]> {
     return this.http.put<SkeletonCell[]>(`${this.baseUrl}/cells/${id}/swap`, request);
+  }
+
+  previewMoveTargets(id: number, cohortId: number): Observable<SkeletonSlotPreview[]> {
+    return this.http.get<SkeletonSlotPreview[]>(`${this.baseUrl}/cells/${id}/move-preview`, {
+      params: { cohortId: cohortId.toString() },
+    });
   }
 
   placeElectiveGroup(request: ElectiveGroupPlacementRequest): Observable<SkeletonCell[]> {

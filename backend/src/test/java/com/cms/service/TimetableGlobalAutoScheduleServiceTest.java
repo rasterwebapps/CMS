@@ -28,6 +28,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.AutoPlaceUnplacedItem;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.EligibleFacultyCandidateDto;
+import com.cms.dto.LabClinicalVenueCapacityResult;
+import com.cms.dto.VenueOverCapacity;
 import com.cms.dto.FacultyCapacityCheckResult;
 import com.cms.dto.FacultyOverCapacity;
 import com.cms.dto.FacultyTightCapacity;
@@ -94,6 +96,13 @@ class TimetableGlobalAutoScheduleServiceTest {
     @Mock private ClassroomRepository classroomRepository;
     @Mock private CourseRegistrationRepository courseRegistrationRepository;
 
+    /** None of these fixtures configure a Self-Study/Co-curricular offering, so the gap-fill pass
+     *  now correctly reports this once per cohort per run (see {@code fillSelfStudyGaps}) instead
+     *  of silently leaving Monday-Friday periods unaccounted for. */
+    private static final String NO_SELF_STUDY_OFFERING_REASON =
+        "no Self-Study/Co-curricular offering is configured for this cohort to use as gap-fill — "
+            + "every remaining Monday-Friday period stays empty until one is added";
+
     private TimetableGlobalAutoScheduleService service;
     private TermInstance termInstance;
     private Period period1;
@@ -120,6 +129,11 @@ class TimetableGlobalAutoScheduleServiceTest {
         // 100 real working days, mirroring the user's own worked example.
         lenient().when(timetableCapacityPlanningService.nonTeachingDates(termInstance)).thenReturn(Set.of());
         lenient().when(timetableCapacityPlanningService.countWorkingDays(eq(termInstance), any())).thenReturn(100);
+
+        // Default: no Lab/Clinical venue is over/tight capacity -- individual tests override this
+        // to exercise checkPrerequisites'/doRunGlobalAutoSchedule's own handling of a real gap.
+        lenient().when(timetableCapacityPlanningService.computeLabClinicalVenueCapacity(anyLong(), any()))
+            .thenReturn(new LabClinicalVenueCapacityResult(List.of(), List.of()));
     }
 
     private Faculty facultyWithDailyCap(Long id, String name, Integer plannedDailyHoursOverride) {
@@ -390,6 +404,29 @@ class TimetableGlobalAutoScheduleServiceTest {
     }
 
     @Test
+    void runAbortsWithoutPlacingAnything_whenVenueCapacityPrecheckFails() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "XYZ", 6); // plenty of capacity, faculty precheck passes
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
+        assignWholeCohort(100L, 1L, 500L);
+        offeringEntity(100L, 10, 0, 0);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        VenueOverCapacity overCapacity = new VenueOverCapacity(50L, "LAB", "Anatomy Lab", 30, 12, 13, 1, List.of("Anatomy"), List.of(100L));
+        when(timetableCapacityPlanningService.computeLabClinicalVenueCapacity(eq(10L), any()))
+            .thenReturn(new LabClinicalVenueCapacityResult(List.of(overCapacity), List.of()));
+
+        assertThatThrownBy(() -> service.runGlobalAutoSchedule(10L, null))
+            .isInstanceOf(TimetableConstraintViolationException.class);
+
+        verify(timetableSkeletonService, never()).placeCell(any());
+        verify(timetableStaffingService, never()).staffCell(anyLong(), any());
+    }
+
+    @Test
     void runPlacesAndStaffsUsingTheOfferingsBoundFaculty_notAFreePool() {
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
             .thenReturn(new HashSet<>(List.of(1L)));
@@ -420,7 +457,8 @@ class TimetableGlobalAutoScheduleServiceTest {
         assertThat(result.totalPlaced()).isEqualTo(1);
         assertThat(result.totalStaffed()).isEqualTo(1);
         assertThat(result.cohortSummaries()).hasSize(1);
-        assertThat(result.cohortSummaries().get(0).unplaced()).isEmpty();
+        assertThat(result.cohortSummaries().get(0).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
+            .containsExactly(NO_SELF_STUDY_OFFERING_REASON);
         assertThat(result.cohortSummaries().get(0).usedSaturday()).isFalse();
         assertThat(result.electiveUnplaced()).isEmpty();
         verify(timetableStaffingService).staffCell(900L, new StaffingAssignmentRequest(500L, null));
@@ -466,7 +504,8 @@ class TimetableGlobalAutoScheduleServiceTest {
         verify(classScheduleRepository).save(excess1);
         verify(classScheduleRepository).save(excess2);
         assertThat(result.totalPlaced()).isEqualTo(0);
-        assertThat(result.cohortSummaries().get(0).unplaced()).isEmpty();
+        assertThat(result.cohortSummaries().get(0).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
+            .containsExactly(NO_SELF_STUDY_OFFERING_REASON);
     }
 
     /** Minimal {@link SkeletonCellResponse} for Offering A / whole-cohort THEORY -- only {@code id}
@@ -526,7 +565,8 @@ class TimetableGlobalAutoScheduleServiceTest {
         var result = service.runGlobalAutoSchedule(10L, null);
 
         assertThat(result.totalPlaced()).isEqualTo(1);
-        assertThat(result.cohortSummaries().get(0).unplaced()).isEmpty();
+        assertThat(result.cohortSummaries().get(0).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
+            .containsExactly(NO_SELF_STUDY_OFFERING_REASON);
         verify(timetableSkeletonService).placeCell(argThat(r ->
             r.dayOfWeek() == DayOfWeek.MONDAY && r.periodId().equals(1L)
                 && r.spanPeriodIds() != null && r.spanPeriodIds().equals(List.of(2L, 3L, 4L))));
@@ -557,13 +597,14 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         assertThat(result.totalPlaced()).isEqualTo(0);
         assertThat(result.cohortSummaries()).hasSize(1);
-        assertThat(result.cohortSummaries().get(0).unplaced()).hasSize(1);
+        assertThat(result.cohortSummaries().get(0).unplaced()).hasSize(2);
         // The real blocking constraint (cohort clash) is now named, not a generic catch-all --
         // this is exactly the diagnostic gap that made a real shortfall look unexplainable
         // without pulling raw data by hand.
         assertThat(result.cohortSummaries().get(0).unplaced().get(0).reason())
             .contains("another mandatory session already occupies this audience's slot")
             .contains("5 of 5 day/period combinations tried");
+        assertThat(result.cohortSummaries().get(0).unplaced().get(1).reason()).isEqualTo(NO_SELF_STUDY_OFFERING_REASON);
 
         // 5 days x 1 period exhausted -- Saturday is skipped outright since this term has no working-Saturday pattern configured.
         verify(timetableSkeletonService, times(5)).placeCell(any());
@@ -627,7 +668,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         assertThat(result.totalPlaced()).isEqualTo(0);
         assertThat(result.cohortSummaries().get(0).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
-            .containsExactly("no faculty assigned on its Course Offering");
+            .containsExactly("no faculty assigned on its Course Offering", NO_SELF_STUDY_OFFERING_REASON);
         verify(timetableSkeletonService, never()).placeCell(any());
     }
 
@@ -676,9 +717,10 @@ class TimetableGlobalAutoScheduleServiceTest {
         var summaryByCohort = result.cohortSummaries().stream()
             .collect(java.util.stream.Collectors.toMap(com.cms.dto.CohortPlacementSummary::cohortId, s -> s));
         assertThat(summaryByCohort.get(1L).placedCount()).isEqualTo(0);
-        assertThat(summaryByCohort.get(1L).unplaced()).hasSize(1);
+        assertThat(summaryByCohort.get(1L).unplaced()).hasSize(2);
         assertThat(summaryByCohort.get(2L).placedCount()).isEqualTo(1);
-        assertThat(summaryByCohort.get(2L).unplaced()).isEmpty();
+        assertThat(summaryByCohort.get(2L).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
+            .containsExactly(NO_SELF_STUDY_OFFERING_REASON);
     }
 
     @Test
@@ -946,6 +988,36 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         assertThat(result.ready()).isTrue();
         assertThat(result.offeringsWithoutFaculty()).isEmpty();
+    }
+
+    @Test
+    void checkPrerequisitesIncludesLabClinicalVenueCapacity_readyReflectsOverCapacity() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "XYZ", 6); // plenty of capacity, faculty precheck passes
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
+        assignWholeCohort(100L, 1L, 500L);
+        offeringEntity(100L, 10, 0, 0);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
+        SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFA", List.of(budget), null, null);
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L));
+
+        VenueOverCapacity overCapacity = new VenueOverCapacity(50L, "LAB", "Anatomy Lab", 30, 12, 13, 1, List.of("Anatomy"), List.of(100L));
+        when(timetableCapacityPlanningService.computeLabClinicalVenueCapacity(eq(10L), any()))
+            .thenReturn(new LabClinicalVenueCapacityResult(List.of(overCapacity), List.of()));
+
+        GlobalAutoSchedulePrerequisites result = service.checkPrerequisites(10L, null);
+
+        assertThat(result.ready()).isFalse();
+        assertThat(result.offeringsWithoutFaculty()).isEmpty();
+        assertThat(result.capacityPrecheck().overCapacityFaculty()).isEmpty();
+        assertThat(result.labClinicalVenueCapacity().overCapacityVenues()).extracting(VenueOverCapacity::venueId)
+            .containsExactly(50L);
     }
 
     // ── Eligible faculty picker (offering + section level) ────────────

@@ -34,6 +34,15 @@
     border-color: rgba(239, 68, 68, .35);
     color: rgba(239, 68, 68, .95);
   }
+
+  // Soft, non-blocking warning (zero-slack but not over) -- same amber tokens the Global
+  // Auto-Schedule checklist's own tight-capacity cards use (.gas-faculty-card--tight), not a
+  // one-off color invented here.
+  &--warn {
+    background: var(--cms-warning-light);
+    border-color: var(--cms-warning);
+    color: var(--cms-warning);
+  }
 }
 
 .cap-alert__cta {
@@ -54,6 +63,58 @@
     border-color: transparent;
     color: #fff;
   }
+}
+
+// Same "direct child of .mlp-page, no local margin" rule as .cap-alert above -- renders directly
+// below the summary .cap-alert banner, one row per over/tight-capacity venue (see
+// TermCapacityOverview.overCapacityVenues/tightCapacityVenues) with its own deep-linked "Add a
+// second venue" remedy, instead of the single generic /labs link this replaced, which had nowhere
+// to carry the affected subject ids through to and so never actually linked a newly created venue
+// to anything.
+.cap-venue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cap-venue-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-radius: var(--cms-radius-md, 10px);
+  border: 1px solid transparent;
+
+  &--bad {
+    background: rgba(239, 68, 68, .08);
+    border-color: rgba(239, 68, 68, .25);
+  }
+
+  // Same amber tokens as .cap-alert--warn above.
+  &--warn {
+    background: var(--cms-warning-light);
+    border-color: var(--cms-warning);
+  }
+}
+
+.cap-venue-row__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cap-venue-row__name {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.cap-venue-row__detail {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--cms-text-secondary);
 }
 
 // Also a direct child of .mlp-page -- same no-local-margin rule as .cap-alert above.

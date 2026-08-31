@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,19 +20,24 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.CapacityPlanResponse;
 import com.cms.dto.CohortAutoPlanSummaryResponse;
+import com.cms.dto.LabClinicalVenueCapacityResult;
 import com.cms.dto.RoomInventoryRowResponse;
 import com.cms.dto.SuggestedBatchResponse;
 import com.cms.dto.SuggestedSectionResponse;
 import com.cms.dto.TermCapacityOverviewResponse;
 import com.cms.dto.VenueOptionResponse;
+import com.cms.dto.VenueOverCapacity;
+import com.cms.dto.VenueTightCapacity;
 import com.cms.dto.VenueUtilizationResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.Batch;
 import com.cms.model.BlockedPeriod;
 import com.cms.model.CalendarEvent;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.ClinicalVenue;
 import com.cms.model.Cohort;
+import com.cms.model.CohortRoomAllocation;
 import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Lab;
@@ -79,6 +86,11 @@ public class TimetableCapacityPlanningService {
      *  already leaning on overflow, not a bug to clamp away. */
     private static final int WORKING_DAYS_PER_WEEK = 5;
 
+    /** Shared with {@link TimetableGlobalAutoScheduleService}'s faculty over/tight-capacity split
+     *  so a Lab/Clinical venue and a faculty member are both flagged "tight" at the same real
+     *  utilization threshold — one literal, not two independently-typed copies. */
+    public static final double TIGHT_CAPACITY_THRESHOLD = 0.95;
+
     private final CohortRepository cohortRepository;
     private final CohortSectionRepository cohortSectionRepository;
     private final TermInstanceRepository termInstanceRepository;
@@ -93,6 +105,7 @@ public class TimetableCapacityPlanningService {
     private final BlockedPeriodRepository blockedPeriodRepository;
     private final CohortRoomAllocationRepository cohortRoomAllocationRepository;
     private final BatchRepository batchRepository;
+    private final TimetableBlockedPeriodChecker blockedPeriodChecker;
 
     public TimetableCapacityPlanningService(CohortRepository cohortRepository,
                                              CohortSectionRepository cohortSectionRepository,
@@ -107,7 +120,8 @@ public class TimetableCapacityPlanningService {
                                              CourseOfferingRepository courseOfferingRepository,
                                              BlockedPeriodRepository blockedPeriodRepository,
                                              CohortRoomAllocationRepository cohortRoomAllocationRepository,
-                                             BatchRepository batchRepository) {
+                                             BatchRepository batchRepository,
+                                             TimetableBlockedPeriodChecker blockedPeriodChecker) {
         this.cohortRepository = cohortRepository;
         this.cohortSectionRepository = cohortSectionRepository;
         this.termInstanceRepository = termInstanceRepository;
@@ -122,6 +136,7 @@ public class TimetableCapacityPlanningService {
         this.blockedPeriodRepository = blockedPeriodRepository;
         this.cohortRoomAllocationRepository = cohortRoomAllocationRepository;
         this.batchRepository = batchRepository;
+        this.blockedPeriodChecker = blockedPeriodChecker;
     }
 
     public CapacityPlanResponse getPlan(Long termInstanceId, Long cohortId, PlanningBasis planningBasisParam) {
@@ -288,22 +303,22 @@ public class TimetableCapacityPlanningService {
         );
     }
 
-    /** Term-wide overview for the Capacity Auto-Plan bulk screen -- every Cohort with an ENROLLED
-     *  student in this term, each cohort's committed-allocation status, its suggested
-     *  sections/batches (reusing {@link #getPlan}, so there is exactly one implementation of the
-     *  suggestion algorithm), a strict Theory sufficiency check, and a whole-term room inventory.
-     *  Committed cohorts are never re-planned -- their suggestions are surfaced empty since the
-     *  bulk screen never acts on them. */
-    public TermCapacityOverviewResponse getTermOverview(Long termInstanceId, PlanningBasis planningBasis) {
-        termInstanceRepository.findById(termInstanceId)
-            .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
+    /** One cohort's {@link #getPlan} result plus its real committed-allocation status/counts --
+     *  extracted from {@link #getTermOverview}'s own cohort loop so {@link
+     *  #computeLabClinicalVenueCapacity} can reuse the exact same per-cohort planning pass (same
+     *  provisional-room-claim ordering, same suggestion algorithm) instead of re-running it a
+     *  second time within the same overview request. */
+    private record CohortPlan(CapacityPlanResponse plan, boolean committed, int committedSectionsCount, int committedBatchesCount) {}
 
+    /** Plans every Cohort with an ENROLLED student in {@code termInstanceId}, in the same
+     *  deterministic display order {@link #getTermOverview}'s {@code cohortRows} sorts by,
+     *  reserving each still-uncommitted cohort's suggested classrooms against the next cohort in
+     *  the pass via {@code provisionallyClaimedClassroomIds} -- see the field-level comment
+     *  formerly here, now inlined below, for why that reservation exists. */
+    private List<CohortPlan> planEveryCohort(Long termInstanceId, PlanningBasis planningBasis) {
         Set<Long> cohortIds = studentTermEnrollmentRepository
             .findDistinctCohortIdsByTermInstanceId(termInstanceId, EnrollmentStatus.ENROLLED);
 
-        // Deterministic planning order matching the row order the bulk screen displays (cohortRows
-        // is sorted by the same key below) -- so the reservation below always reserves rooms in the
-        // same order a person reading the screen top-to-bottom would expect.
         List<Cohort> cohortsInPlanOrder = cohortRepository.findAllById(cohortIds).stream()
             .sorted(Comparator.comparing(Cohort::getDisplayName))
             .toList();
@@ -315,10 +330,10 @@ public class TimetableCapacityPlanningService {
         // the real committed-claim path inside getPlan), and never consume from it either.
         Set<Long> provisionallyClaimedClassroomIds = new HashSet<>();
 
-        List<CohortAutoPlanSummaryResponse> cohortRows = new ArrayList<>();
+        List<CohortPlan> cohortPlans = new ArrayList<>();
         for (Cohort cohortRow : cohortsInPlanOrder) {
             Long cohortId = cohortRow.getId();
-            Optional<com.cms.model.CohortRoomAllocation> committedAllocation = cohortRoomAllocationRepository
+            Optional<CohortRoomAllocation> committedAllocation = cohortRoomAllocationRepository
                 .findByCohortIdAndTermInstanceIdAndStatus(cohortId, termInstanceId, CohortRoomAllocationStatus.COMMITTED);
             boolean committed = committedAllocation.isPresent();
             int committedSectionsCount = committedAllocation
@@ -333,6 +348,28 @@ public class TimetableCapacityPlanningService {
                     provisionallyClaimedClassroomIds.add(section.classroomId());
                 }
             }
+            cohortPlans.add(new CohortPlan(plan, committed, committedSectionsCount, committedBatchesCount));
+        }
+        return cohortPlans;
+    }
+
+    /** Term-wide overview for the Capacity Auto-Plan bulk screen -- every Cohort with an ENROLLED
+     *  student in this term, each cohort's committed-allocation status, its suggested
+     *  sections/batches (reusing {@link #getPlan} via {@link #planEveryCohort}, so there is exactly
+     *  one implementation of the suggestion algorithm), a strict Theory sufficiency check, a
+     *  Lab/Clinical weekly-capacity feasibility check ({@link #computeLabClinicalVenueCapacity}),
+     *  and a whole-term room inventory. Committed cohorts are never re-planned -- their suggestions
+     *  are surfaced empty since the bulk screen never acts on them. */
+    public TermCapacityOverviewResponse getTermOverview(Long termInstanceId, PlanningBasis planningBasis) {
+        TermInstance term = termInstanceRepository.findById(termInstanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
+
+        List<CohortPlan> cohortPlans = planEveryCohort(termInstanceId, planningBasis);
+
+        List<CohortAutoPlanSummaryResponse> cohortRows = new ArrayList<>();
+        for (CohortPlan cohortPlan : cohortPlans) {
+            CapacityPlanResponse plan = cohortPlan.plan();
+            boolean committed = cohortPlan.committed();
             cohortRows.add(new CohortAutoPlanSummaryResponse(
                 plan.cohortId(),
                 plan.cohortLabel(),
@@ -345,8 +382,8 @@ public class TimetableCapacityPlanningService {
                 committed ? List.of() : plan.suggestedLabClinicalBatches(),
                 committed || plan.labClinicalMappingSufficient(),
                 committed ? null : plan.labClinicalMappingIssuesMessage(),
-                committedSectionsCount,
-                committedBatchesCount
+                cohortPlan.committedSectionsCount(),
+                cohortPlan.committedBatchesCount()
             ));
         }
         cohortRows.sort(Comparator.comparing(CohortAutoPlanSummaryResponse::cohortLabel));
@@ -467,9 +504,199 @@ public class TimetableCapacityPlanningService {
                 u != null ? u.occupiedSlots() : 0L, u != null ? u.totalSlots() : 0, u != null ? u.utilizationPercent() : 0.0));
         }
 
+        LabClinicalVenueCapacityResult venueCapacity = computeLabClinicalVenueCapacity(term, activePeriods, cohortPlans);
+        boolean labClinicalVenueCapacitySufficient = venueCapacity.overCapacityVenues().isEmpty();
+        String labClinicalVenueCapacityIssuesMessage = labClinicalVenueCapacitySufficient ? null
+            : formatVenueCapacityIssuesMessage(venueCapacity.overCapacityVenues());
+        boolean labClinicalVenueCapacityTight = !venueCapacity.tightCapacityVenues().isEmpty();
+        String labClinicalVenueCapacityTightMessage = !labClinicalVenueCapacityTight ? null
+            : formatVenueCapacityTightMessage(venueCapacity.tightCapacityVenues());
+
         return new TermCapacityOverviewResponse(termInstanceId, theorySufficient, totalFreeClassroomCapacity,
             totalNotPlannedStrength, theorySufficiencyMessage, cohortRows, roomInventory,
-            labClinicalMappingSufficient, labClinicalMappingIssuesMessage);
+            labClinicalMappingSufficient, labClinicalMappingIssuesMessage,
+            labClinicalVenueCapacitySufficient, labClinicalVenueCapacityIssuesMessage,
+            labClinicalVenueCapacityTight, labClinicalVenueCapacityTightMessage,
+            venueCapacity.overCapacityVenues(), venueCapacity.tightCapacityVenues());
+    }
+
+    /** Run-scoped tally for one Lab or Clinical venue's total weekly demand across every cohort
+     *  sharing it this term -- mirrors {@code TimetableGlobalAutoScheduleService.VenueGapAccumulator}'s
+     *  shape/key scheme ({@code sessionType + ":" + venueId}), but accumulates a demand TOTAL
+     *  up front (before any placement is attempted) rather than a post-hoc failure tally. */
+    private static final class VenueDemandAccumulator {
+        final Long venueId;
+        final String venueType;
+        final String venueName;
+        final Integer capacity;
+        int weeklyDemandPeriods;
+        /** id -> name, insertion-ordered -- keyed by id (not name) so {@code affectedSubjectIds} can
+         *  drive the frontend's auto-link-on-create-venue flow (see {@code
+         *  VenueOverCapacity#affectedSubjectIds}). */
+        final Map<Long, String> subjects = new LinkedHashMap<>();
+
+        VenueDemandAccumulator(Long venueId, String venueType, String venueName, Integer capacity) {
+            this.venueId = venueId;
+            this.venueType = venueType;
+            this.venueName = venueName;
+            this.capacity = capacity;
+        }
+    }
+
+    /** Public entry point -- resolves the term and its active periods, plans every cohort fresh
+     *  (see {@link #planEveryCohort}), then delegates to the shared core below. Called
+     *  independently by {@code TimetableGlobalAutoScheduleService} (Run Automation's prerequisite
+     *  checklist and its own defensive re-check) -- {@link #getTermOverview} calls the private
+     *  overload directly instead, since it already has {@code term}/{@code activePeriods}/{@code
+     *  cohortPlans} on hand and re-running {@link #planEveryCohort} a second time in the same
+     *  request would double its cost for no reason. */
+    public LabClinicalVenueCapacityResult computeLabClinicalVenueCapacity(Long termInstanceId, PlanningBasis planningBasis) {
+        TermInstance term = termInstanceRepository.findById(termInstanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
+        List<Period> activePeriods = periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc();
+        List<CohortPlan> cohortPlans = planEveryCohort(termInstanceId, planningBasis);
+        return computeLabClinicalVenueCapacity(term, activePeriods, cohortPlans);
+    }
+
+    /** Real feasibility core: for every Lab/Clinical venue referenced by either a genuinely
+     *  committed {@link Batch} row (real allocation, already fixed) or a not-yet-committed
+     *  cohort's {@link #suggestLabClinicalBatches} suggestion (from {@code cohortPlans}), sums
+     *  each contributing batch's own full weekly demand ({@code sessionsPerWeek * blockSize}
+     *  periods -- every batch is its own separately-scheduled session, per {@link
+     *  #splitIntoSequentialBatches}'s javadoc, so each one demands its own full weekly quota, not
+     *  a shared fraction of one) and classifies the venue as over/tight/fine against {@link
+     *  #weeklyAvailablePeriods(TermInstance, List)}. This is a necessary-condition aggregate, not a
+     *  true day/period collision simulation -- see {@link LabClinicalVenueCapacityResult}'s javadoc. */
+    private LabClinicalVenueCapacityResult computeLabClinicalVenueCapacity(TermInstance term, List<Period> activePeriods,
+                                                                             List<CohortPlan> cohortPlans) {
+        int weeksInTerm = CurriculumHoursCalculator.weeksInTerm(term);
+        double periodDurationMinutes = CurriculumHoursCalculator.averageDurationMinutes(
+            activePeriods.stream().map(Period::getDurationMinutes).toList());
+        int weeklyAvailable = weeklyAvailablePeriods(term, activePeriods);
+
+        Map<String, VenueDemandAccumulator> demandByVenue = new LinkedHashMap<>();
+
+        // Committed cohorts: real Batch rows already carry a fixed venue -- these are facts, not
+        // suggestions, so they're read directly rather than re-derived from getPlan.
+        for (Batch batch : batchRepository.findByTermInstanceIdAndIsActiveTrue(term.getId())) {
+            CourseOffering offering = batch.getCourseOffering();
+            if (offering == null) continue;
+            ClassSessionType sessionType;
+            Long venueId;
+            String venueName;
+            Integer capacity;
+            if (batch.getLab() != null) {
+                sessionType = ClassSessionType.LAB;
+                venueId = batch.getLab().getId();
+                venueName = batch.getLab().getName();
+                capacity = batch.getLab().getCapacity();
+            } else if (batch.getClinicalVenue() != null) {
+                sessionType = ClassSessionType.CLINICAL;
+                venueId = batch.getClinicalVenue().getId();
+                venueName = batch.getClinicalVenue().getName();
+                capacity = batch.getClinicalVenue().getCapacity();
+            } else {
+                continue;
+            }
+            accumulateVenueDemand(demandByVenue, sessionType, venueId, venueName, capacity,
+                offering, weeksInTerm, periodDurationMinutes);
+        }
+
+        // Not-yet-committed cohorts: the same suggested-batch algorithm Capacity Auto-Plan itself
+        // already shows on screen -- reused as-is, not re-derived.
+        for (CohortPlan cohortPlan : cohortPlans) {
+            if (cohortPlan.committed()) continue;
+            for (SuggestedBatchResponse row : cohortPlan.plan().suggestedLabClinicalBatches()) {
+                if (row.venueId() == null) continue;
+                CourseOffering offering = courseOfferingRepository.findById(row.courseOfferingId()).orElse(null);
+                if (offering == null) continue;
+                accumulateVenueDemand(demandByVenue, row.sessionType(), row.venueId(), row.venueName(), row.venueCapacity(),
+                    offering, weeksInTerm, periodDurationMinutes);
+            }
+        }
+
+        List<VenueOverCapacity> overCapacityVenues = new ArrayList<>();
+        List<VenueTightCapacity> tightCapacityVenues = new ArrayList<>();
+        for (VenueDemandAccumulator acc : demandByVenue.values()) {
+            List<String> subjectNames = new ArrayList<>(acc.subjects.values());
+            List<Long> subjectIds = new ArrayList<>(acc.subjects.keySet());
+            if (acc.weeklyDemandPeriods > weeklyAvailable) {
+                overCapacityVenues.add(new VenueOverCapacity(acc.venueId, acc.venueType, acc.venueName, acc.capacity,
+                    weeklyAvailable, acc.weeklyDemandPeriods, acc.weeklyDemandPeriods - weeklyAvailable, subjectNames,
+                    subjectIds));
+            } else if (weeklyAvailable > 0 && acc.weeklyDemandPeriods >= weeklyAvailable * TIGHT_CAPACITY_THRESHOLD) {
+                double utilizationPercent = (acc.weeklyDemandPeriods * 100.0) / weeklyAvailable;
+                tightCapacityVenues.add(new VenueTightCapacity(acc.venueId, acc.venueType, acc.venueName, acc.capacity,
+                    weeklyAvailable, acc.weeklyDemandPeriods, utilizationPercent, subjectNames, subjectIds));
+            }
+        }
+        overCapacityVenues.sort(Comparator.comparing(VenueOverCapacity::venueName, String.CASE_INSENSITIVE_ORDER));
+        tightCapacityVenues.sort(Comparator.comparing(VenueTightCapacity::venueName, String.CASE_INSENSITIVE_ORDER));
+        return new LabClinicalVenueCapacityResult(overCapacityVenues, tightCapacityVenues);
+    }
+
+    private void accumulateVenueDemand(Map<String, VenueDemandAccumulator> demandByVenue, ClassSessionType sessionType,
+                                        Long venueId, String venueName, Integer capacity, CourseOffering offering,
+                                        int weeksInTerm, double periodDurationMinutes) {
+        int demand = weeklyDemandPeriodsForOffering(offering, sessionType, weeksInTerm, periodDurationMinutes);
+        if (demand <= 0) return;
+        String key = sessionType + ":" + venueId;
+        VenueDemandAccumulator acc = demandByVenue.computeIfAbsent(key,
+            k -> new VenueDemandAccumulator(venueId, sessionType.name(), venueName, capacity));
+        acc.weeklyDemandPeriods += demand;
+        if (offering.getSubject() != null) {
+            acc.subjects.put(offering.getSubject().getId(), offering.getSubject().getName());
+        }
+    }
+
+    /** This offering's own weekly demand periods for one session type -- {@code sessionsPerWeek *
+     *  blockSize}, the same figures {@code TimetableGlobalAutoScheduleService} places against, so
+     *  this feasibility check can never disagree with what a real run would actually attempt. */
+    private int weeklyDemandPeriodsForOffering(CourseOffering offering, ClassSessionType sessionType,
+                                                int weeksInTerm, double periodDurationMinutes) {
+        CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
+        if (csc == null) return 0;
+        Integer hours = sessionType == ClassSessionType.LAB ? csc.getLabHours() : csc.getClinicalHours();
+        int totalHours = hours != null ? hours : 0;
+        int sessionsPerWeek = CurriculumHoursCalculator.sessionsPerWeek(totalHours, weeksInTerm, periodDurationMinutes);
+        int blockSize = CurriculumHoursCalculator.resolveBlockSize(offering.getSubject(), sessionType);
+        return sessionsPerWeek * blockSize;
+    }
+
+    /** Real weekly (day, period) window for scheduling -- Monday-Saturday, each pair counted only
+     *  when {@link TimetableBlockedPeriodChecker#blockReason} finds it free. Saturday's own
+     *  working-Saturday gating (blocked entirely with no pattern configured, otherwise counted as
+     *  one full weekly day regardless of how sparse the actual pattern is -- matching the real
+     *  placement grid's own day-of-week-only granularity) is handled inside that checker, not
+     *  duplicated here. Deliberately NOT {@link #WORKING_DAYS_PER_WEEK} -- that constant is a
+     *  fixed-5 Theory-only denominator that would silently ignore an active working-Saturday
+     *  pattern. */
+    private int weeklyAvailablePeriods(TermInstance term, List<Period> activePeriods) {
+        int count = 0;
+        for (com.cms.model.enums.DayOfWeek day : com.cms.model.enums.DayOfWeek.values()) {
+            for (Period period : activePeriods) {
+                if (blockedPeriodChecker.blockReason(day, period.getStartTime(), period.getEndTime(), term).isEmpty()) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    private String formatVenueCapacityIssuesMessage(List<VenueOverCapacity> overCapacityVenues) {
+        return overCapacityVenues.stream()
+            .map(v -> v.venueName() + " needs " + v.weeklyDemandPeriods() + " periods/week but only has "
+                + v.weeklyAvailablePeriods() + " available (" + v.shortfallPeriods() + " short) -- "
+                + String.join(", ", v.affectedSubjectNames()))
+            .collect(Collectors.joining("; "));
+    }
+
+    private String formatVenueCapacityTightMessage(List<VenueTightCapacity> tightCapacityVenues) {
+        return tightCapacityVenues.stream()
+            .map(v -> v.venueName() + " is at " + Math.round(v.utilizationPercent()) + "% of its weekly capacity ("
+                + v.weeklyDemandPeriods() + " of " + v.weeklyAvailablePeriods() + " periods) -- "
+                + String.join(", ", v.affectedSubjectNames()))
+            .collect(Collectors.joining("; "));
     }
 
     /** Fewest-rooms EQUAL split for Theory sectioning (now the single source of truth, reused by

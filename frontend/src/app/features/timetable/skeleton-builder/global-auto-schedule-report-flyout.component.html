@@ -91,6 +91,62 @@
                       }
                     }
 
+                    @case ('venue-over-capacity') {
+                      @if (overCapacityVenues().length > 0) {
+                        @for (v of overCapacityVenues(); track v.venueType + '-' + v.venueId) {
+                          <div class="gas-faculty-card">
+                            <div class="gas-faculty-card__name">{{ v.venueName }} <span class="text-muted">({{ v.venueType === 'LAB' ? 'Lab' : 'Clinical' }})</span></div>
+                            <div class="gas-faculty-card__stat">
+                              Needs {{ v.weeklyDemandPeriods }} periods/week across {{ v.affectedSubjectNames.join(', ') }} —
+                              this venue's real weekly window is only {{ v.weeklyAvailablePeriods }} periods, short by {{ v.shortfallPeriods }}.
+                              This is a weekly-time shortfall, not a seating one — raising the venue's own capacity won't
+                              change it. Adding a second venue below auto-links it as eligible for
+                              {{ v.affectedSubjectNames.join(', ') }}, but today's scheduler still places each subject's
+                              sessions in a single venue rather than splitting them across two — enabling a working
+                              Saturday (if not already) more reliably closes a shortfall like this one.
+                            </div>
+                            <div class="gas-shortfall__actions">
+                              @if (canManageWorkingSaturdays()) {
+                                <button type="button" class="btn-primary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+                              }
+                              @if (canManageVenue(v)) {
+                                <a class="btn-secondary" [routerLink]="venueNewRoute(v)" [queryParams]="venueNewQueryParams(v)" target="_blank" rel="noopener">Add a second venue →</a>
+                              }
+                            </div>
+                          </div>
+                        }
+                      } @else {
+                        <p class="field-hint">No shared Lab/Clinical venue exceeds its real weekly window.</p>
+                      }
+                    }
+
+                    @case ('venue-tight-capacity') {
+                      @if (tightCapacityVenues().length > 0) {
+                        @for (v of tightCapacityVenues(); track v.venueType + '-' + v.venueId) {
+                          <div class="gas-faculty-card gas-faculty-card--tight">
+                            <div class="gas-faculty-card__name">{{ v.venueName }} <span class="text-muted">({{ v.venueType === 'LAB' ? 'Lab' : 'Clinical' }})</span> — {{ v.utilizationPercent | number: '1.0-1' }}% of its weekly window</div>
+                            <div class="gas-faculty-card__stat">
+                              Needs {{ v.weeklyDemandPeriods }} of {{ v.weeklyAvailablePeriods }} weekly periods across {{ v.affectedSubjectNames.join(', ') }} —
+                              the raw totals fit, but there's little to no room for real day/period packing to also succeed perfectly.
+                              Raising the venue's own capacity won't change this weekly-time figure; adding a second
+                              venue below auto-links it as eligible for {{ v.affectedSubjectNames.join(', ') }}, though
+                              today's scheduler still prefers a single venue per subject over splitting across two.
+                            </div>
+                            <div class="gas-shortfall__actions">
+                              @if (canManageWorkingSaturdays()) {
+                                <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+                              }
+                              @if (canManageVenue(v)) {
+                                <a class="btn-secondary" [routerLink]="venueNewRoute(v)" [queryParams]="venueNewQueryParams(v)" target="_blank" rel="noopener">Add a second venue →</a>
+                              }
+                            </div>
+                          </div>
+                        }
+                      } @else {
+                        <p class="field-hint">No Lab/Clinical venue is at zero-slack weekly capacity.</p>
+                      }
+                    }
+
                     @case ('capacity-gap') {
                       @if (capacityOverview(); as o) {
                         <div class="gas-faculty-card" [class.gas-faculty-card--tight]="hasCapacityGap()">
@@ -100,6 +156,10 @@
                             @if (hasCapacityGap()) {
                               That's short by {{ capacityGapHours() | number: '1.0-0' }}h, structurally — no amount of
                               rescheduling closes this on its own.
+                              @if (o.recommendedAdditionalFacultyCount > 0) {
+                                <strong> Roughly {{ o.recommendedAdditionalFacultyCount }} more faculty</strong> at the
+                                standard daily cap would close this gap.
+                              }
                             } @else {
                               Capacity covers the term's full demand; any remaining unplaced sessions come down to
                               scheduling conflicts, not a raw hours shortfall.
@@ -261,6 +321,58 @@
                   </button>
                 }
               </div>
+            </div>
+          }
+
+          @if (hasCapacityCausedGap()) {
+            <div class="gas-prereq-group gas-shortfall">
+              <div class="gas-prereq-group__title">Some of that is a real staffing ceiling, not a scheduling conflict</div>
+              <p class="field-hint">
+                {{ result()!.capacityCausedGapHours | number: '1.0-0' }}h of gap-fill this run tried every eligible
+                faculty for and still couldn't staff — Saturday or a Special Class won't close this specific part;
+                it needs more faculty capacity.
+                @if (result()!.recommendedAdditionalFacultyCount > 0) {
+                  <strong> Roughly {{ result()!.recommendedAdditionalFacultyCount }} more faculty</strong> at the
+                  standard daily cap would close it.
+                }
+              </p>
+              <div class="gas-shortfall__actions">
+                @if (canManageWorkloadRules()) {
+                  <button type="button" class="btn-secondary" (click)="openWorkloadRulesEditor()">Raise workload caps</button>
+                }
+                @if (canManageFaculty()) {
+                  <a class="btn-secondary" routerLink="/faculty/new" target="_blank" rel="noopener">Add Faculty →</a>
+                }
+              </div>
+            </div>
+          }
+
+          @if (hasVenueCapacityGap()) {
+            <div class="gas-prereq-group gas-shortfall">
+              <div class="gas-prereq-group__title">Some of that is a real venue ceiling, not a scheduling conflict</div>
+              <p class="field-hint">
+                Reordering cohorts can't fix this part — these venues' own weekly window capacity is the limit.
+                Raise the venue's capacity if that reflects its real capability, or add a second venue for the
+                subject; only the admin who knows the site can say which is right.
+              </p>
+              @for (gap of result()!.venueCapacityGaps; track gap.venueType + '-' + gap.venueId) {
+                <div class="gas-faculty-card gas-faculty-card--tight">
+                  <div class="gas-faculty-card__name">{{ gap.venueName }} <span class="text-muted">({{ gap.venueType === 'LAB' ? 'Lab' : 'Clinical' }})</span></div>
+                  <div class="gas-faculty-card__stat">
+                    {{ gap.unplacedHours | number: '1.0-0' }}h across {{ gap.affectedSubjectNames.join(', ') }} still
+                    couldn't be placed this run. This venue seats {{ gap.currentCapacity ?? '—' }} student(s) at a
+                    time — a cohort bigger than that gets split into extra turns, each needing its own full weekly
+                    quota, which is what's driving the unplaced hours above. Raising the seat count (or adding a
+                    second venue) reduces the number of turns needed.
+                  </div>
+                  @if (canManageVenue(gap)) {
+                    <div class="gas-shortfall__actions">
+                      <a class="btn-secondary" [routerLink]="venueEditRoute(gap)" target="_blank" rel="noopener">Raise capacity →</a>
+                      <a class="btn-secondary" [routerLink]="venueNewRoute(gap)" [queryParams]="venueNewQueryParams(gap)" target="_blank" rel="noopener">Add a second venue →</a>
+                    </div>
+                  }
+                </div>
+              }
             </div>
           }
 

@@ -127,6 +127,21 @@
     background: rgba(var(--cms-primary-rgb), 0.06);
     border-radius: 8px;
   }
+
+  // Live drag-preview highlight — set for every slot for the whole drag gesture (not just the one
+  // under the pointer), so an admin can see every legal target at a glance before releasing.
+  &.skeleton-cell-stack--drop-valid {
+    background: var(--cms-success-light);
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1px var(--cms-success);
+  }
+
+  &.skeleton-cell-stack--drop-invalid {
+    background: var(--cms-danger-light);
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1px var(--cms-danger);
+    opacity: 0.6;
+  }
 }
 
 .skeleton-cell-stack__advisory {

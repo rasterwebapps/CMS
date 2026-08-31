@@ -214,6 +214,30 @@ export class CapacityAutoPlanComponent implements OnInit {
     return this.permissionService.has('TIMETABLE_COHORT_ROOM_ALLOCATION_MANAGE');
   }
 
+  /** Gates the per-venue "Add a second venue" links below on the same permission the target route
+   *  itself requires — mirrors the Global Auto-Schedule flyout's identically-named helper. */
+  protected canManageVenue(venue: { venueType: 'LAB' | 'CLINICAL'; venueId: number }): boolean {
+    return this.permissionService.has(venue.venueType === 'LAB' ? 'LAB_MANAGE' : 'CLINICAL_VENUE_MANAGE');
+  }
+
+  /** Route to designate a second venue for the same subject(s) this venue is stuck on — see
+   *  {@link venueNewQueryParams}. Mirrors the Global Auto-Schedule flyout's identically-named
+   *  helper so a venue created from either screen behaves the same way. */
+  protected venueNewRoute(venue: { venueType: 'LAB' | 'CLINICAL'; venueId: number }): string {
+    return venue.venueType === 'LAB' ? '/labs/new' : '/clinical-venues/new';
+  }
+
+  /** Query params for {@link venueNewRoute} — carries the exact subjects stuck on the over/tight
+   *  venue through to the new venue's create form so saving it there immediately makes it eligible
+   *  for those subjects too (see `VenueOverCapacity.affectedSubjectIds`, `SubjectService
+   *  .addEligibleVenue`). This is the piece the plain `/labs`/`/clinical-venues` links previously
+   *  used here were missing — a venue created from those never got linked to anything, so the
+   *  warning never cleared no matter how many venues were added. */
+  protected venueNewQueryParams(venue: { venueId: number; affectedSubjectIds?: number[] }): Record<string, string> {
+    const ids = venue.affectedSubjectIds;
+    return ids && ids.length > 0 ? { linkSubjectIds: ids.join(',') } : {};
+  }
+
   protected canRevertAllocation(): boolean {
     return this.permissionService.has('TIMETABLE_COHORT_ROOM_ALLOCATION_REVERT');
   }
@@ -574,6 +598,16 @@ export class CapacityAutoPlanComponent implements OnInit {
   protected confirmAndCommit(row: CohortAutoPlanSummary): void {
     const draft = this.draftFor(row.cohortId);
     if (!draft || !this.selectedTermInstanceId) return;
+
+    // Client-side double-enforcement of the same gate the Commit button's own [disabled] already
+    // applies (see the template) -- defends against a stale overview() the button hasn't
+    // re-rendered against yet, mirroring the sibling Capacity Planner's commitAllocation() pattern
+    // for labClinicalMappingSufficient.
+    const o = this.overview();
+    if (o && !o.labClinicalVenueCapacitySufficient) {
+      this.toast.error(o.labClinicalVenueCapacityIssuesMessage ?? 'A shared Lab/Clinical venue is over its weekly capacity.');
+      return;
+    }
 
     if (draft.sections.some((s) => !s.classroomId || !s.plannedSize)) {
       this.toast.error('Every section needs a classroom and a planned size');

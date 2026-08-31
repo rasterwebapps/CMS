@@ -12,7 +12,7 @@ import { AcademicYear, CohortSummary, TermInstance } from '../../academic-year/a
 import { PeriodService } from '../../period/period.service';
 import { Period } from '../../period/period.model';
 import { SkeletonBuilderService } from './skeleton-builder.service';
-import { SkeletonBuilderResponse, SkeletonCell, SkeletonCellPlacementRequest, SkeletonSessionType } from './skeleton-builder.model';
+import { SkeletonBuilderResponse, SkeletonCell, SkeletonCellPlacementRequest, SkeletonSessionType, SkeletonSlotPreview, SkeletonSubject } from './skeleton-builder.model';
 import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/week-grid.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
@@ -80,6 +80,13 @@ export class SkeletonBuilderComponent implements OnInit {
   protected readonly periods = signal<Period[]>([]);
   protected readonly skeleton = signal<SkeletonBuilderResponse | null>(null);
 
+  /** Populated for the duration of one drag gesture only (set on {@link onDragStarted}, cleared on
+   *  {@link onDragEnded}) — keyed by {@link previewKey} so the template can look up a given cell's
+   *  live legality in O(1) while rendering the grid. Null whenever nothing is being dragged, or the
+   *  preview call hasn't returned yet (no highlight flicker on slow networks; the grid just stays
+   *  unhighlighted a moment longer). */
+  protected readonly dragPreview = signal<Map<string, SkeletonSlotPreview> | null>(null);
+
   protected readonly termsLoading = signal(false);
   protected readonly cohortsLoading = signal(false);
   protected readonly skeletonLoading = signal(false);
@@ -129,7 +136,27 @@ export class SkeletonBuilderComponent implements OnInit {
    *  recurs {@link SkeletonBuilderResponse#workingSaturdayCount} times — 0 whenever this term
    *  hasn't opted into a working-Saturday pattern, since such a cell could only exist as
    *  pre-existing legacy data from before that pattern was configured (today's placement/swap/
-   *  move all hard-block it). */
+   *  move all hard-block it).
+   *
+   *  <p>Subjects are first grouped into "logical" units by {@link
+   *  SkeletonSubject#electiveGroupId}: every member of an elective group is a parallel
+   *  alternative offering competing for the SAME shared slot (Elective Slot Block places every
+   *  member in lockstep, one period, different rooms/faculty per member) — a student only ever
+   *  consumes ONE of them, so the group demands exactly one member's worth of curriculum hours,
+   *  not the sum of all N alternatives (matching the Curriculum Map's own per-term hours total,
+   *  which counts an elective group once). A non-elective subject is simply its own one-member
+   *  group. Within a logical unit, THEORY/LAB/CLINICAL budget rows are then grouped by {@link
+   *  SkeletonSubjectBudget#cohortSectionId} — a second committed section is a genuinely separate
+   *  live class (own room, own occurrence), so two sections really do need 2x the hours, same for
+   *  a second elective-group member's section row. Within one (unit, section) bucket, every row
+   *  carries the identical curriculum-hours quota — for LAB/CLINICAL that's parallel
+   *  room-capacity-driven batches of ONE requirement, for an elective group it's the parallel
+   *  alternative offerings — so only that bucket's first row's totalHours is added; summing all
+   *  of them would inflate the total by however many parallel rows exist (a 10-seat lab against a
+   *  100-seat section producing 10 batches, or a "choose 1 of 9" elective group, would otherwise
+   *  read as 10x/9x the real curriculum demand). Assigned hours are averaged the same way, per
+   *  bucket, which preserves the exact assigned/total (% complete) ratio each row would have on
+   *  its own while still summing correctly across sections/genuinely-distinct subjects. */
   protected readonly hoursSummary = computed<HoursSummary | null>(() => {
     const sk = this.skeleton();
     if (!sk) return null;
@@ -138,18 +165,39 @@ export class SkeletonBuilderComponent implements OnInit {
       sectionFilter === 'ALL' || cohortSectionId == null || cohortSectionId === sectionFilter;
 
     const total: Record<SkeletonSessionType, number> = { THEORY: 0, LAB: 0, CLINICAL: 0 };
+    const assigned: Record<SkeletonSessionType, number> = { THEORY: 0, LAB: 0, CLINICAL: 0 };
+
+    const occurrencesFor = (cell: SkeletonCell) =>
+      cell.dayOfWeek === 'SATURDAY' ? sk.workingSaturdayCount : sk.weeksInTerm;
+
+    const subjectGroups = new Map<string, SkeletonSubject[]>();
     for (const subject of sk.subjects) {
-      for (const budget of subject.budgets) {
-        if (!appliesToFilter(budget.cohortSectionId)) continue;
-        total[budget.sessionType] += budget.totalHours;
-      }
+      const key = subject.electiveGroupId != null ? `elective:${subject.electiveGroupId}` : `subject:${subject.courseOfferingId}`;
+      const bucket = subjectGroups.get(key);
+      if (bucket) bucket.push(subject); else subjectGroups.set(key, [subject]);
     }
 
-    const assigned: Record<SkeletonSessionType, number> = { THEORY: 0, LAB: 0, CLINICAL: 0 };
-    for (const cell of sk.cells) {
-      if (!appliesToFilter(cell.cohortSectionId)) continue;
-      const occurrences = cell.dayOfWeek === 'SATURDAY' ? sk.workingSaturdayCount : sk.weeksInTerm;
-      assigned[cell.sessionType] += hoursBetween(cell.startTime, cell.endTime) * occurrences;
+    for (const group of subjectGroups.values()) {
+      const offeringIds = new Set(group.map((s) => s.courseOfferingId));
+
+      for (const type of ['THEORY', 'LAB', 'CLINICAL'] as const) {
+        const rows = group.flatMap((s) => s.budgets.filter((b) => b.sessionType === type && appliesToFilter(b.cohortSectionId)));
+        if (rows.length === 0) continue;
+
+        const bySection = new Map<number | null, typeof rows>();
+        for (const row of rows) {
+          const bucket = bySection.get(row.cohortSectionId);
+          if (bucket) bucket.push(row); else bySection.set(row.cohortSectionId, [row]);
+        }
+
+        for (const [sectionId, sectionRows] of bySection) {
+          total[type] += sectionRows[0].totalHours;
+          const sumAssigned = sk.cells
+            .filter((c) => offeringIds.has(c.courseOfferingId) && c.sessionType === type && c.cohortSectionId === sectionId)
+            .reduce((sum, c) => sum + hoursBetween(c.startTime, c.endTime) * occurrencesFor(c), 0);
+          assigned[type] += sumAssigned / sectionRows.length;
+        }
+      }
     }
 
     const breakdown = (type: SkeletonSessionType): HoursBreakdown => ({
@@ -196,12 +244,19 @@ export class SkeletonBuilderComponent implements OnInit {
     this.showGlobalAutoSchedule.set(false);
   }
 
-  /** Only fires on an actual successful run (not just closing the panel). A single-cohort run just
-   *  reloads the cohort the admin was already on, so they land back exactly where they started
-   *  reviewing/drag-editing the result. An all-cohorts run falls back to a normal single-cohort
-   *  selection instead, reusing the existing per-cohort load path with no new logic needed. */
+  /** Only fires on an actual successful run (not just closing the panel) -- and deliberately does
+   *  NOT hide the flyout: it fires the instant the run's HTTP call succeeds, the same tick the
+   *  flyout flips to its 'success' step and renders the per-cohort unplaced-reasons report (why
+   *  any hours are still unassigned, the capacity-gap hour count, "Add Faculty" links). Closing
+   *  the panel here used to tear that report down before it could ever paint, so every run looked
+   *  like it silently did nothing even when it correctly explained a real, unfillable gap -- the
+   *  admin only ever saw the flyout flash and vanish. The panel now only closes via the flyout's
+   *  own {@link onGlobalAutoScheduleClosed} (its Close button/backdrop/X), once the admin has
+   *  actually read the result. A single-cohort run just reloads the cohort the admin was already
+   *  on in the background, so the grid behind the still-open flyout is fresh by the time they
+   *  close it. An all-cohorts run falls back to a normal single-cohort selection instead, reusing
+   *  the existing per-cohort load path with no new logic needed. */
   protected onGlobalScheduleCompleted(): void {
-    this.showGlobalAutoSchedule.set(false);
     if (!this.allCohortsSelected()) {
       this.reloadSkeleton();
       return;
@@ -519,6 +574,53 @@ export class SkeletonBuilderComponent implements OnInit {
       return;
     }
     this.confirmRemove(cell);
+  }
+
+  private previewKey(day: string, periodId: number): string {
+    return `${day}|${periodId}`;
+  }
+
+  /** Fired once per drag gesture (CDK's `cdkDragStarted`, bound per-cell in the template) — fetches
+   *  every grid slot's live legality for moving THIS cell there and stashes it in {@link
+   *  dragPreview} so every `.skeleton-cell-stack` in the grid can highlight itself while the drag is
+   *  in progress. A cell with no move permission or mid-periodSpan never starts a drag in the first
+   *  place ({@code cdkDragDisabled} on the template's `cdkDrag`), so there's nothing to guard here
+   *  beyond the cohort actually being loaded. Silently no-ops on request failure — the grid just
+   *  shows no highlight for that drag, falling back to today's drop-and-find-out behavior rather
+   *  than blocking the gesture over a preview-only call. */
+  protected onDragStarted(cell: SkeletonCell): void {
+    const cohortId = this.selectedCohortId;
+    if (!cohortId) return;
+    this.skeletonService.previewMoveTargets(cell.id, cohortId).subscribe({
+      next: (slots) => {
+        const map = new Map<string, SkeletonSlotPreview>();
+        for (const slot of slots) {
+          map.set(this.previewKey(slot.dayOfWeek, slot.periodId), slot);
+        }
+        this.dragPreview.set(map);
+      },
+      error: () => this.dragPreview.set(null),
+    });
+  }
+
+  protected onDragEnded(): void {
+    this.dragPreview.set(null);
+  }
+
+  /** Template helper — 'valid'/'invalid' drives the drop-target highlight class on a grid slot's
+   *  `.skeleton-cell-stack`, or null while nothing is being dragged (or for the dragged cell's own
+   *  current slot, which the preview list never includes — see {@code previewMoveTargets}). */
+  protected slotPreviewState(day: string, periodId: number): 'valid' | 'invalid' | null {
+    const slot = this.dragPreview()?.get(this.previewKey(day, periodId));
+    if (!slot) return null;
+    return slot.valid ? 'valid' : 'invalid';
+  }
+
+  /** Tooltip text for a highlighted-invalid drop target — the backend's own violation message
+   *  (already user-facing prose, same text {@link onCellDrop}'s error toast would show on a real
+   *  rejected drop), so hovering explains why without having to attempt the drop first. */
+  protected slotPreviewReason(day: string, periodId: number): string | null {
+    return this.dragPreview()?.get(this.previewKey(day, periodId))?.reason ?? null;
   }
 
   /** Drops onto the same slot the cell was already in are a no-op — CDK still fires the event

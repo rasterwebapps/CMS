@@ -3,9 +3,11 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -18,11 +20,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.CapacityPlanResponse;
+import com.cms.dto.LabClinicalVenueCapacityResult;
 import com.cms.dto.SuggestedBatchResponse;
 import com.cms.dto.SuggestedSectionResponse;
 import com.cms.dto.TermCapacityOverviewResponse;
 import com.cms.dto.VenueOptionResponse;
 import com.cms.model.AcademicYear;
+import com.cms.model.Batch;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.ClinicalVenue;
@@ -73,6 +77,7 @@ class TimetableCapacityPlanningServiceTest {
     @Mock private BlockedPeriodRepository blockedPeriodRepository;
     @Mock private CohortRoomAllocationRepository cohortRoomAllocationRepository;
     @Mock private BatchRepository batchRepository;
+    @Mock private TimetableBlockedPeriodChecker blockedPeriodChecker;
 
     private TimetableCapacityPlanningService service;
 
@@ -81,7 +86,7 @@ class TimetableCapacityPlanningServiceTest {
         service = new TimetableCapacityPlanningService(cohortRepository, cohortSectionRepository, termInstanceRepository,
             studentTermEnrollmentRepository, classroomRepository, labRepository, clinicalVenueRepository, periodRepository,
             classScheduleRepository, calendarEventRepository, courseOfferingRepository, blockedPeriodRepository,
-            cohortRoomAllocationRepository, batchRepository);
+            cohortRoomAllocationRepository, batchRepository, blockedPeriodChecker);
     }
 
     private VenueOptionResponse venue(long id, String name, int capacity) {
@@ -92,6 +97,7 @@ class TimetableCapacityPlanningServiceTest {
         CourseOffering offering = new CourseOffering();
         offering.setId(id);
         Subject subject = new Subject();
+        subject.setId(id);
         subject.setName(subjectName);
         offering.setSubject(subject);
         CurriculumSemesterCourse csc = new CurriculumSemesterCourse();
@@ -727,5 +733,163 @@ class TimetableCapacityPlanningServiceTest {
         assertThat(labRow.totalSlots()).isEqualTo(5);
         assertThat(labRow.occupiedSlots()).isEqualTo(6);
         assertThat(labRow.utilizationPercent()).isEqualTo(120.0);
+    }
+
+    // -- computeLabClinicalVenueCapacity ------------------------------------------------------
+
+    private TermInstance fourWeekTerm() {
+        TermInstance term = new TermInstance();
+        term.setId(10L);
+        AcademicYear year = new AcademicYear();
+        year.setId(1L);
+        year.setName("2026-27");
+        term.setAcademicYear(year);
+        term.setTermType(TermType.ODD);
+        term.setStartDate(LocalDate.of(2026, 1, 1));
+        term.setEndDate(LocalDate.of(2026, 1, 28)); // exactly 4 weeks
+        return term;
+    }
+
+    /** 2 periods x 60min, every (day, period) reported free -- gives weeklyAvailablePeriods = 12
+     *  (6 days x 2 periods) for every test below, since {@link #blockedPeriodChecker} is mocked
+     *  out entirely (its own Saturday/BlockedPeriod logic has its own dedicated test class). */
+    private void stubTwoPeriodsAllFree(TermInstance term) {
+        Period period1 = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50), 1);
+        period1.setId(1L);
+        period1.setDurationMinutes(60);
+        Period period2 = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(10, 50), 2);
+        period2.setId(2L);
+        period2.setDurationMinutes(60);
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period1, period2));
+        lenient().when(blockedPeriodChecker.blockReason(any(), any(), any(), eq(term))).thenReturn(Optional.empty());
+        // No not-yet-committed cohorts -- isolates these tests to the real-committed-Batch demand
+        // path only (the suggested-batch path reuses suggestLabClinicalBatches, already covered by
+        // its own dedicated tests above).
+        lenient().when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Set.of());
+    }
+
+    /** {@code totalHours} chosen so sessionsPerWeek(totalHours, 4 weeks, 60min) = {@code
+     *  demandPeriodsPerWeek} exactly (ceil(totalHours/4)), with an unconfigured block size (=1). */
+    private Batch committedLabBatch(Lab lab, int demandPeriodsPerWeek) {
+        CourseOffering offering = offering(900L, "Anatomy", demandPeriodsPerWeek * 4, 0);
+        Batch batch = new Batch();
+        batch.setCourseOffering(offering);
+        batch.setLab(lab);
+        batch.setIsActive(true);
+        return batch;
+    }
+
+    private Lab lab(long id, String name, int capacity) {
+        Lab lab = new Lab();
+        lab.setId(id);
+        lab.setName(name);
+        lab.setCapacity(capacity);
+        return lab;
+    }
+
+    @Test
+    void computeLabClinicalVenueCapacity_underCapacity_notFlaggedAtAll() {
+        TermInstance term = fourWeekTerm();
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(term));
+        stubTwoPeriodsAllFree(term);
+        Lab lab = lab(50L, "Anatomy Lab", 30);
+        // 10 of 12 available periods/week -- 83%, under the 95% tight threshold.
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(committedLabBatch(lab, 10)));
+
+        LabClinicalVenueCapacityResult result = service.computeLabClinicalVenueCapacity(10L, PlanningBasis.SANCTIONED);
+
+        assertThat(result.overCapacityVenues()).isEmpty();
+        assertThat(result.tightCapacityVenues()).isEmpty();
+    }
+
+    @Test
+    void computeLabClinicalVenueCapacity_justOverTightThreshold_flaggedTightNotOver() {
+        TermInstance term = fourWeekTerm();
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(term));
+        stubTwoPeriodsAllFree(term);
+        Lab lab = lab(50L, "Anatomy Lab", 30);
+        // Exactly at 12 of 12 available periods/week -- 100% utilization "fits" (not over) but has
+        // zero slack (tight).
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(committedLabBatch(lab, 12)));
+
+        LabClinicalVenueCapacityResult result = service.computeLabClinicalVenueCapacity(10L, PlanningBasis.SANCTIONED);
+
+        assertThat(result.overCapacityVenues()).isEmpty();
+        assertThat(result.tightCapacityVenues()).hasSize(1);
+        var tight = result.tightCapacityVenues().get(0);
+        assertThat(tight.venueName()).isEqualTo("Anatomy Lab");
+        assertThat(tight.weeklyAvailablePeriods()).isEqualTo(12);
+        assertThat(tight.weeklyDemandPeriods()).isEqualTo(12);
+        assertThat(tight.utilizationPercent()).isEqualTo(100.0);
+        assertThat(tight.affectedSubjectNames()).containsExactly("Anatomy");
+        assertThat(tight.affectedSubjectIds()).containsExactly(900L);
+    }
+
+    @Test
+    void computeLabClinicalVenueCapacity_overWeeklyWindow_hardBlocked() {
+        TermInstance term = fourWeekTerm();
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(term));
+        stubTwoPeriodsAllFree(term);
+        Lab lab = lab(50L, "Anatomy Lab", 30);
+        // 13 of 12 available periods/week -- physically cannot fit regardless of arrangement.
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(committedLabBatch(lab, 13)));
+
+        LabClinicalVenueCapacityResult result = service.computeLabClinicalVenueCapacity(10L, PlanningBasis.SANCTIONED);
+
+        assertThat(result.tightCapacityVenues()).isEmpty();
+        assertThat(result.overCapacityVenues()).hasSize(1);
+        var over = result.overCapacityVenues().get(0);
+        assertThat(over.venueId()).isEqualTo(50L);
+        assertThat(over.venueType()).isEqualTo("LAB");
+        assertThat(over.venueName()).isEqualTo("Anatomy Lab");
+        assertThat(over.weeklyAvailablePeriods()).isEqualTo(12);
+        assertThat(over.weeklyDemandPeriods()).isEqualTo(13);
+        assertThat(over.shortfallPeriods()).isEqualTo(1);
+        assertThat(over.affectedSubjectNames()).containsExactly("Anatomy");
+        assertThat(over.affectedSubjectIds()).containsExactly(900L);
+    }
+
+    @Test
+    void computeLabClinicalVenueCapacity_twoBatchesShareOneVenue_neitherAloneOverButCombinedIs() {
+        TermInstance term = fourWeekTerm();
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(term));
+        stubTwoPeriodsAllFree(term);
+        Lab lab = lab(50L, "Community Health Center", 30);
+        // Two separate batches (two separately-scheduled sessions, per splitIntoSequentialBatches'
+        // own javadoc) each demanding 7 of 12 available periods/week -- neither alone is even
+        // tight (7/12 = 58%), but combined (14) exceeds the venue's real weekly window.
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L))
+            .thenReturn(List.of(committedLabBatch(lab, 7), committedLabBatch(lab, 7)));
+
+        LabClinicalVenueCapacityResult result = service.computeLabClinicalVenueCapacity(10L, PlanningBasis.SANCTIONED);
+
+        assertThat(result.overCapacityVenues()).hasSize(1);
+        var over = result.overCapacityVenues().get(0);
+        assertThat(over.weeklyDemandPeriods()).isEqualTo(14);
+        assertThat(over.weeklyAvailablePeriods()).isEqualTo(12);
+        assertThat(over.shortfallPeriods()).isEqualTo(2);
+    }
+
+    @Test
+    void getTermOverview_populatesLabClinicalVenueCapacityFields_defaultSufficientWhenNoDemand() {
+        TermInstance term = fourWeekTerm();
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(term));
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Set.of());
+        when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of());
+        when(labRepository.findAll()).thenReturn(List.of());
+        when(clinicalVenueRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of());
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of());
+        when(cohortSectionRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of());
+        when(classScheduleRepository.findByTermInstanceIdAndStatus(eq(10L), any())).thenReturn(List.of());
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of());
+
+        TermCapacityOverviewResponse overview = service.getTermOverview(10L, PlanningBasis.ENROLLED);
+
+        assertThat(overview.labClinicalVenueCapacitySufficient()).isTrue();
+        assertThat(overview.labClinicalVenueCapacityIssuesMessage()).isNull();
+        assertThat(overview.labClinicalVenueCapacityTight()).isFalse();
+        assertThat(overview.labClinicalVenueCapacityTightMessage()).isNull();
     }
 }

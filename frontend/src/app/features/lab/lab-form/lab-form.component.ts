@@ -18,6 +18,7 @@ import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError,
 import { CmsRoomPickerComponent } from '../../../shared/room-picker/room-picker.component';
 import { RoomPurposeCategoryService } from '../../hostel/room-purpose-category/room-purpose-category.service';
 import { Room } from '../../hostel/campus-infrastructure/campus-infrastructure.model';
+import { SubjectService } from '../../subject/subject.service';
 
 @Component({
   selector: 'app-lab-form',
@@ -41,6 +42,7 @@ export class LabFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly labService = inject(LabService);
+  private readonly subjectService = inject(SubjectService);
   private readonly specialityService = inject(SpecialityService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
@@ -61,6 +63,8 @@ export class LabFormComponent implements OnInit {
   protected readonly currentRoomLabel = signal<string | null>(null);
   /** This lab's own already-linked room, so its picker doesn't exclude it as "taken." */
   protected keepRoomId: number | null = null;
+  /** See `ClinicalVenueFormComponent.hadRoomLinked` — same picker-echo-vs-genuine-unlink guard. */
+  private hadRoomLinked = false;
 
   protected readonly labTypes = LAB_TYPES;
   protected readonly labStatuses = LAB_STATUSES;
@@ -94,6 +98,8 @@ export class LabFormComponent implements OnInit {
   ];
 
   private labId: number | null = null;
+  /** See `ClinicalVenueFormComponent.linkSubjectIds` — same `linkSubjectIds` query-param mechanism. */
+  private linkSubjectIds: number[] = [];
 
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(100), trimmedMinLength(2), noConsecutiveSpaces()]],
@@ -138,20 +144,29 @@ export class LabFormComponent implements OnInit {
       this.isEditMode.set(true);
       this.pageTitle.set('Edit Lab');
       this.loadLab();
+    } else {
+      const raw = this.route.snapshot.queryParamMap.get('linkSubjectIds');
+      this.linkSubjectIds = raw ? raw.split(',').map(Number).filter((n) => !isNaN(n)) : [];
     }
   }
 
   /** Once linked, this lab's capacity is the physical room's capacity, full stop — the backend
    *  derives and enforces the same rule (LabService.resolveCapacity). Unlinking clears the field
    *  rather than leaving a stale auto-filled number sitting there looking manually entered. */
+  /** See `ClinicalVenueFormComponent.onSelectedRoomChange`'s javadoc — the picker's own
+   *  load-completion echo (fires with `room: null` on every edit-page load for a lab with no
+   *  linked room) must not be treated as a genuine unlink, or it silently blanks the real,
+   *  server-loaded capacity. */
   protected onSelectedRoomChange(room: Room | null): void {
     const capacityCtrl = this.form.get('capacity');
     if (room) {
       capacityCtrl?.setValue(room.capacity ?? null);
       capacityCtrl?.disable();
-    } else {
+      this.hadRoomLinked = true;
+    } else if (this.hadRoomLinked) {
       capacityCtrl?.enable();
       capacityCtrl?.setValue(null);
+      this.hadRoomLinked = false;
     }
   }
 
@@ -179,9 +194,10 @@ export class LabFormComponent implements OnInit {
       : this.labService.create(request);
 
     operation$.subscribe({
-      next: () => {
+      next: (lab) => {
         const message = this.isEditMode() ? 'Lab updated successfully' : 'Lab created successfully';
         this.toast.success(message);
+        this.linkToAffectedSubjects(lab.id);
         void this.router.navigate(['/labs']);
       },
       error: (err) => {
@@ -189,6 +205,15 @@ export class LabFormComponent implements OnInit {
         this.toast.error(err?.error?.message ?? message);
         this.saving.set(false);
       },
+    });
+  }
+
+  /** Best-effort — see `ClinicalVenueFormComponent.linkToAffectedSubjects`. */
+  private linkToAffectedSubjects(labId: number): void {
+    if (this.linkSubjectIds.length === 0) return;
+    this.subjectService.addEligibleVenue(this.linkSubjectIds, 'LAB', labId).subscribe({
+      next: () => this.toast.success(`Also linked as an eligible venue for ${this.linkSubjectIds.length} subject(s)`),
+      error: () => this.toast.error('Lab created, but linking it to the affected subject(s) failed — add it manually via Subjects'),
     });
   }
 
@@ -234,6 +259,7 @@ export class LabFormComponent implements OnInit {
         });
         this.selectedRoomId = lab.roomId ?? null;
         this.keepRoomId = lab.roomId ?? null;
+        this.hadRoomLinked = lab.roomId != null;
         this.currentRoomLabel.set(lab.roomLabel ?? null);
         this.loading.set(false);
       },

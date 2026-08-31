@@ -60,6 +60,8 @@ export class ClassroomFormComponent implements OnInit {
   protected readonly currentRoomLabel = signal<string | null>(null);
   /** This classroom's own already-linked room, so its picker doesn't exclude it as "taken." */
   protected keepRoomId: number | null = null;
+  /** See `ClinicalVenueFormComponent.hadRoomLinked` — same picker-echo-vs-genuine-unlink guard. */
+  private hadRoomLinked = false;
 
   private classroomId: number | null = null;
 
@@ -103,15 +105,25 @@ export class ClassroomFormComponent implements OnInit {
    *  backend derives and enforces the same rule (ClassroomService.resolveCapacity), so locking it
    *  here is a UX mirror of a real server-side rule, not just a client-side nicety. Unlinking
    *  clears the field rather than leaving a stale auto-filled number sitting there looking
-   *  manually entered. */
+   *  manually entered.
+   *
+   * <p>`CmsRoomPickerComponent.selectedRoomChange` also fires as an echo once the picker's own room
+   *  list finishes (re)loading — including with `room: null` on every edit-page load for a
+   *  classroom with no linked room — not just on a real user pick/unlink. Treating that echo as a
+   *  genuine unlink used to silently blank the real, server-loaded capacity the instant the room
+   *  list resolved, and Update would then persist the wipe. `hadRoomLinked` distinguishes "this is
+   *  confirming there was never a room" (ignore) from "a room just got detached" (genuinely
+   *  clear/re-enable). */
   protected onSelectedRoomChange(room: Room | null): void {
     const capacityCtrl = this.form.get('capacity');
     if (room) {
       capacityCtrl?.setValue(room.capacity ?? null);
       capacityCtrl?.disable();
-    } else {
+      this.hadRoomLinked = true;
+    } else if (this.hadRoomLinked) {
       capacityCtrl?.enable();
       capacityCtrl?.setValue(null);
+      this.hadRoomLinked = false;
     }
   }
 
@@ -177,6 +189,7 @@ export class ClassroomFormComponent implements OnInit {
         });
         this.selectedRoomId = c.roomId ?? null;
         this.keepRoomId = c.roomId ?? null;
+        this.hadRoomLinked = c.roomId != null;
         this.currentRoomLabel.set(c.roomLabel ?? null);
         this.loading.set(false);
       },

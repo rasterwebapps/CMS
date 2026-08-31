@@ -1,5 +1,11 @@
 .gas-warning {
-  color: var(--cms-badge-amber-text);
+  // `--cms-badge-amber-text` is always #fff -- it exists to pair with `--cms-badge-amber-bg` on an
+  // actual badge chip (see styles.scss's `.cms-badge--amber`), never to stand alone as plain text.
+  // This class has no background of its own, so it rendered as literally invisible white-on-white
+  // (light mode) here -- the entire per-cohort unplaced-reasons list (35-of-56-combinations-tried,
+  // etc.) was in the DOM the whole time but unreadable. `--cms-warning` is the standalone amber
+  // accent already used bare elsewhere in this file's own `.gas-shortfall` border/background.
+  color: var(--cms-warning);
   font-weight: 600;
 }
 

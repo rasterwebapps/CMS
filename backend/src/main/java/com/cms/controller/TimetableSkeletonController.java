@@ -26,6 +26,7 @@ import com.cms.dto.SkeletonCellPlacementRequest;
 import com.cms.dto.SkeletonCellResponse;
 import com.cms.dto.SkeletonCellSwapRequest;
 import com.cms.dto.SkeletonPlacementCandidateResponse;
+import com.cms.dto.SkeletonSlotPreviewResponse;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.service.TimetableGlobalAutoScheduleService;
 import com.cms.service.TimetableSkeletonService;
@@ -78,6 +79,16 @@ public class TimetableSkeletonController {
     @PreAuthorize("@perm.has('TIMETABLE_SKELETON_MOVE')")
     public ResponseEntity<SkeletonCellResponse> moveCell(@PathVariable Long id, @Valid @RequestBody SkeletonCellMoveRequest request) {
         return ResponseEntity.ok(timetableSkeletonService.moveCell(id, request));
+    }
+
+    /** Live drag-highlight data: legality of every grid slot for moving this cell, without
+     *  actually moving it. Shares {@code TIMETABLE_SKELETON_MOVE} with {@link #moveCell} since
+     *  it's a read-only preview of that exact same action, not a distinct capability. */
+    @GetMapping("/cells/{id}/move-preview")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_MOVE')")
+    public ResponseEntity<List<SkeletonSlotPreviewResponse>> previewMoveTargets(
+            @PathVariable Long id, @RequestParam Long cohortId) {
+        return ResponseEntity.ok(timetableSkeletonService.previewMoveTargets(id, cohortId));
     }
 
     /** Same gesture as {@link #moveCell} (drag a cell to a new slot) — this is what fires instead

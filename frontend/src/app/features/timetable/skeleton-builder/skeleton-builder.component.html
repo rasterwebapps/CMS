@@ -212,7 +212,10 @@
                 <td class="skeleton-grid__day-hdr">{{ dayLabels[day] }}</td>
                 @for (period of periods(); track period.id) {
                   <td class="skeleton-grid__cell" [attr.data-period-id]="period.id" [attr.data-day]="day">
-                    <div class="skeleton-cell-stack" cdkDropList (cdkDropListDropped)="onCellDrop($event, day, period.id)">
+                    <div class="skeleton-cell-stack" cdkDropList (cdkDropListDropped)="onCellDrop($event, day, period.id)"
+                      [class.skeleton-cell-stack--drop-valid]="slotPreviewState(day, period.id) === 'valid'"
+                      [class.skeleton-cell-stack--drop-invalid]="slotPreviewState(day, period.id) === 'invalid'"
+                      [title]="slotPreviewReason(day, period.id)">
                       @if (hasAdvisory(day, period.id)) {
                         <span class="skeleton-cell-stack__advisory"
                           title="Multiple subjects' Lab/Clinical sessions share this slot — batch rosters aren't tracked across subjects, confirm there's no student overlap.">
@@ -232,6 +235,8 @@
                           cdkDrag
                           [cdkDragData]="cell"
                           [cdkDragDisabled]="!canManage() || !canMove() || !!cell.sessionGroupId"
+                          (cdkDragStarted)="onDragStarted(cell)"
+                          (cdkDragEnded)="onDragEnded()"
                           (click)="onCellChipClick(cell)">
                           <span class="skeleton-cell__subject">{{ cell.subjectCode }}</span>
                           <span class="skeleton-cell__type">{{ cell.sessionType }}</span>

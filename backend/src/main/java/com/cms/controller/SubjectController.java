@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
+import com.cms.dto.AddEligibleVenueRequest;
 import com.cms.dto.SubjectRequest;
 import com.cms.dto.SubjectResponse;
 import com.cms.service.SubjectService;
@@ -85,6 +86,13 @@ public class SubjectController {
             @Valid @RequestBody SubjectRequest request) {
         SubjectResponse response = subjectService.update(id, request);
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/eligible-venues")
+    @PreAuthorize("@perm.has('SUBJECT_MANAGE')")
+    public ResponseEntity<Void> addEligibleVenue(@Valid @RequestBody AddEligibleVenueRequest request) {
+        subjectService.addEligibleVenue(request);
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/status")

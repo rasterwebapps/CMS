@@ -26,6 +26,7 @@ import com.cms.dto.SkeletonCellSwapRequest;
 import com.cms.dto.SkeletonCellPlacementRequest;
 import com.cms.dto.SkeletonCellResponse;
 import com.cms.dto.SkeletonPlacementCandidateResponse;
+import com.cms.dto.SkeletonSlotPreviewResponse;
 import com.cms.dto.SkeletonSubjectBudget;
 import com.cms.dto.SkeletonSubjectResponse;
 import com.cms.exception.LifecycleConflictException;
@@ -726,6 +727,48 @@ public class TimetableSkeletonService {
         cs.setDayOfWeek(request.dayOfWeek());
         cs.setPeriod(targetPeriod);
         return toCellResponse(classScheduleRepository.save(cs));
+    }
+
+    /** Live drag-highlight support: reports every (day, period) grid slot's legality for moving
+     *  {@code classScheduleId} there, by literally re-running {@link #validateMoveTarget} — the
+     *  exact same check {@link #moveCell} uses to accept/reject a real drop — against each of the
+     *  term's active periods across Monday-Saturday. Never promises a slot {@link #moveCell} would
+     *  then reject, since it's the same code path; the slot's current own position is skipped
+     *  (moving a cell onto itself isn't a real target). Returns an empty list for a non-DRAFT or
+     *  periodSpan-grouped cell — nothing here is a legal move target for either (see {@link
+     *  #moveCell}'s own restriction), so there's nothing useful to preview.
+     *
+     *  <p>Read-only and non-reserving: a slot reported valid here can still fail moments later if
+     *  another admin places something into it first, or if the drag drags on long enough for a
+     *  stale precheck — the real {@link #moveCell}/{@link #swapCells} call remains the sole source
+     *  of truth and re-validates independently. This intentionally does NOT re-run the heavier
+     *  faculty/room availability checks for a cell that has no faculty yet ({@code cs.getFaculty()
+     *  == null}) — {@link #validateMoveTarget} already skips those in that case, since there's
+     *  nothing assigned yet to check; staffing (and its own availability checks) happens later, on
+     *  the separate Staffing screen. */
+    @Transactional(readOnly = true)
+    public List<SkeletonSlotPreviewResponse> previewMoveTargets(Long classScheduleId, Long cohortId) {
+        ClassSchedule cs = classScheduleRepository.findById(classScheduleId)
+            .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + classScheduleId));
+        if (cs.getStatus() != ClassScheduleStatus.DRAFT || cs.getSessionGroupId() != null) {
+            return List.of();
+        }
+
+        List<Period> activePeriods = periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc();
+        List<SkeletonSlotPreviewResponse> results = new ArrayList<>();
+        for (DayOfWeek day : DayOfWeek.values()) {
+            for (Period period : activePeriods) {
+                boolean isCurrentSlot = day == cs.getDayOfWeek()
+                    && cs.getPeriod() != null && cs.getPeriod().getId().equals(period.getId());
+                if (isCurrentSlot) {
+                    continue;
+                }
+                List<ConstraintViolation> violations = validateMoveTarget(cs, day, period, cohortId, null);
+                results.add(new SkeletonSlotPreviewResponse(day, period.getId(), violations.isEmpty(),
+                    violations.isEmpty() ? null : violations.get(0).message()));
+            }
+        }
+        return results;
     }
 
     /** Atomically exchanges two already-placed DRAFT cells' day/period — e.g. dragging one cell

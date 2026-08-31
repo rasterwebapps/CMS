@@ -16,7 +16,7 @@ import { CapacityPlannerService } from '../capacity-planner/capacity-planner.ser
 import { FacultyWorkloadOverviewReport } from '../capacity-planner/capacity-planner.model';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { CourseOfferingEditDialogComponent } from '../../course-offering/course-offering-edit-dialog/course-offering-edit-dialog.component';
-import { FacultyOverCapacity, FacultyTightCapacity, GlobalAutoSchedulePrerequisites, GlobalAutoScheduleResult } from './skeleton-builder.model';
+import { FacultyOverCapacity, FacultyTightCapacity, GlobalAutoSchedulePrerequisites, GlobalAutoScheduleResult, VenueCapacityGap, VenueOverCapacity, VenueTightCapacity } from './skeleton-builder.model';
 import { WorkingSaturdaysFlyoutComponent } from './working-saturdays-flyout.component';
 import { SpecialClassRequestFlyoutComponent } from '../special-classes/special-class-request-flyout/special-class-request-flyout.component';
 import { SpecialClassSessionType } from '../special-classes/special-class.model';
@@ -170,6 +170,56 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
     return r.electiveUnplaced.length > 0 || r.cohortSummaries.some((c) => c.unplaced.length > 0);
   });
 
+  /** True only when this run genuinely couldn't staff some periods even after trying every
+   *  eligible faculty (see `TimetableGlobalAutoScheduleService#fillSelfStudyGaps`) — a real,
+   *  this-run capacity ceiling, not a room/scheduling conflict that Saturday or a Special Class
+   *  could still resolve. Drives a separate remedy branch in the shortfall panel. */
+  protected readonly hasCapacityCausedGap = computed(() => (this.result()?.capacityCausedGapHours ?? 0) > 0.001);
+
+  /** True when this run left LAB/CLINICAL hours unplaced specifically because a venue's own weekly
+   *  window capacity was the ceiling — see `VenueCapacityGap` (backend). Purely informational: this
+   *  never auto-changes a venue's capacity, since that's a real physical/supervisory fact about a
+   *  training site, not a value safe to infer from scheduling pressure. */
+  protected readonly hasVenueCapacityGap = computed(() => (this.result()?.venueCapacityGaps?.length ?? 0) > 0);
+
+  /** Pre-run counterparts of {@link hasVenueCapacityGap} — from {@link prerequisites}'s {@code
+   *  labClinicalVenueCapacity}, backing the checklist's `venue-over-capacity`/`venue-tight-capacity`
+   *  items (see {@link finishPrerequisiteCheck}). Same underlying backend computation as the
+   *  post-hoc {@link hasVenueCapacityGap} card, so the two can never disagree. */
+  protected readonly overCapacityVenues = computed<VenueOverCapacity[]>(() => this.prerequisites()?.labClinicalVenueCapacity.overCapacityVenues ?? []);
+  protected readonly tightCapacityVenues = computed<VenueTightCapacity[]>(() => this.prerequisites()?.labClinicalVenueCapacity.tightCapacityVenues ?? []);
+
+  /** Gates the venue links below on the same permission the target route itself requires
+   *  (`LAB_MANAGE`/`CLINICAL_VENUE_MANAGE`) — mirrors `canManageFaculty`/`canManageWorkloadRules`
+   *  above, just per-venue-type since a gap can be either kind. Structurally typed (not `VenueCapacityGap`
+   *  itself) so the same three helpers also serve the pre-run `VenueOverCapacity`/`VenueTightCapacity`
+   *  checklist items below without duplicating them. */
+  protected canManageVenue(venue: { venueType: 'LAB' | 'CLINICAL'; venueId: number }): boolean {
+    return this.permissionService.has(venue.venueType === 'LAB' ? 'LAB_MANAGE' : 'CLINICAL_VENUE_MANAGE');
+  }
+
+  /** Route to raise this venue's own capacity — the admin decides the real number, this only
+   *  navigates them to where they'd change it. */
+  protected venueEditRoute(venue: { venueType: 'LAB' | 'CLINICAL'; venueId: number }): string {
+    return venue.venueType === 'LAB' ? `/labs/${venue.venueId}/edit` : `/clinical-venues/${venue.venueId}/edit`;
+  }
+
+  /** Route to designate a second venue for the same subject instead of raising the first one's
+   *  capacity — the other remedy `VenueCapacityGap`'s javadoc names. */
+  protected venueNewRoute(venue: { venueType: 'LAB' | 'CLINICAL'; venueId: number }): string {
+    return venue.venueType === 'LAB' ? '/labs/new' : '/clinical-venues/new';
+  }
+
+  /** Query params for {@link venueNewRoute} — carries the exact subjects stuck on the over/tight
+   *  venue through to the new venue's create form so saving it there immediately makes it eligible
+   *  for those subjects too (see `VenueOverCapacity.affectedSubjectIds`, `SubjectService
+   *  .addEligibleVenue`). Degrades to no params (old behavior: a plain, unlinked venue) for a
+   *  `VenueCapacityGap` object, which doesn't carry subject ids. */
+  protected venueNewQueryParams(venue: { venueId: number; affectedSubjectIds?: number[] }): Record<string, string> {
+    const ids = venue.affectedSubjectIds;
+    return ids && ids.length > 0 ? { linkSubjectIds: ids.join(',') } : {};
+  }
+
   /** Non-null only when EVERY other subject across the whole run is fully scheduled and exactly
    *  one remains short — the one case specific enough to deep-link a Special Class request
    *  straight to the right subject instead of just pointing at the general shortfall. Electives
@@ -264,9 +314,13 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
 
   private capacityGapChecklistLabel(overview: FacultyWorkloadOverviewReport): string {
     const gap = overview.totalCurriculumRequiredHours - overview.totalFacultyCapacityHours;
-    return gap > 0.001
-      ? `This term needs ${gap.toFixed(0)}h more faculty capacity than currently exists`
-      : 'Total faculty capacity covers this term’s full curriculum demand';
+    if (gap <= 0.001) {
+      return 'Total faculty capacity covers this term’s full curriculum demand';
+    }
+    const staffNote = overview.recommendedAdditionalFacultyCount > 0
+      ? ` — roughly ${overview.recommendedAdditionalFacultyCount} more faculty at the standard cap`
+      : '';
+    return `This term needs ${gap.toFixed(0)}h more faculty capacity than currently exists${staffNote}`;
   }
 
   private checkRoomCommitStatus(prereq: GlobalAutoSchedulePrerequisites): void {
@@ -310,6 +364,8 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
     const offeringsWithoutFaculty = prereq.offeringsWithoutFaculty;
     const overCapacity = prereq.capacityPrecheck.overCapacityFaculty;
     const tightCapacity = prereq.capacityPrecheck.tightCapacityFaculty;
+    const overCapacityVenues = prereq.labClinicalVenueCapacity.overCapacityVenues;
+    const tightCapacityVenues = prereq.labClinicalVenueCapacity.tightCapacityVenues;
     const needingRoom = this.cohortsNeedingRoom();
 
     this.checklistItems.set([
@@ -341,6 +397,28 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
           ? `${tightCapacity.length} faculty member(s) are at ~100% capacity — real placement isn't guaranteed`
           : 'No faculty is at zero-slack capacity',
         warn: tightCapacity.length > 0,
+        checked: false,
+        hardBlock: false,
+        viewed: false,
+        expanded: false,
+      },
+      {
+        key: 'venue-over-capacity',
+        label: overCapacityVenues.length > 0
+          ? `${overCapacityVenues.length} Lab/Clinical venue(s) can't physically fit their weekly demand`
+          : 'Every Lab/Clinical venue fits its weekly demand',
+        warn: overCapacityVenues.length > 0,
+        checked: false,
+        hardBlock: true,
+        viewed: false,
+        expanded: false,
+      },
+      {
+        key: 'venue-tight-capacity',
+        label: tightCapacityVenues.length > 0
+          ? `${tightCapacityVenues.length} Lab/Clinical venue(s) are at ~100% of their weekly window — real placement isn't guaranteed`
+          : 'No Lab/Clinical venue is at zero-slack weekly capacity',
+        warn: tightCapacityVenues.length > 0,
         checked: false,
         hardBlock: false,
         viewed: false,

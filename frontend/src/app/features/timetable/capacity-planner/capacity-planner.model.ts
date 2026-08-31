@@ -1,4 +1,4 @@
-import { OverageContributor } from '../skeleton-builder/skeleton-builder.model';
+import { OverageContributor, VenueOverCapacity, VenueTightCapacity } from '../skeleton-builder/skeleton-builder.model';
 
 export type PlanningBasis = 'ENROLLED' | 'SANCTIONED';
 
@@ -62,6 +62,10 @@ export interface FacultyWorkloadOverviewReport {
   totalAssignedHours: number;
   totalFacultyCapacityHours: number;
   unassignedOfferingsCount: number;
+  /** Whole-pool estimate only — ceil(gap / one average-capacity faculty's term hours). 0 when
+   *  there's no aggregate gap, or no faculty has any configured daily cap to average. Not a
+   *  per-subject/eligibility-pool solve — see the backend DTO's own javadoc. */
+  recommendedAdditionalFacultyCount: number;
 }
 
 export interface VenueOption {
@@ -189,12 +193,14 @@ export interface RoomInventoryRow {
 }
 
 /** Whole-term response backing the Capacity Auto-Plan screen. theorySufficient is a strict
- *  pass/fail (free classroom capacity vs. summed not-yet-planned cohort headcount) — there is
- *  deliberately no Lab/Clinical equivalent for DAY/PERIOD-COLLISION sufficiency, since those venues
- *  are shared across cohorts at different times and this stage has no day/period data to know if two
- *  suggestions would collide. labClinicalMappingSufficient is a different, narrower check: whether
- *  every not-yet-planned cohort's Lab/Clinical subjects have a designated venue mapping configured
- *  with enough capacity — unrelated to timing collisions. */
+ *  pass/fail (free classroom capacity vs. summed not-yet-planned cohort headcount).
+ *  labClinicalMappingSufficient is a different, narrower check: whether every not-yet-planned
+ *  cohort's Lab/Clinical subjects have a designated venue mapping configured at all — unrelated to
+ *  timing. labClinicalVenueCapacitySufficient/labClinicalVenueCapacityTight close the gap this used
+ *  to explicitly disclaim: a real weekly (day, period) feasibility check for shared Lab/Clinical
+ *  venues (total weekly demand vs. real weekly window) — a necessary-condition aggregate, not a true
+ *  collision simulation, so a passing check doesn't guarantee the real Skeleton Builder placement
+ *  search will actually find a conflict-free arrangement. */
 export interface TermCapacityOverview {
   termInstanceId: number;
   theorySufficient: boolean;
@@ -205,4 +211,14 @@ export interface TermCapacityOverview {
   roomInventory: RoomInventoryRow[];
   labClinicalMappingSufficient: boolean;
   labClinicalMappingIssuesMessage: string | null;
+  labClinicalVenueCapacitySufficient: boolean;
+  labClinicalVenueCapacityIssuesMessage: string | null;
+  labClinicalVenueCapacityTight: boolean;
+  labClinicalVenueCapacityTightMessage: string | null;
+  /** Per-venue breakdown backing `labClinicalVenueCapacityIssuesMessage` — see backend
+   *  `TermCapacityOverviewResponse.overCapacityVenues`. */
+  overCapacityVenues: VenueOverCapacity[];
+  /** Per-venue breakdown backing `labClinicalVenueCapacityTightMessage` — see backend
+   *  `TermCapacityOverviewResponse.tightCapacityVenues`. */
+  tightCapacityVenues: VenueTightCapacity[];
 }

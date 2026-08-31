@@ -55,6 +55,42 @@
       </div>
     }
 
+    @if (!o.labClinicalVenueCapacitySufficient) {
+      <div class="cap-alert cap-alert--bad anim-rise anim-rise--d2">
+        <span>{{ o.labClinicalVenueCapacityIssuesMessage }} Committing is blocked until this is resolved — this is a weekly-time shortfall, not a seating one, so raising the venue's own capacity won't help; designate a second eligible venue for the affected subject(s), or enable a working Saturday, instead.</span>
+      </div>
+      <div class="cap-venue-list anim-rise anim-rise--d2">
+        @for (v of o.overCapacityVenues; track v.venueType + '-' + v.venueId) {
+          <div class="cap-venue-row cap-venue-row--bad">
+            <div class="cap-venue-row__info">
+              <span class="cap-venue-row__name">{{ v.venueName }} <span class="text-muted">({{ v.venueType === 'LAB' ? 'Lab' : 'Clinical' }})</span></span>
+              <span class="cap-venue-row__detail">Needs {{ v.weeklyDemandPeriods }} periods/week across {{ v.affectedSubjectNames.join(', ') }} — real weekly window is only {{ v.weeklyAvailablePeriods }}, short by {{ v.shortfallPeriods }}.</span>
+            </div>
+            @if (canManageVenue(v)) {
+              <a class="btn-secondary" [routerLink]="venueNewRoute(v)" [queryParams]="venueNewQueryParams(v)" target="_blank" rel="noopener">Add a second venue →</a>
+            }
+          </div>
+        }
+      </div>
+    } @else if (o.labClinicalVenueCapacityTight) {
+      <div class="cap-alert cap-alert--warn anim-rise anim-rise--d2">
+        <span>{{ o.labClinicalVenueCapacityTightMessage }} The raw totals fit, but there's little to no room for real day/period packing to also succeed perfectly.</span>
+      </div>
+      <div class="cap-venue-list anim-rise anim-rise--d2">
+        @for (v of o.tightCapacityVenues; track v.venueType + '-' + v.venueId) {
+          <div class="cap-venue-row cap-venue-row--warn">
+            <div class="cap-venue-row__info">
+              <span class="cap-venue-row__name">{{ v.venueName }} <span class="text-muted">({{ v.venueType === 'LAB' ? 'Lab' : 'Clinical' }})</span> — {{ v.utilizationPercent | number: '1.0-1' }}% of its weekly window</span>
+              <span class="cap-venue-row__detail">Needs {{ v.weeklyDemandPeriods }} of {{ v.weeklyAvailablePeriods }} weekly periods across {{ v.affectedSubjectNames.join(', ') }}.</span>
+            </div>
+            @if (canManageVenue(v)) {
+              <a class="btn-secondary" [routerLink]="venueNewRoute(v)" [queryParams]="venueNewQueryParams(v)" target="_blank" rel="noopener">Add a second venue →</a>
+            }
+          </div>
+        }
+      </div>
+    }
+
     <div id="tour-cap-auto-summary" class="content-card cap-summary-card anim-rise anim-rise--d2">
       <div class="cap-tiles">
         <div class="cap-tile" data-tone="total">
@@ -242,7 +278,7 @@
 
             <div class="cap-cohort-card__actions">
               @if (canManageAllocation()) {
-                @if (o.theorySufficient && o.labClinicalMappingSufficient) {
+                @if (o.theorySufficient && o.labClinicalMappingSufficient && o.labClinicalVenueCapacitySufficient) {
                   <button type="button" class="btn-primary" [disabled]="committingCohortId() === row.cohortId" (click)="confirmAndCommit(row)">
                     @if (committingCohortId() === row.cohortId) { <mat-spinner diameter="14" class="btn-spinner"></mat-spinner> }
                     Confirm & Commit
@@ -251,7 +287,9 @@
                   <button type="button" class="btn-primary" disabled
                     [title]="!o.theorySufficient
                       ? 'Free classroom capacity is short this term — increase a room\'s capacity or add classrooms before committing any cohort.'
-                      : 'A subject somewhere in this term is missing a designated Lab/Clinical Venue mapping — configure it on the Subject before committing any cohort.'">
+                      : !o.labClinicalMappingSufficient
+                      ? 'A subject somewhere in this term is missing a designated Lab/Clinical Venue mapping — configure it on the Subject before committing any cohort.'
+                      : 'A shared Lab/Clinical venue can\'t physically fit its weekly demand — raise its capacity or designate a second venue before committing any cohort.'">
                     Confirm & Commit
                   </button>
                 }

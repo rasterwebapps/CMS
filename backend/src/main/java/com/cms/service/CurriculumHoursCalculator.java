@@ -3,7 +3,9 @@ package com.cms.service;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import com.cms.model.Subject;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.ClassSessionType;
 
 /**
  * Shared hour/session-count math, extracted from {@link TimetableGenerationService} so the R3
@@ -45,5 +47,24 @@ public final class CurriculumHoursCalculator {
             .mapToInt(Integer::intValue)
             .average()
             .orElse(60.0);
+    }
+
+    /** How many consecutive periods one single session of this subject/sessionType must occupy
+     *  ({@link Subject#getLabSessionBlockPeriods()}/{@link Subject#getClinicalSessionBlockPeriods()})
+     *  — always 1 for THEORY, and defensively clamped to at least 1 for LAB/CLINICAL in case a
+     *  subject's configured value is ever null/invalid. Shared by {@link
+     *  TimetableGlobalAutoScheduleService} (per-session placement chunking) and {@link
+     *  TimetableCapacityPlanningService} (weekly demand-period totals) so both agree on exactly
+     *  the same block size for the same subject. */
+    public static int resolveBlockSize(Subject subject, ClassSessionType sessionType) {
+        if (subject == null) {
+            return 1;
+        }
+        Integer configured = switch (sessionType) {
+            case LAB -> subject.getLabSessionBlockPeriods();
+            case CLINICAL -> subject.getClinicalSessionBlockPeriods();
+            default -> 1;
+        };
+        return configured != null && configured >= 1 ? configured : 1;
     }
 }
