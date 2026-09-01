@@ -84,8 +84,8 @@
           <label for="bmd-coordinator" class="field-label">Batch Coordinator</label>
           <select id="bmd-coordinator" class="field-select" formControlName="coordinatorFacultyId">
             <option [ngValue]="null">Unassigned</option>
-            @for (f of data.facultyOptions; track f.id) {
-              <option [ngValue]="f.id">{{ f.name }}</option>
+            @for (f of eligibleFaculty(); track f.facultyId) {
+              <option [ngValue]="f.facultyId">{{ f.facultyName }}</option>
             }
           </select>
           @if (!form.get('coordinatorFacultyId')?.value) {

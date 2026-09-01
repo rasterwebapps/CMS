@@ -334,6 +334,10 @@ export interface CourseOffering {
   electiveGroupSelectionMode: ElectiveSelectionMode | null;
   labHours: number;
   clinicalHours: number;
+  /** Configurable off-campus clinical shift length/travel buffer — null means this offering has
+   *  no shift-based clinical component (on-campus-only clinical uses the standard Period grid). */
+  clinicalShiftDurationMinutes: number | null;
+  clinicalTravelBufferMinutes: number | null;
   createdAt: string;
   updatedAt: string;
   /** CourseOffering has no cohort FK of its own — it's keyed by curriculum version, which can be

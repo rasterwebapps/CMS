@@ -1,0 +1,51 @@
+.med-content-card {
+  padding: 1.25rem 1.5rem;
+}
+
+.med-loading {
+  display: flex;
+  justify-content: center;
+  padding: 2.5rem 0;
+}
+
+.med-duty-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.med-duty-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--cms-bg-hover);
+  border-radius: 8px;
+  padding: 0.625rem 0.875rem;
+
+  &__date {
+    font-weight: 700;
+    font-size: var(--cms-text-base);
+    color: var(--cms-primary);
+    min-width: 96px;
+  }
+
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    flex-wrap: wrap;
+  }
+
+  &__batch {
+    font-weight: 600;
+    font-size: var(--cms-text-base);
+  }
+
+  &__venue {
+    font-size: var(--cms-text-sm);
+    color: var(--cms-text-secondary);
+  }
+}

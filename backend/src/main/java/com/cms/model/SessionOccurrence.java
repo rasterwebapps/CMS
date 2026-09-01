@@ -2,6 +2,7 @@ package com.cms.model;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -173,6 +174,23 @@ public class SessionOccurrence {
 
     @Column(name = "rejection_reason", length = 500)
     private String rejectionReason;
+
+    // ---- OC-175 CLINICAL_SHIFT fields (populated only when occurrenceSource == CLINICAL_SHIFT) ----
+
+    /** Real clock start time for a shift block, bypassing {@link #period} entirely — off-campus
+     *  clinical shifts don't align to the standard Period grid. */
+    @Column(name = "block_start_time")
+    private LocalTime blockStartTime;
+
+    @Column(name = "block_end_time")
+    private LocalTime blockEndTime;
+
+    /** Set for a CLINICAL block (one row per linked {@link Batch}, its own off-campus venue via
+     *  {@link Batch#getClinicalVenue()}); left null for a shared THEORY block, which uses
+     *  {@link #cohortSection} instead — the reconvened full roster, not any single batch. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "batch_id")
+    private Batch batch;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -459,5 +477,29 @@ public class SessionOccurrence {
 
     public void setRejectionReason(String rejectionReason) {
         this.rejectionReason = rejectionReason;
+    }
+
+    public LocalTime getBlockStartTime() {
+        return blockStartTime;
+    }
+
+    public void setBlockStartTime(LocalTime blockStartTime) {
+        this.blockStartTime = blockStartTime;
+    }
+
+    public LocalTime getBlockEndTime() {
+        return blockEndTime;
+    }
+
+    public void setBlockEndTime(LocalTime blockEndTime) {
+        this.blockEndTime = blockEndTime;
+    }
+
+    public Batch getBatch() {
+        return batch;
+    }
+
+    public void setBatch(Batch batch) {
+        this.batch = batch;
     }
 }

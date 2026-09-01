@@ -506,6 +506,8 @@ public class SpecialClassRequestService {
                     .orElseThrow(() -> new ResourceNotFoundException("Clinical venue not found with id: " + clinicalVenueId));
                 yield new VenueResolution(venue.getId(), venue.getRoom(), venue.getCapacity(), null, null, venue);
             }
+            case LIBRARY -> throw new IllegalArgumentException(
+                "Library sessions are system-managed by Run Automation and cannot be requested as a special class.");
         };
     }
 
@@ -514,6 +516,8 @@ public class SpecialClassRequestService {
             case THEORY -> occurrence.setClassroom(venue.classroom());
             case LAB -> occurrence.setLab(venue.lab());
             case CLINICAL -> occurrence.setClinicalVenue(venue.clinicalVenue());
+            case LIBRARY -> throw new IllegalArgumentException(
+                "Library sessions are system-managed by Run Automation and cannot be requested as a special class.");
         }
     }
 

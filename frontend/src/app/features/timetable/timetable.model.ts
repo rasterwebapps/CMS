@@ -42,7 +42,7 @@ export interface ResourceGridCell {
   startTime: string;
   endTime: string;
   slotName: string;
-  sessionType: 'THEORY' | 'LAB' | 'CLINICAL';
+  sessionType: 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY';
   status: 'DRAFT' | 'PUBLISHED';
 }
 

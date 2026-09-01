@@ -13,3 +13,9 @@ export function colorForSubject(courseOfferingId: number): string {
   for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
   return SUBJECT_COLOR_PALETTE[Math.abs(hash) % SUBJECT_COLOR_PALETTE.length];
 }
+
+/** LIBRARY cells have no CourseOffering to hash a color from (see
+ *  TimetableGlobalAutoScheduleService#fillLibraryGaps) — a fixed slate outside the subject
+ *  palette above, so Library always reads as its own consistent category rather than colliding
+ *  with whatever real subject happens to hash to the same palette slot. */
+export const LIBRARY_CELL_COLOR = '#64748b';

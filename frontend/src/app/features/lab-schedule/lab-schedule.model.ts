@@ -1,4 +1,4 @@
-export type ClassSessionType = 'THEORY' | 'LAB' | 'CLINICAL';
+export type ClassSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY';
 export type ClassScheduleStatus = 'DRAFT' | 'PUBLISHED';
 
 export interface LabSchedule {

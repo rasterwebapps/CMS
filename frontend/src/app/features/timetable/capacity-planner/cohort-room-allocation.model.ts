@@ -1,6 +1,6 @@
 import { PlanningBasis } from './capacity-planner.model';
 
-export type ClassSessionType = 'THEORY' | 'LAB' | 'CLINICAL';
+export type ClassSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY';
 export type CohortRoomAllocationStatus = 'COMMITTED' | 'REVERTED';
 
 export interface CohortSectionRequest {

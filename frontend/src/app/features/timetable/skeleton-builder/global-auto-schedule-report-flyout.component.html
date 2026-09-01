@@ -113,6 +113,8 @@
                                 <a class="btn-secondary" [routerLink]="venueNewRoute(v)" [queryParams]="venueNewQueryParams(v)" target="_blank" rel="noopener">Add a second venue →</a>
                               }
                             </div>
+                            <cms-venue-rebalance-panel [termInstanceId]="termInstanceId()" [sessionType]="v.venueType" [venueId]="v.venueId"
+                              (rebalanced)="runCheckPrerequisites()" />
                           </div>
                         }
                       } @else {
@@ -140,6 +142,8 @@
                                 <a class="btn-secondary" [routerLink]="venueNewRoute(v)" [queryParams]="venueNewQueryParams(v)" target="_blank" rel="noopener">Add a second venue →</a>
                               }
                             </div>
+                            <cms-venue-rebalance-panel [termInstanceId]="termInstanceId()" [sessionType]="v.venueType" [venueId]="v.venueId"
+                              (rebalanced)="runCheckPrerequisites()" />
                           </div>
                         }
                       } @else {

@@ -192,7 +192,7 @@ public class FacultyAbsenceService {
 
     private String resolveRoomName(ClassSchedule cs) {
         return switch (cs.getSessionType()) {
-            case THEORY -> cs.getClassroom() != null ? cs.getClassroom().getName() : null;
+            case THEORY, LIBRARY -> cs.getClassroom() != null ? cs.getClassroom().getName() : null;
             case LAB -> cs.getLab() != null ? cs.getLab().getName() : null;
             case CLINICAL -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getName() : null;
         };

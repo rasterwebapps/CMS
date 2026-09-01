@@ -2,7 +2,11 @@ package com.cms.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -10,7 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cms.dto.CapacityPlanResponse;
 import com.cms.dto.FacultyWorkloadOverviewReport;
 import com.cms.dto.FacultyWorkloadReportResponse;
+import com.cms.dto.LabClinicalVenueCapacityResult;
 import com.cms.dto.TermCapacityOverviewResponse;
+import com.cms.dto.VenueRebalanceApplyRequest;
+import com.cms.dto.VenueRebalancePreview;
+import com.cms.dto.VenueRebalanceResult;
+import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.PlanningBasis;
 import com.cms.service.FacultyWorkloadCapacityService;
 import com.cms.service.TimetableCapacityPlanningService;
@@ -67,5 +76,43 @@ public class TimetableCapacityPlanningController {
     public ResponseEntity<TermCapacityOverviewResponse> getTermOverview(@RequestParam Long termInstanceId,
                                                                           @RequestParam(required = false) PlanningBasis planningBasis) {
         return ResponseEntity.ok(timetableCapacityPlanningService.getTermOverview(termInstanceId, planningBasis));
+    }
+
+    /** Same permission as {@link #getPlan} — feeds Capacity Planner's Venue Utilization panel with
+     *  the real weekly-demand-vs-window over/tight classification that gates the "Rebalance now"
+     *  panel. {@link #getPlan}'s own per-venue utilization figures are a genuinely different
+     *  metric (already-placed schedule cells vs. a fixed Mon-Fri slot grid) and must never be used
+     *  for this gating — a venue can show high placed-cell occupancy while comfortably under its
+     *  real weekly demand window, or the reverse, before Run Automation has placed anything yet. */
+    @GetMapping("/venue-capacity")
+    @PreAuthorize("@perm.has('TIMETABLE_CAPACITY_PLANNER_VIEW')")
+    public ResponseEntity<LabClinicalVenueCapacityResult> getVenueCapacity(@RequestParam Long termInstanceId,
+                                                                             @RequestParam(required = false) PlanningBasis planningBasis) {
+        return ResponseEntity.ok(timetableCapacityPlanningService.computeLabClinicalVenueCapacity(termInstanceId,
+            planningBasis != null ? planningBasis : PlanningBasis.SANCTIONED));
+    }
+
+    /** Read-only preview for "Rebalance now" — same VIEW permission as the rest of this screen's
+     *  reports, since nothing is applied until {@link #applyRebalance}. */
+    @GetMapping("/rebalance-preview")
+    @PreAuthorize("@perm.has('TIMETABLE_CAPACITY_PLANNER_VIEW')")
+    public ResponseEntity<VenueRebalancePreview> previewRebalance(@RequestParam Long termInstanceId,
+                                                                     @RequestParam ClassSessionType sessionType,
+                                                                     @RequestParam Long venueId,
+                                                                     @RequestParam(required = false) PlanningBasis planningBasis) {
+        return ResponseEntity.ok(timetableCapacityPlanningService.previewRebalance(termInstanceId, sessionType, venueId,
+            planningBasis != null ? planningBasis : PlanningBasis.SANCTIONED));
+    }
+
+    /** Mutates already-committed batches — its own dedicated permission, per this project's
+     *  operation-wise permission mapping rule (never shared with the VIEW-tier preview above). */
+    @PostMapping("/rebalance")
+    @PreAuthorize("@perm.has('TIMETABLE_CAPACITY_PLANNER_REBALANCE')")
+    public ResponseEntity<VenueRebalanceResult> applyRebalance(@RequestParam Long termInstanceId,
+                                                                 @RequestBody VenueRebalanceApplyRequest request,
+                                                                 @AuthenticationPrincipal Jwt jwt) {
+        String actor = jwt != null ? jwt.getClaimAsString("preferred_username") : null;
+        return ResponseEntity.ok(timetableCapacityPlanningService.applyRebalance(termInstanceId, request.sessionType(),
+            request.venueId(), request.batchIds(), actor));
     }
 }

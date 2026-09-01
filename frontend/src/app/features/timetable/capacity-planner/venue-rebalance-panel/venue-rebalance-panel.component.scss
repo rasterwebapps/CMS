@@ -1,0 +1,37 @@
+.vrp-trigger {
+  margin-top: 8px;
+}
+
+.vrp-panel {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-subtle);
+}
+
+.vrp-panel__title {
+  margin: 0 0 6px;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.vrp-panel__title--warn {
+  color: var(--cms-warning);
+}
+
+.vrp-move-list {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  color: var(--cms-text-secondary);
+
+  li {
+    margin-bottom: 6px;
+  }
+}
+
+.vrp-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}

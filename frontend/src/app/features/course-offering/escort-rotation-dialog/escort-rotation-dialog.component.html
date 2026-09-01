@@ -1,0 +1,74 @@
+<div mat-dialog-title class="erd-dialog-title-bar">
+  <div class="erd-dialog-title-bar__icon-wrap">
+    <mat-icon>directions_bus</mat-icon>
+  </div>
+  <div>
+    <h2 class="erd-dialog-title-bar__heading">Escort Rotation</h2>
+    <p class="erd-dialog-title-bar__sub">{{ data.batchName }}</p>
+  </div>
+</div>
+
+<mat-dialog-content>
+  @if (loading()) {
+    <div class="erd-loading">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (pool()) {
+    <p class="erd-hint">
+      <mat-icon>info</mat-icon>
+      Round-robin rotation active — whose turn it is each week is computed automatically, same as
+      the anchor-week rule below.
+    </p>
+    <ul class="erd-member-list">
+      @for (member of pool()!.members; track member.memberOrder) {
+        <li class="erd-member-item">
+          <span class="erd-member-item__order">{{ member.memberOrder + 1 }}</span>
+          <span class="erd-member-item__name">{{ member.facultyName }}</span>
+        </li>
+      }
+    </ul>
+    <p class="erd-hint">Anchor date: {{ pool()!.anchorOccurrenceDate }} (cycle of {{ pool()!.cycleLength }})</p>
+    <div class="erd-form-actions">
+      <button class="btn-secondary" type="button" (click)="deactivatePool()" [disabled]="saving()">
+        Deactivate Pool
+      </button>
+    </div>
+  } @else {
+    @if (candidates().length === 0) {
+      <p class="erd-empty">No eligible (speciality-matched) faculty found for this batch's subject.</p>
+    } @else {
+      <p class="erd-hint">
+        <mat-icon>info</mat-icon>
+        Pick at least 2 faculty. Round-robin order follows the order picked here.
+      </p>
+      <ul class="erd-candidate-list">
+        @for (candidate of candidates(); track candidate.facultyId) {
+          <li class="erd-candidate-item">
+            <label class="erd-candidate-item__label">
+              <input type="checkbox" [checked]="isSelected(candidate.facultyId)"
+                (change)="toggleCandidate(candidate.facultyId)" />
+              {{ candidate.facultyName }}
+            </label>
+          </li>
+        }
+      </ul>
+      <div class="field-group">
+        <label for="erd-anchor-date" class="field-label">Anchor Date (whoever is #1 covers this week)</label>
+        <input id="erd-anchor-date" type="date" class="field-input" [ngModel]="anchorDate()"
+          (ngModelChange)="anchorDate.set($event)" />
+      </div>
+      <div class="erd-form-actions">
+        <button class="btn-primary" type="button" (click)="setupPool()" [disabled]="saving()">
+          @if (saving()) {
+            <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+          }
+          Create Rotation Pool
+        </button>
+      </div>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button class="btn-secondary" type="button" (click)="onClose()">Close</button>
+</mat-dialog-actions>

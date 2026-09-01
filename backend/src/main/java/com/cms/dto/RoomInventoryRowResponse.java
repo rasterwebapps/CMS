@@ -7,17 +7,13 @@ package com.cms.dto;
  *  period-slot occupancy (occupiedSlots/totalSlots/utilizationPercent — 0/0/0.0 for CLASSROOM rows,
  *  where it doesn't apply) — see {@code TimetableCapacityPlanningService#utilization}.
  *  utilizationPercent can exceed 100 when a venue has genuine Saturday bookings beyond the 5-day
- *  routine-week baseline; that's intentional, not a bug. suggestedBookingCount is how many
- *  not-yet-committed cohorts' auto-plan suggestions reference this room this pass — informational
- *  only, since Capacity Planner has no day/period data to know whether those suggestions would
- *  actually collide in time. */
+ *  routine-week baseline; that's intentional, not a bug. */
 public record RoomInventoryRowResponse(
     Long id,
     String name,
     String roomType,
     Integer capacity,
     String claimedByCohortLabel,
-    int suggestedBookingCount,
     long occupiedSlots,
     int totalSlots,
     double utilizationPercent

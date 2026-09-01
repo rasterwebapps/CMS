@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
+import com.cms.dto.ClinicalShiftConfigUpdateRequest;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.CourseOfferingFacultySummaryDto;
 import com.cms.dto.CourseOfferingSectionFacultyResponse;
@@ -131,6 +132,14 @@ public class CourseOfferingController {
             @PathVariable Long id,
             @Valid @RequestBody ActiveStatusUpdateRequest request) {
         return ResponseEntity.ok(courseOfferingService.updateStatus(id, request));
+    }
+
+    @PutMapping("/{id}/clinical-shift-config")
+    @PreAuthorize("@perm.has('COURSE_MANAGE')")
+    public ResponseEntity<CourseOfferingDto> updateClinicalShiftConfig(
+            @PathVariable Long id,
+            @Valid @RequestBody ClinicalShiftConfigUpdateRequest request) {
+        return ResponseEntity.ok(courseOfferingService.updateClinicalShiftConfig(id, request));
     }
 
     /** Live, pre-save check for a whole-cohort assignment (no section split) — same math {@link

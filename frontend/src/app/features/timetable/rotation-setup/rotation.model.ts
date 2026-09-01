@@ -4,7 +4,7 @@ export interface RotationCandidateSlot {
   subjectName: string;
   batchId: number | null;
   batchName: string | null;
-  sessionType: 'THEORY' | 'LAB' | 'CLINICAL';
+  sessionType: 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY';
   dayOfWeek: string;
   periodId: number;
   periodName: string | null;

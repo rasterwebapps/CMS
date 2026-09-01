@@ -322,6 +322,7 @@ export class FacultyDetailComponent implements OnInit {
       case 'LAB': return 'Lab';
       case 'CLINICAL': return 'Clinical';
       case 'LAB_CLINICAL': return 'Lab/Clinical';
+      case 'LIBRARY': return 'Library';
       default: return '—';
     }
   }

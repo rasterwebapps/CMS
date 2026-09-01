@@ -11,6 +11,11 @@ public record BatchDto(
     Long termInstanceId,
     Long coordinatorFacultyId,
     String coordinatorFacultyName,
+    Long labId,
+    String labName,
+    Long clinicalVenueId,
+    String clinicalVenueName,
+    Long clinicalShiftGroupId,
     Boolean isActive,
     Instant createdAt,
     Instant updatedAt

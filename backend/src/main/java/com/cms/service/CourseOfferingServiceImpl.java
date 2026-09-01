@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
+import com.cms.dto.ClinicalShiftConfigUpdateRequest;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.EligibleFacultyCandidateDto;
 import com.cms.dto.GenerateOfferingsResponse;
@@ -398,9 +399,29 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
             csc != null && csc.getElectiveGroup() != null ? csc.getElectiveGroup().getSelectionMode() : null,
             csc != null ? csc.getLabHours() : 0,
             csc != null ? csc.getClinicalHours() : 0,
+            o.getClinicalShiftDurationMinutes(),
+            o.getClinicalTravelBufferMinutes(),
             o.getCreatedAt(),
             o.getUpdatedAt(),
             cohortNames
         );
+    }
+
+    @Override
+    @Transactional
+    public CourseOfferingDto updateClinicalShiftConfig(Long id, ClinicalShiftConfigUpdateRequest request) {
+        CourseOffering offering = courseOfferingRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + id));
+        boolean settingDuration = request.clinicalShiftDurationMinutes() != null;
+        CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
+        boolean hasClinicalHours = csc != null && csc.getClinicalHours() != null && csc.getClinicalHours() > 0;
+        if (settingDuration && !hasClinicalHours) {
+            throw new IllegalStateException(
+                "Course offering " + id + "'s subject has no clinical hours in the curriculum -- "
+                    + "shift-based clinical scheduling only applies to subjects with clinical hours");
+        }
+        offering.setClinicalShiftDurationMinutes(request.clinicalShiftDurationMinutes());
+        offering.setClinicalTravelBufferMinutes(request.clinicalTravelBufferMinutes());
+        return toDto(courseOfferingRepository.save(offering));
     }
 }

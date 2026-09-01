@@ -1,0 +1,177 @@
+<div mat-dialog-title class="csg-dialog-title-bar">
+  <div class="csg-dialog-title-bar__icon-wrap">
+    <mat-icon>local_hospital</mat-icon>
+  </div>
+  <div>
+    <h2 class="csg-dialog-title-bar__heading">Manage Clinical Shift Groups</h2>
+    <p class="csg-dialog-title-bar__sub">{{ data.offering.subjectCode }} · {{ data.offering.subjectName }} — Semester {{ data.offering.termNumber }}</p>
+  </div>
+</div>
+
+<mat-dialog-content>
+  @if (!configured) {
+    <p class="csg-empty">
+      <mat-icon>warning</mat-icon>
+      This offering has no clinical shift duration configured yet — set it from the offering row's
+      "Clinical Shift Config" action before creating a shift group.
+    </p>
+  } @else if (loading()) {
+    <div class="csg-loading">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else {
+    @if (groups().length === 0) {
+      <p class="csg-empty">No clinical shift groups yet for this offering.</p>
+    } @else {
+      <ul class="csg-group-list">
+        @for (group of groups(); track group.id) {
+          <li class="csg-group-item">
+            <div class="csg-group-item__row">
+              <div class="csg-group-item__info">
+                <span class="csg-group-item__label">{{ group.label }}</span>
+                <span class="csg-group-item__day">{{ group.dayOfWeek }}</span>
+                <span class="csg-group-item__times">
+                  Clinical {{ group.clinicalStartTime }}–{{ group.clinicalEndTime }}
+                  @if (group.busDepartTime) {
+                    (bus {{ group.busDepartTime }}–{{ group.busReturnTime }})
+                  }
+                </span>
+              </div>
+              <div class="csg-group-item__actions">
+                <button class="btn-secondary" type="button" (click)="startEditBlocks(group)">Theory Blocks</button>
+                <button class="btn-secondary" type="button" (click)="deactivateGroup(group)">Deactivate</button>
+              </div>
+            </div>
+
+            <div class="csg-batches">
+              <span class="csg-section-label">Linked clinical batches (different venues, same shift)</span>
+              @if (group.batches.length === 0) {
+                <p class="csg-empty csg-empty--tight">No batches linked yet.</p>
+              } @else {
+                <ul class="csg-batch-chip-list">
+                  @for (b of group.batches; track b.batchId) {
+                    <li class="csg-batch-chip">
+                      <span>{{ b.batchName }} · {{ b.venueLabel }} ({{ b.plannedSize }})</span>
+                      <button type="button" class="csg-batch-chip__escort" matTooltip="Manage escort rotation"
+                        (click)="openEscortRotation(b.batchId, b.batchName)">
+                        <mat-icon>directions_bus</mat-icon>
+                      </button>
+                      <button type="button" class="csg-batch-chip__remove" matTooltip="Unlink"
+                        (click)="unlinkBatch(group, b.batchId)">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+              @if (linkableBatches(group).length > 0) {
+                <select class="field-select csg-link-select"
+                  (change)="linkBatch(group, +$any($event.target).value); $any($event.target).value = ''">
+                  <option value="">Link a batch…</option>
+                  @for (b of linkableBatches(group); track b.id) {
+                    <option [value]="b.id">{{ b.name }} · {{ b.clinicalVenueName }}</option>
+                  }
+                </select>
+              } @else {
+                <p class="csg-empty csg-empty--tight">
+                  <mat-icon>info</mat-icon>
+                  No unlinked clinical batches available yet. Batches are created in
+                  <strong>Academics → Capacity Auto-Plan</strong> — commit a room allocation for
+                  this offering's cohort there (it assigns each split batch a clinical venue),
+                  then come back here to link them.
+                </p>
+              }
+            </div>
+
+            @if (editingBlocksGroupId() === group.id) {
+              <div class="csg-block-editor">
+                <span class="csg-section-label">Shared theory block(s) — attended by the whole reconvened roster</span>
+                @for (draft of blockDrafts(); track $index) {
+                  <div class="csg-block-row">
+                    <input type="time" class="field-input" [value]="draft.startTime"
+                      (input)="updateBlockDraft($index, 'startTime', $any($event.target).value)" />
+                    <span>–</span>
+                    <input type="time" class="field-input" [value]="draft.endTime"
+                      (input)="updateBlockDraft($index, 'endTime', $any($event.target).value)" />
+                    <button type="button" class="csg-block-row__remove" (click)="removeBlockDraft($index)">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </div>
+                }
+                <button class="btn-secondary csg-add-btn" type="button" (click)="addBlockDraft()">
+                  <mat-icon>add</mat-icon> Add Block
+                </button>
+                <div class="csg-form-actions">
+                  <button class="btn-secondary" type="button" (click)="cancelEditBlocks()">Cancel</button>
+                  <button class="btn-primary" type="button" (click)="saveBlocks(group)" [disabled]="saving()">
+                    @if (saving()) {
+                      <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+                    }
+                    Save
+                  </button>
+                </div>
+              </div>
+            } @else if (group.theoryBlocks.length > 0) {
+              <p class="csg-theory-summary">
+                Theory: @for (b of group.theoryBlocks; track b.id) { {{ b.startTime }}–{{ b.endTime }}@if (!$last) { , } }
+              </p>
+            }
+
+            <div class="csg-generate">
+              <span class="csg-section-label">Generate attendance-capable occurrences for a date</span>
+              <div class="csg-generate__row">
+                <input type="date" class="field-input" [value]="generateDate()[group.id] ?? ''"
+                  (input)="setGenerateDate(group.id, $any($event.target).value)" />
+                <button class="btn-secondary" type="button" (click)="generateForDate(group)"
+                  [disabled]="generating() === group.id">
+                  @if (generating() === group.id) {
+                    <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+                  }
+                  Generate
+                </button>
+              </div>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (showForm()) {
+      <form [formGroup]="form" class="csg-form">
+        <div class="field-group">
+          <label for="csg-label" class="field-label">Shift Label</label>
+          <input id="csg-label" class="field-input" formControlName="label" placeholder="e.g. Shift A — Morning Clinical" />
+        </div>
+        <div class="field-group">
+          <label for="csg-day" class="field-label">Day of Week</label>
+          <select id="csg-day" class="field-select" formControlName="dayOfWeek">
+            @for (d of days; track d) {
+              <option [value]="d">{{ d }}</option>
+            }
+          </select>
+        </div>
+        <div class="field-group">
+          <label for="csg-start" class="field-label">Clinical Start Time</label>
+          <input id="csg-start" type="time" class="field-input" formControlName="clinicalStartTime" />
+        </div>
+        <div class="csg-form-actions">
+          <button class="btn-secondary" type="button" (click)="cancelForm()">Cancel</button>
+          <button class="btn-primary" type="button" (click)="submitGroup()" [disabled]="saving() || form.invalid">
+            @if (saving()) {
+              <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+            }
+            Create
+          </button>
+        </div>
+      </form>
+    } @else {
+      <button class="btn-secondary csg-add-btn" type="button" (click)="startAdd()">
+        <mat-icon>add</mat-icon> New Shift Group
+      </button>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button class="btn-secondary" type="button" (click)="onClose()">Close</button>
+</mat-dialog-actions>

@@ -1016,6 +1016,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'timetable/escort-rotation/my-duties',
+    canActivate: withPermission('TIMETABLE_ESCORT_ROTATION_VIEW'),
+    loadComponent: () =>
+      import('./features/escort-rotation/my-escort-duties/my-escort-duties.component').then(
+        (m) => m.MyEscortDutiesComponent
+      ),
+  },
+  {
     path: 'faculty-availability',
     canActivate: withPermission('FACULTY_AVAILABILITY_VIEW', 'FACULTY_AVAILABILITY_MANAGE'),
     loadComponent: () =>

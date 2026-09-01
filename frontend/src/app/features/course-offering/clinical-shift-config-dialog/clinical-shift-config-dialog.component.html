@@ -1,0 +1,39 @@
+<div mat-dialog-title class="csc-dialog-title-bar">
+  <div class="csc-dialog-title-bar__icon-wrap">
+    <mat-icon>schedule</mat-icon>
+  </div>
+  <div>
+    <h2 class="csc-dialog-title-bar__heading">Clinical Shift Config</h2>
+    <p class="csc-dialog-title-bar__sub">{{ data.offering.subjectCode }} · {{ data.offering.subjectName }}</p>
+  </div>
+</div>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="csc-form">
+    <div class="field-group">
+      <label for="csc-duration" class="field-label">Clinical Shift Duration (minutes)</label>
+      <input id="csc-duration" type="number" class="field-input" formControlName="clinicalShiftDurationMinutes"
+        placeholder="e.g. 360 for 6h, 480 for 8h" min="1" />
+    </div>
+    <div class="field-group">
+      <label for="csc-buffer" class="field-label">Travel Buffer (minutes, each way)</label>
+      <input id="csc-buffer" type="number" class="field-input" formControlName="clinicalTravelBufferMinutes"
+        placeholder="e.g. 30" min="0" />
+    </div>
+    <p class="csc-hint">
+      <mat-icon>info</mat-icon>
+      Leave both blank if this offering has no off-campus shift-based clinical component. Setting a
+      duration is required before any Clinical Shift Group can be created for this offering.
+    </p>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button class="btn-secondary" type="button" (click)="onClose()">Cancel</button>
+  <button class="btn-primary" type="button" (click)="submit()" [disabled]="saving() || form.invalid">
+    @if (saving()) {
+      <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+    }
+    Save
+  </button>
+</mat-dialog-actions>

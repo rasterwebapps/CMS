@@ -1,0 +1,33 @@
+<div class="mlp-page">
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">My <em>Escort Duties</em></h1>
+      <p class="mlp-sub">Upcoming off-campus clinical escort duty, computed round-robin among eligible faculty.</p>
+    </div>
+  </div>
+
+  <div class="content-card med-content-card anim-rise anim-rise--d1">
+    @if (loading()) {
+      <div class="med-loading">
+        <mat-spinner diameter="32"></mat-spinner>
+      </div>
+    } @else if (duties().length === 0) {
+      <cms-empty-state icon="directions_bus" title="No upcoming escort duties"
+        subtitle="You're not currently in any clinical batch's escort rotation pool, or none of your pools have a turn coming up soon." />
+    } @else {
+      <ul class="med-duty-list">
+        @for (duty of duties(); track duty.date + '-' + duty.batchId) {
+          <li class="med-duty-item">
+            <div class="med-duty-item__date">{{ duty.date }}</div>
+            <div class="med-duty-item__info">
+              <span class="med-duty-item__batch">{{ duty.batchName }}</span>
+              @if (duty.clinicalVenueName) {
+                <span class="med-duty-item__venue">{{ duty.clinicalVenueName }}</span>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

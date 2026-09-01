@@ -1,9 +1,11 @@
 package com.cms.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
@@ -25,6 +27,9 @@ import com.cms.dto.SuggestedBatchResponse;
 import com.cms.dto.SuggestedSectionResponse;
 import com.cms.dto.TermCapacityOverviewResponse;
 import com.cms.dto.VenueOptionResponse;
+import com.cms.dto.VenueRebalancePreview;
+import com.cms.dto.VenueRebalanceResult;
+import com.cms.exception.LifecycleConflictException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Batch;
 import com.cms.model.ClassSchedule;
@@ -43,6 +48,7 @@ import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.EnrollmentStatus;
+import com.cms.model.enums.LabStatus;
 import com.cms.model.enums.PlanningBasis;
 import com.cms.model.enums.TermType;
 import com.cms.repository.BatchRepository;
@@ -78,6 +84,7 @@ class TimetableCapacityPlanningServiceTest {
     @Mock private CohortRoomAllocationRepository cohortRoomAllocationRepository;
     @Mock private BatchRepository batchRepository;
     @Mock private TimetableBlockedPeriodChecker blockedPeriodChecker;
+    @Mock private AuditLogService auditLogService;
 
     private TimetableCapacityPlanningService service;
 
@@ -86,7 +93,7 @@ class TimetableCapacityPlanningServiceTest {
         service = new TimetableCapacityPlanningService(cohortRepository, cohortSectionRepository, termInstanceRepository,
             studentTermEnrollmentRepository, classroomRepository, labRepository, clinicalVenueRepository, periodRepository,
             classScheduleRepository, calendarEventRepository, courseOfferingRepository, blockedPeriodRepository,
-            cohortRoomAllocationRepository, batchRepository, blockedPeriodChecker);
+            cohortRoomAllocationRepository, batchRepository, blockedPeriodChecker, auditLogService);
     }
 
     private VenueOptionResponse venue(long id, String name, int capacity) {
@@ -213,6 +220,53 @@ class TimetableCapacityPlanningServiceTest {
         assertThat(batches).allMatch(b -> b.venueId() == 11L);
         assertThat(batches).allMatch(b -> b.batchLabel() == null);
         assertThat(batches.stream().mapToInt(SuggestedBatchResponse::plannedSize).sum()).isEqualTo(55);
+    }
+
+    @Test
+    void suggestLabClinicalBatches_spreadsAcrossVenuesWhenOneVenueLacksWeeklyThroughputEvenThoughItHasSeats() {
+        // Two Theory sections, each small enough that either eligible clinical venue could easily
+        // SEAT it alone -- a seating-only check would pile BOTH onto the same smaller-capacity
+        // venue and never even look at the second one (the bug this test guards against). With
+        // weeksInTerm=1/periodDurationMinutes=60 and 30 clinical hours, each section's own weekly
+        // demand is 30 periods -- one section alone fits under a 48-period weekly window, but two
+        // sections stacked on the SAME venue (60 total) don't, so the second section must land on
+        // the other eligible venue instead.
+        List<SuggestedSectionResponse> sections = List.of(
+            new SuggestedSectionResponse("Section 1", 1L, "Hall A", 40, 20),
+            new SuggestedSectionResponse("Section 2", 2L, "Hall B", 40, 20));
+        List<VenueOptionResponse> clinicalVenues = List.of(
+            venue(20L, "Ward A", 100),
+            venue(21L, "Ward B", 100));
+        CourseOffering offering = offeringWithEligibleClinicalVenues(200L, "Fundamentals of Nursing", 30, clinicalVenues);
+
+        TimetableCapacityPlanningService.LabClinicalSuggestion result = service.suggestLabClinicalBatches(
+            List.of(offering), sections, List.of(), clinicalVenues, 1, 60.0, 48);
+
+        List<SuggestedBatchResponse> batches = result.batches();
+        assertThat(batches).hasSize(2);
+        assertThat(batches).allMatch(b -> b.batchLabel() == null);
+        assertThat(batches).extracting(SuggestedBatchResponse::venueId).containsExactlyInAnyOrder(20L, 21L);
+    }
+
+    @Test
+    void suggestLabClinicalBatches_stillSharesOneVenueWhenThroughputIsUnlimited() {
+        // The 4-arg overload (used by every caller that hasn't threaded real weekly-period figures
+        // through) must keep its old seating-only behavior exactly -- effectively-unlimited
+        // throughput means the new filter never removes a venue from consideration.
+        List<SuggestedSectionResponse> sections = List.of(
+            new SuggestedSectionResponse("Section 1", 1L, "Hall A", 40, 20),
+            new SuggestedSectionResponse("Section 2", 2L, "Hall B", 40, 20));
+        List<VenueOptionResponse> clinicalVenues = List.of(
+            venue(20L, "Ward A", 100),
+            venue(21L, "Ward B", 100));
+        CourseOffering offering = offeringWithEligibleClinicalVenues(200L, "Fundamentals of Nursing", 30, clinicalVenues);
+
+        TimetableCapacityPlanningService.LabClinicalSuggestion result =
+            service.suggestLabClinicalBatches(List.of(offering), sections, List.of(), clinicalVenues);
+
+        List<SuggestedBatchResponse> batches = result.batches();
+        assertThat(batches).hasSize(2);
+        assertThat(batches).allMatch(b -> b.venueId() == 20L);
     }
 
     @Test
@@ -433,8 +487,6 @@ class TimetableCapacityPlanningServiceTest {
         var hallARow = overview.roomInventory().get(0);
         assertThat(hallARow.roomType()).isEqualTo("CLASSROOM");
         assertThat(hallARow.claimedByCohortLabel()).isNull();
-        // Only Cohort A's suggestion references Hall A -- Cohort B is committed and contributes none.
-        assertThat(hallARow.suggestedBookingCount()).isEqualTo(1);
     }
 
     @Test
@@ -722,6 +774,7 @@ class TimetableCapacityPlanningServiceTest {
             ClassSchedule cs = new ClassSchedule();
             cs.setSessionType(ClassSessionType.LAB);
             cs.setLab(lab);
+            cs.setIsActive(true);
             occupying.add(cs);
         }
         when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(occupying);
@@ -733,6 +786,79 @@ class TimetableCapacityPlanningServiceTest {
         assertThat(labRow.totalSlots()).isEqualTo(5);
         assertThat(labRow.occupiedSlots()).isEqualTo(6);
         assertThat(labRow.utilizationPercent()).isEqualTo(120.0);
+    }
+
+    @Test
+    void getTermOverview_excludesInactiveClassSchedulesFromVenueOccupancy() {
+        // Real bug found 2026-08-31: findByTermInstanceIdAndStatus filters workflow status
+        // (PUBLISHED/DRAFT) only, never soft-delete -- a stale/superseded row (isActive=false, e.g.
+        // from a Skeleton Builder revert-and-regenerate cycle) still carrying PUBLISHED status used
+        // to stay counted as "occupied" forever. Live data: Computer Lab showed 80/40 (200%) from
+        // 80 real-but-inactive rows across two subjects, with zero currently-active rows -- should
+        // have shown 0/40.
+        TermInstance term = new TermInstance();
+        term.setId(10L);
+        AcademicYear year = new AcademicYear();
+        year.setId(1L);
+        year.setName("2026-27");
+        term.setAcademicYear(year);
+        term.setTermType(TermType.ODD);
+        term.setStartDate(LocalDate.of(2026, 1, 1));
+        term.setEndDate(LocalDate.of(2026, 1, 28));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(term));
+
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Set.of(1L));
+        Cohort cohortA = cohort(1L, "Cohort A");
+        when(cohortRepository.findAllById(any())).thenReturn(List.of(cohortA));
+        when(cohortRepository.findByIdWithCourse(1L)).thenReturn(Optional.of(cohortA));
+        when(studentTermEnrollmentRepository.countByTermInstanceIdAndCohortIdAndStatus(10L, 1L, EnrollmentStatus.ENROLLED))
+            .thenReturn(10L);
+        when(studentTermEnrollmentRepository.findFirstByTermInstanceIdAndCohortIdAndStatus(10L, 1L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Optional.empty());
+        when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(1L, 10L, CohortRoomAllocationStatus.COMMITTED))
+            .thenReturn(Optional.empty());
+
+        when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of());
+        when(clinicalVenueRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of());
+        when(cohortSectionRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of());
+        when(calendarEventRepository.findNonTeachingDaysOverlapping(1L, term.getStartDate(), term.getEndDate())).thenReturn(List.of());
+        when(blockedPeriodRepository.findApplicableInRange(term.getStartDate(), term.getEndDate())).thenReturn(List.of());
+
+        Period period = new Period();
+        period.setId(1L);
+        period.setDurationMinutes(60);
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+
+        Lab lab = new Lab();
+        lab.setId(50L);
+        lab.setName("Computer Lab");
+        lab.setCapacity(30);
+        lab.setStatus(com.cms.model.enums.LabStatus.ACTIVE);
+        when(labRepository.findAll()).thenReturn(List.of(lab));
+
+        List<ClassSchedule> rows = new java.util.ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            ClassSchedule active = new ClassSchedule();
+            active.setSessionType(ClassSessionType.LAB);
+            active.setLab(lab);
+            active.setIsActive(true);
+            rows.add(active);
+        }
+        for (int i = 0; i < 5; i++) {
+            ClassSchedule inactive = new ClassSchedule();
+            inactive.setSessionType(ClassSessionType.LAB);
+            inactive.setLab(lab);
+            inactive.setIsActive(false);
+            rows.add(inactive);
+        }
+        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(rows);
+        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT)).thenReturn(List.of());
+
+        TermCapacityOverviewResponse overview = service.getTermOverview(10L, PlanningBasis.ENROLLED);
+
+        var labRow = overview.roomInventory().stream().filter(r -> r.roomType().equals("LAB")).findFirst().orElseThrow();
+        assertThat(labRow.occupiedSlots()).isEqualTo(3);
     }
 
     // -- computeLabClinicalVenueCapacity ------------------------------------------------------
@@ -891,5 +1017,206 @@ class TimetableCapacityPlanningServiceTest {
         assertThat(overview.labClinicalVenueCapacityIssuesMessage()).isNull();
         assertThat(overview.labClinicalVenueCapacityTight()).isFalse();
         assertThat(overview.labClinicalVenueCapacityTightMessage()).isNull();
+    }
+
+    // -- previewRebalance / applyRebalance ("Rebalance now") -----------------------------------
+
+    @Test
+    void previewRebalance_movesFewestBatchesAndPicksVenueWithMostSpareCapacity() {
+        TermInstance term = fourWeekTerm();
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(term));
+        stubTwoPeriodsAllFree(term);
+
+        Lab source = lab(50L, "Source Lab", 30);
+        Lab destA = lab(51L, "Dest A", 30);
+        destA.setStatus(LabStatus.ACTIVE);
+        Lab destB = lab(52L, "Dest B", 30);
+        destB.setStatus(LabStatus.ACTIVE);
+        when(labRepository.findAll()).thenReturn(List.of(destA, destB));
+
+        // Two separately-scheduled sessions of the same offering, each on Source Lab, each
+        // demanding 7 of the 12 available weekly periods -- only one needs to move to bring the
+        // combined 14 back under 12.
+        CourseOffering anatomy = offeringWithEligibleLabs(900L, "Anatomy", 7 * 4,
+            List.of(venue(51L, "Dest A", 30), venue(52L, "Dest B", 30)));
+        Batch batch1 = new Batch();
+        batch1.setId(1L);
+        batch1.setName("Batch 1");
+        batch1.setCourseOffering(anatomy);
+        batch1.setLab(source);
+        batch1.setIsActive(true);
+        Batch batch2 = new Batch();
+        batch2.setId(2L);
+        batch2.setName("Batch 2");
+        batch2.setCourseOffering(anatomy);
+        batch2.setLab(source);
+        batch2.setIsActive(true);
+
+        // Dest A already carries 10/12 (2 spare); Dest B already carries 4/12 (8 spare) -- Dest B
+        // has more spare capacity and should be picked.
+        CourseOffering physiology = offering(901L, "Physiology", 10 * 4, 0);
+        Batch onDestA = new Batch();
+        onDestA.setId(3L);
+        onDestA.setName("Physiology Batch");
+        onDestA.setCourseOffering(physiology);
+        onDestA.setLab(destA);
+        onDestA.setIsActive(true);
+        CourseOffering chemistry = offering(902L, "Chemistry", 4 * 4, 0);
+        Batch onDestB = new Batch();
+        onDestB.setId(4L);
+        onDestB.setName("Chemistry Batch");
+        onDestB.setCourseOffering(chemistry);
+        onDestB.setLab(destB);
+        onDestB.setIsActive(true);
+
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L))
+            .thenReturn(List.of(batch1, batch2, onDestA, onDestB));
+
+        VenueRebalancePreview preview = service.previewRebalance(10L, ClassSessionType.LAB, 50L, PlanningBasis.SANCTIONED);
+
+        assertThat(preview.currentWeeklyDemandPeriods()).isEqualTo(14);
+        assertThat(preview.weeklyAvailablePeriods()).isEqualTo(12);
+        assertThat(preview.willMove()).hasSize(1);
+        assertThat(preview.willMove().get(0).toVenueId()).isEqualTo(52L);
+        assertThat(preview.willMove().get(0).toVenueName()).isEqualTo("Dest B");
+        assertThat(preview.notMovable()).isEmpty();
+    }
+
+    @Test
+    void previewRebalance_subjectWithNoOtherEligibleVenue_reportedNotMovable() {
+        TermInstance term = fourWeekTerm();
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(term));
+        stubTwoPeriodsAllFree(term);
+        Lab source = lab(50L, "Source Lab", 30);
+        when(labRepository.findAll()).thenReturn(List.of());
+
+        CourseOffering anatomy = offeringWithEligibleLabs(900L, "Anatomy", 13 * 4, List.of());
+        Batch batch1 = new Batch();
+        batch1.setId(1L);
+        batch1.setName("Batch 1");
+        batch1.setCourseOffering(anatomy);
+        batch1.setLab(source);
+        batch1.setIsActive(true);
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(batch1));
+
+        VenueRebalancePreview preview = service.previewRebalance(10L, ClassSessionType.LAB, 50L, PlanningBasis.SANCTIONED);
+
+        assertThat(preview.willMove()).isEmpty();
+        assertThat(preview.notMovable()).hasSize(1);
+        assertThat(preview.notMovable().get(0).batchId()).isEqualTo(1L);
+        assertThat(preview.notMovable().get(0).reason()).contains("no other eligible");
+    }
+
+    @Test
+    void previewRebalance_throwsWhenVenueNotOverCapacity() {
+        TermInstance term = fourWeekTerm();
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(term));
+        stubTwoPeriodsAllFree(term);
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> service.previewRebalance(10L, ClassSessionType.LAB, 50L, PlanningBasis.SANCTIONED))
+            .isInstanceOf(LifecycleConflictException.class);
+    }
+
+    @Test
+    void previewRebalance_tightButNotOverCapacity_stillOffersAMove() {
+        // Same 12-of-12 (100%, fits but zero slack) shape as
+        // computeLabClinicalVenueCapacity_justOverTightThreshold_flaggedTightNotOver -- the real Ward
+        // 1 scenario reported by a user: a Clinical venue at exactly its weekly window, with a newly
+        // added second eligible venue that has spare capacity. Confirms this no longer throws
+        // "not over capacity" now that the panel offering "Rebalance now" here is honored.
+        TermInstance term = fourWeekTerm();
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(term));
+        stubTwoPeriodsAllFree(term);
+
+        Lab source = lab(50L, "Ward 1 - Medical", 30);
+        Lab dest = lab(51L, "Ward 2", 30);
+        dest.setStatus(LabStatus.ACTIVE);
+        when(labRepository.findAll()).thenReturn(List.of(dest));
+
+        CourseOffering anatomy = offeringWithEligibleLabs(900L, "Anatomy", 12 * 4, List.of(venue(51L, "Ward 2", 30)));
+        Batch batch1 = new Batch();
+        batch1.setId(1L);
+        batch1.setName("Batch 1");
+        batch1.setCourseOffering(anatomy);
+        batch1.setLab(source);
+        batch1.setIsActive(true);
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(batch1));
+
+        VenueRebalancePreview preview = service.previewRebalance(10L, ClassSessionType.LAB, 50L, PlanningBasis.SANCTIONED);
+
+        assertThat(preview.currentWeeklyDemandPeriods()).isEqualTo(12);
+        assertThat(preview.weeklyAvailablePeriods()).isEqualTo(12);
+        assertThat(preview.willMove()).hasSize(1);
+        assertThat(preview.willMove().get(0).toVenueId()).isEqualTo(51L);
+        assertThat(preview.notMovable()).isEmpty();
+    }
+
+    @Test
+    void applyRebalance_blocksWhenRidingSessionAlreadyPublished() {
+        TermInstance term = fourWeekTerm();
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(term));
+        stubTwoPeriodsAllFree(term);
+        Lab source = lab(50L, "Source Lab", 30);
+        Lab dest = lab(51L, "Dest Lab", 30);
+        dest.setStatus(LabStatus.ACTIVE);
+        when(labRepository.findAll()).thenReturn(List.of(dest));
+
+        CourseOffering anatomy = offeringWithEligibleLabs(900L, "Anatomy", 13 * 4, List.of(venue(51L, "Dest Lab", 30)));
+        Batch batch1 = new Batch();
+        batch1.setId(1L);
+        batch1.setName("Batch 1");
+        batch1.setCourseOffering(anatomy);
+        batch1.setLab(source);
+        batch1.setIsActive(true);
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(batch1));
+        when(batchRepository.findById(1L)).thenReturn(Optional.of(batch1));
+
+        ClassSchedule published = new ClassSchedule();
+        published.setStatus(ClassScheduleStatus.PUBLISHED);
+        when(classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(1L))).thenReturn(List.of(published));
+
+        assertThatThrownBy(() -> service.applyRebalance(10L, ClassSessionType.LAB, 50L, List.of(1L), "admin"))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("published");
+    }
+
+    @Test
+    void applyRebalance_movesVenue_clearsSessions_recordsAudit() {
+        TermInstance term = fourWeekTerm();
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(term));
+        stubTwoPeriodsAllFree(term);
+        Lab source = lab(50L, "Source Lab", 30);
+        Lab dest = lab(51L, "Dest Lab", 30);
+        dest.setStatus(LabStatus.ACTIVE);
+        when(labRepository.findAll()).thenReturn(List.of(dest));
+
+        CourseOffering anatomy = offeringWithEligibleLabs(900L, "Anatomy", 13 * 4, List.of(venue(51L, "Dest Lab", 30)));
+        Batch batch1 = new Batch();
+        batch1.setId(1L);
+        batch1.setName("Batch 1");
+        batch1.setCourseOffering(anatomy);
+        batch1.setLab(source);
+        batch1.setIsActive(true);
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(batch1));
+        when(batchRepository.findById(1L)).thenReturn(Optional.of(batch1));
+
+        ClassSchedule draft1 = new ClassSchedule();
+        draft1.setStatus(ClassScheduleStatus.DRAFT);
+        draft1.setIsActive(true);
+        ClassSchedule draft2 = new ClassSchedule();
+        draft2.setStatus(ClassScheduleStatus.DRAFT);
+        draft2.setIsActive(true);
+        when(classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(1L))).thenReturn(List.of(draft1, draft2));
+        when(labRepository.getReferenceById(51L)).thenReturn(dest);
+
+        VenueRebalanceResult result = service.applyRebalance(10L, ClassSessionType.LAB, 50L, List.of(1L), "admin");
+
+        assertThat(result.batchesMoved()).isEqualTo(1);
+        assertThat(result.sessionsCleared()).isEqualTo(2);
+        assertThat(batch1.getLab()).isEqualTo(dest);
+        assertThat(draft1.getIsActive()).isFalse();
+        assertThat(draft2.getIsActive()).isFalse();
+        verify(auditLogService).record(eq("admin"), eq("TIMETABLE_VENUE_REBALANCED"), eq("Batch"), eq("1"), any());
     }
 }

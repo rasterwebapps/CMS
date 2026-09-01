@@ -22,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.ActiveStatusUpdateRequest;
+import com.cms.dto.ClinicalShiftConfigUpdateRequest;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.GenerateOfferingsResponse;
 import com.cms.exception.ResourceNotFoundException;
@@ -448,6 +449,50 @@ class CourseOfferingServiceImplTest {
         assertThatThrownBy(() -> service.getById(999L))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessageContaining("999");
+    }
+
+    @Test
+    void updateClinicalShiftConfig_rejectsWhenSubjectHasNoClinicalHours() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BSc Nursing", 4);
+        Course course = createCourse(1L, "BSc Nursing Course", "BSCN-C", program);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Subject subject = createSubject(1L, "Anatomy", "ANAT101");
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        CurriculumSemesterCourse csc = createCSC(1L, cv, subject, 1);
+        csc.setClinicalHours(0);
+        offering.setCurriculumSemesterCourse(csc);
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+
+        assertThatThrownBy(() -> service.updateClinicalShiftConfig(1L,
+            new ClinicalShiftConfigUpdateRequest(360, 30)))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("no clinical hours");
+    }
+
+    @Test
+    void updateClinicalShiftConfig_savesWhenSubjectHasClinicalHours() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BSc Nursing", 4);
+        Course course = createCourse(1L, "BSc Nursing Course", "BSCN-C", program);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Subject subject = createSubject(1L, "Medical Surgical Nursing", "MSN101");
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        CurriculumSemesterCourse csc = createCSC(1L, cv, subject, 1);
+        csc.setClinicalHours(6);
+        offering.setCurriculumSemesterCourse(csc);
+
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+        when(courseOfferingRepository.save(offering)).thenReturn(offering);
+
+        CourseOfferingDto dto = service.updateClinicalShiftConfig(1L,
+            new ClinicalShiftConfigUpdateRequest(360, 30));
+
+        assertThat(dto.clinicalShiftDurationMinutes()).isEqualTo(360);
+        assertThat(dto.clinicalTravelBufferMinutes()).isEqualTo(30);
     }
 
     @Test

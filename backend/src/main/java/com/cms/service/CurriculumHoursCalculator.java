@@ -25,17 +25,26 @@ public final class CurriculumHoursCalculator {
         return (int) Math.max(1, Math.ceil(days / 7.0));
     }
 
-    /** Total term hours are 60-minute CLOCK hours delivered by a recurring weekly slot whose own
-     *  duration may not be 60 minutes — a 50-minute period needs more weekly occurrences than a
-     *  60-minute one to deliver the same clock-hours. Converts totalHours to minutes, divides by
-     *  the slot's actual duration to get total slots needed over the term, then spreads that
-     *  across the term's weeks — rounded up at each step so the term never falls short. */
-    public static int sessionsPerWeek(int totalHours, int weeksInTerm, double slotDurationMinutes) {
+    /** Total term hours are 60-minute CLOCK hours delivered by a recurring weekly SESSION whose
+     *  own duration is {@code blockSizePeriods} consecutive periods (1 for THEORY, potentially
+     *  more for a multi-period Lab/Clinical block — see {@link #resolveBlockSize}) of {@code
+     *  slotDurationMinutes} each. Converts totalHours to minutes, divides by one full session's
+     *  actual clock duration ({@code slotDurationMinutes * blockSizePeriods}, NOT a single period
+     *  alone — a session is the real recurring unit being delivered, not one period of it) to get
+     *  total sessions needed over the term, then spreads that across the term's weeks — rounded up
+     *  at each step so the term never falls short. Fixed 2026-08-31 (OC-180 follow-up): this used
+     *  to divide by {@code slotDurationMinutes} alone, silently assuming every session was exactly
+     *  one period long — for a subject with a real multi-period block size, callers that then
+     *  ALSO multiplied the (already too-high) result by that same block size were double-counting
+     *  it, inflating both Capacity Auto-Plan's weekly-period-demand figures and the real
+     *  auto-scheduler's required-sessions-per-week targets by roughly a factor of the block size. */
+    public static int sessionsPerWeek(int totalHours, int weeksInTerm, double slotDurationMinutes, int blockSizePeriods) {
         if (totalHours <= 0) {
             return 0;
         }
-        double slotsNeededOverTerm = (totalHours * 60.0) / slotDurationMinutes;
-        return (int) Math.ceil(slotsNeededOverTerm / weeksInTerm);
+        double sessionDurationMinutes = slotDurationMinutes * Math.max(1, blockSizePeriods);
+        double sessionsNeededOverTerm = (totalHours * 60.0) / sessionDurationMinutes;
+        return (int) Math.ceil(sessionsNeededOverTerm / weeksInTerm);
     }
 
     /** One representative duration for a pool of periods (a single duration, not exact per-slot
@@ -63,7 +72,10 @@ public final class CurriculumHoursCalculator {
         Integer configured = switch (sessionType) {
             case LAB -> subject.getLabSessionBlockPeriods();
             case CLINICAL -> subject.getClinicalSessionBlockPeriods();
-            default -> 1;
+            case THEORY -> 1;
+            case LIBRARY -> throw new IllegalStateException(
+                "Library has no curriculum Subject/block-size — its block size comes from the "
+                    + "timetable.library_block_size_periods system configuration, not CurriculumHoursCalculator.");
         };
         return configured != null && configured >= 1 ? configured : 1;
     }

@@ -129,6 +129,15 @@ public final class AutoScheduleRunCache {
             .toList();
     }
 
+    /** Mirrors {@code ClassScheduleRepository#findByCohortSectionIdInAndIsActiveTrue} — a
+     *  cohortSection always belongs to exactly one TermInstance, so no separate term filter is
+     *  needed once the caller has already resolved section ids scoped to the run's term. */
+    public List<ClassSchedule> byCohortSectionIdIn(Collection<Long> cohortSectionIds) {
+        return cells.stream()
+            .filter(cs -> cs.getCohortSection() != null && cohortSectionIds.contains(cs.getCohortSection().getId()))
+            .toList();
+    }
+
     /** Mirrors {@code ClassScheduleRepository#findByTermInstanceIdAndStatusAndFacultyId}. */
     public List<ClassSchedule> byStatusAndFacultyId(ClassScheduleStatus status, Long facultyId) {
         return cells.stream()

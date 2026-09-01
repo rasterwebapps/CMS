@@ -7,6 +7,11 @@ export interface Batch {
   termInstanceId: number;
   coordinatorFacultyId: number | null;
   coordinatorFacultyName: string | null;
+  labId: number | null;
+  labName: string | null;
+  clinicalVenueId: number | null;
+  clinicalVenueName: string | null;
+  clinicalShiftGroupId: number | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

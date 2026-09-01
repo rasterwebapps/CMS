@@ -30,6 +30,10 @@ public record CourseOfferingDto(
     ElectiveSelectionMode electiveGroupSelectionMode,
     Integer labHours,
     Integer clinicalHours,
+    /** Configurable off-campus clinical shift length/travel buffer (OC-175) -- null means this
+     *  offering has no shift-based clinical component. */
+    Integer clinicalShiftDurationMinutes,
+    Integer clinicalTravelBufferMinutes,
     Instant createdAt,
     Instant updatedAt,
     /** CourseOffering has no cohort FK of its own -- it's keyed by curriculum version, which can be

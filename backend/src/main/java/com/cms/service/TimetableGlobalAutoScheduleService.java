@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.AutoPlaceUnplacedItem;
+import com.cms.dto.SystemConfigurationResponse;
 import com.cms.dto.CohortPlacementSummary;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
@@ -65,6 +67,7 @@ import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.PlanningBasis;
 import com.cms.model.enums.RegistrationStatus;
+import com.cms.model.enums.RoomPurposeCategoryCode;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
@@ -75,6 +78,7 @@ import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.PeriodRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.TermInstanceRepository;
 
 /**
@@ -121,6 +125,11 @@ public class TimetableGlobalAutoScheduleService {
      *  TimetableCapacityPlanningService}'s Lab/Clinical venue tight-capacity check — one literal,
      *  not two independently-typed copies. */
     private static final double TIGHT_CAPACITY_THRESHOLD = TimetableCapacityPlanningService.TIGHT_CAPACITY_THRESHOLD;
+    private static final String LIBRARY_SUBJECT_CODE = "SYSTEM-LIBRARY";
+    private static final String CONFIG_LIBRARY_SESSIONS_PER_WEEK = "timetable.library_sessions_per_week";
+    private static final String CONFIG_LIBRARY_BLOCK_SIZE_PERIODS = "timetable.library_block_size_periods";
+    private static final int DEFAULT_LIBRARY_SESSIONS_PER_WEEK = 2;
+    private static final int DEFAULT_LIBRARY_BLOCK_SIZE_PERIODS = 2;
 
     private final TimetableSkeletonService timetableSkeletonService;
     private final TimetableStaffingService timetableStaffingService;
@@ -138,6 +147,8 @@ public class TimetableGlobalAutoScheduleService {
     private final TimetableBlockedPeriodChecker blockedPeriodChecker;
     private final ClassroomRepository classroomRepository;
     private final CourseRegistrationRepository courseRegistrationRepository;
+    private final SubjectRepository subjectRepository;
+    private final SystemConfigurationService systemConfigurationService;
 
     public TimetableGlobalAutoScheduleService(TimetableSkeletonService timetableSkeletonService,
                                                TimetableStaffingService timetableStaffingService,
@@ -154,7 +165,9 @@ public class TimetableGlobalAutoScheduleService {
                                                PeriodRepository periodRepository,
                                                TimetableBlockedPeriodChecker blockedPeriodChecker,
                                                ClassroomRepository classroomRepository,
-                                               CourseRegistrationRepository courseRegistrationRepository) {
+                                               CourseRegistrationRepository courseRegistrationRepository,
+                                               SubjectRepository subjectRepository,
+                                               SystemConfigurationService systemConfigurationService) {
         this.timetableSkeletonService = timetableSkeletonService;
         this.timetableStaffingService = timetableStaffingService;
         this.timetableCapacityPlanningService = timetableCapacityPlanningService;
@@ -171,6 +184,8 @@ public class TimetableGlobalAutoScheduleService {
         this.blockedPeriodChecker = blockedPeriodChecker;
         this.classroomRepository = classroomRepository;
         this.courseRegistrationRepository = courseRegistrationRepository;
+        this.subjectRepository = subjectRepository;
+        this.systemConfigurationService = systemConfigurationService;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -1104,6 +1119,13 @@ public class TimetableGlobalAutoScheduleService {
         }
 
         for (CohortRunContext context : contexts) {
+            // Library first (fixed 2/week quota, no faculty needed, always succeeds if a Library
+            // classroom exists and the slot is genuinely free) -- then Self-Study fills whatever
+            // Library didn't claim. See the class javadoc's placement-order note.
+            LibraryGapFillOutcome libraryOutcome = fillLibraryGaps(context.cohortId(), term, periods,
+                context.dayLoad(), context.unplacedForCohort());
+            context.placedThisCohortRun().addAll(libraryOutcome.filled());
+
             SelfStudyGapFillOutcome gapFillOutcome = fillSelfStudyGaps(context.cohortId(), context.skeleton(), term,
                 periods, context.dayLoad(), context.unplacedForCohort(), termDemand);
             context.placedThisCohortRun().addAll(gapFillOutcome.filled());
@@ -1275,13 +1297,33 @@ public class TimetableGlobalAutoScheduleService {
         return budget.cohortSectionLabel() != null ? budget.cohortSectionLabel() : budget.batchName();
     }
 
-    /** The faculty who should actually staff this budget row -- a THEORY row split across active
-     *  {@link CohortSection}s resolves its own {@link CourseOfferingSectionFaculty} section-level
-     *  override; every other row shape (unsectioned THEORY, or a LAB/CLINICAL batch with no
-     *  coordinator of its own -- {@link Batch#getCoordinatorFaculty()} stays advisory-only,
-     *  unaffected by this change) resolves this cohort's whole-cohort row instead. Returns null
-     *  (unplaced, reported as "no faculty assigned") when nothing has been assigned yet. */
+    /** The faculty who should actually staff this budget row. A LAB/CLINICAL row (always has a
+     *  {@code batchId}) prefers its own {@link Batch#getCoordinatorFaculty()} first -- every
+     *  parallel batch under a section used to be forced onto the SAME shared section-level
+     *  faculty regardless of what {@code coordinatorFaculty} was actually set to, which is what
+     *  silently capped real throughput (see OC-183): two batches in two venues at once genuinely
+     *  need two different people at that moment, but with only one faculty ever resolved, the
+     *  scheduler could only stagger them onto non-overlapping days instead of ever placing them
+     *  in parallel. Per-batch resolution doesn't forbid assigning the same faculty to two
+     *  batches -- that's legitimate as long as they're never placed at an overlapping day/time,
+     *  which {@link TimetableStaffingService#checkFacultyFree} still enforces same as always; this
+     *  change only lets a DIFFERENT faculty per batch actually take effect when one is set, which
+     *  the old always-section-level lookup could never honor. Falls back to the section/cohort-level
+     *  resolution below when the batch has no coordinator of its own yet, so pre-existing
+     *  un-migrated batches keep scheduling exactly as before. A THEORY row split across active
+     *  {@link CohortSection}s (no {@code batchId}) resolves its own {@link
+     *  CourseOfferingSectionFaculty} section-level override; unsectioned THEORY resolves this
+     *  cohort's whole-cohort row instead. Returns null (unplaced, reported as "no faculty
+     *  assigned") when nothing has been assigned yet. */
     private Long resolveBudgetFacultyId(CourseOffering offering, SkeletonSubjectBudget budget, Long cohortId) {
+        if (budget.batchId() != null) {
+            Faculty coordinator = batchRepository.findById(budget.batchId())
+                .map(Batch::getCoordinatorFaculty)
+                .orElse(null);
+            if (coordinator != null) {
+                return coordinator.getId();
+            }
+        }
         if (budget.cohortSectionId() != null) {
             return currentSectionFacultyId(offering, budget.cohortSectionId());
         }
@@ -1690,6 +1732,185 @@ public class TimetableGlobalAutoScheduleService {
         return new SelfStudyGapFillOutcome(filled, unfillablePeriods);
     }
 
+    /** {@code unfillableSessions} is how many of this cohort's {@code timetable.library_sessions_per_week}
+     *  quota couldn't be placed this run — either no Library classroom exists at all, or fewer than
+     *  {@code sessionsPerWeek} distinct weekdays had a genuinely free, unblocked, contiguous
+     *  {@code libraryBlockSizePeriods}-period window with a free Library classroom. */
+    private record LibraryGapFillOutcome(List<Placement> filled, int unfillableSessions) {}
+
+    /** Fixed-quota gap-fill pass, run BEFORE {@link #fillSelfStudyGaps} for every cohort (see the
+     *  call site) — places exactly {@code timetable.library_sessions_per_week} sessions of
+     *  {@code timetable.library_block_size_periods} contiguous periods each, per active
+     *  CohortSection (or once for the whole cohort if it has no committed section split yet).
+     *
+     *  <p>Unlike every other session type in this class, no faculty is resolved or staffed — the
+     *  saved rows keep {@code faculty} null. That is the entire point of this pass: {@link
+     *  #fillSelfStudyGaps} can still leave a period empty when every eligible faculty is at
+     *  capacity, but a strict "every period must be occupied" requirement needs at least one
+     *  gap-filler that can never fail on faculty availability. A genuinely free slot with a Library
+     *  classroom available always succeeds here.
+     *
+     *  <p>Monday-Friday only, matching {@link #fillSelfStudyGaps}'s own reasoning — Saturday stays
+     *  real, occasional overflow capacity for content that doesn't fit, not filler for its own sake.
+     *
+     *  <p>Uses the shared system {@link #LIBRARY_SUBJECT_CODE} Subject (seeded once, V412) because
+     *  {@code class_schedules.subject_id} is NOT NULL but Library is not curriculum data — it is
+     *  never attached to a CourseOffering, curriculum term, or cohort's own credit/hour budget. */
+    private LibraryGapFillOutcome fillLibraryGaps(Long cohortId, TermInstance term, List<Period> periods,
+                                                   Map<DayOfWeek, Integer> dayLoad, List<AutoPlaceUnplacedItem> unplacedForCohort) {
+        List<DayOfWeek> weekdays = List.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+            DayOfWeek.THURSDAY, DayOfWeek.FRIDAY);
+        List<Placement> filled = new ArrayList<>();
+
+        Subject librarySubject = subjectRepository.findByCode(LIBRARY_SUBJECT_CODE).orElse(null);
+        List<Classroom> libraryClassrooms = classroomRepository
+            .findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(RoomPurposeCategoryCode.LIBRARY);
+        if (librarySubject == null || libraryClassrooms.isEmpty()) {
+            unplacedForCohort.add(new AutoPlaceUnplacedItem("Library", ClassSessionType.LIBRARY, null,
+                "no Library classroom is configured (a Classroom linked to a Room tagged with the Library "
+                    + "Purpose Category) — every cohort's Library quota stays unplaced until one is added", null));
+            return new LibraryGapFillOutcome(filled, 0);
+        }
+
+        int sessionsPerWeek = resolveLibraryConfigInt(CONFIG_LIBRARY_SESSIONS_PER_WEEK, DEFAULT_LIBRARY_SESSIONS_PER_WEEK);
+        int blockSize = resolveLibraryConfigInt(CONFIG_LIBRARY_BLOCK_SIZE_PERIODS, DEFAULT_LIBRARY_BLOCK_SIZE_PERIODS);
+        List<List<Period>> candidateBlocks = contiguousPeriodBlocks(periods, blockSize);
+
+        List<CohortSection> activeSections = timetableSkeletonService.resolveActiveSections(cohortId, term.getId());
+        List<CohortSection> audiences = activeSections.isEmpty() ? Arrays.asList((CohortSection) null) : activeSections;
+
+        int unfillableSessions = 0;
+        for (CohortSection section : audiences) {
+            List<DayOfWeek> orderedDays = weekdays.stream()
+                .sorted(Comparator.comparingInt(dayLoad::get))
+                .toList();
+            int placedForAudience = 0;
+            for (DayOfWeek day : orderedDays) {
+                if (placedForAudience >= sessionsPerWeek) {
+                    break;
+                }
+                for (List<Period> block : candidateBlocks) {
+                    boolean blocked = block.stream().anyMatch(p ->
+                        blockedPeriodChecker.blockReason(day, p.getStartTime(), p.getEndTime(), term).isPresent());
+                    if (blocked) {
+                        continue;
+                    }
+                    boolean slotFree = block.stream().allMatch(p ->
+                        timetableSkeletonService.isSlotFreeForCohort(cohortId, term.getId(), day, p.getId()));
+                    if (!slotFree) {
+                        continue;
+                    }
+                    Classroom classroom = firstFreeLibraryClassroom(libraryClassrooms, term.getId(), day, block);
+                    if (classroom == null) {
+                        continue;
+                    }
+                    List<ClassSchedule> saved = placeLibraryBlock(librarySubject, term, day, block, section, classroom);
+                    dayLoad.merge(day, 1, Integer::sum);
+                    filled.add(new Placement(saved.get(0).getId(), null, ClassSessionType.LIBRARY, null,
+                        section != null ? section.getId() : null, null, "Library",
+                        section != null ? section.getSectionLabel() : "Whole cohort",
+                        day, saved.stream().map(ClassSchedule::getId).toList()));
+                    placedForAudience++;
+                    break;
+                }
+            }
+            if (placedForAudience < sessionsPerWeek) {
+                unfillableSessions += sessionsPerWeek - placedForAudience;
+            }
+        }
+        if (unfillableSessions > 0) {
+            unplacedForCohort.add(new AutoPlaceUnplacedItem("Library", ClassSessionType.LIBRARY, null,
+                unfillableSessions + " of this cohort's weekly Library session(s) could not be placed — no "
+                    + "weekday had " + blockSize + " genuinely free, unblocked, contiguous period(s) with a "
+                    + "free Library classroom", null));
+        }
+        return new LibraryGapFillOutcome(filled, unfillableSessions);
+    }
+
+    /** Every {@code blockSize}-period window of {@code periods} (already ordered by periodOrder)
+     *  that is genuinely contiguous in real clock time — one period's end must exactly match the
+     *  next's start, since periodOrder alone can span a real gap (e.g. a lunch break between Period
+     *  4 and Period 5). Mirrors the adjacency care {@code TimetableSkeletonService#resolveSpanPeriods}
+     *  takes for the same reason, for this class's own narrower Library-only need. */
+    private List<List<Period>> contiguousPeriodBlocks(List<Period> periods, int blockSize) {
+        List<List<Period>> result = new ArrayList<>();
+        for (int i = 0; i + blockSize <= periods.size(); i++) {
+            List<Period> window = periods.subList(i, i + blockSize);
+            boolean contiguous = true;
+            for (int j = 0; j < window.size() - 1; j++) {
+                if (!window.get(j).getEndTime().equals(window.get(j + 1).getStartTime())) {
+                    contiguous = false;
+                    break;
+                }
+            }
+            if (contiguous) {
+                result.add(new ArrayList<>(window));
+            }
+        }
+        return result;
+    }
+
+    /** First Library classroom free for this entire contiguous block — one call spanning the
+     *  block's full start-to-end range (not one call per period) since {@link
+     *  TimetableStaffingService#checkRoomFree}'s overlap check is a real time-range comparison, so
+     *  checking the merged span is exactly equivalent to checking every period individually. */
+    private Classroom firstFreeLibraryClassroom(List<Classroom> classrooms, Long termInstanceId, DayOfWeek day, List<Period> block) {
+        LocalTime start = block.get(0).getStartTime();
+        LocalTime end = block.get(block.size() - 1).getEndTime();
+        for (Classroom classroom : classrooms) {
+            boolean free = timetableStaffingService.checkRoomFree(ClassSessionType.LIBRARY, classroom.getId(),
+                classroom.getRoom(), termInstanceId, null, day, start, end).isEmpty();
+            if (free) {
+                return classroom;
+            }
+        }
+        return null;
+    }
+
+    /** Saves one {@link ClassSchedule} row per period in {@code block}, sharing one {@code
+     *  sessionGroupId} when the block spans more than one period (mirrors {@code
+     *  TimetableSkeletonService#placeCell}'s own periodSpan convention, so the grid/reports treat
+     *  a multi-period Library session as the one linked block it is). Faculty is deliberately left
+     *  null — see {@link #fillLibraryGaps}'s javadoc. */
+    private List<ClassSchedule> placeLibraryBlock(Subject librarySubject, TermInstance term, DayOfWeek day,
+                                                   List<Period> block, CohortSection section, Classroom classroom) {
+        java.util.UUID sessionGroupId = block.size() > 1 ? java.util.UUID.randomUUID() : null;
+        List<ClassSchedule> saved = new ArrayList<>();
+        for (Period period : block) {
+            ClassSchedule cs = new ClassSchedule();
+            cs.setSessionType(ClassSessionType.LIBRARY);
+            cs.setStatus(com.cms.model.enums.ClassScheduleStatus.DRAFT);
+            cs.setSubject(librarySubject);
+            cs.setDayOfWeek(day);
+            cs.setTermInstance(term);
+            cs.setCourseOffering(null);
+            cs.setPeriod(period);
+            cs.setClassroom(classroom);
+            cs.setCohortSection(section);
+            cs.setIsActive(true);
+            cs.setSessionGroupId(sessionGroupId);
+            ClassSchedule persisted = classScheduleRepository.save(cs);
+            AutoScheduleRunCache.current().ifPresent(cache -> cache.recordPlacement(persisted));
+            saved.add(persisted);
+        }
+        return saved;
+    }
+
+    private int resolveLibraryConfigInt(String configKey, int defaultValue) {
+        return systemConfigurationService.findByKey(configKey)
+            .map(SystemConfigurationResponse::configValue)
+            .filter(v -> v != null && !v.isBlank())
+            .map(v -> {
+                try {
+                    int parsed = Integer.parseInt(v.trim());
+                    return parsed > 0 ? parsed : defaultValue;
+                } catch (NumberFormatException e) {
+                    return defaultValue;
+                }
+            })
+            .orElse(defaultValue);
+    }
+
     /** Tries {@code candidateFacultyIds} in order against an already-placed (free) cell, stopping at
      *  the first one whose {@link TimetableStaffingService#staffCell} actually succeeds — a real,
      *  live check against that exact day/period (conflicts, daily/weekly/continuous caps), not the
@@ -1921,7 +2142,11 @@ public class TimetableGlobalAutoScheduleService {
     private Set<DayOfWeek> existingDaysForBudgetRow(List<SkeletonCellResponse> cells, Long courseOfferingId, SkeletonSubjectBudget budget) {
         Set<DayOfWeek> days = new HashSet<>();
         for (SkeletonCellResponse cell : cells) {
-            if (cell.courseOfferingId().equals(courseOfferingId) && cell.sessionType() == budget.sessionType()
+            // courseOfferingId() is null-safe from this side deliberately: a LIBRARY cell has no
+            // CourseOffering at all (TimetableSkeletonService#toCellResponse), so it can never
+            // match a real THEORY/LAB/CLINICAL row's courseOfferingId -- reversed so a Library cell
+            // sitting in the skeleton snapshot compares false instead of NPE-ing here.
+            if (courseOfferingId.equals(cell.courseOfferingId()) && cell.sessionType() == budget.sessionType()
                     && Objects.equals(cell.batchId(), budget.batchId())
                     && (budget.batchId() != null || Objects.equals(cell.cohortSectionId(), budget.cohortSectionId()))) {
                 days.add(cell.dayOfWeek());

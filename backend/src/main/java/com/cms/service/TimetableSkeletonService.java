@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -40,6 +41,7 @@ import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Period;
+import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
@@ -138,10 +140,20 @@ public class TimetableSkeletonService {
         List<CohortSection> activeSections = resolveActiveSections(cohortId, termInstanceId);
         List<CohortSectionResponse> sectionResponses = activeSections.stream().map(this::toSectionResponse).toList();
 
+        // LIBRARY cells have no CourseOffering (see TimetableGlobalAutoScheduleService#fillLibraryGaps),
+        // so the offering-based query below never finds them -- resolved separately by this cohort's
+        // own active CohortSections, same source cohortCellsAtSlot/isSlotFreeForCohort already use.
+        List<Long> sectionIds = activeSections.stream().map(CohortSection::getId).toList();
+        List<ClassSchedule> libraryCells = sectionIds.isEmpty() ? List.of()
+            : classScheduleRepository.findByCohortSectionIdInAndIsActiveTrue(sectionIds).stream()
+                .filter(cs -> cs.getSessionType() == ClassSessionType.LIBRARY)
+                .toList();
+
         List<Long> offeringIds = new ArrayList<>(nonElectiveOfferingIds(termInstanceId, cohortId));
         offeringIds.addAll(electiveOfferingIds(termInstanceId, cohortId));
         if (offeringIds.isEmpty()) {
-            return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, List.of(), List.of(), List.of(), sectionResponses,
+            List<SkeletonCellResponse> libraryOnlyCells = libraryCells.stream().map(this::toCellResponse).toList();
+            return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, List.of(), libraryOnlyCells, List.of(), sectionResponses,
                 CurriculumHoursCalculator.weeksInTerm(termInstance), WorkingSaturdayCalculator.workingSaturdayCount(termInstance));
         }
 
@@ -158,8 +170,11 @@ public class TimetableSkeletonService {
         // isActive=false filters out cells orphaned by a since-reverted CohortRoomAllocation --
         // riding on a batch/section that no longer exists in the currently-active plan; without
         // this they'd render as ghost cells in the grid and double up against freshly-placed ones.
-        List<ClassSchedule> allCells = classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(termInstanceId, offeringIds).stream()
+        List<ClassSchedule> allCells = Stream.concat(
+                classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(termInstanceId, offeringIds).stream(),
+                libraryCells.stream())
             .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
+            .distinct()
             .toList();
         Map<Long, List<ClassSchedule>> cellsByOffering = allCells.stream()
             .filter(cs -> cs.getCourseOffering() != null)
@@ -190,8 +205,8 @@ public class TimetableSkeletonService {
             } else {
                 budgets = new ArrayList<>();
                 budgets.addAll(theoryBudgets(csc, existingForOffering, weeksInTerm, periodDurationMinutes, activeSections));
-                budgets.addAll(batchScopedBudgets(ClassSessionType.LAB, csc.getLabHours(), offeringBatches, existingForOffering, weeksInTerm, periodDurationMinutes));
-                budgets.addAll(batchScopedBudgets(ClassSessionType.CLINICAL, csc.getClinicalHours(), offeringBatches, existingForOffering, weeksInTerm, periodDurationMinutes));
+                budgets.addAll(batchScopedBudgets(ClassSessionType.LAB, csc.getLabHours(), offeringBatches, existingForOffering, weeksInTerm, periodDurationMinutes, offering.getSubject()));
+                budgets.addAll(batchScopedBudgets(ClassSessionType.CLINICAL, csc.getClinicalHours(), offeringBatches, existingForOffering, weeksInTerm, periodDurationMinutes, offering.getSubject()));
             }
 
             var electiveGroup = csc != null ? csc.getElectiveGroup() : null;
@@ -260,7 +275,7 @@ public class TimetableSkeletonService {
                                                         int weeksInTerm, double periodDurationMinutes,
                                                         List<CohortSection> sections) {
         int theoryHours = csc.getTheoryHours() != null ? csc.getTheoryHours() : 0;
-        int required = CurriculumHoursCalculator.sessionsPerWeek(theoryHours, weeksInTerm, periodDurationMinutes);
+        int required = CurriculumHoursCalculator.sessionsPerWeek(theoryHours, weeksInTerm, periodDurationMinutes, 1);
 
         if (sections.isEmpty()) {
             long placed = existing.stream()
@@ -304,12 +319,13 @@ public class TimetableSkeletonService {
      *  javadoc) is kept for both — no signal yet to say which it's meant to be. */
     private List<SkeletonSubjectBudget> batchScopedBudgets(ClassSessionType type, Integer hoursObj, List<Batch> batches,
                                                             List<ClassSchedule> existing, int weeksInTerm,
-                                                            double periodDurationMinutes) {
+                                                            double periodDurationMinutes, Subject subject) {
         int hours = hoursObj != null ? hoursObj : 0;
         if (hours <= 0) {
             return List.of();
         }
-        int required = CurriculumHoursCalculator.sessionsPerWeek(hours, weeksInTerm, periodDurationMinutes);
+        int blockSize = CurriculumHoursCalculator.resolveBlockSize(subject, type);
+        int required = CurriculumHoursCalculator.sessionsPerWeek(hours, weeksInTerm, periodDurationMinutes, blockSize);
 
         Map<Long, Long> placedByBatchId = existing.stream()
             .filter(cs -> cs.getSessionType() == type && cs.getBatch() != null)
@@ -359,6 +375,8 @@ public class TimetableSkeletonService {
             case THEORY -> csc.getTheoryHours();
             case LAB -> csc.getLabHours();
             case CLINICAL -> csc.getClinicalHours();
+            case LIBRARY -> throw new IllegalStateException(
+                "Library sessions have no CourseOffering/curriculum-hours budget to check against");
         };
         int hours = hoursObj != null ? hoursObj : 0;
         if (hours <= 0) {
@@ -370,7 +388,8 @@ public class TimetableSkeletonService {
         List<Period> activePeriods = periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc();
         double periodDurationMinutes = CurriculumHoursCalculator.averageDurationMinutes(
             activePeriods.stream().map(Period::getDurationMinutes).toList());
-        int required = CurriculumHoursCalculator.sessionsPerWeek(hours, weeksInTerm, periodDurationMinutes);
+        int blockSize = CurriculumHoursCalculator.resolveBlockSize(offering.getSubject(), sessionType);
+        int required = CurriculumHoursCalculator.sessionsPerWeek(hours, weeksInTerm, periodDurationMinutes, blockSize);
 
         Long scopeBatchId = batch != null ? batch.getId() : null;
         Long scopeSectionId = cohortSection != null ? cohortSection.getId() : null;
@@ -865,7 +884,7 @@ public class TimetableSkeletonService {
      *  LAB/CLINICAL's scope is derived from its batch's own CohortSection (or WHOLE if that batch
      *  predates Capacity Planner section-scoping, or the cohort has none). */
     private String scopeKeyForCell(ClassSchedule cs) {
-        if (cs.getSessionType() == ClassSessionType.THEORY) {
+        if (cs.getSessionType() == ClassSessionType.THEORY || cs.getSessionType() == ClassSessionType.LIBRARY) {
             return scopeKeyForSectionId(cs.getCohortSection() != null ? cs.getCohortSection().getId() : null);
         }
         Batch b = cs.getBatch();
@@ -879,6 +898,46 @@ public class TimetableSkeletonService {
      *  rooms with disjoint audiences once committed. */
     private boolean scopesConflict(String a, String b) {
         return a.equals(b) || WHOLE_COHORT_SCOPE.equals(a) || WHOLE_COHORT_SCOPE.equals(b);
+    }
+
+    /** Every active {@link ClassSchedule} row belonging to this cohort at this exact day/period,
+     *  from either of the two disjoint ways a row can belong to a cohort: (1) its CourseOffering is
+     *  one of this cohort's real curriculum offerings (THEORY/LAB/CLINICAL — {@link
+     *  #nonElectiveOfferingIds}), or (2) its {@code cohortSection} directly matches one of this
+     *  cohort's active sections — the only path a LIBRARY row has, since it has no CourseOffering at
+     *  all (see {@code TimetableGlobalAutoScheduleService#fillLibraryGaps}). Shared by {@link
+     *  #checkCohortExclusivity} (hard-block check) and {@link #isSlotFreeForCohort} (Library's own
+     *  "is this slot genuinely empty" scan) so both agree on exactly the same definition of
+     *  "occupied," rather than two independently-maintained copies drifting apart. */
+    private List<ClassSchedule> cohortCellsAtSlot(Long cohortId, Long termInstanceId, DayOfWeek day, Long periodId, Long excludeCellId) {
+        List<Long> cohortOfferingIds = nonElectiveOfferingIds(termInstanceId, cohortId);
+        List<ClassSchedule> offeringCellsAtSlot = cohortOfferingIds.isEmpty() ? List.of() : AutoScheduleRunCache.current()
+            .map(cache -> cache.byCourseOfferingIdIn(cohortOfferingIds))
+            .orElseGet(() -> classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(termInstanceId, cohortOfferingIds))
+            .stream()
+            .toList();
+
+        List<Long> sectionIds = resolveActiveSections(cohortId, termInstanceId).stream().map(CohortSection::getId).toList();
+        List<ClassSchedule> sectionCellsAtSlot = sectionIds.isEmpty() ? List.of() : AutoScheduleRunCache.current()
+            .map(cache -> cache.byCohortSectionIdIn(sectionIds))
+            .orElseGet(() -> classScheduleRepository.findByCohortSectionIdInAndIsActiveTrue(sectionIds))
+            .stream()
+            .toList();
+
+        return Stream.concat(offeringCellsAtSlot.stream(), sectionCellsAtSlot.stream())
+            .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
+            .filter(cs -> excludeCellId == null || !cs.getId().equals(excludeCellId))
+            .filter(cs -> cs.getDayOfWeek() == day && cs.getPeriod() != null && cs.getPeriod().getId().equals(periodId))
+            .distinct()
+            .toList();
+    }
+
+    /** Whether this cohort has NO active session at all (any offering, or a Library row) at this
+     *  exact day/period — the "is this genuinely free" scan {@code fillLibraryGaps} needs before
+     *  claiming a slot, reusing {@link #cohortCellsAtSlot} so it agrees exactly with what {@link
+     *  #checkCohortExclusivity} would hard-block. */
+    boolean isSlotFreeForCohort(Long cohortId, Long termInstanceId, DayOfWeek day, Long periodId) {
+        return cohortCellsAtSlot(cohortId, termInstanceId, day, periodId, null).isEmpty();
     }
 
     /** THEORY is mandatory for every student in its audience, so it hard-blocks against any other
@@ -897,20 +956,8 @@ public class TimetableSkeletonService {
      *  same reason, same swap-only use. */
     private Optional<ConstraintViolation> checkCohortExclusivity(SkeletonCellPlacementRequest request, CourseOffering offering,
                                          Batch batch, CohortSection cohortSection, Long excludeCellId) {
-        List<Long> cohortOfferingIds = nonElectiveOfferingIds(offering.getTermInstance().getId(), request.cohortId());
-        if (cohortOfferingIds.isEmpty()) {
-            return Optional.empty();
-        }
-        List<ClassSchedule> cohortCellsAtSlot = AutoScheduleRunCache.current()
-            .map(cache -> cache.byCourseOfferingIdIn(cohortOfferingIds))
-            .orElseGet(() -> classScheduleRepository
-                .findByTermInstanceIdAndCourseOfferingIdIn(offering.getTermInstance().getId(), cohortOfferingIds))
-            .stream()
-            .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
-            .filter(cs -> excludeCellId == null || !cs.getId().equals(excludeCellId))
-            .filter(cs -> cs.getDayOfWeek() == request.dayOfWeek()
-                && cs.getPeriod() != null && cs.getPeriod().getId().equals(request.periodId()))
-            .toList();
+        List<ClassSchedule> cohortCellsAtSlot = cohortCellsAtSlot(request.cohortId(), offering.getTermInstance().getId(),
+            request.dayOfWeek(), request.periodId(), excludeCellId);
         if (cohortCellsAtSlot.isEmpty()) {
             return Optional.empty();
         }
@@ -930,8 +977,10 @@ public class TimetableSkeletonService {
         }
 
         // LAB/CLINICAL vs LAB/CLINICAL from a different subject, same audience: allowed, advisory-only client-side.
+        // LAB/CLINICAL vs a pre-existing LIBRARY cell: hard-blocked, same as THEORY -- Library
+        // occupies its whole CohortSection audience just like a mandatory Theory session does.
         return cohortCellsAtSlot.stream()
-            .filter(cs -> cs.getSessionType() == ClassSessionType.THEORY)
+            .filter(cs -> cs.getSessionType() == ClassSessionType.THEORY || cs.getSessionType() == ClassSessionType.LIBRARY)
             .filter(cs -> scopesConflict(placingScope, scopeKeyForCell(cs)))
             .findFirst()
             .map(theoryCell -> new ConstraintViolation("SKELETON_CELL_COHORT_CLASH",
@@ -1146,12 +1195,15 @@ public class TimetableSkeletonService {
             case THEORY -> csc.getTheoryHours();
             case LAB -> csc.getLabHours();
             case CLINICAL -> csc.getClinicalHours();
+            case LIBRARY -> throw new IllegalStateException(
+                "Library sessions have no CourseOffering/curriculum-hours budget to suggest candidates for");
         };
         int hours = hoursObj != null ? hoursObj : 0;
         if (hours <= 0) {
             return List.of();
         }
-        int required = CurriculumHoursCalculator.sessionsPerWeek(hours, weeksInTerm, periodDurationMinutes);
+        int blockSize = CurriculumHoursCalculator.resolveBlockSize(offering.getSubject(), sessionType);
+        int required = CurriculumHoursCalculator.sessionsPerWeek(hours, weeksInTerm, periodDurationMinutes, blockSize);
 
         List<ClassSchedule> existingForOffering = classScheduleRepository.findByCourseOfferingId(courseOfferingId);
         List<ClassSchedule> existingForThis = existingForOffering.stream()

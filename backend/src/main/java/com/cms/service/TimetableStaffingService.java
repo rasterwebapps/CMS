@@ -116,6 +116,10 @@ public class TimetableStaffingService {
         return classScheduleRepository.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT)
             .stream()
             .filter(cs -> cs.getFaculty() == null)
+            // LIBRARY rows are deliberately saved with faculty=null forever (see
+            // TimetableGlobalAutoScheduleService#fillLibraryGaps) -- they are not awaiting staffing,
+            // they never need it, so they must never appear on this screen as if they were.
+            .filter(cs -> cs.getSessionType() != ClassSessionType.LIBRARY)
             .map(this::toResponse)
             .toList();
     }
@@ -224,6 +228,9 @@ public class TimetableStaffingService {
                     checkCapacityFit(cs, venue.getCapacity()).ifPresent(violations::add);
                     applyRoom = () -> cs.setClinicalVenue(venue);
                 }
+                case LIBRARY -> throw new IllegalStateException(
+                    "Library sessions have no faculty to staff — they are placed with their room already "
+                        + "assigned and faculty_id left null by Run Automation's fillLibraryGaps pass.");
             }
         }
         return new CellStaging(violations, applyRoom);
@@ -768,7 +775,7 @@ public class TimetableStaffingService {
 
     static Long venueIdOf(ClassSchedule cs) {
         return switch (cs.getSessionType()) {
-            case THEORY -> cs.getClassroom() != null ? cs.getClassroom().getId() : null;
+            case THEORY, LIBRARY -> cs.getClassroom() != null ? cs.getClassroom().getId() : null;
             case LAB -> cs.getLab() != null ? cs.getLab().getId() : null;
             case CLINICAL -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getId() : null;
         };
@@ -776,7 +783,7 @@ public class TimetableStaffingService {
 
     static Room physicalRoomOf(ClassSchedule cs) {
         return switch (cs.getSessionType()) {
-            case THEORY -> cs.getClassroom() != null ? cs.getClassroom().getRoom() : null;
+            case THEORY, LIBRARY -> cs.getClassroom() != null ? cs.getClassroom().getRoom() : null;
             case LAB -> cs.getLab() != null ? cs.getLab().getRoom() : null;
             case CLINICAL -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getRoom() : null;
         };
@@ -809,6 +816,7 @@ public class TimetableStaffingService {
             case THEORY -> cs.getCourseOffering() == null ? null
                 : (int) courseRegistrationRepository.countByCourseOfferingIdAndStatus(
                     cs.getCourseOffering().getId(), RegistrationStatus.REGISTERED);
+            case LIBRARY -> cs.getCohortSection() == null ? null : cs.getCohortSection().getPlannedSize();
             case LAB, CLINICAL -> {
                 if (cs.getBatch() != null) {
                     yield (int) batchRepository.countStudents(cs.getBatch().getId());

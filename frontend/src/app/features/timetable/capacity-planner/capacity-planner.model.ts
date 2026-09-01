@@ -2,6 +2,15 @@ import { OverageContributor, VenueOverCapacity, VenueTightCapacity } from '../sk
 
 export type PlanningBasis = 'ENROLLED' | 'SANCTIONED';
 
+/** Backend `LabClinicalVenueCapacityResult` — the real weekly-demand-vs-window over/tight
+ *  classification for every shared Lab/Clinical venue, term-wide. Gates "Rebalance now" on the
+ *  Venue Utilization panel; see `CapacityPlannerService.getVenueCapacity`'s javadoc for why this
+ *  must never be derived from `VenueUtilization.utilizationPercent`. */
+export interface LabClinicalVenueCapacity {
+  overCapacityVenues: VenueOverCapacity[];
+  tightCapacityVenues: VenueTightCapacity[];
+}
+
 /** One faculty's row in the advisory, term-wide Faculty Workload capacity report — see
  *  `FacultyWorkloadCapacityService` on the backend for how each figure is computed. Purely a
  *  dashboard: never blocks anything, never auto-allocates. */
@@ -177,16 +186,13 @@ export interface CohortAutoPlanSummary {
  *  percentage, occupiedSlots/totalSlots/utilizationPercent are 0 and unused). Lab/Clinical venues
  *  are always shareable, so claimedByCohortLabel is always null for those, and they instead carry
  *  real weekly period-slot occupancy — utilizationPercent can exceed 100 when a venue has genuine
- *  Saturday bookings beyond the 5-day routine-week baseline, which is intentional, not a bug.
- *  suggestedBookingCount is informational only — how many not-yet-committed cohorts' suggestions
- *  reference this room this pass. */
+ *  Saturday bookings beyond the 5-day routine-week baseline, which is intentional, not a bug. */
 export interface RoomInventoryRow {
   id: number;
   name: string;
   roomType: 'CLASSROOM' | 'LAB' | 'CLINICAL';
   capacity: number | null;
   claimedByCohortLabel: string | null;
-  suggestedBookingCount: number;
   occupiedSlots: number;
   totalSlots: number;
   utilizationPercent: number;
@@ -221,4 +227,47 @@ export interface TermCapacityOverview {
   /** Per-venue breakdown backing `labClinicalVenueCapacityTightMessage` — see backend
    *  `TermCapacityOverviewResponse.tightCapacityVenues`. */
   tightCapacityVenues: VenueTightCapacity[];
+}
+
+/** One committed batch "Rebalance now" will move (preview) or has moved (result) off an
+ *  over/tight-capacity venue onto a better-fitting eligible one — see backend `VenueRebalanceMove`. */
+export interface VenueRebalanceMove {
+  batchId: number;
+  batchName: string;
+  subjectName: string;
+  cohortName: string | null;
+  sectionLabel: string | null;
+  plannedSize: number | null;
+  fromVenueId: number;
+  fromVenueName: string;
+  toVenueId: number;
+  toVenueName: string;
+  sessionsToClearCount: number;
+}
+
+/** A batch "Rebalance now" identified as needing to move but couldn't find a home for — see
+ *  backend `VenueRebalanceBlocked`. */
+export interface VenueRebalanceBlocked {
+  batchId: number;
+  batchName: string;
+  subjectName: string;
+  reason: string;
+}
+
+/** See backend `VenueRebalancePreview`. */
+export interface VenueRebalancePreview {
+  venueId: number;
+  venueName: string;
+  sessionType: 'LAB' | 'CLINICAL';
+  weeklyAvailablePeriods: number;
+  currentWeeklyDemandPeriods: number;
+  willMove: VenueRebalanceMove[];
+  notMovable: VenueRebalanceBlocked[];
+}
+
+/** See backend `VenueRebalanceResult`. */
+export interface VenueRebalanceResult {
+  batchesMoved: number;
+  sessionsCleared: number;
+  moved: VenueRebalanceMove[];
 }

@@ -22,7 +22,7 @@ import { ElectiveSlotBlockFlyoutComponent } from './elective-slot-block-flyout.c
 import { GlobalAutoScheduleReportFlyoutComponent } from './global-auto-schedule-report-flyout.component';
 import { WorkingSaturdaysFlyoutComponent } from './working-saturdays-flyout.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
-import { colorForSubject } from './subject-color.util';
+import { colorForSubject, LIBRARY_CELL_COLOR } from './subject-color.util';
 import { violationText } from '../../../shared/util/violation-text';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
@@ -164,8 +164,12 @@ export class SkeletonBuilderComponent implements OnInit {
     const appliesToFilter = (cohortSectionId: number | null) =>
       sectionFilter === 'ALL' || cohortSectionId == null || cohortSectionId === sectionFilter;
 
-    const total: Record<SkeletonSessionType, number> = { THEORY: 0, LAB: 0, CLINICAL: 0 };
-    const assigned: Record<SkeletonSessionType, number> = { THEORY: 0, LAB: 0, CLINICAL: 0 };
+    // Curriculum-hours-only: Library has no curriculum hours budget (see CurriculumHoursCalculator's
+    // backend equivalent), so it deliberately never participates in this Theory/Lab/Clinical
+    // required-vs-assigned summary card, unlike SkeletonCell.sessionType which genuinely does span
+    // all four types since Library cells appear for real in the grid below.
+    const total: Record<'THEORY' | 'LAB' | 'CLINICAL', number> = { THEORY: 0, LAB: 0, CLINICAL: 0 };
+    const assigned: Record<'THEORY' | 'LAB' | 'CLINICAL', number> = { THEORY: 0, LAB: 0, CLINICAL: 0 };
 
     const occurrencesFor = (cell: SkeletonCell) =>
       cell.dayOfWeek === 'SATURDAY' ? sk.workingSaturdayCount : sk.weeksInTerm;
@@ -193,14 +197,14 @@ export class SkeletonBuilderComponent implements OnInit {
         for (const [sectionId, sectionRows] of bySection) {
           total[type] += sectionRows[0].totalHours;
           const sumAssigned = sk.cells
-            .filter((c) => offeringIds.has(c.courseOfferingId) && c.sessionType === type && c.cohortSectionId === sectionId)
+            .filter((c) => c.courseOfferingId != null && offeringIds.has(c.courseOfferingId) && c.sessionType === type && c.cohortSectionId === sectionId)
             .reduce((sum, c) => sum + hoursBetween(c.startTime, c.endTime) * occurrencesFor(c), 0);
           assigned[type] += sumAssigned / sectionRows.length;
         }
       }
     }
 
-    const breakdown = (type: SkeletonSessionType): HoursBreakdown => ({
+    const breakdown = (type: 'THEORY' | 'LAB' | 'CLINICAL'): HoursBreakdown => ({
       total: total[type],
       assigned: assigned[type],
       unassigned: Math.max(0, total[type] - assigned[type]),
@@ -443,8 +447,8 @@ export class SkeletonBuilderComponent implements OnInit {
       && (sectionFilter === 'ALL' || c.cohortSectionId == null || c.cohortSectionId === sectionFilter)) ?? [];
   }
 
-  protected subjectColor(courseOfferingId: number): string {
-    return colorForSubject(courseOfferingId);
+  protected subjectColor(courseOfferingId: number | null): string {
+    return courseOfferingId == null ? LIBRARY_CELL_COLOR : colorForSubject(courseOfferingId);
   }
 
   /** Whether {@code cell} has a same-subject/type/occupant cell in the immediately adjacent period
@@ -511,7 +515,9 @@ export class SkeletonBuilderComponent implements OnInit {
     const cohortId = this.selectedCohortId;
     const periods = this.periods();
     const startIdx = periods.findIndex((p) => p.id === cell.periodId);
-    if (!cohortId || startIdx < 0) return;
+    // LIBRARY has no CourseOffering to extend (its resize handle is hidden in the template for the
+    // same reason) -- guards the type narrowing below rather than relying on that alone.
+    if (!cohortId || startIdx < 0 || cell.courseOfferingId == null) return;
 
     const requests: SkeletonCellPlacementRequest[] = [];
     for (const period of periods.slice(startIdx + 1, startIdx + 1 + extraPeriods)) {

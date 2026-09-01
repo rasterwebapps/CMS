@@ -67,6 +67,18 @@ public class CourseOffering {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    /** Configurable off-campus clinical shift length for this offering (OC-175) — some postings
+     *  run 6h, others 8h, per real-hours-covered inspection requirements. Null means this offering
+     *  has no shift-based clinical component (on-campus-only clinical stays on the existing
+     *  Period-based path). Applies to every {@link ClinicalShiftGroup} under this offering. */
+    @Column(name = "clinical_shift_duration_minutes")
+    private Integer clinicalShiftDurationMinutes;
+
+    /** Symmetric bus-travel buffer applied before and after every clinical block under this
+     *  offering's shift groups — derives bus depart/return, doesn't store them redundantly. */
+    @Column(name = "clinical_travel_buffer_minutes")
+    private Integer clinicalTravelBufferMinutes;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -140,6 +152,22 @@ public class CourseOffering {
 
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
+    }
+
+    public Integer getClinicalShiftDurationMinutes() {
+        return clinicalShiftDurationMinutes;
+    }
+
+    public void setClinicalShiftDurationMinutes(Integer clinicalShiftDurationMinutes) {
+        this.clinicalShiftDurationMinutes = clinicalShiftDurationMinutes;
+    }
+
+    public Integer getClinicalTravelBufferMinutes() {
+        return clinicalTravelBufferMinutes;
+    }
+
+    public void setClinicalTravelBufferMinutes(Integer clinicalTravelBufferMinutes) {
+        this.clinicalTravelBufferMinutes = clinicalTravelBufferMinutes;
     }
 
     public Instant getCreatedAt() {

@@ -12,6 +12,8 @@ public interface BatchRepository extends JpaRepository<Batch, Long> {
 
     List<Batch> findByCourseOfferingId(Long courseOfferingId);
 
+    List<Batch> findByClinicalShiftGroupId(Long clinicalShiftGroupId);
+
     List<Batch> findByCohortRoomAllocationId(Long cohortRoomAllocationId);
 
     List<Batch> findByCohortRoomAllocationIdAndIsActiveTrue(Long cohortRoomAllocationId);

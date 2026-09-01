@@ -274,7 +274,7 @@ public class RotationGroupService {
         return switch (cs.getSessionType()) {
             case LAB -> batch.getLab() != null ? batch.getLab().getId() : null;
             case CLINICAL -> batch.getClinicalVenue() != null ? batch.getClinicalVenue().getId() : null;
-            case THEORY -> null;
+            case THEORY, LIBRARY -> null;
         };
     }
 

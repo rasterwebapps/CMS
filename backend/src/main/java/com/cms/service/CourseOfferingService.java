@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
+import com.cms.dto.ClinicalShiftConfigUpdateRequest;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.EligibleFacultyCandidateDto;
 import com.cms.dto.GenerateOfferingsResponse;
@@ -36,4 +37,7 @@ public interface CourseOfferingService {
      *  exactly the prior state. */
     ActiveStatusUpdateResponse updateStatus(Long id, ActiveStatusUpdateRequest request);
     void deactivateAllOfferingsForTermInstance(Long termInstanceId);
+    /** Sets/clears this offering's off-campus clinical shift duration + travel buffer (OC-175) --
+     *  both null means the offering has no shift-based clinical component. */
+    CourseOfferingDto updateClinicalShiftConfig(Long id, ClinicalShiftConfigUpdateRequest request);
 }

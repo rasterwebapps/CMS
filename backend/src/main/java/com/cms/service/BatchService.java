@@ -128,14 +128,29 @@ public class BatchService {
         batchRepository.save(batch);
     }
 
+    /** Validates and applies this batch's per-batch teaching assignment -- the same
+     *  subject-eligibility rule every other faculty-assignment point in the app enforces ({@link
+     *  FacultyEligibility}). One faculty coordinating more than one batch (even parallel Lab/Clinical
+     *  batches in different venues) is legitimate as long as they're never actually scheduled at an
+     *  overlapping day/time -- that real conflict is caught where time is actually known, at
+     *  placement, by {@link TimetableStaffingService#checkFacultyFree}, not here. Grandfathered when
+     *  the requested faculty already holds this exact batch, matching {@link FacultyEligibility}'s
+     *  own grandfathering. */
     private void applyCoordinator(Batch batch, Long coordinatorFacultyId) {
+        Faculty previous = batch.getCoordinatorFaculty();
         if (coordinatorFacultyId == null) {
             batch.setCoordinatorFaculty(null);
+            return;
+        }
+        if (previous != null && previous.getId().equals(coordinatorFacultyId)) {
             return;
         }
         Faculty faculty = facultyRepository.findById(coordinatorFacultyId)
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Faculty not found with id: " + coordinatorFacultyId));
+
+        FacultyEligibility.require(batch.getCourseOffering().getSubject(), faculty, previous);
+
         batch.setCoordinatorFaculty(faculty);
     }
 
@@ -155,6 +170,11 @@ public class BatchService {
             b.getTermInstance().getId(),
             coordinator != null ? coordinator.getId() : null,
             coordinator != null ? coordinator.getFirstName() + " " + coordinator.getLastName() : null,
+            b.getLab() != null ? b.getLab().getId() : null,
+            b.getLab() != null ? b.getLab().getName() : null,
+            b.getClinicalVenue() != null ? b.getClinicalVenue().getId() : null,
+            b.getClinicalVenue() != null ? b.getClinicalVenue().getName() : null,
+            b.getClinicalShiftGroup() != null ? b.getClinicalShiftGroup().getId() : null,
             b.getIsActive(),
             b.getCreatedAt(),
             b.getUpdatedAt()

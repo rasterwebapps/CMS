@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, CohortSummary, CourseOffering, TermInstance } from '../../academic-year/academic-year.model';
 import { CapacityPlannerService } from './capacity-planner.service';
-import { CapacityPlan, FacultyWorkloadOverviewReport, FacultyWorkloadOverviewRow, FacultyWorkloadReport, PlanningBasis, VenueOption } from './capacity-planner.model';
+import { CapacityPlan, FacultyWorkloadOverviewReport, FacultyWorkloadOverviewRow, FacultyWorkloadReport, LabClinicalVenueCapacity, PlanningBasis, VenueOption } from './capacity-planner.model';
 import { OverageContributor } from '../skeleton-builder/skeleton-builder.model';
 import { RaiseCapFlyoutComponent } from '../../faculty/faculty-detail/raise-cap-flyout.component';
 import { FacultyService } from '../../faculty/faculty.service';
@@ -26,6 +26,7 @@ import { AllocatedBatch, CohortRoomAllocation, CohortSection, CohortSectionReque
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CAPACITY_PLANNER_TOUR, CAPACITY_PLANNER_FLOW_MAP } from '../../../shared/tour/tours/timetable.tours';
+import { VenueRebalancePanelComponent } from './venue-rebalance-panel/venue-rebalance-panel.component';
 
 /** One physical batch row within a subject block, scoped to a single cohort section. Starts as
  *  the section's whole headcount; Split breaks it into 2+ sibling rows (same section, own venue/
@@ -67,6 +68,7 @@ interface DraftSection {
   imports: [
     FormsModule, MatDialogModule, MatProgressSpinnerModule, MatIconModule,
     CmsCapacityMeterComponent, CmsEmptyStateComponent, CmsTourButtonComponent, RaiseCapFlyoutComponent, DecimalPipe, DatePipe,
+    VenueRebalancePanelComponent,
   ],
   templateUrl: './capacity-planner.component.html',
   styleUrl: './capacity-planner.component.scss',
@@ -89,6 +91,10 @@ export class CapacityPlannerComponent implements OnInit {
   protected readonly cohorts = signal<CohortSummary[]>([]);
   protected readonly offerings = signal<CourseOffering[]>([]);
   protected readonly plan = signal<CapacityPlan | null>(null);
+  /** The real weekly-demand-vs-window over/tight classification, term-wide — see
+   *  `CapacityPlannerService.getVenueCapacity`'s javadoc for why this is loaded separately from
+   *  `plan()` rather than reusing its `labUtilization`/`clinicalVenueUtilization` figures. */
+  protected readonly labClinicalVenueCapacity = signal<LabClinicalVenueCapacity | null>(null);
 
   protected readonly loading = signal(false);
 
@@ -855,6 +861,7 @@ export class CapacityPlannerComponent implements OnInit {
       case 'LAB': return 'Lab';
       case 'CLINICAL': return 'Clinical';
       case 'LAB_CLINICAL': return 'Lab/Clinical';
+      case 'LIBRARY': return 'Library';
       default: return '—';
     }
   }
@@ -973,6 +980,19 @@ export class CapacityPlannerComponent implements OnInit {
     });
   }
 
+  /** Whether "Rebalance now" has anything real to offer for this venue — membership in
+   *  `labClinicalVenueCapacity()`'s over/tight lists (the actual weekly-demand-vs-window figures
+   *  `previewRebalance` validates against), NOT this row's own `utilizationPercent` (a different,
+   *  already-placed-schedule-cells metric — see `getVenueCapacity`'s javadoc). A venue not yet
+   *  touched by Run Automation can show 0% here while genuinely over its weekly demand window, and
+   *  a venue can show high placed-cell occupancy while comfortably under it. */
+  protected isTightOrOverCapacity(sessionType: 'LAB' | 'CLINICAL', venueId: number): boolean {
+    const cap = this.labClinicalVenueCapacity();
+    if (!cap) return false;
+    return cap.overCapacityVenues.some((v) => v.venueType === sessionType && v.venueId === venueId)
+      || cap.tightCapacityVenues.some((v) => v.venueType === sessionType && v.venueId === venueId);
+  }
+
   protected loadPlan(): void {
     if (!this.selectedTermInstanceId || !this.selectedCohortId) return;
     this.loading.set(true);
@@ -994,6 +1014,18 @@ export class CapacityPlannerComponent implements OnInit {
           this.loading.set(false);
         },
       });
+    this.loadVenueCapacity(termInstanceId);
+  }
+
+  /** Term-wide, not cohort-scoped — reloaded whenever `loadPlan` is (including after a rebalance,
+   *  via the panel's `(rebalanced)="loadPlan()"` binding), so a just-applied move's effect on the
+   *  over/tight lists shows up immediately. Quiet failure: this only degrades which venues offer
+   *  "Rebalance now", it isn't core to the rest of the screen. */
+  private loadVenueCapacity(termInstanceId: number): void {
+    this.capacityPlannerService.getVenueCapacity(termInstanceId, this.planningBasis).subscribe({
+      next: (data) => this.labClinicalVenueCapacity.set(data),
+      error: () => this.labClinicalVenueCapacity.set(null),
+    });
   }
 
   private loadShortfall(termInstanceId: number, cohortId: number): void {

@@ -242,6 +242,9 @@
           }
         </select>
       </div>
+      @if (!roomEdit().purposeCategoryId || !roomEdit().subTypeId) {
+        <p class="panel-error">Select a Purpose category and Sub-type to save — every room needs both.</p>
+      }
 
       @if (canManage()) {
         <div class="panel-btn-row">
@@ -506,6 +509,8 @@
             </div>
             @if (addRoomForm().error) {
               <p class="panel-error">{{ addRoomForm().error }}</p>
+            } @else if (!addRoomForm().purposeCategoryId || !addRoomForm().subTypeId) {
+              <p class="panel-error">Select a Purpose category and Sub-type to add — every room needs both.</p>
             }
             <button type="button" [disabled]="!addRoomForm().roomNumber.trim() || !addRoomForm().purposeCategoryId || !addRoomForm().subTypeId || roomNumberTaken() || addRoomForm().submitting" (click)="submitAddRoom()">
               {{ addRoomForm().submitting ? 'Adding…' : '+ Add Room' }}

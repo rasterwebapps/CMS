@@ -49,4 +49,16 @@ public interface SessionOccurrenceRepository extends JpaRepository<SessionOccurr
     /** Every occurrence (any source -- REGULAR relocation, SPECIAL_CLASS, DAY_REPEAT) on one
      *  date, used by {@code RoomRelocationService}'s date-specific room-conflict check. */
     List<SessionOccurrence> findByOccurrenceDate(LocalDate occurrenceDate);
+
+    // ---- OC-175: CLINICAL_SHIFT idempotent-generation existence checks ----
+
+    /** One CLINICAL_SHIFT row per (batch, date) -- the per-venue clinical block. */
+    Optional<SessionOccurrence> findByOccurrenceSourceAndBatch_IdAndOccurrenceDate(
+        OccurrenceSource occurrenceSource, Long batchId, LocalDate occurrenceDate);
+
+    /** One CLINICAL_SHIFT row per (cohort section, subject, block start, date) -- the shared,
+     *  reconvened theory block. */
+    Optional<SessionOccurrence> findByOccurrenceSourceAndCohortSection_IdAndSubject_IdAndBlockStartTimeAndOccurrenceDate(
+        OccurrenceSource occurrenceSource, Long cohortSectionId, Long subjectId, java.time.LocalTime blockStartTime,
+        LocalDate occurrenceDate);
 }

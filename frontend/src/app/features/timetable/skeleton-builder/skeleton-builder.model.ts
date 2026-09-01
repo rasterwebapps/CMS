@@ -1,4 +1,4 @@
-export type SkeletonSessionType = 'THEORY' | 'LAB' | 'CLINICAL';
+export type SkeletonSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY';
 export type SkeletonCellStatus = 'DRAFT' | 'PUBLISHED';
 
 export interface SkeletonSubjectBudget {
@@ -49,7 +49,9 @@ export interface SkeletonCell {
    *  those (there's no single fixed occupant); rotatingBatchNames lists who alternates through it. */
   rotationGroupLabel: string | null;
   rotatingBatchNames: string[];
-  courseOfferingId: number;
+  /** Null only for a LIBRARY cell — it has no CourseOffering at all (see
+   *  TimetableGlobalAutoScheduleService#fillLibraryGaps). Every other session type always has one. */
+  courseOfferingId: number | null;
   subjectName: string;
   subjectCode: string;
   electiveGroupId: number | null;

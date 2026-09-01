@@ -147,6 +147,9 @@ public class ClassScheduleService {
             cs.setBatch(resolveBatch(request.batchId()));
             cs.setClassroom(null);
             cs.setLab(null);
+        } else if (request.sessionType() == ClassSessionType.LIBRARY) {
+            throw new IllegalArgumentException(
+                "Library sessions are system-managed by Run Automation and cannot be created or edited manually");
         } else {
             if (request.classroomId() == null) {
                 throw new IllegalArgumentException("Classroom is required for a THEORY session");
@@ -308,6 +311,8 @@ public class ClassScheduleService {
                 case LAB -> sameId(c.getLab() != null ? c.getLab().getId() : null, request.labId());
                 case CLINICAL -> sameId(c.getClinicalVenue() != null ? c.getClinicalVenue().getId() : null, request.clinicalVenueId());
                 case THEORY -> sameId(c.getClassroom() != null ? c.getClassroom().getId() : null, request.classroomId());
+                case LIBRARY -> throw new IllegalStateException(
+                    "Library sessions are system-managed and not supported by this manual conflict check");
             };
             if (sameRoom) {
                 roomConflicts.add(String.format("Room is already scheduled for %s on %s",
@@ -326,6 +331,8 @@ public class ClassScheduleService {
                 case THEORY -> request.batchId() != null
                     ? sameId(c.getBatch() != null ? c.getBatch().getId() : null, request.batchId())
                     : sameId(c.getCourseOffering() != null ? c.getCourseOffering().getId() : null, request.courseOfferingId());
+                case LIBRARY -> throw new IllegalStateException(
+                    "Library sessions are system-managed and not supported by this manual conflict check");
             };
             if (sameAudience) {
                 audienceConflicts.add(String.format("Audience is already scheduled for %s on %s",
@@ -380,7 +387,7 @@ public class ClassScheduleService {
         String roomName = switch (cs.getSessionType()) {
             case LAB -> cs.getLab() != null ? cs.getLab().getName() : null;
             case CLINICAL -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getName() : null;
-            case THEORY -> cs.getClassroom() != null ? cs.getClassroom().getName() : null;
+            case THEORY, LIBRARY -> cs.getClassroom() != null ? cs.getClassroom().getName() : null;
         };
         // LAB/CLINICAL always populate the free-text batchName; a THEORY row's optional section
         // (R3 Phase 3) only ever sets the real Batch link, so fall back to its name for display.

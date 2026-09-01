@@ -74,6 +74,16 @@ public class Batch {
     @JoinColumn(name = "cohort_section_id")
     private CohortSection cohortSection;
 
+    /** Which off-campus shift window this batch's clinical block runs under, when the offering
+     *  uses shift-based scheduling (OC-175). Several batches — each keeping their own
+     *  {@link #lab}/{@link #clinicalVenue} — can share one group when they run clinical in
+     *  parallel at different venues under the same shift; the group's shared theory block is
+     *  attended by the whole reconvened roster, not scoped to any single batch. Null for batches
+     *  outside shift-based clinical scheduling. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "clinical_shift_group_id")
+    private ClinicalShiftGroup clinicalShiftGroup;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
@@ -181,6 +191,14 @@ public class Batch {
 
     public void setCohortSection(CohortSection cohortSection) {
         this.cohortSection = cohortSection;
+    }
+
+    public ClinicalShiftGroup getClinicalShiftGroup() {
+        return clinicalShiftGroup;
+    }
+
+    public void setClinicalShiftGroup(ClinicalShiftGroup clinicalShiftGroup) {
+        this.clinicalShiftGroup = clinicalShiftGroup;
     }
 
     public Boolean getIsActive() {

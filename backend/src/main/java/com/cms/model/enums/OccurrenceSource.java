@@ -10,10 +10,16 @@ package com.cms.model.enums;
  *   <li>{@code DAY_REPEAT}    — one row of a whole-day-repeat batch (see
  *       {@link com.cms.model.SessionOccurrence#getRequestBatchId()}), also with no backing
  *       ClassSchedule row.</li>
+ *   <li>{@code CLINICAL_SHIFT} — one block of a {@link com.cms.model.ClinicalShiftGroup}: either a
+ *       CLINICAL block (one row per linked {@link com.cms.model.Batch}, its own off-campus venue)
+ *       or a shared THEORY block (one row, {@code cohortSection}-scoped — the reconvened full
+ *       roster). No backing ClassSchedule row and no {@code period} — the shift's real clock times
+ *       carry directly on {@code blockStartTime}/{@code blockEndTime} instead.</li>
  * </ul>
  */
 public enum OccurrenceSource {
     REGULAR,
     SPECIAL_CLASS,
-    DAY_REPEAT
+    DAY_REPEAT,
+    CLINICAL_SHIFT
 }

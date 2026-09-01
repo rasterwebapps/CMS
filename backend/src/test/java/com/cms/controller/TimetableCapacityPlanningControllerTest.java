@@ -64,7 +64,7 @@ class TimetableCapacityPlanningControllerTest {
     void shouldGetTermOverview() throws Exception {
         CohortAutoPlanSummaryResponse row = new CohortAutoPlanSummaryResponse(
             5L, "BSc Nursing 2026 - Sem 1", 1, 60L, false, true, null, List.of(), List.of(), true, null, 0, 0);
-        RoomInventoryRowResponse roomRow = new RoomInventoryRowResponse(1L, "Room 101", "CLASSROOM", 60, null, 0, 0L, 0, 0.0);
+        RoomInventoryRowResponse roomRow = new RoomInventoryRowResponse(1L, "Room 101", "CLASSROOM", 60, null, 0L, 0, 0.0);
         TermCapacityOverviewResponse overview = new TermCapacityOverviewResponse(
             10L, true, 60, 60, null, List.of(row), List.of(roomRow), true, null, true, null, false, null,
             List.of(), List.of());
@@ -78,5 +78,26 @@ class TimetableCapacityPlanningControllerTest {
             .andExpect(jsonPath("$.cohorts[0].cohortId").value(5))
             .andExpect(jsonPath("$.cohorts[0].hasCommittedAllocation").value(false))
             .andExpect(jsonPath("$.roomInventory[0].roomType").value("CLASSROOM"));
+    }
+
+    /** Confirms Capacity Planner's Venue Utilization panel is wired to the real weekly-demand
+     *  over/tight classification -- deliberately a distinct endpoint from {@link #shouldGetTermOverview}
+     *  since {@code getPlan} (single-cohort) never computes this, and the panel must never gate
+     *  "Rebalance now" on its own unrelated placed-schedule-cell utilization figures instead. */
+    @Test
+    void shouldGetVenueCapacity() throws Exception {
+        com.cms.dto.VenueTightCapacity tight = new com.cms.dto.VenueTightCapacity(
+            50L, "CLINICAL", "Ward 1 - Medical", 30, 40, 40, 100.0, List.of("Nursing Foundation I"), List.of(900L));
+        com.cms.dto.LabClinicalVenueCapacityResult result =
+            new com.cms.dto.LabClinicalVenueCapacityResult(List.of(), List.of(tight));
+        when(timetableCapacityPlanningService.computeLabClinicalVenueCapacity(10L, PlanningBasis.SANCTIONED)).thenReturn(result);
+
+        mockMvc.perform(get("/timetables/capacity-plan/venue-capacity")
+                .param("termInstanceId", "10")
+                .param("planningBasis", "SANCTIONED"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.overCapacityVenues").isEmpty())
+            .andExpect(jsonPath("$.tightCapacityVenues[0].venueId").value(50))
+            .andExpect(jsonPath("$.tightCapacityVenues[0].venueName").value("Ward 1 - Medical"));
     }
 }

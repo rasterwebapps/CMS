@@ -19,7 +19,9 @@ import com.cms.dto.BatchDto;
 import com.cms.dto.BatchRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Batch;
+import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
+import com.cms.model.Faculty;
 import com.cms.model.Student;
 import com.cms.model.TermInstance;
 import com.cms.repository.BatchRepository;
@@ -52,6 +54,7 @@ class BatchServiceTest {
 
         testOffering = new CourseOffering();
         testOffering.setId(1L);
+        testOffering.setSubject(new com.cms.model.Subject());
         testOffering.setTermInstance(termInstance);
     }
 
@@ -137,6 +140,41 @@ class BatchServiceTest {
         service.addStudent(1L, 5L);
 
         verify(batchRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldAllowSameFacultyToCoordinateMultipleParallelBatches() {
+        // OC-183: one faculty coordinating 2+ batches (even parallel Lab/Clinical batches in
+        // different venues) is legitimate as long as they're never actually scheduled at an
+        // overlapping day/time -- that real conflict is caught at placement, by
+        // TimetableStaffingService#checkFacultyFree, not here. Assignment itself should never be
+        // blocked just because the faculty already coordinates a sibling batch.
+        CohortSection section = new CohortSection();
+        section.setId(50L);
+
+        Faculty sharedFaculty = new Faculty();
+        sharedFaculty.setId(28L);
+
+        Batch siblingBatch = new Batch(testOffering, "Clinical - Batch 1", 20, testOffering.getTermInstance());
+        siblingBatch.setId(10L);
+        siblingBatch.setCohortSection(section);
+        siblingBatch.setIsActive(true);
+        siblingBatch.setCoordinatorFaculty(sharedFaculty);
+
+        Batch newBatch = new Batch(testOffering, "Clinical - Batch 2", 20, testOffering.getTermInstance());
+        newBatch.setId(11L);
+        newBatch.setCohortSection(section);
+
+        BatchRequest request = new BatchRequest(1L, "Clinical - Batch 2", 20, 28L);
+
+        when(batchRepository.findById(11L)).thenReturn(Optional.of(newBatch));
+        when(facultyRepository.findById(28L)).thenReturn(Optional.of(sharedFaculty));
+        when(batchRepository.save(any(Batch.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(batchRepository.countStudents(11L)).thenReturn(0L);
+
+        BatchDto dto = service.updateBatch(11L, request);
+
+        assertThat(dto.coordinatorFacultyId()).isEqualTo(28L);
     }
 
     @Test

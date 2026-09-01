@@ -1,4 +1,4 @@
-export type WeekGridSessionType = 'THEORY' | 'LAB' | 'CLINICAL';
+export type WeekGridSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY';
 export type WeekGridSessionStatus = 'DRAFT' | 'PUBLISHED';
 
 /** Session-type-neutral shape a week-grid cell renders — matches the backend's

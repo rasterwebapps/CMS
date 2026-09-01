@@ -1,7 +1,6 @@
 package com.cms.service;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +13,7 @@ import com.cms.model.RotationSlot;
 import com.cms.repository.RotationMemberAssignmentRepository;
 import com.cms.repository.RotationMemberRepository;
 import com.cms.repository.RotationSlotRepository;
+import com.cms.util.RotationParity;
 
 /**
  * Resolves which physical group (and therefore which existing per-subject {@link com.cms.model.Batch})
@@ -48,9 +48,8 @@ public class RotationResolverService {
     public Optional<RotationMemberAssignment> resolveEffectiveAssignment(RotationSlot slot, LocalDate date) {
         var group = slot.getRotationGroup();
         int cycleLength = group.getCycleLength();
-        long weeksElapsed = ChronoUnit.WEEKS.between(group.getAnchorOccurrenceDate(), date);
-        int weekIndex = Math.floorMod(weeksElapsed, cycleLength);
-        int memberOrder = Math.floorMod(slot.getSlotOrder() - weekIndex, cycleLength);
+        int memberOrder = RotationParity.resolveMemberOrder(
+            group.getAnchorOccurrenceDate(), cycleLength, date, slot.getSlotOrder());
 
         List<RotationMember> members = rotationMemberRepository.findByRotationGroupIdOrderByMemberOrderAsc(group.getId());
         return members.stream()

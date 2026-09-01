@@ -349,7 +349,7 @@ public class CohortRoomAllocationService {
             case CLINICAL -> clinicalVenueRepository.findById(split.venueId())
                 .orElseThrow(() -> new ResourceNotFoundException("Clinical venue not found with id: " + split.venueId()))
                 .getCapacity();
-            case THEORY -> throw new IllegalArgumentException(
+            case THEORY, LIBRARY -> throw new IllegalArgumentException(
                 "Venture splits are for LAB/CLINICAL batches only — Theory sections are committed via the "
                     + "'sections' field.");
         };
@@ -371,7 +371,7 @@ public class CohortRoomAllocationService {
         switch (split.sessionType()) {
             case LAB -> batch.setLab(labRepository.getReferenceById(split.venueId()));
             case CLINICAL -> batch.setClinicalVenue(clinicalVenueRepository.getReferenceById(split.venueId()));
-            case THEORY -> throw new IllegalArgumentException(
+            case THEORY, LIBRARY -> throw new IllegalArgumentException(
                 "Venture splits are for LAB/CLINICAL batches only — Theory sections are committed via the "
                     + "'sections' field.");
         }

@@ -14,6 +14,7 @@ import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.ClassSchedule;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
+import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.LabAttendanceRepository;
@@ -95,7 +96,13 @@ public class TimetableGenerationService {
         // chk_class_schedule_session_shape violation the moment its status flips to PUBLISHED --
         // catch it here first with a message that actually tells the admin what to go do (visit
         // the Staffing screen) instead of a database error.
-        long unstaffedCount = drafts.stream().filter(cs -> cs.getFaculty() == null).count();
+        // LIBRARY rows are deliberately never staffed (see
+        // TimetableGlobalAutoScheduleService#fillLibraryGaps) -- they publish with just a
+        // classroom, no faculty, so they must not count as "still needs staffing" here.
+        long unstaffedCount = drafts.stream()
+            .filter(cs -> cs.getFaculty() == null)
+            .filter(cs -> cs.getSessionType() != ClassSessionType.LIBRARY)
+            .count();
         if (unstaffedCount > 0) {
             throw new LifecycleConflictException(
                 unstaffedCount + " session(s) in this draft still need faculty/room assigned via the Staffing screen before it can be approved.",

@@ -338,15 +338,12 @@
                         <!-- Theory rooms are full-or-empty for the whole term -- a seat-map color
                              (red/blue/plain, see .cap-room-chip modifiers) carries the status, so no
                              separate Claimed/Free text badge is needed here. -->
-                        @if (selectedSections.length > 0 || room.claimedByCohortLabel || room.suggestedBookingCount > 0) {
+                        @if (selectedSections.length > 0 || room.claimedByCohortLabel) {
                           <div class="cap-room-chip__foot">
                             @if (selectedSections.length > 0) {
                               <span class="cap-room-chip__tag">{{ selectedSections.join(', ') }}</span>
                             } @else if (room.claimedByCohortLabel) {
                               <span class="cap-room-chip__tag" [title]="room.claimedByCohortLabel">{{ room.claimedByCohortLabel }}</span>
-                            }
-                            @if (room.suggestedBookingCount > 0) {
-                              <span class="cms-badge cms-badge--blue">{{ room.suggestedBookingCount }}</span>
                             }
                           </div>
                         }
@@ -354,7 +351,7 @@
                         <!-- Lab/Clinical venues are shared -- real weekly period-slot occupancy
                              against a 5-day (Mon-Fri) baseline, so genuine Saturday bookings can
                              read over 100%, an honest "leaning on overflow" signal, not a bug. -->
-                        <div class="cap-room-chip__occupancy">
+                        <div class="cap-room-chip__occupancy" [title]="room.occupiedSlots + ' of ' + room.totalSlots + ' weekly period-slots already booked this term (Mon-Fri baseline -- real Saturday bookings can push this over 100%)'">
                           <div class="cap-room-chip__occupancy-head">
                             <span>{{ room.occupiedSlots }}/{{ room.totalSlots }}</span>
                             <span [class.cap-room-chip__occupancy-pct--over]="room.utilizationPercent > 100">{{ room.utilizationPercent | number:'1.0-0' }}%</span>
@@ -365,14 +362,9 @@
                               [style.width.%]="room.utilizationPercent > 100 ? 100 : room.utilizationPercent"></div>
                           </div>
                         </div>
-                        @if (selectedSections.length > 0 || room.suggestedBookingCount > 0) {
+                        @if (selectedSections.length > 0) {
                           <div class="cap-room-chip__foot">
-                            @if (selectedSections.length > 0) {
-                              <span class="cap-room-chip__tag">{{ selectedSections.join(', ') }}</span>
-                            }
-                            @if (room.suggestedBookingCount > 0) {
-                              <span class="cms-badge cms-badge--blue">{{ room.suggestedBookingCount }}</span>
-                            }
+                            <span class="cap-room-chip__tag">{{ selectedSections.join(', ') }}</span>
                           </div>
                         }
                       }

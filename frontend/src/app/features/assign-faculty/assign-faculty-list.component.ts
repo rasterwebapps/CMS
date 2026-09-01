@@ -34,6 +34,14 @@ import {
   ClassInchargeDialogComponent,
   ClassInchargeDialogData,
 } from './class-incharge-dialog/class-incharge-dialog.component';
+import {
+  ClinicalShiftConfigDialogComponent,
+  ClinicalShiftConfigDialogData,
+} from '../course-offering/clinical-shift-config-dialog/clinical-shift-config-dialog.component';
+import {
+  ClinicalShiftGroupDialogComponent,
+  ClinicalShiftGroupDialogData,
+} from '../course-offering/clinical-shift-group-dialog/clinical-shift-group-dialog.component';
 
 /**
  * Deliberately separate from Course Offerings: generating/deactivating/batching an offering is a
@@ -137,6 +145,10 @@ export class AssignFacultyListComponent implements OnInit {
     return this.permissionService.has('CLASS_INCHARGE_VIEW');
   }
 
+  protected canManageClinicalShift(): boolean {
+    return this.permissionService.has('TIMETABLE_CLINICAL_SHIFT_MANAGE');
+  }
+
   ngOnInit(): void {
     this.tourService.register('assign-faculty', ASSIGN_FACULTY_TOUR);
     this.tourService.registerFlowMap('assign-faculty', ASSIGN_FACULTY_FLOW_MAP);
@@ -238,11 +250,25 @@ export class AssignFacultyListComponent implements OnInit {
    *  Capacity Planner as part of committing a room allocation, but assigning a batch's
    *  coordinator faculty and its student roster is a staffing concern, not a structural one. */
   protected manageBatches(row: CourseOffering): void {
-    const data: BatchManageDialogData = {
-      offering: row,
-      facultyOptions: this.faculty(),
-    };
+    const data: BatchManageDialogData = { offering: row };
     this.dialog.open(BatchManageDialogComponent, { data, width: '560px' });
+  }
+
+  /** OC-175: configurable off-campus clinical shift duration + travel buffer, set once per
+   *  offering before any Clinical Shift Group can be created for it. */
+  protected manageClinicalShiftConfig(row: CourseOffering): void {
+    const data: ClinicalShiftConfigDialogData = { offering: row };
+    this.dialog.open(ClinicalShiftConfigDialogComponent, { data, width: '440px' })
+      .afterClosed().subscribe((updated: CourseOffering | undefined) => {
+        if (updated && this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId);
+      });
+  }
+
+  /** OC-175: manage recurring off-campus clinical shift windows for this offering -- several
+   *  clinical Batches (different venues) sharing one shift + shared reconvened theory block. */
+  protected manageClinicalShiftGroups(row: CourseOffering): void {
+    const data: ClinicalShiftGroupDialogData = { offering: row };
+    this.dialog.open(ClinicalShiftGroupDialogComponent, { data, width: '620px' });
   }
 
   /** Class Incharge isn't tied to any one subject/offering, so it's a standalone term-wide action

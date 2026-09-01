@@ -46,7 +46,7 @@ final class SessionOccurrenceVenue {
             return VenueResolution.NONE;
         }
         return switch (sessionType) {
-            case THEORY -> occurrence.getClassroom() != null
+            case THEORY, LIBRARY -> occurrence.getClassroom() != null
                 ? new VenueResolution(occurrence.getClassroom().getId(), occurrence.getClassroom().getRoom(), occurrence.getClassroom().getCapacity(), occurrence.getClassroom(), null, null)
                 : VenueResolution.NONE;
             case LAB -> occurrence.getLab() != null
@@ -62,7 +62,7 @@ final class SessionOccurrenceVenue {
      *  row can be unstaffed/room-less (skeleton not yet fully staffed). */
     static VenueResolution fromClassSchedule(ClassSchedule cs) {
         return switch (cs.getSessionType()) {
-            case THEORY -> cs.getClassroom() != null
+            case THEORY, LIBRARY -> cs.getClassroom() != null
                 ? new VenueResolution(cs.getClassroom().getId(), cs.getClassroom().getRoom(), cs.getClassroom().getCapacity(), cs.getClassroom(), null, null)
                 : VenueResolution.NONE;
             case LAB -> cs.getLab() != null

@@ -745,6 +745,10 @@
               <div class="cap-utilization-row__track">
                 <div class="cap-utilization-row__fill" [style.width.%]="u.utilizationPercent"></div>
               </div>
+              @if (isTightOrOverCapacity('LAB', u.id)) {
+                <cms-venue-rebalance-panel [termInstanceId]="p.termInstanceId" sessionType="LAB" [venueId]="u.id"
+                  (rebalanced)="loadPlan()" />
+              }
             </div>
           }
         </div>
@@ -759,6 +763,10 @@
               <div class="cap-utilization-row__track">
                 <div class="cap-utilization-row__fill" [style.width.%]="u.utilizationPercent"></div>
               </div>
+              @if (isTightOrOverCapacity('CLINICAL', u.id)) {
+                <cms-venue-rebalance-panel [termInstanceId]="p.termInstanceId" sessionType="CLINICAL" [venueId]="u.id"
+                  (rebalanced)="loadPlan()" />
+              }
             </div>
           }
         </div>

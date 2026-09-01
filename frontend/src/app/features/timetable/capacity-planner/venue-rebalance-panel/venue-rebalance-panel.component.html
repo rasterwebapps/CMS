@@ -1,0 +1,48 @@
+@if (canRebalance()) {
+  @if (!expanded()) {
+    <button type="button" class="btn-secondary vrp-trigger" (click)="open()">Rebalance now</button>
+  } @else {
+    <div class="vrp-panel">
+      @if (loading()) {
+        <p class="field-hint">Checking which batches need to move…</p>
+      } @else if (errorMessage()) {
+        <p class="form-error">{{ errorMessage() }}</p>
+        <div class="vrp-actions">
+          <button type="button" class="btn-secondary" (click)="cancel()">Close</button>
+        </div>
+      } @else if (preview(); as p) {
+        @if (p.willMove.length > 0) {
+          <p class="vrp-panel__title">This will move {{ p.willMove.length }} batch(es):</p>
+          <ul class="vrp-move-list">
+            @for (m of p.willMove; track m.batchId) {
+              <li>
+                <strong>{{ m.batchName }}</strong> ({{ m.subjectName }}{{ m.cohortName ? ', ' + m.cohortName : '' }}{{ m.sectionLabel ? ' — ' + m.sectionLabel : '' }}):
+                {{ m.fromVenueName }} → {{ m.toVenueName }} — {{ m.sessionsToClearCount }} placed session(s) will be cleared for re-placement.
+              </li>
+            }
+          </ul>
+        }
+        @if (p.notMovable.length > 0) {
+          <p class="vrp-panel__title vrp-panel__title--warn">Couldn't find a home for {{ p.notMovable.length }} batch(es):</p>
+          <ul class="vrp-move-list">
+            @for (b of p.notMovable; track b.batchId) {
+              <li><strong>{{ b.batchName }}</strong> ({{ b.subjectName }}): {{ b.reason }}</li>
+            }
+          </ul>
+        }
+        @if (p.willMove.length === 0 && p.notMovable.length === 0) {
+          <p class="field-hint">Nothing to rebalance right now.</p>
+        }
+        <p class="field-hint">You'll need to re-run Run Automation afterward to re-place the cleared sessions at their new venue.</p>
+        <div class="vrp-actions">
+          <button type="button" class="btn-secondary" (click)="cancel()" [disabled]="applying()">Cancel</button>
+          @if (p.willMove.length > 0) {
+            <button type="button" class="btn-primary" (click)="confirm()" [disabled]="applying()">
+              {{ applying() ? 'Moving…' : 'Confirm rebalance' }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+}

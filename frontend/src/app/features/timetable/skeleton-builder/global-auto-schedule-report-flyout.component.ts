@@ -24,6 +24,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { FacultyWorkloadRulesService } from '../faculty-workload-rules/faculty-workload-rules.service';
 import { FacultyWorkloadRules } from '../faculty-workload-rules/faculty-workload-rules.model';
 import { FacultyService } from '../../faculty/faculty.service';
+import { VenueRebalancePanelComponent } from '../capacity-planner/venue-rebalance-panel/venue-rebalance-panel.component';
 
 type Step = 'checking-prerequisites' | 'checklist' | 'running' | 'success' | 'run-failed';
 
@@ -74,7 +75,7 @@ interface ChecklistItem {
 @Component({
   selector: 'app-global-auto-schedule-report-flyout',
   standalone: true,
-  imports: [CmsFlyoutPanelComponent, DecimalPipe, RouterLink, FormsModule, MatProgressSpinnerModule, MatDialogModule, MatCheckboxModule, WorkingSaturdaysFlyoutComponent, SpecialClassRequestFlyoutComponent],
+  imports: [CmsFlyoutPanelComponent, DecimalPipe, RouterLink, FormsModule, MatProgressSpinnerModule, MatDialogModule, MatCheckboxModule, WorkingSaturdaysFlyoutComponent, SpecialClassRequestFlyoutComponent, VenueRebalancePanelComponent],
   templateUrl: './global-auto-schedule-report-flyout.component.html',
   styleUrl: './global-auto-schedule-report-flyout.component.scss',
 })
@@ -559,6 +560,7 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
       case 'LAB': return 'Lab';
       case 'CLINICAL': return 'Clinical';
       case 'LAB_CLINICAL': return 'Lab/Clinical';
+      case 'LIBRARY': return 'Library';
       default: return '—';
     }
   }

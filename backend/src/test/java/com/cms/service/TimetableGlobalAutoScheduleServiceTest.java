@@ -74,6 +74,7 @@ import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.PeriodRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.TermInstanceRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -95,6 +96,8 @@ class TimetableGlobalAutoScheduleServiceTest {
     @Mock private TimetableBlockedPeriodChecker blockedPeriodChecker;
     @Mock private ClassroomRepository classroomRepository;
     @Mock private CourseRegistrationRepository courseRegistrationRepository;
+    @Mock private SubjectRepository subjectRepository;
+    @Mock private SystemConfigurationService systemConfigurationService;
 
     /** None of these fixtures configure a Self-Study/Co-curricular offering, so the gap-fill pass
      *  now correctly reports this once per cohort per run (see {@code fillSelfStudyGaps}) instead
@@ -102,6 +105,13 @@ class TimetableGlobalAutoScheduleServiceTest {
     private static final String NO_SELF_STUDY_OFFERING_REASON =
         "no Self-Study/Co-curricular offering is configured for this cohort to use as gap-fill — "
             + "every remaining Monday-Friday period stays empty until one is added";
+
+    /** None of these fixtures configure a Library classroom either, so {@code fillLibraryGaps} now
+     *  correctly reports this once per cohort per run too — added ahead of the Self-Study reason in
+     *  every {@code unplaced} list, since Library runs first (see the class's placement-order note). */
+    private static final String NO_LIBRARY_CLASSROOM_REASON =
+        "no Library classroom is configured (a Classroom linked to a Room tagged with the Library "
+            + "Purpose Category) — every cohort's Library quota stays unplaced until one is added";
 
     private TimetableGlobalAutoScheduleService service;
     private TermInstance termInstance;
@@ -113,8 +123,14 @@ class TimetableGlobalAutoScheduleServiceTest {
             timetableCapacityPlanningService, courseOfferingService, courseOfferingRepository, classScheduleRepository,
             studentTermEnrollmentRepository, cohortRepository, batchRepository, courseOfferingSectionFacultyRepository,
             facultyRepository, termInstanceRepository, periodRepository, blockedPeriodChecker, classroomRepository,
-            courseRegistrationRepository);
+            courseRegistrationRepository, subjectRepository, systemConfigurationService);
         lenient().when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+        // No fixture configures a Library classroom (Classroom linked to a Room tagged Library
+        // Purpose Category), so fillLibraryGaps correctly reports this once per cohort per run —
+        // see NO_LIBRARY_CLASSROOM_REASON below.
+        lenient().when(subjectRepository.findByCode("SYSTEM-LIBRARY")).thenReturn(Optional.empty());
+        lenient().when(classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(any()))
+            .thenReturn(List.of());
 
         AcademicYear ay = new AcademicYear("2025-2026", LocalDate.of(2025, 6, 1), LocalDate.of(2026, 5, 31), false);
         ay.setId(1L);
@@ -156,7 +172,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
     private CourseOfferingDto offeringDto(Long id, String subjectName) {
         return new CourseOfferingDto(id, 10L, null, null, null, id, subjectName, subjectName.substring(0, 4).toUpperCase(),
-            null, null, List.of(), 1, true, null, false, null, null, null, null, null, null, null, null, List.of());
+            null, null, List.of(), 1, true, null, false, null, null, null, null, null, null, null, null, null, null, List.of());
     }
 
     private CourseOffering offeringEntity(Long id, int theoryHours, int labHours, int clinicalHours) {
@@ -458,10 +474,51 @@ class TimetableGlobalAutoScheduleServiceTest {
         assertThat(result.totalStaffed()).isEqualTo(1);
         assertThat(result.cohortSummaries()).hasSize(1);
         assertThat(result.cohortSummaries().get(0).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
-            .containsExactly(NO_SELF_STUDY_OFFERING_REASON);
+            .containsExactly(NO_LIBRARY_CLASSROOM_REASON, NO_SELF_STUDY_OFFERING_REASON);
         assertThat(result.cohortSummaries().get(0).usedSaturday()).isFalse();
         assertThat(result.electiveUnplaced()).isEmpty();
         verify(timetableStaffingService).staffCell(900L, new StaffingAssignmentRequest(500L, null));
+    }
+
+    @Test
+    void runToleratesAPreExistingLibraryCellInTheSkeletonSnapshot_libraryCellsHaveNoCourseOffering() {
+        // Regression: a LIBRARY cell has no CourseOffering at all (TimetableSkeletonService's
+        // toCellResponse), so courseOfferingId() is legitimately null on it -- existingDaysForBudgetRow
+        // used to call cell.courseOfferingId().equals(...) unguarded, which NPE'd the instant any
+        // Library cell already sat in the skeleton snapshot passed to a THEORY/LAB/CLINICAL row's
+        // shortfall placement.
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "XYZ", 6);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
+        assignWholeCohort(100L, 1L, 500L);
+        offeringEntity(100L, 10, 0, 0);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
+        SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
+        SkeletonCellResponse preExistingLibraryCell = new SkeletonCellResponse(800L, ClassSessionType.LIBRARY,
+            DayOfWeek.TUESDAY, 2L, "2nd Period", LocalTime.of(9, 50), LocalTime.of(10, 40), null, null, null, null,
+            true, null, null, List.of(), null, null, null, null, null, null);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject),
+            List.of(preExistingLibraryCell), List.of(), List.of(), 25, 0L);
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",
+            LocalTime.of(9, 0), LocalTime.of(9, 50), null, null, null, null, false, null, null, List.of(),
+            100L, "Offering A", "OFFE", null, null, null);
+        when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class))).thenReturn(placed);
+        when(timetableStaffingService.staffCell(eq(900L), any(StaffingAssignmentRequest.class)))
+            .thenReturn(new UnstaffedCellResponse(900L, 100L, "Offering A", "OFFE", null, null,
+                ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50),
+                null, null, null, null, null, false, List.of(), null, null));
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        assertThat(result.totalPlaced()).isEqualTo(1);
+        assertThat(result.totalStaffed()).isEqualTo(1);
     }
 
     @Test
@@ -505,7 +562,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         verify(classScheduleRepository).save(excess2);
         assertThat(result.totalPlaced()).isEqualTo(0);
         assertThat(result.cohortSummaries().get(0).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
-            .containsExactly(NO_SELF_STUDY_OFFERING_REASON);
+            .containsExactly(NO_LIBRARY_CLASSROOM_REASON, NO_SELF_STUDY_OFFERING_REASON);
     }
 
     /** Minimal {@link SkeletonCellResponse} for Offering A / whole-cohort THEORY -- only {@code id}
@@ -566,7 +623,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         assertThat(result.totalPlaced()).isEqualTo(1);
         assertThat(result.cohortSummaries().get(0).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
-            .containsExactly(NO_SELF_STUDY_OFFERING_REASON);
+            .containsExactly(NO_LIBRARY_CLASSROOM_REASON, NO_SELF_STUDY_OFFERING_REASON);
         verify(timetableSkeletonService).placeCell(argThat(r ->
             r.dayOfWeek() == DayOfWeek.MONDAY && r.periodId().equals(1L)
                 && r.spanPeriodIds() != null && r.spanPeriodIds().equals(List.of(2L, 3L, 4L))));
@@ -597,14 +654,15 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         assertThat(result.totalPlaced()).isEqualTo(0);
         assertThat(result.cohortSummaries()).hasSize(1);
-        assertThat(result.cohortSummaries().get(0).unplaced()).hasSize(2);
+        assertThat(result.cohortSummaries().get(0).unplaced()).hasSize(3);
         // The real blocking constraint (cohort clash) is now named, not a generic catch-all --
         // this is exactly the diagnostic gap that made a real shortfall look unexplainable
         // without pulling raw data by hand.
         assertThat(result.cohortSummaries().get(0).unplaced().get(0).reason())
             .contains("another mandatory session already occupies this audience's slot")
             .contains("5 of 5 day/period combinations tried");
-        assertThat(result.cohortSummaries().get(0).unplaced().get(1).reason()).isEqualTo(NO_SELF_STUDY_OFFERING_REASON);
+        assertThat(result.cohortSummaries().get(0).unplaced().get(1).reason()).isEqualTo(NO_LIBRARY_CLASSROOM_REASON);
+        assertThat(result.cohortSummaries().get(0).unplaced().get(2).reason()).isEqualTo(NO_SELF_STUDY_OFFERING_REASON);
 
         // 5 days x 1 period exhausted -- Saturday is skipped outright since this term has no working-Saturday pattern configured.
         verify(timetableSkeletonService, times(5)).placeCell(any());
@@ -668,7 +726,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         assertThat(result.totalPlaced()).isEqualTo(0);
         assertThat(result.cohortSummaries().get(0).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
-            .containsExactly("no faculty assigned on its Course Offering", NO_SELF_STUDY_OFFERING_REASON);
+            .containsExactly("no faculty assigned on its Course Offering", NO_LIBRARY_CLASSROOM_REASON, NO_SELF_STUDY_OFFERING_REASON);
         verify(timetableSkeletonService, never()).placeCell(any());
     }
 
@@ -717,10 +775,10 @@ class TimetableGlobalAutoScheduleServiceTest {
         var summaryByCohort = result.cohortSummaries().stream()
             .collect(java.util.stream.Collectors.toMap(com.cms.dto.CohortPlacementSummary::cohortId, s -> s));
         assertThat(summaryByCohort.get(1L).placedCount()).isEqualTo(0);
-        assertThat(summaryByCohort.get(1L).unplaced()).hasSize(2);
+        assertThat(summaryByCohort.get(1L).unplaced()).hasSize(3);
         assertThat(summaryByCohort.get(2L).placedCount()).isEqualTo(1);
         assertThat(summaryByCohort.get(2L).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
-            .containsExactly(NO_SELF_STUDY_OFFERING_REASON);
+            .containsExactly(NO_LIBRARY_CLASSROOM_REASON, NO_SELF_STUDY_OFFERING_REASON);
     }
 
     @Test

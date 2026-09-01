@@ -117,7 +117,7 @@ public class TimetableConflictInspectorService {
 
     private Integer venueCapacityOf(ClassSchedule cs) {
         return switch (cs.getSessionType()) {
-            case THEORY -> cs.getClassroom() != null ? cs.getClassroom().getCapacity() : null;
+            case THEORY, LIBRARY -> cs.getClassroom() != null ? cs.getClassroom().getCapacity() : null;
             case LAB -> cs.getLab() != null ? cs.getLab().getCapacity() : null;
             case CLINICAL -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getCapacity() : null;
         };
@@ -127,7 +127,7 @@ public class TimetableConflictInspectorService {
         var period = cs.getPeriod();
         Long venueId = TimetableStaffingService.venueIdOf(cs);
         String venueName = switch (cs.getSessionType()) {
-            case THEORY -> cs.getClassroom() != null ? cs.getClassroom().getName() : null;
+            case THEORY, LIBRARY -> cs.getClassroom() != null ? cs.getClassroom().getName() : null;
             case LAB -> cs.getLab() != null ? cs.getLab().getName() : null;
             case CLINICAL -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getName() : null;
         };

@@ -4,16 +4,14 @@ import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/materia
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { CourseOffering } from '../../academic-year/academic-year.model';
+import { CourseOffering, EligibleFacultyCandidate } from '../../academic-year/academic-year.model';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
-import { FacultyOption } from '../course-offering-edit-dialog/course-offering-edit-dialog.component';
 import { Batch, BatchRequest, BatchStudent } from '../../batch/batch.model';
 import { BatchService } from '../../batch/batch.service';
 import { ToastService } from '../../../core/toast/toast.service';
 
 export interface BatchManageDialogData {
   offering: CourseOffering;
-  facultyOptions: FacultyOption[];
 }
 
 @Component({
@@ -40,6 +38,11 @@ export class BatchManageDialogComponent {
   protected readonly expandedBatchId = signal<number | null>(null);
   protected readonly roster = signal<BatchStudent[]>([]);
   protected readonly rosterLoading = signal(false);
+  /** OC-183: coordinator picker now offers the offering's real eligible-faculty pool (same
+   *  source the Assign Faculty screen uses, subject-speciality filtered) rather than the flat
+   *  all-faculty list. One faculty coordinating multiple batches is fine — the backend only
+   *  blocks a genuine same-time double-booking once schedules are actually placed. */
+  protected readonly eligibleFaculty = signal<EligibleFacultyCandidate[]>([]);
 
   protected readonly form: FormGroup = this.fb.group({
     name: ['', Validators.required],
@@ -53,6 +56,10 @@ export class BatchManageDialogComponent {
       next: (regs) => this.registeredStudents.set(
         regs.map((r) => ({ studentId: r.studentId, studentName: r.studentName }))),
       error: () => this.registeredStudents.set([]),
+    });
+    this.academicYearService.getEligibleFaculty(this.data.offering.id).subscribe({
+      next: (candidates) => this.eligibleFaculty.set(candidates),
+      error: () => this.eligibleFaculty.set([]),
     });
   }
 

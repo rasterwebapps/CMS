@@ -251,7 +251,7 @@
                             <span class="skeleton-cell__batch">{{ cell.batchName }}</span>
                           }
                           @if (cell.isStaffed) { <span class="cms-badge cms-badge--green">staffed</span> }
-                          @if (!cell.isStaffed && canManage() && !cell.sessionGroupId) {
+                          @if (!cell.isStaffed && canManage() && !cell.sessionGroupId && cell.sessionType !== 'LIBRARY') {
                             <span class="skeleton-cell__resize-handle" title="Drag to extend into the next period(s)"
                               (mousedown)="onResizeHandleMouseDown($event, cell)" (click)="$event.stopPropagation()"></span>
                           }

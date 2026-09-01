@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
+import { ClinicalShiftConfigUpdateRequest } from '../clinical-shift-group/clinical-shift-group.model';
 import {
   AcademicYear,
   AcademicYearFullUpdateRequest,
@@ -316,6 +317,10 @@ export class AcademicYearService {
 
   updateCourseOfferingStatus(id: number, request: CourseOfferingStatusUpdateRequest): Observable<CourseOfferingStatusUpdateResponse> {
     return this.http.patch<CourseOfferingStatusUpdateResponse>(`${environment.apiUrl}/course-offerings/${id}/status`, request);
+  }
+
+  updateClinicalShiftConfig(id: number, request: ClinicalShiftConfigUpdateRequest): Observable<CourseOffering> {
+    return this.http.put<CourseOffering>(`${environment.apiUrl}/course-offerings/${id}/clinical-shift-config`, request);
   }
 
   /** Roll-up of every offering's currently-assigned faculty in a term instance, in one call —
