@@ -77,24 +77,24 @@ class SpecialityServiceTest {
         Speciality dept1 = createSpeciality(1L, "Computer Science", "CS", "CS Dept", null);
         Speciality dept2 = createSpeciality(2L, "Mathematics", "MATH", "Math Dept", null);
 
-        when(specialityRepository.findAll()).thenReturn(List.of(dept1, dept2));
+        when(specialityRepository.findAllByOrderByNameAsc()).thenReturn(List.of(dept1, dept2));
 
         List<SpecialityResponse> responses = specialityService.findAll();
 
         assertThat(responses).hasSize(2);
         assertThat(responses.get(0).name()).isEqualTo("Computer Science");
         assertThat(responses.get(1).name()).isEqualTo("Mathematics");
-        verify(specialityRepository).findAll();
+        verify(specialityRepository).findAllByOrderByNameAsc();
     }
 
     @Test
     void shouldReturnEmptyListWhenNoSpecialities() {
-        when(specialityRepository.findAll()).thenReturn(List.of());
+        when(specialityRepository.findAllByOrderByNameAsc()).thenReturn(List.of());
 
         List<SpecialityResponse> responses = specialityService.findAll();
 
         assertThat(responses).isEmpty();
-        verify(specialityRepository).findAll();
+        verify(specialityRepository).findAllByOrderByNameAsc();
     }
 
     @Test

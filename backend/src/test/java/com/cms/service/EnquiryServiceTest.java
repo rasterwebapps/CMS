@@ -610,11 +610,17 @@ class EnquiryServiceTest {
 
     @Test
     void shouldUpdateStatus() {
+        com.cms.model.Course testCourse = new com.cms.model.Course("CS101", "CS101",
+            null, testProgram);
+        testCourse.setId(1L);
+
         Enquiry enquiry = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.ENQUIRED);
+        enquiry.setCourse(testCourse);
 
         Enquiry updated = createEnquiry(1L, "Ravi Kumar", "ravi@email.com", "9876543210",
             testProgram, LocalDate.of(2024, 6, 15), testReferralType, EnquiryStatus.INTERESTED);
+        updated.setCourse(testCourse);
 
         when(enquiryRepository.findById(1L)).thenReturn(Optional.of(enquiry));
         when(enquiryRepository.save(any(Enquiry.class))).thenReturn(updated);

@@ -343,19 +343,19 @@ class ReferralTypeServiceTest {
         ReferralType existing = createReferralType(1L, "Agent Referral", "AGENT_REFERRAL", new BigDecimal("10000.00"));
         existing.setIsSystemDefined(true);
         ReferralTypeRequest request = new ReferralTypeRequest(
-            "Agent / Consultant", "CHANGED_CODE", new BigDecimal("12000.00"), true, null, true
+            "Agent Referral", "CHANGED_CODE", new BigDecimal("12000.00"), true, null, true
         );
 
-        ReferralType updated = createReferralType(1L, "Agent / Consultant", "AGENT_REFERRAL", new BigDecimal("12000.00"));
+        ReferralType updated = createReferralType(1L, "Agent Referral", "AGENT_REFERRAL", new BigDecimal("12000.00"));
         updated.setIsSystemDefined(true);
 
         when(referralTypeRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(referralTypeRepository.existsByNameIgnoreCaseAndIdNot("Agent / Consultant", 1L)).thenReturn(false);
+        when(referralTypeRepository.existsByNameIgnoreCaseAndIdNot("Agent Referral", 1L)).thenReturn(false);
         when(referralTypeRepository.save(any(ReferralType.class))).thenReturn(updated);
 
         ReferralTypeResponse response = referralTypeService.update(1L, request);
 
-        assertThat(response.name()).isEqualTo("Agent / Consultant");
+        assertThat(response.name()).isEqualTo("Agent Referral");
         assertThat(response.code()).isEqualTo("AGENT_REFERRAL");
         assertThat(response.isSystemDefined()).isTrue();
     }

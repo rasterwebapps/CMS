@@ -43,6 +43,9 @@ class AgentControllerTest {
     @MockitoBean
     private AgentService agentService;
 
+    @MockitoBean
+    private com.cms.service.AgentExportService agentExportService;
+
     @Test
     void shouldCreateAgent() throws Exception {
         AgentRequest request = basicAgentRequest(

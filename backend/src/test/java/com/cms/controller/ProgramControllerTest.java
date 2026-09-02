@@ -51,7 +51,7 @@ class ProgramControllerTest {
 
     @Test
     void shouldCreateProgram() throws Exception {
-        ProgramRequest request = new ProgramRequest("UG Program", "UG", 4, null, null, null, null, null);
+        ProgramRequest request = new ProgramRequest("UG Program", "UG", 4, null, null, 17, 31, 12);
 
         Instant now = Instant.now();
         ProgramResponse response = new ProgramResponse(1L, "UG Program", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), Set.of(), null, null, null, now, now);
@@ -164,7 +164,7 @@ class ProgramControllerTest {
 
     @Test
     void shouldUpdateProgram() throws Exception {
-        ProgramRequest request = new ProgramRequest("Bachelor Updated", "BACHELOR", 4, null, null, null, null, null);
+        ProgramRequest request = new ProgramRequest("Bachelor Updated", "BACHELOR", 4, null, null, 17, 31, 12);
 
         Instant now = Instant.now();
         ProgramResponse response = new ProgramResponse(1L, "Bachelor Updated", "BACHELOR", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, Set.of(), Set.of(), null, null, null, now, now);
@@ -184,7 +184,7 @@ class ProgramControllerTest {
 
     @Test
     void shouldReturnNotFoundWhenUpdatingNonExistentProgram() throws Exception {
-        ProgramRequest request = new ProgramRequest("Name", "CODE", 4, null, null, null, null, null);
+        ProgramRequest request = new ProgramRequest("Name", "CODE", 4, null, null, 17, 31, 12);
 
         when(programService.update(eq(999L), any(ProgramRequest.class)))
             .thenThrow(new ResourceNotFoundException("Program not found with id: 999"));

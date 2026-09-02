@@ -81,6 +81,7 @@ class StudentTermEnrollmentServiceImplTest {
     private Cohort createCohort(Long id, Program program, AcademicYear admissionAY) {
         Cohort c = new Cohort();
         c.setId(id);
+        c.setCourse(createCourse(id, program.getName() + " Course", program.getCode() + "-C", program));
         c.setAdmissionAcademicYear(admissionAY);
         c.setCohortCode(program.getCode() + "-2024-2027");
         c.setDisplayName(program.getName() + " (2024-2027)");

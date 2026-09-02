@@ -295,6 +295,10 @@ class AttendanceServiceTest {
     void shouldUseResolvedThresholdInsteadOfDefault() {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
         when(subjectRepository.findById(1L)).thenReturn(Optional.of(testCourse));
+        when(attendanceRepository.countByStudentIdAndSubjectIdAndType(1L, 1L, AttendanceType.THEORY))
+            .thenReturn(0L);
+        when(attendanceRepository.countByStudentIdAndSubjectIdAndType(1L, 1L, AttendanceType.LAB))
+            .thenReturn(0L);
         when(attendanceRepository.countByStudentIdAndSubjectIdAndType(1L, 1L, AttendanceType.CLINICAL))
             .thenReturn(10L);
         when(attendanceRepository.countByStudentIdAndSubjectIdAndTypeAndStatus(

@@ -47,6 +47,9 @@ class EquipmentControllerTest {
     @MockitoBean
     private EquipmentService equipmentService;
 
+    @MockitoBean
+    private com.cms.service.EquipmentExportService equipmentExportService;
+
     @Test
     void shouldCreateEquipment() throws Exception {
         EquipmentRequest request = new EquipmentRequest(

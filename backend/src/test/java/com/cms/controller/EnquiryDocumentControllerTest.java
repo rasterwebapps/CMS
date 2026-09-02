@@ -148,7 +148,7 @@ class EnquiryDocumentControllerTest {
             null, null, null, now, now,
             "scan.pdf", MediaType.APPLICATION_PDF_VALUE, 11L, now, true
         );
-        when(documentService.uploadFile(eq(1L), eq(DocumentType.TENTH_MARKSHEET), eq("note"), any()))
+        when(documentService.uploadFile(eq(1L), eq(DocumentType.TENTH_MARKSHEET), eq("note"), any(), eq(false)))
             .thenReturn(response);
 
         mockMvc.perform(multipart("/enquiries/1/documents/upload")
@@ -161,7 +161,7 @@ class EnquiryDocumentControllerTest {
             .andExpect(jsonPath("$.hasFile").value(true))
             .andExpect(jsonPath("$.status").value("UPLOADED"));
 
-        verify(documentService).uploadFile(eq(1L), eq(DocumentType.TENTH_MARKSHEET), eq("note"), any());
+        verify(documentService).uploadFile(eq(1L), eq(DocumentType.TENTH_MARKSHEET), eq("note"), any(), eq(false));
     }
 
     @Test
@@ -225,7 +225,7 @@ class EnquiryDocumentControllerTest {
             null, null, null, now, now,
             "corrected.jpg", MediaType.IMAGE_JPEG_VALUE, 3L, now, true
         );
-        when(documentService.uploadFile(eq(2L), eq(DocumentType.TENTH_MARKSHEET), eq(null), any()))
+        when(documentService.uploadFile(eq(2L), eq(DocumentType.TENTH_MARKSHEET), eq(null), any(), eq(false)))
             .thenReturn(response);
 
         mockMvc.perform(multipart("/enquiries/2/documents/upload")

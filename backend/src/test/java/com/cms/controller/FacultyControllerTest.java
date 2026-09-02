@@ -41,6 +41,10 @@ class FacultyControllerTest {
     @Autowired private ObjectMapper objectMapper;
     @MockitoBean private FacultyService facultyService;
     @MockitoBean private FacultyDocumentService facultyDocumentService;
+    @MockitoBean private com.cms.service.FacultyExportService facultyExportService;
+    @MockitoBean private com.cms.repository.SpecialityRepository specialityRepository;
+    @MockitoBean private com.cms.service.TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
+    @MockitoBean private com.cms.service.ClassScheduleService classScheduleService;
 
     private static FacultyRequest basicFacultyRequest(
             String employeeCode, String firstName, String lastName, String email, String phone,

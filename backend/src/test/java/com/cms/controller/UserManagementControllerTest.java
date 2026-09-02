@@ -75,7 +75,7 @@ class UserManagementControllerTest {
 
     @Test
     void shouldListManageableUsers() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(buildAdminUser()));
+        when(appUserRepository.findByKeycloakUsernameWithRole("admin")).thenReturn(Optional.of(buildAdminUser()));
         when(appUserService.findManageable(3)).thenReturn(
             List.of(buildUserResponse(2L, "faculty1", "FACULTY"),
                     buildUserResponse(3L, "student1", "STUDENT")));
@@ -90,7 +90,7 @@ class UserManagementControllerTest {
 
     @Test
     void shouldReturn404WhenRequestingUserNotFound() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("ghost"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("ghost"))
             .thenThrow(new ResourceNotFoundException("No app user record found for username: ghost"));
 
         mockMvc.perform(get("/user-management")
@@ -100,9 +100,9 @@ class UserManagementControllerTest {
 
     @Test
     void shouldCreateUser() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(buildAdminUser()));
+        when(appUserRepository.findByKeycloakUsernameWithRole("admin")).thenReturn(Optional.of(buildAdminUser()));
 
-        CreateUserRequest request = new CreateUserRequest("new@test.com", "New Faculty", "newfaculty", null, "FACULTY", null, null);
+        CreateUserRequest request = new CreateUserRequest("new@test.com", "New Faculty", "newfaculty", "password123", "FACULTY", null, null);
 
         AppUserResponse created = buildUserResponse(10L, "newfaculty", "FACULTY");
         when(appUserService.create(any(CreateUserRequest.class), eq("admin"), eq(3))).thenReturn(created);
@@ -131,7 +131,7 @@ class UserManagementControllerTest {
 
     @Test
     void shouldUpdateUser() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(buildAdminUser()));
+        when(appUserRepository.findByKeycloakUsernameWithRole("admin")).thenReturn(Optional.of(buildAdminUser()));
 
         UpdateUserRequest request = new UpdateUserRequest("Updated Name", "updated@test.com", null, null);
         AppUserResponse updated = buildUserResponse(2L, "faculty1", "FACULTY");
@@ -160,7 +160,7 @@ class UserManagementControllerTest {
 
     @Test
     void shouldDeactivateUser() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(buildAdminUser()));
+        when(appUserRepository.findByKeycloakUsernameWithRole("admin")).thenReturn(Optional.of(buildAdminUser()));
         doNothing().when(appUserService).deactivate(anyLong(), anyInt(), anyString());
 
         mockMvc.perform(put("/user-management/2/deactivate")
@@ -170,7 +170,7 @@ class UserManagementControllerTest {
 
     @Test
     void shouldReactivateUser() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(buildAdminUser()));
+        when(appUserRepository.findByKeycloakUsernameWithRole("admin")).thenReturn(Optional.of(buildAdminUser()));
         doNothing().when(appUserService).reactivate(anyLong(), anyInt(), anyString());
 
         mockMvc.perform(put("/user-management/2/reactivate")

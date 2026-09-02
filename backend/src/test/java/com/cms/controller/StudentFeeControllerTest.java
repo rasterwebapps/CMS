@@ -69,6 +69,12 @@ class StudentFeeControllerTest {
     @MockitoBean
     private OneBookIntegrationService oneBookService;
 
+    @MockitoBean
+    private com.cms.service.FeeExportService feeExportService;
+
+    @MockitoBean
+    private com.cms.service.FeeRefundExportService feeRefundExportService;
+
     @Test
     void shouldFinalizeFeeAllocation() throws Exception {
         StudentFeeAllocationRequest request = new StudentFeeAllocationRequest(
@@ -239,7 +245,7 @@ class StudentFeeControllerTest {
 
         when(feeExplorerService.search("John")).thenReturn(response);
 
-        mockMvc.perform(get("/student-fees/explorer").param("search", "John"))
+        mockMvc.perform(get("/student-fees/explorer").param("search", "John").param("legacy", "true"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.students.length()").value(1))
             .andExpect(jsonPath("$.students[0].studentId").value(1))
@@ -260,7 +266,7 @@ class StudentFeeControllerTest {
 
         when(feeExplorerService.search(isNull())).thenReturn(response);
 
-        mockMvc.perform(get("/student-fees/explorer"))
+        mockMvc.perform(get("/student-fees/explorer").param("legacy", "true"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.students.length()").value(1))
             .andExpect(jsonPath("$.students[0].studentId").value(1));
@@ -274,7 +280,7 @@ class StudentFeeControllerTest {
 
         when(feeExplorerService.search("nonexistent")).thenReturn(emptyResponse);
 
-        mockMvc.perform(get("/student-fees/explorer").param("search", "nonexistent"))
+        mockMvc.perform(get("/student-fees/explorer").param("search", "nonexistent").param("legacy", "true"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.students.length()").value(0));
 

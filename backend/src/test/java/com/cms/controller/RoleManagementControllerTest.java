@@ -77,7 +77,7 @@ class RoleManagementControllerTest {
 
     @Test
     void shouldListAssignableRoles() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(buildAdminUser()));
+        when(appUserRepository.findByKeycloakUsernameWithRole("admin")).thenReturn(Optional.of(buildAdminUser()));
         when(appRoleService.findAssignableRoles(3)).thenReturn(
             List.of(buildRoleResponse(2L, "FACULTY", 5), buildRoleResponse(3L, "STUDENT", 6)));
 
@@ -91,7 +91,7 @@ class RoleManagementControllerTest {
 
     @Test
     void shouldReturn404WhenUserNotFoundOnList() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("ghost"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("ghost"))
             .thenThrow(new ResourceNotFoundException("No app user record found for username: ghost"));
 
         mockMvc.perform(get("/role-management")
@@ -122,7 +122,7 @@ class RoleManagementControllerTest {
 
     @Test
     void shouldCreateRole() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(buildAdminUser()));
+        when(appUserRepository.findByKeycloakUsernameWithRole("admin")).thenReturn(Optional.of(buildAdminUser()));
 
         AppRoleRequest request = new AppRoleRequest("CUSTOM", "Custom Role", "A custom role", List.of(), List.of());
         AppRoleResponse created = buildRoleResponse(10L, "CUSTOM", 4);
@@ -152,7 +152,7 @@ class RoleManagementControllerTest {
 
     @Test
     void shouldUpdatePermissions() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(buildAdminUser()));
+        when(appUserRepository.findByKeycloakUsernameWithRole("admin")).thenReturn(Optional.of(buildAdminUser()));
         when(userPermissionService.getPermissions("admin")).thenReturn(java.util.Set.of("USER_VIEW"));
         AppRoleResponse updated = buildRoleResponse(5L, "FACULTY", 5);
         when(appRoleService.updatePermissions(anyLong(), anyList(), anySet(), anyString(), anyInt()))
@@ -168,7 +168,7 @@ class RoleManagementControllerTest {
 
     @Test
     void shouldUpdateDashboardWidgets() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(buildAdminUser()));
+        when(appUserRepository.findByKeycloakUsernameWithRole("admin")).thenReturn(Optional.of(buildAdminUser()));
         AppRoleResponse updated = buildRoleResponse(5L, "FACULTY", 5);
         when(appRoleService.updateDashboardWidgetConfigs(anyLong(), anyList(), anyString(), anyInt()))
             .thenReturn(updated);

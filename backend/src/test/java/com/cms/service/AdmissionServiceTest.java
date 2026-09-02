@@ -15,7 +15,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -92,6 +91,7 @@ class AdmissionServiceTest {
 
     private Student createStudent(Long id) {
         Course course = new Course("BSc Nursing", "BSCN", null, null);
+        course.setId(1L);
         course.setRollNumberCode("65");
         Student student = new Student("ROLL001", "John", "Doe", "john@example.com",
             null, 1, LocalDate.of(2024, 1, 1), StudentStatus.ACTIVE);
@@ -109,52 +109,14 @@ class AdmissionServiceTest {
     }
 
     @Test
-    void shouldCreateAdmission() {
+    void shouldBlockDirectAdmissionCreation() {
         AdmissionRequest request = new AdmissionRequest(
             1L, 100L, LocalDate.of(2024, 1, 15), "Chennai", null, true, true
         );
-        Student student = createStudent(1L);
-        Admission saved = createAdmission(1L, student);
-
-        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
-        when(admissionRepository.save(any(Admission.class))).thenReturn(saved);
-
-        AdmissionResponse response = admissionService.create(request);
-
-        assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.studentId()).isEqualTo(1L);
-
-        ArgumentCaptor<Admission> captor = ArgumentCaptor.forClass(Admission.class);
-        verify(admissionRepository).save(captor.capture());
-        assertThat(captor.getValue().getStudent().getId()).isEqualTo(1L);
-    }
-
-    @Test
-    void shouldCreateAdmissionWithDefaultDraftStatusWhenStatusIsNull() {
-        AdmissionRequest request = new AdmissionRequest(
-            1L, 100L, LocalDate.of(2024, 1, 15), null, null, null, null
-        );
-        Student student = createStudent(1L);
-        Admission saved = createAdmission(1L, student);
-
-        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
-        when(admissionRepository.save(any(Admission.class))).thenReturn(saved);
-
-        AdmissionResponse response = admissionService.create(request);
-        assertThat(response).isNotNull();
-        verify(admissionRepository).save(any(Admission.class));
-    }
-
-    @Test
-    void shouldThrowExceptionWhenStudentNotFoundOnCreate() {
-        AdmissionRequest request = new AdmissionRequest(
-            999L, 100L, LocalDate.of(2024, 1, 15), null, null, null, null
-        );
-        when(studentRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> admissionService.create(request))
-            .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Student not found with id: 999");
+            .isInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Admissions cannot be created directly. Use the enquiry conversion flow instead.");
         verify(admissionRepository, never()).save(any());
     }
 
@@ -162,18 +124,18 @@ class AdmissionServiceTest {
     void shouldFindAllAdmissions() {
         Student student = createStudent(1L);
         Admission admission = createAdmission(1L, student);
-        when(admissionRepository.findAll()).thenReturn(List.of(admission));
+        when(admissionRepository.findAllWithRelations()).thenReturn(List.of(admission));
 
         List<AdmissionResponse> responses = admissionService.findAll();
 
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).id()).isEqualTo(1L);
-        verify(admissionRepository).findAll();
+        verify(admissionRepository).findAllWithRelations();
     }
 
     @Test
     void shouldReturnEmptyListWhenNoAdmissions() {
-        when(admissionRepository.findAll()).thenReturn(List.of());
+        when(admissionRepository.findAllWithRelations()).thenReturn(List.of());
         List<AdmissionResponse> responses = admissionService.findAll();
         assertThat(responses).isEmpty();
     }

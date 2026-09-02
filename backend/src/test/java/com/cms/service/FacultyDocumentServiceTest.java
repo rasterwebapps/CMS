@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +49,9 @@ class FacultyDocumentServiceTest {
 
     @Mock
     private CurrentUserResolver currentUserResolver;
+
+    @Mock
+    private StorageService storageService;
 
     @InjectMocks
     private FacultyDocumentService service;
@@ -157,7 +161,7 @@ class FacultyDocumentServiceTest {
 
     @Test
     void deleteDocumentShouldThrowWhenMissing() {
-        when(documentRepository.existsById(123L)).thenReturn(false);
+        when(documentRepository.findById(123L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.deleteDocument(123L))
             .isInstanceOf(ResourceNotFoundException.class)
@@ -207,7 +211,7 @@ class FacultyDocumentServiceTest {
         assertThat(out.uploadedAt()).isNotNull();
         assertThat(out.hasFile()).isTrue();
 
-        verify(documentRepository).save(any(FacultyDocument.class));
+        verify(documentRepository, times(2)).save(any(FacultyDocument.class));
     }
 
     @Test
@@ -285,7 +289,7 @@ class FacultyDocumentServiceTest {
         assertThat(out.status()).isEqualTo(DocumentVerificationStatus.UPLOADED);
         assertThat(out.hasFile()).isTrue();
 
-        verify(documentRepository).save(eq(existing));
+        verify(documentRepository, times(2)).save(eq(existing));
     }
 
     @Test

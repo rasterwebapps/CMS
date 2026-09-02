@@ -62,6 +62,18 @@ class AdmissionControllerTest {
     @MockitoBean
     private AdmissionDocumentService admissionDocumentService;
 
+    @MockitoBean
+    private com.cms.service.AdmissionExportService admissionExportService;
+
+    @MockitoBean
+    private com.cms.repository.ProgramRepository programRepository;
+
+    @MockitoBean
+    private com.cms.repository.CourseRepository courseRepository;
+
+    @MockitoBean
+    private com.cms.repository.AcademicYearRepository academicYearRepository;
+
     private AdmissionResponse createAdmissionResponse(Long id) {
         return new AdmissionResponse(
             id, 1L, "John Doe", "ADM-2425-0001", "CS001", "Computer Science", null, 1, false, "ACTIVE",

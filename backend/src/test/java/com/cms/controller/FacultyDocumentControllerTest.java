@@ -143,7 +143,7 @@ class FacultyDocumentControllerTest {
             "scan.pdf", MediaType.APPLICATION_PDF_VALUE, 11L, now, true
         );
 
-        when(documentService.uploadFile(eq(10L), eq(DocumentType.PAN_CARD), eq("note"), any()))
+        when(documentService.uploadFile(eq(10L), eq(DocumentType.PAN_CARD), eq("note"), any(), eq(false)))
             .thenReturn(response);
 
         mockMvc.perform(multipart("/faculty/10/documents/upload")
@@ -156,7 +156,7 @@ class FacultyDocumentControllerTest {
             .andExpect(jsonPath("$.hasFile").value(true))
             .andExpect(jsonPath("$.status").value("UPLOADED"));
 
-        verify(documentService).uploadFile(eq(10L), eq(DocumentType.PAN_CARD), eq("note"), any());
+        verify(documentService).uploadFile(eq(10L), eq(DocumentType.PAN_CARD), eq("note"), any(), eq(false));
     }
 
     @Test

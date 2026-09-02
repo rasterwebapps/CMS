@@ -143,8 +143,13 @@ class SemesterResultServiceImplTest {
     }
 
     private Cohort createCohort(Long id, Program program, AcademicYear ay) {
+        com.cms.model.Course course = new com.cms.model.Course(program.getName() + " Course",
+            program.getCode() + "-C", null, program);
+        course.setId(id);
+
         Cohort c = new Cohort();
         c.setId(id);
+        c.setCourse(course);
         c.setAdmissionAcademicYear(ay);
         c.setCohortCode("BCA-2024-2027");
         c.setDisplayName("BCA (2024-2027)");

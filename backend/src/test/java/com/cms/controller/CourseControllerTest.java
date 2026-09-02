@@ -48,7 +48,7 @@ class CourseControllerTest {
     @Test
     void shouldCreateCourse() throws Exception {
         CourseRequest request = new CourseRequest(
-            "B.Sc. Nursing", "BSN", "General", null, 1L, null
+            "B.Sc. Nursing", "BSN", "General", "BN", 1L, null
         );
 
         Instant now = Instant.now();
@@ -214,7 +214,7 @@ class CourseControllerTest {
     @Test
     void shouldUpdateCourse() throws Exception {
         CourseRequest request = new CourseRequest(
-            "B.Sc. Nursing Updated", "BSNU", "Updated Specialization", null, 1L, null
+            "B.Sc. Nursing Updated", "BSNU", "Updated Specialization", "BN", 1L, null
         );
 
         Instant now = Instant.now();

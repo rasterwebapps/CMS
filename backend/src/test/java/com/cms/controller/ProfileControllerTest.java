@@ -40,6 +40,9 @@ class ProfileControllerTest {
     @MockitoBean
     private ProfileService profileService;
 
+    @MockitoBean
+    private com.cms.service.ProfileDocumentService profileDocumentService;
+
     @Test
     void getMyProfileReturnsIdentity() throws Exception {
         when(profileService.resolveCurrentUser()).thenReturn(

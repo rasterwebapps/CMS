@@ -76,7 +76,7 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().status()).isEqualTo(409);
-        assertThat(response.getBody().message()).isEqualTo("A record with the same name or code already exists.");
+        assertThat(response.getBody().message()).isEqualTo("A record with the same value already exists. Please check for duplicates and try again.");
         assertThat(response.getBody().timestamp()).isNotNull();
     }
 

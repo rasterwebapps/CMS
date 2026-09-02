@@ -66,7 +66,7 @@ class UserDashboardConfigControllerTest {
         testUser.setKeycloakUsername("testuser");
         testUser.setAppRole(role);
 
-        when(appUserRepository.findByKeycloakUsername("testuser"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("testuser"))
             .thenReturn(Optional.of(testUser));
     }
 
@@ -101,7 +101,7 @@ class UserDashboardConfigControllerTest {
 
     @Test
     void getConfigReturns404WhenUserNotFound() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("ghost"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("ghost"))
             .thenReturn(Optional.empty());
 
         mockMvc.perform(get("/dashboard/config")
@@ -159,7 +159,7 @@ class UserDashboardConfigControllerTest {
 
     @Test
     void resetConfigReturns404WhenUserNotFound() throws Exception {
-        when(appUserRepository.findByKeycloakUsername("ghost"))
+        when(appUserRepository.findByKeycloakUsernameWithRole("ghost"))
             .thenReturn(Optional.empty());
 
         mockMvc.perform(delete("/dashboard/config")
