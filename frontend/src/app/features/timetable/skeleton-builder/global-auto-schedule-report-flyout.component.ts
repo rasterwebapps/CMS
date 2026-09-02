@@ -316,12 +316,12 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
   private capacityGapChecklistLabel(overview: FacultyWorkloadOverviewReport): string {
     const gap = overview.totalCurriculumRequiredHours - overview.totalFacultyCapacityHours;
     if (gap <= 0.001) {
-      return 'Total faculty capacity covers this term’s full curriculum demand';
+      return 'Total faculty capacity covers this term’s full curriculum demand (all cohorts)';
     }
     const staffNote = overview.recommendedAdditionalFacultyCount > 0
       ? ` — roughly ${overview.recommendedAdditionalFacultyCount} more faculty at the standard cap`
       : '';
-    return `This term needs ${gap.toFixed(0)}h more faculty capacity than currently exists${staffNote}`;
+    return `This term needs ${gap.toFixed(0)}h more faculty capacity than currently exists, across all cohorts${staffNote}`;
   }
 
   private checkRoomCommitStatus(prereq: GlobalAutoSchedulePrerequisites): void {
@@ -440,7 +440,7 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
         key: 'capacity-gap',
         label: this.capacityOverview() != null
           ? this.capacityGapChecklistLabel(this.capacityOverview()!)
-          : 'Checking term-wide capacity…',
+          : 'Checking capacity across all cohorts this term…',
         // Soft warn, like tight-capacity: a structural shortfall doesn't mean nothing should run —
         // this run will still place and staff whatever the faculty pool can actually cover, exactly
         // like every other partial run. It's a prompt to consider raising hours/Saturdays before

@@ -155,8 +155,9 @@
                       @if (capacityOverview(); as o) {
                         <div class="gas-faculty-card" [class.gas-faculty-card--tight]="hasCapacityGap()">
                           <div class="gas-faculty-card__stat">
-                            This term's curriculum needs {{ o.totalCurriculumRequiredHours | number: '1.0-0' }}h total —
-                            the faculty pool's combined term capacity is {{ o.totalFacultyCapacityHours | number: '1.0-0' }}h.
+                            Across every cohort in this term, the curriculum needs {{ o.totalCurriculumRequiredHours | number: '1.0-0' }}h total —
+                            the faculty pool's combined term capacity is {{ o.totalFacultyCapacityHours | number: '1.0-0' }}h. Faculty are shared
+                            across cohorts, so this check is always term-wide, not limited to the cohort you're viewing.
                             @if (hasCapacityGap()) {
                               That's short by {{ capacityGapHours() | number: '1.0-0' }}h, structurally — no amount of
                               rescheduling closes this on its own.
