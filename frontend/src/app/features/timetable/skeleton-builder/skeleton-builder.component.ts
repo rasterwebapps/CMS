@@ -12,7 +12,7 @@ import { AcademicYear, CohortSummary, TermInstance } from '../../academic-year/a
 import { PeriodService } from '../../period/period.service';
 import { Period } from '../../period/period.model';
 import { SkeletonBuilderService } from './skeleton-builder.service';
-import { SkeletonBuilderResponse, SkeletonCell, SkeletonCellPlacementRequest, SkeletonSessionType, SkeletonSlotPreview, SkeletonSubject } from './skeleton-builder.model';
+import { ClinicalShiftWindow, SkeletonBuilderResponse, SkeletonCell, SkeletonCellPlacementRequest, SkeletonSessionType, SkeletonSlotPreview, SkeletonSubject } from './skeleton-builder.model';
 import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/week-grid.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
@@ -36,6 +36,11 @@ function hoursBetween(startTime: string, endTime: string): number {
   };
   return (toMinutes(endTime) - toMinutes(startTime)) / 60;
 }
+
+/** One cell in a Skeleton Builder day-row — see {@link SkeletonBuilderComponent#rowSegments}. */
+type SkeletonRowSegment =
+  | { kind: 'period'; key: string; period: Period }
+  | { kind: 'shift'; key: string; span: number; window: ClinicalShiftWindow };
 
 interface HoursBreakdown {
   total: number;
@@ -127,6 +132,70 @@ export class SkeletonBuilderComponent implements OnInit {
    *  reports the same term-wide fact back per cohort on the backend instead (see {@code
    *  skippedPublishedCohorts} in the run result). */
   protected readonly termTimetablePublished = computed(() => this.skeleton()?.termTimetablePublished ?? false);
+
+  /** This cohort's active Clinical Shift windows, grouped by day — empty for every cohort whose
+   *  Program hasn't opted into Clinical Shift scheduling (see {@link SkeletonBuilderResponse#clinicalShiftWindows}). */
+  protected readonly shiftWindowsByDay = computed<Map<string, ClinicalShiftWindow[]>>(() => {
+    const map = new Map<string, ClinicalShiftWindow[]>();
+    for (const w of this.skeleton()?.clinicalShiftWindows ?? []) {
+      const bucket = map.get(w.dayOfWeek);
+      if (bucket) bucket.push(w); else map.set(w.dayOfWeek, [w]);
+    }
+    return map;
+  });
+
+  /** The Clinical Shift window (if any) overlapping this exact (day, period) cell's clock time.
+   *  Drives {@link rowSegments}: a run of consecutive periods blocked by the same shift renders as
+   *  one merged, non-placeable cell spanning exactly those columns (never a placement target, no
+   *  cdkDropList) instead of each period rendering individually — so the shift visibly occupies the
+   *  real grid space it actually blocks (e.g. through Period 5) rather than sitting off to the side
+   *  in a separate summary column. The actual placement block is already enforced server-side (see
+   *  `checkClinicalShiftBlocked`), so a false negative here (e.g. a not-yet-configured offering)
+   *  never lets an illegal placement through, it just doesn't render the merged block until the
+   *  offering's shift duration/buffer is filled in. */
+  protected shiftWindowFor(day: string, period: Period): ClinicalShiftWindow | null {
+    return (this.shiftWindowsByDay().get(day) ?? [])
+      .find((w) => w.busDepart != null && w.busReturn != null && period.startTime < w.busReturn && w.busDepart < period.endTime)
+      ?? null;
+  }
+
+  /** One day's row, left to right: real Periods not blocked by a Clinical Shift render individually
+   *  (`kind: 'period'`, unchanged placement behavior); a run of consecutive Periods blocked by the
+   *  SAME shift window (by `shiftGroupId`) collapses into one `kind: 'shift'` segment spanning that
+   *  many columns, so e.g. a shift blocking Periods 1–5 renders as a single merged cell with
+   *  `span: 5` rather than five separately-shaded ones. */
+  protected rowSegments(day: string): SkeletonRowSegment[] {
+    const periods = this.periods();
+    const segments: SkeletonRowSegment[] = [];
+    let i = 0;
+    while (i < periods.length) {
+      const window = this.shiftWindowFor(day, periods[i]);
+      if (!window) {
+        segments.push({ kind: 'period', key: `period-${periods[i].id}`, period: periods[i] });
+        i++;
+        continue;
+      }
+      let span = 1;
+      while (i + span < periods.length && this.shiftWindowFor(day, periods[i + span])?.shiftGroupId === window.shiftGroupId) {
+        span++;
+      }
+      segments.push({ kind: 'shift', key: `shift-${window.shiftGroupId}-${day}`, span, window });
+      i += span;
+    }
+    return segments;
+  }
+
+  /** Total clinical duty duration (clinicalStart–clinicalEnd only, excluding bus travel) as a
+   *  compact label like "8h" or "8h 30m". Null when the offering's shift duration isn't configured
+   *  yet (clinicalEnd unset) or resolves to zero/negative. */
+  protected shiftDurationLabel(w: ClinicalShiftWindow): string | null {
+    if (!w.clinicalEnd) return null;
+    const hours = hoursBetween(w.clinicalStart, w.clinicalEnd);
+    if (hours <= 0) return null;
+    const wholeHours = Math.floor(hours);
+    const mins = Math.round((hours - wholeHours) * 60);
+    return mins === 0 ? `${wholeHours}h` : `${wholeHours}h ${mins}m`;
+  }
 
   /** 'ALL' (default) shows every section combined, matching pre-existing behavior. A cohort with
    *  more than one committed Theory section otherwise renders every section's cells stacked into
