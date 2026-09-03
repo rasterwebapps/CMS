@@ -35,10 +35,6 @@ import {
   ClassInchargeDialogData,
 } from './class-incharge-dialog/class-incharge-dialog.component';
 import {
-  ClinicalShiftConfigDialogComponent,
-  ClinicalShiftConfigDialogData,
-} from '../course-offering/clinical-shift-config-dialog/clinical-shift-config-dialog.component';
-import {
   ClinicalShiftGroupDialogComponent,
   ClinicalShiftGroupDialogData,
 } from '../course-offering/clinical-shift-group-dialog/clinical-shift-group-dialog.component';
@@ -254,21 +250,16 @@ export class AssignFacultyListComponent implements OnInit {
     this.dialog.open(BatchManageDialogComponent, { data, width: '560px' });
   }
 
-  /** OC-175: configurable off-campus clinical shift duration + travel buffer, set once per
-   *  offering before any Clinical Shift Group can be created for it. */
-  protected manageClinicalShiftConfig(row: CourseOffering): void {
-    const data: ClinicalShiftConfigDialogData = { offering: row };
-    this.dialog.open(ClinicalShiftConfigDialogComponent, { data, width: '440px' })
-      .afterClosed().subscribe((updated: CourseOffering | undefined) => {
-        if (updated && this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId);
-      });
-  }
-
-  /** OC-175: manage recurring off-campus clinical shift windows for this offering -- several
-   *  clinical Batches (different venues) sharing one shift + shared reconvened theory block. */
+  /** OC-175, merged with the former standalone "Clinical Shift Config" dialog per OC-187: manage
+   *  recurring off-campus clinical shift windows for this offering -- several clinical Batches
+   *  (different venues) sharing one shift + shared reconvened theory block. Duration/buffer are
+   *  configured inline, the first time they're needed, right inside this same dialog. */
   protected manageClinicalShiftGroups(row: CourseOffering): void {
     const data: ClinicalShiftGroupDialogData = { offering: row };
-    this.dialog.open(ClinicalShiftGroupDialogComponent, { data, width: '620px' });
+    this.dialog.open(ClinicalShiftGroupDialogComponent, { data, width: '620px' })
+      .afterClosed().subscribe(() => {
+        if (this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId);
+      });
   }
 
   /** Class Incharge isn't tied to any one subject/offering, so it's a standalone term-wide action

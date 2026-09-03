@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CourseOffering } from '../../academic-year/academic-year.model';
+import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { Batch } from '../../batch/batch.model';
 import { BatchService } from '../../batch/batch.service';
 import {
@@ -23,11 +24,12 @@ export interface ClinicalShiftGroupDialogData {
 
 const DAYS: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 
-/** Admin setup for OC-175 Piece 2: a recurring off-campus clinical shift window spanning several
- *  clinical Batches (different venues) + one shared, reconvened theory class. Requires the
- *  offering's clinical shift duration to already be configured (see Assign Faculty's per-offering
- *  "Clinical Shift Config" action) -- the clinical block's end time is derived from that, not set
- *  here per group. */
+/** Admin setup for OC-175 Piece 2 (merged with the former standalone "Clinical Shift Config"
+ *  dialog per OC-187): a recurring off-campus clinical shift window spanning several clinical
+ *  Batches (different venues) + one shared, reconvened theory class. The offering's clinical shift
+ *  duration + buffer (each group's clinical block end time is derived from that, not set per
+ *  group) is configured inline, right here, the first time it's needed -- no separate dialog to
+ *  visit first. */
 @Component({
   selector: 'app-clinical-shift-group-dialog',
   standalone: true,
@@ -41,6 +43,7 @@ export class ClinicalShiftGroupDialogComponent {
   protected readonly data: ClinicalShiftGroupDialogData = inject(MAT_DIALOG_DATA);
   private readonly shiftGroupService = inject(ClinicalShiftGroupService);
   private readonly batchService = inject(BatchService);
+  private readonly academicYearService = inject(AcademicYearService);
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
 
@@ -57,7 +60,17 @@ export class ClinicalShiftGroupDialogComponent {
     clinicalStartTime: ['07:00', Validators.required],
   });
 
-  protected readonly configured = this.data.offering.clinicalShiftDurationMinutes != null;
+  /** Duration + buffer, inline (OC-187) -- shown automatically the first time (nothing configured
+   *  yet) and toggle-able afterward via {@link toggleConfigForm} to adjust it without leaving this
+   *  dialog. Mirrors the retired standalone "Clinical Shift Config" dialog's form 1:1. */
+  protected readonly configured = signal(this.data.offering.clinicalShiftDurationMinutes != null);
+  protected readonly showConfigForm = signal(!this.configured());
+  protected readonly savingConfig = signal(false);
+  protected readonly configForm: FormGroup = this.fb.group({
+    clinicalShiftDurationMinutes: [this.data.offering.clinicalShiftDurationMinutes, [Validators.min(1)]],
+    clinicalTravelBufferMinutes: [this.data.offering.clinicalTravelBufferMinutes, [Validators.min(0)]],
+  });
+
   protected readonly editingBlocksGroupId = signal<number | null>(null);
   protected readonly blockDrafts = signal<{ startTime: string; endTime: string }[]>([]);
   protected readonly generateDate = signal<Record<number, string>>({});
@@ -78,6 +91,39 @@ export class ClinicalShiftGroupDialogComponent {
         });
       },
       error: () => { this.toast.error('Failed to load clinical shift groups'); this.loading.set(false); },
+    });
+  }
+
+  protected toggleConfigForm(): void {
+    if (!this.showConfigForm()) {
+      this.configForm.reset({
+        clinicalShiftDurationMinutes: this.data.offering.clinicalShiftDurationMinutes,
+        clinicalTravelBufferMinutes: this.data.offering.clinicalTravelBufferMinutes,
+      });
+    }
+    this.showConfigForm.set(!this.showConfigForm());
+  }
+
+  protected submitConfig(): void {
+    if (this.configForm.invalid) return;
+    this.savingConfig.set(true);
+    this.academicYearService.updateClinicalShiftConfig(this.data.offering.id, {
+      clinicalShiftDurationMinutes: this.configForm.value.clinicalShiftDurationMinutes ?? null,
+      clinicalTravelBufferMinutes: this.configForm.value.clinicalTravelBufferMinutes ?? null,
+    }).subscribe({
+      next: (updated) => {
+        this.data.offering.clinicalShiftDurationMinutes = updated.clinicalShiftDurationMinutes;
+        this.data.offering.clinicalTravelBufferMinutes = updated.clinicalTravelBufferMinutes;
+        this.configured.set(updated.clinicalShiftDurationMinutes != null);
+        this.showConfigForm.set(false);
+        this.savingConfig.set(false);
+        this.toast.success('Clinical shift timing saved');
+        this.load();
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to save clinical shift timing');
+        this.savingConfig.set(false);
+      },
     });
   }
 

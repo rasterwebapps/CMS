@@ -3,23 +3,80 @@
     <mat-icon>local_hospital</mat-icon>
   </div>
   <div>
-    <h2 class="csg-dialog-title-bar__heading">Manage Clinical Shift Groups</h2>
+    <h2 class="csg-dialog-title-bar__heading">Manage Clinical Shift</h2>
     <p class="csg-dialog-title-bar__sub">{{ data.offering.subjectCode }} · {{ data.offering.subjectName }} — Semester {{ data.offering.termNumber }}</p>
   </div>
 </div>
 
 <mat-dialog-content>
-  @if (!configured) {
-    <p class="csg-empty">
-      <mat-icon>warning</mat-icon>
-      This offering has no clinical shift duration configured yet — set it from the offering row's
-      "Clinical Shift Config" action before creating a shift group.
+  @if (configured() && !showConfigForm()) {
+    <p class="csg-config-summary">
+      <mat-icon>schedule</mat-icon>
+      <span>
+        Clinical Shift Duration: {{ data.offering.clinicalShiftDurationMinutes }}m
+        @if (data.offering.clinicalTravelBufferMinutes != null) {
+          · Buffer: {{ data.offering.clinicalTravelBufferMinutes }}m each way
+        }
+      </span>
+      <button class="csg-config-summary__edit" type="button" (click)="toggleConfigForm()">Edit</button>
     </p>
-  } @else if (loading()) {
-    <div class="csg-loading">
-      <mat-spinner diameter="32"></mat-spinner>
-    </div>
-  } @else {
+  }
+
+  @if (showConfigForm()) {
+    <form [formGroup]="configForm" class="csg-form csg-config-form">
+      <div class="field-group">
+        <span class="field-label">Subject's Required Clinical Hours (per week)</span>
+        <input type="text" class="field-input" [value]="data.offering.clinicalHours + 'h'" disabled readonly />
+        <p class="field-hint">
+          Set in Curriculum Map, not here — read-only. This is the total weekly clinical hours the
+          auto-scheduler must deliver for this offering, on-campus or off-campus combined.
+        </p>
+      </div>
+      <div class="field-group">
+        <span class="field-label">Subject's Clinical Session Length (consecutive periods)</span>
+        <input type="text" class="field-input" [value]="data.offering.clinicalSessionBlockPeriods + ' periods'" disabled readonly />
+        <p class="field-hint">
+          Set in Subject Master, not here — read-only. Clinical Shift Duration below can be set equal to
+          or longer than this, never shorter.
+        </p>
+      </div>
+      <div class="field-group">
+        <label for="csg-duration" class="field-label">Clinical Shift Duration (minutes)</label>
+        <input id="csg-duration" type="number" class="field-input" formControlName="clinicalShiftDurationMinutes"
+          placeholder="e.g. 360 for 6h, 480 for 8h" min="1" />
+      </div>
+      <div class="field-group">
+        <label for="csg-buffer" class="field-label">Buffer (minutes, each way)</label>
+        <input id="csg-buffer" type="number" class="field-input" formControlName="clinicalTravelBufferMinutes"
+          placeholder="e.g. 30" min="0" />
+      </div>
+      <p class="csg-hint">
+        <mat-icon>info</mat-icon>
+        A shift may run longer than the Subject's session length above (e.g. an 8h hospital posting
+        for a subject with a 6-period/6h nominal session) — those extra hours are simply credited
+        against the weekly requirement too — but it can never be set shorter, since that would
+        under-deliver the Subject's own declared minimum.
+      </p>
+      <div class="csg-form-actions">
+        @if (configured()) {
+          <button class="btn-secondary" type="button" (click)="toggleConfigForm()">Cancel</button>
+        }
+        <button class="btn-primary" type="button" (click)="submitConfig()" [disabled]="savingConfig() || configForm.invalid">
+          @if (savingConfig()) {
+            <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+          }
+          Save
+        </button>
+      </div>
+    </form>
+  }
+
+  @if (configured() && !showConfigForm()) {
+    @if (loading()) {
+      <div class="csg-loading">
+        <mat-spinner diameter="32"></mat-spinner>
+      </div>
+    } @else {
     @if (groups().length === 0) {
       <p class="csg-empty">No clinical shift groups yet for this offering.</p>
     } @else {
@@ -33,7 +90,7 @@
                 <span class="csg-group-item__times">
                   Clinical {{ group.clinicalStartTime }}–{{ group.clinicalEndTime }}
                   @if (group.busDepartTime) {
-                    (bus {{ group.busDepartTime }}–{{ group.busReturnTime }})
+                    (incl. buffer, {{ group.busDepartTime }}–{{ group.busReturnTime }})
                   }
                 </span>
               </div>
@@ -168,6 +225,7 @@
       <button class="btn-secondary csg-add-btn" type="button" (click)="startAdd()">
         <mat-icon>add</mat-icon> New Shift Group
       </button>
+    }
     }
   }
 </mat-dialog-content>

@@ -224,14 +224,14 @@
                   @if (seg.kind === 'shift') {
                     <td class="skeleton-grid__cell skeleton-grid__cell--shift" [attr.colspan]="seg.span">
                       <div class="skeleton-shift-block skeleton-shift-block--wide"
-                        [title]="seg.window.label + (seg.window.busDepart && seg.window.busReturn ? ' — bus ' + seg.window.busDepart + '–' + seg.window.busReturn + ' incl. travel' : '')">
+                        [title]="seg.window.label + (seg.window.busDepart && seg.window.busReturn ? ' — ' + seg.window.busDepart + '–' + seg.window.busReturn + ' incl. buffer' : '')">
                         <span class="skeleton-shift-block__label">{{ seg.window.label }}</span>
                         <span class="skeleton-shift-block__duty">{{ seg.window.clinicalStart }}{{ seg.window.clinicalEnd ? '–' + seg.window.clinicalEnd : '' }}</span>
                         @if (shiftDurationLabel(seg.window); as dur) {
                           <span class="skeleton-shift-block__duration">{{ dur }} duty</span>
                         }
                         @if (seg.window.busDepart && seg.window.busReturn) {
-                          <span class="skeleton-shift-block__bus">Bus {{ seg.window.busDepart }}–{{ seg.window.busReturn }}</span>
+                          <span class="skeleton-shift-block__bus">Buffer {{ seg.window.busDepart }}–{{ seg.window.busReturn }}</span>
                         }
                       </div>
                     </td>
