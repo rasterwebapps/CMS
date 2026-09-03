@@ -15,7 +15,12 @@
     </div>
   } @else {
     @if (batches().length === 0) {
-      <p class="bmd-empty">No batches yet for this offering.</p>
+      <p class="bmd-empty">
+        <mat-icon>info</mat-icon>
+        No batches yet for this offering. Batches (with a real Lab/Clinical venue) are created in
+        <strong>Academics → Capacity Auto-Plan</strong> — commit a room allocation for this offering's
+        cohort there, then come back here to assign a coordinator or manage rosters.
+      </p>
     } @else {
       <ul class="bmd-batch-list">
         @for (batch of batches(); track batch.id) {
@@ -101,14 +106,10 @@
             @if (saving()) {
               <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
             }
-            {{ editingBatchId() ? 'Save' : 'Create' }}
+            Save
           </button>
         </div>
       </form>
-    } @else {
-      <button class="btn-secondary bmd-add-btn" type="button" (click)="startAdd()">
-        <mat-icon>add</mat-icon> New Batch
-      </button>
     }
   }
 </mat-dialog-content>

@@ -44,6 +44,12 @@ export class BatchManageDialogComponent {
    *  blocks a genuine same-time double-booking once schedules are actually placed. */
   protected readonly eligibleFaculty = signal<EligibleFacultyCandidate[]>([]);
 
+  /** Edit-only (OC-191) -- name/capacity/coordinator for a batch Capacity Auto-Plan already
+   *  created with a real Lab/Clinical venue attached. Manual batch *creation* was removed: it
+   *  produced a permanently venue-less batch (no UI path ever attaches one after the fact), which
+   *  the auto-scheduler can't tell is meant to be Lab or Clinical and can never assign a real room
+   *  to -- a scheduling dead end. Batches must originate from committing a room allocation in
+   *  Capacity Auto-Plan. */
   protected readonly form: FormGroup = this.fb.group({
     name: ['', Validators.required],
     capacity: [20, [Validators.required, Validators.min(1)]],
@@ -71,12 +77,6 @@ export class BatchManageDialogComponent {
     });
   }
 
-  protected startAdd(): void {
-    this.editingBatchId.set(null);
-    this.form.reset({ name: '', capacity: 20, coordinatorFacultyId: null });
-    this.showForm.set(true);
-  }
-
   protected startEdit(batch: Batch): void {
     this.editingBatchId.set(batch.id);
     this.form.reset({
@@ -93,7 +93,8 @@ export class BatchManageDialogComponent {
   }
 
   protected submitBatch(): void {
-    if (this.form.invalid) return;
+    const editingId = this.editingBatchId();
+    if (this.form.invalid || editingId == null) return;
     const v = this.form.value;
     const request: BatchRequest = {
       courseOfferingId: this.data.offering.id,
@@ -102,11 +103,9 @@ export class BatchManageDialogComponent {
       coordinatorFacultyId: v.coordinatorFacultyId ?? null,
     };
     this.saving.set(true);
-    const editingId = this.editingBatchId();
-    const call = editingId ? this.batchService.update(editingId, request) : this.batchService.create(request);
-    call.subscribe({
+    this.batchService.update(editingId, request).subscribe({
       next: () => {
-        this.toast.success(editingId ? 'Batch updated' : 'Batch created');
+        this.toast.success('Batch updated');
         this.saving.set(false);
         this.showForm.set(false);
         this.editingBatchId.set(null);
