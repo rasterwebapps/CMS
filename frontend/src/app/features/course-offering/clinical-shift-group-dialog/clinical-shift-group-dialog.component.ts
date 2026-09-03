@@ -127,11 +127,15 @@ export class ClinicalShiftGroupDialogComponent {
     });
   }
 
-  /** Batches with a clinical venue that aren't already linked to this specific group -- the
-   *  candidate pool for that group's "Link Batch" picker. */
+  /** Batches with a clinical venue that aren't already linked to ANY shift group -- the candidate
+   *  pool for this group's "Link Batch" picker. Excludes batches linked to a *different* sibling
+   *  group too (not just this one), matching the backend's own guard in {@code linkBatch} --
+   *  otherwise a batch already claimed by another group would still appear pickable here and
+   *  silently get stolen away from it. */
   protected linkableBatches(group: ClinicalShiftGroup): Batch[] {
     const linkedIds = new Set(group.batches.map((b) => b.batchId));
-    return this.allBatches().filter((b) => b.clinicalVenueId != null && !linkedIds.has(b.id));
+    return this.allBatches().filter((b) =>
+      b.clinicalVenueId != null && !linkedIds.has(b.id) && b.clinicalShiftGroupId == null);
   }
 
   protected startAdd(): void {

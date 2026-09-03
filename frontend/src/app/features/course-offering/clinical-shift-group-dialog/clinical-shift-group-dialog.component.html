@@ -102,6 +102,11 @@
 
             <div class="csg-batches">
               <span class="csg-section-label">Linked clinical batches (different venues, same shift)</span>
+              <p class="csg-empty csg-empty--tight">
+                Linking a batch here puts its students on this shift's schedule (bus buffer + grid-blocking),
+                into the shared reconvened theory block below, and makes it eligible for Escort Rotation setup.
+                A batch can only be linked to one shift group at a time.
+              </p>
               @if (group.batches.length === 0) {
                 <p class="csg-empty csg-empty--tight">No batches linked yet.</p>
               } @else {

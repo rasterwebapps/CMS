@@ -165,6 +165,11 @@ public class ClinicalShiftGroupService {
                 "Batch " + batchId + " has no clinical venue assigned yet -- shift groups are for off-campus "
                     + "clinical batches only, assign a Clinical venue before linking it to a shift");
         }
+        if (batch.getClinicalShiftGroup() != null && !batch.getClinicalShiftGroup().getId().equals(shiftGroupId)) {
+            throw new IllegalStateException(
+                "Batch " + batchId + " is already linked to shift group " + batch.getClinicalShiftGroup().getId()
+                    + " -- unlink it there first before linking it to a different shift group");
+        }
         batch.setClinicalShiftGroup(group);
         batchRepository.save(batch);
     }

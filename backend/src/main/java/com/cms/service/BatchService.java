@@ -78,9 +78,17 @@ public class BatchService {
         batchRepository.save(batch);
     }
 
+    /** Active batches only — a reverted {@link com.cms.model.CohortRoomAllocation} leaves its
+     *  batches behind deactivated (never deleted, for roster-history reasons) rather than
+     *  reactivating on a later re-commit ({@code createVentureBatch} always inserts a fresh row),
+     *  so a cohort that's had its room allocation reverted and recommitted a few times accumulates
+     *  several stale, inactive, same-named rows. Nothing in the product ever reactivates a batch —
+     *  every consumer of this list (Batch management, Clinical Shift Group batch-linking, Escort
+     *  Rotation setup, Lab Schedule) is a picker that only ever wants the live ones. */
     public List<BatchDto> getBatchesForOffering(Long courseOfferingId) {
         return batchRepository.findByCourseOfferingId(courseOfferingId)
             .stream()
+            .filter(b -> Boolean.TRUE.equals(b.getIsActive()))
             .map(this::toDto)
             .toList();
     }
@@ -88,11 +96,13 @@ public class BatchService {
     /**
      * Alternate lookup for callers (e.g. the Lab Schedule form) that only know a subject +
      * term instance, not the concrete CourseOffering id — resolves whichever offering(s) match
-     * and returns their batches combined.
+     * and returns their batches combined. Active only, same reasoning as {@link
+     * #getBatchesForOffering}.
      */
     public List<BatchDto> getBatchesForSubjectAndTerm(Long subjectId, Long termInstanceId) {
         return courseOfferingRepository.findByTermInstanceIdAndSubjectId(termInstanceId, subjectId).stream()
             .flatMap(o -> batchRepository.findByCourseOfferingId(o.getId()).stream())
+            .filter(b -> Boolean.TRUE.equals(b.getIsActive()))
             .map(this::toDto)
             .toList();
     }
