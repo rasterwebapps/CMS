@@ -28,6 +28,8 @@
               <span class="mono">{{ r.occurrenceDate }}</span>
               @if (r.occurrenceSource === 'DAY_REPEAT') {
                 <span class="aql-batch-tag" title="Part of a whole-day-repeat batch">Day Repeat</span>
+              } @else if (r.requestBatchId) {
+                <span class="aql-batch-tag" title="Part of a multi-period special class request">Multi-period</span>
               }
             </td>
           </ng-container>
@@ -92,7 +94,11 @@
       <div flyoutHeader>Reject Special Class</div>
       <div flyoutBody>
         <p class="field-hint">{{ row.subjectName }} on {{ row.occurrenceDate }}
-          @if (row.requestBatchId) { — rejecting will decline every session in this day-repeat batch. }
+          @if (row.requestBatchId && row.occurrenceSource === 'DAY_REPEAT') {
+            — rejecting will decline every session in this day-repeat batch.
+          } @else if (row.requestBatchId) {
+            — rejecting will decline every period in this multi-period request.
+          }
         </p>
         <div class="field-group">
           <label class="field-label" for="aql-reason">Reason <span class="field-required">*</span></label>

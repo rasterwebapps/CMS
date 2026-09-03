@@ -29,6 +29,8 @@
               <span class="mono">{{ r.occurrenceDate }}</span>
               @if (r.occurrenceSource === 'DAY_REPEAT') {
                 <span class="mrl-batch-tag" title="Part of a whole-day-repeat batch">Day Repeat</span>
+              } @else if (r.requestBatchId) {
+                <span class="mrl-batch-tag" title="Part of a multi-period special class request">Multi-period</span>
               }
             </td>
           </ng-container>

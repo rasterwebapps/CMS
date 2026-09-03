@@ -7,10 +7,12 @@ import java.util.List;
  *  everything it couldn't, per cohort ({@code cohortSummaries[].unplaced()}) and, for elective
  *  groups (not attributable to a single cohort), in {@code electiveUnplaced}.
  *
- * <p>{@code staleDraftsCleared} is the count {@code purgeStaleOverBudgetDrafts} removed as a
- *  pre-flight step before this run placed anything — a TEMPORARY safety net (see that method's
- *  own javadoc), surfaced here so a nonzero count is never a silent surprise. Always 0 once that
- *  method is eventually removed.
+ * <p>{@code staleDraftsCleared} is how many existing DRAFT sessions {@code
+ *  purgeDraftCellsForRebuild} cleared before this run re-placed anything. Every run rebuilds the
+ *  whole DRAFT grid for the cohorts in scope rather than adding on top of it (see that method's
+ *  javadoc for the fragmentation incident that forced this), so on a re-run this is normally the
+ *  cohort's entire previous draft, not an anomaly — surfaced here so the replacement is never a
+ *  silent surprise.
  *
  * <p>{@code capacityCausedGapHours}/{@code recommendedAdditionalFacultyCount} are this run's real,
  *  exact count of Monday-Friday periods the Self-Study/Co-curricular gap-fill pass genuinely
@@ -22,7 +24,13 @@ import java.util.List;
  * <p>{@code venueCapacityGaps} is the LAB/CLINICAL analogue: every Lab or Clinical venue whose own
  *  weekly window capacity — not faculty, not a room/faculty conflict — is the reason this run
  *  couldn't place everything still short against it (see {@link VenueCapacityGap}). Empty when no
- *  venue was the real ceiling this run. */
+ *  venue was the real ceiling this run.
+ *
+ * <p>{@code skippedPublishedCohorts} lists every cohort this "All Cohorts" run deliberately left
+ *  untouched because this term's timetable is already approved/{@code PUBLISHED} on Draft Review —
+ *  never populated for a single-cohort run (that case is a hard block at the API boundary instead,
+ *  see {@code TimetableGlobalAutoScheduleService#runGlobalAutoSchedule}). Always empty while the
+ *  term is still in DRAFT. */
 public record GlobalAutoScheduleResult(
     int totalPlaced,
     int totalStaffed,
@@ -31,5 +39,6 @@ public record GlobalAutoScheduleResult(
     int staleDraftsCleared,
     double capacityCausedGapHours,
     int recommendedAdditionalFacultyCount,
-    List<VenueCapacityGap> venueCapacityGaps
+    List<VenueCapacityGap> venueCapacityGaps,
+    List<SkippedPublishedCohort> skippedPublishedCohorts
 ) {}

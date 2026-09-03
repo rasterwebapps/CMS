@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.AutoPlaceUnplacedItem;
@@ -41,6 +42,7 @@ import com.cms.dto.SkeletonCellPlacementRequest;
 import com.cms.dto.SkeletonCellResponse;
 import com.cms.dto.SkeletonSubjectBudget;
 import com.cms.dto.SkeletonSubjectResponse;
+import com.cms.dto.SkippedPublishedCohort;
 import com.cms.dto.StaffingAssignmentRequest;
 import com.cms.dto.UnstaffedCellResponse;
 import com.cms.exception.TimetableConstraintViolationException;
@@ -48,6 +50,7 @@ import com.cms.model.AcademicYear;
 import com.cms.model.Batch;
 import com.cms.model.Cohort;
 import com.cms.model.ClassSchedule;
+import com.cms.model.Classroom;
 import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
 import com.cms.model.CourseOfferingSectionFaculty;
@@ -58,6 +61,7 @@ import com.cms.model.Period;
 import com.cms.model.Speciality;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.EnrollmentStatus;
@@ -116,15 +120,19 @@ class TimetableGlobalAutoScheduleServiceTest {
     private TimetableGlobalAutoScheduleService service;
     private TermInstance termInstance;
     private Period period1;
+    private final java.util.concurrent.atomic.AtomicLong idSequence = new java.util.concurrent.atomic.AtomicLong();
 
     @BeforeEach
     void setUp() {
         service = new TimetableGlobalAutoScheduleService(timetableSkeletonService, timetableStaffingService,
             timetableCapacityPlanningService, courseOfferingService, courseOfferingRepository, classScheduleRepository,
-            studentTermEnrollmentRepository, cohortRepository, batchRepository, courseOfferingSectionFacultyRepository,
-            facultyRepository, termInstanceRepository, periodRepository, blockedPeriodChecker, classroomRepository,
-            courseRegistrationRepository, subjectRepository, systemConfigurationService);
+            studentTermEnrollmentRepository, cohortRepository, batchRepository,
+            courseOfferingSectionFacultyRepository, facultyRepository, termInstanceRepository, periodRepository,
+            blockedPeriodChecker, classroomRepository, courseRegistrationRepository, subjectRepository, systemConfigurationService);
         lenient().when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+        // No fixture in this suite approves/publishes the term's timetable, so every cohort defaults
+        // to "draft" (not published) unless a specific test overrides this stub — Mockito already
+        // returns false by default for the unstubbed existsByTermInstanceIdAndStatus boolean.
         // No fixture configures a Library classroom (Classroom linked to a Room tagged Library
         // Purpose Category), so fillLibraryGaps correctly reports this once per cohort per run —
         // see NO_LIBRARY_CLASSROOM_REASON below.
@@ -456,7 +464,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",
@@ -478,6 +486,53 @@ class TimetableGlobalAutoScheduleServiceTest {
         assertThat(result.cohortSummaries().get(0).usedSaturday()).isFalse();
         assertThat(result.electiveUnplaced()).isEmpty();
         verify(timetableStaffingService).staffCell(900L, new StaffingAssignmentRequest(500L, null));
+    }
+
+    /** Regression for the real-world "Adult Health Nursing I" incident: 140 curriculum theory
+     *  hours over a 26-week term round up (via CurriculumHoursCalculator's ceil-per-week math) to
+     *  7 required weekly THEORY sessions -- one more than there are candidate days (Mon-Sat, with
+     *  Saturday configured here) under the one-session-per-day rule. Before the
+     *  second-session-per-day fallback in placeShortfallRow, the 7th session reported as
+     *  permanently "unplaced" on every single run, forever, with no way to ever close it. Now it
+     *  falls back to a second session on an already-used day once every day has genuinely been
+     *  tried once -- still real placeCell/staffCell calls, just not excluded purely for the day
+     *  already carrying one session. */
+    @Test
+    void runFallsBackToASecondSessionPerDay_whenWeeklyRequirementExceedsAvailableDays() {
+        termInstance.setWorkingSaturdayWeeks(java.util.Set.of(com.cms.model.enums.WeekOfMonth.FIRST));
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "XYZ", 8);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
+        assignWholeCohort(100L, 1L, 500L);
+        offeringEntity(100L, 140, 0, 0);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        // totalHours=140/weeksInTerm=26 (the real curriculum numbers) round up to
+        // requiredSessionsPerWeek=7; placedSessionsPerWeek=0 -- a 7-session shortfall in a 6-day week.
+        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 140, 26, 7, 0);
+        SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",
+            LocalTime.of(9, 0), LocalTime.of(9, 50), null, null, null, null, false, null, null, List.of(),
+            100L, "Offering A", "OFFE", null, null, null);
+        when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class))).thenReturn(placed);
+        when(timetableStaffingService.staffCell(eq(900L), any(StaffingAssignmentRequest.class)))
+            .thenReturn(new UnstaffedCellResponse(900L, 100L, "Offering A", "OFFE", null, null,
+                ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50),
+                null, null, null, null, null, false, List.of(), null, null));
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        assertThat(result.totalPlaced()).isEqualTo(7);
+        assertThat(result.totalStaffed()).isEqualTo(7);
+        assertThat(result.cohortSummaries().get(0).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
+            .containsExactly(NO_LIBRARY_CLASSROOM_REASON, NO_SELF_STUDY_OFFERING_REASON);
+        verify(timetableSkeletonService, org.mockito.Mockito.times(7)).placeCell(any(SkeletonCellPlacementRequest.class));
     }
 
     @Test
@@ -503,7 +558,7 @@ class TimetableGlobalAutoScheduleServiceTest {
             DayOfWeek.TUESDAY, 2L, "2nd Period", LocalTime.of(9, 50), LocalTime.of(10, 40), null, null, null, null,
             true, null, null, List.of(), null, null, null, null, null, null);
         SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject),
-            List.of(preExistingLibraryCell), List.of(), List.of(), 25, 0L);
+            List.of(preExistingLibraryCell), List.of(), List.of(), 25, 0L, List.of(), false);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",
@@ -521,8 +576,73 @@ class TimetableGlobalAutoScheduleServiceTest {
         assertThat(result.totalStaffed()).isEqualTo(1);
     }
 
+    private SkeletonCellResponse libraryCell(long id, DayOfWeek day) {
+        return new SkeletonCellResponse(id, ClassSessionType.LIBRARY, day, 1L, "1st Period",
+            LocalTime.of(9, 0), LocalTime.of(9, 50), null, null, null, null,
+            true, com.cms.model.enums.ClassScheduleStatus.PUBLISHED, null, List.of(), null, null, null, null, null, null);
+    }
+
+    /** Regression for the real-world "Library over-placed on 3 days when the quota is 2/week"
+     *  incident: {@code fillLibraryGaps} used to start counting from zero every run, never checking
+     *  what was already placed -- a cohort that already had Monday's session would still get a
+     *  fresh attempt at the FULL sessionsPerWeek quota, spill past Monday (blocked by
+     *  isSlotFreeForCohort) onto a 3rd day, and never stop. This asserts only the genuinely-
+     *  remaining 1 session (of the default 2/week) gets placed, and never on the day that's already
+     *  accounted for. The pre-existing cells here are PUBLISHED, since a DRAFT one wouldn't survive
+     *  {@code purgeDraftCellsForRebuild} to be counted at all -- the surviving case this guards is a
+     *  published session, or one this same run placed earlier for another audience. */
     @Test
-    void runClearsStaleOverBudgetDraftsBeforePlacingAnything_temporarySafetyNet() {
+    void fillLibraryGapsCountsExistingPlacements_beforeAddingMore() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of());
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+
+        Subject librarySubject = new Subject();
+        librarySubject.setId(999L);
+        librarySubject.setCode("SYSTEM-LIBRARY");
+        when(subjectRepository.findByCode("SYSTEM-LIBRARY")).thenReturn(Optional.of(librarySubject));
+        Classroom libraryRoom = new Classroom("Library Hall", null, null, 200);
+        libraryRoom.setId(50L);
+        when(classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(any()))
+            .thenReturn(List.of(libraryRoom));
+        when(timetableSkeletonService.isSlotFreeForCohort(eq(1L), eq(10L), any(), any())).thenReturn(true);
+
+        Period p2 = new Period("2nd Period", LocalTime.of(9, 50), LocalTime.of(10, 40), 2);
+        p2.setId(2L);
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period1, p2));
+
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> {
+            ClassSchedule cs = inv.getArgument(0);
+            cs.setId(800L + idSequence.getAndIncrement());
+            return cs;
+        });
+
+        // Pre-existing: Monday already has a full 2-period Library block for the whole cohort
+        // (cohortSectionId null), PUBLISHED so the rebuild purge correctly leaves it standing.
+        SkeletonCellResponse existingMon1 = libraryCell(700L, DayOfWeek.MONDAY);
+        SkeletonCellResponse existingMon2 = libraryCell(701L, DayOfWeek.MONDAY);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(),
+            List.of(existingMon1, existingMon2), List.of(), List.of(), 25, 0L, List.of(), false);
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        service.runGlobalAutoSchedule(10L, null);
+
+        // Default quota is 2/week; 1 already exists (Monday) -> exactly ONE more block (2 rows,
+        // since block size defaults to 2 periods) gets placed, and never on Monday again.
+        ArgumentCaptor<ClassSchedule> captor = ArgumentCaptor.forClass(ClassSchedule.class);
+        verify(classScheduleRepository, times(2)).save(captor.capture());
+        assertThat(captor.getAllValues()).extracting(ClassSchedule::getDayOfWeek)
+            .doesNotContain(DayOfWeek.MONDAY);
+    }
+
+    /** Every run rebuilds the whole DRAFT grid rather than adding to it — the fix for the real
+     *  incident where an earlier run's single-period THEORY/LIBRARY cells sat immovably inside the
+     *  only 4-period CLINICAL windows the week had (attemptBacktrack can only displace placements
+     *  from the current run, so nothing could ever move them). PUBLISHED cells are never touched. */
+    @Test
+    void runClearsEveryExistingDraftCellBeforeRebuildingTheWeek() {
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
             .thenReturn(new HashSet<>(List.of(1L)));
         cohort(1L, "Cohort 1");
@@ -533,33 +653,42 @@ class TimetableGlobalAutoScheduleServiceTest {
         when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
         when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
 
-        // 3 already placed against a budget of 1 required -- 2 stale excess DRAFT sessions left
-        // over from before checkBudgetNotExceeded existed. Shortfall (1 - 3) is negative, so this
-        // row would never be touched by ordinary placement -- only the purge should act on it.
-        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 3);
+        // Three DRAFT cells that are all individually within budget (1 required, 1 placed) plus one
+        // PUBLISHED cell. The old narrower purge would have kept every one of them -- nothing here
+        // is over budget, section-less, excess Library, or a truncated block -- which is exactly
+        // how a previous run's cells came to squat in this week's clinical windows forever.
+        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 1);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
-        SkeletonCellResponse cellKept = skeletonCell(901L, com.cms.model.enums.ClassScheduleStatus.DRAFT);
-        SkeletonCellResponse cellExcess1 = skeletonCell(902L, com.cms.model.enums.ClassScheduleStatus.DRAFT);
-        SkeletonCellResponse cellExcess2 = skeletonCell(903L, com.cms.model.enums.ClassScheduleStatus.DRAFT);
+        SkeletonCellResponse draft1 = skeletonCell(901L, com.cms.model.enums.ClassScheduleStatus.DRAFT);
+        SkeletonCellResponse draft2 = skeletonCell(902L, com.cms.model.enums.ClassScheduleStatus.DRAFT);
+        SkeletonCellResponse draft3 = skeletonCell(903L, com.cms.model.enums.ClassScheduleStatus.DRAFT);
+        SkeletonCellResponse published = skeletonCell(904L, com.cms.model.enums.ClassScheduleStatus.PUBLISHED);
         SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject),
-            List.of(cellKept, cellExcess1, cellExcess2), List.of(), List.of(), 25, 0L);
+            List.of(draft1, draft2, draft3, published), List.of(), List.of(), 25, 0L, List.of(), false);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
-        ClassSchedule excess1 = new ClassSchedule();
-        excess1.setId(902L);
-        excess1.setIsActive(true);
-        ClassSchedule excess2 = new ClassSchedule();
-        excess2.setId(903L);
-        excess2.setIsActive(true);
-        when(classScheduleRepository.findAllById(any())).thenReturn(List.of(excess1, excess2));
+        ClassSchedule cleared1 = new ClassSchedule();
+        cleared1.setId(901L);
+        cleared1.setIsActive(true);
+        ClassSchedule cleared2 = new ClassSchedule();
+        cleared2.setId(902L);
+        cleared2.setIsActive(true);
+        ClassSchedule cleared3 = new ClassSchedule();
+        cleared3.setId(903L);
+        cleared3.setIsActive(true);
+        ArgumentCaptor<Iterable<Long>> idsCaptor = ArgumentCaptor.captor();
+        when(classScheduleRepository.findAllById(idsCaptor.capture())).thenReturn(List.of(cleared1, cleared2, cleared3));
 
         var result = service.runGlobalAutoSchedule(10L, null);
 
-        assertThat(result.staleDraftsCleared()).isEqualTo(2);
-        assertThat(excess1.getIsActive()).isFalse();
-        assertThat(excess2.getIsActive()).isFalse();
-        verify(classScheduleRepository).save(excess1);
-        verify(classScheduleRepository).save(excess2);
+        assertThat(idsCaptor.getValue()).containsExactlyInAnyOrder(901L, 902L, 903L);
+        assertThat(result.staleDraftsCleared()).isEqualTo(3);
+        assertThat(cleared1.getIsActive()).isFalse();
+        assertThat(cleared2.getIsActive()).isFalse();
+        assertThat(cleared3.getIsActive()).isFalse();
+        verify(classScheduleRepository).save(cleared1);
+        verify(classScheduleRepository).save(cleared2);
+        verify(classScheduleRepository).save(cleared3);
         assertThat(result.totalPlaced()).isEqualTo(0);
         assertThat(result.cohortSummaries().get(0).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
             .containsExactly(NO_LIBRARY_CLASSROOM_REASON, NO_SELF_STUDY_OFFERING_REASON);
@@ -605,9 +734,11 @@ class TimetableGlobalAutoScheduleServiceTest {
         p5.setId(5L);
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period1, p2, p3, p4, p5));
 
-        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.CLINICAL, 55L, "Batch 1", null, null, 40, 10, 4, 0);
+        // requiredSessionsPerWeek is a SESSION count, not a period count -- 1 session of this
+        // subject's 4-period clinical block is exactly what this test places and asserts on below.
+        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.CLINICAL, 55L, "Batch 1", null, null, 40, 10, 1, 0);
         SkeletonSubjectResponse subjectResponse = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectResponse), List.of(), List.of(), List.of(), 25, 0L);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectResponse), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.CLINICAL, DayOfWeek.MONDAY, 1L, "1st Period",
@@ -629,6 +760,218 @@ class TimetableGlobalAutoScheduleServiceTest {
                 && r.spanPeriodIds() != null && r.spanPeriodIds().equals(List.of(2L, 3L, 4L))));
     }
 
+    /** Guards the PHASE ORDER itself (see the class's "Placement order" javadoc section), which
+     *  nothing else here would catch: every other test mocks {@code placeCell} as an always-succeeds
+     *  stub, so a run that placed its greedy Self-Study filler before its rigid multi-period blocks
+     *  would still look perfectly healthy. This one gives the stub real occupancy state, so a slot
+     *  taken by one pass genuinely blocks the next -- the only way a unit test can tell the two
+     *  orderings apart.
+     *
+     *  <p>The week here is deliberately as tight as the real one: four periods forming a single
+     *  unbroken forenoon run, so a 4-period CLINICAL block has exactly ONE legal position per day
+     *  (start index 0 -- any later start runs off the end), and no working Saturday, so only
+     *  Monday-Friday exist. {@code fillSelfStudyGaps} backfills EVERY remaining weekday period, all
+     *  20 of them. Run in the correct order, Clinical claims Monday's whole forenoon and Self-Study
+     *  takes the other 16 slots. Move Self-Study (or Library) ahead of Phase 1 and there is no
+     *  4-period run left anywhere in the week, so the Clinical block becomes unplaceable and the
+     *  assertions below fail -- which is exactly the real-world regression this ordering prevents. */
+    @Test
+    void runPlacesRigidMultiPeriodBlocksBeforeGreedyFiller_soFillerCanNeverStrandThem() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "XYZ", 8);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L))
+            .thenReturn(List.of(offeringDto(100L, "Offering A"), offeringDto(200L, "Self-Study/Co-curricular I")));
+        assignWholeCohort(100L, 1L, 500L);
+        assignWholeCohort(200L, 1L, 500L);
+        CourseOffering clinicalOffering = offeringEntity(100L, 0, 0, 40);
+        Subject clinicalSubject = new Subject();
+        clinicalSubject.setId(1L);
+        clinicalSubject.setClinicalSessionBlockPeriods(4);
+        clinicalOffering.setSubject(clinicalSubject);
+        offeringEntity(200L, 10, 0, 0);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        // One unbroken forenoon run: exactly one legal 4-period block position per day.
+        Period p2 = new Period("2nd Period", LocalTime.of(9, 50), LocalTime.of(10, 40), 2);
+        p2.setId(2L);
+        Period p3 = new Period("3rd Period", LocalTime.of(10, 40), LocalTime.of(11, 30), 3);
+        p3.setId(3L);
+        Period p4 = new Period("4th Period", LocalTime.of(11, 30), LocalTime.of(12, 20), 4);
+        p4.setId(4L);
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period1, p2, p3, p4));
+
+        SkeletonSubjectBudget clinicalBudget = new SkeletonSubjectBudget(ClassSessionType.CLINICAL, 55L, "Batch 1", null, null, 40, 10, 1, 0);
+        SkeletonSubjectResponse clinical = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(clinicalBudget), null, null);
+        // Self-Study's own budget is already met (1 required, 1 placed) so it contributes NOTHING to
+        // Phase 2 -- everything it places below comes purely from the greedy gap-fill pass, which is
+        // what this test is actually about.
+        SkeletonSubjectBudget selfStudyBudget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 1);
+        SkeletonSubjectResponse selfStudy = new SkeletonSubjectResponse(200L, "Self-Study/Co-curricular I", "SELF", List.of(selfStudyBudget), null, null);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(clinical, selfStudy),
+            List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        // A placeCell stub that actually models slot exclusivity: a (day, period) already taken is
+        // rejected exactly as the real service would reject it. Without this the test cannot
+        // distinguish the two orderings at all.
+        Set<String> occupiedSlots = new HashSet<>();
+        // Only SUCCESSFUL placements land here. Asserting on Mockito's own call counts would be
+        // wrong: a stranded row still ATTEMPTS its slot (and retries it once via attemptBacktrack),
+        // so attempts stay non-zero even when nothing is actually placed.
+        List<SkeletonCellPlacementRequest> successfulPlacements = new java.util.ArrayList<>();
+        java.util.concurrent.atomic.AtomicLong nextCellId = new java.util.concurrent.atomic.AtomicLong(900L);
+        org.mockito.stubbing.Answer<SkeletonCellResponse> occupancyAwarePlace = invocation -> {
+            SkeletonCellPlacementRequest request = invocation.getArgument(0);
+            List<Long> blockPeriodIds = new java.util.ArrayList<>();
+            blockPeriodIds.add(request.periodId());
+            if (request.spanPeriodIds() != null) {
+                blockPeriodIds.addAll(request.spanPeriodIds());
+            }
+            for (Long periodId : blockPeriodIds) {
+                if (occupiedSlots.contains(request.dayOfWeek() + ":" + periodId)) {
+                    throw new TimetableConstraintViolationException(List.of(new com.cms.dto.ConstraintViolation(
+                        "SKELETON_CELL_COHORT_CLASH", "already occupied")));
+                }
+            }
+            blockPeriodIds.forEach(periodId -> occupiedSlots.add(request.dayOfWeek() + ":" + periodId));
+            successfulPlacements.add(request);
+            return new SkeletonCellResponse(nextCellId.incrementAndGet(), request.sessionType(), request.dayOfWeek(),
+                request.periodId(), "Period", LocalTime.of(9, 0), LocalTime.of(9, 50), request.batchId(), "Batch 1",
+                null, null, false, null, null, List.of(), request.courseOfferingId(), "Subject", "SUBJ", null, null, null);
+        };
+        when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class))).thenAnswer(occupancyAwarePlace);
+        when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class), eq(false))).thenAnswer(occupancyAwarePlace);
+        when(timetableStaffingService.staffCell(anyLong(), any(StaffingAssignmentRequest.class)))
+            .thenAnswer(invocation -> new UnstaffedCellResponse(invocation.getArgument(0), 100L, "Subject", "SUBJ", null, null,
+                ClassSessionType.CLINICAL, DayOfWeek.MONDAY, 1L, "Period", LocalTime.of(9, 0), LocalTime.of(9, 50),
+                null, null, null, null, null, false, List.of(), null, null));
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        // The Clinical block was actually PLACED -- one full 4-period span, on Monday's only legal
+        // position. Reorder the filler ahead of Phase 1 and this becomes zero elements, because the
+        // only 4-period run in the week has been eaten one period at a time.
+        assertThat(successfulPlacements).filteredOn(request -> request.sessionType() == ClassSessionType.CLINICAL)
+            .singleElement()
+            .satisfies(request -> {
+                assertThat(request.dayOfWeek()).isEqualTo(DayOfWeek.MONDAY);
+                assertThat(request.periodId()).isEqualTo(1L);
+                assertThat(request.spanPeriodIds()).containsExactly(2L, 3L, 4L);
+            });
+        assertThat(result.cohortSummaries().get(0).unplaced())
+            .noneMatch(item -> item.sessionType() == ClassSessionType.CLINICAL);
+
+        // ...and the filler really is greedy enough to have stranded it: the week ends up FULL --
+        // Clinical's 4 Monday periods plus the 16 the filler took. 17 placements = 1 Clinical block
+        // + 16 Self-Study periods. If either number ever drops, the guard above has gone slack and
+        // would stop detecting a reordering.
+        assertThat(occupiedSlots).hasSize(20);
+        assertThat(occupiedSlots).contains("MONDAY:1", "MONDAY:2", "MONDAY:3", "MONDAY:4");
+        assertThat(result.totalPlaced()).isEqualTo(17);
+    }
+
+    /** Regression for the unit mismatch behind "so many empty slots, yet so much unassigned":
+     *  {@code requiredSessionsPerWeek} counts SESSIONS, but the placement loop used to spend the
+     *  shortfall in PERIODS ({@code Math.min(blockSize, remaining)}, then {@code remaining -=
+     *  blockSize}). A Clinical row owing 3 sessions of a 4-period block therefore placed one
+     *  4-period block plus nothing else and declared itself done -- 4 periods delivered where 12
+     *  were owed. Real seed data showed exactly this: every Clinical batch holding a single 4-cell
+     *  group, every 2-period Lab holding one lone period. */
+    @Test
+    void runPlacesOneFullBlockPerOwedSession_notOneBlockPerOwedPeriod() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "XYZ", 8);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
+        assignWholeCohort(100L, 1L, 500L);
+        CourseOffering offering = offeringEntity(100L, 0, 0, 40);
+        Subject clinicalSubject = new Subject();
+        clinicalSubject.setId(1L);
+        clinicalSubject.setClinicalSessionBlockPeriods(4);
+        offering.setSubject(clinicalSubject);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        Period p2 = new Period("2nd Period", LocalTime.of(9, 50), LocalTime.of(10, 40), 2);
+        p2.setId(2L);
+        Period p3 = new Period("3rd Period", LocalTime.of(10, 40), LocalTime.of(11, 30), 3);
+        p3.setId(3L);
+        Period p4 = new Period("4th Period", LocalTime.of(11, 30), LocalTime.of(12, 20), 4);
+        p4.setId(4L);
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period1, p2, p3, p4));
+
+        // 3 sessions owed, each a 4-period block -> 3 placeCell calls, each spanning 3 extra periods.
+        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.CLINICAL, 55L, "Batch 1", null, null, 40, 10, 3, 0);
+        SkeletonSubjectResponse subjectResponse = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectResponse), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.CLINICAL, DayOfWeek.MONDAY, 1L, "1st Period",
+            LocalTime.of(9, 0), LocalTime.of(9, 50), 55L, "Batch 1", null, null, false, null, null, List.of(),
+            100L, "Offering A", "OFFE", null, null, null);
+        when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class))).thenReturn(placed);
+        when(timetableStaffingService.staffCell(eq(900L), any(StaffingAssignmentRequest.class)))
+            .thenReturn(new UnstaffedCellResponse(900L, 100L, "Offering A", "OFFE", null, null,
+                ClassSessionType.CLINICAL, DayOfWeek.MONDAY, 1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50),
+                null, null, null, null, null, false, List.of(), null, null));
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        assertThat(result.totalPlaced()).isEqualTo(3);
+        ArgumentCaptor<SkeletonCellPlacementRequest> captor = ArgumentCaptor.forClass(SkeletonCellPlacementRequest.class);
+        verify(timetableSkeletonService, times(3)).placeCell(captor.capture());
+        // Every one a FULL 4-period block (primary + 3 span periods) -- never a truncated stub.
+        assertThat(captor.getAllValues()).allSatisfy(r ->
+            assertThat(r.spanPeriodIds()).hasSize(3));
+    }
+
+    /** Regression for the real-world "two parallel Clinical batches spread across 4 different days
+     *  instead of sharing 2" incident: two batches of the same offering/sessionType deliver the SAME
+     *  curriculum hours in parallel at two different venues, so they should land on the SAME day(s)
+     *  -- see CohortRunContext#siblingDaysByOfferingAndType and placeShortfallRow's sibling-batch
+     *  alignment step. Before this fix, each batch independently picked its own least-loaded day,
+     *  which (since placing one batch raises that day's load) actively pushed the second batch onto
+     *  a DIFFERENT day instead of the same one. */
+    @Test
+    void runAlignsSiblingClinicalBatchesOntoTheSameDay() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "XYZ", 8);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
+        assignWholeCohort(100L, 1L, 500L);
+        offeringEntity(100L, 0, 0, 40);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        SkeletonSubjectBudget batch1 = new SkeletonSubjectBudget(ClassSessionType.CLINICAL, 55L, "Batch 1", null, null, 10, 10, 1, 0);
+        SkeletonSubjectBudget batch2 = new SkeletonSubjectBudget(ClassSessionType.CLINICAL, 56L, "Batch 2", null, null, 10, 10, 1, 0);
+        SkeletonSubjectResponse subjectResponse = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(batch1, batch2), null, null);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectResponse), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.CLINICAL, DayOfWeek.MONDAY, 1L, "1st Period",
+            LocalTime.of(9, 0), LocalTime.of(9, 50), null, null, null, null, false, null, null, List.of(),
+            100L, "Offering A", "OFFE", null, null, null);
+        when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class))).thenReturn(placed);
+        when(timetableStaffingService.staffCell(eq(900L), any(StaffingAssignmentRequest.class)))
+            .thenReturn(new UnstaffedCellResponse(900L, 100L, "Offering A", "OFFE", null, null,
+                ClassSessionType.CLINICAL, DayOfWeek.MONDAY, 1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50),
+                null, null, null, null, null, false, List.of(), null, null));
+
+        service.runGlobalAutoSchedule(10L, null);
+
+        ArgumentCaptor<SkeletonCellPlacementRequest> captor = ArgumentCaptor.forClass(SkeletonCellPlacementRequest.class);
+        verify(timetableSkeletonService, times(2)).placeCell(captor.capture());
+        List<DayOfWeek> daysRequested = captor.getAllValues().stream().map(SkeletonCellPlacementRequest::dayOfWeek).toList();
+        assertThat(daysRequested).hasSize(2);
+        assertThat(daysRequested.get(0)).isEqualTo(daysRequested.get(1));
+    }
+
     @Test
     void runReportsUnplacedInsteadOfThrowing_whenNoSlotWorksForBothPlacementAndStaffing() {
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
@@ -643,7 +986,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class)))
@@ -686,7 +1029,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",
@@ -719,7 +1062,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         var result = service.runGlobalAutoSchedule(10L, null);
@@ -750,12 +1093,12 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectBudget budgetA = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subjectA = new SkeletonSubjectResponse(100L, "Offering A", "OFFA", List.of(budgetA), null, null);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
-            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectA), List.of(), List.of(), List.of(), 25, 0L));
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectA), List.of(), List.of(), List.of(), 25, 0L, List.of(), false));
 
         SkeletonSubjectBudget budgetB = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subjectB = new SkeletonSubjectResponse(200L, "Offering B", "OFFB", List.of(budgetB), null, null);
         when(timetableSkeletonService.getCohortSkeleton(10L, 2L))
-            .thenReturn(new SkeletonBuilderResponse(2L, "Cohort 2", "Term", List.of(subjectB), List.of(), List.of(), List.of(), 25, 0L));
+            .thenReturn(new SkeletonBuilderResponse(2L, "Cohort 2", "Term", List.of(subjectB), List.of(), List.of(), List.of(), 25, 0L, List.of(), false));
 
         // Cohort 1's offering (100L) can never be placed; cohort 2's (200L) succeeds every time.
         when(timetableSkeletonService.placeCell(argThat(r -> r != null && r.courseOfferingId().equals(100L))))
@@ -793,13 +1136,49 @@ class TimetableGlobalAutoScheduleServiceTest {
         when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
         when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
-            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(), List.of(), List.of(), List.of(), 25, 0L));
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(), List.of(), List.of(), List.of(), 25, 0L, List.of(), false));
 
         var result = service.runGlobalAutoSchedule(10L, 1L);
 
         assertThat(result.cohortSummaries()).hasSize(1);
         assertThat(result.cohortSummaries().get(0).cohortId()).isEqualTo(1L);
         verify(timetableSkeletonService, never()).getCohortSkeleton(10L, 2L);
+    }
+
+    // ── Published-term hard gate ────────────────────────────────────────
+
+    @Test
+    void runHardBlocksSingleCohortRequest_whenTermTimetableIsPublished() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        Cohort committed = cohort(1L, "Cohort 1");
+        committed.setDisplayName("Cohort 1");
+        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.runGlobalAutoSchedule(10L, 1L))
+            .isInstanceOf(TimetableConstraintViolationException.class);
+
+        verify(timetableSkeletonService, never()).getCohortSkeleton(anyLong(), anyLong());
+        verify(timetableSkeletonService, never()).placeCell(any());
+    }
+
+    @Test
+    void runAllCohorts_excludesEveryCohort_whenTermTimetableIsPublished_andReportsThemAsSkipped() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L, 2L)));
+        Cohort cohort1 = cohort(1L, "Cohort 1");
+        cohort1.setDisplayName("Cohort 1");
+        Cohort cohort2 = cohort(2L, "Cohort 2");
+        cohort2.setDisplayName("Cohort 2");
+        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(true);
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        assertThat(result.skippedPublishedCohorts()).hasSize(2);
+        assertThat(result.skippedPublishedCohorts()).extracting(SkippedPublishedCohort::cohortId)
+            .containsExactlyInAnyOrder(1L, 2L);
+        assertThat(result.cohortSummaries()).isEmpty();
+        verify(timetableSkeletonService, never()).getCohortSkeleton(anyLong(), anyLong());
     }
 
     // ── Live single-(faculty, cohort) capacity check (Course Offerings) ─
@@ -1014,7 +1393,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectResponse subjectB = new SkeletonSubjectResponse(200L, "Offering B", "OFFB",
             List.of(new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0)), null, null);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
-            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectA, subjectB), List.of(), List.of(), List.of(), 25, 0L));
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectA, subjectB), List.of(), List.of(), List.of(), 25, 0L, List.of(), false));
 
         GlobalAutoSchedulePrerequisites result = service.checkPrerequisites(10L, null);
 
@@ -1023,6 +1402,20 @@ class TimetableGlobalAutoScheduleServiceTest {
         assertThat(result.offeringsWithoutFaculty().get(0).courseOfferingId()).isEqualTo(100L);
         assertThat(result.capacityPrecheck().overCapacityFaculty()).extracting(FacultyOverCapacity::facultyId)
             .containsExactly(500L);
+    }
+
+    @Test
+    void checkPrerequisitesExcludesEveryCohort_whenTermTimetableIsPublished_gapThereNeverBlocksTheChecklist() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(true);
+
+        GlobalAutoSchedulePrerequisites result = service.checkPrerequisites(10L, null);
+
+        assertThat(result.ready()).isTrue();
+        assertThat(result.offeringsWithoutFaculty()).isEmpty();
+        verify(timetableSkeletonService, never()).getCohortSkeleton(10L, 1L);
     }
 
     @Test
@@ -1040,7 +1433,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFA", List.of(budget), null, null);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
-            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L));
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false));
 
         GlobalAutoSchedulePrerequisites result = service.checkPrerequisites(10L, null);
 
@@ -1063,7 +1456,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFA", List.of(budget), null, null);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
-            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L));
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false));
 
         VenueOverCapacity overCapacity = new VenueOverCapacity(50L, "LAB", "Anatomy Lab", 30, 12, 13, 1, List.of("Anatomy"), List.of(100L));
         when(timetableCapacityPlanningService.computeLabClinicalVenueCapacity(eq(10L), any()))
@@ -1298,7 +1691,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectBudget budgetSectionA = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, 1L, "A", 10, 10, 1, 0);
         SkeletonSubjectBudget budgetSectionB = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, 2L, "B", 10, 10, 1, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budgetSectionA, budgetSectionB), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         SkeletonCellResponse placedB = new SkeletonCellResponse(902L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",

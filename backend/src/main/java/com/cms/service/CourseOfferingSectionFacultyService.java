@@ -20,6 +20,7 @@ import com.cms.model.Cohort;
 import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
 import com.cms.model.CourseOfferingSectionFaculty;
+import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Faculty;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.repository.CohortRepository;
@@ -151,6 +152,7 @@ public class CourseOfferingSectionFacultyService {
 
         Long previousFacultyId = existing.map(sf -> sf.getFaculty().getId()).orElse(null);
         FacultyEligibility.require(offering.getSubject(), facultyId, previousFacultyId, facultyRepository);
+        requireNoElectiveGroupFacultyConflict(offering, facultyId, previousFacultyId);
         requireWithinCapacityForSection(offeringId, cohortSectionId, facultyId, previousFacultyId);
 
         Faculty faculty = facultyRepository.findById(facultyId)
@@ -196,6 +198,7 @@ public class CourseOfferingSectionFacultyService {
 
         Long previousFacultyId = existing.map(sf -> sf.getFaculty().getId()).orElse(null);
         FacultyEligibility.require(offering.getSubject(), facultyId, previousFacultyId, facultyRepository);
+        requireNoElectiveGroupFacultyConflict(offering, facultyId, previousFacultyId);
         requireWithinCapacityForCohort(offeringId, cohortId, facultyId, previousFacultyId);
 
         Faculty faculty = facultyRepository.findById(facultyId)
@@ -209,6 +212,46 @@ public class CourseOfferingSectionFacultyService {
         sectionFacultyRepository.save(row);
 
         return new SectionFacultyAssignment(cohortId, null, cohortName, null, faculty.getId(), faculty.getFullName());
+    }
+
+    /** Hard-blocks binding a faculty member to an elective offering already covered elsewhere by
+     *  that exact same person. Every option in an elective group is required to run at one shared
+     *  simultaneous slot (see {@code TimetableSkeletonService#checkElectiveGroupSlot}), so one
+     *  faculty bound to two different options in the same group is a structural impossibility, not
+     *  a scheduling difficulty — it can never be placed by any automated or manual run, since it
+     *  would need that one person physically teaching two subjects at once. Confirmed 2026-09-02
+     *  after Global Auto-Schedule silently reported "no day/period found" for two elective groups
+     *  that turned out to have exactly this shape (three faculty each double-booked across two
+     *  options) — this is the gate that should have caught it at assignment time instead of
+     *  surfacing as an unexplained scheduling dead-end months later. Skipped entirely for a
+     *  non-elective offering, and when re-saving this exact row's own already-assigned faculty
+     *  unchanged. */
+    private void requireNoElectiveGroupFacultyConflict(CourseOffering offering, Long facultyId, Long previousFacultyId) {
+        if (facultyId == null || facultyId.equals(previousFacultyId)) {
+            return;
+        }
+        CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
+        if (csc == null || csc.getElectiveGroup() == null) {
+            return;
+        }
+        List<CourseOffering> siblings = courseOfferingRepository.findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(
+            offering.getTermInstance().getId(), csc.getElectiveGroup().getId());
+        for (CourseOffering sibling : siblings) {
+            if (sibling.getId().equals(offering.getId()) || !Boolean.TRUE.equals(sibling.getIsActive())) {
+                continue;
+            }
+            boolean alreadyOnSibling = sectionFacultyRepository.findByCourseOfferingId(sibling.getId()).stream()
+                .anyMatch(sf -> sf.getFaculty().getId().equals(facultyId));
+            if (alreadyOnSibling) {
+                Faculty faculty = facultyRepository.findById(facultyId).orElse(null);
+                throw new TimetableConstraintViolationException(List.of(new ConstraintViolation(
+                    "ELECTIVE_GROUP_FACULTY_CONFLICT",
+                    (faculty != null ? faculty.getFullName() : "This faculty member") + " is already assigned to "
+                        + sibling.getSubject().getName() + " in " + csc.getElectiveGroup().getGroupName()
+                        + " — every option in an elective group runs at one shared simultaneous slot, so the same "
+                        + "faculty can never cover two different options in it. Assign a different faculty member.")));
+            }
+        }
     }
 
     /** Hard-blocks assigning a section faculty whose real term-wide workload would exceed their

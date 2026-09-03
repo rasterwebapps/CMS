@@ -36,10 +36,12 @@ export interface SpecialClassOccurrence {
 }
 
 /** Mirrors backend `SpecialClassRequest`. Exactly one of classroomId/labId/clinicalVenueId must
- *  be set, matching sessionType. */
+ *  be set, matching sessionType. `periodIds` must be a single consecutive block (one period, or
+ *  several back-to-back with no gap) -- the backend rejects anything else. One row is created per
+ *  period, all sharing one `requestBatchId`; the response is always an array, even for one period. */
 export interface SpecialClassRequestPayload {
   occurrenceDate: string;
-  periodId: number;
+  periodIds: number[];
   subjectId: number;
   courseOfferingId: number;
   cohortSectionId: number | null;

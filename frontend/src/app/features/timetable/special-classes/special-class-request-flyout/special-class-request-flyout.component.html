@@ -61,14 +61,24 @@
       </div>
       <div class="field-group">
         <label class="field-label" for="scf-date">Date <span class="field-required">*</span></label>
-        <input id="scf-date" type="date" class="field-input" [(ngModel)]="occurrenceDate" />
+        <input id="scf-date" type="date" class="field-input" [(ngModel)]="occurrenceDate" [min]="minOccurrenceDate" />
+        <p class="field-hint">Only a day with no regular instruction — a Sunday, a non-working Saturday, or a
+          declared holiday — is accepted.</p>
       </div>
       <div class="field-group">
-        <label class="field-label" for="scf-period">Period <span class="field-required">*</span></label>
-        <select id="scf-period" class="field-select" [(ngModel)]="periodId">
-          <option [ngValue]="null">Select period</option>
-          @for (p of periods(); track p.id) { <option [ngValue]="p.id">{{ p.name }} ({{ p.startTime }}–{{ p.endTime }})</option> }
-        </select>
+        <label class="field-label" for="scf-period-from">Period(s) <span class="field-required">*</span></label>
+        <div class="scf-period-range">
+          <select id="scf-period-from" class="field-select" [(ngModel)]="fromPeriodId" (ngModelChange)="onFromPeriodChange()">
+            <option [ngValue]="null">From</option>
+            @for (p of periods(); track p.id) { <option [ngValue]="p.id">{{ p.name }} ({{ p.startTime }}–{{ p.endTime }})</option> }
+          </select>
+          <select id="scf-period-to" class="field-select" [(ngModel)]="toPeriodId">
+            <option [ngValue]="null">To</option>
+            @for (p of periods(); track p.id) { <option [ngValue]="p.id">{{ p.name }} ({{ p.startTime }}–{{ p.endTime }})</option> }
+          </select>
+        </div>
+        <p class="field-hint">Pick the same period for both to request just one — periods must be one
+          back-to-back block, with no gap.</p>
       </div>
       <div class="field-group">
         <label class="field-label" for="scf-session-type">Session Type</label>
@@ -97,6 +107,16 @@
         <textarea id="scf-reason" class="field-textarea" rows="3" [(ngModel)]="reason"
                   placeholder="e.g. Revision lecture ahead of internal exam"></textarea>
       </div>
+      @if (canApprove()) {
+        <div class="field-group">
+          <label class="checkbox-label">
+            <input type="checkbox" class="field-checkbox" [(ngModel)]="approveImmediately" />
+            Approve immediately
+          </label>
+          <p class="field-hint">You hold approval rights, so you can skip the Approval Queue and approve this the
+            moment it's created — still logged as its own separate approval action.</p>
+        </div>
+      }
     }
 
     @if (mode() === 'DAY_REPEAT') {
@@ -137,6 +157,16 @@
       <p class="field-hint">Every subject scheduled on the chosen weekday for this cohort section will be copied
         onto the target date. Sessions whose cohort ownership can't be confirmed are skipped and reported after
         submission.</p>
+      @if (canApprove()) {
+        <div class="field-group">
+          <label class="checkbox-label">
+            <input type="checkbox" class="field-checkbox" [(ngModel)]="approveImmediately" />
+            Approve immediately
+          </label>
+          <p class="field-hint">You hold approval rights, so you can skip the Approval Queue and approve this whole
+            batch the moment it's created — still logged as its own separate approval action.</p>
+        </div>
+      }
     }
   </div>
 
@@ -146,12 +176,12 @@
     } @else if (mode() === 'SINGLE_SUBJECT') {
       <button type="button" class="btn-cancel" (click)="backToModePicker()" [disabled]="saving()">Back</button>
       <button type="button" class="btn-primary" [disabled]="!canSubmitSingle() || saving()" (click)="submitSingle()">
-        @if (saving()) { <span class="btn-spinner"></span> Requesting… } @else { Request }
+        @if (saving()) { <span class="btn-spinner"></span> Requesting… } @else { {{ canApprove() && approveImmediately ? 'Request & Approve' : 'Request' }} }
       </button>
     } @else {
       <button type="button" class="btn-cancel" (click)="backToModePicker()" [disabled]="saving()">Back</button>
       <button type="button" class="btn-primary" [disabled]="!canSubmitRepeat() || saving()" (click)="submitRepeat()">
-        @if (saving()) { <span class="btn-spinner"></span> Requesting… } @else { Request }
+        @if (saving()) { <span class="btn-spinner"></span> Requesting… } @else { {{ canApprove() && approveImmediately ? 'Request & Approve' : 'Request' }} }
       </button>
     }
   </div>

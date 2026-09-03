@@ -26,6 +26,7 @@ import com.cms.dto.SkeletonCellMoveRequest;
 import com.cms.dto.SkeletonCellSwapRequest;
 import com.cms.dto.SkeletonCellPlacementRequest;
 import com.cms.dto.SkeletonCellResponse;
+import com.cms.dto.SkeletonClinicalShiftHours;
 import com.cms.dto.SkeletonPlacementCandidateResponse;
 import com.cms.dto.SkeletonSlotPreviewResponse;
 import com.cms.dto.SkeletonSubjectBudget;
@@ -36,6 +37,7 @@ import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.Batch;
 import com.cms.model.Classroom;
 import com.cms.model.ClassSchedule;
+import com.cms.model.ClinicalShiftGroup;
 import com.cms.model.Cohort;
 import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
@@ -49,6 +51,7 @@ import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.ClinicalShiftGroupRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CohortSectionRepository;
@@ -99,6 +102,7 @@ public class TimetableSkeletonService {
     private final CohortRoomAllocationRepository cohortRoomAllocationRepository;
     private final CohortSectionRepository cohortSectionRepository;
     private final TimetableStaffingService timetableStaffingService;
+    private final ClinicalShiftGroupRepository clinicalShiftGroupRepository;
 
     public TimetableSkeletonService(CourseOfferingRepository courseOfferingRepository,
                                      ClassScheduleRepository classScheduleRepository,
@@ -113,7 +117,8 @@ public class TimetableSkeletonService {
                                      TermInstanceRepository termInstanceRepository,
                                      CohortRoomAllocationRepository cohortRoomAllocationRepository,
                                      CohortSectionRepository cohortSectionRepository,
-                                     TimetableStaffingService timetableStaffingService) {
+                                     TimetableStaffingService timetableStaffingService,
+                                     ClinicalShiftGroupRepository clinicalShiftGroupRepository) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.periodRepository = periodRepository;
@@ -128,6 +133,7 @@ public class TimetableSkeletonService {
         this.cohortRoomAllocationRepository = cohortRoomAllocationRepository;
         this.cohortSectionRepository = cohortSectionRepository;
         this.timetableStaffingService = timetableStaffingService;
+        this.clinicalShiftGroupRepository = clinicalShiftGroupRepository;
     }
 
     public SkeletonBuilderResponse getCohortSkeleton(Long termInstanceId, Long cohortId) {
@@ -149,12 +155,16 @@ public class TimetableSkeletonService {
                 .filter(cs -> cs.getSessionType() == ClassSessionType.LIBRARY)
                 .toList();
 
+        boolean termTimetablePublished = classScheduleRepository
+            .existsByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.PUBLISHED);
+
         List<Long> offeringIds = new ArrayList<>(nonElectiveOfferingIds(termInstanceId, cohortId));
         offeringIds.addAll(electiveOfferingIds(termInstanceId, cohortId));
         if (offeringIds.isEmpty()) {
             List<SkeletonCellResponse> libraryOnlyCells = libraryCells.stream().map(this::toCellResponse).toList();
             return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, List.of(), libraryOnlyCells, List.of(), sectionResponses,
-                CurriculumHoursCalculator.weeksInTerm(termInstance), WorkingSaturdayCalculator.workingSaturdayCount(termInstance));
+                CurriculumHoursCalculator.weeksInTerm(termInstance), WorkingSaturdayCalculator.workingSaturdayCount(termInstance), List.of(),
+                termTimetablePublished);
         }
 
         Map<Long, CourseOffering> offeringById = new LinkedHashMap<>();
@@ -206,7 +216,11 @@ public class TimetableSkeletonService {
                 budgets = new ArrayList<>();
                 budgets.addAll(theoryBudgets(csc, existingForOffering, weeksInTerm, periodDurationMinutes, activeSections));
                 budgets.addAll(batchScopedBudgets(ClassSessionType.LAB, csc.getLabHours(), offeringBatches, existingForOffering, weeksInTerm, periodDurationMinutes, offering.getSubject()));
-                budgets.addAll(batchScopedBudgets(ClassSessionType.CLINICAL, csc.getClinicalHours(), offeringBatches, existingForOffering, weeksInTerm, periodDurationMinutes, offering.getSubject()));
+                Integer creditedClinicalHours = csc.getClinicalHours() != null
+                    ? creditClinicalShiftHours(ClassSessionType.CLINICAL, csc.getClinicalHours(), offering, weeksInTerm)
+                    : null;
+                budgets.addAll(batchScopedBudgets(ClassSessionType.CLINICAL, csc.getClinicalHours(), creditedClinicalHours,
+                    offeringBatches, existingForOffering, weeksInTerm, periodDurationMinutes, offering.getSubject()));
             }
 
             var electiveGroup = csc != null ? csc.getElectiveGroup() : null;
@@ -217,8 +231,52 @@ public class TimetableSkeletonService {
 
         List<SkeletonCellResponse> cells = allCells.stream().map(this::toCellResponse).toList();
 
+        // Clinical Shift sessions (OC-177) never produce a ClassSchedule row -- they bypass the
+        // period grid entirely via SessionOccurrence(CLINICAL_SHIFT) -- so they'd never appear in
+        // `cells` above and the frontend's Clinical assigned-hours card would silently under-count
+        // any cohort using them. Reported as a separate already-converted-to-hours list instead of
+        // synthetic grid cells since a Clinical Shift has no periodId/day-column position to render.
+        List<SkeletonClinicalShiftHours> clinicalShiftHours = clinicalShiftGroupRepository
+            .findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
+            .filter(g -> g.getCourseOffering() != null && offeringIds.contains(g.getCourseOffering().getId()))
+            .map(g -> toClinicalShiftHours(g, offeringById.get(g.getCourseOffering().getId()), weeksInTerm))
+            .filter(h -> h.assignedHours() > 0)
+            .toList();
+
         return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, subjects, cells, batches, sectionResponses,
-            weeksInTerm, WorkingSaturdayCalculator.workingSaturdayCount(termInstance));
+            weeksInTerm, WorkingSaturdayCalculator.workingSaturdayCount(termInstance), clinicalShiftHours, termTimetablePublished);
+    }
+
+    /** One active {@link ClinicalShiftGroup} occurs once/week on its own {@code dayOfWeek}, so its
+     *  real term-wide Clinical hours are simply its offering's configured shift duration converted
+     *  to hours and multiplied by {@code weeksInTerm} -- 0 (filtered out by the caller) if the
+     *  offering has no duration configured yet, matching how an unconfigured group can't actually
+     *  generate occurrences either (see {@code ClinicalShiftOccurrenceService#generateForDate}). */
+    /** The CLINICAL hours the grid still genuinely needs to deliver, after crediting whatever this
+     *  offering's active {@link ClinicalShiftGroup}(s) already deliver off-grid (see {@link
+     *  #toClinicalShiftHours}) — real hospital shift hours, never represented as grid cells at all.
+     *  Without this, {@code sessionsPerWeek} demands the FULL raw curriculum hours on top of what a
+     *  shift group is already covering, permanently over-demanding weekly grid periods for hours
+     *  that are, in reality, already being delivered — the exact shape behind a subject's Clinical
+     *  shortfall never clearing no matter how the grid is rearranged. A no-op (returns {@code
+     *  rawHours} unchanged) for THEORY/LAB, which have no shift mechanism, and whenever the offering
+     *  has no active Clinical Shift Group. Never negative. */
+    private int creditClinicalShiftHours(ClassSessionType sessionType, int rawHours, CourseOffering offering, int weeksInTerm) {
+        if (sessionType != ClassSessionType.CLINICAL || rawHours <= 0) {
+            return rawHours;
+        }
+        double shiftHours = clinicalShiftGroupRepository.findByCourseOfferingId(offering.getId()).stream()
+            .filter(g -> Boolean.TRUE.equals(g.getIsActive()))
+            .mapToDouble(g -> toClinicalShiftHours(g, offering, weeksInTerm).assignedHours())
+            .sum();
+        return (int) Math.max(0, Math.ceil(rawHours - shiftHours));
+    }
+
+    private SkeletonClinicalShiftHours toClinicalShiftHours(ClinicalShiftGroup group, CourseOffering offering, int weeksInTerm) {
+        Integer durationMinutes = offering != null ? offering.getClinicalShiftDurationMinutes() : null;
+        double hours = durationMinutes != null ? (durationMinutes / 60.0) * weeksInTerm : 0.0;
+        CohortSection section = group.getCohortSection();
+        return new SkeletonClinicalShiftHours(group.getCourseOffering().getId(), section != null ? section.getId() : null, hours);
     }
 
     /** Active sections of the cohort's committed Cohort Room Allocation for this term, or empty if
@@ -320,16 +378,53 @@ public class TimetableSkeletonService {
     private List<SkeletonSubjectBudget> batchScopedBudgets(ClassSessionType type, Integer hoursObj, List<Batch> batches,
                                                             List<ClassSchedule> existing, int weeksInTerm,
                                                             double periodDurationMinutes, Subject subject) {
-        int hours = hoursObj != null ? hoursObj : 0;
+        return batchScopedBudgets(type, hoursObj, hoursObj, batches, existing, weeksInTerm, periodDurationMinutes, subject);
+    }
+
+    /** Identity of the SESSION a row belongs to, for counting placed sessions against a
+     *  session-denominated budget ({@code requiredSessionsPerWeek}). Every row of one multi-period
+     *  block shares a {@code sessionGroupId} (see {@link #placeCell}'s OC-127 periodSpan handling),
+     *  so they collapse to one entry; a single-period session has no group id and stands alone
+     *  under its own row id. Never mix the two id spaces — hence the distinct prefixes. */
+    private static String sessionKey(ClassSchedule cs) {
+        if (cs.getSessionGroupId() != null) {
+            return "g:" + cs.getSessionGroupId();
+        }
+        // Falls back to object identity for a row with no id yet (never persisted/flushed): keying
+        // those on a null id would silently collapse every one of them into a single "session" and
+        // under-count the budget, letting over-placement straight through the cap below.
+        return cs.getId() != null ? "c:" + cs.getId() : "i:" + System.identityHashCode(cs);
+    }
+
+    /** {@code effectiveHoursForRequired} drives ONLY the weekly-sessions/grid-placement target
+     *  ({@code required} below) — {@code displayHoursObj} (the raw curriculum figure) still drives
+     *  the {@code totalHours} shown on the budget row, so a CLINICAL subject's real 480-hour
+     *  requirement never reads as smaller than it actually is just because part of it is credited
+     *  off-grid (see {@link #creditClinicalShiftHours}). Both are the same value for LAB, which has
+     *  no such off-grid delivery mechanism. */
+    private List<SkeletonSubjectBudget> batchScopedBudgets(ClassSessionType type, Integer displayHoursObj,
+                                                            Integer effectiveHoursForRequired, List<Batch> batches,
+                                                            List<ClassSchedule> existing, int weeksInTerm,
+                                                            double periodDurationMinutes, Subject subject) {
+        int hours = displayHoursObj != null ? displayHoursObj : 0;
         if (hours <= 0) {
             return List.of();
         }
+        int effectiveHours = effectiveHoursForRequired != null ? effectiveHoursForRequired : 0;
         int blockSize = CurriculumHoursCalculator.resolveBlockSize(subject, type);
-        int required = CurriculumHoursCalculator.sessionsPerWeek(hours, weeksInTerm, periodDurationMinutes, blockSize);
+        int required = CurriculumHoursCalculator.sessionsPerWeek(effectiveHours, weeksInTerm, periodDurationMinutes, blockSize);
 
+        // Counted in SESSIONS, not rows: a multi-period block is several ClassSchedule rows sharing
+        // one sessionGroupId, and requiredSessionsPerWeek above is a session count -- comparing raw
+        // row counts against it made a single placed 4-period Clinical block read as "4 of 6
+        // sessions done" when it was 1, so the shortfall (and therefore the whole placement pass)
+        // silently under-delivered every LAB/CLINICAL row by its own block size.
         Map<Long, Long> placedByBatchId = existing.stream()
             .filter(cs -> cs.getSessionType() == type && cs.getBatch() != null)
-            .collect(java.util.stream.Collectors.groupingBy(cs -> cs.getBatch().getId(), LinkedHashMap::new, java.util.stream.Collectors.counting()));
+            .collect(java.util.stream.Collectors.groupingBy(cs -> cs.getBatch().getId(), LinkedHashMap::new,
+                java.util.stream.Collectors.collectingAndThen(
+                    java.util.stream.Collectors.mapping(TimetableSkeletonService::sessionKey, java.util.stream.Collectors.toSet()),
+                    set -> (long) set.size())));
 
         List<Batch> matchingBatches = batches.stream()
             .filter(b -> !(type == ClassSessionType.LAB && b.getClinicalVenue() != null))
@@ -361,12 +456,16 @@ public class TimetableSkeletonService {
      *  If more sessions are genuinely needed, the fix is to raise the subject's curriculum hours
      *  (which raises {@code requiredSessionsPerWeek} here too), not to bypass this check.
      *
-     *  <p>{@code sessionsToAdd} is {@code spanPeriods.size()} -- a multi-period block must fit
-     *  entirely within the remaining budget, not just start under it. Silently no-ops (no violation)
-     *  when the offering has no resolved curriculum mapping or the session type's hours are 0/unset,
-     *  matching how {@link #batchScopedBudgets} treats the same case. */
+     *  <p>Everything here is denominated in SESSIONS, never periods: one call to {@link #placeCell}
+     *  creates exactly one session (however many periods it spans), so it costs exactly 1 against
+     *  the budget. This used to charge {@code spanPeriods.size()} against a session-denominated
+     *  budget while also counting already-placed ROWS, which double-punished multi-period blocks
+     *  from both directions -- a 4-period Clinical block spent 4 of 6 and then read back as 4
+     *  already placed, so the second legitimate block was rejected outright. Silently no-ops (no
+     *  violation) when the offering has no resolved curriculum mapping or the session type's hours
+     *  are 0/unset, matching how {@link #batchScopedBudgets} treats the same case. */
     private Optional<ConstraintViolation> checkBudgetNotExceeded(CourseOffering offering, ClassSessionType sessionType,
-                                                                   Batch batch, CohortSection cohortSection, int sessionsToAdd) {
+                                                                   Batch batch, CohortSection cohortSection) {
         CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
         if (csc == null) {
             return Optional.empty();
@@ -389,22 +488,28 @@ public class TimetableSkeletonService {
         double periodDurationMinutes = CurriculumHoursCalculator.averageDurationMinutes(
             activePeriods.stream().map(Period::getDurationMinutes).toList());
         int blockSize = CurriculumHoursCalculator.resolveBlockSize(offering.getSubject(), sessionType);
-        int required = CurriculumHoursCalculator.sessionsPerWeek(hours, weeksInTerm, periodDurationMinutes, blockSize);
+        int effectiveHours = creditClinicalShiftHours(sessionType, hours, offering, weeksInTerm);
+        int required = CurriculumHoursCalculator.sessionsPerWeek(effectiveHours, weeksInTerm, periodDurationMinutes, blockSize);
 
         Long scopeBatchId = batch != null ? batch.getId() : null;
         Long scopeSectionId = cohortSection != null ? cohortSection.getId() : null;
         List<ClassSchedule> candidates = AutoScheduleRunCache.current()
             .map(cache -> cache.byCourseOfferingId(offering.getId()))
             .orElseGet(() -> classScheduleRepository.findByCourseOfferingId(offering.getId()));
+        // Sessions, not rows -- see sessionKey. `required` is a session count, so counting rows here
+        // made a 4-period Clinical block consume 4 of its 6-session budget instead of 1, and would
+        // now reject the second legitimate block outright.
         long placed = candidates.stream()
             .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
             .filter(cs -> cs.getSessionType() == sessionType)
             .filter(cs -> sessionType == ClassSessionType.THEORY
                 ? Objects.equals(cs.getCohortSection() != null ? cs.getCohortSection().getId() : null, scopeSectionId)
                 : Objects.equals(cs.getBatch() != null ? cs.getBatch().getId() : null, scopeBatchId))
+            .map(TimetableSkeletonService::sessionKey)
+            .distinct()
             .count();
 
-        if (placed + sessionsToAdd > required) {
+        if (placed + 1 > required) {
             return Optional.of(new ConstraintViolation("SKELETON_CELL_BUDGET_EXCEEDED",
                 offering.getSubject().getName() + "'s " + sessionType + " budget is already met (" + placed + "/" + required
                     + " sessions/week) — increase the subject's curriculum hours first if more sessions are genuinely needed."));
@@ -571,7 +676,7 @@ public class TimetableSkeletonService {
             checkBlocked(request.dayOfWeek(), spanPeriod, offering.getTermInstance()).ifPresent(violations::add);
         }
 
-        checkBudgetNotExceeded(offering, request.sessionType(), batch, cohortSection, spanPeriods.size())
+        checkBudgetNotExceeded(offering, request.sessionType(), batch, cohortSection)
             .ifPresent(violations::add);
 
         if (!violations.isEmpty()) {
@@ -1203,7 +1308,8 @@ public class TimetableSkeletonService {
             return List.of();
         }
         int blockSize = CurriculumHoursCalculator.resolveBlockSize(offering.getSubject(), sessionType);
-        int required = CurriculumHoursCalculator.sessionsPerWeek(hours, weeksInTerm, periodDurationMinutes, blockSize);
+        int effectiveHours = creditClinicalShiftHours(sessionType, hours, offering, weeksInTerm);
+        int required = CurriculumHoursCalculator.sessionsPerWeek(effectiveHours, weeksInTerm, periodDurationMinutes, blockSize);
 
         List<ClassSchedule> existingForOffering = classScheduleRepository.findByCourseOfferingId(courseOfferingId);
         List<ClassSchedule> existingForThis = existingForOffering.stream()
@@ -1212,7 +1318,10 @@ public class TimetableSkeletonService {
                 && Objects.equals(cs.getBatch() != null ? cs.getBatch().getId() : null, batchId)
                 && Objects.equals(cs.getCohortSection() != null ? cs.getCohortSection().getId() : null, cohortSectionId))
             .toList();
-        int shortfall = required - existingForThis.size();
+        // Sessions, not rows (see sessionKey) -- `required` is session-denominated, so a placed
+        // multi-period block counts once here, not once per period it spans.
+        int placedSessions = (int) existingForThis.stream().map(TimetableSkeletonService::sessionKey).distinct().count();
+        int shortfall = required - placedSessions;
         if (shortfall <= 0) {
             return List.of();
         }

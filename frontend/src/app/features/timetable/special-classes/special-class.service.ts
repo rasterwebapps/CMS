@@ -14,8 +14,10 @@ export class SpecialClassService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/timetables/special-classes`;
 
-  requestSingleSubject(request: SpecialClassRequestPayload): Observable<SpecialClassOccurrence> {
-    return this.http.post<SpecialClassOccurrence>(`${this.baseUrl}/single-subject`, request);
+  /** Always an array, even for a single-period request -- one row per requested period, all
+   *  sharing one `requestBatchId` once there's more than one (see `approveBatch`/`rejectBatch`). */
+  requestSingleSubject(request: SpecialClassRequestPayload): Observable<SpecialClassOccurrence[]> {
+    return this.http.post<SpecialClassOccurrence[]>(`${this.baseUrl}/single-subject`, request);
   }
 
   requestDayRepeat(request: DayRepeatRequestPayload): Observable<DayRepeatResult> {

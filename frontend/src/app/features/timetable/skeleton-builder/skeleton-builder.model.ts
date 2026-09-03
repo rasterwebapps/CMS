@@ -81,6 +81,17 @@ export interface SkeletonSectionOption {
   isActive: boolean;
 }
 
+/** One active Clinical Shift Group's real Clinical hours for the whole term — already converted
+ *  from the offering's configured shift duration × weeksInTerm server-side. Clinical Shift
+ *  sessions bypass the period grid entirely (real clock times, no ClassSchedule row), so they
+ *  never appear in `cells` — this is how the hours-assigned card learns about them instead of
+ *  silently under-counting Clinical for any cohort using Clinical Shift Groups. */
+export interface SkeletonClinicalShiftHours {
+  courseOfferingId: number;
+  cohortSectionId: number | null;
+  assignedHours: number;
+}
+
 /** Cohort-wide since R3.1 — one response covers every non-elective subject a cohort has in a
  *  term, merging their cells/batches so cross-subject placement conflicts are visible in a
  *  single grid instead of hidden behind a per-subject filter. `sections` lists the cohort's
@@ -99,6 +110,12 @@ export interface SkeletonBuilderResponse {
   sections: SkeletonSectionOption[];
   weeksInTerm: number;
   workingSaturdayCount: number;
+  clinicalShiftHours: SkeletonClinicalShiftHours[];
+  /** True once this term's timetable has been approved/PUBLISHED on Draft Review — a term-wide
+   *  fact (same for every cohort in the term), not a per-cohort one, and distinct from whether
+   *  this cohort's own Cohort Room Allocation is committed (`sections` non-empty). Past this point
+   *  Global Auto-Schedule refuses to run; only manual period/staff edits remain available. */
+  termTimetablePublished: boolean;
 }
 
 export interface SkeletonCellPlacementRequest {
@@ -290,6 +307,20 @@ export interface GlobalAutoScheduleResult {
    *  window capacity (not faculty, not a room/schedule conflict) is why this run couldn't place
    *  everything still short against it. Empty when no venue was the real ceiling this run. */
   venueCapacityGaps: VenueCapacityGap[];
+  /** Every cohort this "All Cohorts" run deliberately left untouched because this term's timetable
+   *  is already approved/PUBLISHED on Draft Review — once approved, only manual period/staff edits
+   *  (swap staff, swap sessions) are allowed, never a full automated re-run. Publish is atomic
+   *  term-wide, so this is either every enrolled cohort or none — never a partial list. Always empty
+   *  for a single-cohort run (that case is a hard block at the API boundary instead — see
+   *  `canRunAutoSchedule` in skeleton-builder.component.ts). */
+  skippedPublishedCohorts: SkippedPublishedCohort[];
+}
+
+/** One cohort excluded from an "All Cohorts" run because this term's timetable is already
+ *  approved/PUBLISHED. */
+export interface SkippedPublishedCohort {
+  cohortId: number;
+  cohortName: string;
 }
 
 /** One Lab or Clinical venue this run genuinely couldn't place enough sessions against because of

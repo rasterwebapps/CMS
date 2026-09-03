@@ -247,11 +247,29 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
   protected readonly showWorkingSaturdaysFlyout = signal(false);
   protected readonly specialClassPrefill = signal<SingleShortfallSubject | null>(null);
 
+  /** True once this term has opted in to ANY working-Saturday week — drives the shortfall panel's
+   *  copy/button below. Saturday is one more DAY in the weekly grid template, not extra slots per
+   *  week: opting into more weeks (1st/2nd/3rd/4th) only changes which real calendar Saturdays get
+   *  an occurrence, it never adds a second Saturday to the same week. So once this is true,
+   *  "Configure Working Saturdays" can never close a gap caused by a subject already occupying
+   *  every day Mon–Sat — offering it as a remedy in that case is actively misleading (see the
+   *  incident this fixed: an admin had already opted into 1st/2nd Saturday and the panel kept
+   *  pointing back at the same dead-end button). */
+  protected readonly workingSaturdaysConfigured = signal(false);
+
   /** Required signal inputs aren't guaranteed bound until ngOnInit — reading {@link termInstanceId}
    *  any earlier (e.g. the constructor) throws NG0950. */
   ngOnInit(): void {
     this.runCheckPrerequisites();
+    this.refreshWorkingSaturdaysConfigured();
     this.destroyRef.onDestroy(() => this.stopElapsedTimer());
+  }
+
+  private refreshWorkingSaturdaysConfigured(): void {
+    this.academicYearService.getWorkingSaturdays(this.termInstanceId()).subscribe({
+      next: (weeks) => this.workingSaturdaysConfigured.set(weeks.length > 0),
+      error: () => this.workingSaturdaysConfigured.set(false),
+    });
   }
 
   /** "Open Capacity Auto-Plan"/"View full workload" still open a *different* screen in a new tab
@@ -590,6 +608,7 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
     this.showWorkingSaturdaysFlyout.set(false);
     this.toast.success('Saved — run automation again to use the updated pattern');
     this.refreshCapacityOverview();
+    this.refreshWorkingSaturdaysConfigured();
   }
 
   /** Opens the inline daily/weekly cap editor, pre-filled with the institution-wide values already

@@ -40,7 +40,7 @@ public class SpecialClassController {
 
     @PostMapping("/single-subject")
     @PreAuthorize("@perm.has('TIMETABLE_SPECIAL_CLASS_REQUEST')")
-    public ResponseEntity<SpecialClassOccurrenceDto> requestSingleSubject(@Valid @RequestBody SpecialClassRequest request) {
+    public ResponseEntity<List<SpecialClassOccurrenceDto>> requestSingleSubject(@Valid @RequestBody SpecialClassRequest request) {
         ProfileIdentity identity = requireFacultyIdentity();
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(specialClassRequestService.requestSingleSubject(request, identity.entityId(), identity.displayName()));

@@ -115,6 +115,19 @@ export class SkeletonBuilderComponent implements OnInit {
    *  renders unconditionally underneath, this only decides whether the CTA is prominent. */
   protected readonly hasNoCells = computed(() => (this.skeleton()?.cells.length ?? 0) === 0);
 
+  /** True once this term's timetable has been approved/PUBLISHED on Draft Review — a term-wide
+   *  fact ({@link SkeletonBuilderResponse#termTimetablePublished}, populated by the backend from
+   *  {@code ClassScheduleStatus.PUBLISHED}), not a per-cohort one. Distinct from whether this
+   *  cohort's Cohort Room Allocation is committed ({@link SkeletonBuilderResponse#sections}
+   *  non-empty) — committing room allocation only unlocks placement, it isn't itself a "stop
+   *  touching this" signal. Once the term is published, only manual period/staff edits (swap
+   *  staff, swap sessions) are allowed — Run Automation must never run again, at any cost — so both
+   *  trigger points below (the header button and the "no schedule yet" empty-state CTA) gate on
+   *  this. Always false while "All cohorts…" is selected ({@link skeleton} is null then); that mode
+   *  reports the same term-wide fact back per cohort on the backend instead (see {@code
+   *  skippedPublishedCohorts} in the run result). */
+  protected readonly termTimetablePublished = computed(() => this.skeleton()?.termTimetablePublished ?? false);
+
   /** 'ALL' (default) shows every section combined, matching pre-existing behavior. A cohort with
    *  more than one committed Theory section otherwise renders every section's cells stacked into
    *  the same slot, which reads as clutter rather than a real scheduling conflict — this lets an
@@ -196,10 +209,27 @@ export class SkeletonBuilderComponent implements OnInit {
 
         for (const [sectionId, sectionRows] of bySection) {
           total[type] += sectionRows[0].totalHours;
-          const sumAssigned = sk.cells
+          const cellAssigned = sk.cells
             .filter((c) => c.courseOfferingId != null && offeringIds.has(c.courseOfferingId) && c.sessionType === type && c.cohortSectionId === sectionId)
             .reduce((sum, c) => sum + hoursBetween(c.startTime, c.endTime) * occurrencesFor(c), 0);
-          assigned[type] += sumAssigned / sectionRows.length;
+          // Clinical Shift Group hours (OC-177) never produce a grid cell — they're reported
+          // separately, already converted to hours, and only ever apply to CLINICAL. Only a
+          // shift group scoped to this exact section counts here; a cohort-wide one
+          // (cohortSectionId null) is added once below instead of per-section.
+          const shiftAssigned = type === 'CLINICAL' && sectionId != null
+            ? sk.clinicalShiftHours
+                .filter((h) => offeringIds.has(h.courseOfferingId) && h.cohortSectionId === sectionId)
+                .reduce((sum, h) => sum + h.assignedHours, 0)
+            : 0;
+          assigned[type] += (cellAssigned + shiftAssigned) / sectionRows.length;
+        }
+
+        // Cohort-wide Clinical Shift Group hours (no cohortSectionId) aren't scoped to any one
+        // section bucket above — add them once here instead of repeating/dividing them per section.
+        if (type === 'CLINICAL') {
+          assigned.CLINICAL += sk.clinicalShiftHours
+            .filter((h) => offeringIds.has(h.courseOfferingId) && h.cohortSectionId === null)
+            .reduce((sum, h) => sum + h.assignedHours, 0);
         }
       }
     }

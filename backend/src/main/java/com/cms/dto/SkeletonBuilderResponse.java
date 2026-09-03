@@ -13,7 +13,14 @@ import java.util.List;
  *  wide constants (not per-subject) the frontend needs to compute an honest scheduled-hours total
  *  itself from {@code cells} — a cell placed on Monday-Friday recurs {@code weeksInTerm} times,
  *  one placed on Saturday only recurs {@code workingSaturdayCount} times (the term's real count of
- *  Saturdays matching its opt-in working-Saturday pattern, 0 if none is configured). */
+ *  Saturdays matching its opt-in working-Saturday pattern, 0 if none is configured). {@code
+ *  clinicalShiftHours} carries Clinical hours delivered via an active Clinical Shift Group instead
+ *  of a grid cell — see {@link SkeletonClinicalShiftHours}. {@code termTimetablePublished} is true
+ *  once this term's timetable has been approved on Draft Review (a term-wide fact, same for every
+ *  cohort in it) — past that point, Global Auto-Schedule refuses to run and only manual period/
+ *  staff edits (swap staff, swap sessions) remain available; it has nothing to do with whether this
+ *  cohort's Cohort Room Allocation is committed, which only gates whether {@code sections} is
+ *  non-empty. */
 public record SkeletonBuilderResponse(
     Long cohortId,
     String cohortName,
@@ -23,5 +30,7 @@ public record SkeletonBuilderResponse(
     List<BatchDto> batches,
     List<CohortSectionResponse> sections,
     int weeksInTerm,
-    long workingSaturdayCount
+    long workingSaturdayCount,
+    List<SkeletonClinicalShiftHours> clinicalShiftHours,
+    boolean termTimetablePublished
 ) {}

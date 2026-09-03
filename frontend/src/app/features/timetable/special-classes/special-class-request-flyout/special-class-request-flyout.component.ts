@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
+import { Observable } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { TitleCasePipe } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -18,7 +19,8 @@ import { ClinicalVenue } from '../../../clinical-venue/clinical-venue.model';
 import { FacultyService } from '../../../faculty/faculty.service';
 import { Faculty } from '../../../faculty/faculty.model';
 import { SpecialClassService } from '../special-class.service';
-import { SpecialClassSessionType, WeekDay } from '../special-class.model';
+import { SpecialClassOccurrence, SpecialClassSessionType, WeekDay } from '../special-class.model';
+import { PermissionService } from '../../../../core/permissions/permission.service';
 
 type Mode = 'PICK_MODE' | 'SINGLE_SUBJECT' | 'DAY_REPEAT';
 
@@ -45,7 +47,21 @@ export class SpecialClassRequestFlyoutComponent implements OnInit {
   private readonly clinicalVenueService = inject(ClinicalVenueService);
   private readonly facultyService = inject(FacultyService);
   private readonly specialClassService = inject(SpecialClassService);
+  private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
+
+  /** True when the person requesting this ALSO holds approval rights — drives the "Approve now"
+   *  option below. Deliberately still a separate, explicit action (one extra checkbox + a second
+   *  API call to the same approve endpoint the Approval Queue uses) rather than a silent
+   *  auto-approve, so the audit trail keeps two distinct entries (SPECIAL_CLASS_REQUESTED, then
+   *  SPECIAL_CLASS_APPROVED) even when it's the same person doing both in one sitting — the
+   *  server-side @PreAuthorize on the approve endpoint stays the real enforcement either way. */
+  protected readonly canApprove = computed(() => this.permissionService.has('TIMETABLE_SPECIAL_CLASS_APPROVE'));
+  /** Defaults on for anyone who can actually use it -- if you hold approval rights, the common
+   *  case is approving your own request right away, not leaving it sitting in the queue for
+   *  yourself to come back to. Still a real, visible, uncheckable-if-you-want-to checkbox, not a
+   *  hidden behavior. */
+  protected approveImmediately = this.canApprove();
 
   /** Deep-link entry point (e.g. from Global Auto-Schedule's "last remaining subject" alert) —
    *  when set, skips straight to the single-subject form with term/cohort/offering pre-selected
@@ -82,7 +98,18 @@ export class SpecialClassRequestFlyoutComponent implements OnInit {
   // Single-subject fields
   protected selectedCourseOfferingId: number | null = null;
   protected occurrenceDate = '';
-  protected periodId: number | null = null;
+  /** Special classes can only fall on a day with no regular instruction (Sunday, a non-working
+   *  Saturday, or a declared holiday) and today-or-later -- the backend is the real enforcement,
+   *  this `min` just stops an admin from picking an obviously-invalid past date in the first
+   *  place. */
+  protected readonly minOccurrenceDate = new Date().toISOString().slice(0, 10);
+  /** A consecutive block of periods, picked as a from/to range rather than a free multi-select --
+   *  the backend requires a single unbroken block (see {@code
+   *  SpecialClassRequestService#resolveConsecutivePeriods}), and a range picker can't express
+   *  anything else in the first place. `toPeriodId` snaps back to `fromPeriodId` whenever it would
+   *  otherwise sit before it in the list. */
+  protected fromPeriodId: number | null = null;
+  protected toPeriodId: number | null = null;
   protected sessionType: SpecialClassSessionType = 'THEORY';
   protected venueId: number | null = null;
   protected requestedFacultyId: number | null = null;
@@ -231,9 +258,36 @@ export class SpecialClassRequestFlyoutComponent implements OnInit {
     this.venueId = null;
   }
 
+  /** Snaps `toPeriodId` up to `fromPeriodId` whenever the newly-picked start would otherwise sit
+   *  after the current end, so the range never silently points backwards. */
+  protected onFromPeriodChange(): void {
+    if (this.fromPeriodId == null) return;
+    if (this.toPeriodId == null || this.periodIndex(this.toPeriodId) < this.periodIndex(this.fromPeriodId)) {
+      this.toPeriodId = this.fromPeriodId;
+    }
+  }
+
+  private periodIndex(periodId: number): number {
+    return this.periods().findIndex((p) => p.id === periodId);
+  }
+
+  /** The consecutive block of period ids from `fromPeriodId` to `toPeriodId`, inclusive -- both
+   *  ends are picked from the same ordered {@link periods} list, so the range between their
+   *  positions is exactly the "single consecutive block" the backend requires. Empty if either end
+   *  isn't picked yet. */
+  protected periodIdsForSubmit(): number[] {
+    if (this.fromPeriodId == null || this.toPeriodId == null) return [];
+    const all = this.periods();
+    const fromIdx = this.periodIndex(this.fromPeriodId);
+    const toIdx = this.periodIndex(this.toPeriodId);
+    if (fromIdx < 0 || toIdx < 0 || toIdx < fromIdx) return [];
+    return all.slice(fromIdx, toIdx + 1).map((p) => p.id);
+  }
+
   protected canSubmitSingle(): boolean {
     const offering = this.selectedOffering();
-    return !!(offering && this.occurrenceDate && this.periodId && this.venueId && this.requestedFacultyId);
+    return !!(offering && this.occurrenceDate && this.venueId && this.requestedFacultyId)
+      && this.periodIdsForSubmit().length > 0;
   }
 
   protected submitSingle(): void {
@@ -242,7 +296,7 @@ export class SpecialClassRequestFlyoutComponent implements OnInit {
     this.saving.set(true);
     this.specialClassService.requestSingleSubject({
       occurrenceDate: this.occurrenceDate,
-      periodId: this.periodId!,
+      periodIds: this.periodIdsForSubmit(),
       subjectId: offering.subjectId,
       courseOfferingId: offering.id,
       cohortSectionId: this.cohortSectionId,
@@ -253,14 +307,45 @@ export class SpecialClassRequestFlyoutComponent implements OnInit {
       requestedFacultyId: this.requestedFacultyId!,
       reason: this.reason || null,
     }).subscribe({
-      next: () => {
-        this.toast.success('Special class requested — awaiting admin approval');
-        this.saving.set(false);
-        this.saved.emit();
+      next: (created) => {
+        const periodNote = created.length > 1 ? ` across ${created.length} periods` : '';
+        if (this.approveImmediately && this.canApprove()) {
+          this.approveJustCreated(created, periodNote);
+        } else {
+          this.toast.success(`Special class requested${periodNote} — awaiting admin approval`);
+          this.saving.set(false);
+          this.saved.emit();
+        }
       },
       error: (err) => {
         this.toast.error(violationText(err) ?? 'Failed to request special class');
         this.saving.set(false);
+      },
+    });
+  }
+
+  /** Fires right after creation, as a genuinely separate API call to the same approve endpoint the
+   *  Approval Queue itself uses (server-side @PreAuthorize is the real gate, not this button being
+   *  shown) -- so the audit log still records two distinct actions/timestamps even though the admin
+   *  only clicked once. A batch (more than one period) approves via the shared batch endpoint, same
+   *  as the Approval Queue does for a multi-row request. If the approve call itself fails (e.g. the
+   *  slot was taken by something else in the meantime), the request still stands as PENDING --
+   *  never rolled back -- so it just needs approving normally from the queue instead. */
+  private approveJustCreated(created: SpecialClassOccurrence[], periodNote: string): void {
+    const batchId = created[0].requestBatchId;
+    const approve$: Observable<unknown> = batchId
+      ? this.specialClassService.approveBatch(batchId)
+      : this.specialClassService.approve(created[0].id);
+    approve$.subscribe({
+      next: () => {
+        this.toast.success(`Special class requested${periodNote} and approved`);
+        this.saving.set(false);
+        this.saved.emit();
+      },
+      error: () => {
+        this.toast.warning(`Requested${periodNote}, but approving it right away failed — approve it from the Approval Queue instead`);
+        this.saving.set(false);
+        this.saved.emit();
       },
     });
   }
@@ -281,9 +366,13 @@ export class SpecialClassRequestFlyoutComponent implements OnInit {
     }).subscribe({
       next: (result) => {
         const skipped = result.skippedCount > 0 ? ` (${result.skippedCount} session(s) skipped — cohort unresolved)` : '';
-        this.toast.success(`${result.created.length} session(s) requested — awaiting admin approval${skipped}`);
-        this.saving.set(false);
-        this.saved.emit();
+        if (this.approveImmediately && this.canApprove() && result.created.length > 0) {
+          this.approveJustCreated(result.created, ` (${result.created.length} session(s))${skipped}`);
+        } else {
+          this.toast.success(`${result.created.length} session(s) requested — awaiting admin approval${skipped}`);
+          this.saving.set(false);
+          this.saved.emit();
+        }
       },
       error: (err) => {
         this.toast.error(violationText(err) ?? 'Failed to request day repeat');

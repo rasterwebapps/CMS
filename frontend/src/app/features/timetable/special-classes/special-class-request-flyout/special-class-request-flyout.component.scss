@@ -1,3 +1,14 @@
+.scf-period-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .field-select {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .scf-prefill-hint {
   padding: 10px 12px;
   margin-bottom: 12px;

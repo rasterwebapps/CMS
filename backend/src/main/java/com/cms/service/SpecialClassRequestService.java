@@ -29,6 +29,7 @@ import com.cms.model.Room;
 import com.cms.model.SessionOccurrence;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.CalendarEventType;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
@@ -36,6 +37,7 @@ import com.cms.model.enums.OccurrenceSource;
 import com.cms.model.enums.RegistrationStatus;
 import com.cms.model.enums.SpecialClassApprovalStatus;
 import com.cms.model.enums.TermInstanceStatus;
+import com.cms.repository.CalendarEventRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.ClinicalVenueRepository;
@@ -78,6 +80,7 @@ public class SpecialClassRequestService {
     private final ClinicalVenueRepository clinicalVenueRepository;
     private final FacultyRepository facultyRepository;
     private final CourseRegistrationRepository courseRegistrationRepository;
+    private final CalendarEventRepository calendarEventRepository;
     private final TimetableStaffingService timetableStaffingService;
     private final AuditLogService auditLogService;
 
@@ -92,6 +95,7 @@ public class SpecialClassRequestService {
                                        ClinicalVenueRepository clinicalVenueRepository,
                                        FacultyRepository facultyRepository,
                                        CourseRegistrationRepository courseRegistrationRepository,
+                                       CalendarEventRepository calendarEventRepository,
                                        TimetableStaffingService timetableStaffingService,
                                        AuditLogService auditLogService) {
         this.sessionOccurrenceRepository = sessionOccurrenceRepository;
@@ -105,12 +109,19 @@ public class SpecialClassRequestService {
         this.clinicalVenueRepository = clinicalVenueRepository;
         this.facultyRepository = facultyRepository;
         this.courseRegistrationRepository = courseRegistrationRepository;
+        this.calendarEventRepository = calendarEventRepository;
         this.timetableStaffingService = timetableStaffingService;
         this.auditLogService = auditLogService;
     }
 
+    /** Returns one {@link SpecialClassOccurrenceDto} per requested period (always at least one) --
+     *  a multi-period request creates one {@link SessionOccurrence} row per period, all sharing one
+     *  {@code requestBatchId} so {@link #approveBatch}/{@link #rejectBatch} (already built for
+     *  Day Repeat) approve/reject them as a single atomic unit. A single-period request leaves
+     *  {@code requestBatchId} null, unchanged from before this method supported more than one
+     *  period, so it still approves/rejects via the plain {@link #approve}/{@link #reject}. */
     @Transactional
-    public SpecialClassOccurrenceDto requestSingleSubject(SpecialClassRequest request, Long requestingFacultyId, String actor) {
+    public List<SpecialClassOccurrenceDto> requestSingleSubject(SpecialClassRequest request, Long requestingFacultyId, String actor) {
         Subject subject = subjectRepository.findById(request.subjectId())
             .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
         CourseOffering courseOffering = courseOfferingRepository.findById(request.courseOfferingId())
@@ -119,8 +130,7 @@ public class SpecialClassRequestService {
             ? cohortSectionRepository.findById(request.cohortSectionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Cohort section not found with id: " + request.cohortSectionId()))
             : null;
-        Period period = periodRepository.findById(request.periodId())
-            .orElseThrow(() -> new ResourceNotFoundException("Period not found with id: " + request.periodId()));
+        List<Period> periods = resolveConsecutivePeriods(request.periodIds());
         Faculty requestedFaculty = facultyRepository.findById(request.requestedFacultyId())
             .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + request.requestedFacultyId()));
         Faculty requestingFaculty = facultyRepository.findById(requestingFacultyId)
@@ -128,27 +138,40 @@ public class SpecialClassRequestService {
 
         TermInstance term = courseOffering.getTermInstance();
         requireNotLocked(term);
-        DayOfWeek day = dayOfWeek(request.occurrenceDate());
+        requireWithinTermAndFutureDate(request.occurrenceDate(), term);
+        requireNonInstructionDay(request.occurrenceDate(), term);
+        DayOfWeek day = dayOfWeekOrNullForSunday(request.occurrenceDate());
 
         VenueResolution venue = resolveVenue(request.sessionType(), request.classroomId(), request.labId(), request.clinicalVenueId());
 
         List<ConstraintViolation> violations = new ArrayList<>();
-        checkConflicts(violations, term, day, period, requestedFaculty.getId(), request.sessionType(),
-            venue.venueId(), venue.physicalRoom(), venue.capacity(), venue.classroom(), courseOffering.getId(),
-            request.occurrenceDate(), subject.getId(), cohortSection != null ? cohortSection.getId() : null, null);
+        for (Period period : periods) {
+            checkConflicts(violations, term, day, period, requestedFaculty.getId(), request.sessionType(),
+                venue.venueId(), venue.physicalRoom(), venue.capacity(), venue.classroom(), courseOffering.getId(),
+                request.occurrenceDate(), subject.getId(), cohortSection != null ? cohortSection.getId() : null, null);
+        }
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
         }
 
-        SessionOccurrence occurrence = SessionOccurrence.forSpecialClass(OccurrenceSource.SPECIAL_CLASS,
-            request.occurrenceDate(), subject, courseOffering, cohortSection, period, request.sessionType(),
-            requestedFaculty, requestingFaculty, request.reason());
-        applyVenue(occurrence, request.sessionType(), venue);
-        occurrence = sessionOccurrenceRepository.save(occurrence);
+        UUID batchId = periods.size() > 1 ? UUID.randomUUID() : null;
+        List<SessionOccurrence> occurrences = new ArrayList<>();
+        for (Period period : periods) {
+            SessionOccurrence occurrence = SessionOccurrence.forSpecialClass(OccurrenceSource.SPECIAL_CLASS,
+                request.occurrenceDate(), subject, courseOffering, cohortSection, period, request.sessionType(),
+                requestedFaculty, requestingFaculty, request.reason());
+            applyVenue(occurrence, request.sessionType(), venue);
+            if (batchId != null) {
+                occurrence.setRequestBatchId(batchId);
+            }
+            occurrences.add(occurrence);
+        }
+        occurrences = sessionOccurrenceRepository.saveAll(occurrences);
 
-        auditLogService.record(actor, "SPECIAL_CLASS_REQUESTED", "SessionOccurrence", occurrence.getId().toString(),
-            "Requested special class: " + subject.getName() + " on " + request.occurrenceDate() + " (" + period.getName() + ")");
-        return toDto(occurrence);
+        String periodNames = periods.stream().map(Period::getName).reduce((a, b) -> a + ", " + b).orElse("");
+        auditLogService.record(actor, "SPECIAL_CLASS_REQUESTED", "SessionOccurrence", occurrences.get(0).getId().toString(),
+            "Requested special class: " + subject.getName() + " on " + request.occurrenceDate() + " (" + periodNames + ")");
+        return occurrences.stream().map(this::toDto).toList();
     }
 
     @Transactional
@@ -355,7 +378,7 @@ public class SpecialClassRequestService {
         if (term == null) {
             return;
         }
-        DayOfWeek day = dayOfWeek(occurrence.getOccurrenceDate());
+        DayOfWeek day = dayOfWeekOrNullForSunday(occurrence.getOccurrenceDate());
         VenueResolution venue = SessionOccurrenceVenue.fromOccurrence(occurrence);
         Long facultyId = occurrence.getRequestedFaculty() != null ? occurrence.getRequestedFaculty().getId() : null;
         Long courseOfferingId = occurrence.getCourseOffering() != null ? occurrence.getCourseOffering().getId() : null;
@@ -379,12 +402,91 @@ public class SpecialClassRequestService {
         }
     }
 
+    /** Today or later, and inside the term's own [startDate, endDate] window -- a special class
+     *  makes no sense for a date the term hasn't reached yet nor for one it's already left behind,
+     *  and a past date could never actually be held. */
+    private void requireWithinTermAndFutureDate(LocalDate date, TermInstance term) {
+        if (date.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Special class date must be today or a future date.");
+        }
+        if (date.isBefore(term.getStartDate()) || date.isAfter(term.getEndDate())) {
+            throw new IllegalArgumentException("Special class date must fall within this term ("
+                + term.getStartDate() + " to " + term.getEndDate() + ").");
+        }
+    }
+
+    /** A special/remedial class only makes sense on a day the college otherwise has no regular
+     *  instruction -- a Sunday, a Saturday this term hasn't opted into as a working day (see
+     *  {@link WorkingSaturdayCalculator}), or a declared Holiday -- never a normal Monday-Friday (or
+     *  working-Saturday) day that already has its own full timetable. */
+    private void requireNonInstructionDay(LocalDate date, TermInstance term) {
+        if (date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY
+                || WorkingSaturdayCalculator.isNonWorkingSaturday(date, term)
+                || isDeclaredHoliday(date, term)) {
+            return;
+        }
+        throw new IllegalArgumentException("Special classes can only be scheduled on a day the college has no "
+            + "regular instruction -- a Sunday, a non-working Saturday, or a declared holiday.");
+    }
+
+    private boolean isDeclaredHoliday(LocalDate date, TermInstance term) {
+        Long academicYearId = term.getAcademicYear().getId();
+        return !calendarEventRepository.findOverlapping(academicYearId, CalendarEventType.HOLIDAY, date, date).isEmpty();
+    }
+
+    /** Ordinary Monday-Saturday mapping, but null for Sunday instead of throwing -- Sunday is a
+     *  legitimate special-class day (see {@link #requireNonInstructionDay}) yet {@link DayOfWeek}
+     *  (the recurring weekly template's own enum) has no SUNDAY value at all, since the regular
+     *  template never runs one. Null tells {@link #checkConflicts} there's structurally nothing in
+     *  the recurring template to conflict with, so it skips that half of the check outright rather
+     *  than being asked to check a day that can't exist there. Never used for {@link
+     *  #requestDayRepeat}'s target date -- day-repeat still requires Monday-Saturday since it
+     *  copies an existing weekday session, so the original throwing {@code dayOfWeek} stays in use
+     *  there. */
+    private DayOfWeek dayOfWeekOrNullForSunday(LocalDate date) {
+        return date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY ? null : dayOfWeek(date);
+    }
+
     private DayOfWeek dayOfWeek(LocalDate date) {
         try {
             return DayOfWeek.valueOf(date.getDayOfWeek().name());
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Special classes can only be scheduled Monday through Saturday.");
         }
+    }
+
+    /** {@code periodIds} must name a single consecutive block of active periods -- one period, or
+     *  several back-to-back with no gap and no break in clock time -- mirroring the same
+     *  no-crossing-a-recess safety {@link TimetableSkeletonService#resolveSpanPeriods} enforces for
+     *  a regular multi-period placement, just without that method's CLINICAL-crosses-recess
+     *  exception (a special class is always a single ad-hoc block, never a half-day posting). */
+    private List<Period> resolveConsecutivePeriods(List<Long> periodIds) {
+        List<Long> distinctIds = periodIds.stream().distinct().toList();
+        List<Period> activeOrdered = periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc();
+        List<Integer> indexes = distinctIds.stream()
+            .map(id -> {
+                for (int i = 0; i < activeOrdered.size(); i++) {
+                    if (activeOrdered.get(i).getId().equals(id)) {
+                        return i;
+                    }
+                }
+                throw new ResourceNotFoundException("Period not found or not active with id: " + id);
+            })
+            .sorted()
+            .toList();
+        for (int i = 1; i < indexes.size(); i++) {
+            if (!indexes.get(i).equals(indexes.get(i - 1) + 1)) {
+                throw new IllegalArgumentException("Selected periods must be a single consecutive block, with no gaps.");
+            }
+        }
+        List<Period> resolved = indexes.stream().map(activeOrdered::get).toList();
+        for (int i = 1; i < resolved.size(); i++) {
+            if (!resolved.get(i - 1).getEndTime().equals(resolved.get(i).getStartTime())) {
+                throw new IllegalArgumentException(
+                    "Selected periods must be back-to-back in time, with no break between them.");
+            }
+        }
+        return resolved;
     }
 
     /** Two-part conflict check: (1) the recurring weekly template via
@@ -402,13 +504,19 @@ public class SpecialClassRequestService {
         var start = period.getStartTime();
         var end = period.getEndTime();
 
-        if (facultyId != null) {
-            timetableStaffingService.checkFacultyAvailable(facultyId, day, start, end, date).ifPresent(violations::add);
-            timetableStaffingService.checkFacultyFree(facultyId, term.getId(), null, day, start, end).ifPresent(violations::add);
-        }
-        if (venueId != null) {
-            timetableStaffingService.checkRoomFree(sessionType, venueId, physicalRoom, term.getId(), null, day, start, end)
-                .ifPresent(violations::add);
+        // day is null only for a Sunday occurrence (see dayOfWeekOrNullForSunday) -- the recurring
+        // weekly template structurally has no Sunday entries, so there's nothing there to conflict
+        // with; skip straight to part 2 below (other special classes on this exact date+period),
+        // which is keyed by the real calendar date, not day-of-week, and still fully applies.
+        if (day != null) {
+            if (facultyId != null) {
+                timetableStaffingService.checkFacultyAvailable(facultyId, day, start, end, date).ifPresent(violations::add);
+                timetableStaffingService.checkFacultyFree(facultyId, term.getId(), null, day, start, end).ifPresent(violations::add);
+            }
+            if (venueId != null) {
+                timetableStaffingService.checkRoomFree(sessionType, venueId, physicalRoom, term.getId(), null, day, start, end)
+                    .ifPresent(violations::add);
+            }
         }
 
         // Capacity-fit mirrors TimetableStaffingService.checkCapacityFit's THEORY branch only --

@@ -12,7 +12,9 @@
     @if (selectedTermInstanceId && (canManageRotation() || (canGlobalAutoPlace() && selectedCohortId && !allCohortsSelected()) || (canPlaceElectiveGroup() && hasElectiveGroup()) || canManageWorkingSaturdays())) {
       <div class="mlp-hdr-right">
         @if (canGlobalAutoPlace() && selectedCohortId && !allCohortsSelected()) {
-          <button type="button" class="btn-secondary" (click)="openGlobalAutoSchedule()">Run Automation</button>
+          <button type="button" class="btn-secondary" [disabled]="termTimetablePublished()"
+            [title]="termTimetablePublished() ? 'This term\'s timetable is already approved — only manual period/staff edits are allowed now' : ''"
+            (click)="openGlobalAutoSchedule()">Run Automation</button>
         }
         @if (canManageRotation()) {
           <button type="button" class="btn-secondary" (click)="openRotationSetup()">Set up Rotation</button>
@@ -117,7 +119,7 @@
     </div>
   } @else if (skeleton()) {
 
-    @if (hasNoCells() && canGlobalAutoPlace()) {
+    @if (hasNoCells() && canGlobalAutoPlace() && !termTimetablePublished()) {
       <div class="content-card anim-rise anim-rise--d2">
         <cms-empty-state
           icon="auto_awesome"
@@ -125,6 +127,14 @@
           subtitle="Run automation to place and staff this cohort's whole term shortfall at once, checking prerequisites and faculty capacity first. Edit the result afterward by dragging a session to move it, or clicking it to remove."
           actionLabel="Run Automation"
           (actionClick)="openGlobalAutoSchedule()">
+        </cms-empty-state>
+      </div>
+    } @else if (hasNoCells() && termTimetablePublished()) {
+      <div class="content-card anim-rise anim-rise--d2">
+        <cms-empty-state
+          icon="lock"
+          [title]="'Timetable already approved for ' + skeleton()!.cohortName"
+          subtitle="This term's timetable is already approved on Draft Review, so automation can no longer run for it — place or edit sessions manually instead (swap staff, swap sessions).">
         </cms-empty-state>
       </div>
     }

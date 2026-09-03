@@ -23,6 +23,18 @@ import com.cms.model.enums.ClassSessionType;
  * between" rule {@link TimetableSkeletonService#resolveSpanPeriods} and {@code
  * TimetableGlobalAutoScheduleService#tryPlaceAndStaff} both enforce — that rule stays exactly as
  * strict as before for every case except a CLINICAL block spanning a real recess (not lunch).
+ *
+ * <p><b>How scarce this makes big blocks — worth knowing before touching any placement code.</b>
+ * The rule here is what decides how many legal positions a multi-period session actually has, and
+ * the answer is far smaller than the period count suggests. On the live 8-period day (P1–P4, lunch,
+ * P5–P8) a 4-period CLINICAL block fits in exactly TWO places — the forenoon run and the afternoon
+ * run — because any other start index would straddle lunch. Six days therefore offer roughly a
+ * dozen Clinical windows for the entire week, and a single one-period session placed at P4 or P5
+ * annihilates a whole window rather than costing one period. That asymmetry is why {@code
+ * TimetableGlobalAutoScheduleService} places LAB/CLINICAL blocks before THEORY and before its
+ * Library/Self-Study filler, and why it rebuilds the draft grid instead of adding to it — see that
+ * class's "Placement order" javadoc section. Widening the lunch break, shortening a period, or
+ * adding a recess changes this arithmetic directly.
  */
 final class PeriodGapPolicy {
 

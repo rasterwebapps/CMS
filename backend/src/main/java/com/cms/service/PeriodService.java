@@ -42,6 +42,7 @@ public class PeriodService {
         if (request.isActive() != null) {
             period.setIsActive(request.isActive());
         }
+        requireNoActiveOverlap(period, null);
         return toResponse(periodRepository.save(period));
     }
 
@@ -89,6 +90,7 @@ public class PeriodService {
         if (request.isActive() != null) {
             period.setIsActive(request.isActive());
         }
+        requireNoActiveOverlap(period, id);
         return toResponse(periodRepository.save(period));
     }
 
@@ -104,6 +106,7 @@ public class PeriodService {
     public ActiveStatusUpdateResponse updateStatus(Long id, ActiveStatusUpdateRequest request) {
         Period period = findOrThrow(id);
         period.setIsActive(Boolean.TRUE.equals(request.isActive()));
+        requireNoActiveOverlap(period, id);
         Period saved = periodRepository.save(period);
         return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
     }
@@ -117,6 +120,39 @@ public class PeriodService {
     private Period findOrThrow(Long id) {
         return periodRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Period not found with id: " + id));
+    }
+
+    /** Two ACTIVE periods may never overlap in clock time — they are the timetable grid's real
+     *  columns, so an overlap means one session genuinely runs during another and every downstream
+     *  room/faculty conflict check (which compares real time ranges, not period ids) starts
+     *  reporting phantom clashes between two slots the grid presents as separate. Touching only
+     *  {@code endTime} of one period is enough to create this: Period 1 was widened from 50 to 60
+     *  minutes on 2026-08-31, leaving it running 09:00-10:00 against a Period 2 starting at 09:50,
+     *  and nothing rejected the save (fixed forward in V415).
+     *
+     *  <p>INACTIVE periods are deliberately exempt on both sides. Retired rows legitimately overlap
+     *  the live grid — the old standalone Lab Slot master (inactive since V331 merged it into
+     *  Period) still holds "Lab Slot 1" at 09:00-11:00 straight across Periods 1-3 — so checking
+     *  them would make every real period unsaveable. Deactivating is therefore always allowed;
+     *  only activating or editing a period that IS active is gated. */
+    private void requireNoActiveOverlap(Period candidate, Long excludeId) {
+        if (!Boolean.TRUE.equals(candidate.getIsActive())) {
+            return;
+        }
+        for (Period other : periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()) {
+            if (excludeId != null && excludeId.equals(other.getId())) {
+                continue;
+            }
+            // Half-open [start, end): one period ending exactly when the next starts is the normal,
+            // desired back-to-back case, not an overlap.
+            if (candidate.getStartTime().isBefore(other.getEndTime())
+                && other.getStartTime().isBefore(candidate.getEndTime())) {
+                throw new IllegalArgumentException("This period (" + candidate.getStartTime() + "–"
+                    + candidate.getEndTime() + ") overlaps '" + other.getName() + "' ("
+                    + other.getStartTime() + "–" + other.getEndTime()
+                    + ") — active periods must not share any clock time");
+            }
+        }
     }
 
     /** End time is derived from start time + duration rather than entered independently, so

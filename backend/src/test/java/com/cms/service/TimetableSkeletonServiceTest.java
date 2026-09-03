@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -56,6 +58,7 @@ import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.ClinicalShiftGroupRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CohortSectionRepository;
@@ -80,6 +83,7 @@ class TimetableSkeletonServiceTest {
     @Mock private CohortRoomAllocationRepository cohortRoomAllocationRepository;
     @Mock private CohortSectionRepository cohortSectionRepository;
     @Mock private TimetableStaffingService timetableStaffingService;
+    @Mock private ClinicalShiftGroupRepository clinicalShiftGroupRepository;
 
     private TimetableSkeletonService service;
 
@@ -97,7 +101,8 @@ class TimetableSkeletonServiceTest {
             periodRepository, batchRepository, batchService, blockedPeriodChecker,
             rotationSlotRepository, rotationResolverService, courseOfferingService,
             cohortRepository, termInstanceRepository, cohortRoomAllocationRepository, cohortSectionRepository,
-            timetableStaffingService);
+            timetableStaffingService, clinicalShiftGroupRepository);
+        lenient().when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(anyLong())).thenReturn(List.of());
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);
@@ -256,6 +261,78 @@ class TimetableSkeletonServiceTest {
         assertThat(cell.subjectName()).isEqualTo("Anatomy");
         assertThat(cell.subjectCode()).isEqualTo("ANAT101");
         assertThat(cell.cohortSectionId()).isNull();
+    }
+
+    @Test
+    void shouldReportClinicalShiftGroupHoursSeparatelyFromGridCells() {
+        offering.setClinicalShiftDurationMinutes(360); // 6h shift
+
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L))).thenReturn(Collections.emptyList());
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
+
+        com.cms.model.ClinicalShiftGroup group = new com.cms.model.ClinicalShiftGroup();
+        group.setId(1L);
+        group.setCourseOffering(offering);
+        group.setTermInstance(termInstance);
+        group.setDayOfWeek(DayOfWeek.MONDAY);
+        group.setClinicalStartTime(LocalTime.of(7, 0));
+        group.setIsActive(true);
+        when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(group));
+
+        SkeletonBuilderResponse response = service.getCohortSkeleton(10L, 5L);
+
+        assertThat(response.clinicalShiftHours()).hasSize(1);
+        com.cms.dto.SkeletonClinicalShiftHours hours = response.clinicalShiftHours().get(0);
+        assertThat(hours.courseOfferingId()).isEqualTo(100L);
+        assertThat(hours.cohortSectionId()).isNull();
+        assertThat(hours.assignedHours()).isEqualTo(6.0 * 27); // 6h shift * weeksInTerm(27)
+        // Never surfaces as a grid cell -- it has no periodId/day-column position to render.
+        assertThat(response.cells()).isEmpty();
+    }
+
+    /** Regression for the "Clinical shortfall never clears no matter how the grid is rearranged"
+     *  incident: an active Clinical Shift Group already delivers real hospital hours off-grid, so
+     *  the grid-placement target (requiredSessionsPerWeek) must be credited for them -- otherwise
+     *  the grid is asked to fill the FULL raw curriculum hours on top of what the shift already
+     *  covers. totalHours (the displayed figure) must stay at the raw curriculum value regardless,
+     *  so the subject's real total requirement never reads as smaller than it truly is. */
+    @Test
+    void clinicalBudgetRequiredSessionsAreCreditedForActiveShiftGroupHours_totalHoursStaysRaw() {
+        csc.setClinicalHours(480);
+        offering.setClinicalShiftDurationMinutes(360); // 6h shift/week
+
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L))).thenReturn(Collections.emptyList());
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
+
+        com.cms.model.ClinicalShiftGroup group = new com.cms.model.ClinicalShiftGroup();
+        group.setId(1L);
+        group.setCourseOffering(offering);
+        group.setTermInstance(termInstance);
+        group.setDayOfWeek(DayOfWeek.MONDAY);
+        group.setClinicalStartTime(LocalTime.of(7, 0));
+        group.setIsActive(true);
+        when(clinicalShiftGroupRepository.findByCourseOfferingId(100L)).thenReturn(List.of(group));
+
+        SkeletonBuilderResponse response = service.getCohortSkeleton(10L, 5L);
+
+        SkeletonSubjectBudget clinicalBudget = response.subjects().get(0).budgets().stream()
+            .filter(b -> b.sessionType() == ClassSessionType.CLINICAL).findFirst().orElseThrow();
+        // Raw: ceil((480*60/50)/27) = 22 weekly sessions. Credited for 6h*27weeks=162h already
+        // delivered off-grid: ceil(((480-162)*60/50)/27) = 15 -- fewer, but never negative/zero here.
+        assertThat(clinicalBudget.totalHours()).isEqualTo(480);
+        assertThat(clinicalBudget.requiredSessionsPerWeek()).isEqualTo(15);
     }
 
     @Test

@@ -244,6 +244,53 @@ class CourseOfferingSectionFacultyServiceTest {
         assertThat(result.facultyId()).isEqualTo(5L);
     }
 
+    /** Regression test for the elective-group-faculty-conflict incident (see
+     *  {@code CourseOfferingSectionFacultyService#requireNoElectiveGroupFacultyConflict}): binding
+     *  the same faculty to two options within one elective group is a structural impossibility
+     *  (every option must run at one shared simultaneous slot), so it must be rejected right here at
+     *  assignment time rather than surfacing months later as an unexplained "no day/period found"
+     *  from Global Auto-Schedule. */
+    @Test
+    void upsert_rejectsFacultyAlreadyBoundToASiblingOfferingInTheSameElectiveGroup() {
+        Cohort matchingCohort = cohort(1L, "2023-2027 Batch");
+        CohortSection targetSection = section(201L, matchingCohort, "A");
+
+        com.cms.model.CurriculumElectiveGroup electiveGroup = new com.cms.model.CurriculumElectiveGroup();
+        electiveGroup.setId(11L);
+        electiveGroup.setGroupName("Elective I (Sem III-IV)");
+        com.cms.model.CurriculumSemesterCourse csc = new com.cms.model.CurriculumSemesterCourse();
+        csc.setElectiveGroup(electiveGroup);
+        offering.setCurriculumSemesterCourse(csc);
+
+        Subject siblingSubject = new Subject();
+        siblingSubject.setId(2L);
+        siblingSubject.setName("Elective: Soft Skills");
+        CourseOffering siblingOffering = new CourseOffering();
+        siblingOffering.setId(101L);
+        siblingOffering.setSubject(siblingSubject);
+
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Set.of(1L));
+        when(cohortRepository.findById(1L)).thenReturn(Optional.of(matchingCohort));
+        when(studentTermEnrollmentRepository.findByTermInstanceIdAndCohortId(10L, 1L))
+            .thenReturn(List.of(enrollmentAtSemester(3)));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of(targetSection));
+        when(sectionFacultyRepository.findByCourseOfferingIdAndCohortSectionId(100L, 201L)).thenReturn(Optional.empty());
+        when(courseOfferingRepository.findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(10L, 11L))
+            .thenReturn(List.of(offering, siblingOffering));
+        Faculty faculty = faculty(6L, subject.getSpeciality());
+        when(facultyRepository.findById(6L)).thenReturn(Optional.of(faculty));
+        when(sectionFacultyRepository.findByCourseOfferingId(101L)).thenReturn(
+            List.of(new CourseOfferingSectionFaculty(siblingOffering, matchingCohort, faculty)));
+
+        assertThatThrownBy(() -> service.upsert(100L, 201L, 6L))
+            .isInstanceOf(com.cms.exception.TimetableConstraintViolationException.class)
+            .hasMessageContaining("Elective: Soft Skills");
+
+        verify(sectionFacultyRepository, never()).save(any());
+    }
+
     @Test
     void upsert_savesEligibleFacultyOverride() {
         Cohort matchingCohort = cohort(1L, "2023-2027 Batch");

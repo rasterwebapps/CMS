@@ -12,6 +12,12 @@
           Tick every milestone below to confirm you've reviewed it, then acknowledge to enable Run.
           Nothing is placed until you do.
         </p>
+        <p class="field-hint gas-warning">
+          This rebuilds the draft timetable from scratch: every existing draft session for the
+          cohorts in scope is cleared first, then the whole week is re-packed with Lab/Clinical
+          blocks placed before Theory. Any manual drag-moves you've made in the draft will be
+          replaced. Approved (published) timetables are never touched.
+        </p>
 
         <ul class="gas-checklist">
           @for (item of checklistItems(); track item.key) {
@@ -283,7 +289,17 @@
         @if (result(); as r) {
           <p class="field-hint">Placed and staffed {{ r.totalPlaced }} session(s) across {{ r.cohortSummaries.length }} cohort(s).</p>
           @if (r.staleDraftsCleared > 0) {
-            <p class="field-hint gas-warning">Cleared {{ r.staleDraftsCleared }} stale over-budget draft session(s) left over from before this run started.</p>
+            <p class="field-hint">Rebuilt from scratch — cleared {{ r.staleDraftsCleared }} existing draft session(s) first, so the week is re-packed with Lab/Clinical blocks placed before Theory and filler. Any manual drag-moves in the draft were replaced.</p>
+          }
+          @if (r.skippedPublishedCohorts.length > 0) {
+            <div class="gas-prereq-group">
+              <div class="gas-prereq-group__title">Skipped — this term's timetable is already approved</div>
+              <ul class="gas-contributors">
+                @for (s of r.skippedPublishedCohorts; track s.cohortId) {
+                  <li>{{ s.cohortName }} — untouched; only manual period/staff edits are allowed for it now</li>
+                }
+              </ul>
+            </div>
           }
           <ul class="gas-contributors">
             @for (c of r.cohortSummaries; track c.cohortId) {
@@ -313,16 +329,28 @@
 
           @if (hasShortfall()) {
             <div class="gas-prereq-group gas-shortfall">
-              <div class="gas-prereq-group__title">Monday–Friday didn't have room for everything above</div>
-              <p class="field-hint">
-                Two ways to close the gap: open up specific Saturdays for automation to use next run,
-                or request a one-off Special Class for whatever's still short.
-              </p>
+              @if (workingSaturdaysConfigured()) {
+                <div class="gas-prereq-group__title">Still short even with Saturday already open</div>
+                <p class="field-hint">
+                  This term already has Saturday scheduling enabled, so opening more Saturday weeks won't add
+                  weekly capacity — Saturday is still just one more day in the week, not extra slots. A subject
+                  already placed once on every day Mon–Sat can't fit a further session no matter how many
+                  Saturdays are opted in. Request a one-off Special Class for whatever's still short instead.
+                </p>
+              } @else {
+                <div class="gas-prereq-group__title">Monday–Friday didn't have room for everything above</div>
+                <p class="field-hint">
+                  Two ways to close the gap: open up specific Saturdays for automation to use next run,
+                  or request a one-off Special Class for whatever's still short.
+                </p>
+              }
               <div class="gas-shortfall__actions">
-                <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+                @if (!workingSaturdaysConfigured()) {
+                  <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+                }
                 @if (singleShortfallSubject(); as subject) {
-                  <button type="button" class="btn-primary" (click)="openSpecialClass(subject)">
-                    Schedule Special Class for {{ subject.subjectName }}
+                  <button type="button" class="btn-primary" [title]="'For ' + subject.subjectName" (click)="openSpecialClass(subject)">
+                    Schedule Special Class
                   </button>
                 }
               </div>
