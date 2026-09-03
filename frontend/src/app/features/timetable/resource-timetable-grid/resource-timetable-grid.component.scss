@@ -106,6 +106,16 @@
     background: rgba(245, 158, 11, 0.12);
     border-color: rgba(245, 158, 11, 0.28);
   }
+
+  // Synthetic Clinical Shift cell (bus-depart through bus-return) — no backing ClassSchedule row,
+  // so it's visually distinguished from a real Clinical session with a dashed border rather than
+  // the solid one every real chip uses.
+  &--shift {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.4);
+    border-style: dashed;
+    cursor: default;
+  }
 }
 
 .resource-grid__chip-subject {

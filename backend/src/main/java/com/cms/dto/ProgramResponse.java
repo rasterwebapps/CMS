@@ -19,6 +19,7 @@ public record ProgramResponse(
     Integer minimumAgeYears,
     Integer ageCutoffDay,
     Integer ageCutoffMonth,
+    Boolean usesClinicalShiftScheduling,
     Instant createdAt,
     Instant updatedAt
 ) {}

@@ -27,10 +27,12 @@ import com.cms.model.CourseOfferingSectionFaculty;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.CurriculumVersion;
 import com.cms.model.Faculty;
+import com.cms.model.Period;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.AssessmentPattern;
+import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FacultyStatus;
@@ -43,6 +45,7 @@ import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.PeriodRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
 
@@ -60,6 +63,7 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
     private final ClassScheduleRepository classScheduleRepository;
     private final BatchRepository batchRepository;
     private final CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository;
+    private final PeriodRepository periodRepository;
 
     // Field injection with @Lazy breaks the circular dependency:
     // CourseOfferingServiceImpl -> TimetableGlobalAutoScheduleService -> CourseOfferingService
@@ -76,7 +80,8 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
                                       StudentTermEnrollmentRepository studentTermEnrollmentRepository,
                                       ClassScheduleRepository classScheduleRepository,
                                       BatchRepository batchRepository,
-                                      CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository) {
+                                      CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository,
+                                      PeriodRepository periodRepository) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.cohortRepository = cohortRepository;
@@ -87,6 +92,7 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
         this.classScheduleRepository = classScheduleRepository;
         this.batchRepository = batchRepository;
         this.courseOfferingSectionFacultyRepository = courseOfferingSectionFacultyRepository;
+        this.periodRepository = periodRepository;
     }
 
     /** Package-private setter for test injection of the lazy-wired service. */
@@ -399,6 +405,7 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
             csc != null && csc.getElectiveGroup() != null ? csc.getElectiveGroup().getSelectionMode() : null,
             csc != null ? csc.getLabHours() : 0,
             csc != null ? csc.getClinicalHours() : 0,
+            o.getSubject().getClinicalSessionBlockPeriods(),
             o.getClinicalShiftDurationMinutes(),
             o.getClinicalTravelBufferMinutes(),
             o.getCreatedAt(),
@@ -419,6 +426,18 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
             throw new IllegalStateException(
                 "Course offering " + id + "'s subject has no clinical hours in the curriculum -- "
                     + "shift-based clinical scheduling only applies to subjects with clinical hours");
+        }
+        if (settingDuration) {
+            int blockPeriods = CurriculumHoursCalculator.resolveBlockSize(offering.getSubject(), ClassSessionType.CLINICAL);
+            double periodDurationMinutes = CurriculumHoursCalculator.averageDurationMinutes(
+                periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc().stream().map(Period::getDurationMinutes).toList());
+            long floorMinutes = Math.round(Math.ceil(blockPeriods * periodDurationMinutes));
+            if (request.clinicalShiftDurationMinutes() < floorMinutes) {
+                throw new IllegalArgumentException(
+                    "Clinical Shift Duration cannot be less than the subject's own Clinical Session Length ("
+                        + blockPeriods + " consecutive periods = " + floorMinutes + " minutes, set in Subject "
+                        + "Master) -- a shift may run longer than that minimum, never shorter");
+            }
         }
         offering.setClinicalShiftDurationMinutes(request.clinicalShiftDurationMinutes());
         offering.setClinicalTravelBufferMinutes(request.clinicalTravelBufferMinutes());

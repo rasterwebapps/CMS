@@ -12,14 +12,18 @@ import java.util.List;
  *  classroom (committed once, per cohort, for the whole term), a shared Lab/Clinical venue's real
  *  weekly feasibility is exactly what Run Automation itself can fail on, so it belongs in this
  *  report the same way faculty capacity does. {@code ready()} is true only when every list is
- *  empty. */
+ *  empty. {@code clinicalShiftPeriodAvailability} is the analogous Clinical-Shift-vs-Period-grid
+ *  check — a cohort/day left with zero periods for Theory/Lab after its Clinical Shift window is
+ *  exactly the kind of run-time failure Run Automation itself would hit, so it belongs here too. */
 public record GlobalAutoSchedulePrerequisites(
     List<UnassignedOfferingSummary> offeringsWithoutFaculty,
     GlobalCapacityPrecheckResult capacityPrecheck,
-    LabClinicalVenueCapacityResult labClinicalVenueCapacity
+    LabClinicalVenueCapacityResult labClinicalVenueCapacity,
+    ClinicalShiftPeriodAvailabilityResult clinicalShiftPeriodAvailability
 ) {
     public boolean ready() {
         return offeringsWithoutFaculty.isEmpty() && capacityPrecheck.overCapacityFaculty().isEmpty()
-            && labClinicalVenueCapacity.overCapacityVenues().isEmpty();
+            && labClinicalVenueCapacity.overCapacityVenues().isEmpty()
+            && clinicalShiftPeriodAvailability.zeroPeriodDays().isEmpty();
     }
 }

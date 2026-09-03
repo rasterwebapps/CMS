@@ -79,6 +79,7 @@ public class ProgramService {
         program.setMinimumAgeYears(request.minimumAgeYears());
         program.setAgeCutoffDay(request.ageCutoffDay());
         program.setAgeCutoffMonth(request.ageCutoffMonth());
+        program.setUsesClinicalShiftScheduling(request.usesClinicalShiftScheduling());
         return toResponse(programRepository.save(program));
     }
 
@@ -141,6 +142,7 @@ public class ProgramService {
         program.setMinimumAgeYears(request.minimumAgeYears());
         program.setAgeCutoffDay(request.ageCutoffDay());
         program.setAgeCutoffMonth(request.ageCutoffMonth());
+        program.setUsesClinicalShiftScheduling(request.usesClinicalShiftScheduling());
         return toResponse(programRepository.save(program));
     }
 
@@ -189,6 +191,7 @@ public class ProgramService {
             program.getMinimumAgeYears(),
             program.getAgeCutoffDay(),
             program.getAgeCutoffMonth(),
+            program.getUsesClinicalShiftScheduling(),
             program.getCreatedAt(),
             program.getUpdatedAt()
         );

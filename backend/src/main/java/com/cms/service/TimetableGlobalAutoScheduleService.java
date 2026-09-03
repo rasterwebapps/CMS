@@ -15,12 +15,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.AutoPlaceUnplacedItem;
 import com.cms.dto.SystemConfigurationResponse;
+import com.cms.dto.ClinicalShiftPeriodAvailabilityResult;
+import com.cms.dto.ClinicalShiftWindow;
 import com.cms.dto.CohortPlacementSummary;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
@@ -185,6 +188,7 @@ public class TimetableGlobalAutoScheduleService {
     private final CourseRegistrationRepository courseRegistrationRepository;
     private final SubjectRepository subjectRepository;
     private final SystemConfigurationService systemConfigurationService;
+    private final ClinicalShiftGroupService clinicalShiftGroupService;
 
     public TimetableGlobalAutoScheduleService(TimetableSkeletonService timetableSkeletonService,
                                                TimetableStaffingService timetableStaffingService,
@@ -203,7 +207,8 @@ public class TimetableGlobalAutoScheduleService {
                                                ClassroomRepository classroomRepository,
                                                CourseRegistrationRepository courseRegistrationRepository,
                                                SubjectRepository subjectRepository,
-                                               SystemConfigurationService systemConfigurationService) {
+                                               SystemConfigurationService systemConfigurationService,
+                                               ClinicalShiftGroupService clinicalShiftGroupService) {
         this.timetableSkeletonService = timetableSkeletonService;
         this.timetableStaffingService = timetableStaffingService;
         this.timetableCapacityPlanningService = timetableCapacityPlanningService;
@@ -222,6 +227,7 @@ public class TimetableGlobalAutoScheduleService {
         this.courseRegistrationRepository = courseRegistrationRepository;
         this.subjectRepository = subjectRepository;
         this.systemConfigurationService = systemConfigurationService;
+        this.clinicalShiftGroupService = clinicalShiftGroupService;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -920,7 +926,9 @@ public class TimetableGlobalAutoScheduleService {
 
         LabClinicalVenueCapacityResult venueCapacity =
             timetableCapacityPlanningService.computeLabClinicalVenueCapacity(termInstanceId, PlanningBasis.SANCTIONED);
-        return new GlobalAutoSchedulePrerequisites(unassigned, precheckCapacity(termInstanceId), venueCapacity);
+        ClinicalShiftPeriodAvailabilityResult shiftAvailability =
+            timetableCapacityPlanningService.computeClinicalShiftPeriodAvailability(termInstanceId);
+        return new GlobalAutoSchedulePrerequisites(unassigned, precheckCapacity(termInstanceId), venueCapacity, shiftAvailability);
     }
 
     /** Every active faculty member's full term standing — "how many hours should they be carrying
@@ -1698,6 +1706,7 @@ public class TimetableGlobalAutoScheduleService {
                                         TermInstance term, List<Period> periods, Set<DayOfWeek> daysUsed, int blockSize,
                                         Map<DayOfWeek, Integer> dayLoad) {
         Map<String, Integer> failureTally = new LinkedHashMap<>();
+        Map<DayOfWeek, List<ClinicalShiftWindow>> shiftWindowsByDay = resolveShiftWindowsByDay(cohortId, term);
         List<DayOfWeek> candidateDays = Arrays.stream(DayOfWeek.values())
             .filter(d -> d != DayOfWeek.SATURDAY)
             .sorted(Comparator.comparingInt(dayLoad::get))
@@ -1751,14 +1760,21 @@ public class TimetableGlobalAutoScheduleService {
                     continue;
                 }
                 boolean anyBlocked = false;
+                boolean anyShiftBlocked = false;
+                List<ClinicalShiftWindow> windowsToday = shiftWindowsByDay.getOrDefault(day, List.of());
                 for (Period p : block) {
                     if (blockedPeriodChecker.blockReason(day, p.getStartTime(), p.getEndTime(), term).isPresent()) {
                         anyBlocked = true;
                         break;
                     }
+                    if (windowsToday.stream().anyMatch(w -> w.overlaps(p.getStartTime(), p.getEndTime()))) {
+                        anyBlocked = true;
+                        anyShiftBlocked = true;
+                        break;
+                    }
                 }
                 if (anyBlocked) {
-                    failureTally.merge("PERIOD_BLOCKED", 1, Integer::sum);
+                    failureTally.merge(anyShiftBlocked ? "CLINICAL_SHIFT_BLOCKED" : "PERIOD_BLOCKED", 1, Integer::sum);
                     continue;
                 }
                 Period primary = block.get(0);
@@ -1792,6 +1808,26 @@ public class TimetableGlobalAutoScheduleService {
             }
         }
         return PlacementAttempt.failure(failureTally);
+    }
+
+    /** Every active Clinical Shift window bound to this cohort this term, grouped by day, when the
+     *  cohort's Program has opted into Clinical Shift scheduling (empty map otherwise -- a plain
+     *  no-op for every program that hasn't). Memoized via {@link AutoScheduleRunCache} since {@link
+     *  #tryPlaceAndStaff} calls this on every placement <em>attempt</em> (hundreds per cohort per
+     *  run) and a cohort's shift assignments never change mid-run. */
+    private Map<DayOfWeek, List<ClinicalShiftWindow>> resolveShiftWindowsByDay(Long cohortId, TermInstance term) {
+        Cohort cohort = cohortRepository.findById(cohortId).orElse(null);
+        boolean shiftEnforced = cohort != null && cohort.getProgram() != null
+            && Boolean.TRUE.equals(cohort.getProgram().getUsesClinicalShiftScheduling());
+        if (!shiftEnforced) {
+            return Map.of();
+        }
+        String memoKey = "shiftWindows|" + cohortId + "|" + term.getId();
+        List<ClinicalShiftWindow> windows = AutoScheduleRunCache.current()
+            .map(cache -> cache.memoizedShiftWindows(memoKey,
+                () -> clinicalShiftGroupService.resolveActiveWindowsForCohort(cohortId, term.getId())))
+            .orElseGet(() -> clinicalShiftGroupService.resolveActiveWindowsForCohort(cohortId, term.getId()));
+        return windows.stream().collect(Collectors.groupingBy(ClinicalShiftWindow::dayOfWeek));
     }
 
     /** One Self-Study/Co-curricular budget row this cohort can use as gap-fill, pre-resolved to a

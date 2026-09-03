@@ -385,6 +385,8 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
     const tightCapacity = prereq.capacityPrecheck.tightCapacityFaculty;
     const overCapacityVenues = prereq.labClinicalVenueCapacity.overCapacityVenues;
     const tightCapacityVenues = prereq.labClinicalVenueCapacity.tightCapacityVenues;
+    const zeroPeriodDays = prereq.clinicalShiftPeriodAvailability.zeroPeriodDays;
+    const tightPeriodDays = prereq.clinicalShiftPeriodAvailability.tightPeriodDays;
     const needingRoom = this.cohortsNeedingRoom();
 
     this.checklistItems.set([
@@ -438,6 +440,28 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
           ? `${tightCapacityVenues.length} Lab/Clinical venue(s) are at ~100% of their weekly window — real placement isn't guaranteed`
           : 'No Lab/Clinical venue is at zero-slack weekly capacity',
         warn: tightCapacityVenues.length > 0,
+        checked: false,
+        hardBlock: false,
+        viewed: false,
+        expanded: false,
+      },
+      {
+        key: 'clinical-shift-zero-periods',
+        label: zeroPeriodDays.length > 0
+          ? `${zeroPeriodDays.length} cohort/day combination(s) have zero periods left after their Clinical Shift window`
+          : 'Every Clinical-Shift cohort has at least one free period on every day',
+        warn: zeroPeriodDays.length > 0,
+        checked: false,
+        hardBlock: true,
+        viewed: false,
+        expanded: false,
+      },
+      {
+        key: 'clinical-shift-tight-periods',
+        label: tightPeriodDays.length > 0
+          ? `${tightPeriodDays.length} cohort/day combination(s) have only one period left after their Clinical Shift window`
+          : 'No Clinical-Shift cohort/day is down to one period',
+        warn: tightPeriodDays.length > 0,
         checked: false,
         hardBlock: false,
         viewed: false,

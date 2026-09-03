@@ -84,6 +84,7 @@ class TimetableSkeletonServiceTest {
     @Mock private CohortSectionRepository cohortSectionRepository;
     @Mock private TimetableStaffingService timetableStaffingService;
     @Mock private ClinicalShiftGroupRepository clinicalShiftGroupRepository;
+    @Mock private ClinicalShiftGroupService clinicalShiftGroupService;
 
     private TimetableSkeletonService service;
 
@@ -101,8 +102,9 @@ class TimetableSkeletonServiceTest {
             periodRepository, batchRepository, batchService, blockedPeriodChecker,
             rotationSlotRepository, rotationResolverService, courseOfferingService,
             cohortRepository, termInstanceRepository, cohortRoomAllocationRepository, cohortSectionRepository,
-            timetableStaffingService, clinicalShiftGroupRepository);
+            timetableStaffingService, clinicalShiftGroupRepository, clinicalShiftGroupService);
         lenient().when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(anyLong())).thenReturn(List.of());
+        lenient().when(clinicalShiftGroupService.resolveActiveWindowsForCohort(anyLong(), anyLong())).thenReturn(List.of());
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);
@@ -177,7 +179,7 @@ class TimetableSkeletonServiceTest {
 
     private CourseOfferingDto offeringDto(Long id, boolean elective) {
         return new CourseOfferingDto(id, 10L, "2024-2025 ODD", null, null, null, null, null, null, null, List.of(),
-            1, true, null, elective, null, null, null, null, null, null, null, null, null, null, List.of());
+            1, true, null, elective, null, null, null, null, null, null, null, null, null, null, null, List.of());
     }
 
     private CohortSection section(Long id, String label) {

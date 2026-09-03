@@ -334,6 +334,9 @@ export interface CourseOffering {
   electiveGroupSelectionMode: ElectiveSelectionMode | null;
   labHours: number;
   clinicalHours: number;
+  /** Subject's on-campus clinical session block size (consecutive periods), set in Subject Master —
+   *  read-only here; Clinical Shift Duration below can't be set shorter than this many periods. */
+  clinicalSessionBlockPeriods: number;
   /** Configurable off-campus clinical shift length/travel buffer — null means this offering has
    *  no shift-based clinical component (on-campus-only clinical uses the standard Period grid). */
   clinicalShiftDurationMinutes: number | null;

@@ -10,20 +10,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.ClassScheduleResponse;
+import com.cms.dto.ClinicalShiftWindow;
 import com.cms.dto.ResourceGridCellResponse;
 import com.cms.dto.ResourceGridRowResponse;
+import com.cms.model.Batch;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
+import com.cms.model.ClinicalShiftGroup;
 import com.cms.model.ClinicalVenue;
+import com.cms.model.CourseOffering;
 import com.cms.model.DayMappingOverride;
 import com.cms.model.Faculty;
 import com.cms.model.Lab;
 import com.cms.model.enums.ClassScheduleStatus;
+import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.LabStatus;
+import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
+import com.cms.repository.ClinicalShiftGroupRepository;
 import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.DayMappingOverrideRepository;
 import com.cms.repository.FacultyRepository;
@@ -49,6 +56,13 @@ public class ResourceGridService {
     private final LabRepository labRepository;
     private final ClinicalVenueRepository clinicalVenueRepository;
     private final DayMappingOverrideRepository dayMappingOverrideRepository;
+    private final ClinicalShiftGroupRepository clinicalShiftGroupRepository;
+    private final BatchRepository batchRepository;
+
+    /** Synthetic sessionId floor for a Clinical Shift cell (no backing {@code ClassSchedule} row)
+     *  — {@code SHIFT_CELL_ID_BASE - batch.getId()} is always negative, so it can never collide
+     *  with a real, positive-sequence {@code ClassSchedule} id. */
+    private static final long SHIFT_CELL_ID_BASE = -1_000_000L;
 
     public ResourceGridService(ClassScheduleRepository classScheduleRepository,
                                 ClassScheduleService classScheduleService,
@@ -56,7 +70,9 @@ public class ResourceGridService {
                                 ClassroomRepository classroomRepository,
                                 LabRepository labRepository,
                                 ClinicalVenueRepository clinicalVenueRepository,
-                                DayMappingOverrideRepository dayMappingOverrideRepository) {
+                                DayMappingOverrideRepository dayMappingOverrideRepository,
+                                ClinicalShiftGroupRepository clinicalShiftGroupRepository,
+                                BatchRepository batchRepository) {
         this.classScheduleRepository = classScheduleRepository;
         this.classScheduleService = classScheduleService;
         this.facultyRepository = facultyRepository;
@@ -64,6 +80,8 @@ public class ResourceGridService {
         this.labRepository = labRepository;
         this.clinicalVenueRepository = clinicalVenueRepository;
         this.dayMappingOverrideRepository = dayMappingOverrideRepository;
+        this.clinicalShiftGroupRepository = clinicalShiftGroupRepository;
+        this.batchRepository = batchRepository;
     }
 
     /** @param date when supplied, resolves the effective day-of-week through any {@link
@@ -85,26 +103,39 @@ public class ResourceGridService {
             responseById.put(response.id(), response);
         }
 
+        // Clinical Shift sessions never produce a ClassSchedule row (see TimetableSkeletonService's
+        // own comment on this), so without this they'd be invisible on this grid entirely even
+        // though their bus-depart-to-bus-return window occupies a coordinator faculty and a
+        // ClinicalVenue for real. Loaded once per request, filtered to this exact effective day.
+        List<ClinicalShiftGroup> shiftGroupsToday = clinicalShiftGroupRepository
+            .findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
+            .filter(g -> g.getDayOfWeek() == effectiveDayOfWeek)
+            .toList();
+
         return type == ResourceType.FACULTY
-            ? facultyRows(daySchedules, responseById)
-            : classroomAndLabRows(daySchedules, responseById);
+            ? facultyRows(daySchedules, responseById, shiftGroupsToday)
+            : classroomAndLabRows(daySchedules, responseById, shiftGroupsToday);
     }
 
     private List<ResourceGridRowResponse> facultyRows(List<ClassSchedule> daySchedules,
-                                                        Map<Long, ClassScheduleResponse> responseById) {
+                                                        Map<Long, ClassScheduleResponse> responseById,
+                                                        List<ClinicalShiftGroup> shiftGroupsToday) {
         List<ResourceGridRowResponse> rows = new ArrayList<>();
         for (Faculty faculty : facultyRepository.findByStatus(FacultyStatus.ACTIVE)) {
-            List<ResourceGridCellResponse> cells = daySchedules.stream()
+            List<ResourceGridCellResponse> cells = new ArrayList<>(daySchedules.stream()
                 .filter(cs -> cs.getFaculty() != null && cs.getFaculty().getId().equals(faculty.getId()))
                 .map(cs -> toCell(responseById.get(cs.getId())))
-                .toList();
+                .toList());
+            cells.addAll(shiftCellsFor(shiftGroupsToday,
+                batch -> batch.getCoordinatorFaculty() != null && batch.getCoordinatorFaculty().getId().equals(faculty.getId())));
             rows.add(new ResourceGridRowResponse(faculty.getId(), faculty.getFullName(), cells));
         }
         return rows;
     }
 
     private List<ResourceGridRowResponse> classroomAndLabRows(List<ClassSchedule> daySchedules,
-                                                                Map<Long, ClassScheduleResponse> responseById) {
+                                                                Map<Long, ClassScheduleResponse> responseById,
+                                                                List<ClinicalShiftGroup> shiftGroupsToday) {
         List<ResourceGridRowResponse> rows = new ArrayList<>();
         for (Classroom classroom : classroomRepository.findByIsActiveTrueOrderByNameAsc()) {
             List<ResourceGridCellResponse> cells = daySchedules.stream()
@@ -128,13 +159,53 @@ public class ResourceGridService {
         // folded into the same "room" grid as Classroom/Lab rather than adding a whole new
         // ResourceType, since the frontend already treats this as one combined room view.
         for (ClinicalVenue venue : clinicalVenueRepository.findByIsActiveTrueOrderByNameAsc()) {
-            List<ResourceGridCellResponse> cells = daySchedules.stream()
+            List<ResourceGridCellResponse> cells = new ArrayList<>(daySchedules.stream()
                 .filter(cs -> cs.getClinicalVenue() != null && cs.getClinicalVenue().getId().equals(venue.getId()))
                 .map(cs -> toCell(responseById.get(cs.getId())))
-                .toList();
+                .toList());
+            cells.addAll(shiftCellsFor(shiftGroupsToday,
+                batch -> batch.getClinicalVenue() != null && batch.getClinicalVenue().getId().equals(venue.getId())));
             rows.add(new ResourceGridRowResponse(venue.getId(), venue.getName(), cells));
         }
         return rows;
+    }
+
+    /** Every synthetic Clinical Shift cell, across {@code shiftGroupsToday}, whose linked active
+     *  {@link Batch} matches {@code matches} (the calling row's own faculty/venue identity check).
+     *  A group with no configured duration/buffer on its offering is skipped — its window can't be
+     *  computed yet, matching {@link ClinicalShiftWindow#overlaps} treating that the same way. */
+    private List<ResourceGridCellResponse> shiftCellsFor(List<ClinicalShiftGroup> shiftGroupsToday,
+                                                           java.util.function.Predicate<Batch> matches) {
+        List<ResourceGridCellResponse> cells = new ArrayList<>();
+        for (ClinicalShiftGroup group : shiftGroupsToday) {
+            ClinicalShiftWindow window = ClinicalShiftWindow.from(group);
+            if (window.busDepart() == null || window.busReturn() == null) {
+                continue;
+            }
+            for (Batch batch : batchRepository.findByClinicalShiftGroupId(group.getId())) {
+                if (Boolean.TRUE.equals(batch.getIsActive()) && matches.test(batch)) {
+                    cells.add(toShiftCell(group, window, batch));
+                }
+            }
+        }
+        return cells;
+    }
+
+    private ResourceGridCellResponse toShiftCell(ClinicalShiftGroup group, ClinicalShiftWindow window, Batch batch) {
+        CourseOffering offering = group.getCourseOffering();
+        return new ResourceGridCellResponse(
+            SHIFT_CELL_ID_BASE - batch.getId(),
+            offering.getSubject().getName() + " — Off-campus Clinical Shift",
+            offering.getSubject().getCode(),
+            batch.getClinicalVenue() != null ? batch.getClinicalVenue().getName() : null,
+            batch.getCoordinatorFaculty() != null ? batch.getCoordinatorFaculty().getFullName() : null,
+            batch.getName(),
+            window.busDepart(),
+            window.busReturn(),
+            group.getLabel(),
+            ClassSessionType.CLINICAL,
+            ClassScheduleStatus.PUBLISHED,
+            true);
     }
 
     private DayOfWeek resolveEffectiveDayOfWeek(LocalDate date) {
@@ -148,6 +219,6 @@ public class ResourceGridService {
 
     private ResourceGridCellResponse toCell(ClassScheduleResponse r) {
         return new ResourceGridCellResponse(r.id(), r.subjectName(), r.subjectCode(), r.roomName(),
-            r.facultyName(), r.batchName(), r.startTime(), r.endTime(), r.slotName(), r.sessionType(), r.status());
+            r.facultyName(), r.batchName(), r.startTime(), r.endTime(), r.slotName(), r.sessionType(), r.status(), false);
     }
 }

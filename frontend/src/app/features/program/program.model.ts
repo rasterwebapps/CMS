@@ -24,6 +24,7 @@ export interface Program {
   minimumAgeYears: number;
   ageCutoffDay: number;
   ageCutoffMonth: number;
+  usesClinicalShiftScheduling: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,6 +48,7 @@ export interface ProgramRequest {
   minimumAgeYears: number;
   ageCutoffDay: number;
   ageCutoffMonth: number;
+  usesClinicalShiftScheduling?: boolean;
 }
 
 export interface ProgramStatusUpdateRequest {

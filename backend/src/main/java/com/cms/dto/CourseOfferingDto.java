@@ -30,6 +30,9 @@ public record CourseOfferingDto(
     ElectiveSelectionMode electiveGroupSelectionMode,
     Integer labHours,
     Integer clinicalHours,
+    /** Subject's on-campus clinical session block size (consecutive periods), set in Subject Master.
+     *  Never changed from the Clinical Shift Config dialog -- shown there read-only for context. */
+    Integer clinicalSessionBlockPeriods,
     /** Configurable off-campus clinical shift length/travel buffer (OC-175) -- null means this
      *  offering has no shift-based clinical component. */
     Integer clinicalShiftDurationMinutes,

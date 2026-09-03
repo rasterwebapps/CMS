@@ -19,6 +19,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.CapacityPlanResponse;
+import com.cms.dto.ClinicalShiftDayShortfall;
+import com.cms.dto.ClinicalShiftPeriodAvailabilityResult;
+import com.cms.dto.ClinicalShiftWindow;
 import com.cms.dto.CohortAutoPlanSummaryResponse;
 import com.cms.dto.LabClinicalVenueCapacityResult;
 import com.cms.dto.RoomInventoryRowResponse;
@@ -112,6 +115,7 @@ public class TimetableCapacityPlanningService {
     private final BatchRepository batchRepository;
     private final TimetableBlockedPeriodChecker blockedPeriodChecker;
     private final AuditLogService auditLogService;
+    private final ClinicalShiftGroupService clinicalShiftGroupService;
 
     public TimetableCapacityPlanningService(CohortRepository cohortRepository,
                                              CohortSectionRepository cohortSectionRepository,
@@ -128,7 +132,8 @@ public class TimetableCapacityPlanningService {
                                              CohortRoomAllocationRepository cohortRoomAllocationRepository,
                                              BatchRepository batchRepository,
                                              TimetableBlockedPeriodChecker blockedPeriodChecker,
-                                             AuditLogService auditLogService) {
+                                             AuditLogService auditLogService,
+                                             ClinicalShiftGroupService clinicalShiftGroupService) {
         this.cohortRepository = cohortRepository;
         this.cohortSectionRepository = cohortSectionRepository;
         this.termInstanceRepository = termInstanceRepository;
@@ -145,6 +150,7 @@ public class TimetableCapacityPlanningService {
         this.batchRepository = batchRepository;
         this.blockedPeriodChecker = blockedPeriodChecker;
         this.auditLogService = auditLogService;
+        this.clinicalShiftGroupService = clinicalShiftGroupService;
     }
 
     public CapacityPlanResponse getPlan(Long termInstanceId, Long cohortId, PlanningBasis planningBasisParam) {
@@ -566,6 +572,47 @@ public class TimetableCapacityPlanningService {
         List<Period> activePeriods = periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc();
         List<CohortPlan> cohortPlans = planEveryCohort(termInstanceId, planningBasis);
         return computeLabClinicalVenueCapacity(term, activePeriods, cohortPlans);
+    }
+
+    /** For every cohort enrolled this term whose Program has opted into Clinical Shift scheduling
+     *  (see {@link com.cms.model.Program#getUsesClinicalShiftScheduling()}), and every day it has
+     *  an active Clinical Shift window, counts how many of the term's active {@link Period} rows
+     *  are left free for Theory/Lab after excluding any period overlapping that window (including
+     *  bus travel buffer). Zero free periods is a hard block ({@code zeroPeriodDays}), exactly one
+     *  is a non-blocking warning ({@code tightPeriodDays}) — same two-tier shape as {@link
+     *  #computeLabClinicalVenueCapacity}. Cohorts/programs with no Clinical Shift scheduling never
+     *  appear in either list. */
+    public ClinicalShiftPeriodAvailabilityResult computeClinicalShiftPeriodAvailability(Long termInstanceId) {
+        List<Period> activePeriods = periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc();
+        Set<Long> cohortIds = studentTermEnrollmentRepository
+            .findDistinctCohortIdsByTermInstanceId(termInstanceId, EnrollmentStatus.ENROLLED);
+
+        List<ClinicalShiftDayShortfall> zero = new ArrayList<>();
+        List<ClinicalShiftDayShortfall> tight = new ArrayList<>();
+        for (Cohort cohort : cohortRepository.findAllById(cohortIds)) {
+            if (cohort.getProgram() == null || !Boolean.TRUE.equals(cohort.getProgram().getUsesClinicalShiftScheduling())) {
+                continue;
+            }
+            Map<com.cms.model.enums.DayOfWeek, List<ClinicalShiftWindow>> byDay = clinicalShiftGroupService
+                .resolveActiveWindowsForCohort(cohort.getId(), termInstanceId).stream()
+                .collect(Collectors.groupingBy(ClinicalShiftWindow::dayOfWeek));
+            for (Map.Entry<com.cms.model.enums.DayOfWeek, List<ClinicalShiftWindow>> entry : byDay.entrySet()) {
+                List<ClinicalShiftWindow> windows = entry.getValue();
+                int blocked = (int) activePeriods.stream()
+                    .filter(p -> windows.stream().anyMatch(w -> w.overlaps(p.getStartTime(), p.getEndTime())))
+                    .count();
+                int free = activePeriods.size() - blocked;
+                if (free > 1) {
+                    continue;
+                }
+                ClinicalShiftDayShortfall row = new ClinicalShiftDayShortfall(
+                    cohort.getId(), cohort.getDisplayName(), entry.getKey(),
+                    activePeriods.size(), blocked, free,
+                    windows.stream().map(ClinicalShiftWindow::label).toList());
+                (free == 0 ? zero : tight).add(row);
+            }
+        }
+        return new ClinicalShiftPeriodAvailabilityResult(zero, tight);
     }
 
     /** Real feasibility core: for every Lab/Clinical venue referenced by either a genuinely

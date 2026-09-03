@@ -67,6 +67,9 @@ public class Program {
     @Column(name = "age_cutoff_month", nullable = false)
     private Integer ageCutoffMonth = 12;
 
+    @Column(name = "uses_clinical_shift_scheduling", nullable = false)
+    private Boolean usesClinicalShiftScheduling = false;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
         name = "program_document_types",
@@ -132,6 +135,11 @@ public class Program {
     public void setAgeCutoffDay(Integer ageCutoffDay) { this.ageCutoffDay = ageCutoffDay; }
     public Integer getAgeCutoffMonth() { return ageCutoffMonth; }
     public void setAgeCutoffMonth(Integer ageCutoffMonth) { this.ageCutoffMonth = ageCutoffMonth; }
+
+    public Boolean getUsesClinicalShiftScheduling() { return usesClinicalShiftScheduling; }
+    public void setUsesClinicalShiftScheduling(Boolean usesClinicalShiftScheduling) {
+        this.usesClinicalShiftScheduling = usesClinicalShiftScheduling != null && usesClinicalShiftScheduling;
+    }
 
     @Transient
     public Integer getTotalTerms() {

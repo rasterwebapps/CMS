@@ -40,5 +40,7 @@ public record ProgramRequest(
     @NotNull(message = "Age cutoff month is required")
     @Min(value = 1, message = "Cutoff month must be between 1 and 12")
     @Max(value = 12, message = "Cutoff month must be between 1 and 12")
-    Integer ageCutoffMonth
+    Integer ageCutoffMonth,
+
+    Boolean usesClinicalShiftScheduling
 ) {}

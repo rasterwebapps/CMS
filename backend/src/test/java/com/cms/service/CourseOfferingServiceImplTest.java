@@ -54,6 +54,7 @@ import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.PeriodRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
 
@@ -81,6 +82,8 @@ class CourseOfferingServiceImplTest {
     @Mock
     private CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository;
     @Mock
+    private PeriodRepository periodRepository;
+    @Mock
     private TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
 
     private CourseOfferingServiceImpl service;
@@ -91,7 +94,7 @@ class CourseOfferingServiceImplTest {
             courseOfferingRepository, termInstanceRepository, cohortRepository,
             curriculumVersionRepository, curriculumSemesterCourseRepository, facultyRepository,
             studentTermEnrollmentRepository, classScheduleRepository, batchRepository,
-            courseOfferingSectionFacultyRepository);
+            courseOfferingSectionFacultyRepository, periodRepository);
         service.setTimetableGlobalAutoScheduleService(timetableGlobalAutoScheduleService);
     }
 
@@ -493,6 +496,32 @@ class CourseOfferingServiceImplTest {
 
         assertThat(dto.clinicalShiftDurationMinutes()).isEqualTo(360);
         assertThat(dto.clinicalTravelBufferMinutes()).isEqualTo(30);
+    }
+
+    @Test
+    void updateClinicalShiftConfig_rejectsDurationBelowSubjectsSessionLength() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BSc Nursing", 4);
+        Course course = createCourse(1L, "BSc Nursing Course", "BSCN-C", program);
+        TermInstance ti = createTermInstance(1L, ay, TermType.ODD);
+        Subject subject = createSubject(1L, "Medical Surgical Nursing", "MSN101");
+        subject.setClinicalSessionBlockPeriods(6);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
+        CurriculumSemesterCourse csc = createCSC(1L, cv, subject, 1);
+        csc.setClinicalHours(6);
+        offering.setCurriculumSemesterCourse(csc);
+
+        com.cms.model.Period period = new com.cms.model.Period();
+        period.setId(1L);
+        period.setDurationMinutes(60);
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
+
+        assertThatThrownBy(() -> service.updateClinicalShiftConfig(1L,
+            new ClinicalShiftConfigUpdateRequest(120, 30)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Clinical Session Length");
     }
 
     @Test

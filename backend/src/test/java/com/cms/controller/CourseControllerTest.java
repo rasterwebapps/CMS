@@ -53,7 +53,7 @@ class CourseControllerTest {
 
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, now, now);
+            1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, null, now, now);
         CourseResponse response = new CourseResponse(
             1L, "B.Sc. Nursing", "BSN", "General", null, true, progResponse, now, now
         );
@@ -113,7 +113,7 @@ class CourseControllerTest {
     void shouldFindAllCourses() throws Exception {
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, now, now);
+            1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, null, now, now);
         CourseResponse course1 = new CourseResponse(
             1L, "B.Sc. Nursing", "BSN", "General", null, true, progResponse, now, now
         );
@@ -149,7 +149,7 @@ class CourseControllerTest {
     void shouldFindCourseById() throws Exception {
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, now, now);
+            1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, null, now, now);
         CourseResponse response = new CourseResponse(
             1L, "B.Sc. Nursing", "BSN", "General", null, true, progResponse, now, now
         );
@@ -181,7 +181,7 @@ class CourseControllerTest {
     void shouldFindCoursesByProgramId() throws Exception {
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, now, now);
+            1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, null, now, now);
         CourseResponse course1 = new CourseResponse(
             1L, "B.Sc. Nursing", "BSN", "General", null, true, progResponse, now, now
         );
@@ -219,7 +219,7 @@ class CourseControllerTest {
 
         Instant now = Instant.now();
         ProgramResponse progResponse = new ProgramResponse(
-            1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, now, now);
+            1L, "UG Programs", "UG", 4, 8, null, com.cms.model.enums.AssessmentPattern.TERM_BASED, java.util.Set.of(), java.util.Set.of(), null, null, null, null, now, now);
         CourseResponse response = new CourseResponse(
             1L, "B.Sc. Nursing Updated", "BSNU", "Updated Specialization", null, true, progResponse, now, now
         );

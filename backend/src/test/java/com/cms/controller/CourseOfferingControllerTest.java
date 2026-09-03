@@ -58,6 +58,7 @@ class CourseOfferingControllerTest {
             null, false, com.cms.model.enums.SubjectType.CORE,
             null, null, null,
             0, 0,
+            null,
             null, null,
             Instant.now(), Instant.now(),
             List.of()

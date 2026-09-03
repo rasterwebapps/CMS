@@ -140,6 +140,7 @@ export class ProgramFormComponent implements OnInit {
     minimumAgeYears: [17, [Validators.required, Validators.min(1), Validators.max(100)]],
     ageCutoffDay: [31, [Validators.required, Validators.min(1), Validators.max(31)]],
     ageCutoffMonth: [12, Validators.required],
+    usesClinicalShiftScheduling: [false],
   });
 
   constructor() {
@@ -211,6 +212,7 @@ export class ProgramFormComponent implements OnInit {
       minimumAgeYears: this.form.value.minimumAgeYears,
       ageCutoffDay: this.form.value.ageCutoffDay,
       ageCutoffMonth: this.form.value.ageCutoffMonth,
+      usesClinicalShiftScheduling: this.form.value.usesClinicalShiftScheduling ?? false,
     };
 
     this.saving.set(true);
@@ -302,6 +304,7 @@ export class ProgramFormComponent implements OnInit {
           minimumAgeYears: program.minimumAgeYears ?? 17,
           ageCutoffDay: program.ageCutoffDay ?? 31,
           ageCutoffMonth: program.ageCutoffMonth ?? 12,
+          usesClinicalShiftScheduling: program.usesClinicalShiftScheduling ?? false,
         });
         this.mandatoryDocumentTypes.set(new Set(program.mandatoryDocumentTypes ?? []));
         this.optionalDocumentTypes.set(new Set(program.optionalDocumentTypes ?? []));

@@ -92,6 +92,20 @@ export interface SkeletonClinicalShiftHours {
   assignedHours: number;
 }
 
+/** A Clinical Shift Group's wall-clock window, including bus travel buffer — all times are
+ *  `HH:mm:ss` strings. Used to widen the grid's displayed time range and render the shift block;
+ *  the actual period-level hard block is already enforced server-side, so this is purely a
+ *  rendering aid. */
+export interface ClinicalShiftWindow {
+  shiftGroupId: number;
+  label: string;
+  dayOfWeek: string;
+  busDepart: string | null;
+  clinicalStart: string;
+  clinicalEnd: string | null;
+  busReturn: string | null;
+}
+
 /** Cohort-wide since R3.1 — one response covers every non-elective subject a cohort has in a
  *  term, merging their cells/batches so cross-subject placement conflicts are visible in a
  *  single grid instead of hidden behind a per-subject filter. `sections` lists the cohort's
@@ -116,6 +130,8 @@ export interface SkeletonBuilderResponse {
    *  this cohort's own Cohort Room Allocation is committed (`sections` non-empty). Past this point
    *  Global Auto-Schedule refuses to run; only manual period/staff edits remain available. */
   termTimetablePublished: boolean;
+  /** This cohort's active Clinical Shift wall-clock windows, per day — see {@link ClinicalShiftWindow}. */
+  clinicalShiftWindows: ClinicalShiftWindow[];
 }
 
 export interface SkeletonCellPlacementRequest {
@@ -383,6 +399,27 @@ export interface LabClinicalVenueCapacityResult {
   tightCapacityVenues: VenueTightCapacity[];
 }
 
+/** One cohort/day combination where an active Clinical Shift window leaves too few (or zero) real
+ *  on-campus periods free for Theory/Lab that day. See backend `ClinicalShiftDayShortfall`. */
+export interface ClinicalShiftDayShortfall {
+  cohortId: number;
+  cohortDisplayName: string;
+  dayOfWeek: string;
+  totalActivePeriods: number;
+  periodsBlockedByShift: number;
+  periodsFreeForTheoryLab: number;
+  affectedShiftLabels: string[];
+}
+
+/** Two-tier Clinical-Shift-vs-Period-grid feasibility report, mirroring
+ *  `LabClinicalVenueCapacityResult`'s over/tight split — `zeroPeriodDays` is a hard block,
+ *  `tightPeriodDays` is a non-blocking warning. Only ever populated for cohorts whose Program has
+ *  opted into Clinical Shift scheduling. */
+export interface ClinicalShiftPeriodAvailabilityResult {
+  zeroPeriodDays: ClinicalShiftDayShortfall[];
+  tightPeriodDays: ClinicalShiftDayShortfall[];
+}
+
 /** Consolidated "is this ready to automate" report — see backend
  *  {@code TimetableGlobalAutoScheduleService#checkPrerequisites}. General room-commit status is
  *  still checked separately, client-side, against Capacity Planner's own endpoints — Lab/Clinical
@@ -391,4 +428,5 @@ export interface GlobalAutoSchedulePrerequisites {
   offeringsWithoutFaculty: UnassignedOfferingSummary[];
   capacityPrecheck: GlobalCapacityPrecheckResult;
   labClinicalVenueCapacity: LabClinicalVenueCapacityResult;
+  clinicalShiftPeriodAvailability: ClinicalShiftPeriodAvailabilityResult;
 }

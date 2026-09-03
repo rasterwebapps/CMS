@@ -85,6 +85,7 @@ class TimetableCapacityPlanningServiceTest {
     @Mock private BatchRepository batchRepository;
     @Mock private TimetableBlockedPeriodChecker blockedPeriodChecker;
     @Mock private AuditLogService auditLogService;
+    @Mock private ClinicalShiftGroupService clinicalShiftGroupService;
 
     private TimetableCapacityPlanningService service;
 
@@ -93,7 +94,8 @@ class TimetableCapacityPlanningServiceTest {
         service = new TimetableCapacityPlanningService(cohortRepository, cohortSectionRepository, termInstanceRepository,
             studentTermEnrollmentRepository, classroomRepository, labRepository, clinicalVenueRepository, periodRepository,
             classScheduleRepository, calendarEventRepository, courseOfferingRepository, blockedPeriodRepository,
-            cohortRoomAllocationRepository, batchRepository, blockedPeriodChecker, auditLogService);
+            cohortRoomAllocationRepository, batchRepository, blockedPeriodChecker, auditLogService,
+            clinicalShiftGroupService);
     }
 
     private VenueOptionResponse venue(long id, String name, int capacity) {

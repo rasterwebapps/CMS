@@ -2,6 +2,7 @@ package com.cms.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -25,8 +26,10 @@ import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
+import com.cms.repository.ClinicalShiftGroupRepository;
 import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.DayMappingOverrideRepository;
 import com.cms.repository.FacultyRepository;
@@ -42,6 +45,8 @@ class ResourceGridServiceTest {
     @Mock private LabRepository labRepository;
     @Mock private ClinicalVenueRepository clinicalVenueRepository;
     @Mock private DayMappingOverrideRepository dayMappingOverrideRepository;
+    @Mock private ClinicalShiftGroupRepository clinicalShiftGroupRepository;
+    @Mock private BatchRepository batchRepository;
 
     private ResourceGridService service;
     private Faculty faculty1;
@@ -51,7 +56,9 @@ class ResourceGridServiceTest {
     void setUp() {
         service = new ResourceGridService(classScheduleRepository, classScheduleService,
             facultyRepository, classroomRepository, labRepository, clinicalVenueRepository,
-            dayMappingOverrideRepository);
+            dayMappingOverrideRepository, clinicalShiftGroupRepository, batchRepository);
+        lenient().when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(any()))
+            .thenReturn(List.of());
 
         Speciality speciality = new Speciality("Nursing", "NUR", "Nursing Dept", null, null);
         speciality.setId(1L);

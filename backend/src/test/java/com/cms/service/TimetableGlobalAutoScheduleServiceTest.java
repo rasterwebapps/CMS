@@ -29,6 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.AutoPlaceUnplacedItem;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.EligibleFacultyCandidateDto;
+import com.cms.dto.ClinicalShiftPeriodAvailabilityResult;
 import com.cms.dto.LabClinicalVenueCapacityResult;
 import com.cms.dto.VenueOverCapacity;
 import com.cms.dto.FacultyCapacityCheckResult;
@@ -102,6 +103,7 @@ class TimetableGlobalAutoScheduleServiceTest {
     @Mock private CourseRegistrationRepository courseRegistrationRepository;
     @Mock private SubjectRepository subjectRepository;
     @Mock private SystemConfigurationService systemConfigurationService;
+    @Mock private ClinicalShiftGroupService clinicalShiftGroupService;
 
     /** None of these fixtures configure a Self-Study/Co-curricular offering, so the gap-fill pass
      *  now correctly reports this once per cohort per run (see {@code fillSelfStudyGaps}) instead
@@ -128,7 +130,8 @@ class TimetableGlobalAutoScheduleServiceTest {
             timetableCapacityPlanningService, courseOfferingService, courseOfferingRepository, classScheduleRepository,
             studentTermEnrollmentRepository, cohortRepository, batchRepository,
             courseOfferingSectionFacultyRepository, facultyRepository, termInstanceRepository, periodRepository,
-            blockedPeriodChecker, classroomRepository, courseRegistrationRepository, subjectRepository, systemConfigurationService);
+            blockedPeriodChecker, classroomRepository, courseRegistrationRepository, subjectRepository, systemConfigurationService,
+            clinicalShiftGroupService);
         lenient().when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
         // No fixture in this suite approves/publishes the term's timetable, so every cohort defaults
         // to "draft" (not published) unless a specific test overrides this stub — Mockito already
@@ -158,6 +161,11 @@ class TimetableGlobalAutoScheduleServiceTest {
         // to exercise checkPrerequisites'/doRunGlobalAutoSchedule's own handling of a real gap.
         lenient().when(timetableCapacityPlanningService.computeLabClinicalVenueCapacity(anyLong(), any()))
             .thenReturn(new LabClinicalVenueCapacityResult(List.of(), List.of()));
+
+        // Default: no cohort/day has a Clinical Shift period shortfall -- individual tests override
+        // this to exercise checkPrerequisites' own handling of a real gap.
+        lenient().when(timetableCapacityPlanningService.computeClinicalShiftPeriodAvailability(anyLong()))
+            .thenReturn(new ClinicalShiftPeriodAvailabilityResult(List.of(), List.of()));
     }
 
     private Faculty facultyWithDailyCap(Long id, String name, Integer plannedDailyHoursOverride) {
@@ -180,7 +188,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
     private CourseOfferingDto offeringDto(Long id, String subjectName) {
         return new CourseOfferingDto(id, 10L, null, null, null, id, subjectName, subjectName.substring(0, 4).toUpperCase(),
-            null, null, List.of(), 1, true, null, false, null, null, null, null, null, null, null, null, null, null, List.of());
+            null, null, List.of(), 1, true, null, false, null, null, null, null, null, null, null, null, null, null, null, List.of());
     }
 
     private CourseOffering offeringEntity(Long id, int theoryHours, int labHours, int clinicalHours) {
@@ -464,7 +472,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",
@@ -514,7 +522,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         // requiredSessionsPerWeek=7; placedSessionsPerWeek=0 -- a 7-session shortfall in a 6-day week.
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 140, 26, 7, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",
@@ -558,7 +566,7 @@ class TimetableGlobalAutoScheduleServiceTest {
             DayOfWeek.TUESDAY, 2L, "2nd Period", LocalTime.of(9, 50), LocalTime.of(10, 40), null, null, null, null,
             true, null, null, List.of(), null, null, null, null, null, null);
         SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject),
-            List.of(preExistingLibraryCell), List.of(), List.of(), 25, 0L, List.of(), false);
+            List.of(preExistingLibraryCell), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",
@@ -624,7 +632,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonCellResponse existingMon1 = libraryCell(700L, DayOfWeek.MONDAY);
         SkeletonCellResponse existingMon2 = libraryCell(701L, DayOfWeek.MONDAY);
         SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(),
-            List.of(existingMon1, existingMon2), List.of(), List.of(), 25, 0L, List.of(), false);
+            List.of(existingMon1, existingMon2), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         service.runGlobalAutoSchedule(10L, null);
@@ -664,7 +672,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonCellResponse draft3 = skeletonCell(903L, com.cms.model.enums.ClassScheduleStatus.DRAFT);
         SkeletonCellResponse published = skeletonCell(904L, com.cms.model.enums.ClassScheduleStatus.PUBLISHED);
         SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject),
-            List.of(draft1, draft2, draft3, published), List.of(), List.of(), 25, 0L, List.of(), false);
+            List.of(draft1, draft2, draft3, published), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         ClassSchedule cleared1 = new ClassSchedule();
@@ -738,7 +746,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         // subject's 4-period clinical block is exactly what this test places and asserts on below.
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.CLINICAL, 55L, "Batch 1", null, null, 40, 10, 1, 0);
         SkeletonSubjectResponse subjectResponse = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectResponse), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectResponse), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.CLINICAL, DayOfWeek.MONDAY, 1L, "1st Period",
@@ -811,7 +819,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectBudget selfStudyBudget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 1);
         SkeletonSubjectResponse selfStudy = new SkeletonSubjectResponse(200L, "Self-Study/Co-curricular I", "SELF", List.of(selfStudyBudget), null, null);
         SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(clinical, selfStudy),
-            List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
+            List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         // A placeCell stub that actually models slot exclusivity: a (day, period) already taken is
@@ -907,7 +915,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         // 3 sessions owed, each a 4-period block -> 3 placeCell calls, each spanning 3 extra periods.
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.CLINICAL, 55L, "Batch 1", null, null, 40, 10, 3, 0);
         SkeletonSubjectResponse subjectResponse = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectResponse), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectResponse), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.CLINICAL, DayOfWeek.MONDAY, 1L, "1st Period",
@@ -951,7 +959,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectBudget batch1 = new SkeletonSubjectBudget(ClassSessionType.CLINICAL, 55L, "Batch 1", null, null, 10, 10, 1, 0);
         SkeletonSubjectBudget batch2 = new SkeletonSubjectBudget(ClassSessionType.CLINICAL, 56L, "Batch 2", null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subjectResponse = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(batch1, batch2), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectResponse), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectResponse), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.CLINICAL, DayOfWeek.MONDAY, 1L, "1st Period",
@@ -986,7 +994,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class)))
@@ -1029,7 +1037,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",
@@ -1062,7 +1070,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         var result = service.runGlobalAutoSchedule(10L, null);
@@ -1093,12 +1101,12 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectBudget budgetA = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subjectA = new SkeletonSubjectResponse(100L, "Offering A", "OFFA", List.of(budgetA), null, null);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
-            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectA), List.of(), List.of(), List.of(), 25, 0L, List.of(), false));
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectA), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of()));
 
         SkeletonSubjectBudget budgetB = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subjectB = new SkeletonSubjectResponse(200L, "Offering B", "OFFB", List.of(budgetB), null, null);
         when(timetableSkeletonService.getCohortSkeleton(10L, 2L))
-            .thenReturn(new SkeletonBuilderResponse(2L, "Cohort 2", "Term", List.of(subjectB), List.of(), List.of(), List.of(), 25, 0L, List.of(), false));
+            .thenReturn(new SkeletonBuilderResponse(2L, "Cohort 2", "Term", List.of(subjectB), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of()));
 
         // Cohort 1's offering (100L) can never be placed; cohort 2's (200L) succeeds every time.
         when(timetableSkeletonService.placeCell(argThat(r -> r != null && r.courseOfferingId().equals(100L))))
@@ -1136,7 +1144,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
         when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
-            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(), List.of(), List.of(), List.of(), 25, 0L, List.of(), false));
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of()));
 
         var result = service.runGlobalAutoSchedule(10L, 1L);
 
@@ -1393,7 +1401,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectResponse subjectB = new SkeletonSubjectResponse(200L, "Offering B", "OFFB",
             List.of(new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0)), null, null);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
-            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectA, subjectB), List.of(), List.of(), List.of(), 25, 0L, List.of(), false));
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectA, subjectB), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of()));
 
         GlobalAutoSchedulePrerequisites result = service.checkPrerequisites(10L, null);
 
@@ -1433,7 +1441,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFA", List.of(budget), null, null);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
-            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false));
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of()));
 
         GlobalAutoSchedulePrerequisites result = service.checkPrerequisites(10L, null);
 
@@ -1456,7 +1464,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFA", List.of(budget), null, null);
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
-            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false));
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of()));
 
         VenueOverCapacity overCapacity = new VenueOverCapacity(50L, "LAB", "Anatomy Lab", 30, 12, 13, 1, List.of("Anatomy"), List.of(100L));
         when(timetableCapacityPlanningService.computeLabClinicalVenueCapacity(eq(10L), any()))
@@ -1691,7 +1699,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectBudget budgetSectionA = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, 1L, "A", 10, 10, 1, 0);
         SkeletonSubjectBudget budgetSectionB = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, 2L, "B", 10, 10, 1, 0);
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budgetSectionA, budgetSectionB), null, null);
-        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
         when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
 
         SkeletonCellResponse placedB = new SkeletonCellResponse(902L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",

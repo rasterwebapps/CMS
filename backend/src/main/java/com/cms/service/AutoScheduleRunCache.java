@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import com.cms.dto.ClinicalShiftWindow;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Faculty;
 import com.cms.model.enums.ClassScheduleStatus;
@@ -45,6 +46,7 @@ public final class AutoScheduleRunCache {
 
     private final List<ClassSchedule> cells;
     private final Map<String, Optional<String>> blockReasonMemo = new HashMap<>();
+    private final Map<String, List<ClinicalShiftWindow>> shiftWindowMemo = new HashMap<>();
 
     private AutoScheduleRunCache(List<ClassSchedule> cells) {
         this.cells = new ArrayList<>(cells);
@@ -112,6 +114,14 @@ public final class AutoScheduleRunCache {
      *  request only. */
     public Optional<String> memoizedBlockReason(String key, Supplier<Optional<String>> compute) {
         return blockReasonMemo.computeIfAbsent(key, k -> compute.get());
+    }
+
+    /** Memoizes {@code ClinicalShiftGroupService#resolveActiveWindowsForCohort}'s result by
+     *  {@code key} for the lifetime of this run — same idiom as {@link #memoizedBlockReason},
+     *  since {@code tryPlaceAndStaff} calls it on every placement attempt and a cohort's shift
+     *  assignments never change mid-run. */
+    public List<ClinicalShiftWindow> memoizedShiftWindows(String key, Supplier<List<ClinicalShiftWindow>> compute) {
+        return shiftWindowMemo.computeIfAbsent(key, k -> compute.get());
     }
 
     /** Mirrors {@code ClassScheduleRepository#findByCourseOfferingId}. */

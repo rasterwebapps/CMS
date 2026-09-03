@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.ClinicalShiftWindow;
 import com.cms.dto.CohortSectionResponse;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
@@ -103,6 +104,7 @@ public class TimetableSkeletonService {
     private final CohortSectionRepository cohortSectionRepository;
     private final TimetableStaffingService timetableStaffingService;
     private final ClinicalShiftGroupRepository clinicalShiftGroupRepository;
+    private final ClinicalShiftGroupService clinicalShiftGroupService;
 
     public TimetableSkeletonService(CourseOfferingRepository courseOfferingRepository,
                                      ClassScheduleRepository classScheduleRepository,
@@ -118,7 +120,8 @@ public class TimetableSkeletonService {
                                      CohortRoomAllocationRepository cohortRoomAllocationRepository,
                                      CohortSectionRepository cohortSectionRepository,
                                      TimetableStaffingService timetableStaffingService,
-                                     ClinicalShiftGroupRepository clinicalShiftGroupRepository) {
+                                     ClinicalShiftGroupRepository clinicalShiftGroupRepository,
+                                     ClinicalShiftGroupService clinicalShiftGroupService) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.periodRepository = periodRepository;
@@ -134,6 +137,7 @@ public class TimetableSkeletonService {
         this.cohortSectionRepository = cohortSectionRepository;
         this.timetableStaffingService = timetableStaffingService;
         this.clinicalShiftGroupRepository = clinicalShiftGroupRepository;
+        this.clinicalShiftGroupService = clinicalShiftGroupService;
     }
 
     public SkeletonBuilderResponse getCohortSkeleton(Long termInstanceId, Long cohortId) {
@@ -145,6 +149,7 @@ public class TimetableSkeletonService {
 
         List<CohortSection> activeSections = resolveActiveSections(cohortId, termInstanceId);
         List<CohortSectionResponse> sectionResponses = activeSections.stream().map(this::toSectionResponse).toList();
+        List<ClinicalShiftWindow> shiftWindows = clinicalShiftGroupService.resolveActiveWindowsForCohort(cohortId, termInstanceId);
 
         // LIBRARY cells have no CourseOffering (see TimetableGlobalAutoScheduleService#fillLibraryGaps),
         // so the offering-based query below never finds them -- resolved separately by this cohort's
@@ -164,7 +169,7 @@ public class TimetableSkeletonService {
             List<SkeletonCellResponse> libraryOnlyCells = libraryCells.stream().map(this::toCellResponse).toList();
             return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, List.of(), libraryOnlyCells, List.of(), sectionResponses,
                 CurriculumHoursCalculator.weeksInTerm(termInstance), WorkingSaturdayCalculator.workingSaturdayCount(termInstance), List.of(),
-                termTimetablePublished);
+                termTimetablePublished, shiftWindows);
         }
 
         Map<Long, CourseOffering> offeringById = new LinkedHashMap<>();
@@ -244,7 +249,7 @@ public class TimetableSkeletonService {
             .toList();
 
         return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, subjects, cells, batches, sectionResponses,
-            weeksInTerm, WorkingSaturdayCalculator.workingSaturdayCount(termInstance), clinicalShiftHours, termTimetablePublished);
+            weeksInTerm, WorkingSaturdayCalculator.workingSaturdayCount(termInstance), clinicalShiftHours, termTimetablePublished, shiftWindows);
     }
 
     /** One active {@link ClinicalShiftGroup} occurs once/week on its own {@code dayOfWeek}, so its
@@ -535,6 +540,33 @@ public class TimetableSkeletonService {
             .map(reason -> new ConstraintViolation("SKELETON_CELL_PERIOD_BLOCKED", "This day and period is blocked: " + reason));
     }
 
+    /** Sibling to {@link #checkBlocked} for a cohort whose Program has opted into Clinical Shift
+     *  scheduling (see {@link com.cms.model.Program#getUsesClinicalShiftScheduling()}) — rejects a
+     *  manual placement/move/swap into a period overlapping that cohort's Clinical Shift wall-clock
+     *  window (including bus travel buffer) on this day, mirroring the hard block {@link
+     *  TimetableGlobalAutoScheduleService#tryPlaceAndStaff} already enforces for auto-schedule.
+     *  Deliberately NOT folded into {@link TimetableBlockedPeriodChecker} — that check is
+     *  institution-wide/cohort-agnostic by design, while this one is cohort-scoped. No-op (empty)
+     *  when the cohort's Program hasn't opted in. */
+    private Optional<ConstraintViolation> checkClinicalShiftBlocked(Long cohortId, DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
+        if (cohortId == null) {
+            return Optional.empty();
+        }
+        Cohort cohort = cohortRepository.findById(cohortId).orElse(null);
+        if (cohort == null || cohort.getProgram() == null
+            || !Boolean.TRUE.equals(cohort.getProgram().getUsesClinicalShiftScheduling())) {
+            return Optional.empty();
+        }
+        List<ClinicalShiftWindow> windows = clinicalShiftGroupService
+            .resolveActiveWindowsForCohort(cohortId, termInstance.getId());
+        return windows.stream()
+            .filter(w -> w.dayOfWeek() == dayOfWeek && w.overlaps(period.getStartTime(), period.getEndTime()))
+            .findFirst()
+            .map(w -> new ConstraintViolation("SKELETON_CELL_CLINICAL_SHIFT_BLOCKED",
+                "This day and period falls within this cohort's Clinical Shift window (" + w.label() + ", "
+                    + w.busDepart() + "–" + w.busReturn() + " incl. travel)"));
+    }
+
     /** Used by {@link #suggestCandidates} to silently skip a blocked slot rather than surfacing a
      *  distinct violation — there's no per-candidate UI affordance to explain "why" a slot didn't
      *  appear. Returns the block reason, or null if the slot is free. */
@@ -674,6 +706,7 @@ public class TimetableSkeletonService {
             }
 
             checkBlocked(request.dayOfWeek(), spanPeriod, offering.getTermInstance()).ifPresent(violations::add);
+            checkClinicalShiftBlocked(request.cohortId(), request.dayOfWeek(), spanPeriod, offering.getTermInstance()).ifPresent(violations::add);
         }
 
         checkBudgetNotExceeded(offering, request.sessionType(), batch, cohortSection)
@@ -966,6 +999,7 @@ public class TimetableSkeletonService {
             checkCohortExclusivity(asPlacementRequest, offering, cs.getBatch(), cs.getCohortSection(), excludeCellId).ifPresent(violations::add);
         }
         checkBlocked(day, targetPeriod, offering.getTermInstance()).ifPresent(violations::add);
+        checkClinicalShiftBlocked(cohortId, day, targetPeriod, offering.getTermInstance()).ifPresent(violations::add);
 
         if (cs.getFaculty() != null) {
             LocalTime start = targetPeriod.getStartTime();
@@ -1231,6 +1265,7 @@ public class TimetableSkeletonService {
 
             checkAlreadyPlaced(offering, asPlacementRequest).ifPresent(violations::add);
             checkBlocked(request.dayOfWeek(), period, offering.getTermInstance()).ifPresent(violations::add);
+            checkClinicalShiftBlocked(request.cohortId(), request.dayOfWeek(), period, offering.getTermInstance()).ifPresent(violations::add);
 
             ClassSchedule cs = new ClassSchedule();
             cs.setSessionType(member.sessionType());

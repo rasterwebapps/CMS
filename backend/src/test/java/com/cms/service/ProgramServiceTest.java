@@ -99,7 +99,7 @@ class ProgramServiceTest {
 
     @Test
     void shouldCreateProgram() {
-        ProgramRequest request = new ProgramRequest("Bachelor", "BACHELOR", 4, null, null, null, null, null);
+        ProgramRequest request = new ProgramRequest("Bachelor", "BACHELOR", 4, null, null, null, null, null, false);
 
         Program savedProgram = createProgram(1L, "Bachelor", "BACHELOR", 4);
 
@@ -172,7 +172,7 @@ class ProgramServiceTest {
     @Test
     void shouldUpdateProgram() {
         Program existingProgram = createProgram(1L, "Bachelor", "BACHELOR", 4);
-        ProgramRequest updateRequest = new ProgramRequest("Bachelor Updated", "BACHELOR", 4, null, null, null, null, null);
+        ProgramRequest updateRequest = new ProgramRequest("Bachelor Updated", "BACHELOR", 4, null, null, null, null, null, false);
         Program updatedProgram = createProgram(1L, "Bachelor Updated", "BACHELOR", 4);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(existingProgram));
@@ -192,7 +192,7 @@ class ProgramServiceTest {
     @Test
     void shouldThrowWhenUpdatingProgramWithDuplicateName() {
         Program existing = createProgram(1L, "Bachelor", "BACHELOR", 4);
-        ProgramRequest request = new ProgramRequest("Master", "BACHELOR", 4, null, null, null, null, null);
+        ProgramRequest request = new ProgramRequest("Master", "BACHELOR", 4, null, null, null, null, null, false);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(programRepository.existsByNameIgnoreCaseAndIdNot("Master", 1L)).thenReturn(true);
@@ -208,7 +208,7 @@ class ProgramServiceTest {
     @Test
     void shouldThrowWhenUpdatingProgramWithDuplicateCode() {
         Program existing = createProgram(1L, "Bachelor", "BACHELOR", 4);
-        ProgramRequest request = new ProgramRequest("Bachelor", "MASTER", 4, null, null, null, null, null);
+        ProgramRequest request = new ProgramRequest("Bachelor", "MASTER", 4, null, null, null, null, null, false);
 
         when(programRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(programRepository.existsByNameIgnoreCaseAndIdNot("Bachelor", 1L)).thenReturn(false);
@@ -224,7 +224,7 @@ class ProgramServiceTest {
 
     @Test
     void shouldThrowExceptionWhenUpdatingNonExistentProgram() {
-        ProgramRequest request = new ProgramRequest("Name", "CODE", 4, null, null, null, null, null);
+        ProgramRequest request = new ProgramRequest("Name", "CODE", 4, null, null, null, null, null, false);
 
         when(programRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -273,7 +273,7 @@ class ProgramServiceTest {
 
     @Test
     void shouldThrowWhenCodeIsLowercase() {
-        ProgramRequest request = new ProgramRequest("Bachelor", "bachelor", 4, null, null, null, null, null);
+        ProgramRequest request = new ProgramRequest("Bachelor", "bachelor", 4, null, null, null, null, null, false);
 
         assertThatThrownBy(() -> programService.create(request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -284,7 +284,7 @@ class ProgramServiceTest {
 
     @Test
     void shouldThrowWhenCodeHasSpaces() {
-        ProgramRequest request = new ProgramRequest("Bachelor", "BSC N", 4, null, null, null, null, null);
+        ProgramRequest request = new ProgramRequest("Bachelor", "BSC N", 4, null, null, null, null, null, false);
 
         assertThatThrownBy(() -> programService.create(request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -295,7 +295,7 @@ class ProgramServiceTest {
 
     @Test
     void shouldCreateProgramWithStatus() {
-        ProgramRequest request = new ProgramRequest("Bachelor", "BACHELOR", 4, com.cms.model.enums.ProgramStatus.INACTIVE, null, null, null, null);
+        ProgramRequest request = new ProgramRequest("Bachelor", "BACHELOR", 4, com.cms.model.enums.ProgramStatus.INACTIVE, null, null, null, null, false);
         Program saved = createProgram(1L, "Bachelor", "BACHELOR", 4);
         saved.setStatus(com.cms.model.enums.ProgramStatus.INACTIVE);
 

@@ -20,7 +20,11 @@ import java.util.List;
  *  cohort in it) — past that point, Global Auto-Schedule refuses to run and only manual period/
  *  staff edits (swap staff, swap sessions) remain available; it has nothing to do with whether this
  *  cohort's Cohort Room Allocation is committed, which only gates whether {@code sections} is
- *  non-empty. */
+ *  non-empty. {@code clinicalShiftWindows} is this cohort's active Clinical Shift wall-clock
+ *  windows (bus-depart through bus-return, per day) — used by the frontend grid to widen its
+ *  displayed time range and render the shift block alongside the Period columns; the actual
+ *  period-level hard block is already enforced server-side (see {@code
+ *  TimetableGlobalAutoScheduleService#tryPlaceAndStaff}), so this is purely a rendering aid. */
 public record SkeletonBuilderResponse(
     Long cohortId,
     String cohortName,
@@ -32,5 +36,6 @@ public record SkeletonBuilderResponse(
     int weeksInTerm,
     long workingSaturdayCount,
     List<SkeletonClinicalShiftHours> clinicalShiftHours,
-    boolean termTimetablePublished
+    boolean termTimetablePublished,
+    List<ClinicalShiftWindow> clinicalShiftWindows
 ) {}

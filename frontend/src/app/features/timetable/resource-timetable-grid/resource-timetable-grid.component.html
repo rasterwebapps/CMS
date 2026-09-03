@@ -71,7 +71,9 @@
                 <div class="resource-grid__chip"
                   [class.resource-grid__chip--theory]="cell.sessionType === 'THEORY'"
                   [class.resource-grid__chip--lab]="cell.sessionType === 'LAB'"
-                  [class.resource-grid__chip--clinical]="cell.sessionType === 'CLINICAL'">
+                  [class.resource-grid__chip--clinical]="cell.sessionType === 'CLINICAL'"
+                  [class.resource-grid__chip--shift]="cell.isOffCampusShift"
+                  [title]="cell.isOffCampusShift ? 'Off-campus Clinical Shift (incl. bus travel)' : ''">
                   <span class="resource-grid__chip-subject">{{ cell.subjectName }}</span>
                   <span class="resource-grid__chip-detail">{{ resourceType() === 'FACULTY' ? cell.roomName : cell.facultyName }}</span>
                   @if (cell.batchName) {
