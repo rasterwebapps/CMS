@@ -3,6 +3,8 @@ package com.cms.service;
 import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +14,8 @@ import com.cms.dto.ClinicalShiftGroupDto;
 import com.cms.dto.ClinicalShiftGroupRequest;
 import com.cms.dto.ClinicalShiftTheoryBlockDto;
 import com.cms.dto.ClinicalShiftTheoryBlockRequest;
+import com.cms.dto.ClinicalShiftWindow;
+import com.cms.dto.CourseOfferingDto;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Batch;
 import com.cms.model.Classroom;
@@ -20,10 +24,12 @@ import com.cms.model.ClinicalShiftTheoryBlock;
 import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
 import com.cms.model.Subject;
+import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.ClinicalShiftGroupRepository;
 import com.cms.repository.ClinicalShiftTheoryBlockRepository;
+import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.SubjectRepository;
@@ -43,24 +49,30 @@ public class ClinicalShiftGroupService {
     private final ClinicalShiftTheoryBlockRepository theoryBlockRepository;
     private final CourseOfferingRepository courseOfferingRepository;
     private final CohortSectionRepository cohortSectionRepository;
+    private final CohortRoomAllocationRepository cohortRoomAllocationRepository;
     private final BatchRepository batchRepository;
     private final SubjectRepository subjectRepository;
     private final ClassroomRepository classroomRepository;
+    private final CourseOfferingService courseOfferingService;
 
     public ClinicalShiftGroupService(ClinicalShiftGroupRepository shiftGroupRepository,
                                       ClinicalShiftTheoryBlockRepository theoryBlockRepository,
                                       CourseOfferingRepository courseOfferingRepository,
                                       CohortSectionRepository cohortSectionRepository,
+                                      CohortRoomAllocationRepository cohortRoomAllocationRepository,
                                       BatchRepository batchRepository,
                                       SubjectRepository subjectRepository,
-                                      ClassroomRepository classroomRepository) {
+                                      ClassroomRepository classroomRepository,
+                                      CourseOfferingService courseOfferingService) {
         this.shiftGroupRepository = shiftGroupRepository;
         this.theoryBlockRepository = theoryBlockRepository;
         this.courseOfferingRepository = courseOfferingRepository;
         this.cohortSectionRepository = cohortSectionRepository;
+        this.cohortRoomAllocationRepository = cohortRoomAllocationRepository;
         this.batchRepository = batchRepository;
         this.subjectRepository = subjectRepository;
         this.classroomRepository = classroomRepository;
+        this.courseOfferingService = courseOfferingService;
     }
 
     @Transactional
@@ -109,6 +121,34 @@ public class ClinicalShiftGroupService {
 
     public ClinicalShiftGroupDto getGroup(Long id) {
         return toDto(getOrThrow(id));
+    }
+
+    /** Every active {@link ClinicalShiftGroup} bound to cohort X this term, across all days.
+     *  Resolution rule (OC-187): the group's {@code courseOffering} must be one of cohort X's real
+     *  offerings this term; when the group also names a specific {@link
+     *  ClinicalShiftGroup#cohortSection}, that section must be one of cohort X's active (committed)
+     *  sections too. No {@link Batch} link is required any more — grid-blocking used to require an
+     *  active Batch to be manually linked to the group first, which meant a shift did nothing until
+     *  Capacity Auto-Plan had committed room allocation AND an admin remembered to link it. Linking
+     *  a Batch is now purely for Escort Rotation bookkeeping (per-batch bus rotation), not an
+     *  eligibility gate — the shift blocks the grid as soon as the group itself exists. */
+    public List<ClinicalShiftWindow> resolveActiveWindowsForCohort(Long cohortId, Long termInstanceId) {
+        Set<Long> offeringIds = courseOfferingService.getOfferingsByTermInstanceAndCohort(termInstanceId, cohortId)
+            .stream().map(CourseOfferingDto::id).collect(Collectors.toSet());
+        if (offeringIds.isEmpty()) {
+            return List.of();
+        }
+        Set<Long> activeSectionIds = cohortRoomAllocationRepository
+            .findByCohortIdAndTermInstanceIdAndStatus(cohortId, termInstanceId, CohortRoomAllocationStatus.COMMITTED)
+            .map(a -> cohortSectionRepository.findByCohortRoomAllocationIdAndIsActiveTrue(a.getId()))
+            .orElse(List.of())
+            .stream().map(CohortSection::getId).collect(Collectors.toSet());
+
+        return shiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
+            .filter(g -> offeringIds.contains(g.getCourseOffering().getId()))
+            .filter(g -> g.getCohortSection() == null || activeSectionIds.contains(g.getCohortSection().getId()))
+            .map(ClinicalShiftWindow::from)
+            .toList();
     }
 
     @Transactional
@@ -188,11 +228,10 @@ public class ClinicalShiftGroupService {
 
     private ClinicalShiftGroupDto toDto(ClinicalShiftGroup group) {
         CourseOffering offering = group.getCourseOffering();
-        LocalTime clinicalEnd = offering.getClinicalShiftDurationMinutes() == null ? null
-            : group.getClinicalStartTime().plusMinutes(offering.getClinicalShiftDurationMinutes());
-        Integer buffer = offering.getClinicalTravelBufferMinutes();
-        LocalTime busDepart = buffer == null ? null : group.getClinicalStartTime().minusMinutes(buffer);
-        LocalTime busReturn = buffer == null || clinicalEnd == null ? null : clinicalEnd.plusMinutes(buffer);
+        ClinicalShiftWindow window = ClinicalShiftWindow.from(group);
+        LocalTime clinicalEnd = window.clinicalEnd();
+        LocalTime busDepart = window.busDepart();
+        LocalTime busReturn = window.busReturn();
 
         List<ClinicalShiftBatchLinkDto> batches = batchRepository.findByClinicalShiftGroupId(group.getId()).stream()
             .map(b -> new ClinicalShiftBatchLinkDto(
