@@ -17,6 +17,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,7 @@ import com.cms.dto.ClinicalShiftWindow;
 import com.cms.dto.CohortPlacementSummary;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
+import com.cms.dto.CourseOfferingFacultySummaryDto;
 import com.cms.dto.EligibleFacultyCandidateDto;
 import com.cms.dto.FacultyCapacityCheckResult;
 import com.cms.dto.FacultyOverCapacity;
@@ -71,6 +74,7 @@ import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.model.enums.OfferingAssignmentStatus;
 import com.cms.model.enums.PlanningBasis;
 import com.cms.model.enums.RegistrationStatus;
 import com.cms.model.enums.RoomPurposeCategoryCode;
@@ -189,6 +193,12 @@ public class TimetableGlobalAutoScheduleService {
     private final SubjectRepository subjectRepository;
     private final SystemConfigurationService systemConfigurationService;
     private final ClinicalShiftGroupService clinicalShiftGroupService;
+
+    // Field injection with @Lazy breaks the circular dependency:
+    // TimetableGlobalAutoScheduleService -> CourseOfferingSectionFacultyService -> TimetableGlobalAutoScheduleService
+    @Autowired
+    @Lazy
+    private CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
 
     public TimetableGlobalAutoScheduleService(TimetableSkeletonService timetableSkeletonService,
                                                TimetableStaffingService timetableStaffingService,
@@ -882,12 +892,18 @@ public class TimetableGlobalAutoScheduleService {
         List<UnassignedOfferingSummary> unassigned = new ArrayList<>();
         Set<Long> electiveGroupIdsSeen = new LinkedHashSet<>();
 
-        // Skip every cohort once this term's timetable is already approved/PUBLISHED too -- an "All
-        // Cohorts" run never touches any of them then (see doRunGlobalAutoSchedule), so a gap that's
-        // only genuine post-approval must never hard-block the checklist for a still-DRAFT term.
-        boolean published = isTermTimetablePublished(termInstanceId);
-        for (Long id : resolveCohortIds(termInstanceId, cohortId).stream()
-                .filter(unused -> !published).toList()) {
+        // The same PARTIAL/NONE/FULL rollup Assign Faculty's badge and TimetableGenerationService
+        // #approve's Publish gate already use -- so this checklist item can never show green on an
+        // offering Publish would actually reject, and can never show a gap Publish wouldn't also
+        // block on. Deliberately NOT skipped once the term is already PUBLISHED: a gap introduced by
+        // a post-publish reassignment is exactly what this item exists to surface, even though a full
+        // Global Auto-Schedule re-run is separately hard-blocked for a published term regardless (see
+        // doRunGlobalAutoSchedule) -- "Assign Faculty" from this checklist still fixes it directly.
+        Map<Long, OfferingAssignmentStatus> statusByOffering = courseOfferingSectionFacultyService
+            .getAssignmentSummaryForTermInstance(termInstanceId).stream()
+            .collect(Collectors.toMap(CourseOfferingFacultySummaryDto::offeringId, CourseOfferingFacultySummaryDto::assignmentStatus));
+
+        for (Long id : resolveCohortIds(termInstanceId, cohortId)) {
             Cohort cohort = cohortRepository.findById(id).orElse(null);
             if (cohort == null) {
                 continue;
@@ -904,9 +920,8 @@ public class TimetableGlobalAutoScheduleService {
                     }
                     continue;
                 }
-                boolean hasShortfall = subject.budgets().stream()
-                    .anyMatch(b -> b.requiredSessionsPerWeek() > b.placedSessionsPerWeek() && resolveBudgetFacultyId(offering, b, id) == null);
-                if (hasShortfall) {
+                OfferingAssignmentStatus status = statusByOffering.get(offering.getId());
+                if (status == OfferingAssignmentStatus.NONE || status == OfferingAssignmentStatus.PARTIAL) {
                     unassigned.add(new UnassignedOfferingSummary(offering.getId(), subject.subjectName(), id, cohort.getDisplayName()));
                 }
             }
@@ -915,8 +930,9 @@ public class TimetableGlobalAutoScheduleService {
         for (Long electiveGroupId : electiveGroupIdsSeen) {
             for (CourseOffering member : courseOfferingRepository
                     .findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(termInstanceId, electiveGroupId)) {
-                if (Boolean.TRUE.equals(member.getIsActive()) && resolveElectiveMemberFacultyId(member) == null
-                        && safe(member.getCurriculumSemesterCourse() != null ? member.getCurriculumSemesterCourse().getTheoryHours() : null) > 0) {
+                OfferingAssignmentStatus status = statusByOffering.get(member.getId());
+                if (Boolean.TRUE.equals(member.getIsActive())
+                        && (status == OfferingAssignmentStatus.NONE || status == OfferingAssignmentStatus.PARTIAL)) {
                     unassigned.add(new UnassignedOfferingSummary(member.getId(),
                         member.getSubject() != null ? member.getSubject().getName() + " (elective)" : "(elective)", null, null));
                 }
@@ -2563,5 +2579,10 @@ public class TimetableGlobalAutoScheduleService {
 
     private static String formatHours(double hours) {
         return (Math.round(hours * 10) / 10.0) + "h";
+    }
+
+    /** Package-private setter for test injection of the lazy-wired service. */
+    void setCourseOfferingSectionFacultyService(CourseOfferingSectionFacultyService courseOfferingSectionFacultyService) {
+        this.courseOfferingSectionFacultyService = courseOfferingSectionFacultyService;
     }
 }

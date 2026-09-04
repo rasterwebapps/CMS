@@ -28,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.AutoPlaceUnplacedItem;
 import com.cms.dto.CourseOfferingDto;
+import com.cms.dto.CourseOfferingFacultySummaryDto;
 import com.cms.dto.EligibleFacultyCandidateDto;
 import com.cms.dto.ClinicalShiftPeriodAvailabilityResult;
 import com.cms.dto.LabClinicalVenueCapacityResult;
@@ -67,6 +68,7 @@ import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.model.enums.OfferingAssignmentStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.BatchRepository;
@@ -104,6 +106,7 @@ class TimetableGlobalAutoScheduleServiceTest {
     @Mock private SubjectRepository subjectRepository;
     @Mock private SystemConfigurationService systemConfigurationService;
     @Mock private ClinicalShiftGroupService clinicalShiftGroupService;
+    @Mock private CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
 
     /** None of these fixtures configure a Self-Study/Co-curricular offering, so the gap-fill pass
      *  now correctly reports this once per cohort per run (see {@code fillSelfStudyGaps}) instead
@@ -132,6 +135,7 @@ class TimetableGlobalAutoScheduleServiceTest {
             courseOfferingSectionFacultyRepository, facultyRepository, termInstanceRepository, periodRepository,
             blockedPeriodChecker, classroomRepository, courseRegistrationRepository, subjectRepository, systemConfigurationService,
             clinicalShiftGroupService);
+        service.setCourseOfferingSectionFacultyService(courseOfferingSectionFacultyService);
         lenient().when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
         // No fixture in this suite approves/publishes the term's timetable, so every cohort defaults
         // to "draft" (not published) unless a specific test overrides this stub — Mockito already
@@ -166,6 +170,11 @@ class TimetableGlobalAutoScheduleServiceTest {
         // this to exercise checkPrerequisites' own handling of a real gap.
         lenient().when(timetableCapacityPlanningService.computeClinicalShiftPeriodAvailability(anyLong()))
             .thenReturn(new ClinicalShiftPeriodAvailabilityResult(List.of(), List.of()));
+
+        // Default: every offering is fully staffed per the real Assign Faculty/Publish-gate rollup --
+        // individual checkPrerequisites tests override this to exercise a real NONE/PARTIAL gap.
+        lenient().when(courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(anyLong()))
+            .thenReturn(List.of());
     }
 
     private Faculty facultyWithDailyCap(Long id, String name, Integer plannedDailyHoursOverride) {
@@ -1395,6 +1404,9 @@ class TimetableGlobalAutoScheduleServiceTest {
         offeringEntity(200L, 200, 0, 0); // bound, but 200h > 100h capacity -- over capacity
         when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
         when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+        when(courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(10L)).thenReturn(List.of(
+            new CourseOfferingFacultySummaryDto(100L, List.of(), OfferingAssignmentStatus.NONE),
+            new CourseOfferingFacultySummaryDto(200L, List.of("XYZ Staff"), OfferingAssignmentStatus.FULL)));
 
         SkeletonSubjectBudget budgetA = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
         SkeletonSubjectResponse subjectA = new SkeletonSubjectResponse(100L, "Offering A", "OFFA", List.of(budgetA), null, null);
@@ -1413,11 +1425,15 @@ class TimetableGlobalAutoScheduleServiceTest {
     }
 
     /** Builds an elective member offering (id 300, group 77) whose skeleton subject is flagged
-     *  elective, and stubs the two lookups {@link TimetableGlobalAutoScheduleService}'s elective
-     *  branch needs: the group-member list and this member's own {@code CourseOfferingSectionFaculty}
-     *  rows (returned as given, most tests below construct exactly two: one on an active section,
-     *  one on an inactive one). */
-    private CourseOffering electiveMemberWithRows(List<CourseOfferingSectionFaculty> rows) {
+     *  elective, and stubs the group-member list lookup {@link TimetableGlobalAutoScheduleService}'s
+     *  elective branch needs. This member's own assignment status is left to the caller (via {@link
+     *  #courseOfferingSectionFacultyService}'s stub) -- checkPrerequisites resolves elective gaps off
+     *  the same real Assign Faculty/Publish-gate rollup as every other offering now, not off {@code
+     *  resolveElectiveMemberFacultyId} directly (that resolution nuance -- ignoring a stale row on a
+     *  now-inactive section, still flagging a genuine disagreement between two active sections -- is
+     *  exercised where it's still actually used: {@code placeAndStaffElectiveGroup}'s real placement
+     *  pass, not this prerequisite check). */
+    private CourseOffering electiveMember() {
         Subject subject = new Subject();
         subject.setId(300L);
         subject.setName("Elective: Human Values");
@@ -1436,7 +1452,6 @@ class TimetableGlobalAutoScheduleServiceTest {
         lenient().when(timetableSkeletonService.isElectiveOffering(member)).thenReturn(true);
         when(courseOfferingRepository.findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(10L, 77L))
             .thenReturn(List.of(member));
-        when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(300L)).thenReturn(rows);
 
         SkeletonSubjectResponse electiveSubject = new SkeletonSubjectResponse(300L, "Elective: Human Values",
             "ELEC-I-HVAL", List.of(), 77L, "Group A");
@@ -1446,47 +1461,14 @@ class TimetableGlobalAutoScheduleServiceTest {
         return member;
     }
 
-    private CourseOfferingSectionFaculty sectionFacultyRow(Long cohortSectionId, boolean sectionActive, Long facultyId) {
-        CohortSection section = new CohortSection();
-        section.setId(cohortSectionId);
-        section.setIsActive(sectionActive);
-        Faculty faculty = new Faculty();
-        faculty.setId(facultyId);
-        CourseOfferingSectionFaculty row = new CourseOfferingSectionFaculty();
-        row.setCohortSection(section);
-        row.setFaculty(faculty);
-        return row;
-    }
-
     @Test
-    void checkPrerequisitesIgnoresStaleFacultyRowOnInactiveSection_forElectiveMember() {
-        // Regression: a cohort section-split reconfiguration deactivates a CohortSection but never
-        // deletes its old CourseOfferingSectionFaculty row. Before the fix, resolveElectiveMemberFacultyId
-        // counted that stale row too, so it permanently "disagreed" with the current active section's
-        // own (different) faculty and the offering could never resolve no matter what the admin picked.
+    void checkPrerequisitesFlagsElectiveMember_whenAssignmentStatusIsPartial() {
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
             .thenReturn(new HashSet<>(List.of(1L)));
         cohort(1L, "Cohort 1");
-        electiveMemberWithRows(List.of(
-            sectionFacultyRow(51L, true, 30L),   // active section -- Meera Iyer, just assigned
-            sectionFacultyRow(41L, false, 26L))); // stale row on a now-inactive section -- Divya Krishnan
-
-        GlobalAutoSchedulePrerequisites result = service.checkPrerequisites(10L, null);
-
-        assertThat(result.offeringsWithoutFaculty()).isEmpty();
-    }
-
-    @Test
-    void checkPrerequisitesStillFlagsGenuineDisagreement_betweenTwoActiveSections_forElectiveMember() {
-        // The narrowing above must not swallow a real disagreement -- two *active* sections still
-        // pointing at two different faculty members is exactly the ambiguous case the method is
-        // meant to catch (see its own javadoc: "returns null rather than guessing which one wins").
-        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
-            .thenReturn(new HashSet<>(List.of(1L)));
-        cohort(1L, "Cohort 1");
-        electiveMemberWithRows(List.of(
-            sectionFacultyRow(51L, true, 30L),
-            sectionFacultyRow(52L, true, 26L)));
+        electiveMember();
+        when(courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(10L)).thenReturn(
+            List.of(new CourseOfferingFacultySummaryDto(300L, List.of("Meera Iyer"), OfferingAssignmentStatus.PARTIAL)));
 
         GlobalAutoSchedulePrerequisites result = service.checkPrerequisites(10L, null);
 
@@ -1495,17 +1477,44 @@ class TimetableGlobalAutoScheduleServiceTest {
     }
 
     @Test
-    void checkPrerequisitesExcludesEveryCohort_whenTermTimetableIsPublished_gapThereNeverBlocksTheChecklist() {
+    void checkPrerequisitesDoesNotFlagElectiveMember_whenAssignmentStatusIsFull() {
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
             .thenReturn(new HashSet<>(List.of(1L)));
         cohort(1L, "Cohort 1");
-        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(true);
+        electiveMember();
+        when(courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(10L)).thenReturn(
+            List.of(new CourseOfferingFacultySummaryDto(300L, List.of("Meera Iyer"), OfferingAssignmentStatus.FULL)));
 
         GlobalAutoSchedulePrerequisites result = service.checkPrerequisites(10L, null);
 
-        assertThat(result.ready()).isTrue();
         assertThat(result.offeringsWithoutFaculty()).isEmpty();
-        verify(timetableSkeletonService, never()).getCohortSkeleton(10L, 1L);
+    }
+
+    @Test
+    void checkPrerequisitesStillReportsARealGap_evenWhenTermTimetableIsPublished() {
+        // A gap introduced by a post-publish faculty reassignment is exactly what this item exists to
+        // surface -- unlike the placement pass, this checklist item no longer special-cases a
+        // PUBLISHED term at all (Global Auto-Schedule itself is separately hard-blocked for a
+        // published term regardless; "Assign Faculty" from this checklist still fixes the gap
+        // directly), so it never even queries publish status -- verified below.
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        offeringEntity(100L, 10, 0, 0);
+        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
+        SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFA", List.of(budget), null, null);
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L))
+            .thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of()));
+        when(courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(10L)).thenReturn(
+            List.of(new CourseOfferingFacultySummaryDto(100L, List.of(), OfferingAssignmentStatus.NONE)));
+
+        GlobalAutoSchedulePrerequisites result = service.checkPrerequisites(10L, null);
+
+        assertThat(result.ready()).isFalse();
+        assertThat(result.offeringsWithoutFaculty()).hasSize(1);
+        assertThat(result.offeringsWithoutFaculty().get(0).courseOfferingId()).isEqualTo(100L);
+        verify(timetableSkeletonService).getCohortSkeleton(10L, 1L);
+        verify(classScheduleRepository, never()).existsByTermInstanceIdAndStatus(anyLong(), any());
     }
 
     @Test
