@@ -9,11 +9,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.cms.model.SessionOccurrence;
 import com.cms.model.enums.OccurrenceSource;
+import com.cms.model.enums.OccurrenceStatus;
 import com.cms.model.enums.SpecialClassApprovalStatus;
 
 public interface SessionOccurrenceRepository extends JpaRepository<SessionOccurrence, Long> {
 
     Optional<SessionOccurrence> findByClassScheduleIdAndOccurrenceDate(Long classScheduleId, LocalDate occurrenceDate);
+
+    long countByBatch_IdAndOccurrenceStatusNot(Long batchId, OccurrenceStatus occurrenceStatus);
 
     List<SessionOccurrence> findByClassSchedule_CourseOffering_Id(Long courseOfferingId);
 

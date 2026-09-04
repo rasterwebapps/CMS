@@ -1,8 +1,6 @@
 package com.cms.model;
 
 import java.time.Instant;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -16,8 +14,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -51,18 +47,6 @@ public class CourseOffering {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "curriculum_term_course_id")
     private CurriculumSemesterCourse curriculumSemesterCourse;
-
-    /** Admin-curated shortlist of faculty considered for this specific offering -- a further
-     *  narrowing of {@code FacultyEligibility.eligibleFaculty} (Speciality match OR the subject's
-     *  Eligible Faculty list), which still governs who can ever be added here. Every active {@code
-     *  CourseOfferingSectionFaculty} row for this offering must always be assignable from this pool
-     *  -- {@code CourseOfferingServiceImpl.updateFacultyPool} blocks removing anyone currently
-     *  relied upon rather than silently orphaning their assignment. Empty means no pool has been
-     *  built yet. */
-    @ManyToMany
-    @JoinTable(name = "course_offering_faculty_pool", joinColumns = @JoinColumn(name = "course_offering_id"),
-        inverseJoinColumns = @JoinColumn(name = "faculty_id"))
-    private Set<Faculty> facultyPool = new HashSet<>();
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -136,14 +120,6 @@ public class CourseOffering {
 
     public void setCurriculumSemesterCourse(CurriculumSemesterCourse curriculumSemesterCourse) {
         this.curriculumSemesterCourse = curriculumSemesterCourse;
-    }
-
-    public Set<Faculty> getFacultyPool() {
-        return facultyPool;
-    }
-
-    public void setFacultyPool(Set<Faculty> facultyPool) {
-        this.facultyPool = facultyPool;
     }
 
     public Boolean getIsActive() {

@@ -56,24 +56,9 @@ export class CourseOfferingEditDialogComponent implements OnInit {
 
   /** Every eligible (Speciality match OR the subject's Eligible Faculty list) active faculty for
    *  this offering, each annotated with real remaining term capacity and sorted most-free-first by
-   *  the backend — backs the Faculty Pool checklist below. */
+   *  the backend — backs the assignment row pickers directly. */
   protected readonly eligibleCandidates = signal<EligibleFacultyCandidate[]>([]);
   protected readonly eligibleCandidatesLoading = signal(false);
-
-  /** Pending faculty-pool edit buffer — seeded from eligibleCandidates()'s inPool flags on load
-   *  and after every successful pool save, mutated by checkbox toggles in between. Every
-   *  assignment row below stays scoped to the last-SAVED pool (each candidate's real inPool flag),
-   *  not this buffer, so "who can be assigned" only ever reflects what's actually persisted —
-   *  building the pool and assigning from it are deliberately two separate steps. */
-  protected readonly poolSelection = signal<Set<number>>(new Set());
-  protected readonly poolSaving = signal(false);
-  protected readonly poolDirty = computed(() => {
-    const persisted = new Set(this.eligibleCandidates().filter((c) => c.inPool).map((c) => c.facultyId));
-    const pending = this.poolSelection();
-    if (persisted.size !== pending.size) return true;
-    for (const id of pending) if (!persisted.has(id)) return true;
-    return false;
-  });
 
   /** Name of the deep-link-suggested faculty, resolved once eligibleCandidates loads — null until
    *  then, or if they're not actually in the eligible list. */
@@ -108,50 +93,15 @@ export class CourseOfferingEditDialogComponent implements OnInit {
     this.academicYearService.getEligibleFaculty(this.data.offering.id).subscribe({
       next: (candidates) => {
         this.eligibleCandidates.set(candidates);
-        this.poolSelection.set(new Set(candidates.filter((c) => c.inPool).map((c) => c.facultyId)));
         this.eligibleCandidatesLoading.set(false);
       },
       error: () => { this.eligibleCandidatesLoading.set(false); },
     });
   }
 
-  /** Flips a candidate's membership in the pending pool-edit buffer — does not save anything on
-   *  its own; the admin still has to click "Save Pool". */
-  protected toggleInPool(facultyId: number): void {
-    this.poolSelection.update((current) => {
-      const next = new Set(current);
-      if (next.has(facultyId)) next.delete(facultyId); else next.add(facultyId);
-      return next;
-    });
-  }
-
-  /** Persists the pending buffer as this offering's faculty pool. The backend blocks removing
-   *  anyone currently relied upon (holding any assignment row) with a clear error — surfaced the
-   *  same way every other save path in this dialog reports a violation. On success, refreshes
-   *  eligibleCandidates (updating every inPool flag) and drops both candidate caches so every row
-   *  re-fetches against the newly-saved pool next render. */
-  protected saveFacultyPool(): void {
-    this.poolSaving.set(true);
-    this.academicYearService.updateFacultyPool(this.data.offering.id, [...this.poolSelection()]).subscribe({
-      next: (candidates) => {
-        this.poolSaving.set(false);
-        this.eligibleCandidates.set(candidates);
-        this.poolSelection.set(new Set(candidates.filter((c) => c.inPool).map((c) => c.facultyId)));
-        this.sectionCandidatesCache.set(new Map());
-        this.cohortCandidatesCache.set(new Map());
-        this.toast.success('Faculty pool updated');
-      },
-      error: (err) => {
-        this.poolSaving.set(false);
-        this.toast.error(violationText(err) ?? err?.error?.message ?? 'Failed to update faculty pool');
-      },
-    });
-  }
-
-  /** Re-fetches the pool checklist's capacity figures and drops both per-row candidate caches, so a
+  /** Re-fetches offering-level capacity figures and drops both per-row candidate caches, so a
    *  just-made assignment's effect on everyone's remaining hours shows up immediately elsewhere in
-   *  this dialog (another row's dropdown, the pool checklist above) rather than only after closing
-   *  and reopening it. */
+   *  this dialog (another row's dropdown) rather than only after closing and reopening it. */
   private refreshCapacityFigures(): void {
     this.sectionCandidatesCache.set(new Map());
     this.cohortCandidatesCache.set(new Map());
@@ -166,13 +116,12 @@ export class CourseOfferingEditDialogComponent implements OnInit {
     return row.cohortSectionId != null ? `section-${row.cohortSectionId}` : `cohort-${row.cohortId}`;
   }
 
-  /** Assignment options for a row, scoped to the persisted pool only — routes to the section- or
-   *  cohort-scoped eligible-candidate fetch depending on the row's shape. */
+  /** Assignment options for a row — routes to the section- or cohort-scoped eligible-candidate
+   *  fetch depending on the row's shape. */
   protected candidatesFor(row: SectionFacultyAssignment): EligibleFacultyCandidate[] {
-    const raw = row.cohortSectionId != null
+    return row.cohortSectionId != null
       ? this.sectionCandidatesRawFor(row.cohortSectionId)
       : this.cohortCandidatesRawFor(row.cohortId);
-    return raw.filter((c) => c.inPool);
   }
 
   private sectionCandidatesRawFor(cohortSectionId: number): EligibleFacultyCandidate[] {
@@ -209,9 +158,10 @@ export class CourseOfferingEditDialogComponent implements OnInit {
 
   /** Shared label for a candidate row's eligibility badge. */
   protected candidateBadgeText(c: EligibleFacultyCandidate): string {
+    if (c.currentlyAssigned) return 'Currently assigned';
     if (c.viaEligibleList) return 'Eligible list';
     if (c.specialityMatch) return 'Speciality match';
-    return 'Currently assigned';
+    return 'Active faculty';
   }
 
   /** Shared label for a candidate row's remaining-capacity figure. */
@@ -228,15 +178,15 @@ export class CourseOfferingEditDialogComponent implements OnInit {
     const key = this.rowKey(row);
     this.assignmentSavingKey.set(key);
     const request$ = row.cohortSectionId != null
-      ? this.academicYearService.updateSectionFaculty(this.data.offering.id, row.cohortSectionId, facultyId)
-      : this.academicYearService.updateCohortFaculty(this.data.offering.id, row.cohortId, facultyId);
+      ? this.academicYearService.updateSectionFaculty(this.data.offering.id, row.cohortSectionId, facultyId, row.version)
+      : this.academicYearService.updateCohortFaculty(this.data.offering.id, row.cohortId, facultyId, row.version);
     request$.subscribe({
       next: (updated) => {
         this.assignmentSavingKey.set(null);
         this.assignmentRows.update((rows) => rows.map((r) => (this.rowKey(r) === key ? updated : r)));
         this.toast.success(`${row.sectionLabel ?? row.cohortName} updated`);
         // This pick changes the assigned faculty's remaining hours everywhere else in this dialog
-        // (the pool checklist above and every other row's own candidate list) -- refresh both.
+        // (every other row's own candidate list) -- refresh it.
         this.refreshCapacityFigures();
       },
       error: (err) => {

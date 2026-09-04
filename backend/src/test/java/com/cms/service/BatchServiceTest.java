@@ -24,8 +24,12 @@ import com.cms.model.Faculty;
 import com.cms.model.Student;
 import com.cms.model.TermInstance;
 import com.cms.repository.BatchRepository;
+import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CourseOfferingRepository;
+import com.cms.repository.EscortRotationAssignmentRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.RotationMemberAssignmentRepository;
+import com.cms.repository.SessionOccurrenceRepository;
 import com.cms.repository.StudentRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,6 +43,14 @@ class BatchServiceTest {
     private FacultyRepository facultyRepository;
     @Mock
     private StudentRepository studentRepository;
+    @Mock
+    private ClassScheduleRepository classScheduleRepository;
+    @Mock
+    private RotationMemberAssignmentRepository rotationMemberAssignmentRepository;
+    @Mock
+    private EscortRotationAssignmentRepository escortRotationAssignmentRepository;
+    @Mock
+    private SessionOccurrenceRepository sessionOccurrenceRepository;
 
     private BatchService service;
 
@@ -46,7 +58,9 @@ class BatchServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new BatchService(batchRepository, courseOfferingRepository, facultyRepository, studentRepository);
+        service = new BatchService(batchRepository, courseOfferingRepository, facultyRepository, studentRepository,
+            classScheduleRepository, rotationMemberAssignmentRepository, escortRotationAssignmentRepository,
+            sessionOccurrenceRepository);
 
         TermInstance termInstance = new TermInstance();
         termInstance.setId(1L);
@@ -130,7 +144,7 @@ class BatchServiceTest {
         newBatch.setId(11L);
         newBatch.setCohortSection(section);
 
-        BatchRequest request = new BatchRequest(1L, "Clinical - Batch 2", 20, 28L);
+        BatchRequest request = new BatchRequest(1L, "Clinical - Batch 2", 20, 28L, null);
 
         when(batchRepository.findById(11L)).thenReturn(Optional.of(newBatch));
         when(facultyRepository.findById(28L)).thenReturn(Optional.of(sharedFaculty));
@@ -140,5 +154,60 @@ class BatchServiceTest {
         BatchDto dto = service.updateBatch(11L, request);
 
         assertThat(dto.coordinatorFacultyId()).isEqualTo(28L);
+    }
+
+    @Test
+    void shouldDeleteWhenNothingAttached() {
+        Batch batch = new Batch(testOffering, "Batch A", 20, testOffering.getTermInstance());
+        batch.setId(1L);
+
+        when(batchRepository.findById(1L)).thenReturn(Optional.of(batch));
+        when(batchRepository.countStudents(1L)).thenReturn(0L);
+        when(classScheduleRepository.countByBatchIdAndIsActiveTrue(1L)).thenReturn(0L);
+        when(rotationMemberAssignmentRepository.countByBatchId(1L)).thenReturn(0L);
+        when(escortRotationAssignmentRepository.countByBatchId(1L)).thenReturn(0L);
+        when(sessionOccurrenceRepository.countByBatch_IdAndOccurrenceStatusNot(1L, com.cms.model.enums.OccurrenceStatus.CANCELLED))
+            .thenReturn(0L);
+
+        service.deleteBatch(1L);
+
+        verify(batchRepository).delete(batch);
+    }
+
+    @Test
+    void shouldBlockDeleteWhenStudentsEnrolled() {
+        Batch batch = new Batch(testOffering, "Batch A", 20, testOffering.getTermInstance());
+        batch.setId(1L);
+
+        when(batchRepository.findById(1L)).thenReturn(Optional.of(batch));
+        when(batchRepository.countStudents(1L)).thenReturn(3L);
+        when(classScheduleRepository.countByBatchIdAndIsActiveTrue(1L)).thenReturn(0L);
+        when(rotationMemberAssignmentRepository.countByBatchId(1L)).thenReturn(0L);
+        when(escortRotationAssignmentRepository.countByBatchId(1L)).thenReturn(0L);
+        when(sessionOccurrenceRepository.countByBatch_IdAndOccurrenceStatusNot(1L, com.cms.model.enums.OccurrenceStatus.CANCELLED))
+            .thenReturn(0L);
+
+        assertThatThrownBy(() -> service.deleteBatch(1L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("enrolled student");
+
+        verify(batchRepository, never()).delete(any());
+    }
+
+    @Test
+    void shouldRejectUpdateWithStaleVersion() {
+        Batch batch = new Batch(testOffering, "Batch A", 20, testOffering.getTermInstance());
+        batch.setId(1L);
+        batch.setVersion(2L);
+
+        when(batchRepository.findById(1L)).thenReturn(Optional.of(batch));
+
+        BatchRequest request = new BatchRequest(1L, "Batch A", 20, null, 1L);
+
+        assertThatThrownBy(() -> service.updateBatch(1L, request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("changed by someone else");
+
+        verify(batchRepository, never()).save(any());
     }
 }

@@ -885,7 +885,8 @@ export class CapacityPlannerComponent implements OnInit {
         const ref = contributor.batchId != null
           ? this.dialog.open(TeachingAssignmentDialogComponent, {
             data: { offering, suggestedFacultyId: null },
-            width: '760px',
+            width: '1100px',
+            maxWidth: '95vw',
           })
           : this.dialog.open(CourseOfferingEditDialogComponent, {
             data: { offering, suggestedFacultyId: null },

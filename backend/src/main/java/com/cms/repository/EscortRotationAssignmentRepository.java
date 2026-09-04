@@ -11,4 +11,6 @@ public interface EscortRotationAssignmentRepository extends JpaRepository<Escort
     List<EscortRotationAssignment> findByBatchIdOrderByRotationMember_MemberOrderAsc(Long batchId);
 
     List<EscortRotationAssignment> findByFaculty_Id(Long facultyId);
+
+    long countByBatchId(Long batchId);
 }

@@ -15,41 +15,6 @@
       Pick them from the row(s) below to apply it; nothing is changed until you do.
     </div>
   }
-  <div class="field-group">
-    <span class="field-label">Faculty Pool</span>
-    <p class="field-hint">
-      Step 1 — mark every faculty who could teach this offering. Step 2 (below) assigns one of them per cohort
-      (or per section, for a cohort whose Theory delivery has split).
-    </p>
-    @if (eligibleCandidatesLoading()) {
-      <p class="field-hint">Loading eligible faculty…</p>
-    } @else {
-      <div class="coed-candidate-list" role="group" aria-label="Faculty Pool">
-        @for (c of eligibleCandidates(); track c.facultyId) {
-          <label class="coed-candidate-row">
-            <input type="checkbox" [checked]="poolSelection().has(c.facultyId)" [disabled]="poolSaving()"
-              (change)="toggleInPool(c.facultyId)">
-            <span class="coed-candidate-row__name">{{ c.facultyName }}</span>
-            <span class="coed-candidate-row__badge" [class.coed-candidate-row__badge--eligible-list]="c.viaEligibleList"
-              [class.coed-candidate-row__badge--grandfathered]="!c.specialityMatch && !c.viaEligibleList">
-              {{ candidateBadgeText(c) }}
-            </span>
-            <span class="coed-candidate-row__hours" [class.coed-candidate-row__hours--over]="c.overCapacity">
-              {{ candidateHoursText(c) }}
-            </span>
-          </label>
-        }
-        @if (eligibleCandidates().length === 0) {
-          <p class="field-hint">No eligible faculty found for this subject — widen it from the Subject form's Eligible Faculty list.</p>
-        }
-      </div>
-      <button class="btn-secondary coed-save-pool-btn" type="button" [disabled]="poolSaving() || !poolDirty()" (click)="saveFacultyPool()">
-        @if (poolSaving()) { <mat-spinner diameter="14" class="btn-spinner"></mat-spinner> }
-        Save Pool
-      </button>
-    }
-  </div>
-
   <div class="coed-section-faculty">
     <label class="field-label">Faculty Assignment</label>
     @if (assignmentLoading()) {
@@ -80,7 +45,7 @@
             }
           </select>
           @if (candidatesFor(row).length === 0) {
-            <p class="field-hint">No one's in the Faculty Pool yet — mark eligible faculty above first.</p>
+            <p class="field-hint">No eligible faculty found for this subject — widen it from the Subject form's Eligible Faculty list.</p>
           }
         </div>
       }

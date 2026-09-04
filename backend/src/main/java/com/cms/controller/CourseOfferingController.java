@@ -22,7 +22,6 @@ import com.cms.dto.CourseOfferingFacultySummaryDto;
 import com.cms.dto.CourseOfferingSectionFacultyResponse;
 import com.cms.dto.EligibleFacultyCandidateDto;
 import com.cms.dto.FacultyCapacityCheckResult;
-import com.cms.dto.FacultyPoolUpdateRequest;
 import com.cms.dto.GenerateOfferingsResponse;
 import com.cms.dto.SectionFacultyAssignment;
 import com.cms.dto.SectionFacultyUpsertRequest;
@@ -117,15 +116,6 @@ public class CourseOfferingController {
         return ResponseEntity.ok(timetableGlobalAutoScheduleService.getEligibleFacultyForCohort(id, cohortId));
     }
 
-    /** Replaces this offering's admin-curated faculty pool wholesale — the primary/section pickers
-     *  are then scoped to just this pool rather than the full eligible list. */
-    @PutMapping("/{id}/faculty-pool")
-    @PreAuthorize("@perm.has('COURSE_MANAGE')")
-    public ResponseEntity<List<EligibleFacultyCandidateDto>> updateFacultyPool(
-            @PathVariable Long id, @RequestBody FacultyPoolUpdateRequest request) {
-        return ResponseEntity.ok(courseOfferingService.updateFacultyPool(id, request.facultyIds()));
-    }
-
     @PatchMapping("/{id}/status")
     @PreAuthorize("@perm.has('COURSE_MANAGE')")
     public ResponseEntity<ActiveStatusUpdateResponse> updateStatus(
@@ -179,7 +169,7 @@ public class CourseOfferingController {
             @PathVariable Long id,
             @PathVariable Long cohortSectionId,
             @RequestBody SectionFacultyUpsertRequest request) {
-        return ResponseEntity.ok(sectionFacultyService.upsert(id, cohortSectionId, request.facultyId()));
+        return ResponseEntity.ok(sectionFacultyService.upsert(id, cohortSectionId, request.facultyId(), request.version()));
     }
 
     /** Whole-cohort counterpart of {@link #upsertSectionFaculty} -- for a cohort with no active
@@ -190,6 +180,6 @@ public class CourseOfferingController {
             @PathVariable Long id,
             @PathVariable Long cohortId,
             @RequestBody SectionFacultyUpsertRequest request) {
-        return ResponseEntity.ok(sectionFacultyService.upsertForCohort(id, cohortId, request.facultyId()));
+        return ResponseEntity.ok(sectionFacultyService.upsertForCohort(id, cohortId, request.facultyId(), request.version()));
     }
 }

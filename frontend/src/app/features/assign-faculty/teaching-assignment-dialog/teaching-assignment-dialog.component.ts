@@ -1,18 +1,24 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { forkJoin, Observable } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 import {
   CourseOffering,
   EligibleFacultyCandidate,
   SectionFacultyAssignment,
 } from '../../academic-year/academic-year.model';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
-import { Batch, BatchRequest } from '../../batch/batch.model';
+import { Batch, BatchRequest, BatchStudent, describeImpact, impactHasAny } from '../../batch/batch.model';
 import { BatchService } from '../../batch/batch.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
+import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
 import { violationText } from '../../../shared/util/violation-text';
 
 export interface TeachingAssignmentDialogData {
@@ -31,26 +37,31 @@ interface TheoryUnitRow {
   source: SectionFacultyAssignment;
 }
 
-interface CoordinatorUnitRow {
+interface BatchUnitRow {
   kind: 'LAB' | 'CLINICAL';
   key: string;
   unitLabel: string;
   source: Batch;
 }
 
-type TeachingUnitRow = TheoryUnitRow | CoordinatorUnitRow;
+type TeachingUnitRow = TheoryUnitRow | BatchUnitRow;
 
-/** Single stop for all of an offering's teaching-staff decisions: who teaches Theory to each
- *  cohort/section, and who coordinates each Lab/Clinical batch — merged into one flat table so
- *  admins actually do the coordinator half instead of skipping it because it lived behind a
- *  separate button (Manage Batches). Backed by the same two APIs the old separate dialogs used
- *  (Section Faculty + Batches for this offering); no backend change. Batch roster/capacity/name
- *  and deactivation remain in Manage Batches — this dialog is assignment-only. Class Incharge
- *  stays fully separate: it's per-section, not per-offering, and term-wide rather than per-row. */
+/** Single stop for all of an offering's teaching-staff AND batch-admin decisions: who teaches
+ *  Theory to each cohort/section, who coordinates each Lab/Clinical batch, each batch's own
+ *  name/capacity/roster, and delete — merged from the former separate Manage Batches dialog
+ *  (retired) so nothing about a batch requires leaving this screen. Theory faculty, coordinator
+ *  faculty, and batch name/capacity are staged edits behind one Save button (validated as a whole
+ *  before it enables); Delete/Roster stay as immediate actions with their own confirmation, since
+ *  those are lifecycle actions rather than form fields. Delete is a real DELETE, not a soft flag --
+ *  hard-blocked whenever the batch still has students or timetable data, so by the time it's
+ *  allowed the row carries no history worth keeping; there is deliberately no Reactivate, since a
+ *  hard-deleted batch has nothing to bring back (a mistaken delete means recreating the batch via
+ *  Capacity Auto-Plan). Class Incharge stays fully separate: it's per-section, not per-offering,
+ *  and term-wide rather than per-row. */
 @Component({
   selector: 'app-teaching-assignment-dialog',
   standalone: true,
-  imports: [FormsModule, MatDialogModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [FormsModule, ReactiveFormsModule, RouterLink, MatDialogModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './teaching-assignment-dialog.component.html',
   styleUrl: './teaching-assignment-dialog.component.scss',
 })
@@ -61,40 +72,47 @@ export class TeachingAssignmentDialogComponent implements OnInit {
   private readonly batchService = inject(BatchService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
+  private readonly dialog = inject(MatDialog);
+  private readonly fb = inject(FormBuilder);
+  private readonly http = inject(HttpClient);
 
   /** Theory dropdown is only interactive with SECTION_FACULTY_MANAGE, matching the permission the
    *  underlying PUT actually enforces (same gate the old Assign Faculty dialog used). */
   protected readonly canManageTheory = computed(() => this.permissionService.has('SECTION_FACULTY_MANAGE'));
-  /** Coordinator dropdown is only interactive with BATCH_MANAGE (V273) — same gate Manage Batches
-   *  already used. A row a user can't edit still shows, just disabled, so both permission holders
-   *  see the whole picture even if they can only act on half of it. */
-  protected readonly canManageCoordinator = computed(() => this.permissionService.has('BATCH_MANAGE'));
+  /** Coordinator/name/capacity/roster/delete all gate on BATCH_MANAGE (V273) — same permission
+   *  Manage Batches always used for batch admin, now exercised from this one screen instead. */
+  protected readonly canManageBatch = computed(() => this.permissionService.has('BATCH_MANAGE'));
 
   protected readonly assignmentLoading = signal(false);
   protected readonly assignmentRows = signal<SectionFacultyAssignment[]>([]);
   protected readonly assignmentApplicable = signal(true);
 
   protected readonly batchesLoading = signal(false);
+  /** Active only — a deleted batch is simply gone, and inactive rows from the (unrelated)
+   *  automatic Cohort Room Allocation revert path are never surfaced here either (see
+   *  BatchService.getBatchesForOffering on the backend). */
   protected readonly batches = signal<Batch[]>([]);
 
+  protected readonly saving = signal(false);
+
+  /** One reactive FormGroup per batch (name/capacity/coordinatorFacultyId), rebuilt whenever the
+   *  batch list reloads. */
+  protected readonly batchForms = signal<Map<number, FormGroup>>(new Map());
+  /** Theory faculty has no validation to gate on, so it stays a simple staged-value map rather than
+   *  a full reactive form — only the batch fields need FormGroup/async-validator machinery. */
+  protected readonly theoryPending = signal<Map<string, number | null>>(new Map());
+
+  protected readonly registeredStudents = signal<{ studentId: number; studentName: string }[]>([]);
+  protected readonly expandedBatchId = signal<number | null>(null);
+  protected readonly roster = signal<BatchStudent[]>([]);
+  protected readonly rosterLoading = signal(false);
+
   /** Every eligible (Speciality match OR the subject's Eligible Faculty list) active faculty for
-   *  this offering — backs both the Faculty Pool checklist and, unfiltered, the Coordinator
-   *  picker (coordinator picks were never gated by the admin-curated pool, same as the old
-   *  Manage Batches dialog — preserved as-is here). */
+   *  this offering — backs the Theory row and Coordinator pickers directly. No pool-curation step
+   *  in between: an offering automatically inherits its subject's eligible faculty the moment it
+   *  exists, and every row (Theory or Coordinator) picks straight from that list. */
   protected readonly eligibleCandidates = signal<EligibleFacultyCandidate[]>([]);
   protected readonly eligibleCandidatesLoading = signal(false);
-
-  protected readonly poolSelection = signal<Set<number>>(new Set());
-  protected readonly poolSaving = signal(false);
-  protected readonly poolDirty = computed(() => {
-    const persisted = new Set(this.eligibleCandidates().filter((c) => c.inPool).map((c) => c.facultyId));
-    const pending = this.poolSelection();
-    if (persisted.size !== pending.size) return true;
-    for (const id of pending) if (!persisted.has(id)) return true;
-    return false;
-  });
-
-  protected readonly savingKey = signal<string | null>(null);
 
   protected readonly suggestedFacultyName = computed(() => {
     const id = this.data.suggestedFacultyId;
@@ -127,14 +145,33 @@ export class TeachingAssignmentDialogComponent implements OnInit {
       .map((b) => ({ kind: 'CLINICAL', key: `batch-${b.id}`, unitLabel: b.name, source: b }));
     return [
       { kind: 'THEORY' as const, label: 'Theory', rows: theoryRows },
-      { kind: 'LAB' as const, label: 'Lab Coordinators', rows: labRows },
-      { kind: 'CLINICAL' as const, label: 'Clinical Coordinators', rows: clinicalRows },
+      { kind: 'LAB' as const, label: 'Lab Batches', rows: labRows },
+      { kind: 'CLINICAL' as const, label: 'Clinical Batches', rows: clinicalRows },
     ].filter((g) => g.rows.length > 0);
   });
 
   protected readonly rows = computed<TeachingUnitRow[]>(() => this.groupedRows().flatMap((g) => g.rows));
 
   ngOnInit(): void {
+    this.loadAssignment();
+    this.loadBatches();
+
+    this.academicYearService.getCourseRegistrationsByCourseOffering(this.data.offering.id).subscribe({
+      next: (regs) => this.registeredStudents.set(regs.map((r) => ({ studentId: r.studentId, studentName: r.studentName }))),
+      error: () => this.registeredStudents.set([]),
+    });
+
+    this.eligibleCandidatesLoading.set(true);
+    this.academicYearService.getEligibleFaculty(this.data.offering.id).subscribe({
+      next: (candidates) => {
+        this.eligibleCandidates.set(candidates);
+        this.eligibleCandidatesLoading.set(false);
+      },
+      error: () => { this.eligibleCandidatesLoading.set(false); },
+    });
+  }
+
+  private loadAssignment(): void {
     this.assignmentLoading.set(true);
     this.academicYearService.getSectionFaculty(this.data.offering.id).subscribe({
       next: (res) => {
@@ -147,66 +184,64 @@ export class TeachingAssignmentDialogComponent implements OnInit {
         this.toast.error('Failed to load faculty assignment');
       },
     });
+  }
 
+  private loadBatches(): void {
     this.batchesLoading.set(true);
     this.batchService.getByCourseOffering(this.data.offering.id).subscribe({
-      next: (batches) => { this.batches.set(batches); this.batchesLoading.set(false); },
+      next: (batches) => {
+        this.batches.set(batches);
+        this.buildBatchForms();
+        this.batchesLoading.set(false);
+      },
       error: () => {
         this.batchesLoading.set(false);
         this.toast.error('Failed to load batches');
       },
     });
-
-    this.eligibleCandidatesLoading.set(true);
-    this.academicYearService.getEligibleFaculty(this.data.offering.id).subscribe({
-      next: (candidates) => {
-        this.eligibleCandidates.set(candidates);
-        this.poolSelection.set(new Set(candidates.filter((c) => c.inPool).map((c) => c.facultyId)));
-        this.eligibleCandidatesLoading.set(false);
-      },
-      error: () => { this.eligibleCandidatesLoading.set(false); },
-    });
   }
 
-  protected toggleInPool(facultyId: number): void {
-    this.poolSelection.update((current) => {
-      const next = new Set(current);
-      if (next.has(facultyId)) next.delete(facultyId); else next.add(facultyId);
-      return next;
-    });
+  /** Rebuilt fresh on every load/reload so each capacity control's floor tracks that batch's
+   *  current enrolledCount, and the name-uniqueness async validator always excludes the right id. */
+  private buildBatchForms(): void {
+    const map = new Map<number, FormGroup>();
+    for (const b of this.batches()) {
+      const group = this.fb.group({
+        name: [b.name, [Validators.required]],
+        capacity: [b.capacity, [Validators.required, Validators.min(Math.max(1, b.enrolledCount))]],
+        coordinatorFacultyId: [b.coordinatorFacultyId],
+      });
+      group.get('name')!.setAsyncValidators(
+        uniqueFieldValidator(
+          this.http,
+          `${environment.apiUrl}/batches/name-exists`,
+          () => b.id,
+          () => ({ courseOfferingId: this.data.offering.id }),
+        ),
+      );
+      group.get('name')!.updateValueAndValidity({ emitEvent: false });
+      map.set(b.id, group);
+    }
+    this.batchForms.set(map);
   }
 
-  protected saveFacultyPool(): void {
-    this.poolSaving.set(true);
-    this.academicYearService.updateFacultyPool(this.data.offering.id, [...this.poolSelection()]).subscribe({
-      next: (candidates) => {
-        this.poolSaving.set(false);
-        this.eligibleCandidates.set(candidates);
-        this.poolSelection.set(new Set(candidates.filter((c) => c.inPool).map((c) => c.facultyId)));
-        this.sectionCandidatesCache.set(new Map());
-        this.cohortCandidatesCache.set(new Map());
-        this.toast.success('Faculty pool updated');
-      },
-      error: (err) => {
-        this.poolSaving.set(false);
-        this.toast.error(violationText(err) ?? err?.error?.message ?? 'Failed to update faculty pool');
-      },
-    });
+  protected batchFormGroup(batchId: number): FormGroup | undefined {
+    return this.batchForms().get(batchId);
   }
 
   private theoryRowKey(row: SectionFacultyAssignment): string {
     return row.cohortSectionId != null ? `section-${row.cohortSectionId}` : `cohort-${row.cohortId}`;
   }
 
-  /** Candidate options for a row's dropdown — Theory rows are scoped to the persisted, section/
-   *  cohort-eligible slice of the pool; Coordinator rows use the full unfiltered eligible list
-   *  (unchanged from the old Manage Batches behavior). */
+  /** Candidate options for a row's dropdown — Theory rows are scoped to the section/cohort-eligible
+   *  list (subject-derived eligibility, grandfathering whoever currently holds that exact row);
+   *  Coordinator rows use the full offering-level eligible list. Neither goes through a separate
+   *  curation step — every offering automatically inherits its subject's eligible faculty. */
   protected candidatesFor(row: TeachingUnitRow): EligibleFacultyCandidate[] {
     if (row.kind !== 'THEORY') return this.eligibleCandidates();
-    const raw = row.source.cohortSectionId != null
+    return row.source.cohortSectionId != null
       ? this.sectionCandidatesRawFor(row.source.cohortSectionId)
       : this.cohortCandidatesRawFor(row.source.cohortId);
-    return raw.filter((c) => c.inPool);
   }
 
   private sectionCandidatesRawFor(cohortSectionId: number): EligibleFacultyCandidate[] {
@@ -242,73 +277,138 @@ export class TeachingAssignmentDialogComponent implements OnInit {
   }
 
   protected candidateBadgeText(c: EligibleFacultyCandidate): string {
+    if (c.currentlyAssigned) return 'Currently assigned';
     if (c.viaEligibleList) return 'Eligible list';
     if (c.specialityMatch) return 'Speciality match';
-    return 'Currently assigned';
+    return 'Active faculty';
+  }
+
+  /** Live preview of what Save would commit: each row's hour cost matches the backend's own
+   *  attribution exactly (TimetableGlobalAutoScheduleService#termHoursForOfferingInCohort/
+   *  #batchHours) -- a Theory row owes offering.theoryHours per section, a Lab-linked batch owes
+   *  offering.labHours, a Clinical-linked batch owes offering.clinicalHours, never divided across
+   *  batches. Reassigning a row away from its persisted holder frees their hours; assigning it to
+   *  someone new (pending, not yet saved) charges them -- so a faculty picked for several rows in
+   *  this session sees their free-hours figure drop with each pick, before Save. */
+  private computeHourAdjustments(): Map<number, number> {
+    const deltas = new Map<number, number>();
+    const apply = (facultyId: number | null, hours: number) => {
+      if (facultyId == null || hours <= 0) return;
+      deltas.set(facultyId, (deltas.get(facultyId) ?? 0) + hours);
+    };
+
+    for (const [key, pendingFacultyId] of this.theoryPending()) {
+      const row = this.assignmentRows().find((r) => this.theoryRowKey(r) === key);
+      if (!row || pendingFacultyId === row.facultyId) continue;
+      apply(row.facultyId, this.data.offering.theoryHours);
+      apply(pendingFacultyId, -this.data.offering.theoryHours);
+    }
+
+    for (const [batchId, group] of this.batchForms()) {
+      const batch = this.batches().find((b) => b.id === batchId);
+      if (!batch) continue;
+      const pendingFacultyId = group.get('coordinatorFacultyId')?.value ?? null;
+      if (pendingFacultyId === batch.coordinatorFacultyId) continue;
+      const hours = batch.labId != null ? this.data.offering.labHours : this.data.offering.clinicalHours;
+      apply(batch.coordinatorFacultyId, hours);
+      apply(pendingFacultyId, -hours);
+    }
+
+    return deltas;
   }
 
   protected candidateHoursText(c: EligibleFacultyCandidate): string {
     if (c.capacityTier === 'NONE') return 'No cap configured';
-    if (c.overCapacity) return 'Over capacity';
-    return `${Math.round(c.remainingHours * 10) / 10}h free`;
+    const adjusted = c.remainingHours + (this.computeHourAdjustments().get(c.facultyId) ?? 0);
+    if (adjusted < 0) return 'Over capacity';
+    return `${Math.round(adjusted * 10) / 10}h free`;
   }
 
   protected rowEditable(row: TeachingUnitRow): boolean {
-    return row.kind === 'THEORY' ? this.canManageTheory() : this.canManageCoordinator();
+    return row.kind === 'THEORY' ? this.canManageTheory() : this.canManageBatch();
   }
 
-  protected currentFacultyId(row: TeachingUnitRow): number | null {
-    return row.kind === 'THEORY' ? row.source.facultyId : row.source.coordinatorFacultyId;
+  protected currentTheoryFacultyId(row: TheoryUnitRow): number | null {
+    const pending = this.theoryPending().get(row.key);
+    return pending !== undefined ? pending : row.source.facultyId;
   }
 
-  protected onRowFacultyChange(row: TeachingUnitRow, facultyId: number | null): void {
-    if (row.kind === 'THEORY') this.saveTheory(row.source, facultyId);
-    else this.saveCoordinator(row.source, facultyId);
+  protected onTheoryFacultyChange(row: TheoryUnitRow, facultyId: number | null): void {
+    this.theoryPending.update((m) => {
+      const next = new Map(m);
+      if (facultyId === row.source.facultyId) next.delete(row.key); else next.set(row.key, facultyId);
+      return next;
+    });
   }
 
-  private saveTheory(row: SectionFacultyAssignment, facultyId: number | null): void {
-    const key = this.theoryRowKey(row);
-    this.savingKey.set(key);
-    const request$ = row.cohortSectionId != null
-      ? this.academicYearService.updateSectionFaculty(this.data.offering.id, row.cohortSectionId, facultyId)
-      : this.academicYearService.updateCohortFaculty(this.data.offering.id, row.cohortId, facultyId);
-    request$.subscribe({
-      next: (updated) => {
-        this.savingKey.set(null);
-        this.assignmentRows.update((rows) => rows.map((r) => (this.theoryRowKey(r) === key ? updated : r)));
-        this.toast.success(`${row.sectionLabel ?? row.cohortName} updated`);
-        this.refreshCapacityFigures();
+  /** Whether anything staged (Theory picks or any batch field) differs from what's persisted. */
+  protected isDirty(): boolean {
+    if (this.theoryPending().size > 0) return true;
+    for (const group of this.batchForms().values()) if (group.dirty) return true;
+    return false;
+  }
+
+  /** `pending` covers the async name-uniqueness check still in flight — Save stays disabled until
+   *  it resolves, not just until the synchronous validators pass. */
+  protected isInvalid(): boolean {
+    for (const group of this.batchForms().values()) if (group.invalid || group.pending) return true;
+    return false;
+  }
+
+  protected canSave(): boolean {
+    return this.isDirty() && !this.isInvalid() && !this.saving();
+  }
+
+  protected saveAll(): void {
+    if (!this.canSave()) return;
+    const calls: Observable<unknown>[] = [];
+
+    for (const [key, facultyId] of this.theoryPending()) {
+      const row = this.assignmentRows().find((r) => this.theoryRowKey(r) === key);
+      if (!row) continue;
+      calls.push(
+        row.cohortSectionId != null
+          ? this.academicYearService.updateSectionFaculty(this.data.offering.id, row.cohortSectionId, facultyId, row.version)
+          : this.academicYearService.updateCohortFaculty(this.data.offering.id, row.cohortId, facultyId, row.version),
+      );
+    }
+
+    for (const [batchId, group] of this.batchForms()) {
+      if (!group.dirty) continue;
+      const v = group.value;
+      const currentBatch = this.batches().find((b) => b.id === batchId);
+      const request: BatchRequest = {
+        courseOfferingId: this.data.offering.id,
+        name: (v.name ?? '').trim(),
+        capacity: v.capacity,
+        coordinatorFacultyId: v.coordinatorFacultyId ?? null,
+        version: currentBatch?.version ?? 0,
+      };
+      calls.push(this.batchService.update(batchId, request));
+    }
+
+    if (calls.length === 0) return;
+
+    this.saving.set(true);
+    forkJoin(calls).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.theoryPending.set(new Map());
+        this.toast.success('Changes saved');
+        this.reloadAll();
       },
       error: (err) => {
-        this.savingKey.set(null);
-        this.toast.error(violationText(err) ?? err?.error?.message ?? 'Failed to update faculty assignment');
+        this.saving.set(false);
+        this.toast.error(violationText(err) ?? err?.error?.message ?? 'Failed to save — reloading to show what actually went through');
+        this.reloadAll();
       },
     });
   }
 
-  /** Preserves the batch's current name/capacity — updateBatch is a full replace, and this dialog
-   *  only ever changes coordinatorFacultyId. */
-  private saveCoordinator(batch: Batch, facultyId: number | null): void {
-    const key = `batch-${batch.id}`;
-    this.savingKey.set(key);
-    const request: BatchRequest = {
-      courseOfferingId: this.data.offering.id,
-      name: batch.name,
-      capacity: batch.capacity,
-      coordinatorFacultyId: facultyId,
-    };
-    this.batchService.update(batch.id, request).subscribe({
-      next: (updated) => {
-        this.savingKey.set(null);
-        this.batches.update((rows) => rows.map((b) => (b.id === updated.id ? updated : b)));
-        this.toast.success(`${batch.name} updated`);
-        this.refreshCapacityFigures();
-      },
-      error: (err) => {
-        this.savingKey.set(null);
-        this.toast.error(err?.error?.message ?? 'Failed to update batch coordinator');
-      },
-    });
+  private reloadAll(): void {
+    this.loadAssignment();
+    this.loadBatches();
+    this.refreshCapacityFigures();
   }
 
   private refreshCapacityFigures(): void {
@@ -316,6 +416,69 @@ export class TeachingAssignmentDialogComponent implements OnInit {
     this.cohortCandidatesCache.set(new Map());
     this.academicYearService.getEligibleFaculty(this.data.offering.id).subscribe({
       next: (candidates) => this.eligibleCandidates.set(candidates),
+    });
+  }
+
+  protected toggleRoster(batch: Batch): void {
+    if (this.expandedBatchId() === batch.id) {
+      this.expandedBatchId.set(null);
+      return;
+    }
+    this.expandedBatchId.set(batch.id);
+    this.refreshRoster(batch.id);
+  }
+
+  protected isInRoster(studentId: number): boolean {
+    return this.roster().some((s) => s.studentId === studentId);
+  }
+
+  protected toggleStudent(batch: Batch, studentId: number): void {
+    const call = this.isInRoster(studentId)
+      ? this.batchService.removeStudent(batch.id, studentId)
+      : this.batchService.addStudent(batch.id, studentId);
+    call.subscribe({
+      next: () => {
+        this.refreshRoster(batch.id);
+        this.loadBatches();
+      },
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to update roster'),
+    });
+  }
+
+  private refreshRoster(batchId: number): void {
+    this.rosterLoading.set(true);
+    this.batchService.getRoster(batchId).subscribe({
+      next: (roster) => { this.roster.set(roster); this.rosterLoading.set(false); },
+      error: () => { this.roster.set([]); this.rosterLoading.set(false); },
+    });
+  }
+
+  /** Checked before Delete is even offered a confirmation — hard-blocked (not just warned)
+   *  whenever anything is still attached, so the confirm dialog never appears for a batch that's
+   *  actually going to be refused. A confirmed delete is permanent: there is no Reactivate. */
+  protected deleteBatch(batch: Batch): void {
+    this.batchService.getLifecycleImpact(batch.id).subscribe({
+      next: (impact) => {
+        if (impactHasAny(impact)) {
+          this.toast.error(`Cannot delete "${batch.name}" — it still has ${describeImpact(impact)}. Remove them first.`);
+          return;
+        }
+        this.dialog.open(ConfirmDialogComponent, {
+          data: {
+            title: 'Delete Batch',
+            message: `Permanently delete "${batch.name}"? It has no students or timetable data attached, so this is safe, but it cannot be undone.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+          },
+        }).afterClosed().subscribe((confirmed) => {
+          if (!confirmed) return;
+          this.batchService.deleteBatch(batch.id).subscribe({
+            next: () => { this.toast.success(`${batch.name} deleted`); this.reloadAll(); },
+            error: (err) => this.toast.error(err?.error?.message ?? 'Failed to delete batch'),
+          });
+        });
+      },
+      error: () => this.toast.error('Failed to check batch usage before deleting'),
     });
   }
 

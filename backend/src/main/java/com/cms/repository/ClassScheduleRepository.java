@@ -21,6 +21,8 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
 
     List<ClassSchedule> findByBatchName(String batchName);
 
+    long countByBatchIdAndIsActiveTrue(Long batchId);
+
     List<ClassSchedule> findByDayOfWeek(DayOfWeek dayOfWeek);
 
     List<ClassSchedule> findByTermInstanceId(Long termInstanceId);

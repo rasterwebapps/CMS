@@ -21,6 +21,7 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "batches",
@@ -86,6 +87,14 @@ public class Batch {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    /** Optimistic-lock token -- a client's update carries back the version it last saw
+     *  ({@link com.cms.dto.BatchRequest#version()}), checked against the current row before
+     *  applying changes, so two admins editing the same batch at once get a clear conflict
+     *  instead of a silent last-write-wins overwrite. */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -207,6 +216,14 @@ public class Batch {
 
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     public Set<Student> getStudents() {

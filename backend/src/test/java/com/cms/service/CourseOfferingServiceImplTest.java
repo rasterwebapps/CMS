@@ -50,10 +50,8 @@ import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CourseOfferingRepository;
-import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
-import com.cms.repository.FacultyRepository;
 import com.cms.repository.PeriodRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -72,15 +70,11 @@ class CourseOfferingServiceImplTest {
     @Mock
     private CurriculumSemesterCourseRepository curriculumSemesterCourseRepository;
     @Mock
-    private FacultyRepository facultyRepository;
-    @Mock
     private StudentTermEnrollmentRepository studentTermEnrollmentRepository;
     @Mock
     private ClassScheduleRepository classScheduleRepository;
     @Mock
     private BatchRepository batchRepository;
-    @Mock
-    private CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository;
     @Mock
     private PeriodRepository periodRepository;
     @Mock
@@ -92,9 +86,9 @@ class CourseOfferingServiceImplTest {
     void setUp() {
         service = new CourseOfferingServiceImpl(
             courseOfferingRepository, termInstanceRepository, cohortRepository,
-            curriculumVersionRepository, curriculumSemesterCourseRepository, facultyRepository,
+            curriculumVersionRepository, curriculumSemesterCourseRepository,
             studentTermEnrollmentRepository, classScheduleRepository, batchRepository,
-            courseOfferingSectionFacultyRepository, periodRepository);
+            periodRepository);
         service.setTimetableGlobalAutoScheduleService(timetableGlobalAutoScheduleService);
     }
 
@@ -265,6 +259,68 @@ class CourseOfferingServiceImplTest {
         assertThat(result.offeringsCreated()).isEqualTo(0);
         assertThat(result.offeringsAlreadyExisting()).isEqualTo(1);
         verify(courseOfferingRepository, never()).save(any());
+    }
+
+    @Test
+    void generateOfferingsForTermInstance_blocksSubjectWithSpecialityAndNoEligibleFacultyPool() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BSc", 4);
+        Course course = createCourse(1L, "BSc Nursing", "BSC-N", program);
+        Cohort cohort = createCohort(1L, course, ay);
+        TermInstance termInstance = createTermInstance(1L, ay, TermType.ODD);
+        Speciality speciality = createSpeciality(1L, "Medical Surgical Nursing", "MSN");
+        Subject subject = createSubject(1L, "Medical Surgical Nursing", "MSN101");
+        subject.setSpeciality(speciality);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CurriculumSemesterCourse csc = createCSC(1L, cv, subject, 1);
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(termInstance));
+        when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of(cv));
+        when(curriculumSemesterCourseRepository.findByCurriculumVersionId(1L)).thenReturn(List.of(csc));
+        when(courseOfferingRepository
+            .findByTermInstanceIdAndCurriculumVersionIdAndSubjectIdAndSemesterNumber(1L, 1L, 1L, 1))
+            .thenReturn(Optional.empty());
+        when(timetableGlobalAutoScheduleService.hasEligibleFacultyPool(subject)).thenReturn(false);
+
+        GenerateOfferingsResponse result = service.generateOfferingsForTermInstance(1L);
+
+        assertThat(result.offeringsCreated()).isEqualTo(0);
+        assertThat(result.subjectsWithoutFacultyPool()).containsExactly(subject.getName());
+        verify(courseOfferingRepository, never()).save(any());
+    }
+
+    @Test
+    void generateOfferingsForTermInstance_createsOfferingWhenSpecialitySubjectHasEligibleFacultyPool() {
+        AcademicYear ay = createAY(1L, "2024-2025");
+        Program program = createProgram(1L, "BSc", 4);
+        Course course = createCourse(1L, "BSc Nursing", "BSC-N", program);
+        Cohort cohort = createCohort(1L, course, ay);
+        TermInstance termInstance = createTermInstance(1L, ay, TermType.ODD);
+        Speciality speciality = createSpeciality(1L, "Medical Surgical Nursing", "MSN");
+        Subject subject = createSubject(1L, "Medical Surgical Nursing", "MSN101");
+        subject.setSpeciality(speciality);
+        CurriculumVersion cv = createCV(1L, program, course, ay);
+        CurriculumSemesterCourse csc = createCSC(1L, cv, subject, 1);
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(termInstance));
+        when(cohortRepository.findByStatus(CohortStatus.ACTIVE)).thenReturn(List.of(cohort));
+        when(curriculumVersionRepository.findByProgramIdAndCourseIdAndIsActiveTrue(1L, 1L)).thenReturn(List.of(cv));
+        when(curriculumSemesterCourseRepository.findByCurriculumVersionId(1L)).thenReturn(List.of(csc));
+        when(courseOfferingRepository
+            .findByTermInstanceIdAndCurriculumVersionIdAndSubjectIdAndSemesterNumber(1L, 1L, 1L, 1))
+            .thenReturn(Optional.empty());
+        when(timetableGlobalAutoScheduleService.hasEligibleFacultyPool(subject)).thenReturn(true);
+        when(courseOfferingRepository.save(any(CourseOffering.class))).thenAnswer(inv -> {
+            CourseOffering o = inv.getArgument(0);
+            o.setId(1L);
+            return o;
+        });
+
+        GenerateOfferingsResponse result = service.generateOfferingsForTermInstance(1L);
+
+        assertThat(result.offeringsCreated()).isEqualTo(1);
+        assertThat(result.subjectsWithoutFacultyPool()).isEmpty();
     }
 
     @Test
@@ -523,102 +579,6 @@ class CourseOfferingServiceImplTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Clinical Session Length");
     }
-
-    @Test
-    void updateFacultyPool_rejectsAnIneligibleFaculty() {
-        Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
-        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
-        subject.setId(1L);
-        CourseOffering offering = createOffering(1L, createTermInstance(1L, createAY(1L, "2024-2025"), TermType.ODD),
-            createCV(1L, createProgram(1L, "BCA", 3), createCourse(1L, "BCA Course", "BCA-C", createProgram(1L, "BCA", 3)), createAY(1L, "2024-2025")),
-            subject, 1);
-        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        Speciality csSpeciality = createSpeciality(2L, "Computer Science", "CS");
-        Faculty ineligible = createFaculty(42L, csSpeciality);
-        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of(ineligible));
-
-        assertThatThrownBy(() -> service.updateFacultyPool(1L, List.of(42L)))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("not eligible");
-        verify(courseOfferingRepository, never()).save(any());
-    }
-
-    @Test
-    void updateFacultyPool_savesAValidPoolAndReturnsRefreshedEligibleList() {
-        Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
-        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
-        subject.setId(1L);
-        Program program = createProgram(1L, "BCA", 3);
-        CourseOffering offering = createOffering(1L, createTermInstance(1L, createAY(1L, "2024-2025"), TermType.ODD),
-            createCV(1L, program, createCourse(1L, "BCA Course", "BCA-C", program), createAY(1L, "2024-2025")), subject, 1);
-        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
-        when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(1L)).thenReturn(List.of());
-        Faculty eligible = createFaculty(42L, nursingSpeciality);
-        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of(eligible));
-        List<com.cms.dto.EligibleFacultyCandidateDto> refreshed = List.of();
-        when(timetableGlobalAutoScheduleService.getEligibleFacultyForOffering(1L)).thenReturn(refreshed);
-
-        List<com.cms.dto.EligibleFacultyCandidateDto> result = service.updateFacultyPool(1L, List.of(42L));
-
-        assertThat(offering.getFacultyPool()).extracting(Faculty::getId).containsExactly(42L);
-        assertThat(result).isSameAs(refreshed);
-    }
-
-    @Test
-    void updateFacultyPool_blocksRemovingAWholeCohortAssignmentHolder() {
-        Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
-        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
-        subject.setId(1L);
-        Program program = createProgram(1L, "BCA", 3);
-        CourseOffering offering = createOffering(1L, createTermInstance(1L, createAY(1L, "2024-2025"), TermType.ODD),
-            createCV(1L, program, createCourse(1L, "BCA Course", "BCA-C", program), createAY(1L, "2024-2025")), subject, 1);
-        Faculty current = createFaculty(42L, nursingSpeciality);
-        offering.setFacultyPool(new java.util.HashSet<>(java.util.Set.of(current)));
-        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of(current));
-
-        com.cms.model.Cohort cohort = new com.cms.model.Cohort();
-        cohort.setId(9L);
-        com.cms.model.CourseOfferingSectionFaculty wholeCohortRow =
-            new com.cms.model.CourseOfferingSectionFaculty(offering, cohort, current);
-        when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(1L)).thenReturn(List.of(wholeCohortRow));
-
-        assertThatThrownBy(() -> service.updateFacultyPool(1L, List.of()))
-            .isInstanceOf(IllegalArgumentException.class);
-        verify(courseOfferingRepository, never()).save(any());
-    }
-
-    @Test
-    void updateFacultyPool_blocksRemovingASectionOverrideHolder() {
-        Speciality nursingSpeciality = createSpeciality(1L, "Nursing", "NUR");
-        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursingSpeciality, 1);
-        subject.setId(1L);
-        Program program = createProgram(1L, "BCA", 3);
-        CourseOffering offering = createOffering(1L, createTermInstance(1L, createAY(1L, "2024-2025"), TermType.ODD),
-            createCV(1L, program, createCourse(1L, "BCA Course", "BCA-C", program), createAY(1L, "2024-2025")), subject, 1);
-        Faculty sectionFaculty = createFaculty(43L, nursingSpeciality);
-        offering.setFacultyPool(new java.util.HashSet<>(java.util.Set.of(sectionFaculty)));
-        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of(sectionFaculty));
-
-        com.cms.model.Cohort cohort = new com.cms.model.Cohort();
-        cohort.setId(9L);
-        com.cms.model.CohortSection section = new com.cms.model.CohortSection();
-        section.setSectionLabel("A");
-        com.cms.model.CourseOfferingSectionFaculty override = new com.cms.model.CourseOfferingSectionFaculty();
-        override.setCourseOffering(offering);
-        override.setCohort(cohort);
-        override.setCohortSection(section);
-        override.setFaculty(sectionFaculty);
-        when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(1L)).thenReturn(List.of(override));
-
-        assertThatThrownBy(() -> service.updateFacultyPool(1L, List.of()))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("section");
-        verify(courseOfferingRepository, never()).save(any());
-    }
-
 
     @Test
     void updateStatus_deactivatesWhenNothingIsAttached() {

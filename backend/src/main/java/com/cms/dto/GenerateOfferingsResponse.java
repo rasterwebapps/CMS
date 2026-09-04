@@ -11,5 +11,6 @@ public record GenerateOfferingsResponse(
     int activeCohortCount,
     List<String> cohortsWithoutCurriculumVersion,
     int cohortsWithoutProgramTotalTerms,
-    int offeringsAlreadyExisting
+    int offeringsAlreadyExisting,
+    List<String> subjectsWithoutFacultyPool
 ) {}

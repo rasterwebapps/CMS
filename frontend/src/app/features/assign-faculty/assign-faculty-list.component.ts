@@ -9,7 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { environment } from '../../../environments/environment';
 import { AcademicYearService } from '../academic-year/academic-year.service';
-import { AcademicYear, CourseOffering, CourseOfferingFacultySummary, TermInstance } from '../academic-year/academic-year.model';
+import { AcademicYear, CourseOffering, CourseOfferingFacultySummary, OfferingAssignmentStatus, TermInstance } from '../academic-year/academic-year.model';
 import { CmsEmptyStateComponent } from '../../shared/empty-state/empty-state.component';
 import { CmsRowActionButtonComponent } from '../../shared/row-action-button/row-action-button.component';
 import { CmsStatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
@@ -23,10 +23,6 @@ import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component'
 import { ASSIGN_FACULTY_TOUR, ASSIGN_FACULTY_FLOW_MAP } from '../../shared/tour/tours/assign-faculty.tours';
 import { FacultyOption } from '../course-offering/course-offering-edit-dialog/course-offering-edit-dialog.component';
 import {
-  BatchManageDialogComponent,
-  BatchManageDialogData,
-} from '../course-offering/batch-manage-dialog/batch-manage-dialog.component';
-import {
   TeachingAssignmentDialogComponent,
   TeachingAssignmentDialogData,
 } from './teaching-assignment-dialog/teaching-assignment-dialog.component';
@@ -38,6 +34,16 @@ import {
   ClinicalShiftGroupDialogComponent,
   ClinicalShiftGroupDialogData,
 } from '../course-offering/clinical-shift-group-dialog/clinical-shift-group-dialog.component';
+
+/** Sort rank for the Assigned column — least-complete first, so a term needing attention floats to
+ *  the top; NOT_APPLICABLE (nothing to assign) sorts last, alongside FULL, since neither needs the
+ *  admin's attention. */
+const ASSIGNMENT_STATUS_SORT_RANK: Record<OfferingAssignmentStatus, number> = {
+  NONE: 0,
+  PARTIAL: 1,
+  FULL: 2,
+  NOT_APPLICABLE: 3,
+};
 
 /**
  * Deliberately separate from Course Offerings: generating/deactivating/batching an offering is a
@@ -85,6 +91,7 @@ export class AssignFacultyListComponent implements OnInit {
       { key: 'termNumber', label: 'Semester' },
       { key: 'cohort', label: 'Cohort' },
       { key: 'faculty', label: 'Faculty' },
+      { key: 'assignmentStatus', label: 'Assigned' },
       { key: 'status', label: 'Status' },
       { key: 'actions', label: 'Actions', mandatory: true, pinnable: false },
     ],
@@ -99,10 +106,11 @@ export class AssignFacultyListComponent implements OnInit {
   protected readonly termInstances = signal<TermInstance[]>([]);
   protected readonly faculty = signal<FacultyOption[]>([]);
 
-  /** Assigned-faculty names per offering, keyed by offering id — an offering absent from this map
-   *  has zero assignment rows at all. Assignment is per-cohort (per-section, if split) now, so a
-   *  single offering can list more than one name when it's shared by more than one cohort. */
-  private readonly facultySummaryByOfferingId = signal<Map<number, string[]>>(new Map());
+  /** Assignment summary per offering, keyed by offering id — present for every offering in the
+   *  term now (see backend CourseOfferingFacultySummaryDto). Assignment is per-cohort (per-section,
+   *  if split) now, so a single offering can list more than one Theory faculty name when it's
+   *  shared by more than one cohort. */
+  private readonly facultySummaryByOfferingId = signal<Map<number, CourseOfferingFacultySummary>>(new Map());
 
   private readonly offerings = signal<CourseOffering[]>([]);
   protected readonly selectedSemester = signal<number | 'ALL'>('ALL');
@@ -159,13 +167,14 @@ export class AssignFacultyListComponent implements OnInit {
     this.tourService.register('assign-faculty', ASSIGN_FACULTY_TOUR);
     this.tourService.registerFlowMap('assign-faculty', ASSIGN_FACULTY_FLOW_MAP);
 
-    // Same client-side sort-accessor fix as Course Offerings — 'faculty'/'status' are rendered
-    // from facultyId/isActive, not fields of those literal names.
+    // Same client-side sort-accessor fix as Course Offerings — 'faculty'/'status'/'assignmentStatus'
+    // are rendered from facultyId/isActive/a computed summary, not fields of those literal names.
     this.dataSource.sortingDataAccessor = (row: CourseOffering, sortHeaderId: string) => {
       switch (sortHeaderId) {
         case 'cohort': return row.cohortNames.join(', ').toLowerCase();
         case 'faculty': return this.facultySummaryText(row).toLowerCase();
         case 'status': return row.isActive ? 1 : 0;
+        case 'assignmentStatus': return ASSIGNMENT_STATUS_SORT_RANK[this.assignmentStatusFor(row)];
         default: return (row as unknown as Record<string, string | number>)[sortHeaderId] ?? '';
       }
     };
@@ -243,22 +252,14 @@ export class AssignFacultyListComponent implements OnInit {
       offering: row,
       suggestedFacultyId,
     };
-    this.dialog.open(TeachingAssignmentDialogComponent, { data, width: '760px' })
+    this.dialog.open(TeachingAssignmentDialogComponent, { data, width: '1100px', maxWidth: '95vw' })
       .afterClosed().subscribe(() => {
         // Reload unconditionally, not just when the dialog reports a change -- every pick inside
         // saves immediately regardless of how the dialog is dismissed (Close button, backdrop
-        // click, Escape), so there's no reliable "nothing changed" signal to gate on.
-        if (this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId);
+        // click, Escape), so there's no reliable "nothing changed" signal to gate on. No spinner:
+        // keeps the table mounted so the user's current sort/column state survives the refresh.
+        if (this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId, false);
       });
-  }
-
-  /** Moved here from Course Offerings: creating batches (name/venue/headcount) happens in
-   *  Capacity Planner as part of committing a room allocation. Coordinator assignment now lives
-   *  in the Assign Faculty dialog above -- this stays for the rest of batch admin (rename,
-   *  recapacity, student roster, deactivate). */
-  protected manageBatches(row: CourseOffering): void {
-    const data: BatchManageDialogData = { offering: row };
-    this.dialog.open(BatchManageDialogComponent, { data, width: '560px' });
   }
 
   /** OC-175, merged with the former standalone "Clinical Shift Config" dialog per OC-187: manage
@@ -269,7 +270,7 @@ export class AssignFacultyListComponent implements OnInit {
     const data: ClinicalShiftGroupDialogData = { offering: row };
     this.dialog.open(ClinicalShiftGroupDialogComponent, { data, width: '620px' })
       .afterClosed().subscribe(() => {
-        if (this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId);
+        if (this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId, false);
       });
   }
 
@@ -287,11 +288,37 @@ export class AssignFacultyListComponent implements OnInit {
     this.dialog.open(ClassInchargeDialogComponent, { data, width: '560px' });
   }
 
-  /** Comma-joined assigned faculty names for this offering's row, or "Unassigned" if it has no
-   *  assignment rows at all yet — open the Assign Faculty dialog for the per-cohort/section detail. */
+  /** Comma-joined assigned Theory faculty names for this offering's row, or "Unassigned" if it has
+   *  no assignment rows at all yet — open the Assign Faculty dialog for the per-cohort/section
+   *  detail. */
   protected facultySummaryText(row: CourseOffering): string {
-    const names = this.facultySummaryByOfferingId().get(row.id);
+    const names = this.facultySummaryByOfferingId().get(row.id)?.assignedFacultyNames;
     return names && names.length > 0 ? names.join(', ') : 'Unassigned';
+  }
+
+  /** Whether every Theory row and Lab/Clinical batch coordinator this offering needs is actually
+   *  filled — covers more than facultySummaryText (which is Theory-only). Falls back to
+   *  NOT_APPLICABLE (renders as a dash, no badge) if the summary hasn't loaded yet. */
+  protected assignmentStatusFor(row: CourseOffering): OfferingAssignmentStatus {
+    return this.facultySummaryByOfferingId().get(row.id)?.assignmentStatus ?? 'NOT_APPLICABLE';
+  }
+
+  protected assignmentStatusLabel(status: OfferingAssignmentStatus): string {
+    switch (status) {
+      case 'FULL': return 'Fully Assigned';
+      case 'PARTIAL': return 'Partial';
+      case 'NONE': return 'Unassigned';
+      case 'NOT_APPLICABLE': return '—';
+    }
+  }
+
+  protected assignmentStatusBadgeClass(status: OfferingAssignmentStatus): string {
+    switch (status) {
+      case 'FULL': return 'cms-badge--green';
+      case 'PARTIAL': return 'cms-badge--amber';
+      case 'NONE': return 'cms-badge--red';
+      case 'NOT_APPLICABLE': return '';
+    }
   }
 
   private loadTermInstances(academicYearId: number, preselectTermInstanceId?: number): void {
@@ -311,21 +338,25 @@ export class AssignFacultyListComponent implements OnInit {
     });
   }
 
-  private loadOfferings(termInstanceId: number): void {
-    this.loading.set(true);
+  // showSpinner defaults true for a genuine fresh load (term/year switch). A dialog-close
+  // refresh passes false: the spinner branch in the template unmounts the whole <table>, which
+  // destroys and recreates MatSort/MatPaginator from scratch -- silently discarding whatever
+  // column the user had sorted by (looked like a full page reload resetting the sort).
+  private loadOfferings(termInstanceId: number, showSpinner = true): void {
+    if (showSpinner) this.loading.set(true);
     this.academicYearService.getCourseOfferingsByTermInstance(termInstanceId).subscribe({
       next: (data) => {
         this.offerings.set(data);
         this.applyRowFilters();
-        this.loading.set(false);
+        if (showSpinner) this.loading.set(false);
         this.consumePendingDeepLinkEdit(data);
       },
-      error: () => { this.toast.error('Failed to load course offerings'); this.loading.set(false); },
+      error: () => { this.toast.error('Failed to load course offerings'); if (showSpinner) this.loading.set(false); },
     });
 
     this.academicYearService.getFacultyAssignmentSummary(termInstanceId).subscribe({
       next: (summaries) => {
-        this.facultySummaryByOfferingId.set(new Map(summaries.map((s) => [s.offeringId, s.assignedFacultyNames])));
+        this.facultySummaryByOfferingId.set(new Map(summaries.map((s) => [s.offeringId, s])));
       },
       error: () => { /* non-fatal — column falls back to "Unassigned" for every row */ },
     });

@@ -57,7 +57,7 @@ class CourseOfferingControllerTest {
             semNum, true,
             null, false, com.cms.model.enums.SubjectType.CORE,
             null, null, null,
-            0, 0,
+            0, 0, 0,
             null,
             null, null,
             Instant.now(), Instant.now(),
@@ -109,7 +109,7 @@ class CourseOfferingControllerTest {
     @Test
     void generate() throws Exception {
         when(service.generateOfferingsForTermInstance(1L))
-            .thenReturn(new GenerateOfferingsResponse(3, 2, List.of(), 0, 0));
+            .thenReturn(new GenerateOfferingsResponse(3, 2, List.of(), 0, 0, List.of()));
 
         mockMvc.perform(post("/course-offerings/generate").param("termInstanceId", "1"))
             .andExpect(status().isOk())
@@ -121,8 +121,8 @@ class CourseOfferingControllerTest {
     @Test
     void upsertCohortFaculty() throws Exception {
         com.cms.dto.SectionFacultyAssignment assignment =
-            new com.cms.dto.SectionFacultyAssignment(9L, null, "2023-2027 Batch", null, 42L, "Jane Doe");
-        when(sectionFacultyService.upsertForCohort(1L, 9L, 42L)).thenReturn(assignment);
+            new com.cms.dto.SectionFacultyAssignment(9L, null, "2023-2027 Batch", null, 42L, "Jane Doe", 0L);
+        when(sectionFacultyService.upsertForCohort(1L, 9L, 42L, null)).thenReturn(assignment);
 
         mockMvc.perform(put("/course-offerings/1/cohort-faculty/9")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -130,7 +130,7 @@ class CourseOfferingControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.facultyId").value(42));
 
-        verify(sectionFacultyService).upsertForCohort(1L, 9L, 42L);
+        verify(sectionFacultyService).upsertForCohort(1L, 9L, 42L, null);
     }
 
     @Test
@@ -159,15 +159,4 @@ class CourseOfferingControllerTest {
             .andExpect(jsonPath("$.isActive").value(false));
     }
 
-    @Test
-    void updateFacultyPool() throws Exception {
-        when(service.updateFacultyPool(1L, List.of(42L, 43L))).thenReturn(List.of());
-
-        mockMvc.perform(put("/course-offerings/1/faculty-pool")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"facultyIds\":[42,43]}"))
-            .andExpect(status().isOk());
-
-        verify(service).updateFacultyPool(1L, List.of(42L, 43L));
-    }
 }

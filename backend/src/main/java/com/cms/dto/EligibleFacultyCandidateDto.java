@@ -16,10 +16,6 @@ public record EligibleFacultyCandidateDto(
     boolean specialityMatch,
     boolean viaEligibleList,
     boolean currentlyAssigned,
-    /** Member of the offering's admin-curated {@code CourseOffering.facultyPool} -- the frontend
-     *  uses this to filter the primary/section assignment pickers down to just the pool, while the
-     *  full candidate list (regardless of this flag) still backs the pool-builder checklist. */
-    boolean inPool,
     double currentDemandHours,
     double capacityHours,
     String capacityTier,

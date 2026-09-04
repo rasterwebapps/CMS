@@ -332,6 +332,7 @@ export interface CourseOffering {
   electiveGroupId: number | null;
   electiveGroupName: string | null;
   electiveGroupSelectionMode: ElectiveSelectionMode | null;
+  theoryHours: number;
   labHours: number;
   clinicalHours: number;
   /** Subject's on-campus clinical session block size (consecutive periods), set in Subject Master —
@@ -363,12 +364,19 @@ export interface CourseOfferingStatusUpdateResponse {
   updatedAt: string;
 }
 
+/** FULL = every expected Theory row and Batch coordinator slot is filled. PARTIAL = at least one
+ *  filled, at least one not. NONE = at least one expected, none filled. NOT_APPLICABLE = nothing
+ *  to assign yet (no cohort resolves and no active batches exist). */
+export type OfferingAssignmentStatus = 'FULL' | 'PARTIAL' | 'NONE' | 'NOT_APPLICABLE';
+
 /** Per-offering roll-up of who's currently assigned (see backend CourseOfferingFacultySummaryDto) —
- *  backs the Assign Faculty list table's Faculty column. An offering absent from the response map
- *  has zero assignment rows at all (render as "Unassigned"). */
+ *  backs the Assign Faculty list table's Faculty and Status columns. Present for every offering in
+ *  the term now. assignedFacultyNames stays Theory-only (render "Unassigned" when empty);
+ *  assignmentStatus additionally covers Lab/Clinical coordinators. */
 export interface CourseOfferingFacultySummary {
   offeringId: number;
   assignedFacultyNames: string[];
+  assignmentStatus: OfferingAssignmentStatus;
 }
 
 export interface FacultyCapacitySpreadLoadSuggestion {
@@ -389,10 +397,6 @@ export interface EligibleFacultyCandidate {
   specialityMatch: boolean;
   viaEligibleList: boolean;
   currentlyAssigned: boolean;
-  /** Member of the offering's admin-curated faculty pool — the primary/section assignment pickers
-   *  filter down to just these; the full candidate list (regardless of this flag) backs the
-   *  pool-builder checklist. */
-  inPool: boolean;
   currentDemandHours: number;
   capacityHours: number;
   capacityTier: string;
@@ -427,6 +431,9 @@ export interface SectionFacultyAssignment {
   sectionLabel: string | null;
   facultyId: number | null;
   facultyName: string | null;
+  /** Null when no row exists yet (shows "Unassigned") -- checked against the current row on save,
+   *  rejected with a conflict if it no longer matches (someone else changed it since). */
+  version: number | null;
 }
 
 /** applicable=false means this offering's cohort couldn't be uniquely resolved (none currently
@@ -458,6 +465,7 @@ export interface GenerateCourseOfferingsResponse {
   cohortsWithoutCurriculumVersion: string[];
   cohortsWithoutProgramTotalTerms: number;
   offeringsAlreadyExisting: number;
+  subjectsWithoutFacultyPool: string[];
 }
 
 export interface CourseRegistration {

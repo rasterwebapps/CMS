@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.BatchDto;
+import com.cms.dto.BatchLifecycleImpactDto;
 import com.cms.dto.BatchRequest;
 import com.cms.dto.BatchStudentDto;
 import com.cms.service.BatchService;
@@ -37,11 +38,26 @@ public class BatchController {
         return ResponseEntity.ok(service.updateBatch(id, request));
     }
 
+    @GetMapping("/name-exists")
+    @PreAuthorize("@perm.has('BATCH_MANAGE')")
+    public ResponseEntity<Boolean> nameExists(
+            @RequestParam String value,
+            @RequestParam Long courseOfferingId,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(service.nameExists(value, courseOfferingId, excludeId));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("@perm.has('BATCH_MANAGE')")
-    public ResponseEntity<Void> deactivateBatch(@PathVariable Long id) {
-        service.deactivateBatch(id);
+    public ResponseEntity<Void> deleteBatch(@PathVariable Long id) {
+        service.deleteBatch(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/lifecycle-impact")
+    @PreAuthorize("@perm.has('BATCH_VIEW')")
+    public ResponseEntity<BatchLifecycleImpactDto> getLifecycleImpact(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getLifecycleImpact(id));
     }
 
     @GetMapping

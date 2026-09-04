@@ -22,6 +22,10 @@ public interface BatchRepository extends JpaRepository<Batch, Long> {
 
     boolean existsByCourseOfferingIdAndName(Long courseOfferingId, String name);
 
+    boolean existsByCourseOfferingIdAndNameIgnoreCase(Long courseOfferingId, String name);
+
+    boolean existsByCourseOfferingIdAndNameIgnoreCaseAndIdNot(Long courseOfferingId, String name, Long id);
+
     @Query("SELECT COUNT(s) FROM Batch b JOIN b.students s WHERE b.id = :batchId")
     long countStudents(@Param("batchId") Long batchId);
 

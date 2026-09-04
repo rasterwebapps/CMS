@@ -1,11 +1,14 @@
 package com.cms.service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.BatchDto;
+import com.cms.dto.BatchLifecycleImpactDto;
 import com.cms.dto.BatchRequest;
 import com.cms.dto.BatchStudentDto;
 import com.cms.exception.ResourceNotFoundException;
@@ -14,9 +17,14 @@ import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
 import com.cms.model.Faculty;
 import com.cms.model.Student;
+import com.cms.model.enums.OccurrenceStatus;
 import com.cms.repository.BatchRepository;
+import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CourseOfferingRepository;
+import com.cms.repository.EscortRotationAssignmentRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.RotationMemberAssignmentRepository;
+import com.cms.repository.SessionOccurrenceRepository;
 import com.cms.repository.StudentRepository;
 
 @Service
@@ -27,23 +35,36 @@ public class BatchService {
     private final CourseOfferingRepository courseOfferingRepository;
     private final FacultyRepository facultyRepository;
     private final StudentRepository studentRepository;
+    private final ClassScheduleRepository classScheduleRepository;
+    private final RotationMemberAssignmentRepository rotationMemberAssignmentRepository;
+    private final EscortRotationAssignmentRepository escortRotationAssignmentRepository;
+    private final SessionOccurrenceRepository sessionOccurrenceRepository;
 
     public BatchService(BatchRepository batchRepository,
                          CourseOfferingRepository courseOfferingRepository,
                          FacultyRepository facultyRepository,
-                         StudentRepository studentRepository) {
+                         StudentRepository studentRepository,
+                         ClassScheduleRepository classScheduleRepository,
+                         RotationMemberAssignmentRepository rotationMemberAssignmentRepository,
+                         EscortRotationAssignmentRepository escortRotationAssignmentRepository,
+                         SessionOccurrenceRepository sessionOccurrenceRepository) {
         this.batchRepository = batchRepository;
         this.courseOfferingRepository = courseOfferingRepository;
         this.facultyRepository = facultyRepository;
         this.studentRepository = studentRepository;
+        this.classScheduleRepository = classScheduleRepository;
+        this.rotationMemberAssignmentRepository = rotationMemberAssignmentRepository;
+        this.escortRotationAssignmentRepository = escortRotationAssignmentRepository;
+        this.sessionOccurrenceRepository = sessionOccurrenceRepository;
     }
 
     @Transactional
     public BatchDto updateBatch(Long id, BatchRequest request) {
         Batch batch = getOrThrow(id);
+        requireCurrentVersion(batch.getVersion(), request.version(), batch.getName());
 
-        if (!batch.getName().equals(request.name())
-                && batchRepository.existsByCourseOfferingIdAndName(batch.getCourseOffering().getId(), request.name())) {
+        if (!batch.getName().equalsIgnoreCase(request.name())
+                && batchRepository.existsByCourseOfferingIdAndNameIgnoreCase(batch.getCourseOffering().getId(), request.name())) {
             throw new IllegalArgumentException(
                 "A batch named '" + request.name() + "' already exists for this course offering");
         }
@@ -55,20 +76,79 @@ public class BatchService {
         return toDto(batchRepository.save(batch));
     }
 
+    /** Optimistic-lock check: the client's request carries the version it last saw (from its own
+     *  fetch); if that no longer matches the current row, someone else changed it in between, so
+     *  reject rather than silently overwrite their change with a full-replace PUT. */
+    private void requireCurrentVersion(Long currentVersion, Long requestVersion, String name) {
+        if (!Objects.equals(currentVersion, requestVersion)) {
+            throw new IllegalStateException(
+                "\"" + name + "\" was changed by someone else since you opened this dialog. Reload to see the latest data.");
+        }
+    }
+
+    public boolean nameExists(String name, Long courseOfferingId, Long excludeId) {
+        String trimmed = name == null ? "" : name.trim();
+        if (courseOfferingId == null || trimmed.isEmpty()) return false;
+        if (excludeId != null) {
+            return batchRepository.existsByCourseOfferingIdAndNameIgnoreCaseAndIdNot(courseOfferingId, trimmed, excludeId);
+        }
+        return batchRepository.existsByCourseOfferingIdAndNameIgnoreCase(courseOfferingId, trimmed);
+    }
+
+    /** A genuine DELETE, not a soft-flag flip -- hard-blocked whenever anything is still attached
+     *  (student roster, timetable/rotation/session data), so by the time this runs the batch is
+     *  guaranteed to carry zero history worth keeping. That guarantee is exactly what makes a real
+     *  delete safe here: nothing downstream (Manage Batches, pickers, reports) can ever need to see
+     *  this row again, so there's no reason to keep a soft-deactivated husk around -- unlike the
+     *  automatic deactivation a reverted Cohort Room Allocation performs directly on its own
+     *  batches, which is a separate path this method has no bearing on and which can legitimately
+     *  leave real history behind. */
     @Transactional
-    public void deactivateBatch(Long id) {
+    public void deleteBatch(Long id) {
         Batch batch = getOrThrow(id);
-        batch.setIsActive(false);
-        batchRepository.save(batch);
+        BatchLifecycleImpactDto impact = computeLifecycleImpact(batch);
+        if (impact.hasAny()) {
+            throw new IllegalStateException(
+                "Cannot delete '" + batch.getName() + "' — it still has " + describeImpact(impact)
+                    + ". Remove them first.");
+        }
+        batchRepository.delete(batch);
+    }
+
+    public BatchLifecycleImpactDto getLifecycleImpact(Long id) {
+        return computeLifecycleImpact(getOrThrow(id));
+    }
+
+    private BatchLifecycleImpactDto computeLifecycleImpact(Batch batch) {
+        Long id = batch.getId();
+        return new BatchLifecycleImpactDto(
+            batchRepository.countStudents(id),
+            classScheduleRepository.countByBatchIdAndIsActiveTrue(id),
+            rotationMemberAssignmentRepository.countByBatchId(id),
+            escortRotationAssignmentRepository.countByBatchId(id),
+            sessionOccurrenceRepository.countByBatch_IdAndOccurrenceStatusNot(id, OccurrenceStatus.CANCELLED)
+        );
+    }
+
+    private String describeImpact(BatchLifecycleImpactDto impact) {
+        List<String> parts = new ArrayList<>();
+        if (impact.enrolledStudents() > 0) parts.add(impact.enrolledStudents() + " enrolled student(s)");
+        if (impact.classScheduleCount() > 0) parts.add(impact.classScheduleCount() + " timetable slot(s)");
+        if (impact.rotationAssignmentCount() > 0) parts.add(impact.rotationAssignmentCount() + " rotation assignment(s)");
+        if (impact.escortAssignmentCount() > 0) parts.add(impact.escortAssignmentCount() + " escort assignment(s)");
+        if (impact.sessionOccurrenceCount() > 0) parts.add(impact.sessionOccurrenceCount() + " scheduled session(s)");
+        return String.join(", ", parts);
     }
 
     /** Active batches only — a reverted {@link com.cms.model.CohortRoomAllocation} leaves its
-     *  batches behind deactivated (never deleted, for roster-history reasons) rather than
-     *  reactivating on a later re-commit ({@code createVentureBatch} always inserts a fresh row),
-     *  so a cohort that's had its room allocation reverted and recommitted a few times accumulates
-     *  several stale, inactive, same-named rows. Nothing in the product ever reactivates a batch —
-     *  every consumer of this list (Batch management, Clinical Shift Group batch-linking, Escort
-     *  Rotation setup, Lab Schedule) is a picker that only ever wants the live ones. */
+     *  batches behind deactivated (never deleted, for roster-history reasons — that automatic path
+     *  is unrelated to {@link #deleteBatch}, which is a real delete gated on there being no history
+     *  at all) rather than reactivating on a later re-commit ({@code createVentureBatch} always
+     *  inserts a fresh row), so a cohort that's had its room allocation reverted and recommitted a
+     *  few times accumulates several stale, inactive, same-named rows. Every consumer of this list
+     *  (Assign Faculty, Clinical Shift Group batch-linking, Escort Rotation setup, Lab Schedule) is
+     *  a picker that only ever wants the live ones — nothing in the product surfaces inactive
+     *  batches again once they're deactivated. */
     public List<BatchDto> getBatchesForOffering(Long courseOfferingId) {
         return batchRepository.findByCourseOfferingId(courseOfferingId)
             .stream()
@@ -173,6 +253,7 @@ public class BatchService {
             section != null ? section.getId() : null,
             section != null ? section.getSectionLabel() : null,
             b.getIsActive(),
+            b.getVersion(),
             b.getCreatedAt(),
             b.getUpdatedAt()
         );

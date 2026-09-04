@@ -16,6 +16,7 @@ import com.cms.dto.FacultyCapacityCheckResult;
 import com.cms.dto.SectionFacultyAssignment;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.exception.TimetableConstraintViolationException;
+import com.cms.model.Batch;
 import com.cms.model.Cohort;
 import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
@@ -23,6 +24,8 @@ import com.cms.model.CourseOfferingSectionFaculty;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Faculty;
 import com.cms.model.enums.EnrollmentStatus;
+import com.cms.model.enums.OfferingAssignmentStatus;
+import com.cms.repository.BatchRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CourseOfferingSectionFacultyRepository;
@@ -46,6 +49,7 @@ public class CourseOfferingSectionFacultyService {
     private final CohortRepository cohortRepository;
     private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
     private final FacultyRepository facultyRepository;
+    private final BatchRepository batchRepository;
     private final TimetableSkeletonService timetableSkeletonService;
     private final TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
 
@@ -54,6 +58,7 @@ public class CourseOfferingSectionFacultyService {
                                                 CohortRepository cohortRepository,
                                                 StudentTermEnrollmentRepository studentTermEnrollmentRepository,
                                                 FacultyRepository facultyRepository,
+                                                BatchRepository batchRepository,
                                                 TimetableSkeletonService timetableSkeletonService,
                                                 TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService) {
         this.courseOfferingRepository = courseOfferingRepository;
@@ -61,6 +66,7 @@ public class CourseOfferingSectionFacultyService {
         this.cohortRepository = cohortRepository;
         this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
         this.facultyRepository = facultyRepository;
+        this.batchRepository = batchRepository;
         this.timetableSkeletonService = timetableSkeletonService;
         this.timetableGlobalAutoScheduleService = timetableGlobalAutoScheduleService;
     }
@@ -93,13 +99,21 @@ public class CourseOfferingSectionFacultyService {
                 List<CohortSection> sections = timetableSkeletonService.resolveActiveSections(cohort.getId(), offering.getTermInstance().getId());
                 if (sections.isEmpty()) {
                     Faculty assigned = facultyByWholeCohortId.get(cohort.getId());
+                    CourseOfferingSectionFaculty existingRow = existingRows.stream()
+                        .filter(sf -> sf.getCohortSection() == null && sf.getCohort().getId().equals(cohort.getId()))
+                        .findFirst().orElse(null);
                     return java.util.stream.Stream.of(new SectionFacultyAssignment(cohort.getId(), null, cohort.getDisplayName(), null,
-                        assigned != null ? assigned.getId() : null, assigned != null ? assigned.getFullName() : null));
+                        assigned != null ? assigned.getId() : null, assigned != null ? assigned.getFullName() : null,
+                        existingRow != null ? existingRow.getVersion() : null));
                 }
                 return sections.stream().map(section -> {
                     Faculty assigned = facultyBySectionId.get(section.getId());
+                    CourseOfferingSectionFaculty existingRow = existingRows.stream()
+                        .filter(sf -> sf.getCohortSection() != null && sf.getCohortSection().getId().equals(section.getId()))
+                        .findFirst().orElse(null);
                     return new SectionFacultyAssignment(cohort.getId(), section.getId(), cohort.getDisplayName(), section.getSectionLabel(),
-                        assigned != null ? assigned.getId() : null, assigned != null ? assigned.getFullName() : null);
+                        assigned != null ? assigned.getId() : null, assigned != null ? assigned.getFullName() : null,
+                        existingRow != null ? existingRow.getVersion() : null);
                 });
             })
             .toList();
@@ -107,29 +121,59 @@ public class CourseOfferingSectionFacultyService {
         return new CourseOfferingSectionFacultyResponse(true, null, rows);
     }
 
-    /** One roll-up row per offering that has ANY assignment row in this term instance -- offerings
-     *  with zero rows are simply absent from the result (the caller treats "not present" as
-     *  "Unassigned"). Deliberately a raw grouping of already-persisted rows, not a re-run of {@link
-     *  #resolveCohorts}/{@link TimetableSkeletonService#resolveActiveSections} per offering -- that
-     *  full resolution is what tells you the *expected* row count (e.g. a 3-way split cohort with
-     *  only 1 section assigned so far), which is exactly what {@link #getForOffering} is for when
-     *  the admin opens a specific offering; the list table only needs a cheap "who's currently on
-     *  it" pulse-check across potentially dozens of offerings at once. */
+    /** One roll-up row per offering in this term instance, always -- unlike the old "only offerings
+     *  with at least one row" grouping, every offering is now represented so {@link
+     *  OfferingAssignmentStatus} can tell "nothing assigned yet" (NONE) apart from "nothing to
+     *  assign" (NOT_APPLICABLE), which a bare absence from the list couldn't. {@code
+     *  assignedFacultyNames} stays Theory-only (deduplicated, sorted) -- unchanged from before.
+     *  {@code assignmentStatus} additionally covers every active Lab/Clinical {@link Batch}'s
+     *  coordinator, comparing each offering's *expected* row/batch count (a full {@link
+     *  #getForOffering} resolution, not just what's persisted) against how many are actually
+     *  filled -- backs both the Assign Faculty list table's status column and {@code
+     *  TimetableGenerationService#approve}'s Publish gate. */
     @Transactional(readOnly = true)
     public List<CourseOfferingFacultySummaryDto> getAssignmentSummaryForTermInstance(Long termInstanceId) {
-        return sectionFacultyRepository.findByCourseOffering_TermInstanceId(termInstanceId).stream()
-            .collect(Collectors.groupingBy(sf -> sf.getCourseOffering().getId()))
-            .entrySet().stream()
-            .map(e -> new CourseOfferingFacultySummaryDto(e.getKey(),
-                e.getValue().stream().map(sf -> sf.getFaculty().getFullName()).distinct().sorted().toList()))
-            .toList();
+        List<CourseOffering> offerings = courseOfferingRepository.findByTermInstanceId(termInstanceId);
+        Map<Long, List<CourseOfferingSectionFaculty>> rowsByOffering = sectionFacultyRepository
+            .findByCourseOffering_TermInstanceId(termInstanceId).stream()
+            .collect(Collectors.groupingBy(sf -> sf.getCourseOffering().getId()));
+        Map<Long, List<Batch>> batchesByOffering = batchRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
+            .collect(Collectors.groupingBy(b -> b.getCourseOffering().getId()));
+
+        List<CourseOfferingFacultySummaryDto> result = new java.util.ArrayList<>();
+        for (CourseOffering offering : offerings) {
+            List<CourseOfferingSectionFaculty> rows = rowsByOffering.getOrDefault(offering.getId(), List.of());
+            List<String> names = rows.stream().map(sf -> sf.getFaculty().getFullName()).distinct().sorted().toList();
+
+            int expected = 0;
+            int assigned = 0;
+            if (!resolveCohorts(offering).isEmpty()) {
+                CourseOfferingSectionFacultyResponse resp = getForOffering(offering.getId());
+                expected += resp.sections().size();
+                assigned += (int) resp.sections().stream().filter(s -> s.facultyId() != null).count();
+            }
+            List<Batch> batches = batchesByOffering.getOrDefault(offering.getId(), List.of());
+            expected += batches.size();
+            assigned += (int) batches.stream().filter(b -> b.getCoordinatorFaculty() != null).count();
+
+            OfferingAssignmentStatus status;
+            if (expected == 0) status = OfferingAssignmentStatus.NOT_APPLICABLE;
+            else if (assigned == 0) status = OfferingAssignmentStatus.NONE;
+            else if (assigned == expected) status = OfferingAssignmentStatus.FULL;
+            else status = OfferingAssignmentStatus.PARTIAL;
+
+            result.add(new CourseOfferingFacultySummaryDto(offering.getId(), names, status));
+        }
+        return result;
     }
 
     /** {@code facultyId} null clears any existing override for this section. Gated by the same
      *  department-eligibility rule as every other faculty assignment, grandfathered against this
-     *  specific section's own prior value. */
+     *  specific section's own prior value. {@code requestVersion} is the row's version as last
+     *  seen by the client (null if the client saw no row, i.e. "Unassigned") -- rejected if it no
+     *  longer matches, so a stale save can't silently overwrite someone else's concurrent change. */
     @Transactional
-    public SectionFacultyAssignment upsert(Long offeringId, Long cohortSectionId, Long facultyId) {
+    public SectionFacultyAssignment upsert(Long offeringId, Long cohortSectionId, Long facultyId, Long requestVersion) {
         CourseOffering offering = courseOfferingRepository.findById(offeringId)
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + offeringId));
 
@@ -144,10 +188,11 @@ public class CourseOfferingSectionFacultyService {
             sectionFacultyRepository.findByCourseOfferingIdAndCohortSectionId(offeringId, cohortSectionId);
         Cohort cohort = section.getCohortRoomAllocation().getCohort();
         String cohortName = cohort.getDisplayName();
+        requireCurrentVersion(existing, requestVersion, cohortName + (section.getSectionLabel() != null ? " — " + section.getSectionLabel() : ""));
 
         if (facultyId == null) {
             existing.ifPresent(sectionFacultyRepository::delete);
-            return new SectionFacultyAssignment(cohort.getId(), cohortSectionId, cohortName, section.getSectionLabel(), null, null);
+            return new SectionFacultyAssignment(cohort.getId(), cohortSectionId, cohortName, section.getSectionLabel(), null, null, null);
         }
 
         Long previousFacultyId = existing.map(sf -> sf.getFaculty().getId()).orElse(null);
@@ -165,14 +210,25 @@ public class CourseOfferingSectionFacultyService {
         row.setFaculty(faculty);
         sectionFacultyRepository.save(row);
 
-        return new SectionFacultyAssignment(cohort.getId(), cohortSectionId, cohortName, section.getSectionLabel(), faculty.getId(), faculty.getFullName());
+        return new SectionFacultyAssignment(cohort.getId(), cohortSectionId, cohortName, section.getSectionLabel(), faculty.getId(), faculty.getFullName(), row.getVersion());
+    }
+
+    /** Same optimistic-lock check {@link com.cms.service.BatchService} uses -- rejects a stale
+     *  save (including one whose client thought no row existed yet, but one now does) instead of
+     *  silently overwriting a concurrent change. */
+    private void requireCurrentVersion(Optional<CourseOfferingSectionFaculty> existing, Long requestVersion, String label) {
+        Long currentVersion = existing.map(CourseOfferingSectionFaculty::getVersion).orElse(null);
+        if (!Objects.equals(currentVersion, requestVersion)) {
+            throw new IllegalStateException(
+                "\"" + label + "\"'s faculty assignment was changed by someone else since you opened this dialog. Reload to see the latest data.");
+        }
     }
 
     /** Whole-cohort counterpart of {@link #upsert} -- for a cohort whose Theory delivery has no
      *  active section split. Rejects a cohort that currently *does* have active sections (that
      *  cohort must be assigned per-section via {@link #upsert} instead, one call per section). */
     @Transactional
-    public SectionFacultyAssignment upsertForCohort(Long offeringId, Long cohortId, Long facultyId) {
+    public SectionFacultyAssignment upsertForCohort(Long offeringId, Long cohortId, Long facultyId, Long requestVersion) {
         CourseOffering offering = courseOfferingRepository.findById(offeringId)
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + offeringId));
 
@@ -190,10 +246,11 @@ public class CourseOfferingSectionFacultyService {
         Optional<CourseOfferingSectionFaculty> existing =
             sectionFacultyRepository.findByCourseOfferingIdAndCohortIdAndCohortSectionIdIsNull(offeringId, cohortId);
         String cohortName = cohort.getDisplayName();
+        requireCurrentVersion(existing, requestVersion, cohortName);
 
         if (facultyId == null) {
             existing.ifPresent(sectionFacultyRepository::delete);
-            return new SectionFacultyAssignment(cohortId, null, cohortName, null, null, null);
+            return new SectionFacultyAssignment(cohortId, null, cohortName, null, null, null, null);
         }
 
         Long previousFacultyId = existing.map(sf -> sf.getFaculty().getId()).orElse(null);
@@ -211,7 +268,7 @@ public class CourseOfferingSectionFacultyService {
         row.setFaculty(faculty);
         sectionFacultyRepository.save(row);
 
-        return new SectionFacultyAssignment(cohortId, null, cohortName, null, faculty.getId(), faculty.getFullName());
+        return new SectionFacultyAssignment(cohortId, null, cohortName, null, faculty.getId(), faculty.getFullName(), row.getVersion());
     }
 
     /** Hard-blocks binding a faculty member to an elective offering already covered elsewhere by

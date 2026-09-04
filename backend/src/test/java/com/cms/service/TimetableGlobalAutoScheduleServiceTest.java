@@ -147,7 +147,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         ay.setId(1L);
         termInstance = new TermInstance(ay, TermType.ODD, LocalDate.of(2025, 6, 1), LocalDate.of(2025, 11, 30), TermInstanceStatus.OPEN);
         termInstance.setId(10L);
-        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        lenient().when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
 
         period1 = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50), 1);
         period1.setId(1L);
@@ -188,7 +188,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
     private CourseOfferingDto offeringDto(Long id, String subjectName) {
         return new CourseOfferingDto(id, 10L, null, null, null, id, subjectName, subjectName.substring(0, 4).toUpperCase(),
-            null, null, List.of(), 1, true, null, false, null, null, null, null, null, null, null, null, null, null, null, List.of());
+            null, null, List.of(), 1, true, null, false, null, null, null, null, null, null, null, null, null, null, null, null, List.of());
     }
 
     private CourseOffering offeringEntity(Long id, int theoryHours, int labHours, int clinicalHours) {
@@ -1491,6 +1491,43 @@ class TimetableGlobalAutoScheduleServiceTest {
     }
 
     @Test
+    void hasEligibleFacultyPool_trueWhenSubjectHasNoSpeciality() {
+        Subject subject = new Subject("Communicative English", "ENGL101", 4, 3, 1, null, 1);
+        subject.setId(1L);
+
+        assertThat(service.hasEligibleFacultyPool(subject)).isTrue();
+        verify(facultyRepository, never()).findByStatus(any());
+    }
+
+    @Test
+    void hasEligibleFacultyPool_falseWhenSpecialitySetAndNoActiveFacultyMatchOrListed() {
+        Speciality nursing = new Speciality("Nursing", "NUR", "dept", null, null);
+        nursing.setId(1L);
+        Speciality other = new Speciality("Other", "OTH", "dept", null, null);
+        other.setId(2L);
+        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursing, 1);
+        subject.setId(1L);
+
+        Faculty ineligible = activeFaculty(800L, other, 6);
+        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of(ineligible));
+
+        assertThat(service.hasEligibleFacultyPool(subject)).isFalse();
+    }
+
+    @Test
+    void hasEligibleFacultyPool_trueWhenSpecialityMatchExists() {
+        Speciality nursing = new Speciality("Nursing", "NUR", "dept", null, null);
+        nursing.setId(1L);
+        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursing, 1);
+        subject.setId(1L);
+
+        Faculty matching = activeFaculty(500L, nursing, 6);
+        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of(matching));
+
+        assertThat(service.hasEligibleFacultyPool(subject)).isTrue();
+    }
+
+    @Test
     void getEligibleFacultyForOffering_excludesIneligibleFaculty_sortedMostFreeFirst() {
         Speciality nursing = new Speciality("Nursing", "NUR", "dept", null, null);
         nursing.setId(1L);
@@ -1524,65 +1561,11 @@ class TimetableGlobalAutoScheduleServiceTest {
     }
 
     @Test
-    void getEligibleFacultyForOffering_flagsInPoolMembersOnly() {
-        Speciality nursing = new Speciality("Nursing", "NUR", "dept", null, null);
-        nursing.setId(1L);
-        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursing, 1);
-        subject.setId(1L);
-
-        Faculty pooled = activeFaculty(500L, nursing, 6);
-        Faculty notPooled = activeFaculty(600L, nursing, 6);
-        CourseOffering offering = new CourseOffering();
-        offering.setId(100L);
-        offering.setSubject(subject);
-        offering.setTermInstance(termInstance);
-        offering.setFacultyPool(new java.util.HashSet<>(java.util.Set.of(pooled)));
-        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
-        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of(pooled, notPooled));
-        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
-            .thenReturn(new HashSet<>());
-
-        List<EligibleFacultyCandidateDto> candidates = service.getEligibleFacultyForOffering(100L);
-
-        assertThat(candidates).filteredOn(c -> c.facultyId().equals(500L)).allSatisfy(c -> assertThat(c.inPool()).isTrue());
-        assertThat(candidates).filteredOn(c -> c.facultyId().equals(600L)).allSatisfy(c -> assertThat(c.inPool()).isFalse());
-    }
-
-    @Test
-    void getEligibleFacultyForOffering_excludesCurrentlyAssignedFacultyNotInPool() {
-        // Someone merely holding a section/cohort of this offering, without being eligible or
-        // actually saved into the pool, can never be added to the pool anyway (updateFacultyPool
-        // rejects them) -- showing them as a checkable pool candidate was misleading, so the
-        // checklist must leave them off entirely rather than grandfather them in.
-        Speciality nursing = new Speciality("Nursing", "NUR", "dept", null, null);
-        nursing.setId(1L);
-        Speciality other = new Speciality("Other", "OTH", "dept", null, null);
-        other.setId(2L);
-        Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursing, 1);
-        subject.setId(1L);
-        Faculty notInPool = activeFaculty(900L, other, 6);
-
-        CourseOffering offering = new CourseOffering();
-        offering.setId(100L);
-        offering.setSubject(subject);
-        offering.setTermInstance(termInstance);
-        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
-        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of());
-        CourseOfferingSectionFaculty currentlyAssignedRow = new CourseOfferingSectionFaculty();
-        currentlyAssignedRow.setFaculty(notInPool);
-        when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(100L)).thenReturn(List.of(currentlyAssignedRow));
-        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
-            .thenReturn(new HashSet<>());
-
-        List<EligibleFacultyCandidateDto> candidates = service.getEligibleFacultyForOffering(100L);
-
-        assertThat(candidates).isEmpty();
-    }
-
-    @Test
-    void getEligibleFacultyForOffering_grandfathersExistingPoolMemberNoLongerEligible() {
-        // A faculty already saved into the pool before the subject's eligibility setup tightened
-        // must never silently disappear (and become unremovable) from the checklist.
+    void getEligibleFacultyForOffering_grandfathersCurrentlyAssignedFacultyEvenIfIneligible() {
+        // Someone already holding a section/cohort of this offering must never silently disappear
+        // from the picker just because they don't (or no longer) pass Speciality/Eligible-List
+        // eligibility -- there's no separate pool-curation step anymore, so "currently assigned" is
+        // the only grandfathering signal left.
         Speciality nursing = new Speciality("Nursing", "NUR", "dept", null, null);
         nursing.setId(1L);
         Speciality other = new Speciality("Other", "OTH", "dept", null, null);
@@ -1595,11 +1578,12 @@ class TimetableGlobalAutoScheduleServiceTest {
         offering.setId(100L);
         offering.setSubject(subject);
         offering.setTermInstance(termInstance);
-        offering.setFacultyPool(new java.util.HashSet<>(java.util.Set.of(grandfathered)));
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of());
         when(facultyRepository.findById(900L)).thenReturn(Optional.of(grandfathered));
-        when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(100L)).thenReturn(List.of());
+        CourseOfferingSectionFaculty currentlyAssignedRow = new CourseOfferingSectionFaculty();
+        currentlyAssignedRow.setFaculty(grandfathered);
+        when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(100L)).thenReturn(List.of(currentlyAssignedRow));
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
             .thenReturn(new HashSet<>());
 
@@ -1607,34 +1591,32 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         assertThat(candidates).hasSize(1);
         assertThat(candidates.get(0).facultyId()).isEqualTo(900L);
-        assertThat(candidates.get(0).inPool()).isTrue();
+        assertThat(candidates.get(0).currentlyAssigned()).isTrue();
         assertThat(candidates.get(0).specialityMatch()).isFalse();
         assertThat(candidates.get(0).viaEligibleList()).isFalse();
     }
 
     @Test
-    void getEligibleFacultyForSection_includesPoolMemberNotHoldingThisSection() {
-        // The whole point of the Faculty Pool is build-once-assign-anywhere: a pool member must show
-        // up as a candidate for every section/cohort row of the offering, not just the one they
-        // happen to already hold.
+    void getEligibleFacultyForSection_grandfathersCurrentSectionHolderEvenIfIneligible() {
         Speciality nursing = new Speciality("Nursing", "NUR", "dept", null, null);
         nursing.setId(1L);
         Speciality other = new Speciality("Other", "OTH", "dept", null, null);
         other.setId(2L);
         Subject subject = new Subject("Nursing Foundations", "NF101", 4, 3, 1, nursing, 1);
         subject.setId(1L);
-        Faculty pooled = activeFaculty(500L, other, 6); // not speciality-matched, only in via pool
+        Faculty currentHolder = activeFaculty(500L, other, 6); // not speciality-matched
 
         CourseOffering offering = new CourseOffering();
         offering.setId(100L);
         offering.setSubject(subject);
         offering.setTermInstance(termInstance);
-        offering.setFacultyPool(new java.util.HashSet<>(java.util.Set.of(pooled)));
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of());
-        when(facultyRepository.findById(500L)).thenReturn(Optional.of(pooled));
+        when(facultyRepository.findById(500L)).thenReturn(Optional.of(currentHolder));
+        CourseOfferingSectionFaculty sectionRow = new CourseOfferingSectionFaculty();
+        sectionRow.setFaculty(currentHolder);
         when(courseOfferingSectionFacultyRepository.findByCourseOfferingIdAndCohortSectionId(100L, 1L))
-            .thenReturn(Optional.empty());
+            .thenReturn(Optional.of(sectionRow));
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
             .thenReturn(new HashSet<>());
 
@@ -1642,8 +1624,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         assertThat(candidates).hasSize(1);
         assertThat(candidates.get(0).facultyId()).isEqualTo(500L);
-        assertThat(candidates.get(0).inPool()).isTrue();
-        assertThat(candidates.get(0).currentlyAssigned()).isFalse();
+        assertThat(candidates.get(0).currentlyAssigned()).isTrue();
     }
 
     @Test

@@ -28,6 +28,7 @@ public record CourseOfferingDto(
     Long electiveGroupId,
     String electiveGroupName,
     ElectiveSelectionMode electiveGroupSelectionMode,
+    Integer theoryHours,
     Integer labHours,
     Integer clinicalHours,
     /** Subject's on-campus clinical session block size (consecutive periods), set in Subject Master.

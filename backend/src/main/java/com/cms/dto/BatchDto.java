@@ -19,6 +19,7 @@ public record BatchDto(
     Long cohortSectionId,
     String sectionLabel,
     Boolean isActive,
+    Long version,
     Instant createdAt,
     Instant updatedAt
 ) {}

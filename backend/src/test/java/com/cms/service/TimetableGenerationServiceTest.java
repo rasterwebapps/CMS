@@ -46,6 +46,7 @@ class TimetableGenerationServiceTest {
     @Mock private LabAttendanceRepository labAttendanceRepository;
     @Mock private AuditLogService auditLogService;
     @Mock private TimetableConflictInspectorService timetableConflictInspectorService;
+    @Mock private CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
 
     private TimetableGenerationService service;
 
@@ -58,7 +59,8 @@ class TimetableGenerationServiceTest {
     @BeforeEach
     void setUp() {
         service = new TimetableGenerationService(classScheduleRepository, termInstanceRepository,
-            labAttendanceRepository, auditLogService, timetableConflictInspectorService);
+            labAttendanceRepository, auditLogService, timetableConflictInspectorService,
+            courseOfferingSectionFacultyService);
 
         Speciality speciality = new Speciality("Nursing", "NUR", "Nursing Dept", null, null);
         speciality.setId(1L);
@@ -173,6 +175,28 @@ class TimetableGenerationServiceTest {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(staffed, unstaffed));
+
+        assertThatThrownBy(() -> service.approve(10L, "admin"))
+            .isInstanceOf(LifecycleConflictException.class);
+
+        verify(classScheduleRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldBlockApproveWhenAnOfferingHasNoFacultyAssigned() {
+        // An offering with zero Theory faculty never gets a ClassSchedule row placed at all --
+        // Global Auto-Schedule just drops it into the unplaced-sessions report -- so the
+        // unstaffedCount gate above has nothing to catch. This is a separate, offering-level check.
+        ClassSchedule staffed = new ClassSchedule();
+        staffed.setId(1L);
+        staffed.setStatus(ClassScheduleStatus.DRAFT);
+        staffed.setFaculty(faculty);
+
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
+        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(staffed));
+        when(courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(10L)).thenReturn(List.of(
+            new com.cms.dto.CourseOfferingFacultySummaryDto(1L, List.of(), com.cms.model.enums.OfferingAssignmentStatus.NONE)));
 
         assertThatThrownBy(() -> service.approve(10L, "admin"))
             .isInstanceOf(LifecycleConflictException.class);

@@ -38,6 +38,7 @@ import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.repository.BatchRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CourseOfferingSectionFacultyRepository;
@@ -52,6 +53,7 @@ class CourseOfferingSectionFacultyServiceTest {
     @Mock private CohortRepository cohortRepository;
     @Mock private StudentTermEnrollmentRepository studentTermEnrollmentRepository;
     @Mock private FacultyRepository facultyRepository;
+    @Mock private BatchRepository batchRepository;
     @Mock private TimetableSkeletonService timetableSkeletonService;
     @Mock private TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
 
@@ -66,8 +68,8 @@ class CourseOfferingSectionFacultyServiceTest {
     @BeforeEach
     void setUp() {
         service = new CourseOfferingSectionFacultyService(courseOfferingRepository, sectionFacultyRepository,
-            cohortRepository, studentTermEnrollmentRepository, facultyRepository, timetableSkeletonService,
-            timetableGlobalAutoScheduleService);
+            cohortRepository, studentTermEnrollmentRepository, facultyRepository, batchRepository,
+            timetableSkeletonService, timetableGlobalAutoScheduleService);
 
         program = new Program("BSc Nursing", "BSCN", 4);
         program.setId(1L);
@@ -183,6 +185,79 @@ class CourseOfferingSectionFacultyServiceTest {
     }
 
     @Test
+    void getAssignmentSummaryForTermInstance_notApplicableWhenNothingToAssign() {
+        when(courseOfferingRepository.findByTermInstanceId(10L)).thenReturn(List.of(offering));
+        when(sectionFacultyRepository.findByCourseOffering_TermInstanceId(10L)).thenReturn(List.of());
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of());
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Set.of());
+
+        List<com.cms.dto.CourseOfferingFacultySummaryDto> summaries = service.getAssignmentSummaryForTermInstance(10L);
+
+        assertThat(summaries).hasSize(1);
+        assertThat(summaries.get(0).assignmentStatus()).isEqualTo(com.cms.model.enums.OfferingAssignmentStatus.NOT_APPLICABLE);
+        assertThat(summaries.get(0).assignedFacultyNames()).isEmpty();
+    }
+
+    @Test
+    void getAssignmentSummaryForTermInstance_fullWhenEverySectionAndBatchIsAssigned() {
+        Cohort matchingCohort = cohort(1L, "2023-2027 Batch");
+        CohortSection matchingSection = section(201L, matchingCohort, "A");
+        Faculty theoryFaculty = faculty(7L, subject.getSpeciality());
+        CourseOfferingSectionFaculty theoryRow = new CourseOfferingSectionFaculty(offering, matchingSection, theoryFaculty);
+
+        com.cms.model.Batch batch = new com.cms.model.Batch(offering, "Batch 1", 20, termInstance);
+        batch.setId(301L);
+        batch.setCoordinatorFaculty(theoryFaculty);
+
+        when(courseOfferingRepository.findByTermInstanceId(10L)).thenReturn(List.of(offering));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(sectionFacultyRepository.findByCourseOffering_TermInstanceId(10L)).thenReturn(List.of(theoryRow));
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(batch));
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Set.of(1L));
+        when(cohortRepository.findById(1L)).thenReturn(Optional.of(matchingCohort));
+        when(studentTermEnrollmentRepository.findByTermInstanceIdAndCohortId(10L, 1L))
+            .thenReturn(List.of(enrollmentAtSemester(3)));
+        when(sectionFacultyRepository.findByCourseOfferingId(100L)).thenReturn(List.of(theoryRow));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of(matchingSection));
+
+        List<com.cms.dto.CourseOfferingFacultySummaryDto> summaries = service.getAssignmentSummaryForTermInstance(10L);
+
+        assertThat(summaries).hasSize(1);
+        assertThat(summaries.get(0).assignmentStatus()).isEqualTo(com.cms.model.enums.OfferingAssignmentStatus.FULL);
+        assertThat(summaries.get(0).assignedFacultyNames()).containsExactly(theoryFaculty.getFullName());
+    }
+
+    @Test
+    void getAssignmentSummaryForTermInstance_partialWhenBatchCoordinatorMissing() {
+        Cohort matchingCohort = cohort(1L, "2023-2027 Batch");
+        CohortSection matchingSection = section(201L, matchingCohort, "A");
+        Faculty theoryFaculty = faculty(7L, subject.getSpeciality());
+        CourseOfferingSectionFaculty theoryRow = new CourseOfferingSectionFaculty(offering, matchingSection, theoryFaculty);
+
+        com.cms.model.Batch unassignedBatch = new com.cms.model.Batch(offering, "Batch 1", 20, termInstance);
+        unassignedBatch.setId(301L);
+
+        when(courseOfferingRepository.findByTermInstanceId(10L)).thenReturn(List.of(offering));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(sectionFacultyRepository.findByCourseOffering_TermInstanceId(10L)).thenReturn(List.of(theoryRow));
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(unassignedBatch));
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Set.of(1L));
+        when(cohortRepository.findById(1L)).thenReturn(Optional.of(matchingCohort));
+        when(studentTermEnrollmentRepository.findByTermInstanceIdAndCohortId(10L, 1L))
+            .thenReturn(List.of(enrollmentAtSemester(3)));
+        when(sectionFacultyRepository.findByCourseOfferingId(100L)).thenReturn(List.of(theoryRow));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of(matchingSection));
+
+        List<com.cms.dto.CourseOfferingFacultySummaryDto> summaries = service.getAssignmentSummaryForTermInstance(10L);
+
+        assertThat(summaries).hasSize(1);
+        assertThat(summaries.get(0).assignmentStatus()).isEqualTo(com.cms.model.enums.OfferingAssignmentStatus.PARTIAL);
+    }
+
+    @Test
     void upsert_throwsWhenSectionNotAmongResolvedCohortsSections() {
         Cohort matchingCohort = cohort(1L, "2023-2027 Batch");
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
@@ -194,7 +269,7 @@ class CourseOfferingSectionFacultyServiceTest {
         when(timetableSkeletonService.resolveActiveSections(1L, 10L))
             .thenReturn(List.of(section(201L, matchingCohort, "A")));
 
-        assertThatThrownBy(() -> service.upsert(100L, 999L, 1L))
+        assertThatThrownBy(() -> service.upsert(100L, 999L, 1L, null))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -215,7 +290,7 @@ class CourseOfferingSectionFacultyServiceTest {
         Faculty ineligibleFaculty = faculty(5L, otherSpeciality);
         when(facultyRepository.findById(5L)).thenReturn(Optional.of(ineligibleFaculty));
 
-        assertThatThrownBy(() -> service.upsert(100L, 201L, 5L))
+        assertThatThrownBy(() -> service.upsert(100L, 201L, 5L, null))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -239,7 +314,7 @@ class CourseOfferingSectionFacultyServiceTest {
         when(sectionFacultyRepository.save(any(CourseOfferingSectionFaculty.class))).thenAnswer(inv -> inv.getArgument(0));
         when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 5L)).thenReturn(fitsWithinCapacity());
 
-        SectionFacultyAssignment result = service.upsert(100L, 201L, 5L);
+        SectionFacultyAssignment result = service.upsert(100L, 201L, 5L, null);
 
         assertThat(result.facultyId()).isEqualTo(5L);
     }
@@ -284,7 +359,7 @@ class CourseOfferingSectionFacultyServiceTest {
         when(sectionFacultyRepository.findByCourseOfferingId(101L)).thenReturn(
             List.of(new CourseOfferingSectionFaculty(siblingOffering, matchingCohort, faculty)));
 
-        assertThatThrownBy(() -> service.upsert(100L, 201L, 6L))
+        assertThatThrownBy(() -> service.upsert(100L, 201L, 6L, null))
             .isInstanceOf(com.cms.exception.TimetableConstraintViolationException.class)
             .hasMessageContaining("Elective: Soft Skills");
 
@@ -308,7 +383,7 @@ class CourseOfferingSectionFacultyServiceTest {
         when(sectionFacultyRepository.save(any(CourseOfferingSectionFaculty.class))).thenAnswer(inv -> inv.getArgument(0));
         when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 6L)).thenReturn(fitsWithinCapacity());
 
-        SectionFacultyAssignment result = service.upsert(100L, 201L, 6L);
+        SectionFacultyAssignment result = service.upsert(100L, 201L, 6L, null);
 
         assertThat(result.facultyId()).isEqualTo(6L);
         assertThat(result.cohortName()).isEqualTo("2023-2027 Batch");
@@ -331,7 +406,7 @@ class CourseOfferingSectionFacultyServiceTest {
         when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 6L))
             .thenReturn(new FacultyCapacityCheckResult(true, 90, 40, 130, 100, 5, "FACULTY_OVERRIDE", 100, 2, List.of()));
 
-        assertThatThrownBy(() -> service.upsert(100L, 201L, 6L))
+        assertThatThrownBy(() -> service.upsert(100L, 201L, 6L, null))
             .isInstanceOf(com.cms.exception.TimetableConstraintViolationException.class);
 
         verify(sectionFacultyRepository, never()).save(any());
@@ -352,7 +427,7 @@ class CourseOfferingSectionFacultyServiceTest {
         CourseOfferingSectionFaculty existingRow = new CourseOfferingSectionFaculty(offering, targetSection, existingFaculty);
         when(sectionFacultyRepository.findByCourseOfferingIdAndCohortSectionId(100L, 201L)).thenReturn(Optional.of(existingRow));
 
-        SectionFacultyAssignment result = service.upsert(100L, 201L, null);
+        SectionFacultyAssignment result = service.upsert(100L, 201L, null, null);
 
         assertThat(result.facultyId()).isNull();
     }

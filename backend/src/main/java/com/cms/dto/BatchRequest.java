@@ -15,5 +15,8 @@ public record BatchRequest(
     @Min(value = 1, message = "Capacity must be at least 1")
     Integer capacity,
 
-    Long coordinatorFacultyId
+    Long coordinatorFacultyId,
+
+    @NotNull(message = "Version is required")
+    Long version
 ) {}

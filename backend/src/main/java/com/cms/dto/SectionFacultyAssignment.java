@@ -11,5 +11,6 @@ public record SectionFacultyAssignment(
     String cohortName,
     String sectionLabel,
     Long facultyId,
-    String facultyName
+    String facultyName,
+    Long version
 ) {}

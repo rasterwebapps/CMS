@@ -308,13 +308,6 @@ export class AcademicYearService {
       `${environment.apiUrl}/course-offerings/${offeringId}/cohorts/${cohortId}/eligible-faculty`);
   }
 
-  /** Replaces the offering's admin-curated faculty pool wholesale — the primary/section assignment
-   *  pickers are then scoped to just this pool. Returns the refreshed eligible-faculty list. */
-  updateFacultyPool(offeringId: number, facultyIds: number[]): Observable<EligibleFacultyCandidate[]> {
-    return this.http.put<EligibleFacultyCandidate[]>(
-      `${environment.apiUrl}/course-offerings/${offeringId}/faculty-pool`, { facultyIds });
-  }
-
   updateCourseOfferingStatus(id: number, request: CourseOfferingStatusUpdateRequest): Observable<CourseOfferingStatusUpdateResponse> {
     return this.http.patch<CourseOfferingStatusUpdateResponse>(`${environment.apiUrl}/course-offerings/${id}/status`, request);
   }
@@ -335,17 +328,18 @@ export class AcademicYearService {
     return this.http.get<CourseOfferingSectionFacultyResponse>(`${environment.apiUrl}/course-offerings/${offeringId}/section-faculty`);
   }
 
-  /** facultyId null clears this section's assignment. */
-  updateSectionFaculty(offeringId: number, cohortSectionId: number, facultyId: number | null): Observable<SectionFacultyAssignment> {
+  /** facultyId null clears this section's assignment. version is the row's version as last seen
+   *  by the caller (null if it saw no row yet) — rejected with a conflict if stale. */
+  updateSectionFaculty(offeringId: number, cohortSectionId: number, facultyId: number | null, version: number | null): Observable<SectionFacultyAssignment> {
     return this.http.put<SectionFacultyAssignment>(
-      `${environment.apiUrl}/course-offerings/${offeringId}/section-faculty/${cohortSectionId}`, { facultyId });
+      `${environment.apiUrl}/course-offerings/${offeringId}/section-faculty/${cohortSectionId}`, { facultyId, version });
   }
 
   /** Whole-cohort counterpart of {@link updateSectionFaculty} — for a cohort with no active
    *  section split. facultyId null clears the assignment. */
-  updateCohortFaculty(offeringId: number, cohortId: number, facultyId: number | null): Observable<SectionFacultyAssignment> {
+  updateCohortFaculty(offeringId: number, cohortId: number, facultyId: number | null, version: number | null): Observable<SectionFacultyAssignment> {
     return this.http.put<SectionFacultyAssignment>(
-      `${environment.apiUrl}/course-offerings/${offeringId}/cohort-faculty/${cohortId}`, { facultyId });
+      `${environment.apiUrl}/course-offerings/${offeringId}/cohort-faculty/${cohortId}`, { facultyId, version });
   }
 
   getClassIncharge(termInstanceId: number): Observable<ClassInchargeAssignment[]> {

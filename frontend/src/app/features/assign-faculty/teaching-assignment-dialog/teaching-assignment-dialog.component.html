@@ -12,61 +12,34 @@
   @if (suggestedFacultyName(); as name) {
     <div class="tad-prefill-banner">
       Opened from a Global Auto-Schedule capacity suggestion — it suggests reassigning to <strong>{{ name }}</strong>.
-      Pick them from the Theory row(s) below to apply it; nothing is changed until you do.
+      Pick them from the Theory row(s) below to apply it; nothing is changed until you save.
     </div>
   }
 
-  <div class="field-group">
-    <span class="field-label">Faculty Pool</span>
-    <p class="field-hint">
-      Step 1 — mark every faculty who could teach this offering (feeds the Theory rows below; Lab/Clinical
-      coordinator picks below draw from the full eligible list). Step 2 assigns one per row.
-    </p>
-    @if (eligibleCandidatesLoading()) {
-      <p class="field-hint">Loading eligible faculty…</p>
-    } @else {
-      <div class="tad-candidate-list" role="group" aria-label="Faculty Pool">
-        @for (c of eligibleCandidates(); track c.facultyId) {
-          <label class="tad-candidate-row">
-            <input type="checkbox" [checked]="poolSelection().has(c.facultyId)" [disabled]="poolSaving()"
-              (change)="toggleInPool(c.facultyId)">
-            <span class="tad-candidate-row__name">{{ c.facultyName }}</span>
-            <span class="tad-candidate-row__badge" [class.tad-candidate-row__badge--eligible-list]="c.viaEligibleList"
-              [class.tad-candidate-row__badge--grandfathered]="!c.specialityMatch && !c.viaEligibleList">
-              {{ candidateBadgeText(c) }}
-            </span>
-            <span class="tad-candidate-row__hours" [class.tad-candidate-row__hours--over]="c.overCapacity">
-              {{ candidateHoursText(c) }}
-            </span>
-          </label>
-        }
-        @if (eligibleCandidates().length === 0) {
-          <p class="field-hint">No eligible faculty found for this subject — widen it from the Subject form's Eligible Faculty list.</p>
-        }
-      </div>
-      <button class="btn-secondary tad-save-pool-btn" type="button" [disabled]="poolSaving() || !poolDirty()" (click)="saveFacultyPool()">
-        @if (poolSaving()) { <mat-spinner diameter="14" class="btn-spinner"></mat-spinner> }
-        Save Pool
-      </button>
-    }
-  </div>
-
   <div class="tad-units">
-    <label class="field-label">Teaching Assignment</label>
+    <label class="field-label">Teaching &amp; Batch Assignment</label>
     @if (assignmentLoading() || batchesLoading()) {
       <p class="field-hint">Loading assignment…</p>
     } @else if (!assignmentApplicable() && rows().length === 0) {
       <p class="field-hint">No cohort is currently enrolled against this offering's term/semester — nothing to assign yet.</p>
     } @else {
       <p class="field-hint">
-        One row per Theory cohort/section and per Lab/Clinical batch. Each pick saves immediately.
+        One row per Theory cohort/section and per Lab/Clinical batch. Edit as many fields as you like, then Save.
       </p>
+      <div class="tad-prefill-banner">
+        Need more batches, a different section split, or a new venue? That's structural and belongs in
+        <a [routerLink]="['/timetable/capacity-auto-plan']" (click)="onClose()">Capacity Auto-Plan</a>
+        — this screen can only rename, resize headcount, or delete an already-existing batch.
+      </div>
       <div class="table-wrapper tad-table-wrapper">
         <table class="tad-table">
           <thead>
             <tr>
               <th>Unit</th>
               <th>Faculty</th>
+              <th class="tad-batch-col">Name</th>
+              <th class="tad-capacity-col">Capacity</th>
+              <th class="tad-batch-col">Actions</th>
             </tr>
           </thead>
           @for (group of groupedRows(); track group.kind) {
@@ -74,40 +47,112 @@
               <tr class="tad-group-header" [class.tad-group-header--theory]="group.kind === 'THEORY'"
                 [class.tad-group-header--lab]="group.kind === 'LAB'"
                 [class.tad-group-header--clinical]="group.kind === 'CLINICAL'">
-                <td colspan="2">
+                <td colspan="5">
                   {{ group.label }}
                   <span class="tad-group-header__count">{{ group.rows.length }}</span>
                 </td>
               </tr>
               @for (row of group.rows; track row.key) {
-                <tr>
-                  <td class="tad-unit-cell">{{ row.unitLabel }}</td>
-                  <td class="tad-faculty-cell">
-                    <select class="field-select"
-                      [ngModel]="currentFacultyId(row)"
-                      (ngModelChange)="onRowFacultyChange(row, $event)"
-                      [disabled]="!rowEditable(row) || savingKey() === row.key"
-                      [attr.aria-label]="row.unitLabel + ' faculty'">
-                      <option [ngValue]="null">Unassigned</option>
-                      @for (c of candidatesFor(row); track c.facultyId) {
-                        <option [ngValue]="c.facultyId">{{ c.facultyName }} — {{ candidateBadgeText(c) }} — {{ candidateHoursText(c) }}</option>
+                @if (row.kind === 'THEORY') {
+                  <tr>
+                    <td class="tad-unit-cell">{{ row.unitLabel }}</td>
+                    <td class="tad-faculty-cell" colspan="4">
+                      <select class="field-select"
+                        [ngModel]="currentTheoryFacultyId(row)"
+                        (ngModelChange)="onTheoryFacultyChange(row, $event)"
+                        [disabled]="!rowEditable(row)"
+                        [attr.aria-label]="row.unitLabel + ' faculty'">
+                        <option [ngValue]="null">Unassigned</option>
+                        @for (c of candidatesFor(row); track c.facultyId) {
+                          <option [ngValue]="c.facultyId">{{ c.facultyName }} — {{ candidateBadgeText(c) }} — {{ candidateHoursText(c) }}</option>
+                        }
+                      </select>
+                      @if (candidatesFor(row).length === 0) {
+                        <p class="field-hint">No eligible faculty found for this subject — widen it from the Subject form's Eligible Faculty list.</p>
                       }
-                    </select>
-                    @if (savingKey() === row.key) {
-                      <mat-spinner diameter="14" class="btn-spinner"></mat-spinner>
+                    </td>
+                  </tr>
+                } @else {
+                  @if (batchFormGroup(row.source.id); as bf) {
+                    <tr [formGroup]="bf">
+                      <td class="tad-unit-cell">
+                        {{ row.unitLabel }}
+                        <span class="tad-batch-capacity" [class.tad-batch-capacity--full]="row.source.enrolledCount >= row.source.capacity">
+                          {{ row.source.enrolledCount }} / {{ row.source.capacity }}
+                        </span>
+                      </td>
+                      <td class="tad-faculty-cell">
+                        <select class="field-select" formControlName="coordinatorFacultyId"
+                          [attr.aria-label]="row.unitLabel + ' coordinator'">
+                          <option [ngValue]="null">Unassigned</option>
+                          @for (c of candidatesFor(row); track c.facultyId) {
+                            <option [ngValue]="c.facultyId">{{ c.facultyName }} — {{ candidateBadgeText(c) }} — {{ candidateHoursText(c) }}</option>
+                          }
+                        </select>
+                      </td>
+                      <td class="tad-batch-col">
+                        <input class="field-input" formControlName="name" [attr.aria-label]="row.unitLabel + ' name'" />
+                        @if (bf.get('name')?.invalid && bf.get('name')?.touched) {
+                          <p class="field-error">
+                            @if (bf.get('name')?.hasError('required')) { Name is required. }
+                            @if (bf.get('name')?.hasError('duplicate')) { A batch with this name already exists. }
+                          </p>
+                        }
+                      </td>
+                      <td class="tad-capacity-col">
+                        <input class="field-input tad-capacity-input" type="number" formControlName="capacity"
+                          [attr.aria-label]="row.unitLabel + ' capacity'" />
+                        @if (bf.get('capacity')?.invalid && bf.get('capacity')?.touched) {
+                          <p class="field-error">
+                            @if (bf.get('capacity')?.hasError('required')) { Capacity is required. }
+                            @if (bf.get('capacity')?.hasError('min')) { Can't be below the {{ row.source.enrolledCount }} student(s) already enrolled. }
+                          </p>
+                        }
+                      </td>
+                      <td class="tad-batch-col tad-batch-actions">
+                        <button class="btn-secondary" type="button" (click)="toggleRoster(row.source)" [disabled]="!canManageBatch()">
+                          {{ expandedBatchId() === row.source.id ? 'Hide Roster' : 'Roster' }}
+                        </button>
+                        <button class="btn-secondary" type="button" (click)="deleteBatch(row.source)" [disabled]="!canManageBatch()">
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                    @if (expandedBatchId() === row.source.id) {
+                      <tr class="tad-roster-row">
+                        <td colspan="5">
+                          <div class="tad-roster">
+                            @if (rosterLoading()) {
+                              <mat-spinner diameter="20"></mat-spinner>
+                            } @else if (registeredStudents().length === 0) {
+                              <p class="field-hint">No students registered for this offering yet.</p>
+                            } @else {
+                              <ul class="tad-roster-list">
+                                @for (student of registeredStudents(); track student.studentId) {
+                                  <li class="tad-roster-item">
+                                    <label class="tad-roster-item__label">
+                                      <input type="checkbox" [checked]="isInRoster(student.studentId)"
+                                        [disabled]="!canManageBatch()"
+                                        (change)="toggleStudent(row.source, student.studentId)" />
+                                      {{ student.studentName }}
+                                    </label>
+                                  </li>
+                                }
+                              </ul>
+                            }
+                          </div>
+                        </td>
+                      </tr>
                     }
-                    @if (row.kind === 'THEORY' && candidatesFor(row).length === 0) {
-                      <p class="field-hint">No one's in the Faculty Pool yet.</p>
-                    }
-                  </td>
-                </tr>
+                  }
+                }
               }
             </tbody>
           }
           @if (rows().length === 0) {
             <tbody>
               <tr>
-                <td colspan="2" class="tad-empty-cell">No Theory cohorts or Lab/Clinical batches yet for this offering.</td>
+                <td colspan="5" class="tad-empty-cell">No Theory cohorts or Lab/Clinical batches yet for this offering.</td>
               </tr>
             </tbody>
           }
@@ -118,7 +163,11 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button class="btn-primary" type="button" (click)="onClose()">
+  <button class="btn-secondary" type="button" (click)="onClose()">
     Close
+  </button>
+  <button class="btn-primary" type="button" [disabled]="!canSave()" (click)="saveAll()">
+    @if (saving()) { <mat-spinner diameter="14" class="btn-spinner"></mat-spinner> }
+    Save Changes
   </button>
 </mat-dialog-actions>

@@ -207,6 +207,13 @@ export class CourseOfferingListComponent implements OnInit {
         `${res.cohortsWithoutProgramTotalTerms} cohort(s)' programs have no total-terms/semesters value set.`
       );
     }
+    if (res.subjectsWithoutFacultyPool.length > 0) {
+      blockers.push(
+        `${res.subjectsWithoutFacultyPool.length} subject(s) have a Speciality set but no active faculty eligible ` +
+        `to teach them: ${res.subjectsWithoutFacultyPool.join(', ')}. Add a matching-Speciality faculty or add ` +
+        `one to the subject's Eligible Faculty list before generating.`
+      );
+    }
 
     if (blockers.length > 0) {
       const prefix = res.offeringsCreated > 0 ? `${res.offeringsCreated} offering(s) generated, but: ` : 'No offerings generated — ';

@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.ConflictScanResponse;
 import com.cms.dto.ConstraintViolation;
+import com.cms.dto.CourseOfferingFacultySummaryDto;
 import com.cms.dto.TimetableActionResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
@@ -15,6 +16,7 @@ import com.cms.model.ClassSchedule;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
+import com.cms.model.enums.OfferingAssignmentStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.LabAttendanceRepository;
@@ -35,17 +37,20 @@ public class TimetableGenerationService {
     private final LabAttendanceRepository labAttendanceRepository;
     private final AuditLogService auditLogService;
     private final TimetableConflictInspectorService timetableConflictInspectorService;
+    private final CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
 
     public TimetableGenerationService(ClassScheduleRepository classScheduleRepository,
                                        TermInstanceRepository termInstanceRepository,
                                        LabAttendanceRepository labAttendanceRepository,
                                        AuditLogService auditLogService,
-                                       TimetableConflictInspectorService timetableConflictInspectorService) {
+                                       TimetableConflictInspectorService timetableConflictInspectorService,
+                                       CourseOfferingSectionFacultyService courseOfferingSectionFacultyService) {
         this.classScheduleRepository = classScheduleRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.labAttendanceRepository = labAttendanceRepository;
         this.auditLogService = auditLogService;
         this.timetableConflictInspectorService = timetableConflictInspectorService;
+        this.courseOfferingSectionFacultyService = courseOfferingSectionFacultyService;
     }
 
     /** A LOCKED term's timetable is immutable — clear/approve/revert all refuse once the term
@@ -107,6 +112,22 @@ public class TimetableGenerationService {
             throw new LifecycleConflictException(
                 unstaffedCount + " session(s) in this draft still need faculty/room assigned via the Staffing screen before it can be approved.",
                 "TIMETABLE_UNSTAFFED_CELLS", "TermInstance", termInstanceId, (int) unstaffedCount);
+        }
+        // Distinct from unstaffedCount above: that gate only inspects ClassSchedule rows that
+        // already exist, but an offering with zero Theory faculty (or a Lab/Clinical batch with no
+        // coordinator) never gets a row placed at all -- Global Auto-Schedule just drops it into the
+        // unplaced-sessions report and moves on, so there's nothing there for unstaffedCount to
+        // catch. This checks offering-level staffing directly instead.
+        List<CourseOfferingFacultySummaryDto> assignmentSummaries =
+            courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(termInstanceId);
+        long unassignedOfferingCount = assignmentSummaries.stream()
+            .filter(s -> s.assignmentStatus() == OfferingAssignmentStatus.NONE || s.assignmentStatus() == OfferingAssignmentStatus.PARTIAL)
+            .count();
+        if (unassignedOfferingCount > 0) {
+            throw new LifecycleConflictException(
+                unassignedOfferingCount + " course offering(s) still need Theory faculty or a Lab/Clinical coordinator assigned "
+                    + "via the Assign Faculty screen before it can be approved.",
+                "TIMETABLE_OFFERING_UNASSIGNED_FACULTY", "TermInstance", termInstanceId, (int) unassignedOfferingCount);
         }
         // Everything below unstaffedCount is a structural correctness gate: nothing catches a
         // faculty/room double-booked across two independently-staffed skeleton cells, or a cap

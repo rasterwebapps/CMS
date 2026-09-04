@@ -17,6 +17,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 /**
  * Per-(offering, cohort) faculty assignment -- authoritative for placement. {@link #cohortSection}
@@ -57,6 +58,12 @@ public class CourseOfferingSectionFaculty {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "faculty_id", nullable = false)
     private Faculty faculty;
+
+    /** Optimistic-lock token, same purpose as {@link Batch#getVersion()} -- rejects a stale save
+     *  from a client editing a copy that's since been changed by someone else. */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -123,6 +130,14 @@ public class CourseOfferingSectionFaculty {
 
     public void setFaculty(Faculty faculty) {
         this.faculty = faculty;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     public Instant getCreatedAt() {

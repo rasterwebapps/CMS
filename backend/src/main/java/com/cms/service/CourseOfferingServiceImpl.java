@@ -2,6 +2,7 @@ package com.cms.service;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,12 +19,10 @@ import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.dto.ClinicalShiftConfigUpdateRequest;
 import com.cms.dto.CourseOfferingDto;
-import com.cms.dto.EligibleFacultyCandidateDto;
 import com.cms.dto.GenerateOfferingsResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Cohort;
 import com.cms.model.CourseOffering;
-import com.cms.model.CourseOfferingSectionFaculty;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.CurriculumVersion;
 import com.cms.model.Faculty;
@@ -35,16 +34,13 @@ import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortStatus;
 import com.cms.model.enums.EnrollmentStatus;
-import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CourseOfferingRepository;
-import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.CurriculumSemesterCourseRepository;
 import com.cms.repository.CurriculumVersionRepository;
-import com.cms.repository.FacultyRepository;
 import com.cms.repository.PeriodRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -58,11 +54,9 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
     private final CohortRepository cohortRepository;
     private final CurriculumVersionRepository curriculumVersionRepository;
     private final CurriculumSemesterCourseRepository curriculumSemesterCourseRepository;
-    private final FacultyRepository facultyRepository;
     private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
     private final ClassScheduleRepository classScheduleRepository;
     private final BatchRepository batchRepository;
-    private final CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository;
     private final PeriodRepository periodRepository;
 
     // Field injection with @Lazy breaks the circular dependency:
@@ -76,22 +70,18 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
                                       CohortRepository cohortRepository,
                                       CurriculumVersionRepository curriculumVersionRepository,
                                       CurriculumSemesterCourseRepository curriculumSemesterCourseRepository,
-                                      FacultyRepository facultyRepository,
                                       StudentTermEnrollmentRepository studentTermEnrollmentRepository,
                                       ClassScheduleRepository classScheduleRepository,
                                       BatchRepository batchRepository,
-                                      CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository,
                                       PeriodRepository periodRepository) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.cohortRepository = cohortRepository;
         this.curriculumVersionRepository = curriculumVersionRepository;
         this.curriculumSemesterCourseRepository = curriculumSemesterCourseRepository;
-        this.facultyRepository = facultyRepository;
         this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.batchRepository = batchRepository;
-        this.courseOfferingSectionFacultyRepository = courseOfferingSectionFacultyRepository;
         this.periodRepository = periodRepository;
     }
 
@@ -111,6 +101,10 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
         int alreadyExisting = 0;
         int cohortsWithoutTotalTerms = 0;
         List<String> cohortsWithoutCurriculumVersion = new ArrayList<>();
+        // Cached per subject across cohorts/semesters -- a subject's faculty pool doesn't vary by
+        // cohort, so this avoids re-querying the active faculty roster once per (cohort x course).
+        Map<Long, Boolean> subjectHasFacultyPool = new LinkedHashMap<>();
+        Set<String> subjectsWithoutFacultyPool = new LinkedHashSet<>();
 
         for (Cohort cohort : activeCohorts) {
             CurriculumVersion cv = resolveActiveCurriculumVersion(cohort);
@@ -141,23 +135,37 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
                 Optional<CourseOffering> existing =
                     courseOfferingRepository.findByTermInstanceIdAndCurriculumVersionIdAndSubjectIdAndSemesterNumber(
                         termInstanceId, cv.getId(), csc.getSubject().getId(), csc.getSemesterNumber());
-                if (existing.isEmpty()) {
-                    CourseOffering offering = new CourseOffering();
-                    offering.setTermInstance(termInstance);
-                    offering.setCurriculumVersion(cv);
-                    offering.setSubject(csc.getSubject());
-                    offering.setSemesterNumber(csc.getSemesterNumber());
-                    offering.setCurriculumSemesterCourse(csc);
-                    offering.setIsActive(true);
-                    courseOfferingRepository.save(offering);
-                    count++;
-                } else {
+                if (existing.isPresent()) {
                     alreadyExisting++;
+                    continue;
                 }
+
+                // No Speciality means no restriction (matches FacultyEligibility everywhere else) --
+                // short-circuited here, before touching timetableGlobalAutoScheduleService, so a
+                // subject with no Speciality never needs the pool actually computed.
+                Subject subject = csc.getSubject();
+                boolean hasPool = subject.getSpeciality() == null
+                    || subjectHasFacultyPool.computeIfAbsent(subject.getId(),
+                        id -> timetableGlobalAutoScheduleService.hasEligibleFacultyPool(subject));
+                if (!hasPool) {
+                    subjectsWithoutFacultyPool.add(subject.getName());
+                    continue;
+                }
+
+                CourseOffering offering = new CourseOffering();
+                offering.setTermInstance(termInstance);
+                offering.setCurriculumVersion(cv);
+                offering.setSubject(subject);
+                offering.setSemesterNumber(csc.getSemesterNumber());
+                offering.setCurriculumSemesterCourse(csc);
+                offering.setIsActive(true);
+                courseOfferingRepository.save(offering);
+                count++;
             }
         }
         return new GenerateOfferingsResponse(
-            count, activeCohorts.size(), cohortsWithoutCurriculumVersion, cohortsWithoutTotalTerms, alreadyExisting);
+            count, activeCohorts.size(), cohortsWithoutCurriculumVersion, cohortsWithoutTotalTerms, alreadyExisting,
+            new ArrayList<>(subjectsWithoutFacultyPool));
     }
 
     /**
@@ -245,49 +253,6 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
         CourseOffering offering = courseOfferingRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + id));
         return toDto(offering);
-    }
-
-    /**
-     * Replaces this offering's admin-curated faculty pool wholesale. A pool member must already
-     * pass {@link FacultyEligibility#eligibleFaculty} (Speciality match OR the subject's Eligible
-     * Faculty list) — the pool only ever narrows that set further, never widens it. Removing anyone
-     * currently relied upon (holding any {@link CourseOfferingSectionFaculty} row for this
-     * offering, whole-cohort or per-section) is hard-blocked rather than silently orphaning their
-     * assignment — the admin must reassign that slot first.
-     */
-    @Override
-    @Transactional
-    public List<EligibleFacultyCandidateDto> updateFacultyPool(Long id, List<Long> facultyIds) {
-        CourseOffering offering = courseOfferingRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + id));
-
-        Set<Long> requestedIds = new java.util.LinkedHashSet<>(facultyIds);
-        List<Faculty> activeFaculty = facultyRepository.findByStatus(FacultyStatus.ACTIVE);
-        Map<Long, Faculty> activeById = activeFaculty.stream().collect(Collectors.toMap(Faculty::getId, f -> f));
-        Set<Long> eligibleIds = FacultyEligibility.eligibleFaculty(offering.getSubject(), activeFaculty).stream()
-            .map(Faculty::getId).collect(Collectors.toSet());
-        List<Long> ineligible = requestedIds.stream().filter(fid -> !eligibleIds.contains(fid)).toList();
-        if (!ineligible.isEmpty()) {
-            throw new IllegalArgumentException("Faculty id(s) " + ineligible + " are not eligible for this subject "
-                + "-- only Speciality match or the subject's Eligible Faculty list can be pooled");
-        }
-
-        Set<Long> currentPoolIds = offering.getFacultyPool().stream().map(Faculty::getId).collect(Collectors.toSet());
-        Set<Long> removedIds = currentPoolIds.stream().filter(fid -> !requestedIds.contains(fid)).collect(Collectors.toSet());
-        for (CourseOfferingSectionFaculty sf : courseOfferingSectionFacultyRepository.findByCourseOfferingId(id)) {
-            if (removedIds.contains(sf.getFaculty().getId())) {
-                String where = sf.getCohortSection() != null
-                    ? "section " + sf.getCohortSection().getSectionLabel()
-                    : sf.getCohort().getDisplayName();
-                throw new IllegalArgumentException("Can't remove " + sf.getFaculty().getFullName()
-                    + " -- they're currently assigned to " + where + "; reassign that first");
-            }
-        }
-
-        offering.setFacultyPool(requestedIds.stream().map(activeById::get).collect(Collectors.toSet()));
-        courseOfferingRepository.save(offering);
-
-        return timetableGlobalAutoScheduleService.getEligibleFacultyForOffering(id);
     }
 
     @Override
@@ -403,6 +368,7 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
             csc != null && csc.getElectiveGroup() != null ? csc.getElectiveGroup().getId() : null,
             csc != null && csc.getElectiveGroup() != null ? csc.getElectiveGroup().getGroupName() : null,
             csc != null && csc.getElectiveGroup() != null ? csc.getElectiveGroup().getSelectionMode() : null,
+            csc != null ? csc.getTheoryHours() : 0,
             csc != null ? csc.getLabHours() : 0,
             csc != null ? csc.getClinicalHours() : 0,
             o.getSubject().getClinicalSessionBlockPeriods(),
