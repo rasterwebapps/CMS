@@ -21,10 +21,6 @@ export class BatchService {
     });
   }
 
-  create(request: BatchRequest): Observable<Batch> {
-    return this.http.post<Batch>(this.baseUrl, request);
-  }
-
   update(id: number, request: BatchRequest): Observable<Batch> {
     return this.http.put<Batch>(`${this.baseUrl}/${id}`, request);
   }

@@ -38,23 +38,6 @@ public class BatchService {
     }
 
     @Transactional
-    public BatchDto createBatch(BatchRequest request) {
-        CourseOffering offering = courseOfferingRepository.findById(request.courseOfferingId())
-            .orElseThrow(() -> new ResourceNotFoundException(
-                "Course offering not found with id: " + request.courseOfferingId()));
-
-        if (batchRepository.existsByCourseOfferingIdAndName(offering.getId(), request.name())) {
-            throw new IllegalArgumentException(
-                "A batch named '" + request.name() + "' already exists for this course offering");
-        }
-
-        Batch batch = new Batch(offering, request.name(), request.capacity(), offering.getTermInstance());
-        applyCoordinator(batch, request.coordinatorFacultyId());
-
-        return toDto(batchRepository.save(batch));
-    }
-
-    @Transactional
     public BatchDto updateBatch(Long id, BatchRequest request) {
         Batch batch = getOrThrow(id);
 

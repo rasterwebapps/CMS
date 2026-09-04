@@ -17,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.BatchDto;
 import com.cms.dto.BatchRequest;
-import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Batch;
 import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
@@ -56,40 +55,6 @@ class BatchServiceTest {
         testOffering.setId(1L);
         testOffering.setSubject(new com.cms.model.Subject());
         testOffering.setTermInstance(termInstance);
-    }
-
-    @Test
-    void shouldCreateBatch() {
-        BatchRequest request = new BatchRequest(1L, "Batch A", 20, null);
-
-        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(testOffering));
-        when(batchRepository.existsByCourseOfferingIdAndName(1L, "Batch A")).thenReturn(false);
-        when(batchRepository.save(any(Batch.class))).thenAnswer(inv -> {
-            Batch b = inv.getArgument(0);
-            b.setId(1L);
-            return b;
-        });
-        when(batchRepository.countStudents(1L)).thenReturn(0L);
-
-        BatchDto dto = service.createBatch(request);
-
-        assertThat(dto.name()).isEqualTo("Batch A");
-        assertThat(dto.capacity()).isEqualTo(20);
-        assertThat(dto.enrolledCount()).isEqualTo(0);
-    }
-
-    @Test
-    void shouldRejectDuplicateBatchNameWithinSameOffering() {
-        BatchRequest request = new BatchRequest(1L, "Batch A", 20, null);
-
-        when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(testOffering));
-        when(batchRepository.existsByCourseOfferingIdAndName(1L, "Batch A")).thenReturn(true);
-
-        assertThatThrownBy(() -> service.createBatch(request))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("already exists");
-
-        verify(batchRepository, never()).save(any());
     }
 
     @Test
@@ -175,15 +140,5 @@ class BatchServiceTest {
         BatchDto dto = service.updateBatch(11L, request);
 
         assertThat(dto.coordinatorFacultyId()).isEqualTo(28L);
-    }
-
-    @Test
-    void shouldThrowWhenCourseOfferingNotFoundOnCreate() {
-        BatchRequest request = new BatchRequest(999L, "Batch A", 20, null);
-
-        when(courseOfferingRepository.findById(999L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> service.createBatch(request))
-            .isInstanceOf(ResourceNotFoundException.class);
     }
 }
