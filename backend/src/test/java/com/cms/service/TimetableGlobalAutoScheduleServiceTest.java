@@ -1412,6 +1412,88 @@ class TimetableGlobalAutoScheduleServiceTest {
             .containsExactly(500L);
     }
 
+    /** Builds an elective member offering (id 300, group 77) whose skeleton subject is flagged
+     *  elective, and stubs the two lookups {@link TimetableGlobalAutoScheduleService}'s elective
+     *  branch needs: the group-member list and this member's own {@code CourseOfferingSectionFaculty}
+     *  rows (returned as given, most tests below construct exactly two: one on an active section,
+     *  one on an inactive one). */
+    private CourseOffering electiveMemberWithRows(List<CourseOfferingSectionFaculty> rows) {
+        Subject subject = new Subject();
+        subject.setId(300L);
+        subject.setName("Elective: Human Values");
+
+        CurriculumSemesterCourse csc = new CurriculumSemesterCourse();
+        csc.setTheoryHours(10);
+        csc.setIsElective(true);
+
+        CourseOffering member = new CourseOffering();
+        member.setId(300L);
+        member.setSubject(subject);
+        member.setCurriculumSemesterCourse(csc);
+        member.setTermInstance(termInstance);
+        member.setIsActive(true);
+        when(courseOfferingRepository.findById(300L)).thenReturn(Optional.of(member));
+        lenient().when(timetableSkeletonService.isElectiveOffering(member)).thenReturn(true);
+        when(courseOfferingRepository.findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(10L, 77L))
+            .thenReturn(List.of(member));
+        when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(300L)).thenReturn(rows);
+
+        SkeletonSubjectResponse electiveSubject = new SkeletonSubjectResponse(300L, "Elective: Human Values",
+            "ELEC-I-HVAL", List.of(), 77L, "Group A");
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(
+            new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(electiveSubject), List.of(), List.of(), List.of(),
+                25, 0L, List.of(), false, List.of()));
+        return member;
+    }
+
+    private CourseOfferingSectionFaculty sectionFacultyRow(Long cohortSectionId, boolean sectionActive, Long facultyId) {
+        CohortSection section = new CohortSection();
+        section.setId(cohortSectionId);
+        section.setIsActive(sectionActive);
+        Faculty faculty = new Faculty();
+        faculty.setId(facultyId);
+        CourseOfferingSectionFaculty row = new CourseOfferingSectionFaculty();
+        row.setCohortSection(section);
+        row.setFaculty(faculty);
+        return row;
+    }
+
+    @Test
+    void checkPrerequisitesIgnoresStaleFacultyRowOnInactiveSection_forElectiveMember() {
+        // Regression: a cohort section-split reconfiguration deactivates a CohortSection but never
+        // deletes its old CourseOfferingSectionFaculty row. Before the fix, resolveElectiveMemberFacultyId
+        // counted that stale row too, so it permanently "disagreed" with the current active section's
+        // own (different) faculty and the offering could never resolve no matter what the admin picked.
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        electiveMemberWithRows(List.of(
+            sectionFacultyRow(51L, true, 30L),   // active section -- Meera Iyer, just assigned
+            sectionFacultyRow(41L, false, 26L))); // stale row on a now-inactive section -- Divya Krishnan
+
+        GlobalAutoSchedulePrerequisites result = service.checkPrerequisites(10L, null);
+
+        assertThat(result.offeringsWithoutFaculty()).isEmpty();
+    }
+
+    @Test
+    void checkPrerequisitesStillFlagsGenuineDisagreement_betweenTwoActiveSections_forElectiveMember() {
+        // The narrowing above must not swallow a real disagreement -- two *active* sections still
+        // pointing at two different faculty members is exactly the ambiguous case the method is
+        // meant to catch (see its own javadoc: "returns null rather than guessing which one wins").
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        electiveMemberWithRows(List.of(
+            sectionFacultyRow(51L, true, 30L),
+            sectionFacultyRow(52L, true, 26L)));
+
+        GlobalAutoSchedulePrerequisites result = service.checkPrerequisites(10L, null);
+
+        assertThat(result.offeringsWithoutFaculty()).hasSize(1);
+        assertThat(result.offeringsWithoutFaculty().get(0).courseOfferingId()).isEqualTo(300L);
+    }
+
     @Test
     void checkPrerequisitesExcludesEveryCohort_whenTermTimetableIsPublished_gapThereNeverBlocksTheChecklist() {
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))

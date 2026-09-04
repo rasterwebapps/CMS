@@ -304,8 +304,16 @@ public class CohortRoomAllocationService {
      *  ghost-cell bug this mirrors (both stem from {@link #revert} creating a new generation of
      *  {@link CohortSection} ids without anything downstream following along). Repeated
      *  revert/recommit cycles can leave several stale generations sharing the same label; only the
-     *  most-recently-updated orphaned row per course offering is revived -- the rest are harmless
-     *  dead rows nothing will ever query again. */
+     *  most-recently-updated orphaned row per course offering is revived. Every other orphaned row
+     *  for that offering (an already-superseded older generation) is deleted outright rather than
+     *  left behind "harmless" -- that assumption turned out false: {@code
+     *  TimetableGlobalAutoScheduleService#resolveElectiveMemberFacultyId} aggregates every row for
+     *  an elective offering and requires them to agree on one faculty, so a leftover dead-generation
+     *  row permanently looked like a disagreement and the offering could never resolve as assigned
+     *  again, no matter what the admin picked for the live section (fixed same day this delete was
+     *  added). Deleting at the source, the moment a row is confirmed superseded, stops the table
+     *  from silently accumulating dead rows every revert/recommit cycle instead of just papering
+     *  over the one consumer that happened to break. */
     private void migrateFacultyAssignmentsToNewSection(Long cohortId, String sectionLabel, CohortSection newSection) {
         List<CourseOfferingSectionFaculty> orphaned = courseOfferingSectionFacultyRepository
             .findByCohort_IdAndCohortSection_IsActiveFalseAndCohortSection_SectionLabel(cohortId, sectionLabel);
@@ -323,6 +331,12 @@ public class CohortRoomAllocationService {
         for (CourseOfferingSectionFaculty row : freshestByOffering.values()) {
             row.setCohortSection(newSection);
             courseOfferingSectionFacultyRepository.save(row);
+        }
+        List<CourseOfferingSectionFaculty> superseded = orphaned.stream()
+            .filter(row -> freshestByOffering.get(row.getCourseOffering().getId()) != row)
+            .toList();
+        if (!superseded.isEmpty()) {
+            courseOfferingSectionFacultyRepository.deleteAll(superseded);
         }
     }
 

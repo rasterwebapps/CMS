@@ -23,7 +23,8 @@
           @for (item of checklistItems(); track item.key) {
             <li class="gas-checklist__item" [class.gas-checklist__item--warn]="item.warn">
               <div class="gas-checklist__row">
-                <mat-checkbox [checked]="item.checked" [disabled]="!item.viewed" (change)="toggleChecklistItem(item.key)">
+                <mat-checkbox [checked]="item.checked" [disabled]="!item.viewed || (item.hardBlock && item.warn)"
+                  (change)="toggleChecklistItem(item.key)">
                   @if (item.warn) { <span class="gas-checklist__icon">⚠</span> } @else { <span class="gas-checklist__icon">✓</span> }
                   {{ item.label }}
                 </mat-checkbox>
@@ -32,6 +33,11 @@
                   {{ item.expanded ? '▾ Hide' : (item.viewed ? '▸ View again' : '▸ Open to review') }}
                 </button>
               </div>
+              @if (item.hardBlock && item.warn && item.viewed) {
+                <p class="field-hint gas-checklist__blocked-hint">
+                  This blocks Run until it's resolved — fix it above, then Re-check.
+                </p>
+              }
 
               @if (item.expanded) {
                 <div class="gas-checklist__detail">

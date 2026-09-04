@@ -395,6 +395,69 @@ class CohortRoomAllocationServiceTest {
     }
 
     @Test
+    void shouldDeleteOlderSupersededGenerations_whenMultipleOrphanedRowsExistForSameOffering() {
+        // Regression: repeated revert/recommit cycles used to leave every earlier orphaned
+        // generation behind as "harmless" dead rows -- they weren't (see
+        // TimetableGlobalAutoScheduleService#resolveElectiveMemberFacultyId, fixed the same day).
+        // Only the freshest orphaned row per offering should survive (carried forward onto the new
+        // section); every older one for the same offering must be deleted outright.
+        stubCohortAndTerm(60);
+        when(classroomRepository.findById(10L)).thenReturn(Optional.of(theoryClassroom));
+        when(allocationRepository.save(any(CohortRoomAllocation.class))).thenAnswer(inv -> {
+            CohortRoomAllocation a = inv.getArgument(0);
+            a.setId(100L);
+            return a;
+        });
+        when(cohortSectionRepository.save(any(CohortSection.class))).thenAnswer(inv -> {
+            CohortSection s = inv.getArgument(0);
+            s.setId(400L);
+            return s;
+        });
+        when(cohortSectionRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of());
+        when(batchRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of());
+
+        Faculty olderFaculty = new Faculty();
+        olderFaculty.setId(8L);
+        CohortSection olderSection = new CohortSection();
+        olderSection.setId(200L);
+        olderSection.setSectionLabel("Section 1");
+        olderSection.setIsActive(false);
+        CourseOfferingSectionFaculty olderRow = new CourseOfferingSectionFaculty();
+        olderRow.setCourseOffering(offering);
+        olderRow.setCohortSection(olderSection);
+        olderRow.setCohort(cohort);
+        olderRow.setFaculty(olderFaculty);
+        olderRow.setUpdatedAt(java.time.Instant.parse("2026-01-01T00:00:00Z"));
+
+        Faculty freshFaculty = new Faculty();
+        freshFaculty.setId(9L);
+        CohortSection freshSection = new CohortSection();
+        freshSection.setId(300L);
+        freshSection.setSectionLabel("Section 1");
+        freshSection.setIsActive(false);
+        CourseOfferingSectionFaculty freshRow = new CourseOfferingSectionFaculty();
+        freshRow.setCourseOffering(offering);
+        freshRow.setCohortSection(freshSection);
+        freshRow.setCohort(cohort);
+        freshRow.setFaculty(freshFaculty);
+        freshRow.setUpdatedAt(java.time.Instant.parse("2026-06-01T00:00:00Z"));
+
+        when(courseOfferingSectionFacultyRepository.findByCohort_IdAndCohortSection_IsActiveFalseAndCohortSection_SectionLabel(1L, "Section 1"))
+            .thenReturn(List.of(olderRow, freshRow));
+
+        CohortSectionRequest section = new CohortSectionRequest("Section 1", 10L, 60);
+        CohortRoomAllocationCommitRequest request =
+            new CohortRoomAllocationCommitRequest(1L, 1L, PlanningBasis.ENROLLED, List.of(section), List.of());
+
+        service.commit(request, "admin");
+
+        assertThat(freshRow.getCohortSection().getId()).isEqualTo(400L);
+        verify(courseOfferingSectionFacultyRepository).save(freshRow);
+        verify(courseOfferingSectionFacultyRepository, never()).save(olderRow);
+        verify(courseOfferingSectionFacultyRepository).deleteAll(List.of(olderRow));
+    }
+
+    @Test
     void shouldRejectCommitWhenTheoryClassroomAlreadyClaimedThisTerm() {
         stubCohortAndTerm(60);
         when(classroomRepository.findById(10L)).thenReturn(Optional.of(theoryClassroom));

@@ -112,6 +112,12 @@
   margin-right: 4px;
 }
 
+.gas-checklist__blocked-hint {
+  margin: 0 0 4px 32px;
+  color: var(--cms-warning);
+  font-size: var(--cms-text-xs);
+}
+
 .gas-checklist__row {
   display: flex;
   align-items: center;

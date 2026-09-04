@@ -2515,9 +2515,15 @@ public class TimetableGlobalAutoScheduleService {
      *  shared faculty if every row agrees on exactly one (including the common case of just one row);
      *  returns null (treated as unassigned) if they disagree, rather than guessing which one wins --
      *  a deliberately narrow exception to the per-cohort model, matching this class's existing
-     *  elective scope limits. */
+     *  elective scope limits. Rows tied to a now-inactive {@link CohortSection} are ignored --
+     *  reassigning a section's faculty never deletes the old row for a section that's since been
+     *  deactivated by a section-split reconfiguration, so counting it would make a stale assignment
+     *  permanently "disagree" with the current one and this offering could never resolve again no
+     *  matter what the admin picks (see Assign Faculty's own {@code getForOffering}, which already
+     *  scopes to {@code timetableSkeletonService.resolveActiveSections} for the same reason). */
     private Long resolveElectiveMemberFacultyId(CourseOffering member) {
         Set<Long> facultyIds = courseOfferingSectionFacultyRepository.findByCourseOfferingId(member.getId()).stream()
+            .filter(sf -> sf.getCohortSection() == null || Boolean.TRUE.equals(sf.getCohortSection().getIsActive()))
             .map(sf -> sf.getFaculty().getId())
             .collect(java.util.stream.Collectors.toSet());
         return facultyIds.size() == 1 ? facultyIds.iterator().next() : null;
