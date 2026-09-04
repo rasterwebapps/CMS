@@ -12,6 +12,7 @@ import { Faculty, FacultyQualification, FacultyScheduleWorkload, FacultyWorkload
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
 import { CourseOfferingEditDialogComponent } from '../../course-offering/course-offering-edit-dialog/course-offering-edit-dialog.component';
+import { TeachingAssignmentDialogComponent } from '../../assign-faculty/teaching-assignment-dialog/teaching-assignment-dialog.component';
 import { RaiseCapFlyoutComponent } from './raise-cap-flyout.component';
 import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/week-grid.model';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
@@ -176,19 +177,30 @@ export class FacultyDetailComponent implements OnInit {
     return this.permissionService.has('COURSE_MANAGE');
   }
 
-  /** Opens the exact same dialog Assign Faculty uses, in place — no navigation, no new tab.
-   *  Fetches the full offering first since the dialog needs the complete CourseOffering shape,
-   *  not just the id this workload row carries. */
+  /** Theory/whole-cohort-primary rows reassign via the exact same Assign Faculty dialog Assign
+   *  Faculty List uses, in place -- no navigation, no new tab. Lab/Clinical rows have no
+   *  CourseOfferingSectionFaculty row at all (Batch.coordinatorFaculty is a separate mechanism), so
+   *  they route to the same merged Assign Faculty dialog too (it covers batch coordinator rows),
+   *  same branch Capacity Planner's own onReassignContributor already uses. Fetches the full
+   *  offering first since either dialog needs the complete CourseOffering shape, not just the id
+   *  this workload row carries. */
   protected onReassign(assignment: FacultyWorkloadAssignment): void {
     this.academicYearService.getCourseOfferingById(assignment.courseOfferingId).subscribe({
       next: (offering) => {
-        this.dialog.open(CourseOfferingEditDialogComponent, {
-          data: { offering, suggestedFacultyId: null },
-          width: '640px',
-        }).afterClosed().subscribe(() => {
-          // Reload unconditionally -- every pick inside saves immediately regardless of how the
-          // dialog is dismissed (Close button, backdrop click, Escape), so there's no reliable
-          // "nothing changed" signal to gate on.
+        const ref = assignment.batchId != null
+          ? this.dialog.open(TeachingAssignmentDialogComponent, {
+            data: { offering, suggestedFacultyId: null },
+            width: '1100px',
+            maxWidth: '95vw',
+          })
+          : this.dialog.open(CourseOfferingEditDialogComponent, {
+            data: { offering, suggestedFacultyId: null },
+            width: '640px',
+          });
+        ref.afterClosed().subscribe(() => {
+          // Reload unconditionally -- every pick inside both dialogs saves immediately regardless
+          // of how the dialog is dismissed (Close button, backdrop click, Escape), so there's no
+          // reliable "nothing changed" signal to gate on.
           this.loadWorkload();
           this.loadScheduleWorkload();
         });

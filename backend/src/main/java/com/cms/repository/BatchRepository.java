@@ -22,9 +22,17 @@ public interface BatchRepository extends JpaRepository<Batch, Long> {
 
     boolean existsByCourseOfferingIdAndName(Long courseOfferingId, String name);
 
-    boolean existsByCourseOfferingIdAndNameIgnoreCase(Long courseOfferingId, String name);
+    boolean existsByCourseOfferingIdAndNameIgnoreCaseAndIsActiveTrue(Long courseOfferingId, String name);
 
-    boolean existsByCourseOfferingIdAndNameIgnoreCaseAndIdNot(Long courseOfferingId, String name, Long id);
+    boolean existsByCourseOfferingIdAndNameIgnoreCaseAndIdNotAndIsActiveTrue(Long courseOfferingId, String name, Long id);
+
+    /** Every past-generation, now-inactive batch this offering ever committed under this exact
+     *  name -- a recommit's reuse lookup takes the most-recently-updated of these (see {@code
+     *  CohortRoomAllocationService#reuseOrCreateBatch}) rather than always inserting a fresh row,
+     *  so student roster, coordinator faculty, Clinical Shift Group link, and every other table
+     *  keyed to a batch id (escort/rotation assignments, session occurrences) survive a revert +
+     *  recommit cycle instead of going orphaned against a dead id. */
+    List<Batch> findByCourseOfferingIdAndNameIgnoreCaseAndIsActiveFalse(Long courseOfferingId, String name);
 
     @Query("SELECT COUNT(s) FROM Batch b JOIN b.students s WHERE b.id = :batchId")
     long countStudents(@Param("batchId") Long batchId);

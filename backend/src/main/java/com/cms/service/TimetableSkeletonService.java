@@ -419,6 +419,26 @@ public class TimetableSkeletonService {
         int blockSize = CurriculumHoursCalculator.resolveBlockSize(subject, type);
         int required = CurriculumHoursCalculator.sessionsPerWeek(effectiveHours, weeksInTerm, periodDurationMinutes, blockSize);
 
+        // sessionsPerWeek guarantees at least 1 recurring session/WEEK for the whole term once its
+        // input is positive at all, which delivers periodDurationMinutes*blockSize*weeksInTerm
+        // hours total (e.g. a 4-period block x 26 weeks = 86.7h) -- correct for a subject's own real
+        // hours (a 3h subject still wants its normal weekly rhythm, even though 78h delivered for
+        // 3h owed is itself a known, accepted tradeoff of this recurring-slot model). But wrong here:
+        // effectiveHours is what's LEFT after creditClinicalShiftHours already credited most of the
+        // requirement off-grid (e.g. 4h left after a 6h/week shift covers 156 of a 160h Clinical
+        // requirement) -- that 4h isn't a real, separately-schedulable need, it's rounding noise from
+        // the shift's own weekly cadence not dividing the curriculum figure evenly. Forcing one
+        // recurring session to chase a residual smaller than what that ONE session alone delivers
+        // across the whole term is never worth it -- compare against the term-wide delivery, not one
+        // session's own length, or a residual just over one session's length (still wildly smaller
+        // than 26 weeks of it) would wrongly still commit. Only fires for a genuinely shift-credited
+        // row (effectiveHours < hours) -- a shift covering only a small fraction of a much larger
+        // requirement still needs the grid for its real remainder and is untouched.
+        if (required > 0 && effectiveHours < hours
+            && effectiveHours * 60.0 < periodDurationMinutes * blockSize * weeksInTerm) {
+            required = 0;
+        }
+
         // Counted in SESSIONS, not rows: a multi-period block is several ClassSchedule rows sharing
         // one sessionGroupId, and requiredSessionsPerWeek above is a session count -- comparing raw
         // row counts against it made a single placed 4-period Clinical block read as "4 of 6

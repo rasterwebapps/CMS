@@ -64,7 +64,7 @@ public class BatchService {
         requireCurrentVersion(batch.getVersion(), request.version(), batch.getName());
 
         if (!batch.getName().equalsIgnoreCase(request.name())
-                && batchRepository.existsByCourseOfferingIdAndNameIgnoreCase(batch.getCourseOffering().getId(), request.name())) {
+                && batchRepository.existsByCourseOfferingIdAndNameIgnoreCaseAndIsActiveTrue(batch.getCourseOffering().getId(), request.name())) {
             throw new IllegalArgumentException(
                 "A batch named '" + request.name() + "' already exists for this course offering");
         }
@@ -86,13 +86,22 @@ public class BatchService {
         }
     }
 
+    /** Scoped to active batches only -- a Capacity Auto-Plan recommit deactivates rather than
+     *  deletes the batches it replaces (see the recommit-leaves-stale-rows pattern elsewhere in
+     *  this codebase, e.g. ClinicalShiftGroup/CourseOfferingSectionFaculty), so an offering that's
+     *  been recommitted even once accumulates inactive rows with the exact names the still-active
+     *  batches keep reusing (Capacity Auto-Plan always regenerates the same "Lab - Section N -
+     *  Batch N" scheme). Without this filter, every such offering's own unchanged batch name
+     *  collides with its own stale history and permanently fails uniqueness -- silently, since the
+     *  async check runs on load before the field is ever touched, so its error never renders; it
+     *  just leaves Save Changes inexplicably disabled. */
     public boolean nameExists(String name, Long courseOfferingId, Long excludeId) {
         String trimmed = name == null ? "" : name.trim();
         if (courseOfferingId == null || trimmed.isEmpty()) return false;
         if (excludeId != null) {
-            return batchRepository.existsByCourseOfferingIdAndNameIgnoreCaseAndIdNot(courseOfferingId, trimmed, excludeId);
+            return batchRepository.existsByCourseOfferingIdAndNameIgnoreCaseAndIdNotAndIsActiveTrue(courseOfferingId, trimmed, excludeId);
         }
-        return batchRepository.existsByCourseOfferingIdAndNameIgnoreCase(courseOfferingId, trimmed);
+        return batchRepository.existsByCourseOfferingIdAndNameIgnoreCaseAndIsActiveTrue(courseOfferingId, trimmed);
     }
 
     /** A genuine DELETE, not a soft-flag flip -- hard-blocked whenever anything is still attached

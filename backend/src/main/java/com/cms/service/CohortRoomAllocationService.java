@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -216,17 +217,20 @@ public class CohortRoomAllocationService {
 
         Map<String, CohortSection> sectionsByLabel = new HashMap<>();
         for (CohortSectionRequest sectionRequest : request.sections()) {
-            CohortSection section = new CohortSection(allocation, term, sectionRequest.sectionLabel(),
-                classroomsByLabel.get(sectionRequest.sectionLabel()), sectionRequest.plannedSize());
+            Classroom classroom = classroomsByLabel.get(sectionRequest.sectionLabel());
+            CohortSection section;
             try {
-                section = cohortSectionRepository.save(section);
+                section = reuseOrCreateSection(allocation, cohort, term, sectionRequest, classroom);
             } catch (DataIntegrityViolationException e) {
                 throw new LifecycleConflictException(
-                    "Classroom '" + section.getClassroom().getName() + "' is already claimed by another cohort's "
+                    "Classroom '" + classroom.getName() + "' is already claimed by another cohort's "
                         + "section for this term — revert that allocation first or pick a different classroom.",
                     "COHORT_ROOM_ALLOCATION_CONFLICT", "CohortSection", null, null);
             }
             sectionsByLabel.put(sectionRequest.sectionLabel(), section);
+            // Defense-in-depth only now that reuse (above) keeps the same section id across a
+            // recommit -- real for a section this cohort/label never reused before this fix
+            // shipped (an already-orphaned pre-existing generation), a no-op every other time.
             migrateFacultyAssignmentsToNewSection(cohort.getId(), sectionRequest.sectionLabel(), section);
         }
 
@@ -295,6 +299,38 @@ public class CohortRoomAllocationService {
         }
 
         return toResponse(allocation);
+    }
+
+    /** Reactivates and updates the most-recently-deactivated section this cohort+term ever
+     *  committed under this exact label, instead of always inserting a fresh {@link CohortSection}
+     *  row -- the root fix for the whole family of "recommit orphans satellite data" bugs this
+     *  class used to only patch one table at a time ({@link #migrateFacultyAssignmentsToNewSection}
+     *  for {@link CourseOfferingSectionFaculty}, the Clinical Shift Group link, student rosters,
+     *  Escort/Rotation assignments, Session Occurrences — every one of those keys off a {@code
+     *  Batch}/{@link CohortSection} id, so reusing the same id across a revert+recommit cycle
+     *  closes all of them at once instead of one bespoke migration per table). Only the single
+     *  freshest match is reused; any older, already-superseded generations are left alone (never
+     *  deleted -- they may still carry real {@code class_schedules}/roster history worth keeping,
+     *  unlike the leaf-level {@code CourseOfferingSectionFaculty} rows {@link
+     *  #migrateFacultyAssignmentsToNewSection} deletes). No match (this cohort/label's first-ever
+     *  commit) falls back to a plain insert, unchanged from before. */
+    private CohortSection reuseOrCreateSection(CohortRoomAllocation allocation, Cohort cohort, TermInstance term,
+                                                CohortSectionRequest sectionRequest, Classroom classroom) {
+        CohortSection section = cohortSectionRepository
+            .findByCohortRoomAllocation_Cohort_IdAndTermInstance_IdAndSectionLabelAndIsActiveFalse(
+                cohort.getId(), term.getId(), sectionRequest.sectionLabel())
+            .stream()
+            .max(Comparator.comparing(CohortSection::getUpdatedAt, Comparator.nullsFirst(Comparator.naturalOrder())))
+            .orElse(null);
+        if (section == null) {
+            section = new CohortSection(allocation, term, sectionRequest.sectionLabel(), classroom, sectionRequest.plannedSize());
+        } else {
+            section.setCohortRoomAllocation(allocation);
+            section.setClassroom(classroom);
+            section.setPlannedSize(sectionRequest.plannedSize());
+            section.setIsActive(true);
+        }
+        return cohortSectionRepository.save(section);
     }
 
     /** Carries forward existing per-section faculty assignments (Assign Faculty) onto a freshly
@@ -379,12 +415,35 @@ public class CohortRoomAllocationService {
         CourseOffering offering = courseOfferingRepository.findById(split.courseOfferingId())
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + split.courseOfferingId()));
 
-        Batch batch = new Batch(offering, split.batchName(), split.plannedSize(), offering.getTermInstance());
+        // Reactivates and updates the most-recently-deactivated batch this offering ever committed
+        // under this exact name, instead of always inserting a fresh row -- see
+        // reuseOrCreateSection's javadoc for why this is the root fix rather than another
+        // bespoke per-table migration. Capacity Auto-Plan always regenerates the same "Lab -
+        // Section N - Batch N" naming scheme for an unchanged split, so this is the common case on
+        // any recommit that didn't actually restructure the batch layout; a genuinely new/renamed
+        // batch (no name match) falls back to a plain insert, unchanged from before.
+        Batch batch = batchRepository.findByCourseOfferingIdAndNameIgnoreCaseAndIsActiveFalse(offering.getId(), split.batchName())
+            .stream()
+            .max(Comparator.comparing(Batch::getUpdatedAt, Comparator.nullsFirst(Comparator.naturalOrder())))
+            .orElse(null);
+        if (batch == null) {
+            batch = new Batch(offering, split.batchName(), split.plannedSize(), offering.getTermInstance());
+        } else {
+            batch.setName(split.batchName());
+            batch.setCapacity(split.plannedSize());
+            batch.setIsActive(true);
+        }
         batch.setCohortRoomAllocation(allocation);
         batch.setCohortSection(section);
         switch (split.sessionType()) {
-            case LAB -> batch.setLab(labRepository.getReferenceById(split.venueId()));
-            case CLINICAL -> batch.setClinicalVenue(clinicalVenueRepository.getReferenceById(split.venueId()));
+            case LAB -> {
+                batch.setLab(labRepository.getReferenceById(split.venueId()));
+                batch.setClinicalVenue(null);
+            }
+            case CLINICAL -> {
+                batch.setClinicalVenue(clinicalVenueRepository.getReferenceById(split.venueId()));
+                batch.setLab(null);
+            }
             case THEORY, LIBRARY -> throw new IllegalArgumentException(
                 "Venture splits are for LAB/CLINICAL batches only — Theory sections are committed via the "
                     + "'sections' field.");

@@ -996,6 +996,13 @@ app-root {
     outline: 2px solid var(--cms-primary);
     outline-offset: 2px;
   }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
 }
 
 // ── Ghost Button ─────────────────────────────────

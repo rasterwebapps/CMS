@@ -15,7 +15,7 @@ import { CohortRoomAllocationService } from '../capacity-planner/cohort-room-all
 import { CapacityPlannerService } from '../capacity-planner/capacity-planner.service';
 import { FacultyWorkloadOverviewReport } from '../capacity-planner/capacity-planner.model';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
-import { CourseOfferingEditDialogComponent } from '../../course-offering/course-offering-edit-dialog/course-offering-edit-dialog.component';
+import { TeachingAssignmentDialogComponent, TeachingAssignmentDialogData } from '../../assign-faculty/teaching-assignment-dialog/teaching-assignment-dialog.component';
 import { FacultyOverCapacity, FacultyTightCapacity, GlobalAutoSchedulePrerequisites, GlobalAutoScheduleResult, VenueCapacityGap, VenueOverCapacity, VenueTightCapacity } from './skeleton-builder.model';
 import { WorkingSaturdaysFlyoutComponent } from './working-saturdays-flyout.component';
 import { SpecialClassRequestFlyoutComponent } from '../special-classes/special-class-request-flyout/special-class-request-flyout.component';
@@ -498,19 +498,25 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
     this.step.set('checklist');
   }
 
-  /** Opens the same Assign Faculty dialog Faculty Detail/Capacity Planner/Assign Faculty List all
-   *  already use, in place — no navigation, no new tab, nothing to "come back" from. Was previously
-   *  a routerLink deep link to the standalone /assign-faculty screen (target=_blank, same pattern
-   *  the room/workload links above still use) — that worked fine for one offering, but a real run
-   *  can flag a dozen-plus offerings at once, and clicking through a new tab per offering just to
+  /** Opens the same merged Theory+Coordinator Assign Faculty dialog Assign Faculty List uses, in
+   *  place — no navigation, no new tab, nothing to "come back" from. Was previously a routerLink
+   *  deep link to the standalone /assign-faculty screen (target=_blank, same pattern the
+   *  room/workload links above still use) — that worked fine for one offering, but a real run can
+   *  flag a dozen-plus offerings at once, and clicking through a new tab per offering just to
    *  assign each one doesn't scale. This lets the admin work through every offering on this list
-   *  one after another without ever leaving the flyout. */
+   *  one after another without ever leaving the flyout. Must be the merged dialog, not the
+   *  Theory-only CourseOfferingEditDialogComponent it used before the OC-193 merge -- this
+   *  checklist's own gate counts each active Lab/Clinical batch's coordinator as part of "expected"
+   *  (see CourseOfferingSectionFacultyService#getAssignmentSummaryForTermInstance), so a
+   *  Theory-only dialog could never clear an offering that also needs a coordinator assigned. */
   protected onAssignFaculty(courseOfferingId: number): void {
     this.academicYearService.getCourseOfferingById(courseOfferingId).subscribe({
       next: (offering) => {
-        this.dialog.open(CourseOfferingEditDialogComponent, {
-          data: { offering, suggestedFacultyId: null },
-          width: '640px',
+        const data: TeachingAssignmentDialogData = { offering, suggestedFacultyId: null };
+        this.dialog.open(TeachingAssignmentDialogComponent, {
+          data,
+          width: '1100px',
+          maxWidth: '95vw',
         }).afterClosed().subscribe(() => this.refreshFacultyPrerequisite());
       },
       error: () => this.toast.error('Failed to load offering details'),
