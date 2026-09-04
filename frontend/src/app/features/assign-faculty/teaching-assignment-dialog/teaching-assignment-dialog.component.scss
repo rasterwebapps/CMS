@@ -1,0 +1,260 @@
+// ── Dialog title bar ─────────────────────────────────────────
+.tad-dialog-title-bar {
+  display: flex !important;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px 16px !important;
+  margin: 0 !important;
+  border-bottom: 1px solid var(--cms-border-default);
+}
+
+.tad-dialog-title-bar__icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--cms-radius-md);
+  background: var(--cms-primary-light);
+  border: 1px solid var(--cms-primary-alpha-30);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 1.25rem;
+    width: 20px;
+    height: 20px;
+    color: var(--cms-primary);
+  }
+}
+
+.tad-dialog-title-bar__heading {
+  font-size: var(--cms-text-md);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.tad-dialog-title-bar__sub {
+  font-size: var(--cms-text-base);
+  color: var(--cms-text-secondary);
+  margin: 2px 0 0;
+  font-weight: 400;
+}
+
+// ── Dialog content ────────────────────────────────────────────
+mat-dialog-content {
+  padding: 20px 24px 0 !important;
+}
+
+.tad-prefill-banner {
+  margin: 0 0 20px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-primary-alpha-30);
+  background: var(--cms-primary-light);
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-primary);
+  line-height: 1.4;
+}
+
+// ── Eligible-faculty candidate list (Faculty Pool step) ────────
+.tad-candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.tad-candidate-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  cursor: pointer;
+
+  &:has(input:checked) {
+    border-color: var(--cms-primary);
+    background: var(--cms-primary-light);
+  }
+
+  &:has(input:disabled) {
+    cursor: default;
+    opacity: 0.7;
+  }
+
+  input[type='checkbox'] {
+    flex-shrink: 0;
+    accent-color: var(--cms-primary);
+  }
+}
+
+.tad-save-pool-btn {
+  align-self: flex-start;
+  margin-top: 10px;
+}
+
+.tad-candidate-row__name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tad-candidate-row__badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--cms-badge-blue-bg);
+  color: var(--cms-badge-blue-text);
+
+  &--eligible-list {
+    background: var(--cms-badge-violet-bg);
+    color: var(--cms-badge-violet-text);
+  }
+
+  &--grandfathered {
+    background: var(--cms-badge-gray-bg);
+    color: var(--cms-badge-gray-text);
+  }
+}
+
+.tad-candidate-row__hours {
+  flex-shrink: 0;
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  color: var(--cms-success);
+  min-width: 70px;
+  text-align: right;
+
+  &--over {
+    color: var(--cms-danger);
+  }
+}
+
+// ── Teaching-unit table (Theory + Lab/Clinical coordinator) ────
+.tad-units {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+  margin-bottom: 20px;
+
+  .field-hint {
+    margin: 2px 0 10px;
+  }
+}
+
+.tad-table-wrapper {
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 10px;
+}
+
+.tad-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    text-align: left;
+    font-size: var(--cms-text-xs);
+    font-weight: 700;
+    color: var(--cms-text-secondary);
+    background: var(--cms-bg-subtle);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--cms-border-default);
+  }
+
+  td {
+    padding: 8px 12px;
+    font-size: var(--cms-text-xs);
+    color: var(--cms-text-primary);
+    vertical-align: middle;
+    box-shadow: inset 0 -1px 0 var(--cms-border-default);
+  }
+
+  tr:last-child td {
+    box-shadow: none;
+  }
+}
+
+.tad-unit-cell {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tad-faculty-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .field-select {
+    flex: 1;
+    min-width: 220px;
+  }
+
+  .field-hint {
+    margin: 4px 0 0;
+    flex-basis: 100%;
+  }
+}
+
+.tad-empty-cell {
+  text-align: center;
+  color: var(--cms-text-secondary);
+  font-style: italic;
+  padding: 16px 12px;
+}
+
+.tad-group-header {
+  td {
+    padding: 6px 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    border-left: 3px solid var(--cms-badge-blue-text);
+    background: var(--cms-badge-blue-bg);
+    color: var(--cms-badge-blue-text);
+  }
+
+  &--lab td {
+    border-left-color: var(--cms-badge-violet-text);
+    background: var(--cms-badge-violet-bg);
+    color: var(--cms-badge-violet-text);
+  }
+
+  &--clinical td {
+    border-left-color: var(--cms-badge-amber-text);
+    background: var(--cms-badge-amber-bg);
+    color: var(--cms-badge-amber-text);
+  }
+}
+
+.tad-group-header__count {
+  margin-left: 6px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+// ── Dialog actions ────────────────────────────────────────────
+mat-dialog-actions {
+  padding: 12px 24px 20px !important;
+  gap: 8px;
+  border-top: 1px solid var(--cms-border-default);
+  margin: 0 !important;
+}

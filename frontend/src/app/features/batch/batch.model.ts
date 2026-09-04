@@ -12,6 +12,8 @@ export interface Batch {
   clinicalVenueId: number | null;
   clinicalVenueName: string | null;
   clinicalShiftGroupId: number | null;
+  cohortSectionId: number | null;
+  sectionLabel: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

@@ -1,10 +1,10 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { CourseOffering, EligibleFacultyCandidate } from '../../academic-year/academic-year.model';
+import { CourseOffering } from '../../academic-year/academic-year.model';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { Batch, BatchRequest, BatchStudent } from '../../batch/batch.model';
 import { BatchService } from '../../batch/batch.service';
@@ -32,28 +32,39 @@ export class BatchManageDialogComponent {
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly batches = signal<Batch[]>([]);
+
+  /** Groups by the batch's real `cohortSectionId`/`sectionLabel` (Capacity Auto-Plan always sets
+   *  this — see the Batch creation hard gate) rather than parsing it out of the batch name, which
+   *  is only a display convention. A batch with no section (shouldn't happen post-gate, but covers
+   *  any pre-gate leftover) falls into a trailing "Other" bucket instead of being dropped. Section
+   *  order follows first appearance, numerically-sorted ("Section 2" before "Section 10"). */
+  protected readonly groupedBatches = computed<{ label: string; batches: Batch[] }[]>(() => {
+    const groups = new Map<string, Batch[]>();
+    for (const batch of this.batches()) {
+      const label = batch.sectionLabel ?? 'Other';
+      (groups.get(label) ?? groups.set(label, []).get(label)!).push(batch);
+    }
+    return [...groups.entries()]
+      .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+      .map(([label, batches]) => ({ label, batches }));
+  });
   protected readonly registeredStudents = signal<{ studentId: number; studentName: string }[]>([]);
   protected readonly editingBatchId = signal<number | null>(null);
   protected readonly showForm = signal(false);
   protected readonly expandedBatchId = signal<number | null>(null);
   protected readonly roster = signal<BatchStudent[]>([]);
   protected readonly rosterLoading = signal(false);
-  /** OC-183: coordinator picker now offers the offering's real eligible-faculty pool (same
-   *  source the Assign Faculty screen uses, subject-speciality filtered) rather than the flat
-   *  all-faculty list. One faculty coordinating multiple batches is fine — the backend only
-   *  blocks a genuine same-time double-booking once schedules are actually placed. */
-  protected readonly eligibleFaculty = signal<EligibleFacultyCandidate[]>([]);
 
-  /** Edit-only (OC-191) -- name/capacity/coordinator for a batch Capacity Auto-Plan already
-   *  created with a real Lab/Clinical venue attached. Manual batch *creation* was removed: it
-   *  produced a permanently venue-less batch (no UI path ever attaches one after the fact), which
-   *  the auto-scheduler can't tell is meant to be Lab or Clinical and can never assign a real room
-   *  to -- a scheduling dead end. Batches must originate from committing a room allocation in
-   *  Capacity Auto-Plan. */
+  /** Edit-only (OC-191) -- name/capacity for a batch Capacity Auto-Plan already created with a
+   *  real Lab/Clinical venue attached. Manual batch *creation* was removed: it produced a
+   *  permanently venue-less batch (no UI path ever attaches one after the fact), which the
+   *  auto-scheduler can't tell is meant to be Lab or Clinical and can never assign a real room to
+   *  -- a scheduling dead end. Batches must originate from committing a room allocation in
+   *  Capacity Auto-Plan. Coordinator assignment moved to the Assign Faculty dialog -- kept out of
+   *  this form so there's only one place that writes Batch.coordinatorFaculty. */
   protected readonly form: FormGroup = this.fb.group({
     name: ['', Validators.required],
     capacity: [20, [Validators.required, Validators.min(1)]],
-    coordinatorFacultyId: [null],
   });
 
   constructor() {
@@ -62,10 +73,6 @@ export class BatchManageDialogComponent {
       next: (regs) => this.registeredStudents.set(
         regs.map((r) => ({ studentId: r.studentId, studentName: r.studentName }))),
       error: () => this.registeredStudents.set([]),
-    });
-    this.academicYearService.getEligibleFaculty(this.data.offering.id).subscribe({
-      next: (candidates) => this.eligibleFaculty.set(candidates),
-      error: () => this.eligibleFaculty.set([]),
     });
   }
 
@@ -77,12 +84,16 @@ export class BatchManageDialogComponent {
     });
   }
 
+  /** Preserved separately from the form -- this dialog no longer edits it, but the save still has
+   *  to resend the batch's current value since updateBatch is a full replace. */
+  private editingCoordinatorFacultyId: number | null = null;
+
   protected startEdit(batch: Batch): void {
     this.editingBatchId.set(batch.id);
+    this.editingCoordinatorFacultyId = batch.coordinatorFacultyId;
     this.form.reset({
       name: batch.name,
       capacity: batch.capacity,
-      coordinatorFacultyId: batch.coordinatorFacultyId,
     });
     this.showForm.set(true);
   }
@@ -100,7 +111,7 @@ export class BatchManageDialogComponent {
       courseOfferingId: this.data.offering.id,
       name: v.name.trim(),
       capacity: v.capacity,
-      coordinatorFacultyId: v.coordinatorFacultyId ?? null,
+      coordinatorFacultyId: this.editingCoordinatorFacultyId,
     };
     this.saving.set(true);
     this.batchService.update(editingId, request).subscribe({

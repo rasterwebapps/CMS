@@ -21,15 +21,15 @@ import { ToastService } from '../../core/toast/toast.service';
 import { TourService } from '../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
 import { ASSIGN_FACULTY_TOUR, ASSIGN_FACULTY_FLOW_MAP } from '../../shared/tour/tours/assign-faculty.tours';
-import {
-  CourseOfferingEditDialogComponent,
-  CourseOfferingEditDialogData,
-  FacultyOption,
-} from '../course-offering/course-offering-edit-dialog/course-offering-edit-dialog.component';
+import { FacultyOption } from '../course-offering/course-offering-edit-dialog/course-offering-edit-dialog.component';
 import {
   BatchManageDialogComponent,
   BatchManageDialogData,
 } from '../course-offering/batch-manage-dialog/batch-manage-dialog.component';
+import {
+  TeachingAssignmentDialogComponent,
+  TeachingAssignmentDialogData,
+} from './teaching-assignment-dialog/teaching-assignment-dialog.component';
 import {
   ClassInchargeDialogComponent,
   ClassInchargeDialogData,
@@ -43,9 +43,10 @@ import {
  * Deliberately separate from Course Offerings: generating/deactivating/batching an offering is a
  * structural/lifecycle concern, while deciding WHO teaches it is a staffing concern that happens
  * later — after Generate Offerings and after Elective Assignment tells you which elective options
- * actually have real enrolled students. Same underlying data and dialog (CourseOfferingEditDialogComponent,
- * COURSE_MANAGE permission, live capacity check, Section Faculty) as when this lived inside the
- * Course Offerings screen — only the entry point moved.
+ * actually have real enrolled students. "Assign Faculty" opens TeachingAssignmentDialogComponent,
+ * covering both Theory (Section Faculty) and Lab/Clinical batch coordinator assignment in one
+ * dialog — previously two separate buttons/dialogs, which meant coordinators routinely went
+ * unassigned since that half lived behind the less-visible "Manage Batches" button.
  */
 @Component({
   selector: 'app-assign-faculty-list',
@@ -135,6 +136,15 @@ export class AssignFacultyListComponent implements OnInit {
    *  403s on every action inside the dialog. */
   protected canManageBatches(): boolean {
     return this.permissionService.has('BATCH_MANAGE');
+  }
+
+  /** Assign Faculty now covers Theory AND Lab/Clinical coordinator assignment in one dialog (was
+   *  two separate buttons/dialogs -- coordinators went unassigned because that half lived behind
+   *  "Manage Batches" and admins never opened it). Shown if the user holds either permission; the
+   *  dialog itself greys out whichever half they lack, same pattern as everywhere else two
+   *  differently-permissioned actions share one surface. */
+  protected canAssignFaculty(): boolean {
+    return this.canManage() || this.canManageBatches();
   }
 
   protected canViewClassIncharge(): boolean {
@@ -229,11 +239,11 @@ export class AssignFacultyListComponent implements OnInit {
   }
 
   protected assignFaculty(row: CourseOffering, suggestedFacultyId: number | null = null): void {
-    const data: CourseOfferingEditDialogData = {
+    const data: TeachingAssignmentDialogData = {
       offering: row,
       suggestedFacultyId,
     };
-    this.dialog.open(CourseOfferingEditDialogComponent, { data, width: '640px' })
+    this.dialog.open(TeachingAssignmentDialogComponent, { data, width: '760px' })
       .afterClosed().subscribe(() => {
         // Reload unconditionally, not just when the dialog reports a change -- every pick inside
         // saves immediately regardless of how the dialog is dismissed (Close button, backdrop
@@ -243,8 +253,9 @@ export class AssignFacultyListComponent implements OnInit {
   }
 
   /** Moved here from Course Offerings: creating batches (name/venue/headcount) happens in
-   *  Capacity Planner as part of committing a room allocation, but assigning a batch's
-   *  coordinator faculty and its student roster is a staffing concern, not a structural one. */
+   *  Capacity Planner as part of committing a room allocation. Coordinator assignment now lives
+   *  in the Assign Faculty dialog above -- this stays for the rest of batch admin (rename,
+   *  recapacity, student roster, deactivate). */
   protected manageBatches(row: CourseOffering): void {
     const data: BatchManageDialogData = { offering: row };
     this.dialog.open(BatchManageDialogComponent, { data, width: '560px' });

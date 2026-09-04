@@ -10,6 +10,7 @@ import com.cms.dto.BatchRequest;
 import com.cms.dto.BatchStudentDto;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Batch;
+import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
 import com.cms.model.Faculty;
 import com.cms.model.Student;
@@ -154,6 +155,7 @@ public class BatchService {
 
     private BatchDto toDto(Batch b) {
         Faculty coordinator = b.getCoordinatorFaculty();
+        CohortSection section = b.getCohortSection();
         return new BatchDto(
             b.getId(),
             b.getCourseOffering().getId(),
@@ -168,6 +170,8 @@ public class BatchService {
             b.getClinicalVenue() != null ? b.getClinicalVenue().getId() : null,
             b.getClinicalVenue() != null ? b.getClinicalVenue().getName() : null,
             b.getClinicalShiftGroup() != null ? b.getClinicalShiftGroup().getId() : null,
+            section != null ? section.getId() : null,
+            section != null ? section.getSectionLabel() : null,
             b.getIsActive(),
             b.getCreatedAt(),
             b.getUpdatedAt()

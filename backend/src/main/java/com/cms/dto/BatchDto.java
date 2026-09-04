@@ -16,6 +16,8 @@ public record BatchDto(
     Long clinicalVenueId,
     String clinicalVenueName,
     Long clinicalShiftGroupId,
+    Long cohortSectionId,
+    String sectionLabel,
     Boolean isActive,
     Instant createdAt,
     Instant updatedAt

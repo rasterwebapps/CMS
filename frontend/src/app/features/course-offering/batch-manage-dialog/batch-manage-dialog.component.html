@@ -22,57 +22,60 @@
         cohort there, then come back here to assign a coordinator or manage rosters.
       </p>
     } @else {
-      <ul class="bmd-batch-list">
-        @for (batch of batches(); track batch.id) {
-          <li class="bmd-batch-item">
-            <div class="bmd-batch-item__row">
-              <div class="bmd-batch-item__info">
-                <span class="bmd-batch-item__name">{{ batch.name }}</span>
-                <span class="bmd-batch-item__capacity"
-                  [class.bmd-batch-item__capacity--full]="batch.enrolledCount >= batch.capacity">
-                  {{ batch.enrolledCount }} / {{ batch.capacity }}
-                </span>
-                @if (batch.coordinatorFacultyName) {
-                  <span class="bmd-batch-item__coordinator">Coordinator: {{ batch.coordinatorFacultyName }}</span>
-                } @else {
-                  <span class="bmd-batch-item__coordinator-warning" matTooltip="Assign a batch coordinator so someone is accountable for this batch's lab/clinical sessions">
-                    <mat-icon>warning</mat-icon> No coordinator assigned
+      @for (group of groupedBatches(); track group.label) {
+        <h3 class="bmd-section-heading">{{ group.label }}</h3>
+        <ul class="bmd-batch-list">
+          @for (batch of group.batches; track batch.id) {
+            <li class="bmd-batch-item">
+              <div class="bmd-batch-item__row">
+                <div class="bmd-batch-item__info">
+                  <span class="bmd-batch-item__name">{{ batch.name }}</span>
+                  <span class="bmd-batch-item__capacity"
+                    [class.bmd-batch-item__capacity--full]="batch.enrolledCount >= batch.capacity">
+                    {{ batch.enrolledCount }} / {{ batch.capacity }}
                   </span>
-                }
+                  @if (batch.coordinatorFacultyName) {
+                    <span class="bmd-batch-item__coordinator">Coordinator: {{ batch.coordinatorFacultyName }}</span>
+                  } @else {
+                    <span class="bmd-batch-item__coordinator-warning" matTooltip="Assign a coordinator from the Assign Faculty dialog so someone is accountable for this batch's lab/clinical sessions">
+                      <mat-icon>warning</mat-icon> No coordinator assigned
+                    </span>
+                  }
+                </div>
+                <div class="bmd-batch-item__actions">
+                  <button class="btn-secondary" type="button" (click)="toggleRoster(batch)">
+                    {{ expandedBatchId() === batch.id ? 'Hide Roster' : 'Roster' }}
+                  </button>
+                  <button class="btn-secondary" type="button" (click)="startEdit(batch)">Edit</button>
+                  <button class="btn-secondary" type="button" (click)="deactivate(batch)">Deactivate</button>
+                </div>
               </div>
-              <div class="bmd-batch-item__actions">
-                <button class="btn-secondary" type="button" (click)="toggleRoster(batch)">
-                  {{ expandedBatchId() === batch.id ? 'Hide Roster' : 'Roster' }}
-                </button>
-                <button class="btn-secondary" type="button" (click)="startEdit(batch)">Edit</button>
-                <button class="btn-secondary" type="button" (click)="deactivate(batch)">Deactivate</button>
-              </div>
-            </div>
 
-            @if (expandedBatchId() === batch.id) {
-              <div class="bmd-roster">
-                @if (rosterLoading()) {
-                  <mat-spinner diameter="20"></mat-spinner>
-                } @else if (registeredStudents().length === 0) {
-                  <p class="bmd-empty">No students registered for this offering yet.</p>
-                } @else {
-                  <ul class="bmd-roster-list">
-                    @for (student of registeredStudents(); track student.studentId) {
-                      <li class="bmd-roster-item">
-                        <label class="bmd-roster-item__label">
-                          <input type="checkbox" [checked]="isInRoster(student.studentId)"
-                            (change)="toggleStudent(batch, student.studentId)" />
-                          {{ student.studentName }}
-                        </label>
-                      </li>
-                    }
-                  </ul>
-                }
-              </div>
-            }
-          </li>
-        }
-      </ul>
+              @if (expandedBatchId() === batch.id) {
+                <div class="bmd-roster">
+                  @if (rosterLoading()) {
+                    <mat-spinner diameter="20"></mat-spinner>
+                  } @else if (registeredStudents().length === 0) {
+                    <p class="bmd-empty">No students registered for this offering yet.</p>
+                  } @else {
+                    <ul class="bmd-roster-list">
+                      @for (student of registeredStudents(); track student.studentId) {
+                        <li class="bmd-roster-item">
+                          <label class="bmd-roster-item__label">
+                            <input type="checkbox" [checked]="isInRoster(student.studentId)"
+                              (change)="toggleStudent(batch, student.studentId)" />
+                            {{ student.studentName }}
+                          </label>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
     }
 
     @if (showForm()) {
@@ -85,21 +88,10 @@
           <label for="bmd-capacity" class="field-label">Capacity</label>
           <input id="bmd-capacity" type="number" class="field-input field-input--narrow" formControlName="capacity" min="1" />
         </div>
-        <div class="field-group">
-          <label for="bmd-coordinator" class="field-label">Batch Coordinator</label>
-          <select id="bmd-coordinator" class="field-select" formControlName="coordinatorFacultyId">
-            <option [ngValue]="null">Unassigned</option>
-            @for (f of eligibleFaculty(); track f.facultyId) {
-              <option [ngValue]="f.facultyId">{{ f.facultyName }}</option>
-            }
-          </select>
-          @if (!form.get('coordinatorFacultyId')?.value) {
-            <p class="bmd-coordinator-hint">
-              <mat-icon>info</mat-icon>
-              Recommended: assign a coordinator so someone is accountable for this batch's lab/clinical sessions.
-            </p>
-          }
-        </div>
+        <p class="bmd-coordinator-hint">
+          <mat-icon>info</mat-icon>
+          Coordinator is assigned from the Assign Faculty dialog, alongside Theory faculty.
+        </p>
         <div class="bmd-form-actions">
           <button class="btn-secondary" type="button" (click)="cancelForm()">Cancel</button>
           <button class="btn-primary" type="button" (click)="submitBatch()" [disabled]="saving() || form.invalid">

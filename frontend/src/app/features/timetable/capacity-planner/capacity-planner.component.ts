@@ -11,9 +11,8 @@ import { CapacityPlannerService } from './capacity-planner.service';
 import { CapacityPlan, FacultyWorkloadOverviewReport, FacultyWorkloadOverviewRow, FacultyWorkloadReport, LabClinicalVenueCapacity, PlanningBasis, VenueOption } from './capacity-planner.model';
 import { OverageContributor } from '../skeleton-builder/skeleton-builder.model';
 import { RaiseCapFlyoutComponent } from '../../faculty/faculty-detail/raise-cap-flyout.component';
-import { FacultyService } from '../../faculty/faculty.service';
-import { CourseOfferingEditDialogComponent, FacultyOption } from '../../course-offering/course-offering-edit-dialog/course-offering-edit-dialog.component';
-import { BatchManageDialogComponent } from '../../course-offering/batch-manage-dialog/batch-manage-dialog.component';
+import { CourseOfferingEditDialogComponent } from '../../course-offering/course-offering-edit-dialog/course-offering-edit-dialog.component';
+import { TeachingAssignmentDialogComponent } from '../../assign-faculty/teaching-assignment-dialog/teaching-assignment-dialog.component';
 import { CmsCapacityMeterComponent } from '../../../shared/capacity-meter/capacity-meter.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -76,7 +75,6 @@ interface DraftSection {
 export class CapacityPlannerComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly capacityPlannerService = inject(CapacityPlannerService);
-  private readonly facultyService = inject(FacultyService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly portionBlueprintService = inject(PortionBlueprintService);
@@ -112,13 +110,6 @@ export class CapacityPlannerComponent implements OnInit {
   /** Which row's per-offering breakdown is open — at most one at a time, same click-to-toggle
    *  pattern as Batch Manage's roster expand. */
   protected readonly expandedFacultyId = signal<number | null>(null);
-  /** Lazily loaded the first time the Faculty Workload tab is opened -- only Manage Batches
-   *  (Lab/Clinical reassignment) actually needs the flat id/name list; Theory reassignment goes
-   *  through the same Assign Faculty dialog Course Offerings already uses, which fetches its own
-   *  eligible-candidate list per offering. */
-  protected readonly facultyOptions = signal<FacultyOption[]>([]);
-  private facultyOptionsLoaded = false;
-
   // ─── Cohort Room Allocation (physical Theory/Lab/Clinical room commit) ───
   // Theory/Lab/Clinical pickers below source real Classroom/Lab/ClinicalVenue entities from the
   // plan's own already capacity-filtered fittingClassrooms/fittingLabs/fittingClinicalVenues —
@@ -767,7 +758,6 @@ export class CapacityPlannerComponent implements OnInit {
       if (!this.facultyWorkloadOverview() && !this.loadingFacultyWorkloadOverview()) {
         this.loadFacultyWorkloadOverview();
       }
-      if (this.canManageBatches()) this.loadFacultyOptionsIfNeeded();
     }
   }
 
@@ -875,36 +865,27 @@ export class CapacityPlannerComponent implements OnInit {
   }
 
   /** Gates Reassign for Lab/Clinical contributor rows -- these have no CourseOfferingSectionFaculty
-   *  row at all (Batch.coordinatorFaculty is a separate mechanism), so they route to Manage
-   *  Batches instead, same permission Assign Faculty's own "Manage Batches" button already uses. */
+   *  row at all (Batch.coordinatorFaculty is a separate mechanism), so they route to the same
+   *  merged Assign Faculty dialog too, same permission Assign Faculty's own button already uses. */
   protected canManageBatches(): boolean {
     return this.permissionService.has('BATCH_MANAGE');
-  }
-
-  private loadFacultyOptionsIfNeeded(): void {
-    if (this.facultyOptionsLoaded) return;
-    this.facultyOptionsLoaded = true;
-    this.facultyService.getAll().subscribe({
-      next: (faculty) => this.facultyOptions.set(
-        faculty.map((f) => ({ id: f.id, name: f.fullName, specialityId: f.specialityId }))),
-      error: () => { this.facultyOptionsLoaded = false; },
-    });
   }
 
   /** Theory/whole-cohort-primary contributions reassign via the exact same Assign Faculty dialog
    *  Faculty Detail's own "Reassign…" already opens -- fetches the full offering first since the
    *  dialog needs the complete CourseOffering shape, not just the id this row carries. Lab/Clinical
-   *  contributions have no section-faculty row to edit there at all, so they open Manage Batches
-   *  instead, scoped to the same offering. Either way, reload unconditionally on close: every pick
-   *  inside both dialogs saves immediately regardless of how the dialog is dismissed, so there's no
-   *  reliable "nothing changed" signal to gate the refresh on. */
+   *  contributions have no section-faculty row to edit there at all, so they open the same merged
+   *  Assign Faculty dialog too (it covers batch coordinator rows) rather than Manage Batches, which
+   *  no longer edits coordinator at all -- see TeachingAssignmentDialogComponent. Either way, reload
+   *  unconditionally on close: every pick inside both dialogs saves immediately regardless of how
+   *  the dialog is dismissed, so there's no reliable "nothing changed" signal to gate the refresh on. */
   protected onReassignContributor(contributor: OverageContributor): void {
     this.academicYearService.getCourseOfferingById(contributor.courseOfferingId).subscribe({
       next: (offering) => {
         const ref = contributor.batchId != null
-          ? this.dialog.open(BatchManageDialogComponent, {
-            data: { offering, facultyOptions: this.facultyOptions() },
-            width: '560px',
+          ? this.dialog.open(TeachingAssignmentDialogComponent, {
+            data: { offering, suggestedFacultyId: null },
+            width: '760px',
           })
           : this.dialog.open(CourseOfferingEditDialogComponent, {
             data: { offering, suggestedFacultyId: null },

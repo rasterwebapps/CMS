@@ -74,10 +74,23 @@ mat-dialog-content {
   }
 }
 
+.bmd-section-heading {
+  font-size: var(--cms-text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--cms-text-secondary);
+  margin: 1.25rem 0 0.5rem;
+
+  &:first-of-type {
+    margin-top: 1rem;
+  }
+}
+
 .bmd-batch-list {
   list-style: none;
   margin: 0;
-  padding: 16px 0 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
