@@ -39,6 +39,11 @@ export interface ClinicalShiftGroup {
   clinicalEndTime: string | null;
   busDepartTime: string | null;
   busReturnTime: string | null;
+  /** Both null (the common case) means this group recurs for the whole term. Both set bounds it to
+   *  a real sub-window (e.g. a 4-week internship block) -- see the backend's ClinicalShiftGroup
+   *  javadoc for what does and doesn't honor this. */
+  effectiveStartDate: string | null;
+  effectiveEndDate: string | null;
   isActive: boolean;
   batches: ClinicalShiftBatchLink[];
   theoryBlocks: ClinicalShiftTheoryBlock[];
@@ -52,6 +57,8 @@ export interface ClinicalShiftGroupRequest {
   label: string;
   dayOfWeek: DayOfWeek;
   clinicalStartTime: string;
+  effectiveStartDate?: string | null;
+  effectiveEndDate?: string | null;
 }
 
 export interface ClinicalShiftConfigUpdateRequest {

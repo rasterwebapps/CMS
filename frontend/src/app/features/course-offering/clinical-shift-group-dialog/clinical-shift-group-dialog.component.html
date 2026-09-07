@@ -93,6 +93,11 @@
                     (incl. buffer, {{ group.busDepartTime }}–{{ group.busReturnTime }})
                   }
                 </span>
+                @if (group.effectiveStartDate && group.effectiveEndDate) {
+                  <span class="csg-group-item__times">
+                    Effective {{ group.effectiveStartDate }} – {{ group.effectiveEndDate }} only
+                  </span>
+                }
               </div>
               <div class="csg-group-item__actions">
                 <button class="btn-secondary" type="button" (click)="startEditBlocks(group)">Theory Blocks</button>
@@ -216,6 +221,19 @@
           <label for="csg-start" class="field-label">Clinical Start Time</label>
           <input id="csg-start" type="time" class="field-input" formControlName="clinicalStartTime" />
         </div>
+        <div class="field-group">
+          <label for="csg-eff-start" class="field-label">Effective From (optional)</label>
+          <input id="csg-eff-start" type="date" class="field-input" formControlName="effectiveStartDate" />
+        </div>
+        <div class="field-group">
+          <label for="csg-eff-end" class="field-label">Effective To (optional)</label>
+          <input id="csg-eff-end" type="date" class="field-input" formControlName="effectiveEndDate" />
+        </div>
+        <p class="field-hint">
+          Leave both blank for a shift that recurs every week of the whole term. Set both to bound it
+          to a shorter real window (e.g. a 4-week internship block) — the hours this shift credits
+          are then based on just those weeks, not the full term.
+        </p>
         <div class="csg-form-actions">
           <button class="btn-secondary" type="button" (click)="cancelForm()">Cancel</button>
           <button class="btn-primary" type="button" (click)="submitGroup()" [disabled]="saving() || form.invalid">

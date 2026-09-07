@@ -14,4 +14,8 @@ public interface RotationSlotRepository extends JpaRepository<RotationSlot, Long
     List<RotationSlot> findByRotationGroupIdOrderBySlotOrderAsc(Long rotationGroupId);
 
     boolean existsByClassScheduleId(Long classScheduleId);
+
+    List<RotationSlot> findByClassScheduleIdIn(List<Long> classScheduleIds);
+
+    long countByRotationGroupId(Long rotationGroupId);
 }

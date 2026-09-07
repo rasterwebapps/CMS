@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
@@ -39,6 +40,8 @@ import com.cms.dto.FacultyTightCapacity;
 import com.cms.dto.FacultyWorkloadDetail;
 import com.cms.dto.GlobalAutoSchedulePrerequisites;
 import com.cms.dto.GlobalCapacityPrecheckResult;
+import com.cms.dto.RotationGroupCreateRequest;
+import com.cms.dto.RotationGroupResponse;
 import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellPlacementRequest;
 import com.cms.dto.SkeletonCellResponse;
@@ -59,6 +62,7 @@ import com.cms.model.CourseOfferingSectionFaculty;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
+import com.cms.model.Lab;
 import com.cms.model.Period;
 import com.cms.model.Speciality;
 import com.cms.model.Subject;
@@ -80,6 +84,10 @@ import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.PeriodRepository;
+import com.cms.repository.RotationGroupRepository;
+import com.cms.repository.RotationMemberAssignmentRepository;
+import com.cms.repository.RotationMemberRepository;
+import com.cms.repository.RotationSlotRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.SubjectRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -107,6 +115,11 @@ class TimetableGlobalAutoScheduleServiceTest {
     @Mock private SystemConfigurationService systemConfigurationService;
     @Mock private ClinicalShiftGroupService clinicalShiftGroupService;
     @Mock private CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
+    @Mock private RotationGroupService rotationGroupService;
+    @Mock private RotationGroupRepository rotationGroupRepository;
+    @Mock private RotationSlotRepository rotationSlotRepository;
+    @Mock private RotationMemberRepository rotationMemberRepository;
+    @Mock private RotationMemberAssignmentRepository rotationMemberAssignmentRepository;
 
     /** None of these fixtures configure a Self-Study/Co-curricular offering, so the gap-fill pass
      *  now correctly reports this once per cohort per run (see {@code fillSelfStudyGaps}) instead
@@ -134,7 +147,8 @@ class TimetableGlobalAutoScheduleServiceTest {
             studentTermEnrollmentRepository, cohortRepository, batchRepository,
             courseOfferingSectionFacultyRepository, facultyRepository, termInstanceRepository, periodRepository,
             blockedPeriodChecker, classroomRepository, courseRegistrationRepository, subjectRepository, systemConfigurationService,
-            clinicalShiftGroupService);
+            clinicalShiftGroupService, rotationGroupService, rotationGroupRepository, rotationSlotRepository,
+            rotationMemberRepository, rotationMemberAssignmentRepository);
         service.setCourseOfferingSectionFacultyService(courseOfferingSectionFacultyService);
         lenient().when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
         // No fixture in this suite approves/publishes the term's timetable, so every cohort defaults
@@ -228,6 +242,34 @@ class TimetableGlobalAutoScheduleServiceTest {
         // flags that as a likely mistake rather than falling through to the empty-Optional default.
         lenient().when(courseOfferingSectionFacultyRepository.findByCourseOfferingIdAndCohortIdAndCohortSectionIdIsNull(offeringId, cohortId))
             .thenReturn(Optional.of(row));
+    }
+
+    private Lab lab(Long id) {
+        Lab lab = new Lab();
+        lab.setId(id);
+        return lab;
+    }
+
+    private Subject labSubject(String name) {
+        Subject subject = new Subject();
+        subject.setName(name);
+        return subject;
+    }
+
+    /** One active LAB batch, resolvable both by id (for {@code resolveBudgetFacultyId}'s coordinator
+     *  lookup) and via {@code batchRepository.findByCourseOfferingId} — a real fixture for Phase B's
+     *  cross-offering pairing tests below. */
+    private Batch labBatch(Long id, Lab labEntity, CohortSection section, Long coordinatorFacultyId) {
+        Batch batch = new Batch();
+        batch.setId(id);
+        batch.setIsActive(true);
+        batch.setLab(labEntity);
+        batch.setCohortSection(section);
+        Faculty coordinator = new Faculty();
+        coordinator.setId(coordinatorFacultyId);
+        batch.setCoordinatorFaculty(coordinator);
+        lenient().when(batchRepository.findById(id)).thenReturn(Optional.of(batch));
+        return batch;
     }
 
     // ── Capacity precheck ──────────────────────────────────────────────
@@ -550,6 +592,237 @@ class TimetableGlobalAutoScheduleServiceTest {
         assertThat(result.cohortSummaries().get(0).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
             .containsExactly(NO_LIBRARY_CLASSROOM_REASON, NO_SELF_STUDY_OFFERING_REASON);
         verify(timetableSkeletonService, org.mockito.Mockito.times(7)).placeCell(any(SkeletonCellPlacementRequest.class));
+    }
+
+    /** Phase 5 — Saturday-upgrade mending. Offering B needs 5 THEORY sessions/week (exactly filling
+     *  every Monday-Friday slot, since this fixture has only one period/day) and, being the bigger
+     *  shortfall, is placed first (see SHORTFALL_ROW_ORDER) — one session per weekday, in order.
+     *  Offering A needs only 1 session/week and is placed second, by which point every weekday is
+     *  genuinely occupied (a real audience clash, not a faculty conflict — A's own faculty is never
+     *  even tried at those slots, since {@code placeCell} rejects them first), so it falls back to
+     *  Saturday exactly like the real-world case this feature was built for. Phase 5 must then evict
+     *  one of B's weekday cells, hand that exact slot to A (untried before, so it succeeds), and give
+     *  B's evicted session a fresh day-search — which finds every other weekday still taken (in
+     *  {@code daysUsed}) and only Saturday genuinely free, completing a real swap: A ends up with a
+     *  normal weekday, B (which can absorb losing 1 of its 5 sessions far better than A could absorb
+     *  losing its only one) ends up with the Saturday session instead. Total placed count must be
+     *  unchanged (6) — the pass must never lose a session, only relocate one. */
+    @Test
+    void runMendsATheoryRowThatLandedOnSaturday_bySwappingWithAWeekdayRowThatCanAffordTheMove() {
+        termInstance.setWorkingSaturdayWeeks(java.util.Set.of(com.cms.model.enums.WeekOfMonth.FIRST));
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "Faculty A", 8);
+        facultyWithDailyCap(600L, "Faculty B", 8);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L))
+            .thenReturn(List.of(offeringDto(100L, "Offering A"), offeringDto(200L, "Offering B")));
+        assignWholeCohort(100L, 1L, 500L);
+        assignWholeCohort(200L, 1L, 600L);
+        offeringEntity(100L, 10, 0, 0);
+        offeringEntity(200L, 50, 0, 0);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        SkeletonSubjectBudget budgetA = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
+        SkeletonSubjectResponse subjectA = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budgetA), null, null);
+        SkeletonSubjectBudget budgetB = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 50, 10, 5, 0);
+        SkeletonSubjectResponse subjectB = new SkeletonSubjectResponse(200L, "Offering B", "OFFB", List.of(budgetB), null, null);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subjectA, subjectB),
+            List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        // Real occupancy tracking (day+period only -- this fixture has one committed classroom per
+        // cohort so room identity never differs) plus real eviction, so a bumped cell's exact slot
+        // genuinely becomes free again for the mending pass's retries -- an always-succeeds stub
+        // couldn't tell a real swap from a no-op.
+        Set<String> occupiedSlots = new HashSet<>();
+        java.util.Map<Long, SkeletonCellPlacementRequest> requestsByCellId = new java.util.HashMap<>();
+        java.util.concurrent.atomic.AtomicLong nextCellId = new java.util.concurrent.atomic.AtomicLong(900L);
+        org.mockito.stubbing.Answer<SkeletonCellResponse> occupancyAwarePlace = invocation -> {
+            SkeletonCellPlacementRequest request = invocation.getArgument(0);
+            String key = request.dayOfWeek() + ":" + request.periodId();
+            if (occupiedSlots.contains(key)) {
+                throw new TimetableConstraintViolationException(List.of(new com.cms.dto.ConstraintViolation(
+                    "SKELETON_CELL_COHORT_CLASH", "already occupied")));
+            }
+            occupiedSlots.add(key);
+            long cellId = nextCellId.incrementAndGet();
+            requestsByCellId.put(cellId, request);
+            return new SkeletonCellResponse(cellId, request.sessionType(), request.dayOfWeek(), request.periodId(), "Period",
+                LocalTime.of(9, 0), LocalTime.of(9, 50), request.batchId(), null, null, null, false, null, null, List.of(),
+                request.courseOfferingId(), "Offering", "OFF", null, null, null);
+        };
+        when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class))).thenAnswer(occupancyAwarePlace);
+        when(timetableStaffingService.staffCell(anyLong(), any(StaffingAssignmentRequest.class)))
+            .thenAnswer(invocation -> new UnstaffedCellResponse(invocation.getArgument(0), 100L, "Subject", "SUBJ", null, null,
+                ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "Period", LocalTime.of(9, 0), LocalTime.of(9, 50),
+                null, null, null, null, null, false, List.of(), null, null));
+        org.mockito.stubbing.Answer<Void> forceRemove = invocation -> {
+            Long cellId = invocation.getArgument(0);
+            SkeletonCellPlacementRequest removed = requestsByCellId.remove(cellId);
+            if (removed != null) {
+                occupiedSlots.remove(removed.dayOfWeek() + ":" + removed.periodId());
+            }
+            return null;
+        };
+        org.mockito.Mockito.doAnswer(forceRemove).when(timetableSkeletonService).forceRemoveCell(anyLong());
+        lenient().doAnswer(forceRemove).when(timetableSkeletonService).removeCell(anyLong());
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        assertThat(result.totalPlaced()).isEqualTo(6);
+        assertThat(result.totalStaffed()).isEqualTo(6);
+        List<SkeletonCellPlacementRequest> offeringARequests = requestsByCellId.values().stream()
+            .filter(r -> r.courseOfferingId().equals(100L)).toList();
+        assertThat(offeringARequests).hasSize(1);
+        assertThat(offeringARequests.get(0).dayOfWeek()).isNotEqualTo(DayOfWeek.SATURDAY);
+        assertThat(requestsByCellId.values().stream().filter(r -> r.dayOfWeek() == DayOfWeek.SATURDAY).count())
+            .isEqualTo(1);
+        assertThat(requestsByCellId.values().stream().filter(r -> r.courseOfferingId().equals(200L)).toList())
+            .hasSize(5);
+    }
+
+    // ── Phase B — cross-offering LAB pairing ──────────────────────────────
+
+    private java.util.concurrent.atomic.AtomicLong stubPlaceCellAlwaysSucceeds() {
+        java.util.concurrent.atomic.AtomicLong nextCellId = new java.util.concurrent.atomic.AtomicLong(900L);
+        when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class))).thenAnswer(invocation -> {
+            SkeletonCellPlacementRequest request = invocation.getArgument(0);
+            return new SkeletonCellResponse(nextCellId.incrementAndGet(), request.sessionType(), request.dayOfWeek(),
+                request.periodId(), "Period", LocalTime.of(9, 0), LocalTime.of(9, 50), request.batchId(), null, null, null,
+                false, null, null, List.of(), request.courseOfferingId(), "Offering", "OFF", null, null, null);
+        });
+        when(timetableStaffingService.staffCell(anyLong(), any(StaffingAssignmentRequest.class)))
+            .thenAnswer(invocation -> new UnstaffedCellResponse(invocation.getArgument(0), 100L, "Subject", "SUBJ", null, null,
+                ClassSessionType.LAB, DayOfWeek.MONDAY, 1L, "Period", LocalTime.of(9, 0), LocalTime.of(9, 50),
+                null, null, null, null, null, false, List.of(), null, null));
+        return nextCellId;
+    }
+
+    /** Real fixture numbers from this session's own investigation: Child Health Nursing (offering
+     *  73) split into 4 active batches on one Lab; Educational Technology (offering 76) split into
+     *  only 2, on a different Lab, for the exact same cohort section. V1's pairing gate deliberately
+     *  requires BOTH offerings to have exactly 2 — see class javadoc / this session's specialist
+     *  round choosing "skip" over guessing an asymmetric N/M design. Both offerings must therefore
+     *  fall straight through to independent per-batch placement, unpaired. */
+    @Test
+    void pairingSkipsWhenBatchCountsMismatch_realIncidentFixtureNumbers() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L))
+            .thenReturn(List.of(offeringDto(73L, "Child Health Nursing"), offeringDto(76L, "Educational Technology")));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+
+        CohortSection section = new CohortSection();
+        section.setId(52L);
+
+        CourseOffering childHealth = offeringEntity(73L, 0, 30, 0);
+        childHealth.setSubject(labSubject("Child Health Nursing"));
+        CourseOffering edTech = offeringEntity(76L, 0, 30, 0);
+        edTech.setSubject(labSubject("Educational Technology"));
+
+        Lab labA = lab(1L);
+        Lab labB = lab(2L);
+        Batch a0 = labBatch(3001L, labA, section, 500L);
+        Batch a1 = labBatch(3002L, labA, section, 500L);
+        Batch a2 = labBatch(3003L, labA, section, 500L);
+        Batch a3 = labBatch(3004L, labA, section, 500L);
+        Batch b0 = labBatch(3005L, labB, section, 600L);
+        Batch b1 = labBatch(3006L, labB, section, 600L);
+        when(batchRepository.findByCourseOfferingId(73L)).thenReturn(List.of(a0, a1, a2, a3));
+        when(batchRepository.findByCourseOfferingId(76L)).thenReturn(List.of(b0, b1));
+
+        List<SkeletonSubjectBudget> chnBudgets = List.of(a0, a1, a2, a3).stream()
+            .map(b -> new SkeletonSubjectBudget(ClassSessionType.LAB, b.getId(), null, 52L, null, 30, 10, 1, 0))
+            .toList();
+        List<SkeletonSubjectBudget> edtBudgets = List.of(b0, b1).stream()
+            .map(b -> new SkeletonSubjectBudget(ClassSessionType.LAB, b.getId(), null, 52L, null, 30, 10, 1, 0))
+            .toList();
+        SkeletonSubjectResponse chnSubject = new SkeletonSubjectResponse(73L, "Child Health Nursing", "CHN", chnBudgets, null, null);
+        SkeletonSubjectResponse edtSubject = new SkeletonSubjectResponse(76L, "Educational Technology", "EDT", edtBudgets, null, null);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term",
+            List.of(chnSubject, edtSubject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        lenient().when(periodRepository.findById(1L)).thenReturn(Optional.of(period1));
+        stubPlaceCellAlwaysSucceeds();
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        verify(rotationGroupService, never()).create(any(), any());
+        assertThat(result.rotationGroupsCreated()).isZero();
+        verify(timetableSkeletonService, times(6)).placeCell(any(SkeletonCellPlacementRequest.class));
+    }
+
+    /** The matched shape V1 actually supports: two offerings sharing one cohort section, each split
+     *  into exactly 2 active batches on its own (different) Lab, each needing exactly one LAB
+     *  session/week. Confirms the real behavior end to end: exactly one RotationGroup is created,
+     *  its 2 slots/2 members pair the batches ordinally (batch0-with-batch0, batch1-with-batch1 --
+     *  see class javadoc for why that's treated as safe), and Phase 1's own independent loop is
+     *  never ALSO given these 4 rows to place on top of the rotation (only the 2 real rotation cells
+     *  get placed, not 4). */
+    @Test
+    void pairingCreatesOneRotationGroupWhenBothOfferingsHaveExactlyTwoMatchingBatches() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L))
+            .thenReturn(List.of(offeringDto(73L, "Child Health Nursing"), offeringDto(76L, "Educational Technology")));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+
+        CohortSection section = new CohortSection();
+        section.setId(52L);
+
+        CourseOffering offeringA = offeringEntity(73L, 0, 30, 0);
+        offeringA.setSubject(labSubject("Child Health Nursing"));
+        CourseOffering offeringB = offeringEntity(76L, 0, 30, 0);
+        offeringB.setSubject(labSubject("Educational Technology"));
+
+        Lab labA = lab(1L);
+        Lab labB = lab(2L);
+        Batch a0 = labBatch(3001L, labA, section, 500L);
+        Batch a1 = labBatch(3002L, labA, section, 500L);
+        Batch b0 = labBatch(3005L, labB, section, 600L);
+        Batch b1 = labBatch(3006L, labB, section, 600L);
+        when(batchRepository.findByCourseOfferingId(73L)).thenReturn(List.of(a0, a1));
+        when(batchRepository.findByCourseOfferingId(76L)).thenReturn(List.of(b0, b1));
+
+        List<SkeletonSubjectBudget> chnBudgets = List.of(a0, a1).stream()
+            .map(b -> new SkeletonSubjectBudget(ClassSessionType.LAB, b.getId(), null, 52L, null, 30, 10, 1, 0))
+            .toList();
+        List<SkeletonSubjectBudget> edtBudgets = List.of(b0, b1).stream()
+            .map(b -> new SkeletonSubjectBudget(ClassSessionType.LAB, b.getId(), null, 52L, null, 30, 10, 1, 0))
+            .toList();
+        SkeletonSubjectResponse chnSubject = new SkeletonSubjectResponse(73L, "Child Health Nursing", "CHN", chnBudgets, null, null);
+        SkeletonSubjectResponse edtSubject = new SkeletonSubjectResponse(76L, "Educational Technology", "EDT", edtBudgets, null, null);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term",
+            List.of(chnSubject, edtSubject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        stubPlaceCellAlwaysSucceeds();
+        when(rotationGroupService.create(any(RotationGroupCreateRequest.class), anyString()))
+            .thenReturn(new RotationGroupResponse(1L, 10L, "label", 2, LocalDate.of(2025, 6, 2), List.of(), List.of(), List.of()));
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        ArgumentCaptor<RotationGroupCreateRequest> requestCaptor = ArgumentCaptor.forClass(RotationGroupCreateRequest.class);
+        verify(rotationGroupService, times(1)).create(requestCaptor.capture(), eq("system:global-auto-schedule"));
+        RotationGroupCreateRequest captured = requestCaptor.getValue();
+        assertThat(captured.slots()).hasSize(2);
+        assertThat(captured.members()).hasSize(2);
+        assertThat(captured.members().get(0).assignments())
+            .extracting(RotationGroupCreateRequest.RotationAssignmentInput::batchId)
+            .containsExactlyInAnyOrder(a0.getId(), b0.getId());
+        assertThat(captured.members().get(1).assignments())
+            .extracting(RotationGroupCreateRequest.RotationAssignmentInput::batchId)
+            .containsExactlyInAnyOrder(a1.getId(), b1.getId());
+
+        // Only the 2 rotation cells are placed for these offerings -- Phase 1's own independent loop
+        // must never ALSO place a 3rd/4th LAB session on top of the rotation.
+        verify(timetableSkeletonService, times(2)).placeCell(any(SkeletonCellPlacementRequest.class));
+        assertThat(result.rotationGroupsCreated()).isEqualTo(1);
     }
 
     @Test

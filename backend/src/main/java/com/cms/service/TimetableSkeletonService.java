@@ -1,6 +1,7 @@
 package com.cms.service;
 
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -96,6 +97,7 @@ public class TimetableSkeletonService {
     private final BatchService batchService;
     private final TimetableBlockedPeriodChecker blockedPeriodChecker;
     private final com.cms.repository.RotationSlotRepository rotationSlotRepository;
+    private final com.cms.repository.RotationMemberAssignmentRepository rotationMemberAssignmentRepository;
     private final RotationResolverService rotationResolverService;
     private final CourseOfferingService courseOfferingService;
     private final CohortRepository cohortRepository;
@@ -113,6 +115,7 @@ public class TimetableSkeletonService {
                                      BatchService batchService,
                                      TimetableBlockedPeriodChecker blockedPeriodChecker,
                                      com.cms.repository.RotationSlotRepository rotationSlotRepository,
+                                     com.cms.repository.RotationMemberAssignmentRepository rotationMemberAssignmentRepository,
                                      RotationResolverService rotationResolverService,
                                      CourseOfferingService courseOfferingService,
                                      CohortRepository cohortRepository,
@@ -129,6 +132,7 @@ public class TimetableSkeletonService {
         this.batchService = batchService;
         this.blockedPeriodChecker = blockedPeriodChecker;
         this.rotationSlotRepository = rotationSlotRepository;
+        this.rotationMemberAssignmentRepository = rotationMemberAssignmentRepository;
         this.rotationResolverService = rotationResolverService;
         this.courseOfferingService = courseOfferingService;
         this.cohortRepository = cohortRepository;
@@ -279,9 +283,40 @@ public class TimetableSkeletonService {
 
     private SkeletonClinicalShiftHours toClinicalShiftHours(ClinicalShiftGroup group, CourseOffering offering, int weeksInTerm) {
         Integer durationMinutes = offering != null ? offering.getClinicalShiftDurationMinutes() : null;
-        double hours = durationMinutes != null ? (durationMinutes / 60.0) * weeksInTerm : 0.0;
+        double hours = durationMinutes != null
+            ? (durationMinutes / 60.0) * effectiveWeeksFor(group, offering, weeksInTerm, durationMinutes / 60.0) : 0.0;
         CohortSection section = group.getCohortSection();
         return new SkeletonClinicalShiftHours(group.getCourseOffering().getId(), section != null ? section.getId() : null, hours);
+    }
+
+    /** A group bounded to a real sub-window (e.g. a 4-week internship block, see V419 migration)
+     *  only actually delivers hours across those weeks, not the whole term -- crediting the full
+     *  {@code weeksInTerm} for a group that only ran 4 of them would wildly over-credit and hide a
+     *  genuine remaining requirement. But a manual date range (or its Both-null "whole term"
+     *  default) is only ever a CEILING here, never a floor: {@link
+     *  CurriculumHoursCalculator#weeksNeededFor} independently caps the same figure at however
+     *  many weekly duty-length occurrences the offering's own curriculum Clinical hours actually
+     *  need, and the tighter of the two always wins. Without this second cap, a shift duty
+     *  configured longer than the subject's real average per-session need (only a FLOOR is
+     *  enforced at save-time, see {@code ClinicalShiftGroupService}) silently over-credited hours
+     *  every week for the group's whole run with nothing anywhere to stop it -- the real mechanism
+     *  behind a genuine incident where three Clinical Shift subjects reported 468h assigned
+     *  against a 400h combined requirement, term over term, with no admin action able to trigger
+     *  or fix it (2026-09-05). {@link ClinicalShiftOccurrenceService#generateForDate} enforces the
+     *  identical cap against real occurrence generation, not just this display/crediting figure —
+     *  the two must never disagree. */
+    private int effectiveWeeksFor(ClinicalShiftGroup group, CourseOffering offering, int weeksInTerm, double hoursPerOccurrence) {
+        int datePatternWeeks;
+        if (group.getEffectiveStartDate() == null || group.getEffectiveEndDate() == null) {
+            datePatternWeeks = weeksInTerm;
+        } else {
+            long days = ChronoUnit.DAYS.between(group.getEffectiveStartDate(), group.getEffectiveEndDate()) + 1;
+            datePatternWeeks = (int) Math.max(1, Math.ceil(days / 7.0));
+        }
+        CurriculumSemesterCourse csc = offering != null ? offering.getCurriculumSemesterCourse() : null;
+        Integer rawHours = csc != null ? csc.getClinicalHours() : null;
+        int hoursCapWeeks = CurriculumHoursCalculator.weeksNeededFor(rawHours != null ? rawHours : 0, hoursPerOccurrence);
+        return hoursCapWeeks > 0 ? Math.min(datePatternWeeks, hoursCapWeeks) : datePatternWeeks;
     }
 
     /** Active sections of the cohort's committed Cohort Room Allocation for this term, or empty if
@@ -459,9 +494,20 @@ public class TimetableSkeletonService {
         if (matchingBatches.isEmpty()) {
             return List.of(new SkeletonSubjectBudget(type, null, null, null, null, hours, weeksInTerm, required, 0));
         }
+        // A rotation-linked cell (see RotationGroupService#create) has its ClassSchedule#batch set
+        // to null -- invisible to placedByBatchId above -- so a batch rotating through this session
+        // type would otherwise always read as 0 placed, and the caller would keep trying to place
+        // ANOTHER independent session for it on top of the rotation. Credits one placed session per
+        // rotation assignment this batch holds for this exact session type (a batch is never a
+        // member of more than one rotation slot of the same type at once by construction).
+        Map<Long, Long> rotationCreditedByBatchId = rotationMemberAssignmentRepository
+            .findByBatchIdIn(matchingBatches.stream().map(Batch::getId).toList()).stream()
+            .filter(a -> a.getRotationSlot().getClassSchedule().getSessionType() == type)
+            .collect(java.util.stream.Collectors.groupingBy(a -> a.getBatch().getId(), java.util.stream.Collectors.counting()));
         List<SkeletonSubjectBudget> rows = new ArrayList<>();
         for (Batch batch : matchingBatches) {
-            long placed = placedByBatchId.getOrDefault(batch.getId(), 0L);
+            long placed = placedByBatchId.getOrDefault(batch.getId(), 0L)
+                + rotationCreditedByBatchId.getOrDefault(batch.getId(), 0L);
             CohortSection section = batch.getCohortSection();
             rows.add(new SkeletonSubjectBudget(type, batch.getId(), batch.getName(),
                 section != null ? section.getId() : null, section != null ? section.getSectionLabel() : null,

@@ -58,6 +58,8 @@ export class ClinicalShiftGroupDialogComponent {
     label: ['', Validators.required],
     dayOfWeek: ['MONDAY' as DayOfWeek, Validators.required],
     clinicalStartTime: ['07:00', Validators.required],
+    effectiveStartDate: [''],
+    effectiveEndDate: [''],
   });
 
   /** Duration + buffer, inline (OC-187) -- shown automatically the first time (nothing configured
@@ -139,7 +141,7 @@ export class ClinicalShiftGroupDialogComponent {
   }
 
   protected startAdd(): void {
-    this.form.reset({ label: '', dayOfWeek: 'MONDAY', clinicalStartTime: '07:00' });
+    this.form.reset({ label: '', dayOfWeek: 'MONDAY', clinicalStartTime: '07:00', effectiveStartDate: '', effectiveEndDate: '' });
     this.showForm.set(true);
   }
 
@@ -150,11 +152,17 @@ export class ClinicalShiftGroupDialogComponent {
   protected submitGroup(): void {
     if (this.form.invalid) return;
     const v = this.form.value;
+    if (!!v.effectiveStartDate !== !!v.effectiveEndDate) {
+      this.toast.error('Set both an effective start and end date, or leave both blank for the whole term');
+      return;
+    }
     const request: ClinicalShiftGroupRequest = {
       courseOfferingId: this.data.offering.id,
       label: v.label.trim(),
       dayOfWeek: v.dayOfWeek,
       clinicalStartTime: v.clinicalStartTime,
+      effectiveStartDate: v.effectiveStartDate || null,
+      effectiveEndDate: v.effectiveEndDate || null,
     };
     this.saving.set(true);
     this.shiftGroupService.create(request).subscribe({

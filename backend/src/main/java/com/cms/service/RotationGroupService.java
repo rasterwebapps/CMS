@@ -118,7 +118,8 @@ public class RotationGroupService {
         combined.addAll(published);
 
         return combined.stream()
-            .filter(cs -> cs.getSessionType() != ClassSessionType.THEORY)
+            .filter(cs -> cs.getSessionType() != ClassSessionType.THEORY
+                || com.cms.util.SelfStudySubjects.isSelfStudySubject(cs.getSubject().getName()))
             .filter(cs -> cs.getPeriod() != null && cs.getPeriod().getId().equals(periodId))
             .filter(cs -> cs.getBatch() != null)
             .filter(cs -> !rotationSlotRepository.existsByClassScheduleId(cs.getId()))
@@ -242,8 +243,26 @@ public class RotationGroupService {
     }
 
     /** Each assigned batch must belong to the same subject the cell was placed against — only
-     *  the roster differs by member, the subject/venue for a slot never does. */
+     *  the roster differs by member, the subject/venue for a slot never does. A Library slot (or a
+     *  Self-Study-tagged THEORY slot) is the one exception: neither is tied to a single
+     *  CourseOffering by design (a Library {@link ClassSchedule} always has {@code courseOffering
+     *  == null} — see {@code TimetableGlobalAutoScheduleService#placeLibraryBlock}), so the
+     *  audience match that actually matters there is the batch's own {@link
+     *  com.cms.model.CohortSection}, not a subject — otherwise this would reject every Library/
+     *  Self-Study fallback slot in a cross-offering rotation unconditionally. */
     private void requireBatchMatchesSlot(ClassSchedule cs, Batch batch) {
+        boolean audienceScopedSlot = cs.getSessionType() == ClassSessionType.LIBRARY
+            || (cs.getSessionType() == ClassSessionType.THEORY
+                && com.cms.util.SelfStudySubjects.isSelfStudySubject(cs.getSubject().getName()));
+        if (audienceScopedSlot) {
+            Long batchSectionId = batch.getCohortSection() != null ? batch.getCohortSection().getId() : null;
+            Long slotSectionId = cs.getCohortSection() != null ? cs.getCohortSection().getId() : null;
+            if (!java.util.Objects.equals(batchSectionId, slotSectionId)) {
+                throw new IllegalArgumentException(
+                    "Batch '" + batch.getName() + "' does not belong to the same cohort section as this Library/Self-Study slot.");
+            }
+            return;
+        }
         if (cs.getCourseOffering() == null || batch.getCourseOffering() == null
             || !batch.getCourseOffering().getId().equals(cs.getCourseOffering().getId())) {
             throw new IllegalArgumentException(

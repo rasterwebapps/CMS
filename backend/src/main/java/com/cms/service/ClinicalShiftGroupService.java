@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
@@ -24,6 +25,7 @@ import com.cms.model.ClinicalShiftTheoryBlock;
 import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
 import com.cms.model.Subject;
+import com.cms.model.TermInstance;
 import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassroomRepository;
@@ -85,6 +87,8 @@ public class ClinicalShiftGroupService {
                 "Course offering " + offering.getId() + " has no clinical shift duration configured");
         }
 
+        validateDateRange(request.effectiveStartDate(), request.effectiveEndDate(), offering.getTermInstance());
+
         ClinicalShiftGroup group = new ClinicalShiftGroup();
         group.setCourseOffering(offering);
         group.setTermInstance(offering.getTermInstance());
@@ -92,6 +96,8 @@ public class ClinicalShiftGroupService {
         group.setLabel(request.label());
         group.setDayOfWeek(request.dayOfWeek());
         group.setClinicalStartTime(request.clinicalStartTime());
+        group.setEffectiveStartDate(request.effectiveStartDate());
+        group.setEffectiveEndDate(request.effectiveEndDate());
 
         return toDto(shiftGroupRepository.save(group));
     }
@@ -99,11 +105,38 @@ public class ClinicalShiftGroupService {
     @Transactional
     public ClinicalShiftGroupDto updateGroup(Long id, ClinicalShiftGroupRequest request) {
         ClinicalShiftGroup group = getOrThrow(id);
+        validateDateRange(request.effectiveStartDate(), request.effectiveEndDate(), group.getTermInstance());
         group.setCohortSection(resolveCohortSection(request.cohortSectionId()));
         group.setLabel(request.label());
         group.setDayOfWeek(request.dayOfWeek());
         group.setClinicalStartTime(request.clinicalStartTime());
+        group.setEffectiveStartDate(request.effectiveStartDate());
+        group.setEffectiveEndDate(request.effectiveEndDate());
         return toDto(shiftGroupRepository.save(group));
+    }
+
+    /** Both null is the common "whole term" case. Both non-null must form a real, non-inverted
+     *  range inside the offering's own term instance -- a shift group bounded outside its term
+     *  would never actually generate anything (day-of-week occurrences are only ever requested
+     *  within the term being scheduled), silently making the group permanently inert. Exactly one
+     *  set is rejected outright rather than guessed at (e.g. treating a lone start date as "runs to
+     *  term end") since that guess could easily be wrong for the caller's real intent. */
+    private void validateDateRange(LocalDate start, LocalDate end, TermInstance termInstance) {
+        if (start == null && end == null) {
+            return;
+        }
+        if (start == null || end == null) {
+            throw new IllegalArgumentException(
+                "Effective start and end date must both be set together, or both left blank");
+        }
+        if (end.isBefore(start)) {
+            throw new IllegalArgumentException("Effective end date must not be before effective start date");
+        }
+        if (start.isBefore(termInstance.getStartDate()) || end.isAfter(termInstance.getEndDate())) {
+            throw new IllegalArgumentException(
+                "Effective date range must fall within the term instance (" + termInstance.getStartDate()
+                    + " to " + termInstance.getEndDate() + ")");
+        }
     }
 
     @Transactional
@@ -265,6 +298,8 @@ public class ClinicalShiftGroupService {
             clinicalEnd,
             busDepart,
             busReturn,
+            group.getEffectiveStartDate(),
+            group.getEffectiveEndDate(),
             group.getIsActive(),
             batches,
             blocks,

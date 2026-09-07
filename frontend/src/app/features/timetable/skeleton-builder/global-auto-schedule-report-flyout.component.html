@@ -297,6 +297,19 @@
           @if (r.staleDraftsCleared > 0) {
             <p class="field-hint">Rebuilt from scratch — cleared {{ r.staleDraftsCleared }} existing draft session(s) first, so the week is re-packed with Lab/Clinical blocks placed before Theory and filler. Any manual drag-moves in the draft were replaced.</p>
           }
+          @if (r.rotationGroupsCreated > 0) {
+            <p class="field-hint">Created {{ r.rotationGroupsCreated }} cross-offering Lab rotation(s) — two offerings sharing a cohort section, each split into 2 batches, now alternate Labs week-to-week instead of one batch sitting idle during the other's turn.</p>
+          }
+          @if (r.pairingSkipReasons.length > 0) {
+            <div class="gas-prereq-group">
+              <div class="gas-prereq-group__title">Lab pairing considered but not placed</div>
+              <ul class="gas-contributors">
+                @for (reason of r.pairingSkipReasons; track reason) {
+                  <li class="gas-warning">{{ reason }}</li>
+                }
+              </ul>
+            </div>
+          }
           @if (r.skippedPublishedCohorts.length > 0) {
             <div class="gas-prereq-group">
               <div class="gas-prereq-group__title">Skipped — this term's timetable is already approved</div>

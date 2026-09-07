@@ -14,4 +14,8 @@ public interface RotationMemberAssignmentRepository extends JpaRepository<Rotati
     Optional<RotationMemberAssignment> findByRotationMemberIdAndRotationSlotId(Long rotationMemberId, Long rotationSlotId);
 
     long countByBatchId(Long batchId);
+
+    List<RotationMemberAssignment> findByBatchIdIn(List<Long> batchIds);
+
+    List<RotationMemberAssignment> findByRotationSlot_ClassSchedule_IdIn(List<Long> classScheduleIds);
 }

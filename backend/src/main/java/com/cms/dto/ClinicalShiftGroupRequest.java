@@ -1,5 +1,6 @@
 package com.cms.dto;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 import com.cms.model.enums.DayOfWeek;
@@ -20,5 +21,11 @@ public record ClinicalShiftGroupRequest(
     DayOfWeek dayOfWeek,
 
     @NotNull(message = "Clinical start time is required")
-    LocalTime clinicalStartTime
+    LocalTime clinicalStartTime,
+
+    /** Both null (default) means this group recurs for the whole term. Both must be set together
+     *  -- validated in {@code ClinicalShiftGroupService}, not here, since it also needs the
+     *  offering's term instance bounds to check against. */
+    LocalDate effectiveStartDate,
+    LocalDate effectiveEndDate
 ) {}

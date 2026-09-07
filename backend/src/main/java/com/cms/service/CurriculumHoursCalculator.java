@@ -47,6 +47,25 @@ public final class CurriculumHoursCalculator {
         return (int) Math.ceil(sessionsNeededOverTerm / weeksInTerm);
     }
 
+    /** How many WEEKLY occurrences of a fixed-length recurring session (e.g. one Clinical Shift
+     *  duty day, always exactly 1/week) are needed before cumulative delivered hours first reach
+     *  {@code totalHours} — the last such week still genuinely owes real content, so nothing
+     *  should be credited or generated beyond it. Mirrors {@link #sessionsPerWeek}'s own "round up
+     *  so the term never falls short" contract, but for a strictly one-occurrence-per-week cadence
+     *  whose occurrence length is a variable, admin-configured duration rather than a fixed
+     *  period/block size — see {@link TimetableSkeletonService#toClinicalShiftHours} (hours
+     *  crediting) and {@code ClinicalShiftOccurrenceService#generateForDate} (real occurrence
+     *  generation), which both cap a {@code ClinicalShiftGroup}'s effective run against this same
+     *  number so a subject's reported hours and its actually-generated duty calendar never
+     *  diverge. Returns 0 (meaning "no cap applies") when there's nothing to deliver or the
+     *  occurrence itself is 0-length. */
+    public static int weeksNeededFor(int totalHours, double hoursPerOccurrence) {
+        if (totalHours <= 0 || hoursPerOccurrence <= 0) {
+            return 0;
+        }
+        return (int) Math.max(1, Math.ceil(totalHours / hoursPerOccurrence));
+    }
+
     /** One representative duration for a pool of periods (a single duration, not exact per-slot
      *  minute accumulation) — correct today since every period in this system is configured
      *  uniformly, and a reasonable approximation if that ever changes. Falls back to 60 minutes

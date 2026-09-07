@@ -1,6 +1,7 @@
 package com.cms.dto;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -19,6 +20,8 @@ public record ClinicalShiftGroupDto(
     LocalTime clinicalEndTime,
     LocalTime busDepartTime,
     LocalTime busReturnTime,
+    LocalDate effectiveStartDate,
+    LocalDate effectiveEndDate,
     Boolean isActive,
     List<ClinicalShiftBatchLinkDto> batches,
     List<ClinicalShiftTheoryBlockDto> theoryBlocks,

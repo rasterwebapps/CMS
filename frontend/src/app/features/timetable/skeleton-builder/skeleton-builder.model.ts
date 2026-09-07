@@ -330,6 +330,15 @@ export interface GlobalAutoScheduleResult {
    *  for a single-cohort run (that case is a hard block at the API boundary instead — see
    *  `canRunAutoSchedule` in skeleton-builder.component.ts). */
   skippedPublishedCohorts: SkippedPublishedCohort[];
+  /** How many cross-offering LAB pairings this run turned into a real RotationGroup (two offerings
+   *  sharing one cohort section, each split into exactly 2 batches on its own Lab, alternated
+   *  week-to-week instead of leaving the "off-duty" batch idle). 0 on a run with no eligible pair —
+   *  never an error; most offerings simply aren't this exact shape. */
+  rotationGroupsCreated: number;
+  /** Every candidate pair Phase B considered but couldn't actually place (no shared free day/period
+   *  found for both labs, all batches, and both faculty) — distinct from a pair simply never being
+   *  eligible (mismatched batch counts, different block sizes), which is silent by design. */
+  pairingSkipReasons: string[];
 }
 
 /** One cohort excluded from an "All Cohorts" run because this term's timetable is already

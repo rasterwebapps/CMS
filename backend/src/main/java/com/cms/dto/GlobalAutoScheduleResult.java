@@ -30,7 +30,15 @@ import java.util.List;
  *  untouched because this term's timetable is already approved/{@code PUBLISHED} on Draft Review —
  *  never populated for a single-cohort run (that case is a hard block at the API boundary instead,
  *  see {@code TimetableGlobalAutoScheduleService#runGlobalAutoSchedule}). Always empty while the
- *  term is still in DRAFT. */
+ *  term is still in DRAFT.
+ *
+ * <p>{@code rotationGroupsCreated} is how many cross-offering LAB pairings this run's Phase B
+ *  ({@code TimetableGlobalAutoScheduleService#attemptCrossOfferingPairing}) turned into a real
+ *  {@code RotationGroup} — 0 on a run with no eligible offering pair, never an error. {@code
+ *  pairingSkipReasons} names every candidate pair Phase B considered but couldn't actually place
+ *  (no shared free day/period found for both labs+all batches+both faculty) — distinct from a pair
+ *  simply never being eligible in the first place (mismatched batch counts, different block sizes,
+ *  etc.), which is silent by design since that's the normal, expected shape for most offerings. */
 public record GlobalAutoScheduleResult(
     int totalPlaced,
     int totalStaffed,
@@ -40,5 +48,7 @@ public record GlobalAutoScheduleResult(
     double capacityCausedGapHours,
     int recommendedAdditionalFacultyCount,
     List<VenueCapacityGap> venueCapacityGaps,
-    List<SkippedPublishedCohort> skippedPublishedCohorts
+    List<SkippedPublishedCohort> skippedPublishedCohorts,
+    int rotationGroupsCreated,
+    List<String> pairingSkipReasons
 ) {}

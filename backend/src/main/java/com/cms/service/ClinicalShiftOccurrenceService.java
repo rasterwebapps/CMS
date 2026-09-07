@@ -2,6 +2,7 @@ package com.cms.service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import com.cms.model.Batch;
 import com.cms.model.ClinicalShiftGroup;
 import com.cms.model.ClinicalShiftTheoryBlock;
 import com.cms.model.CourseOffering;
+import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.SessionOccurrence;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.OccurrenceSource;
@@ -62,6 +64,21 @@ public class ClinicalShiftOccurrenceService {
             throw new IllegalStateException(
                 "Course offering " + offering.getId() + " has no clinical shift duration configured");
         }
+        if ((group.getEffectiveStartDate() != null && occurrenceDate.isBefore(group.getEffectiveStartDate()))
+            || (group.getEffectiveEndDate() != null && occurrenceDate.isAfter(group.getEffectiveEndDate()))) {
+            throw new IllegalStateException(
+                "Shift group " + shiftGroupId + " is only effective " + group.getEffectiveStartDate()
+                    + " to " + group.getEffectiveEndDate() + " -- " + occurrenceDate + " is outside that window");
+        }
+        LocalDate hoursSufficientCutoff = hoursSufficientCutoffDate(group, offering);
+        if (hoursSufficientCutoff != null && occurrenceDate.isAfter(hoursSufficientCutoff)) {
+            throw new IllegalStateException(
+                "Shift group " + shiftGroupId + " already delivers its full "
+                    + offering.getCurriculumSemesterCourse().getClinicalHours()
+                    + "h Clinical requirement by " + hoursSufficientCutoff + " -- " + occurrenceDate
+                    + " would over-deliver and should not be generated (raise the offering's curriculum "
+                    + "Clinical hours if more duty weeks are genuinely needed)");
+        }
         LocalTime clinicalEnd = group.getClinicalStartTime().plusMinutes(offering.getClinicalShiftDurationMinutes());
 
         List<SessionOccurrence> created = new java.util.ArrayList<>();
@@ -72,6 +89,33 @@ public class ClinicalShiftOccurrenceService {
             generateTheoryOccurrence(group, block, occurrenceDate).ifPresent(created::add);
         }
         return created;
+    }
+
+    /** The last calendar date this group should still generate a real occurrence for, given how
+     *  many weekly duty-length occurrences the offering's curriculum Clinical hours actually need
+     *  (see {@link CurriculumHoursCalculator#weeksNeededFor}) -- {@code null} means "no cap
+     *  applies" (no positive Clinical hours configured), in which case only the group's own manual
+     *  {@code effectiveStartDate}/{@code effectiveEndDate} (already checked above) governs. Always
+     *  the TIGHTER of "hours math" and any manual range, never looser -- see {@link
+     *  TimetableSkeletonService#toClinicalShiftHours}'s identical cap on the hours-crediting side;
+     *  the two must never disagree, or a subject's reported hours and its real duty calendar would
+     *  silently diverge again. */
+    private LocalDate hoursSufficientCutoffDate(ClinicalShiftGroup group, CourseOffering offering) {
+        CurriculumSemesterCourse csc = offering.getCurriculumSemesterCourse();
+        Integer rawHours = csc != null ? csc.getClinicalHours() : null;
+        double hoursPerOccurrence = offering.getClinicalShiftDurationMinutes() / 60.0;
+        int neededWeeks = CurriculumHoursCalculator.weeksNeededFor(rawHours != null ? rawHours : 0, hoursPerOccurrence);
+        if (neededWeeks <= 0) {
+            return null;
+        }
+        LocalDate firstOccurrence = group.getEffectiveStartDate() != null
+            ? group.getEffectiveStartDate()
+            // com.cms.model.enums.DayOfWeek only has MONDAY..SATURDAY -- names line up exactly
+            // with java.time.DayOfWeek's, so valueOf() is a safe direct mapping (see
+            // ClassScheduleOccurrenceService#weeklyDatesInRange for the same pattern).
+            : group.getTermInstance().getStartDate().with(
+                TemporalAdjusters.nextOrSame(java.time.DayOfWeek.valueOf(group.getDayOfWeek().name())));
+        return firstOccurrence.plusWeeks(neededWeeks - 1L);
     }
 
     private java.util.Optional<SessionOccurrence> generateClinicalOccurrence(ClinicalShiftGroup group, Batch batch,

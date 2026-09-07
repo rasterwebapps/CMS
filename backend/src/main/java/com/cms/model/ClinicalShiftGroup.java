@@ -1,6 +1,7 @@
 package com.cms.model;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 import org.springframework.data.annotation.CreatedDate;
@@ -60,6 +61,23 @@ public class ClinicalShiftGroup {
 
     @Column(name = "clinical_start_time", nullable = false)
     private LocalTime clinicalStartTime;
+
+    /** Both null (the common case) means this group recurs for the whole term -- but only as an
+     *  upper bound: {@code TimetableSkeletonService#toClinicalShiftHours} and {@code
+     *  ClinicalShiftOccurrenceService#generateForDate} both additionally cap the group's real
+     *  effective run at however many weekly duty-length occurrences the offering's own curriculum
+     *  Clinical hours actually need (see {@code CurriculumHoursCalculator#weeksNeededFor}), and
+     *  that auto-derived cap always wins if it's tighter than this date range. Both non-null bounds
+     *  it to a real sub-window (e.g. a 4-week internship block) that's still further capped the
+     *  same way if it would itself overshoot the hours requirement. Neither is honored by the
+     *  Skeleton Builder grid, which has no per-week template variation (see V419 migration) -- a
+     *  bounded/capped group still blocks its whole-term grid slot even in weeks it no longer
+     *  actually runs. */
+    @Column(name = "effective_start_date")
+    private LocalDate effectiveStartDate;
+
+    @Column(name = "effective_end_date")
+    private LocalDate effectiveEndDate;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -129,6 +147,22 @@ public class ClinicalShiftGroup {
 
     public void setClinicalStartTime(LocalTime clinicalStartTime) {
         this.clinicalStartTime = clinicalStartTime;
+    }
+
+    public LocalDate getEffectiveStartDate() {
+        return effectiveStartDate;
+    }
+
+    public void setEffectiveStartDate(LocalDate effectiveStartDate) {
+        this.effectiveStartDate = effectiveStartDate;
+    }
+
+    public LocalDate getEffectiveEndDate() {
+        return effectiveEndDate;
+    }
+
+    public void setEffectiveEndDate(LocalDate effectiveEndDate) {
+        this.effectiveEndDate = effectiveEndDate;
     }
 
     public Boolean getIsActive() {

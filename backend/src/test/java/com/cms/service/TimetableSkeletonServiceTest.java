@@ -76,6 +76,7 @@ class TimetableSkeletonServiceTest {
     @Mock private BatchService batchService;
     @Mock private TimetableBlockedPeriodChecker blockedPeriodChecker;
     @Mock private com.cms.repository.RotationSlotRepository rotationSlotRepository;
+    @Mock private com.cms.repository.RotationMemberAssignmentRepository rotationMemberAssignmentRepository;
     @Mock private RotationResolverService rotationResolverService;
     @Mock private CourseOfferingService courseOfferingService;
     @Mock private CohortRepository cohortRepository;
@@ -100,7 +101,7 @@ class TimetableSkeletonServiceTest {
     void setUp() {
         service = new TimetableSkeletonService(courseOfferingRepository, classScheduleRepository,
             periodRepository, batchRepository, batchService, blockedPeriodChecker,
-            rotationSlotRepository, rotationResolverService, courseOfferingService,
+            rotationSlotRepository, rotationMemberAssignmentRepository, rotationResolverService, courseOfferingService,
             cohortRepository, termInstanceRepository, cohortRoomAllocationRepository, cohortSectionRepository,
             timetableStaffingService, clinicalShiftGroupRepository, clinicalShiftGroupService);
         lenient().when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(anyLong())).thenReturn(List.of());
@@ -296,6 +297,44 @@ class TimetableSkeletonServiceTest {
         assertThat(hours.assignedHours()).isEqualTo(6.0 * 27); // 6h shift * weeksInTerm(27)
         // Never surfaces as a grid cell -- it has no periodId/day-column position to render.
         assertThat(response.cells()).isEmpty();
+    }
+
+    /** Regression for the real incident (2026-09-05): three Clinical Shift subjects, each running
+     *  a 6h/week duty shift for the whole 27-week term, reported 468h combined assigned hours
+     *  against a 400h combined curriculum requirement -- {@code effectiveWeeksFor} had no ceiling
+     *  at all, only {@link CurriculumHoursCalculator#weeksNeededFor}'s own floor validation on the
+     *  shift DURATION, so a shift running every week of the term structurally overshot whenever
+     *  its weekly hours didn't divide the curriculum figure evenly. 133h owed / 6h per week needs
+     *  ceil(133/6) = 23 weeks (138h delivered, a 5h rounding overshoot -- the same "accepted
+     *  tradeoff" already documented for LAB's own sessionsPerWeek rounding), not the full 27-week
+     *  term's 162h. */
+    @Test
+    void clinicalShiftHoursAreCappedAtWhatTheCurriculumRequirementActuallyNeeds_notTheWholeTerm() {
+        csc.setClinicalHours(133);
+        offering.setClinicalShiftDurationMinutes(360); // 6h shift/week
+
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L))).thenReturn(Collections.emptyList());
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
+
+        com.cms.model.ClinicalShiftGroup group = new com.cms.model.ClinicalShiftGroup();
+        group.setId(1L);
+        group.setCourseOffering(offering);
+        group.setTermInstance(termInstance);
+        group.setDayOfWeek(DayOfWeek.MONDAY);
+        group.setClinicalStartTime(LocalTime.of(7, 0));
+        group.setIsActive(true);
+        when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(group));
+
+        SkeletonBuilderResponse response = service.getCohortSkeleton(10L, 5L);
+
+        assertThat(response.clinicalShiftHours()).hasSize(1);
+        assertThat(response.clinicalShiftHours().get(0).assignedHours()).isEqualTo(138.0); // 23 weeks x 6h, not 27 x 6h = 162h
     }
 
     /** Regression for the "Clinical shortfall never clears no matter how the grid is rearranged"
