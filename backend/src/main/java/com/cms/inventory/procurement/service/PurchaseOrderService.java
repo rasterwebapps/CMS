@@ -243,14 +243,18 @@ public class PurchaseOrderService {
      * after it posts a confirmed receipt's stock movements and updates each line's received
      * quantity, keeping "PurchaseOrderService owns every write to PurchaseOrder" true the same
      * way {@code StockMovementService} owns every write to the stock ledger. A no-op once the
-     * order is {@code COMPLETED} or {@code FORCE_CLOSED} (terminal), and leaves the order at
-     * {@code ORDERED} if nothing has been received yet. See the "Goods Receipt slice"
-     * decision-log entry.
+     * order is {@code FORCE_CLOSED} (the one genuinely manual, terminal state) — but {@code
+     * COMPLETED} is NOT treated as terminal here: a confirmed {@code SupplierReturnService}
+     * return lowers a line's {@code receivedQty} after the fact, and this method is called again
+     * to let a previously-COMPLETED order correctly revert to {@code PARTIALLY_COMPLETED}/
+     * {@code IN_PROGRESS} once its true accepted quantity drops. Leaves the order at {@code
+     * ORDERED} if nothing has been received yet. See the "Goods Receipt slice" and "Return to
+     * Supplier slice" decision-log entries.
      */
     @Transactional
     public void recalculateReceiptProgress(Long orderId) {
         PurchaseOrder order = requireOrder(orderId);
-        if (order.getStatus() == PurchaseOrderStatus.COMPLETED || order.getStatus() == PurchaseOrderStatus.FORCE_CLOSED) {
+        if (order.getStatus() == PurchaseOrderStatus.FORCE_CLOSED) {
             return;
         }
         List<PurchaseOrderItem> lines = itemRepository.findByPurchaseOrderIdOrderByIdAsc(orderId);
@@ -267,7 +271,9 @@ public class PurchaseOrderService {
         } else if (anyReceived > 0) {
             next = PurchaseOrderStatus.IN_PROGRESS;
         } else {
-            return;
+            // Nothing received (or a return brought every line back to zero) — revert to ORDERED
+            // rather than leaving a stale COMPLETED/IN_PROGRESS/PARTIALLY_COMPLETED status behind.
+            next = PurchaseOrderStatus.ORDERED;
         }
         if (order.getStatus() != next) {
             order.setStatus(next);

@@ -237,6 +237,7 @@ export const NAV_ENTRIES: NavEntry[] = [
     items: [
       { label: 'Goods Receipts', icon: 'move_to_inbox', route: '/inventory/receiving/goods-receipts', permissions: ['INVENTORY_GRN_VIEW', 'INVENTORY_GRN_MANAGE', 'INVENTORY_GRN_CONFIRM'] },
       { label: 'Stock Transfers', icon: 'sync_alt', route: '/inventory/stock/transfers', permissions: ['INVENTORY_STOCK_TRANSFER_VIEW', 'INVENTORY_STOCK_TRANSFER_MANAGE'] },
+      { label: 'Supplier Returns', icon: 'keyboard_return', route: '/inventory/receiving/supplier-returns', permissions: ['INVENTORY_SUPPLIER_RETURN_VIEW', 'INVENTORY_SUPPLIER_RETURN_MANAGE'] },
     ],
   },
   // 9. Hostel Management — hostel-only operational screens (building/room masters live under Core Infrastructure)

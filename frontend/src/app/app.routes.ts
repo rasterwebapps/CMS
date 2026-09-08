@@ -454,6 +454,31 @@ export const routes: Routes = [
         (m) => m.StockTransferDetailComponent
       ),
   },
+  // Phase 3 "Receiving & Stock Movement" — Return to Supplier (third and final slice, closes Phase 3).
+  {
+    path: 'inventory/receiving/supplier-returns',
+    canActivate: withPermission('INVENTORY_SUPPLIER_RETURN_VIEW', 'INVENTORY_SUPPLIER_RETURN_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/receiving/supplier-return/supplier-return-list/supplier-return-list.component').then(
+        (m) => m.SupplierReturnListComponent
+      ),
+  },
+  {
+    path: 'inventory/receiving/supplier-returns/new',
+    canActivate: withPermission('INVENTORY_SUPPLIER_RETURN_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/receiving/supplier-return/supplier-return-new/supplier-return-new.component').then(
+        (m) => m.SupplierReturnNewComponent
+      ),
+  },
+  {
+    path: 'inventory/receiving/supplier-returns/:id',
+    canActivate: withPermission('INVENTORY_SUPPLIER_RETURN_VIEW', 'INVENTORY_SUPPLIER_RETURN_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/receiving/supplier-return/supplier-return-detail/supplier-return-detail.component').then(
+        (m) => m.SupplierReturnDetailComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),

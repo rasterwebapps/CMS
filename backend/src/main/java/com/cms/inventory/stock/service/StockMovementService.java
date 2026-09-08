@@ -44,7 +44,7 @@ public class StockMovementService {
 
     /** Reachable through the API — see the decision log for why each was added, and when. */
     private static final Set<StockTxnType> ALLOWED_TXN_TYPES =
-        EnumSet.of(StockTxnType.RECEIPT, StockTxnType.ADJUSTMENT, StockTxnType.DISPOSAL, StockTxnType.TRANSFER);
+        EnumSet.of(StockTxnType.RECEIPT, StockTxnType.ADJUSTMENT, StockTxnType.DISPOSAL, StockTxnType.TRANSFER, StockTxnType.RETURN);
 
     private final ProductRepository productRepository;
     private final InventoryLocationRepository locationRepository;
@@ -78,12 +78,17 @@ public class StockMovementService {
         BigDecimal magnitude = request.quantity();
         BigDecimal qtyDelta = switch (txnType) {
             case RECEIPT -> magnitude;
-            case DISPOSAL -> magnitude.negate();
+            // RETURN here means returning goods to a supplier — always a decrease, same as
+            // DISPOSAL, no direction needed. (A different, not-yet-built Phase 4 concept —
+            // returning previously-*issued* stock back to a location — will need its own look
+            // at whether it can reuse this same enum value with a direction, or needs its own;
+            // don't assume this decrease-only handling still fits without re-checking then.)
+            case DISPOSAL, RETURN -> magnitude.negate();
             // TRANSFER shares ADJUSTMENT's direction-based handling — StockTransferService posts
             // one DECREASE call at the source location and one INCREASE call at the destination.
             case ADJUSTMENT, TRANSFER -> "DECREASE".equalsIgnoreCase(request.direction()) ? magnitude.negate() : magnitude;
             default -> throw new IllegalArgumentException(
-                "Transaction type '" + txnType + "' is not yet available — only RECEIPT, ADJUSTMENT, DISPOSAL, and TRANSFER can be recorded here");
+                "Transaction type '" + txnType + "' is not yet available — only RECEIPT, ADJUSTMENT, DISPOSAL, TRANSFER, and RETURN can be recorded here");
         };
 
         StockBalance existing = findBalance(product.getId(), location.getId(), batchId);

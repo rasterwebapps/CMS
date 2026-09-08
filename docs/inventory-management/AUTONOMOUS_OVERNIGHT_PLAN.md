@@ -39,8 +39,8 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-204** (OC-203 was the last used, Stock Transfer). Increment per slice.
-5. **Next Flyway migration number: V444** (V443 was the last used). Increment per file;
+4. **Next OC ticket number: OC-205** (OC-204 was the last used, Return to Supplier). Increment per slice.
+5. **Next Flyway migration number: V446** (V445 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -103,7 +103,7 @@
       unused since Phase 1's "narrowed UI surface" decision; this is where it gets a real
       screen. Simple DRAFT → COMPLETED lifecycle (no approval gate this phase, consistent
       with PO). Permission: `INVENTORY_STOCK_TRANSFER_VIEW`/`_MANAGE`.
-- [ ] **Return-to-supplier** (OC-204). Raised against a confirmed GRN line (defective/wrong
+- [x] **Return-to-supplier** (OC-204, shipped 2026-09-08). Raised against a confirmed GRN line (defective/wrong
       item), posts a decreasing movement at the receiving location using the existing
       `RETURN` enum value, and — if the source PO/GRN pairing supports it — nets against the
       PO's received qty so the PO's progress state reflects the true accepted quantity.
@@ -233,5 +233,14 @@ broken/half-done, and any judgment call made that a future session should sanity
   existing `com.cms.inventory.stock` package + frontend + migrations V442/V443 + docs),
   compile/typecheck both clean, committed locally. User confirmed they will not be watching
   the screen overnight and asked to use tokens wisely — no tool exists to self-`/clear`, so
-  continuing to work in as few, dense tool calls as reasonable per slice. Next: Phase 3's last
-  slice (Return-to-supplier, OC-204), which closes Phase 3.
+  continuing to work in as few, dense tool calls as reasonable per slice.
+- **2026-09-08, same session, after OC-204:** Return to Supplier shipped, **closing Phase 3 in
+  full** (Goods Receipt + Stock Transfer + Return to Supplier). Along the way, widened
+  `PurchaseOrderService.recalculateReceiptProgress` (shipped earlier tonight in OC-202) so
+  `COMPLETED` is no longer treated as terminal — only `FORCE_CLOSED` is — so a return can
+  correctly revert an order's status; also gave `StockMovementService` decrease-only handling
+  for `RETURN`, flagged with a comment that Phase 4's different "internal returns" concept must
+  not assume that same handling still fits. Compile/typecheck both clean, committed locally.
+  Next: Phase 4 ("Requests, Issues & Returns") — read its naming-caution note in this file
+  before starting, since "Purchase Requisition" (buying) and this phase's new requisition
+  concept (requesting on-hand stock) must stay clearly distinct in code/nav/permissions.

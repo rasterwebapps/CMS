@@ -398,4 +398,47 @@ a migration — safe to edit). `MILESTONES.md` and `RELEASE_3_MILESTONES.md` upd
 change. `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean before
 committing.
 
+## 2026-09-08 — Return to Supplier slice: closes Phase 3, made autonomously overnight
+
+**Made autonomously overnight — flag for morning review if this reads wrong.** Continues the same
+unattended, no-confirmation build session as the three entries above.
+**Decisions:**
+1. **Raised against a `CONFIRMED` `GoodsReceipt` only** — a still-DRAFT receipt has posted no
+   stock yet, so there is nothing real to return. Enforced at create time.
+2. **`RETURN` given to `StockMovementService` as a decrease-only type, same handling as
+   `DISPOSAL`** (no `direction` needed) — this slice's meaning is unambiguous (goods physically
+   leaving to the supplier). Flagged in that class's own switch comment: Phase 4's different,
+   not-yet-built "internal returns" concept (returning previously-*issued* stock back to a
+   location) must not assume this same decrease-only handling still fits without re-checking —
+   it may need its own direction-aware treatment or its own enum value.
+3. **Nets back out of `PurchaseOrderItem.receivedQty`, not just the stock ledger** — a return means
+   the true accepted quantity from the supplier is now lower, and the parent order's own status
+   should reflect that. This required loosening `PurchaseOrderService.recalculateReceiptProgress`
+   (previously a no-op once `COMPLETED`, treating it as terminal) to only treat `FORCE_CLOSED` as
+   truly terminal — `COMPLETED` can now correctly revert to `PARTIALLY_COMPLETED`/`IN_PROGRESS`/
+   `ORDERED` as a return lowers a line's received quantity. This is a behavior change to
+   already-shipped Phase 3 code from earlier tonight, made in the same session, not a separate
+   deviation requiring its own review round.
+4. **Over-return blocked outright** (0% tolerance), same posture and same "own-draft-only guard +
+   fresh re-check at complete time" shape as Goods Receipt's own over-receipt guard — deliberately
+   consistent rather than inventing a different rule for the mirror-image operation.
+5. **Structured `reason` (enum) is optional, not required** — `SupplierReturnReason` mirrors
+   `WantedListRejectionReason`'s shape, but nothing in this module's precedent requires a reason
+   be mandatory at header level; the return's own line notes can carry detail if the picklist
+   doesn't fit.
+6. **Two permissions only** (`INVENTORY_SUPPLIER_RETURN_VIEW`/`_MANAGE`), same reasoning as Stock
+   Transfer — completing a return doesn't warrant its own narrower permission beyond `MANAGE`.
+7. **Lives in `com.cms.inventory.receiving`**, alongside `GoodsReceipt` — reads directly into
+   `GoodsReceiptLine`/`PurchaseOrderItem`, the same bounded context `GoodsReceiptService` already
+   sits in.
+**Impact:** new tables `supplier_returns`, `supplier_return_lines` (V444); new permissions (V445);
+`StockMovementService.ALLOWED_TXN_TYPES` widened to include `RETURN`;
+`PurchaseOrderService.recalculateReceiptProgress`'s terminal-state guard narrowed to
+`FORCE_CLOSED` only, and its final "nothing received" branch now explicitly reverts to `ORDERED`
+instead of silently leaving a stale status. `MILESTONES.md` and `RELEASE_3_MILESTONES.md` updated
+in the same change — **this closes Phase 3 ("Receiving & Stock Movement") in full**. See
+`AUTONOMOUS_OVERNIGHT_PLAN.md` for what's next (Phase 4 — Requests, Issues & Returns).
+`./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean before
+committing.
+
 *Next entry goes here — do not insert above this line.*

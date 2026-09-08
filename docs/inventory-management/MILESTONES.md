@@ -21,7 +21,7 @@ Inventory Management is a new, standalone module being built for the platform �
 | 0 | Discovery &amp; Design | 🟡 In Progress |
 | 1 | Foundation — Catalog, Stock Tracking &amp; Locations | 🟡 In Progress |
 | 2 | Purchasing &amp; Suppliers | ✅ Done |
-| 3 | Receiving &amp; Stock Movement | 🟡 In Progress |
+| 3 | Receiving &amp; Stock Movement | ✅ Done |
 | 4 | Requests, Issues &amp; Returns | ⬜ Not Started |
 | 5 | Equipment &amp; Asset Management | ⬜ Not Started |
 | 6 | Budgets &amp; Approvals | ⬜ Not Started |
@@ -84,17 +84,17 @@ Inventory Management is a new, standalone module being built for the platform �
 
 ## Phase 3 — Receiving & Stock Movement
 
-**Status: 🟡 In Progress**
+**Status: ✅ Done**
 
 **Covers:** Recording deliveries against purchase orders, checking quantities and prices match what was ordered, tracking batches and expiry where relevant, and moving stock between locations.
 
-**Doing now:** A delivery can be recorded against a sent purchase order — built up as a draft sheet against the order's still-open lines (over-receipt is blocked, not just warned about), then confirmed, which posts the received quantity to stock and rolls the order's own status forward (Ordered → In Progress/Partially Completed → Completed) as its lines get received. Batch/serial number and expiry are captured on the receipt line itself, reusing the same optional fields the stock-movement form already has.
+**Shipped:** A delivery can be recorded against a sent purchase order — built up as a draft sheet against the order's still-open lines (over-receipt is blocked, not just warned about), then confirmed, which posts the received quantity to stock and rolls the order's own status forward (Ordered → In Progress/Partially Completed → Completed) as its lines get received. Batch/serial number and expiry are captured on the receipt line itself, reusing the same optional fields the stock-movement form already has. Stock can be moved between two locations with a simple draft-then-complete transfer that carries the source's current value across rather than zeroing it. A confirmed receipt's stock can be returned to the supplier it came from, which correctly nets back out of the order's received quantity — including reverting a fully-"Completed" order back to "Partially Completed" if the true accepted quantity drops.
 
 **Todo:**
 - Goods-receipt recording and matching against orders — ✅ done
 - Batch/expiry tracking — ✅ done (captured on the receipt line, posted the same way Record Stock Movement already does)
 - Transfers between locations — ✅ done (a simple draft-then-complete move between two locations, carrying the source's current value across rather than zeroing it)
-- Returning defective or incorrect deliveries to the supplier — still to come
+- Returning defective or incorrect deliveries to the supplier — ✅ done
 
 ---
 
