@@ -266,6 +266,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Asset Register', icon: 'inventory_2', route: '/inventory/asset/assets', permissions: ['INVENTORY_ASSET_VIEW', 'INVENTORY_ASSET_MANAGE'] },
       { label: 'Maintenance Schedules', icon: 'build', route: '/inventory/asset/maintenance-schedules', permissions: ['INVENTORY_ASSET_MAINTENANCE_VIEW', 'INVENTORY_ASSET_MAINTENANCE_MANAGE'] },
       { label: 'Service Contracts', icon: 'handshake', route: '/inventory/asset/service-contracts', permissions: ['INVENTORY_ASSET_MAINTENANCE_VIEW', 'INVENTORY_ASSET_MAINTENANCE_MANAGE'] },
+      { label: 'Depreciation Summary', icon: 'trending_down', route: '/inventory/reporting/asset-depreciation-summary', permissions: ['INVENTORY_ASSET_VIEW', 'INVENTORY_ASSET_MANAGE'] },
     ],
   },
   // 8g. Budgets & Approvals — Phase 6 of the Inventory Management module. Own top-level

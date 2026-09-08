@@ -1,10 +1,8 @@
 package com.cms.inventory.asset.service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.Period;
 import java.util.Locale;
 
 import org.springframework.data.domain.Page;
@@ -214,24 +212,8 @@ public class AssetService {
         Product product = asset.getProduct();
         InventoryLocation location = asset.getLocation();
 
-        boolean depreciationApplicable = asset.getPurchaseValue() != null && asset.getPurchaseDate() != null
-            && asset.getUsefulLifeMonths() != null && asset.getUsefulLifeMonths() > 0;
-        BigDecimal accumulatedDepreciation = null;
-        BigDecimal currentBookValue = null;
-        if (depreciationApplicable) {
-            BigDecimal salvage = asset.getSalvageValue() != null ? asset.getSalvageValue() : BigDecimal.ZERO;
-            BigDecimal depreciableBase = asset.getPurchaseValue().subtract(salvage);
-            int monthsElapsed = Math.max(0, Math.min(
-                asset.getUsefulLifeMonths(),
-                monthsBetween(asset.getPurchaseDate(), LocalDate.now())));
-            BigDecimal monthlyDepreciation = depreciableBase
-                .divide(BigDecimal.valueOf(asset.getUsefulLifeMonths()), 4, RoundingMode.HALF_UP);
-            accumulatedDepreciation = monthlyDepreciation.multiply(BigDecimal.valueOf(monthsElapsed))
-                .min(depreciableBase.max(BigDecimal.ZERO))
-                .setScale(2, RoundingMode.HALF_UP);
-            currentBookValue = asset.getPurchaseValue().subtract(accumulatedDepreciation).max(salvage)
-                .setScale(2, RoundingMode.HALF_UP);
-        }
+        AssetDepreciationCalculator.Result depreciation = AssetDepreciationCalculator.compute(
+            asset.getPurchaseValue(), asset.getPurchaseDate(), asset.getUsefulLifeMonths(), asset.getSalvageValue());
 
         return new AssetResponse(
             asset.getId(), product.getId(), product.getProductCode(), product.getProductName(),
@@ -239,14 +221,8 @@ public class AssetService {
             asset.getAssetTag(), asset.getSerialNumber(), asset.getStatus().name(),
             asset.getGoodsReceiptLine() != null ? asset.getGoodsReceiptLine().getId() : null,
             asset.getPurchaseValue(), asset.getPurchaseDate(), asset.getUsefulLifeMonths(), asset.getSalvageValue(),
-            depreciationApplicable, accumulatedDepreciation, currentBookValue,
+            depreciation.applicable(), depreciation.accumulatedDepreciation(), depreciation.currentBookValue(),
             asset.getDisposalReason(), asset.getDisposalValue(), asset.getDisposalDate(), asset.getDisposedBy(), asset.getDisposedAt(),
             asset.getNotes(), asset.getCreatedAt(), asset.getUpdatedAt());
-    }
-
-    /** Whole calendar months elapsed from {@code start} to {@code end}, never negative. */
-    private static int monthsBetween(LocalDate start, LocalDate end) {
-        if (end.isBefore(start)) return 0;
-        return Period.between(start, end).getYears() * 12 + Period.between(start, end).getMonths();
     }
 }

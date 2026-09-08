@@ -1189,4 +1189,48 @@ scheme, so there was no real layout/threshold decision left to ask about.
 `RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and
 `npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
 
+## 2026-09-09 — Asset Depreciation Summary Report slice (OC-223)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+Phase 8's fourth slice, and the third of the OC-219 breakdown's five "needs product input"
+items to get the same fresh-eyes reconsideration. A category-grouped rollup of purchase value/
+accumulated depreciation/current book value — an "as of today" snapshot, no period/monthly
+time-series — is structurally identical to the already-shipped Stock Valuation Report, and every
+figure it needs was already fully computed per-asset in `AssetService`.
+
+1. **Extracted the depreciation formula out of `AssetService.toResponse` into a new, shared
+   `AssetDepreciationCalculator.compute(...)`** rather than writing a second copy for this
+   report — a pure extraction (identical inputs/outputs/rounding, verified by re-reading the
+   moved code side-by-side and a clean `./gradlew compileJava`), not a rewrite. This is a
+   deliberate "reuse over duplicate" call: a financial calculation as fiddly as straight-line
+   depreciation (monthly rounding, clamped elapsed-months, salvage-value floor) drifting into
+   two slightly-different implementations across two screens would be a real, hard-to-notice
+   bug class — this makes that structurally impossible instead of trusting two authors (or one
+   author on two different days) to keep them in sync by hand.
+2. **Grouped by Category, `DISPOSED` assets excluded** — mirrors the Stock Valuation Report's
+   own "group by the one dimension every record always has" call, and matches how a
+   depreciation summary is conventionally scoped to assets still actively on the register (a
+   disposed asset's final figures are already visible on its own Asset Register entry/history,
+   not owed a second live rollup here).
+3. **Assets missing full depreciation inputs (no useful life set, etc.) still count toward the
+   category's asset count and purchase-value total, but contribute zero to accumulated
+   depreciation/current book value** — never silently dropped, never fabricates a number the
+   underlying data doesn't support, matching `AssetResponse`'s own existing
+   `depreciationApplicable` flag posture (this report just aggregates that same distinction
+   rather than hiding it).
+4. **One new fetch-join repository query**
+   (`AssetRepository.findAllWithCategoryExcludingStatus`) to avoid an N+1 per-asset category
+   lookup — the report fetches full `Asset` entities (needed for the shared calculator) rather
+   than a narrower projection, since the calculator's inputs are exactly the same fields
+   `AssetService` already reads off the entity.
+5. **Reuses `INVENTORY_ASSET_VIEW`/`_MANAGE`** — same reasoning as the two prior report slices:
+   stays within the one already-permissioned Asset bounded context.
+
+**Impact:** no new tables, no new permissions, no new migration (`AssetService.java` itself was
+touched — a pure, behavior-preserving extraction, not a functional change; the Asset Register's
+own screen was not otherwise modified). `MILESTONES.md` and `RELEASE_3_MILESTONES.md` updated
+in the same change. `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run
+clean before committing.
+
 *Next entry goes here — do not insert above this line.*

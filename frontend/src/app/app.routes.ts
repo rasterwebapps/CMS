@@ -234,6 +234,15 @@ export const routes: Routes = [
         (m) => m.PurchaseOrderAgingReportComponent
       ),
   },
+  // Phase 8 "Reporting & Dashboards" — Asset Depreciation Summary Report (fourth slice).
+  {
+    path: 'inventory/reporting/asset-depreciation-summary',
+    canActivate: withPermission('INVENTORY_ASSET_VIEW', 'INVENTORY_ASSET_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/reporting/asset-depreciation-summary/asset-depreciation-summary.component').then(
+        (m) => m.AssetDepreciationSummaryReportComponent
+      ),
+  },
   {
     path: 'inventory/stock/balances',
     canActivate: withPermission('INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'),

@@ -1,0 +1,64 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="ads-pg-title">Asset Depreciation <em>Summary</em></h1>
+      </div>
+      <p class="ads-pg-sub">
+        Purchase value, accumulated depreciation, and current book value by category, as of today. Disposed assets are excluded.
+        @if (report(); as r) { <span class="ads-generated">Updated {{ r.generatedAt | date: 'short' }}</span> }
+      </p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="ads-loading"><mat-spinner diameter="40"></mat-spinner></div>
+  } @else if (report(); as r) {
+    @if (r.grandTotalAssetCount === 0) {
+      <cms-empty-state
+        icon="precision_manufacturing"
+        title="No assets on the register yet"
+        subtitle="Once assets are registered, their depreciation summary will appear here."
+      ></cms-empty-state>
+    } @else {
+      <div class="content-card mlp-table-card">
+        <div class="table-wrapper">
+        <table class="ads-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th class="cell-align-right">Assets</th>
+              <th class="cell-align-right">Purchase Value</th>
+              <th class="cell-align-right">Accumulated Depreciation</th>
+              <th class="cell-align-right">Current Book Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of r.categories; track row.categoryId) {
+              <tr>
+                <td>{{ row.categoryName }}</td>
+                <td class="cell-align-right">{{ row.assetCount }}</td>
+                <td class="cell-align-right">{{ row.totalPurchaseValue | number: '1.2-2' }}</td>
+                <td class="cell-align-right">{{ row.totalAccumulatedDepreciation | number: '1.2-2' }}</td>
+                <td class="cell-align-right">{{ row.totalCurrentBookValue | number: '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="ads-total-row">
+              <td>Grand Total</td>
+              <td class="cell-align-right">{{ r.grandTotalAssetCount }}</td>
+              <td class="cell-align-right">{{ r.grandTotalPurchaseValue | number: '1.2-2' }}</td>
+              <td class="cell-align-right">{{ r.grandTotalAccumulatedDepreciation | number: '1.2-2' }}</td>
+              <td class="cell-align-right">{{ r.grandTotalCurrentBookValue | number: '1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+        </div>
+      </div>
+    }
+  }
+
+</div>

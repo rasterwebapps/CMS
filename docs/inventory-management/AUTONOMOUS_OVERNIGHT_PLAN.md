@@ -39,9 +39,9 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-223** (OC-222 was the last used, Purchase Order Aging Report —
-   OC-206 was skipped, see its checklist item above). Increment per slice.
-5. **Next Flyway migration number: V473** (V472 was the last used — neither OC-221 nor OC-222
+4. **Next OC ticket number: OC-224** (OC-223 was the last used, Asset Depreciation Summary
+   Report — OC-206 was skipped, see its checklist item above). Increment per slice.
+5. **Next Flyway migration number: V473** (V472 was the last used — none of OC-221/222/223
    needed a new migration, same as Depreciation/OC-211). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
@@ -231,8 +231,12 @@
       was not attempted here; if wanted later it's a distinct report, not folded into this one.
 - [ ] **Price Comparison report** (across suppliers/rate contracts for the same product) —
       needs a real product-input decision on layout/columns — do not build without asking.
-- [ ] **Asset Depreciation Summary report** — needs a real product-input decision on
-      period/grouping (monthly? by category?) — do not build without asking.
+- [x] **Asset Depreciation Summary report** (OC-223, shipped 2026-09-09) — purchase value/
+      accumulated depreciation/current book value grouped by category, "as of today" (no
+      period/monthly time-series — same scope decision as Stock Valuation), disposed assets
+      excluded. Reconsidered and revised the earlier "needs product input" call, same as the
+      two prior report slices. Reuses the depreciation formula already in `AssetService`,
+      extracted into a shared `AssetDepreciationCalculator` rather than duplicated.
 - [ ] **Budget vs. Actual Spend report** — needs a real product-input decision on
       period/grouping and whether it differs meaningfully from the Budgets list's own
       allocated-vs-consumed columns — do not build without asking.
@@ -510,3 +514,28 @@ broken/half-done, and any judgment call made that a future session should sanity
   — Price Comparison, Asset Depreciation Summary, Budget vs. Actual, and now PO Cycle-Time —
   should each get the same fresh-eyes "is this actually product-input-free?" check before being
   accepted as blocked; two of five originally-flagged items turned out not to need it at all.
+- **2026-09-09, same session, after OC-223:** **Asset Depreciation Summary** turned out to be
+  the same shape as Stock Valuation Report (a category rollup, "as of today," no time-series),
+  and its own hardest-looking part — the depreciation formula itself — was already fully solved
+  in `AssetService`. Rather than write a second, potentially-drifting copy of that formula for
+  the report, extracted it into a new shared `AssetDepreciationCalculator.compute(...)` and
+  pointed `AssetService.toResponse` at the extracted version too (a pure, behavior-preserving
+  refactor — verified by re-reading the moved code and a clean `./gradlew compileJava`, no
+  dedicated `AssetServiceTest` exists to run). New fetch-join query
+  (`AssetRepository.findAllWithCategoryExcludingStatus`), reuses `INVENTORY_ASSET_VIEW`/
+  `_MANAGE`. No new table/permission/migration. Full frontend (category table + grand total,
+  new nav entry under Equipment & Asset Management). `./gradlew compileJava` and
+  `npx tsc --noEmit` both passed clean, committed locally.
+- **2026-09-09, same session, after OC-223, before committing OC-224:** while building **Price
+  Comparison** next, discovered it needs **zero new backend code at all** — the existing
+  `VendorProductMappingController`'s `/page?productId=` endpoint already returns every active
+  supplier's rate for a product with `effectivePrice`/`priceSource` (the rate-contract-override
+  resolution) already computed, exactly what a price-comparison screen needs. Built as a
+  frontend-only addition reusing the existing `VendorProductMappingService`/model as-is (client-
+  side sorted by `effectivePrice`, cheapest row highlighted), gated by the same
+  `INVENTORY_VENDOR_PRODUCT_MAPPING_VIEW`/`_MANAGE` that already gates that endpoint. Because
+  its route/nav-entry edits landed in the same working tree as OC-223's before either was
+  committed, the two slices' `app.routes.ts`/`nav-config.ts` additions were temporarily
+  interleaved — OC-224's lines were removed again before the OC-223 commit and re-added for
+  OC-224's own commit, so each commit's diff stays scoped to exactly one slice (flagging this
+  here in case a future multi-slice turn hits the same interleaving and needs the same care).
