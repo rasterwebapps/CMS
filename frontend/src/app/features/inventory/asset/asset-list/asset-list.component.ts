@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, ViewChild, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -22,6 +22,7 @@ const STATUS_OPTIONS: AssetStatus[] = ['AVAILABLE', 'IN_USE', 'UNDER_MAINTENANCE
   imports: [
     FormsModule,
     DatePipe,
+    DecimalPipe,
     MatTableModule,
     MatPaginatorModule,
     CmsEmptyStateComponent,
@@ -55,7 +56,7 @@ export class AssetListComponent implements OnInit, OnDestroy {
   }
 
   protected readonly statusOptions = STATUS_OPTIONS;
-  protected readonly displayedColumns = ['assetTag', 'productName', 'locationVirtualName', 'status', 'purchaseDate', 'actions'];
+  protected readonly displayedColumns = ['assetTag', 'productName', 'locationVirtualName', 'status', 'purchaseDate', 'currentBookValue', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Asset>([]);
   protected readonly loading = signal(false);
   protected readonly locations = signal<InventoryLocation[]>([]);

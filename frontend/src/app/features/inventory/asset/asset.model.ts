@@ -43,6 +43,9 @@ export interface Asset {
   purchaseDate: string | null;
   usefulLifeMonths: number | null;
   salvageValue: number | null;
+  depreciationApplicable: boolean;
+  accumulatedDepreciation: number | null;
+  currentBookValue: number | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;

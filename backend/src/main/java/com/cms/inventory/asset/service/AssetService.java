@@ -1,5 +1,9 @@
 package com.cms.inventory.asset.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.Locale;
 
 import org.springframework.data.domain.Page;
@@ -28,6 +32,14 @@ import com.cms.inventory.stock.repository.InventoryLocationRepository;
  * (e.g. IN_USE ↔ UNDER_MAINTENANCE happens repeatedly before an eventual RETIRED/DISPOSED), so
  * {@link #updateStatus} only validates the target is a real {@code AssetStatus}, not a specific
  * transition graph. See the "Asset register slice" decision-log entry.
+ *
+ * <p>{@link #toResponse} also computes standard straight-line depreciation (Phase 5's third
+ * slice) directly from the asset's own {@code purchaseValue}/{@code purchaseDate}/{@code
+ * usefulLifeMonths}/{@code salvageValue} — a read-only value, never stored, and never posted to
+ * any ledger/connector (that's out of scope, per the already-deferred GL posting-connector
+ * decision from Phase 1). {@code depreciationApplicable} is {@code false} whenever any of those
+ * four inputs is missing, so the frontend can show "not enough data" rather than a misleading
+ * zero. See the "Depreciation slice" decision-log entry.
  */
 @Service
 @Transactional(readOnly = true)
@@ -149,12 +161,39 @@ public class AssetService {
     private AssetResponse toResponse(Asset asset) {
         Product product = asset.getProduct();
         InventoryLocation location = asset.getLocation();
+
+        boolean depreciationApplicable = asset.getPurchaseValue() != null && asset.getPurchaseDate() != null
+            && asset.getUsefulLifeMonths() != null && asset.getUsefulLifeMonths() > 0;
+        BigDecimal accumulatedDepreciation = null;
+        BigDecimal currentBookValue = null;
+        if (depreciationApplicable) {
+            BigDecimal salvage = asset.getSalvageValue() != null ? asset.getSalvageValue() : BigDecimal.ZERO;
+            BigDecimal depreciableBase = asset.getPurchaseValue().subtract(salvage);
+            int monthsElapsed = Math.max(0, Math.min(
+                asset.getUsefulLifeMonths(),
+                monthsBetween(asset.getPurchaseDate(), LocalDate.now())));
+            BigDecimal monthlyDepreciation = depreciableBase
+                .divide(BigDecimal.valueOf(asset.getUsefulLifeMonths()), 4, RoundingMode.HALF_UP);
+            accumulatedDepreciation = monthlyDepreciation.multiply(BigDecimal.valueOf(monthsElapsed))
+                .min(depreciableBase.max(BigDecimal.ZERO))
+                .setScale(2, RoundingMode.HALF_UP);
+            currentBookValue = asset.getPurchaseValue().subtract(accumulatedDepreciation).max(salvage)
+                .setScale(2, RoundingMode.HALF_UP);
+        }
+
         return new AssetResponse(
             asset.getId(), product.getId(), product.getProductCode(), product.getProductName(),
             location.getId(), location.getVirtualName(),
             asset.getAssetTag(), asset.getSerialNumber(), asset.getStatus().name(),
             asset.getGoodsReceiptLine() != null ? asset.getGoodsReceiptLine().getId() : null,
             asset.getPurchaseValue(), asset.getPurchaseDate(), asset.getUsefulLifeMonths(), asset.getSalvageValue(),
+            depreciationApplicable, accumulatedDepreciation, currentBookValue,
             asset.getNotes(), asset.getCreatedAt(), asset.getUpdatedAt());
+    }
+
+    /** Whole calendar months elapsed from {@code start} to {@code end}, never negative. */
+    private static int monthsBetween(LocalDate start, LocalDate end) {
+        if (end.isBefore(start)) return 0;
+        return Period.between(start, end).getYears() * 12 + Period.between(start, end).getMonths();
     }
 }

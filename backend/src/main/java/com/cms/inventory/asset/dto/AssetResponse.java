@@ -19,6 +19,9 @@ public record AssetResponse(
     LocalDate purchaseDate,
     Integer usefulLifeMonths,
     BigDecimal salvageValue,
+    boolean depreciationApplicable,
+    BigDecimal accumulatedDepreciation,
+    BigDecimal currentBookValue,
     String notes,
     Instant createdAt,
     Instant updatedAt

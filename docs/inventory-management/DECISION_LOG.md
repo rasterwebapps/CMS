@@ -642,4 +642,34 @@ permissions (V455). `MILESTONES.md` and `RELEASE_3_MILESTONES.md` updated in the
 `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean before
 committing.
 
+## 2026-09-08 — Depreciation slice: made autonomously overnight, no new schema
+
+**Made autonomously overnight — flag for morning review if this reads wrong.** Continues the same
+unattended, no-confirmation build session as the entries above.
+**Decisions:**
+1. **No new table or entity.** `Asset.purchaseValue`/`purchaseDate`/`usefulLifeMonths`/
+   `salvageValue` were already captured as master data in the "Asset register slice" specifically
+   so this slice wouldn't need a migration — confirmed correct. Depreciation is computed live in
+   `AssetService.toResponse`, never stored, and never posted anywhere — the plan's own text
+   already scoped this to "no GL posting/connector work," consistent with the already-deferred
+   posting-connector decision from Phase 1's Backend Architect round.
+2. **Standard straight-line only**, per the plan's own explicit instruction not to attempt
+   double-declining/units-of-production without a real need. `monthlyDepreciation =
+   (purchaseValue − salvageValue) / usefulLifeMonths`; whole calendar months elapsed (via `java
+   .time.Period`, not a naive day-count divide) multiplied by that rate, capped so accumulated
+   depreciation never exceeds the depreciable base and current book value never drops below
+   salvage value once the useful life has fully elapsed.
+3. **`depreciationApplicable` is `false` whenever any of the three required inputs (purchase
+   value, purchase date, useful life) is missing** — the response then carries `null` for both
+   computed fields rather than a misleading `0`, and the frontend shows "—" instead of a zero
+   that would read as "worthless" for an asset that simply has incomplete master data. A missing
+   salvage value is treated differently — defaulted to zero, not blocking, since zero salvage is
+   a completely normal real value, not missing data.
+4. **No new permission** — this is a computed, read-only addition to the existing `AssetResponse`
+   already gated by `INVENTORY_ASSET_VIEW`/`_MANAGE`, not a new operation.
+**Impact:** `AssetResponse` gained `depreciationApplicable`/`accumulatedDepreciation`/
+`currentBookValue`; no migration. Asset Register list gained a "Book Value" column. `MILESTONES
+.md` and `RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and `npx
+tsc -p tsconfig.app.json --noEmit` both run clean before committing.
+
 *Next entry goes here — do not insert above this line.*

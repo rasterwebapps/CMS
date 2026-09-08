@@ -39,9 +39,10 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-211** (OC-210 was the last used, Maintenance & Service
-   Contracts — OC-206 was skipped, see its checklist item above). Increment per slice.
-5. **Next Flyway migration number: V456** (V455 was the last used). Increment per file;
+4. **Next OC ticket number: OC-212** (OC-211 was the last used, Depreciation — OC-206
+   was skipped, see its checklist item above). Increment per slice.
+5. **Next Flyway migration number: V456** (V455 was the last used — OC-211 needed no
+   migration at all, added no new table). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -153,7 +154,7 @@
 - [x] **Maintenance scheduling + service contracts** (OC-210, shipped 2026-09-08). `AssetMaintenanceSchedule`
       (recurring or one-off) + `AssetServiceContract` (vendor, coverage window, renewal
       reminder) against an `Asset`. Permission: `INVENTORY_ASSET_MAINTENANCE_VIEW`/`_MANAGE`.
-- [ ] **Depreciation** (OC-211). Standard straight-line depreciation as the default method
+- [x] **Depreciation** (OC-211, shipped 2026-09-08). Standard straight-line depreciation as the default method
       (ERP-standard baseline; do not attempt double-declining/units-of-production unless a
       real need surfaces later), computed from `Asset.purchaseValue`/`purchaseDate`/
       `usefulLifeMonths`/`salvageValue`, exposed as a read-only computed current book value —
@@ -302,4 +303,10 @@ broken/half-done, and any judgment call made that a future session should sanity
   compile/typecheck both clean, committed locally. Along the way, checked and recorded two
   infrastructure facts in the new "Infrastructure notes" section above (Jira not used for this
   module's OC numbers; a stronger crontab-based continuation mechanism exists but wasn't
-  needed). Next: Depreciation (OC-211).
+  needed).
+- **2026-09-08, same session, after OC-211:** Depreciation shipped with **no new migration** —
+  `AssetService.toResponse` now computes standard straight-line depreciation live from the
+  asset's own already-captured purchase fields (`depreciationApplicable`/
+  `accumulatedDepreciation`/`currentBookValue` added to `AssetResponse`); Asset Register list
+  gained a "Book Value" column. Compile/typecheck both clean, committed locally. Next: Disposal
+  (OC-212), the last Phase 5 slice.
