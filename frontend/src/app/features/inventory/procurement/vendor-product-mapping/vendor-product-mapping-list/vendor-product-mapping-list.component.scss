@@ -1,0 +1,45 @@
+.vpm-pg-title {
+  margin: 0 0 2px;
+  font-family: var(--cms-font-display);
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+
+  em {
+    font-style: italic;
+    color: var(--cms-primary);
+  }
+}
+
+.vpm-pg-sub {
+  margin: 0 0 6px;
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+.vpm-filter {
+  max-width: 240px;
+  flex-shrink: 0;
+}
+
+.vpm-source-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+
+  &--contract {
+    background: color-mix(in srgb, var(--cms-primary) 14%, transparent);
+    color: var(--cms-primary);
+  }
+
+  &--preferred {
+    background: color-mix(in srgb, var(--cms-success) 14%, transparent);
+    color: var(--cms-success);
+  }
+}

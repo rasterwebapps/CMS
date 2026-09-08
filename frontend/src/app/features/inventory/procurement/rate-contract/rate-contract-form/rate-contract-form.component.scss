@@ -4,3 +4,25 @@
   gap: 14px 16px;
   margin-bottom: 4px;
 }
+
+.rc-line-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.rc-line-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+
+  cms-product-picker {
+    flex: 2;
+  }
+}
+
+.rc-line-rate {
+  flex: 1;
+  margin: 0;
+}

@@ -3,6 +3,7 @@ package com.cms.inventory.procurement.dto;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 public record RateContractResponse(
     Long id,
@@ -15,5 +16,6 @@ public record RateContractResponse(
     LocalDate renewalReminderDate,
     Boolean isActive,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    List<RateContractLineResponse> lines
 ) {}

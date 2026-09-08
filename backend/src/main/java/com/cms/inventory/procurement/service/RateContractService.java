@@ -1,5 +1,9 @@
 package com.cms.inventory.procurement.service;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -9,9 +13,14 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.catalog.repository.ProductRepository;
+import com.cms.inventory.procurement.dto.RateContractLineRequest;
+import com.cms.inventory.procurement.dto.RateContractLineResponse;
 import com.cms.inventory.procurement.dto.RateContractRequest;
 import com.cms.inventory.procurement.dto.RateContractResponse;
 import com.cms.inventory.procurement.model.RateContract;
+import com.cms.inventory.procurement.model.RateContractLine;
 import com.cms.inventory.procurement.model.Supplier;
 import com.cms.inventory.procurement.repository.RateContractRepository;
 import com.cms.inventory.procurement.repository.SupplierRepository;
@@ -22,10 +31,13 @@ public class RateContractService {
 
     private final RateContractRepository rateContractRepository;
     private final SupplierRepository supplierRepository;
+    private final ProductRepository productRepository;
 
-    public RateContractService(RateContractRepository rateContractRepository, SupplierRepository supplierRepository) {
+    public RateContractService(RateContractRepository rateContractRepository, SupplierRepository supplierRepository,
+                                ProductRepository productRepository) {
         this.rateContractRepository = rateContractRepository;
         this.supplierRepository = supplierRepository;
+        this.productRepository = productRepository;
     }
 
     @Transactional
@@ -103,14 +115,38 @@ public class RateContractService {
         contract.setTermsText(trim(request.termsText()));
         contract.setRenewalReminderDate(request.renewalReminderDate());
         if (request.isActive() != null) contract.setIsActive(request.isActive());
+
+        applyLines(contract, request.lines());
+    }
+
+    private void applyLines(RateContract contract, List<RateContractLineRequest> lineRequests) {
+        contract.getLines().clear();
+        if (lineRequests == null) return;
+        Set<Long> seenProductIds = new HashSet<>();
+        for (RateContractLineRequest lr : lineRequests) {
+            if (!seenProductIds.add(lr.productId())) {
+                throw new IllegalArgumentException("A product can only have one rate line per rate contract");
+            }
+            Product product = productRepository.findById(lr.productId())
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + lr.productId()));
+            RateContractLine line = new RateContractLine();
+            line.setRateContract(contract);
+            line.setProduct(product);
+            line.setNegotiatedRate(lr.negotiatedRate());
+            contract.getLines().add(line);
+        }
     }
 
     private RateContractResponse toResponse(RateContract c) {
         Supplier supplier = c.getSupplier();
+        List<RateContractLineResponse> lines = c.getLines().stream()
+            .map(l -> new RateContractLineResponse(l.getId(), l.getProduct().getId(),
+                l.getProduct().getProductCode(), l.getProduct().getProductName(), l.getNegotiatedRate()))
+            .toList();
         return new RateContractResponse(
             c.getId(), supplier.getId(), supplier.getSupplierName(),
             c.getStartDate(), c.getEndDate(), c.getContractValueCap(), c.getTermsText(),
-            c.getRenewalReminderDate(), c.getIsActive(), c.getCreatedAt(), c.getUpdatedAt());
+            c.getRenewalReminderDate(), c.getIsActive(), c.getCreatedAt(), c.getUpdatedAt(), lines);
     }
 
     private static String trim(String s) {

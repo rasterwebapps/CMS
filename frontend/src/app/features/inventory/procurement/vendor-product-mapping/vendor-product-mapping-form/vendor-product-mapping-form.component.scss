@@ -1,0 +1,35 @@
+.vpm-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-bottom: 4px;
+}
+
+.vpm-product-picker {
+  min-width: 0;
+}
+
+.vpm-currency-input {
+  max-width: 100px;
+  text-transform: uppercase;
+}
+
+.vpm-lead-time-input {
+  max-width: 160px;
+}
+
+// .checkbox-label is global (styles.scss) but only supplies flex/padding — it documents itself as
+// "wraps a mat-checkbox", so a bare native <input type="checkbox"> needs its own sizing here.
+// Several existing forms (product-form, classroom-form) reference a "field-checkbox" class with no
+// definition anywhere and render an unstyled native checkbox as a result — not repeating that here;
+// curriculum-version-form.component.scss / supplier-form.component.scss already define it correctly.
+.checkbox-label {
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.field-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}

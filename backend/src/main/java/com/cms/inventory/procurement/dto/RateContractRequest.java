@@ -2,6 +2,7 @@ package com.cms.inventory.procurement.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -25,5 +26,7 @@ public record RateContractRequest(
 
     LocalDate renewalReminderDate,
 
-    Boolean isActive
+    Boolean isActive,
+
+    List<RateContractLineRequest> lines
 ) {}

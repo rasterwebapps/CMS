@@ -18,6 +18,7 @@ This folder is the single home for everything documenting the Inventory Manageme
 | [../manual-test-cases/inventory-stock-tracking.md](../manual-test-cases/inventory-stock-tracking.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside InventoryLocation/StockLedger/StockBalance | 2026-09-07 |
 | [../manual-test-cases/inventory-stock-cycle-count.md](../manual-test-cases/inventory-stock-cycle-count.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside CycleCount/CycleCountLine | 2026-09-08 |
 | [../manual-test-cases/inventory-procurement-suppliers.md](../manual-test-cases/inventory-procurement-suppliers.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside TaxRule/Supplier/RateContract | 2026-09-08 |
+| [../manual-test-cases/inventory-procurement-vendor-product-mappings.md](../manual-test-cases/inventory-procurement-vendor-product-mappings.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside VendorProductMapping/RateContractLine | 2026-09-08 |
 
 ## Conventions for This Folder
 

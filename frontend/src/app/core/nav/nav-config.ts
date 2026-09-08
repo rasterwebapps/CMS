@@ -192,6 +192,7 @@ export const NAV_ENTRIES: NavEntry[] = [
     items: [
       { label: 'Suppliers',         icon: 'storefront',  route: '/inventory/procurement/suppliers',      permissions: ['INVENTORY_SUPPLIER_VIEW', 'INVENTORY_SUPPLIER_MANAGE', 'INVENTORY_SUPPLIER_APPROVE'] },
       { label: 'Rate Contracts',    icon: 'handshake',   route: '/inventory/procurement/rate-contracts', permissions: ['INVENTORY_RATE_CONTRACT_VIEW', 'INVENTORY_RATE_CONTRACT_MANAGE'] },
+      { label: 'Vendor Product Rates', icon: 'local_shipping', route: '/inventory/procurement/vendor-product-mappings', permissions: ['INVENTORY_VENDOR_PRODUCT_MAPPING_VIEW', 'INVENTORY_VENDOR_PRODUCT_MAPPING_MANAGE'] },
       { label: 'Tax Rules',         icon: 'percent',     route: '/inventory/procurement/tax-rules',      permissions: ['INVENTORY_TAX_RULE_VIEW', 'INVENTORY_TAX_RULE_MANAGE'] },
     ],
   },

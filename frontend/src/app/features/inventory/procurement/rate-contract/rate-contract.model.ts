@@ -8,6 +8,19 @@ export interface Page<T> {
   last: boolean;
 }
 
+export interface RateContractLine {
+  id: number;
+  productId: number;
+  productCode: string;
+  productName: string;
+  negotiatedRate: number;
+}
+
+export interface RateContractLineRequest {
+  productId: number;
+  negotiatedRate: number;
+}
+
 export interface RateContract {
   id: number;
   supplierId: number;
@@ -20,6 +33,7 @@ export interface RateContract {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  lines: RateContractLine[];
 }
 
 export interface RateContractRequest {
@@ -30,6 +44,7 @@ export interface RateContractRequest {
   termsText?: string;
   renewalReminderDate?: string;
   isActive?: boolean;
+  lines?: RateContractLineRequest[];
 }
 
 export interface RateContractStatusUpdateRequest {

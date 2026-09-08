@@ -316,6 +316,31 @@ export const routes: Routes = [
         (m) => m.RateContractFormComponent
       ),
   },
+  // Phase 2 "Purchasing & Suppliers" — VendorProductMapping (second slice).
+  {
+    path: 'inventory/procurement/vendor-product-mappings',
+    canActivate: withPermission('INVENTORY_VENDOR_PRODUCT_MAPPING_VIEW', 'INVENTORY_VENDOR_PRODUCT_MAPPING_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/vendor-product-mapping/vendor-product-mapping-list/vendor-product-mapping-list.component').then(
+        (m) => m.VendorProductMappingListComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/vendor-product-mappings/new',
+    canActivate: withPermission('INVENTORY_VENDOR_PRODUCT_MAPPING_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/vendor-product-mapping/vendor-product-mapping-form/vendor-product-mapping-form.component').then(
+        (m) => m.VendorProductMappingFormComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/vendor-product-mappings/:id/edit',
+    canActivate: withPermission('INVENTORY_VENDOR_PRODUCT_MAPPING_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/vendor-product-mapping/vendor-product-mapping-form/vendor-product-mapping-form.component').then(
+        (m) => m.VendorProductMappingFormComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),

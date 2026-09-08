@@ -80,6 +80,33 @@
               <textarea id="rc-terms" class="field-textarea" formControlName="termsText" placeholder="Optional" rows="4"></textarea>
             </div>
 
+            <div class="field-group">
+              <label class="field-label">Product Rate Lines</label>
+              <p class="field-hint">Negotiated rates that override a linked Vendor Product Rate's standard price while this contract is active.</p>
+
+              @if (lines.length > 0) {
+                <div class="rc-line-list" formArrayName="lines">
+                  @for (line of lines.controls; track $index) {
+                    <div class="rc-line-row" [formGroupName]="$index">
+                      <cms-product-picker
+                        label="Product"
+                        [selectedProductId]="line.get('productId')?.value"
+                        (selectedProductIdChange)="line.get('productId')?.setValue($event)"
+                      />
+                      <div class="field-group rc-line-rate">
+                        <label class="field-label">Negotiated Rate</label>
+                        <input type="number" step="0.01" min="0" class="field-input" formControlName="negotiatedRate" placeholder="0.00" />
+                      </div>
+                      <button type="button" class="btn-secondary" (click)="removeLine($index)" aria-label="Remove rate line">Remove</button>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p class="field-hint">No rate lines added yet.</p>
+              }
+              <button type="button" class="btn-secondary" (click)="addLine()">+ Add Rate Line</button>
+            </div>
+
             <div class="entry-form-card__footer">
               <a routerLink="/inventory/procurement/rate-contracts" class="btn-secondary">Cancel</a>
               <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">

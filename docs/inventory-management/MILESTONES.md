@@ -73,12 +73,12 @@ Inventory Management is a new, standalone module being built for the platform �
 
 **Covers:** Raising a request for items, getting and comparing quotes, issuing purchase orders, and registering and managing the suppliers those orders go to (including their approved rates and any standing rate agreements).
 
-**Doing now:** Suppliers can now be registered, approved, and managed, with a standing rate agreement (Rate Contract) tracked per supplier, and a small named-tax-rate list (Tax Rule) purchase orders will use later. Next up: linking a product to a supplier with its own rate (needed before "price comparison" becomes meaningful), then the actual Purchase Requisition → Purchase Order flow.
+**Doing now:** Suppliers can now be registered, approved, and managed, with a standing rate agreement (Rate Contract) tracked per supplier, a small named-tax-rate list (Tax Rule) purchase orders will use later, and a product can now be linked to a supplier with its own rate (Vendor Product Rate) — optionally overridden by a negotiated per-product rate line on that supplier's Rate Contract while it's active. Next up: the actual Purchase Requisition → Purchase Order flow.
 
 **Todo:**
 - Purchase request → purchase order flow
 - Supplier registration, approval, and rate management — ✅ done (Suppliers and Rate Contracts, each with their own screen; approving a supplier is a distinct step from editing one)
-- Price comparison and rate-contract support — Rate Contracts done; price comparison itself waits on linking products to supplier rates (next), and stays a simple rate lookup rather than a dedicated compare-quotes tool this phase
+- Price comparison and rate-contract support — ✅ done for this phase's scope (a product's rate per supplier is now visible via Vendor Product Rates, with a Rate Contract's negotiated rate overriding it while active; this stays a simple rate lookup rather than a dedicated compare-quotes tool)
 
 ---
 

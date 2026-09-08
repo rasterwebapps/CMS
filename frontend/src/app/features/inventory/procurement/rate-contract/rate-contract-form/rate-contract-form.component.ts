@@ -1,15 +1,16 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RateContractService } from '../rate-contract.service';
-import { RateContractRequest } from '../rate-contract.model';
+import { RateContractLineRequest, RateContractRequest } from '../rate-contract.model';
 import { SupplierService } from '../../supplier/supplier.service';
 import { Supplier } from '../../supplier/supplier.model';
 import { ToastService } from '../../../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../../../shared/utils/scroll-to-invalid';
 import { cmsFieldError } from '../../../../../shared/validators/cms-validators';
+import { CmsProductPickerComponent } from '../../../../../shared/product-picker/product-picker.component';
 
 @Component({
   selector: 'app-rate-contract-form',
@@ -19,6 +20,7 @@ import { cmsFieldError } from '../../../../../shared/validators/cms-validators';
     ReactiveFormsModule,
     MatButtonModule,
     MatProgressSpinnerModule,
+    CmsProductPickerComponent,
   ],
   templateUrl: './rate-contract-form.component.html',
   styleUrl: './rate-contract-form.component.scss',
@@ -45,7 +47,23 @@ export class RateContractFormComponent implements OnInit {
     contractValueCap:     [null as number | null, [Validators.min(0)]],
     termsText:            ['', [Validators.maxLength(2000)]],
     renewalReminderDate:  [''],
+    lines:                this.fb.array([]),
   });
+
+  protected get lines(): FormArray {
+    return this.form.get('lines') as FormArray;
+  }
+
+  protected addLine(): void {
+    this.lines.push(this.fb.group({
+      productId:      [null as number | null, [Validators.required]],
+      negotiatedRate: [null as number | null, [Validators.required, Validators.min(0)]],
+    }));
+  }
+
+  protected removeLine(index: number): void {
+    this.lines.removeAt(index);
+  }
 
   ngOnInit(): void {
     this.supplierService.getAll(true).subscribe({ next: (s) => this.suppliers.set(s) });
@@ -75,6 +93,11 @@ export class RateContractFormComponent implements OnInit {
       return;
     }
 
+    const lines: RateContractLineRequest[] = (v.lines ?? []).map((l: { productId: number; negotiatedRate: number }) => ({
+      productId: l.productId,
+      negotiatedRate: l.negotiatedRate,
+    }));
+
     const request: RateContractRequest = {
       supplierId: v.supplierId,
       startDate: v.startDate,
@@ -82,6 +105,7 @@ export class RateContractFormComponent implements OnInit {
       contractValueCap: v.contractValueCap ?? undefined,
       termsText: v.termsText?.trim() || undefined,
       renewalReminderDate: v.renewalReminderDate || undefined,
+      lines,
     };
 
     this.saving.set(true);
@@ -115,6 +139,13 @@ export class RateContractFormComponent implements OnInit {
           termsText: c.termsText || '',
           renewalReminderDate: c.renewalReminderDate || '',
         });
+        this.lines.clear();
+        for (const line of c.lines) {
+          this.lines.push(this.fb.group({
+            productId:      [line.productId, [Validators.required]],
+            negotiatedRate: [line.negotiatedRate, [Validators.required, Validators.min(0)]],
+          }));
+        }
         this.loading.set(false);
       },
       error: () => {

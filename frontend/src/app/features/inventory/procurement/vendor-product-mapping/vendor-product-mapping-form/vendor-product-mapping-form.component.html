@@ -1,0 +1,142 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/procurement/vendor-product-mappings" aria-label="Back to vendor product rates">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Vendor Product Rate</em></h1>
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update this supplier\'s rate for the product below.' : 'Record a supplier\'s rate for a product.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Rate Details</div>
+            <div class="entry-form-card__hdr-sub">Supplier, product, and pricing</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="vpm-form-grid">
+              <div class="field-group">
+                <label for="vpm-supplier" class="field-label">Supplier <span class="required-star">*</span></label>
+                <select id="vpm-supplier" class="field-select" formControlName="supplierId"
+                  [class.field-select--error]="form.get('supplierId')?.invalid && form.get('supplierId')?.touched">
+                  <option [ngValue]="null" disabled>Select a supplier</option>
+                  @for (s of suppliers(); track s.id) {
+                    <option [ngValue]="s.id">{{ s.supplierName }} ({{ s.supplierCode }})</option>
+                  }
+                </select>
+                @if (form.get('supplierId')?.invalid && form.get('supplierId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('supplierId') }}</p>
+                }
+              </div>
+
+              <div class="vpm-product-picker">
+                <cms-product-picker
+                  label="Product"
+                  [selectedProductId]="form.get('productId')?.value"
+                  [disabled]="!form.get('supplierId')?.value"
+                  (selectedProductIdChange)="form.get('productId')?.setValue($event); form.get('productId')?.markAsTouched()"
+                />
+                @if (!form.get('supplierId')?.value) {
+                  <p class="field-hint">Select a supplier first</p>
+                } @else if (form.get('productId')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (form.get('productId')?.invalid && form.get('productId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('productId') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="vpm-rate-contract" class="field-label">Rate Contract</label>
+              <select id="vpm-rate-contract" class="field-select" formControlName="rateContractId"
+                [disabled]="!form.get('supplierId')?.value || rateContracts().length === 0">
+                <option [ngValue]="null">None</option>
+                @for (rc of rateContracts(); track rc.id) {
+                  <option [ngValue]="rc.id">{{ rc.startDate | date: 'mediumDate' }} – {{ rc.endDate ? (rc.endDate | date: 'mediumDate') : 'Open-ended' }}</option>
+                }
+              </select>
+              <p class="field-hint">Optional — if the contract has a rate line for this product and is currently active, it overrides the unit price below.</p>
+            </div>
+
+            <div class="vpm-form-grid">
+              <div class="field-group">
+                <label for="vpm-price" class="field-label">Unit Price <span class="required-star">*</span></label>
+                <input id="vpm-price" type="number" step="0.01" min="0" class="field-input" formControlName="unitPrice"
+                  [class.field-input--error]="form.get('unitPrice')?.invalid && form.get('unitPrice')?.touched" />
+                @if (form.get('unitPrice')?.invalid && form.get('unitPrice')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('unitPrice') }}</p>
+                }
+              </div>
+              <div class="field-group">
+                <label for="vpm-currency" class="field-label">Currency Code <span class="required-star">*</span></label>
+                <input id="vpm-currency" type="text" maxlength="3" class="field-input vpm-currency-input" formControlName="currencyCode"
+                  [class.field-input--error]="form.get('currencyCode')?.invalid && form.get('currencyCode')?.touched" />
+                @if (form.get('currencyCode')?.invalid && form.get('currencyCode')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('currencyCode') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="vpm-form-grid">
+              <div class="field-group">
+                <label for="vpm-uom" class="field-label">UOM</label>
+                <select id="vpm-uom" class="field-select" formControlName="uomId">
+                  <option [ngValue]="null">Same as product's base UOM</option>
+                  @for (u of uoms(); track u.id) {
+                    <option [ngValue]="u.id">{{ u.code }} — {{ u.name }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="vpm-min-order" class="field-label">Minimum Order Qty</label>
+                <input id="vpm-min-order" type="number" step="0.001" min="0" class="field-input" formControlName="minOrderQty" placeholder="Optional" />
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="vpm-lead-time" class="field-label">Lead Time (days)</label>
+              <input id="vpm-lead-time" type="number" min="0" class="field-input vpm-lead-time-input" formControlName="leadTimeDays" placeholder="Optional" />
+            </div>
+
+            <div class="field-group">
+              <label class="checkbox-label"><input type="checkbox" formControlName="isPreferred" class="field-checkbox" /> Preferred supplier for this product</label>
+            </div>
+
+            <div class="entry-form-card__footer">
+              <a routerLink="/inventory/procurement/vendor-product-mappings" class="btn-secondary">Cancel</a>
+              <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+                @if (saving()) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                }
+                {{ isEditMode() ? 'Save Changes' : 'Add Vendor Rate' }}
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+    </div>
+  }
+
+</div>

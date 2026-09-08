@@ -3,11 +3,14 @@ package com.cms.inventory.procurement.model;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -17,6 +20,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 /**
@@ -26,6 +31,9 @@ import jakarta.persistence.Table;
  * negotiating/managing rate contracts is a genuinely distinct operation from managing a supplier's
  * master data, per the operation-wise permission mapping rule, even though both live under the
  * same "Purchasing & Suppliers" nav group. See the 2026-09-08 "Phase 2 kickoff" decision-log entry.
+ * {@code lines} (added in the "VendorProductMapping slice" entry) are the per-product negotiated
+ * rates this contract carries, managed as a child collection replaced wholesale on every save —
+ * same pattern as {@code ProductAlias} on {@code Product}.
  */
 @Entity
 @Table(name = "rate_contracts")
@@ -58,6 +66,10 @@ public class RateContract {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    @OneToMany(mappedBy = "rateContract", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("id ASC")
+    private List<RateContractLine> lines = new ArrayList<>();
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -89,6 +101,9 @@ public class RateContract {
 
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+
+    public List<RateContractLine> getLines() { return lines; }
+    public void setLines(List<RateContractLine> lines) { this.lines = lines; }
 
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

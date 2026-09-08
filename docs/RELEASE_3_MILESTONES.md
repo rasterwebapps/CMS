@@ -54,7 +54,7 @@ Derived from `docs/inventory-management/CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md` �
 | Milestone | Status | Progress |
 |-----------|--------|----------|
 | R3-M1: Core data model | 🟡 In Progress — Category/Uom/Product/CategoryAttribute masters + InventoryLocation/StockBatch/StockLedger/StockBalance + CycleCount (physical stock counts) shipped; only the deferred `InventoryItem` migration (R3-M8) is left in Phase 1 | 55% |
-| R3-M2: Procurement & Vendor Management | 🟡 In Progress — TaxRule/Supplier/RateContract masters shipped; VendorProductMapping, Purchase Requisition, Purchase Order still to come | 15% |
+| R3-M2: Procurement & Vendor Management | 🟡 In Progress — TaxRule/Supplier/RateContract/VendorProductMapping masters shipped; Purchase Requisition, Purchase Order still to come | 30% |
 | R3-M3: GRN & Stock Control | ⬜ Not Started | 0% |
 | R3-M4: Requisition & Issue | ⬜ Not Started | 0% |
 | R3-M5: Asset Management | ⬜ Not Started | 0% |

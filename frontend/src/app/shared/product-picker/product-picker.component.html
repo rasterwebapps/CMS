@@ -1,0 +1,18 @@
+<div class="field-group">
+  <label class="field-label">{{ label }}</label>
+  <input
+    type="text"
+    class="field-input"
+    [placeholder]="'Type to search products…'"
+    [formControl]="searchControl"
+    [matAutocomplete]="productAuto"
+    [attr.aria-label]="label"
+  />
+  <mat-autocomplete #productAuto="matAutocomplete" [displayWith]="displayFn" (optionSelected)="onOptionSelected($event)">
+    @for (product of options(); track product.id) {
+      <mat-option [value]="product">{{ product.productCode }} — {{ product.productName }}</mat-option>
+    } @empty {
+      <mat-option disabled>No matching products</mat-option>
+    }
+  </mat-autocomplete>
+</div>

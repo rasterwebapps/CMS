@@ -194,4 +194,20 @@ This is the running, chronological record of every scope/architecture decision m
 
 ---
 
+## 2026-09-08 — VendorProductMapping slice: standalone master, RateContractLine override, product picker
+
+**Prompted by:** user instruction to continue Phase 2 into VendorProductMapping after the TaxRule/Supplier/RateContract slice shipped; six scoping questions put to the user first, asked one specialist group at a time via multiple-choice per the user's standing preference for how @Partner specialist rounds are conducted.
+**Decisions:**
+1. **Scope stays rate-lookup only**, confirming decision #4 of the "Phase 2 kickoff" entry — no RFQ/best-quote comparison workflow.
+2. **`isPreferred` included now** (not deferred) — a boolean flag on the mapping marking the go-to supplier for a product, for a future Purchase Requisition to auto-suggest against.
+3. **Standalone master**, not nested under Supplier's or Product's form — its own list+form under the existing "Purchasing & Suppliers" nav group, consistent with this phase's other masters. At most one active mapping per (supplier, product) pair, enforced by a partial unique index (`WHERE is_active`) plus an app-level check surfaced as an inline "already exists" validation error.
+4. **`RateContract` gained a real per-product rate — `RateContractLine`** (new child collection, replaced wholesale on save, same pattern as `ProductAlias`). Originally `RateContract` had no product-level rate at all (only a value cap/terms), so a mapping's "contract overrides price" decision had nothing to override with until this was added. A `RateContractLine`'s `negotiatedRate` overrides a linked mapping's `unitPrice` **only while the parent contract is `isActive` and today falls within its start/end date window** — resolved at read time in `VendorProductMappingService`, never stored, so a lapsing contract or an edited line is reflected immediately.
+5. **`RateContractLine` has no permission of its own** — stays under the existing `INVENTORY_RATE_CONTRACT_MANAGE`, per the operation-wise permission mapping rule's "no lifecycle independent of its parent" carve-out (same reasoning as `CategoryAttribute` under `Category`).
+6. **New reusable `cms-product-picker` shared component** (`frontend/src/app/shared/product-picker/`) — a debounced, server-searched autocomplete against the existing `ProductService.getPage`, since no product-picker existed yet and the catalog can be large (unlike `cms-room-picker`'s plain client-filtered `<select>`, appropriate for its much smaller Room lists). Plain `[(selectedProductId)]` binding, matching `cms-room-picker`'s existing plain-binding convention rather than a full `ControlValueAccessor`. Reused by both the new VendorProductMapping form and the new Product Rate Lines section on the RateContract form.
+7. **VendorProductMapping's uniqueness check reuses the shared `uniqueFieldValidator`** rather than a bespoke async validator — the backend's `/pair-exists` endpoint's query params were shaped to fit that helper's existing `value`/`excludeId`/scoped-extra-param convention (`value` = the productId being checked, `supplierId` = the scope), the same way Product's own name-exists-within-category check already scopes by `categoryId`.
+8. **Fields kept to the originally proposed list**: `unitPrice`, `currencyCode` (plain field, no conversion engine — same posture as the already-flagged `PurchaseOrder.CurrencyCode`), `uom` (optional; blank means "same as product's base UOM"), `minOrderQty`, `leadTimeDays`, `isPreferred`, plus the optional `rateContract` link.
+**Impact:** new tables `vendor_product_mappings`, `rate_contract_lines` (V432); new permissions `INVENTORY_VENDOR_PRODUCT_MAPPING_VIEW`/`_MANAGE` (V433). `RateContractRequest`/`RateContractResponse` gained a `lines` field (backward-compatible addition, not a breaking change to the already-shipped Rate Contract screen). `MILESTONES.md` and `RELEASE_3_MILESTONES.md` updated in the same change.
+
+---
+
 *Next entry goes here — do not insert above this line.*
