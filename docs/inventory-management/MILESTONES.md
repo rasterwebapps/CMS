@@ -93,7 +93,7 @@ Inventory Management is a new, standalone module being built for the platform �
 **Todo:**
 - Goods-receipt recording and matching against orders — ✅ done
 - Batch/expiry tracking — ✅ done (captured on the receipt line, posted the same way Record Stock Movement already does)
-- Transfers between locations — still to come
+- Transfers between locations — ✅ done (a simple draft-then-complete move between two locations, carrying the source's current value across rather than zeroing it)
 - Returning defective or incorrect deliveries to the supplier — still to come
 
 ---

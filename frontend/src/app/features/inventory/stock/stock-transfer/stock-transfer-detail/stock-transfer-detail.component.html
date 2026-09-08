@@ -1,0 +1,115 @@
+@if (loading()) {
+  <div class="st-detail-loading"><mat-spinner diameter="32"></mat-spinner></div>
+} @else if (transfer(); as t) {
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/stock/transfers" aria-label="Back to stock transfers">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">Stock Transfer <em>#{{ t.id }}</em></h1>
+        <cms-status-badge [status]="t.status" />
+      </div>
+      <p class="page-subtitle">{{ t.sourceLocationVirtualName }} → {{ t.destinationLocationVirtualName }} — {{ t.transferDate | date: 'mediumDate' }}</p>
+    </div>
+  </div>
+
+  <div class="st-detail-layout">
+
+    <!-- ── Summary card ──────────────────────────────────────── -->
+    <div class="entry-form-card entry-form-card--sectioned st-summary-card">
+      <div class="entry-form-card__body st-summary-grid">
+        <div class="st-summary-item">
+          <span class="st-summary-label">Created</span>
+          <span class="st-summary-value">{{ t.createdBy || '—' }} · {{ t.createdAt | date: 'medium' }}</span>
+        </div>
+        @if (t.completedAt) {
+          <div class="st-summary-item">
+            <span class="st-summary-label">Completed</span>
+            <span class="st-summary-value">{{ t.completedBy || '—' }} · {{ t.completedAt | date: 'medium' }}</span>
+          </div>
+        }
+        @if (t.notes) {
+          <div class="st-summary-item st-summary-item--full">
+            <span class="st-summary-label">Notes</span>
+            <span class="st-summary-value">{{ t.notes }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── DRAFT: add-product row ────────────────────────────── -->
+    @if (t.status === 'DRAFT') {
+      <div class="entry-form-card entry-form-card--sectioned st-add-card">
+        <div class="entry-form-card__body st-add-row">
+          <cms-product-picker
+            label="Product"
+            [selectedProductId]="addProductId()"
+            (selectedProductIdChange)="addProductId.set($event)"
+          />
+          <div class="field-group st-add-qty">
+            <label class="field-label">Quantity</label>
+            <input type="number" step="0.001" min="0" class="field-input" [ngModel]="addQty()" (ngModelChange)="addQty.set($event)" placeholder="0.000" />
+          </div>
+          <button class="btn-secondary" [disabled]="addProductId() == null || !addQty() || busy()" (click)="addLine()">Add to Transfer</button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Transfer sheet ─────────────────────────────────────── -->
+    <div class="content-card st-table-card">
+      <div class="table-wrapper">
+        <table class="st-line-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>UOM</th>
+              <th class="cell-align-right">Quantity</th>
+              @if (t.status === 'DRAFT') {
+                <th class="actions-header"></th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of t.lines ?? []; track line.id) {
+              <tr>
+                <td>
+                  <div class="st-product-name">{{ line.productName }}</div>
+                  <div class="st-product-code">{{ line.productCode }}</div>
+                </td>
+                <td>{{ line.uomCode || '—' }}</td>
+                <td class="cell-align-right">{{ line.quantity }}</td>
+                @if (t.status === 'DRAFT') {
+                  <td>
+                    <button class="st-remove-btn" (click)="removeLine(line)" [disabled]="busy()" aria-label="Remove line">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </td>
+                }
+              </tr>
+            } @empty {
+              <tr><td colspan="4" class="st-empty-row">No products on this transfer yet.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Footer actions ────────────────────────────────────── -->
+    @if (t.status === 'DRAFT') {
+      <div class="st-footer-actions">
+        <button class="btn-secondary" [disabled]="busy()" (click)="cancelTransfer()">Cancel Transfer</button>
+        <button class="btn-primary" [disabled]="busy() || !(t.lines ?? []).length" (click)="completeTransfer()">
+          @if (busy()) { <mat-spinner diameter="16"></mat-spinner> }
+          Complete Transfer
+        </button>
+      </div>
+    }
+
+  </div>
+
+</div>
+}

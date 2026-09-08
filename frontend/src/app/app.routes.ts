@@ -429,6 +429,31 @@ export const routes: Routes = [
         (m) => m.GoodsReceiptDetailComponent
       ),
   },
+  // Phase 3 "Receiving & Stock Movement" — Stock Transfer (second slice).
+  {
+    path: 'inventory/stock/transfers',
+    canActivate: withPermission('INVENTORY_STOCK_TRANSFER_VIEW', 'INVENTORY_STOCK_TRANSFER_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/stock/stock-transfer/stock-transfer-list/stock-transfer-list.component').then(
+        (m) => m.StockTransferListComponent
+      ),
+  },
+  {
+    path: 'inventory/stock/transfers/new',
+    canActivate: withPermission('INVENTORY_STOCK_TRANSFER_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/stock/stock-transfer/stock-transfer-new/stock-transfer-new.component').then(
+        (m) => m.StockTransferNewComponent
+      ),
+  },
+  {
+    path: 'inventory/stock/transfers/:id',
+    canActivate: withPermission('INVENTORY_STOCK_TRANSFER_VIEW', 'INVENTORY_STOCK_TRANSFER_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/stock/stock-transfer/stock-transfer-detail/stock-transfer-detail.component').then(
+        (m) => m.StockTransferDetailComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),

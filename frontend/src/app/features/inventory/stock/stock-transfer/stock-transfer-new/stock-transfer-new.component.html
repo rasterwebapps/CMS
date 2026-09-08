@@ -1,0 +1,92 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/stock/transfers" aria-label="Back to stock transfers">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">New Stock <em>Transfer</em></h1>
+      </div>
+      <p class="page-subtitle">Products are added on the next screen, once the transfer is started.</p>
+    </div>
+  </div>
+
+  <div class="mv-standalone-layout">
+
+    <div class="entry-form-card entry-form-card--sectioned">
+      <div class="entry-form-card__hdr">
+        <div class="entry-form-card__hdr-ico">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div>
+          <div class="entry-form-card__hdr-title">Transfer Details</div>
+          <div class="entry-form-card__hdr-sub">Where stock is moving from and to, and when</div>
+        </div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="entry-form-card__body">
+
+          <div class="st-new-grid">
+            <div class="field-group">
+              <label for="st-source" class="field-label">Source Location <span class="required-star">*</span></label>
+              <select id="st-source" class="field-select" formControlName="sourceLocationId"
+                [class.field-select--error]="form.get('sourceLocationId')?.invalid && form.get('sourceLocationId')?.touched">
+                <option [ngValue]="null" disabled>Select a location</option>
+                @for (l of locations(); track l.id) {
+                  <option [ngValue]="l.id">{{ l.virtualName }}</option>
+                }
+              </select>
+              @if (form.get('sourceLocationId')?.invalid && form.get('sourceLocationId')?.touched) {
+                <p class="field-error">{{ getErrorMessage('sourceLocationId') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="st-destination" class="field-label">Destination Location <span class="required-star">*</span></label>
+              <select id="st-destination" class="field-select" formControlName="destinationLocationId"
+                [class.field-select--error]="form.get('destinationLocationId')?.invalid && form.get('destinationLocationId')?.touched">
+                <option [ngValue]="null" disabled>Select a location</option>
+                @for (l of locations(); track l.id) {
+                  <option [ngValue]="l.id">{{ l.virtualName }}</option>
+                }
+              </select>
+              @if (form.get('destinationLocationId')?.invalid && form.get('destinationLocationId')?.touched) {
+                <p class="field-error">{{ getErrorMessage('destinationLocationId') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="st-date" class="field-label">Transfer Date <span class="required-star">*</span></label>
+              <input id="st-date" type="date" class="field-input" formControlName="transferDate"
+                [class.field-input--error]="form.get('transferDate')?.invalid && form.get('transferDate')?.touched" />
+              @if (form.get('transferDate')?.invalid && form.get('transferDate')?.touched) {
+                <p class="field-error">{{ getErrorMessage('transferDate') }}</p>
+              }
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="st-notes" class="field-label">Notes</label>
+            <textarea id="st-notes" class="field-textarea" formControlName="notes" placeholder="Optional reason/reference for this transfer" rows="3"></textarea>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <a routerLink="/inventory/stock/transfers" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+              @if (saving()) {
+                <mat-spinner diameter="16"></mat-spinner>
+              }
+              Start Transfer
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+</div>

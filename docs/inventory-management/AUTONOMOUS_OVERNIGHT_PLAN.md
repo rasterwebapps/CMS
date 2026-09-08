@@ -39,8 +39,8 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-203** (OC-202 was the last used, Goods Receipt). Increment per slice.
-5. **Next Flyway migration number: V442** (V441 was the last used). Increment per file;
+4. **Next OC ticket number: OC-204** (OC-203 was the last used, Stock Transfer). Increment per slice.
+5. **Next Flyway migration number: V444** (V443 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -96,7 +96,7 @@
 - [ ] **Batch/expiry capture on GRN** (fold into the GRN slice above, not separate). GRN line
       reuses the existing "batch/serial number + expiry" fields already on the Record Stock
       Movement form (Phase 1 decision) rather than inventing a second batch-entry UI.
-- [ ] **Transfers between locations** (OC-203). New `StockTransfer` header + lines (source
+- [x] **Transfers between locations** (OC-203, shipped 2026-09-08). New `StockTransfer` header + lines (source
       `InventoryLocation` → destination `InventoryLocation`), posts a `TRANSFER`-typed
       movement pair (decrease at source, increase at destination) through
       `StockMovementService` — the `TRANSFER` enum value already exists on `StockLedger`
@@ -227,4 +227,11 @@ broken/half-done, and any judgment call made that a future session should sanity
   compile/typecheck both clean, committed locally. User asked mid-session about token/context
   hygiene for this long session — answered, and a memory was saved reinforcing that all real
   progress state lives in this file (not conversation history), so `/clear`/`/compact` are
-  always safe. Moving on to Phase 3's next slice (Transfers between locations, OC-203) next.
+  always safe.
+- **2026-09-08, same session, after OC-203:** Stock Transfer shipped (widened
+  `StockMovementService`'s `TRANSFER` support + new `StockTransfer`/`StockTransferLine` in the
+  existing `com.cms.inventory.stock` package + frontend + migrations V442/V443 + docs),
+  compile/typecheck both clean, committed locally. User confirmed they will not be watching
+  the screen overnight and asked to use tokens wisely — no tool exists to self-`/clear`, so
+  continuing to work in as few, dense tool calls as reasonable per slice. Next: Phase 3's last
+  slice (Return-to-supplier, OC-204), which closes Phase 3.

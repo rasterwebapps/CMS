@@ -352,4 +352,50 @@ unattended, no-confirmation build session as the "Purchase Order slice" entry ab
 progress. `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean
 before committing.
 
+## 2026-09-08 — Stock Transfer slice: unbatched only, value carried via resolved weighted-average
+
+**Made autonomously overnight — flag for morning review if this reads wrong.** Continues the same
+unattended, no-confirmation build session as the two entries above.
+**Decisions:**
+1. **Gives the `TRANSFER` `StockTxnType` (reserved since the Phase 1 "Stock Tracking slice" entry,
+   unused until now) a real screen** — `StockMovementService.ALLOWED_TXN_TYPES` widened to include
+   it, and its qty-delta handling shares `ADJUSTMENT`'s existing direction-based
+   (`INCREASE`/`DECREASE`) branch rather than a new one, since the shape is identical.
+2. **Unbatched stock only in this pass** — same simplification precedent `CycleCount`'s own
+   posting step already established ("no batch-level workflow yet"). No `batchOrSerialNo` field
+   on `StockTransferLine`. Real batch-aware transfers are real, separately-scoped work if a need
+   for them surfaces.
+3. **Value is carried across, not zeroed.** The naive approach — posting a `TRANSFER` with no
+   unit cost — would leave the destination's `valueOnHand` at zero for a new balance row, silently
+   losing value on every transfer. Instead `StockTransferService` resolves the source's own
+   current weighted-average unit cost (`valueOnHand / qtyOnHand` on its unbatched `StockBalance`
+   row — the exact formula `StockMovementService`'s own decrease-valuation already documents,
+   duplicated here rather than extracted into a shared method since it's two lines and this is the
+   only other caller so far) and passes that same resolved cost to *both* the decrease-at-source
+   and increase-at-destination `recordMovement` calls, so the transferred stock's value is
+   preserved end to end.
+4. **No new validation duplicated for "not enough stock to transfer"** — `StockMovementService
+   .recordMovement`'s existing negative-stock guard (rejects a movement that would leave
+   `qtyOnHand` negative) already covers it when the DECREASE leg posts; `StockTransferService`
+   does not pre-check the source balance itself.
+5. **Simple `DRAFT → COMPLETED` lifecycle, no approval gate** — consistent with Purchase Order's
+   own "no approval gate this phase" call (Phase 6 owns real approval routing). `CANCELLED`
+   reachable only from `DRAFT`, matching every other DRAFT-first header in this module.
+6. **Two permissions only** (`INVENTORY_STOCK_TRANSFER_VIEW`/`_MANAGE`), no third "complete"
+   permission split out — unlike Goods Receipt's confirm (brings genuinely new stock into the
+   system) or Purchase Order's force-close (an audit-worthy early stop), completing a transfer
+   only moves stock already accounted for between two locations the same `MANAGE` permission
+   already governs, so splitting out a narrower permission wouldn't gate anything meaningfully
+   different.
+7. **Lives in the existing `com.cms.inventory.stock` package**, not a new one — unlike Goods
+   Receipt (a distinct Receiving bounded context reading into Procurement), Stock Transfer reads
+   and writes nothing outside `stock`'s own `InventoryLocation`/`StockBalance`/
+   `StockMovementService`, so it belongs alongside `CycleCount` and `InventoryLocation` rather
+   than earning its own package.
+**Impact:** new tables `stock_transfers`, `stock_transfer_lines` (V442); new permissions (V443);
+`StockMovementService`'s `ALLOWED_TXN_TYPES` and qty-delta switch both widened (existing file, not
+a migration — safe to edit). `MILESTONES.md` and `RELEASE_3_MILESTONES.md` updated in the same
+change. `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean before
+committing.
+
 *Next entry goes here — do not insert above this line.*

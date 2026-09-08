@@ -30,17 +30,21 @@ import com.cms.inventory.stock.repository.StockLedgerRepository;
 
 /**
  * Owns every write to {@link StockLedger} and {@link StockBalance} — the append-only ledger and
- * its materialized rollup are always written together, in the same transaction, and nowhere else.
- * See the 2026-09-07 "Stock Tracking slice" decision-log entry for the movement-type narrowing,
- * negative-stock guard, and weighted-average decrease-valuation decisions this class implements.
+ * its materialized rollup are always written together, in the same transaction, and nowhere else
+ * ({@code GoodsReceiptService} and {@code StockTransferService} both call {@link
+ * #recordMovement} rather than writing the ledger/balance tables directly). See the 2026-09-07
+ * "Stock Tracking slice" decision-log entry for the movement-type narrowing, negative-stock
+ * guard, and weighted-average decrease-valuation decisions this class implements, and the
+ * "Stock Transfer slice" entry for why {@code TRANSFER} was widened into {@link
+ * #ALLOWED_TXN_TYPES} alongside {@code ADJUSTMENT}'s existing direction-based qty-delta handling.
  */
 @Service
 @Transactional(readOnly = true)
 public class StockMovementService {
 
-    /** Only these are reachable through the API in this Phase 1 slice — see the decision log. */
+    /** Reachable through the API — see the decision log for why each was added, and when. */
     private static final Set<StockTxnType> ALLOWED_TXN_TYPES =
-        EnumSet.of(StockTxnType.RECEIPT, StockTxnType.ADJUSTMENT, StockTxnType.DISPOSAL);
+        EnumSet.of(StockTxnType.RECEIPT, StockTxnType.ADJUSTMENT, StockTxnType.DISPOSAL, StockTxnType.TRANSFER);
 
     private final ProductRepository productRepository;
     private final InventoryLocationRepository locationRepository;
@@ -75,9 +79,11 @@ public class StockMovementService {
         BigDecimal qtyDelta = switch (txnType) {
             case RECEIPT -> magnitude;
             case DISPOSAL -> magnitude.negate();
-            case ADJUSTMENT -> "DECREASE".equalsIgnoreCase(request.direction()) ? magnitude.negate() : magnitude;
+            // TRANSFER shares ADJUSTMENT's direction-based handling — StockTransferService posts
+            // one DECREASE call at the source location and one INCREASE call at the destination.
+            case ADJUSTMENT, TRANSFER -> "DECREASE".equalsIgnoreCase(request.direction()) ? magnitude.negate() : magnitude;
             default -> throw new IllegalArgumentException(
-                "Transaction type '" + txnType + "' is not yet available — only RECEIPT, ADJUSTMENT, and DISPOSAL can be recorded here");
+                "Transaction type '" + txnType + "' is not yet available — only RECEIPT, ADJUSTMENT, DISPOSAL, and TRANSFER can be recorded here");
         };
 
         StockBalance existing = findBalance(product.getId(), location.getId(), batchId);
