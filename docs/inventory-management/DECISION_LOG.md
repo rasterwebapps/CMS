@@ -706,4 +706,34 @@ Management") in full**. See `AUTONOMOUS_OVERNIGHT_PLAN.md` for what's next (Phas
 Approvals). `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean
 before committing.
 
+## 2026-09-08 — Budget allocation slice: Phase 6 kickoff, made autonomously overnight
+
+**Made autonomously overnight — flag for morning review if this reads wrong.** Continues the same
+unattended, no-confirmation build session as the entries above.
+**Decisions:**
+1. **Plain date-range period, not coupled to this app's `AcademicYear`/term calendar** — this
+   module stays industry-agnostic per the standing "no vertical branding" rule (a hospital
+   deployment has no academic year at all), matching how `RateContract`/`AssetServiceContract`
+   already use their own explicit `startDate`/`endDate` rather than referencing an academic term.
+2. **`consumedAmount` computed live from `PurchaseOrderItem.lineTotal`**, never stored on the
+   `Budget` row — same "computed at read time" pattern this module has used repeatedly
+   (`LoanableItemIssue`'s overdue flag, `Asset`'s depreciation). Only lines on a PO that's
+   actually been sent count (`status <> PENDING`) — a still-`PENDING` order isn't committed
+   spend yet; `FORCE_CLOSED` still counts, since force-closing stops further progress but doesn't
+   erase spend already committed by sending the order.
+3. **Purchase Requisition spend is not counted** — a requisition carries no monetary value
+   (quantity/product only, no price); only `PurchaseOrder`, which does carry real line totals, is
+   the actual spend signal. The plan's own text mentioned both, but only PO data exists to sum.
+4. **Purely informational, not enforced** — exactly per the plan's own explicit instruction: no
+   submit path on Purchase Requisition/Order was touched to block against this. `overAllocated`
+   is surfaced (negative remaining, a visual "Over" flag) but changes nothing about what a user
+   can do. Real hard enforcement is flagged as a deliberate future escalation needing its own
+   review, not something to sneak in here.
+5. **Two permissions only** (`INVENTORY_BUDGET_VIEW`/`_MANAGE`) — no approval step of its own in
+   this slice; that's the separate, still-to-come Multi-level approval routing slice.
+**Impact:** new table `budgets` (V458); new permissions (V459); `PurchaseOrderItemRepository`
+gained `sumCommittedSpendForLocationAndDateRange`. `MILESTONES.md` and `RELEASE_3_MILESTONES.md`
+updated in the same change — Phase 6 now in progress. `./gradlew compileJava` and `npx tsc -p
+tsconfig.app.json --noEmit` both run clean before committing.
+
 *Next entry goes here — do not insert above this line.*

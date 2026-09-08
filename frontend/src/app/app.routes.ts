@@ -603,6 +603,31 @@ export const routes: Routes = [
         (m) => m.ServiceContractFormComponent
       ),
   },
+  // Phase 6 "Budgets & Approvals" — Budget allocation (first slice).
+  {
+    path: 'inventory/budget/budgets',
+    canActivate: withPermission('INVENTORY_BUDGET_VIEW', 'INVENTORY_BUDGET_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/budget/budget-list/budget-list.component').then(
+        (m) => m.BudgetListComponent
+      ),
+  },
+  {
+    path: 'inventory/budget/budgets/new',
+    canActivate: withPermission('INVENTORY_BUDGET_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/budget/budget-form/budget-form.component').then(
+        (m) => m.BudgetFormComponent
+      ),
+  },
+  {
+    path: 'inventory/budget/budgets/:id/edit',
+    canActivate: withPermission('INVENTORY_BUDGET_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/budget/budget-form/budget-form.component').then(
+        (m) => m.BudgetFormComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),

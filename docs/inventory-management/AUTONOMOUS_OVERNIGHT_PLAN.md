@@ -39,9 +39,9 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-213** (OC-212 was the last used, Disposal — OC-206
+4. **Next OC ticket number: OC-214** (OC-213 was the last used, Budget allocation — OC-206
    was skipped, see its checklist item above). Increment per slice.
-5. **Next Flyway migration number: V458** (V457 was the last used). Increment per file;
+5. **Next Flyway migration number: V460** (V459 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -165,7 +165,7 @@
 
 ## Phase 6 — Budgets & Approvals
 
-- [ ] **Budget allocation & tracking** (OC-213). `Budget` per `InventoryLocation` (or the
+- [x] **Budget allocation & tracking** (OC-213, shipped 2026-09-08). `Budget` per `InventoryLocation` (or the
       loose cost-object `Type`+`Id` reference already decided against `Speciality`-coupling
       in the ER-diagram entry) and period, consumed by Purchase Requisition/PO spend;
       surfaced as allocated-vs-consumed, not hard-blocked at this slice (hard budget
@@ -316,3 +316,10 @@ broken/half-done, and any judgment call made that a future session should sanity
   status select. Compile/typecheck both clean, committed locally. Next: Phase 6 (Budgets &
   Approvals) — the largest remaining phase; note its Multi-level approval routing item is
   explicitly flagged in the plan below as the largest single slice in the whole plan.
+- **2026-09-08, same session, after OC-213:** Budget allocation shipped — new
+  `com.cms.inventory.budget` package, `consumedAmount` computed live from sent (non-PENDING)
+  Purchase Orders via a new `PurchaseOrderItemRepository` aggregate query, purely informational
+  (no enforcement, per the plan's own instruction), migrations V458/V459, compile/typecheck
+  both clean, committed locally. Next: Multi-level approval routing (OC-214) — the largest
+  single slice in the whole plan; read its own checklist note above about breaking it into a
+  sub-checklist before starting.

@@ -1,0 +1,78 @@
+.bg-pg-title {
+  margin: 0 0 2px;
+  font-family: var(--cms-font-display);
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.bg-pg-sub {
+  margin: 0 0 6px;
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+.bg-filter {
+  max-width: 220px;
+  flex-shrink: 0;
+}
+
+.bg-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--cms-text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bg-row {
+  cursor: pointer;
+}
+
+.bg-consumed-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 90px;
+}
+
+.bg-consumed-bar {
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--cms-bg-subtle);
+  overflow: hidden;
+}
+
+.bg-consumed-bar-fill {
+  height: 100%;
+  background: var(--cms-primary);
+  border-radius: 3px;
+}
+
+.bg-over-fill {
+  background: var(--cms-danger);
+}
+
+.bg-over-text {
+  color: var(--cms-danger);
+  font-weight: 600;
+}
+
+.bg-over-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--cms-danger);
+  background: var(--cms-danger-light);
+}

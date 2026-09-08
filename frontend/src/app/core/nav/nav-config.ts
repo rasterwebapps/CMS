@@ -265,6 +265,17 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Service Contracts', icon: 'handshake', route: '/inventory/asset/service-contracts', permissions: ['INVENTORY_ASSET_MAINTENANCE_VIEW', 'INVENTORY_ASSET_MAINTENANCE_MANAGE'] },
     ],
   },
+  // 8g. Budgets & Approvals — Phase 6 of the Inventory Management module. Own top-level
+  // group, same "new Inventory sub-area gets its own entry" convention. See docs/inventory-
+  // management/DECISION_LOG.md's "Budget allocation slice" entry.
+  {
+    label: 'Budgets & Approvals',
+    icon: 'account_balance_wallet',
+    modules: ['INVENTORY'],
+    items: [
+      { label: 'Budgets', icon: 'account_balance_wallet', route: '/inventory/budget/budgets', permissions: ['INVENTORY_BUDGET_VIEW', 'INVENTORY_BUDGET_MANAGE'] },
+    ],
+  },
   // 9. Hostel Management — hostel-only operational screens (building/room masters live under Core Infrastructure)
   {
     label: 'Hostel Management',

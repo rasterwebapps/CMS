@@ -24,7 +24,7 @@ Inventory Management is a new, standalone module being built for the platform �
 | 3 | Receiving &amp; Stock Movement | ✅ Done |
 | 4 | Requests, Issues &amp; Returns | 🟡 In Progress (auto-restocking deliberately deferred — needs real product-policy input) |
 | 5 | Equipment &amp; Asset Management | ✅ Done |
-| 6 | Budgets &amp; Approvals | ⬜ Not Started |
+| 6 | Budgets &amp; Approvals | 🟡 In Progress |
 | 7 | Gate Pass, Vendor-Owned Stock &amp; Service Requests | ⬜ Not Started |
 | 8 | Reporting &amp; Dashboards | ⬜ Not Started |
 
@@ -132,14 +132,16 @@ Inventory Management is a new, standalone module being built for the platform �
 
 ## Phase 6 — Budgets & Approvals
 
-**Status: ⬜ Not Started**
+**Status: 🟡 In Progress**
 
 **Covers:** Setting spending limits per location or area, and the multi-level sign-off process a purchase or request goes through before it's approved — including handling exceptions (urgent purchases, single-supplier situations) with a documented reason.
 
+**Doing now:** A spending budget can be allocated to a location over a period, with committed spend (every sent Purchase Order in that window) computed live and shown as allocated-vs-consumed. This is informational only in this pass — nothing blocks a purchase from exceeding its budget yet; real hard enforcement is a deliberate future step, not silently built into this slice.
+
 **Todo:**
-- Budget allocation and tracking
-- Multi-level approval routing, including parallel sign-off where more than one person needs to weigh in at once
-- Exception handling with documented reasons
+- Budget allocation and tracking — ✅ done
+- Multi-level approval routing, including parallel sign-off where more than one person needs to weigh in at once — still to come
+- Exception handling with documented reasons — still to come
 
 ---
 

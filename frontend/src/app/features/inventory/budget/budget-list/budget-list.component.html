@@ -1,0 +1,94 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="bg-pg-title">Budgets</h1>
+      </div>
+      <p class="bg-pg-sub">Spending allocations per location and period — informational, not enforced.</p>
+    </div>
+    <div class="mlp-hdr-actions">
+      <button class="btn-primary" (click)="goToNew()" aria-label="New budget">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Budget
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="field-select bg-filter" [(ngModel)]="locationFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by location">
+      <option [ngValue]="null">All Locations</option>
+      @for (l of locations(); track l.id) {
+        <option [ngValue]="l.id">{{ l.virtualName }}</option>
+      }
+    </select>
+    <label class="bg-toggle">
+      <input type="checkbox" [(ngModel)]="activeOnly" (ngModelChange)="onFilterChange()" />
+      Active only
+    </label>
+  </div>
+
+  <div class="content-card mlp-table-card">
+    <div class="table-wrapper">
+    <table mat-table [dataSource]="dataSource" class="bg-table">
+      <ng-container matColumnDef="locationVirtualName">
+        <th mat-header-cell *matHeaderCellDef>Location</th>
+        <td mat-cell *matCellDef="let row">{{ row.locationVirtualName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="period">
+        <th mat-header-cell *matHeaderCellDef>Period</th>
+        <td mat-cell *matCellDef="let row">{{ row.periodStartDate | date: 'mediumDate' }} – {{ row.periodEndDate | date: 'mediumDate' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="allocatedAmount">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-right">Allocated</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-right">{{ row.allocatedAmount | number: '1.2-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="consumedAmount">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-right">Consumed</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-right">
+          <div class="bg-consumed-bar-wrap">
+            <span [class.bg-over-text]="row.overAllocated">{{ row.consumedAmount | number: '1.2-2' }}</span>
+            <div class="bg-consumed-bar">
+              <div class="bg-consumed-bar-fill" [class.bg-over-fill]="row.overAllocated" [style.width.%]="percentUsed(row)"></div>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="remainingAmount">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-right">Remaining</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-right" [class.bg-over-text]="row.overAllocated">
+          {{ row.remainingAmount | number: '1.2-2' }}
+          @if (row.overAllocated) { <span class="bg-over-chip">Over</span> }
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+        <td mat-cell *matCellDef="let row">
+          <div class="row-actions">
+            <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit budget" (clicked)="editBudget(row)">
+              <cms-icon-edit [size]="14" />
+            </cms-row-action-btn>
+          </div>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;" (click)="editBudget(row)" class="bg-row"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0; border:none;">
+          <cms-empty-state
+            icon="account_balance_wallet"
+            title="No budgets yet"
+            subtitle="Allocate a spending budget for a location and period to see it here."
+            actionLabel="New Budget"
+            (actionClick)="goToNew()"
+          ></cms-empty-state>
+        </td>
+      </tr>
+    </table>
+    </div>
+    <mat-paginator [length]="totalElements" [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
+  </div>
+
+</div>
