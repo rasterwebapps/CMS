@@ -441,4 +441,44 @@ in the same change — **this closes Phase 3 ("Receiving & Stock Movement") in f
 `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean before
 committing.
 
+## 2026-09-08 — Stock Issue Request slice: Phase 4 kickoff, made autonomously overnight
+
+**Made autonomously overnight — flag for morning review if this reads wrong.** Continues the same
+unattended, no-confirmation build session as the four entries above.
+**Decisions:**
+1. **Naming kept strictly distinct from Purchase Requisition** per the standing caution already
+   recorded in `AUTONOMOUS_OVERNIGHT_PLAN.md` before this slice was written: `StockIssueRequest`/
+   `StockIssueRequestItem`, its own `com.cms.inventory.issue` package, its own
+   `INVENTORY_ISSUE_REQUEST_*` permission family, its own "Requests, Issues & Returns" nav group —
+   nothing shares a name, permission, or package with `PurchaseRequisition`.
+2. **Header/line lifecycle mirrors `PurchaseRequisition`/`PurchaseRequisitionItem` almost exactly**
+   (closest in-repo precedent, same as that entity's own docs note about IHMS) — DRAFT ->
+   SUBMITTED -> COMPLETED/CANCELLED, per-line PENDING -> APPROVED/REJECTED, `CANCELLED` reachable
+   only from DRAFT, header auto-completes once every line is resolved.
+3. **The one real difference: approving a line here posts a live stock consequence.** Unlike
+   Purchase Requisition's `approveLine` (which only reaches a terminal sign-off state — nothing
+   downstream exists to act on it yet), `StockIssueRequestService.approveLine` calls {@code
+   StockMovementService.recordMovement} with a new `ISSUE` transaction type in the same
+   transaction as the status change. If the issuing location doesn't have enough on hand,
+   `recordMovement`'s existing negative-stock guard rejects the whole approval and the line stays
+   `PENDING` — no partial posting, no separate stock-availability check duplicated here.
+4. **`ISSUE` added to `StockMovementService` as decrease-only** (same handling as `DISPOSAL`/
+   `RETURN`, no direction) — posts only at the issuing location. The requesting location is
+   **not** credited a matching increase in this slice: a `locationRole = REQUESTING_POINT`
+   location is treated as a consuming cost-center with no stock ledger of its own, not a second
+   stock-holding point (unlike `StockTransfer`, which moves stock between two genuinely
+   stock-holding locations). If a real future need for the requester to also track received-but-
+   not-yet-consumed stock shows up, this would need to become a two-leg movement like Transfer —
+   revisit then, don't assume single-leg still fits.
+5. **No separate "confirm" step beyond approve** — approving a line *is* the posting action
+   (unlike Goods Receipt's separate draft-then-confirm), since there's no multi-line "delivery"
+   concept here to batch before committing — each line is independently approved or rejected.
+6. **Three permissions** (`INVENTORY_ISSUE_REQUEST_VIEW`/`_MANAGE`/`_APPROVE`), matching Purchase
+   Requisition's own split exactly — approve is the one action with real consequence.
+**Impact:** new tables `stock_issue_requests`, `stock_issue_request_items` (V446); new permissions
+(V447); `StockMovementService.ALLOWED_TXN_TYPES` widened to include `ISSUE`. `MILESTONES.md` and
+`RELEASE_3_MILESTONES.md` updated in the same change — Phase 4 / R3-M4 now in progress.
+`./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean before
+committing.
+
 *Next entry goes here — do not insert above this line.*

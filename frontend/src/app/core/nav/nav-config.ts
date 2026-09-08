@@ -240,6 +240,17 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Supplier Returns', icon: 'keyboard_return', route: '/inventory/receiving/supplier-returns', permissions: ['INVENTORY_SUPPLIER_RETURN_VIEW', 'INVENTORY_SUPPLIER_RETURN_MANAGE'] },
     ],
   },
+  // 8e. Requests, Issues & Returns — Phase 4 of the Inventory Management module. Own top-level
+  // group, same "new Inventory sub-area gets its own entry" convention. See docs/inventory-
+  // management/DECISION_LOG.md's "Stock Issue Request slice" entry.
+  {
+    label: 'Requests, Issues & Returns',
+    icon: 'outbound',
+    modules: ['INVENTORY'],
+    items: [
+      { label: 'Stock Issue Requests', icon: 'outbound', route: '/inventory/issue/stock-issue-requests', permissions: ['INVENTORY_ISSUE_REQUEST_VIEW', 'INVENTORY_ISSUE_REQUEST_MANAGE', 'INVENTORY_ISSUE_REQUEST_APPROVE'] },
+    ],
+  },
   // 9. Hostel Management — hostel-only operational screens (building/room masters live under Core Infrastructure)
   {
     label: 'Hostel Management',

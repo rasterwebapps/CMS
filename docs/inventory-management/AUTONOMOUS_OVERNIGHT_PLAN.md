@@ -39,8 +39,8 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-205** (OC-204 was the last used, Return to Supplier). Increment per slice.
-5. **Next Flyway migration number: V446** (V445 was the last used). Increment per file;
+4. **Next OC ticket number: OC-206** (OC-205 was the last used, Stock Issue Request). Increment per slice.
+5. **Next Flyway migration number: V448** (V447 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -117,7 +117,7 @@
 > `StockIssueRequest`, matching IHMS's `IssueLocationIndent` concept per the reference-
 > architecture entry) so the two are never confused in code, nav, or permission names.
 
-- [ ] **Stock issue request → issue workflow** (OC-205). `StockIssueRequest` header + lines,
+- [x] **Stock issue request → issue workflow** (OC-205, shipped 2026-09-08). `StockIssueRequest` header + lines,
       a requesting `InventoryLocation` asks another (usually a central store) for on-hand
       stock; approve/reject per line (mirrors Purchase Requisition's own header/line
       lifecycle almost exactly — closest in-repo precedent); approving posts an `ISSUE`
@@ -244,3 +244,9 @@ broken/half-done, and any judgment call made that a future session should sanity
   Next: Phase 4 ("Requests, Issues & Returns") — read its naming-caution note in this file
   before starting, since "Purchase Requisition" (buying) and this phase's new requisition
   concept (requesting on-hand stock) must stay clearly distinct in code/nav/permissions.
+- **2026-09-08, same session, after OC-205:** Stock Issue Request shipped (new
+  `com.cms.inventory.issue` package + widened `StockMovementService` for `ISSUE` + frontend +
+  migrations V446/V447 + docs), compile/typecheck both clean, committed locally. Naming stayed
+  cleanly distinct from Purchase Requisition per the standing caution. Next: Phase 4's
+  remaining slices — Auto-restocking (OC-206, extends Wanted List), Internal Returns (OC-207),
+  Loanable Item Issue (OC-208).

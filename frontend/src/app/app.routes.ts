@@ -479,6 +479,31 @@ export const routes: Routes = [
         (m) => m.SupplierReturnDetailComponent
       ),
   },
+  // Phase 4 "Requests, Issues & Returns" — Stock Issue Request (first slice).
+  {
+    path: 'inventory/issue/stock-issue-requests',
+    canActivate: withPermission('INVENTORY_ISSUE_REQUEST_VIEW', 'INVENTORY_ISSUE_REQUEST_MANAGE', 'INVENTORY_ISSUE_REQUEST_APPROVE'),
+    loadComponent: () =>
+      import('./features/inventory/issue/stock-issue-request/stock-issue-request-list/stock-issue-request-list.component').then(
+        (m) => m.StockIssueRequestListComponent
+      ),
+  },
+  {
+    path: 'inventory/issue/stock-issue-requests/new',
+    canActivate: withPermission('INVENTORY_ISSUE_REQUEST_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/issue/stock-issue-request/stock-issue-request-new/stock-issue-request-new.component').then(
+        (m) => m.StockIssueRequestNewComponent
+      ),
+  },
+  {
+    path: 'inventory/issue/stock-issue-requests/:id',
+    canActivate: withPermission('INVENTORY_ISSUE_REQUEST_VIEW', 'INVENTORY_ISSUE_REQUEST_MANAGE', 'INVENTORY_ISSUE_REQUEST_APPROVE'),
+    loadComponent: () =>
+      import('./features/inventory/issue/stock-issue-request/stock-issue-request-detail/stock-issue-request-detail.component').then(
+        (m) => m.StockIssueRequestDetailComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),

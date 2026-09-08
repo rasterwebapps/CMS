@@ -1,0 +1,92 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/issue/stock-issue-requests" aria-label="Back to stock issue requests">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">New Stock Issue <em>Request</em></h1>
+      </div>
+      <p class="page-subtitle">Products are added on the next screen, once the request is started.</p>
+    </div>
+  </div>
+
+  <div class="mv-standalone-layout">
+
+    <div class="entry-form-card entry-form-card--sectioned">
+      <div class="entry-form-card__hdr">
+        <div class="entry-form-card__hdr-ico">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div>
+          <div class="entry-form-card__hdr-title">Request Details</div>
+          <div class="entry-form-card__hdr-sub">Who's requesting, who's issuing, and when</div>
+        </div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="entry-form-card__body">
+
+          <div class="ir-new-grid">
+            <div class="field-group">
+              <label for="ir-requesting" class="field-label">Requesting Location <span class="required-star">*</span></label>
+              <select id="ir-requesting" class="field-select" formControlName="requestingLocationId"
+                [class.field-select--error]="form.get('requestingLocationId')?.invalid && form.get('requestingLocationId')?.touched">
+                <option [ngValue]="null" disabled>Select a location</option>
+                @for (l of locations(); track l.id) {
+                  <option [ngValue]="l.id">{{ l.virtualName }}</option>
+                }
+              </select>
+              @if (form.get('requestingLocationId')?.invalid && form.get('requestingLocationId')?.touched) {
+                <p class="field-error">{{ getErrorMessage('requestingLocationId') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="ir-issuing" class="field-label">Issuing Location <span class="required-star">*</span></label>
+              <select id="ir-issuing" class="field-select" formControlName="issuingLocationId"
+                [class.field-select--error]="form.get('issuingLocationId')?.invalid && form.get('issuingLocationId')?.touched">
+                <option [ngValue]="null" disabled>Select a location</option>
+                @for (l of locations(); track l.id) {
+                  <option [ngValue]="l.id">{{ l.virtualName }}</option>
+                }
+              </select>
+              @if (form.get('issuingLocationId')?.invalid && form.get('issuingLocationId')?.touched) {
+                <p class="field-error">{{ getErrorMessage('issuingLocationId') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="ir-date" class="field-label">Date <span class="required-star">*</span></label>
+              <input id="ir-date" type="date" class="field-input" formControlName="requestDate"
+                [class.field-input--error]="form.get('requestDate')?.invalid && form.get('requestDate')?.touched" />
+              @if (form.get('requestDate')?.invalid && form.get('requestDate')?.touched) {
+                <p class="field-error">{{ getErrorMessage('requestDate') }}</p>
+              }
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="ir-notes" class="field-label">Notes</label>
+            <textarea id="ir-notes" class="field-textarea" formControlName="notes" placeholder="Optional reason/reference for this request" rows="3"></textarea>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <a routerLink="/inventory/issue/stock-issue-requests" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+              @if (saving()) {
+                <mat-spinner diameter="16"></mat-spinner>
+              }
+              Start Request
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+</div>

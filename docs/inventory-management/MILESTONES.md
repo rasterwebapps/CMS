@@ -22,7 +22,7 @@ Inventory Management is a new, standalone module being built for the platform �
 | 1 | Foundation — Catalog, Stock Tracking &amp; Locations | 🟡 In Progress |
 | 2 | Purchasing &amp; Suppliers | ✅ Done |
 | 3 | Receiving &amp; Stock Movement | ✅ Done |
-| 4 | Requests, Issues &amp; Returns | ⬜ Not Started |
+| 4 | Requests, Issues &amp; Returns | 🟡 In Progress |
 | 5 | Equipment &amp; Asset Management | ⬜ Not Started |
 | 6 | Budgets &amp; Approvals | ⬜ Not Started |
 | 7 | Gate Pass, Vendor-Owned Stock &amp; Service Requests | ⬜ Not Started |
@@ -100,15 +100,17 @@ Inventory Management is a new, standalone module being built for the platform �
 
 ## Phase 4 — Requests, Issues & Returns
 
-**Status: ⬜ Not Started**
+**Status: 🟡 In Progress**
 
 **Covers:** A department or location requesting items from stock, issuing them out, and handling returns — plus a general "borrow and return" capability for equipment that gets loaned out and is expected back (sports equipment, hostel items, and similar), rather than consumed.
 
+**Doing now:** A location can request on-hand stock be issued from another location (typically a central store) — reviewed and approved or rejected per product, with approval immediately posting a real stock movement out of the issuing location (distinct from Phase 2's Purchase Requisition, which requests *buying* from a supplier rather than issuing from stock already on hand).
+
 **Todo:**
-- Requisition (request-and-issue) workflow
-- Auto-restocking when items run low
-- Internal returns
-- Generic loan/return tracking for borrowed equipment
+- Requisition (request-and-issue) workflow — ✅ done
+- Auto-restocking when items run low — still to come
+- Internal returns — still to come
+- Generic loan/return tracking for borrowed equipment — still to come
 
 ---
 

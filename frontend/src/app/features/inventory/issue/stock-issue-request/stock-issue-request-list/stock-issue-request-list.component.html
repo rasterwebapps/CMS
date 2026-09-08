@@ -1,0 +1,99 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="ir-pg-title">Stock Issue <em>Requests</em></h1>
+      </div>
+      <p class="ir-pg-sub">A location's request to be issued on-hand stock from another location.</p>
+    </div>
+    <div class="mlp-hdr-actions">
+      <button class="btn-primary" (click)="goToNew()" aria-label="Start a new stock issue request">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Request
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="field-select ir-filter" [(ngModel)]="locationFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by location">
+      <option [ngValue]="null">All Locations</option>
+      @for (l of locations(); track l.id) {
+        <option [ngValue]="l.id">{{ l.virtualName }}</option>
+      }
+    </select>
+    <select class="field-select ir-filter" [(ngModel)]="statusFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by status">
+      <option [ngValue]="null">All Statuses</option>
+      <option value="DRAFT">Draft</option>
+      <option value="SUBMITTED">Submitted</option>
+      <option value="COMPLETED">Completed</option>
+      <option value="CANCELLED">Cancelled</option>
+    </select>
+  </div>
+
+  <div class="content-card mlp-table-card">
+    <div class="table-wrapper">
+    <table mat-table [dataSource]="dataSource" class="ir-table">
+      <ng-container matColumnDef="requestDate">
+        <th mat-header-cell *matHeaderCellDef>Date</th>
+        <td mat-cell *matCellDef="let row">{{ row.requestDate | date: 'mediumDate' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="requestingLocationVirtualName">
+        <th mat-header-cell *matHeaderCellDef>Requesting</th>
+        <td mat-cell *matCellDef="let row">{{ row.requestingLocationVirtualName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="issuingLocationVirtualName">
+        <th mat-header-cell *matHeaderCellDef>Issuing</th>
+        <td mat-cell *matCellDef="let row">{{ row.issuingLocationVirtualName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-center">Status</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-center">
+          <cms-status-badge [status]="row.status" />
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="lineCount">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-right">Products</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-right">{{ row.lineCount }}</td>
+      </ng-container>
+      <ng-container matColumnDef="pendingCount">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-right">Pending</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-right">
+          @if (row.pendingCount > 0) {
+            <span class="ir-pending-chip">{{ row.pendingCount }}</span>
+          } @else {
+            —
+          }
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+        <td mat-cell *matCellDef="let row">
+          <div class="row-actions">
+            <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Open" ariaLabel="Open stock issue request" (clicked)="openRequest(row)">
+              <cms-icon-view [size]="14" />
+            </cms-row-action-btn>
+          </div>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;" (click)="openRequest(row)" class="ir-row"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0; border:none;">
+          <cms-empty-state
+            icon="outbound"
+            title="No stock issue requests yet"
+            subtitle="Request on-hand stock be issued from another location to see it here."
+            actionLabel="New Request"
+            (actionClick)="goToNew()"
+          ></cms-empty-state>
+        </td>
+      </tr>
+    </table>
+    </div>
+    <mat-paginator [length]="totalElements" [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
+  </div>
+
+</div>
