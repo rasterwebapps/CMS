@@ -529,6 +529,31 @@ export const routes: Routes = [
         (m) => m.LoanableItemIssueDetailComponent
       ),
   },
+  // Phase 5 "Equipment & Asset Management" — Asset register (first slice).
+  {
+    path: 'inventory/asset/assets',
+    canActivate: withPermission('INVENTORY_ASSET_VIEW', 'INVENTORY_ASSET_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/asset/asset-list/asset-list.component').then(
+        (m) => m.AssetListComponent
+      ),
+  },
+  {
+    path: 'inventory/asset/assets/new',
+    canActivate: withPermission('INVENTORY_ASSET_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/asset/asset-form/asset-form.component').then(
+        (m) => m.AssetFormComponent
+      ),
+  },
+  {
+    path: 'inventory/asset/assets/:id/edit',
+    canActivate: withPermission('INVENTORY_ASSET_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/asset/asset-form/asset-form.component').then(
+        (m) => m.AssetFormComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),

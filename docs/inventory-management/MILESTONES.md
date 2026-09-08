@@ -23,7 +23,7 @@ Inventory Management is a new, standalone module being built for the platform �
 | 2 | Purchasing &amp; Suppliers | ✅ Done |
 | 3 | Receiving &amp; Stock Movement | ✅ Done |
 | 4 | Requests, Issues &amp; Returns | 🟡 In Progress (auto-restocking deliberately deferred — needs real product-policy input) |
-| 5 | Equipment &amp; Asset Management | ⬜ Not Started |
+| 5 | Equipment &amp; Asset Management | 🟡 In Progress |
 | 6 | Budgets &amp; Approvals | ⬜ Not Started |
 | 7 | Gate Pass, Vendor-Owned Stock &amp; Service Requests | ⬜ Not Started |
 | 8 | Reporting &amp; Dashboards | ⬜ Not Started |
@@ -116,15 +116,17 @@ Inventory Management is a new, standalone module being built for the platform �
 
 ## Phase 5 — Equipment & Asset Management
 
-**Status: ⬜ Not Started**
+**Status: 🟡 In Progress**
 
 **Covers:** Tracking equipment and other owned assets through their full life — from purchase, through maintenance schedules and service contracts, to eventual retirement or disposal — including the standard depreciation calculations finance needs.
 
+**Doing now:** Individual physical units of a product (a specific laptop, a specific microscope — distinct from the catalog/stock-ledger's aggregate quantity tracking) can now be registered with a unique asset tag, optionally traced back to the delivery they were received against, and moved through an open-ended status lifecycle (Available/In Use/Under Maintenance/Retired/Disposed) as real-world use isn't a strict linear workflow.
+
 **Todo:**
-- Asset register and lifecycle tracking
-- Maintenance scheduling and service contracts
-- Depreciation
-- Disposal/write-off workflow
+- Asset register and lifecycle tracking — ✅ done
+- Maintenance scheduling and service contracts — still to come
+- Depreciation — still to come
+- Disposal/write-off workflow — still to come
 
 ---
 

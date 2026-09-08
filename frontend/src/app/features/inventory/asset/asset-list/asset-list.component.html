@@ -1,0 +1,96 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="as-pg-title">Asset <em>Register</em></h1>
+      </div>
+      <p class="as-pg-sub">Individually-tracked equipment and other owned assets.</p>
+    </div>
+    <div class="mlp-hdr-actions">
+      <button class="btn-primary" (click)="goToNew()" aria-label="Register a new asset">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Register Asset
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <input type="text" class="field-input as-search" [(ngModel)]="search" (ngModelChange)="onFilterChange()" placeholder="Search by tag or serial number" />
+    <select class="field-select as-filter" [(ngModel)]="locationFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by location">
+      <option [ngValue]="null">All Locations</option>
+      @for (l of locations(); track l.id) {
+        <option [ngValue]="l.id">{{ l.virtualName }}</option>
+      }
+    </select>
+    <select class="field-select as-filter" [(ngModel)]="statusFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by status">
+      <option [ngValue]="null">All Statuses</option>
+      @for (s of statusOptions; track s) {
+        <option [value]="s">{{ s }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="content-card mlp-table-card">
+    <div class="table-wrapper">
+    <table mat-table [dataSource]="dataSource" class="as-table">
+      <ng-container matColumnDef="assetTag">
+        <th mat-header-cell *matHeaderCellDef>Asset Tag</th>
+        <td mat-cell *matCellDef="let row">{{ row.assetTag }}</td>
+      </ng-container>
+      <ng-container matColumnDef="productName">
+        <th mat-header-cell *matHeaderCellDef>Product</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="as-product-name">{{ row.productName }}</div>
+          <div class="as-product-code">{{ row.productCode }}</div>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="locationVirtualName">
+        <th mat-header-cell *matHeaderCellDef>Location</th>
+        <td mat-cell *matCellDef="let row">{{ row.locationVirtualName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-center">Status</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-center" (click)="$event.stopPropagation()">
+          <select class="field-select as-status-select" [ngModel]="row.status" (ngModelChange)="onStatusChange(row, $event)">
+            @for (s of statusOptions; track s) {
+              <option [value]="s">{{ s }}</option>
+            }
+          </select>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="purchaseDate">
+        <th mat-header-cell *matHeaderCellDef>Purchase Date</th>
+        <td mat-cell *matCellDef="let row">{{ row.purchaseDate ? (row.purchaseDate | date: 'mediumDate') : '—' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+        <td mat-cell *matCellDef="let row">
+          <div class="row-actions">
+            <cms-row-action-btn variant="primary" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit asset" (clicked)="editAsset(row)">
+              <cms-icon-edit [size]="14" />
+            </cms-row-action-btn>
+          </div>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;" (click)="editAsset(row)" class="as-row"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0; border:none;">
+          <cms-empty-state
+            icon="inventory_2"
+            title="No assets registered yet"
+            subtitle="Register a physical unit of a product to track it individually here."
+            actionLabel="Register Asset"
+            (actionClick)="goToNew()"
+          ></cms-empty-state>
+        </td>
+      </tr>
+    </table>
+    </div>
+    <mat-paginator [length]="totalElements" [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
+  </div>
+
+</div>

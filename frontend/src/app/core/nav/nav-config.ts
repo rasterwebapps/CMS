@@ -252,6 +252,17 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Loanable Item Issues', icon: 'assignment_return', route: '/inventory/issue/loanable-item-issues', permissions: ['INVENTORY_LOAN_ISSUE_VIEW', 'INVENTORY_LOAN_ISSUE_MANAGE', 'INVENTORY_LOAN_ISSUE_RETURN'] },
     ],
   },
+  // 8f. Equipment & Asset Management — Phase 5 of the Inventory Management module. Own
+  // top-level group, same "new Inventory sub-area gets its own entry" convention. See docs/
+  // inventory-management/DECISION_LOG.md's "Asset register slice" entry.
+  {
+    label: 'Equipment & Asset Management',
+    icon: 'precision_manufacturing',
+    modules: ['INVENTORY'],
+    items: [
+      { label: 'Asset Register', icon: 'inventory_2', route: '/inventory/asset/assets', permissions: ['INVENTORY_ASSET_VIEW', 'INVENTORY_ASSET_MANAGE'] },
+    ],
+  },
   // 9. Hostel Management — hostel-only operational screens (building/room masters live under Core Infrastructure)
   {
     label: 'Hostel Management',

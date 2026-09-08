@@ -39,9 +39,9 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-209** (OC-208 was the last used, Loanable Item Issue — OC-206
+4. **Next OC ticket number: OC-210** (OC-209 was the last used, Asset register — OC-206
    was skipped, see its checklist item above). Increment per slice.
-5. **Next Flyway migration number: V452** (V451 was the last used). Increment per file;
+5. **Next Flyway migration number: V454** (V453 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -144,7 +144,7 @@
 
 ## Phase 5 — Equipment & Asset Management
 
-- [ ] **Asset register + lifecycle** (OC-209). `Asset` entity (links back to the `Product`/
+- [x] **Asset register + lifecycle** (OC-209, shipped 2026-09-08). `Asset` entity (links back to the `Product`/
       GRN line it was received against where applicable, plus a standalone "already-owned,
       being onboarded" entry path), status lifecycle (`IN_USE`/`UNDER_MAINTENANCE`/
       `RETIRED`/`DISPOSED` — check IHMS for its own asset-status shape first per the
@@ -263,5 +263,12 @@ broken/half-done, and any judgment call made that a future session should sanity
   log), new nav item, migrations V450/V451, compile/typecheck both clean, committed locally.
   **Phase 4 is now otherwise complete** — only Auto-restocking (OC-206) remains, and it's
   deliberately deferred (needs real product-policy input, not guessed at). Next: Phase 5
-  (Equipment & Asset Management) — the largest remaining phase, five slices (Asset register,
-  Maintenance/Service Contracts, Depreciation, Disposal). Start with Asset register (OC-209).
+  (Equipment & Asset Management) — the largest remaining phase, four slices (Asset register,
+  Maintenance/Service Contracts, Depreciation, Disposal).
+- **2026-09-08, same session, after OC-209:** Asset register shipped — new
+  `com.cms.inventory.asset` package (individual physical-unit tracking, open-ended status
+  lifecycle, optional GRN traceability, mandatory asset-tag uniqueness check per CLAUDE.md's
+  master-screen pattern), migrations V452/V453, compile/typecheck both clean, committed
+  locally. **Could not verify against IHMS's own asset-status shape** (no IHMS repo access from
+  this session) — flagged in the decision log for a future session that has it. Next:
+  Maintenance Scheduling + Service Contracts (OC-210).

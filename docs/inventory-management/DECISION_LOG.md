@@ -565,4 +565,44 @@ deferred pending real product-policy input rather than shipped in a guessed form
 entry above. `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean
 before committing.
 
+## 2026-09-08 — Asset register slice: Phase 5 kickoff, made autonomously overnight
+
+**Made autonomously overnight — flag for morning review if this reads wrong.** Continues the same
+unattended, no-confirmation build session as the entries above.
+**Decisions:**
+1. **Could not check IHMS's own asset-status shape**, as the "Reference architecture pivot"
+   entry's standing instruction asks for every remaining phase — this autonomous session has no
+   access to the IHMS codebase (an external Bitbucket repo, not present here). Used the plan's own
+   4-state sketch (`IN_USE`/`UNDER_MAINTENANCE`/`RETIRED`/`DISPOSED`) plus one small, defensible
+   addition — an initial `AVAILABLE` state — since the plan's states have no "registered but not
+   yet deployed" starting point otherwise. A future session with real IHMS access should verify
+   this against IHMS's actual asset entity before assuming it's the final shape.
+2. **`Asset` tracks one physical, individually-tracked unit** (asset tag as its unique identity),
+   distinct from `Product`/`StockBalance`'s aggregate quantity tracking — the two coexist: a
+   `Product` can be both stock-tracked in bulk (consumables) and separately have individual
+   `Asset` rows registered for units that need per-unit tracking (a `Product` isn't required to be
+   "asset-only" or "stock-only").
+3. **`goodsReceiptLine` link is optional** — supports both a "received through the normal
+   procure→receive flow" onboarding path and a standalone "already-owned, being onboarded" entry
+   with no receipt behind it (per the plan's own wording for this slice).
+4. **`purchaseValue`/`purchaseDate`/`usefulLifeMonths`/`salvageValue` captured now as asset master
+   data**, even though nothing computes depreciation from them yet — that's the still-to-come
+   "Depreciation slice"; capturing the fields now avoids a later migration just to add them.
+5. **Status changes are open-ended, no state-machine validation** — unlike every DRAFT/SUBMITTED-
+   style workflow elsewhere in this module, real asset status doesn't move through a fixed
+   sequence (an asset can cycle `IN_USE` ↔ `UNDER_MAINTENANCE` many times before an eventual
+   `RETIRED`/`DISPOSED`), so `updateStatus` only validates the target is a real enum value.
+6. **Asset tag gets the mandatory real-time uniqueness check** (`uniqueFieldValidator` + `/asset-
+   tag-exists`), per `CLAUDE.md`'s master-screen uniqueness pattern — this is a master-like screen
+   (list + combined new/edit form), not a header/line workflow, so it follows that pattern instead
+   of the DRAFT/SUBMITTED shape most of this session's other slices have used.
+7. **Two permissions this slice** (`INVENTORY_ASSET_VIEW`/`_MANAGE`) — the plan's own text already
+   calls out that Disposal (a later Phase 5 slice) gets its own `INVENTORY_ASSET_DISPOSE`
+   permission when built; status changes and edits both stay under `_MANAGE` for now since there's
+   no other audit-worthy action yet to split out.
+**Impact:** new table `assets` (V452); new permissions (V453). `MILESTONES.md` and
+`RELEASE_3_MILESTONES.md` updated in the same change — Phase 5 / R3-M5 now in progress.
+`./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean before
+committing.
+
 *Next entry goes here — do not insert above this line.*

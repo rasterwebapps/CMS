@@ -1,0 +1,122 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/asset/assets" aria-label="Back to assets">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Register' }} <em>Asset</em></h1>
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update the asset\'s details below.' : 'One physical, individually-tracked unit of a product.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="as-standalone-layout">
+
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Asset Details</div>
+            <div class="entry-form-card__hdr-sub">Identity, location, and purchase details</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="as-form-grid">
+              <div class="field-group as-form-full">
+                <cms-product-picker
+                  label="Product"
+                  [selectedProductId]="form.value.productId"
+                  (selectedProductIdChange)="form.get('productId')?.setValue($event)"
+                />
+                @if (form.get('productId')?.invalid && form.get('productId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('productId') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="as-location" class="field-label">Location <span class="required-star">*</span></label>
+                <select id="as-location" class="field-select" formControlName="locationId"
+                  [class.field-select--error]="form.get('locationId')?.invalid && form.get('locationId')?.touched">
+                  <option [ngValue]="null" disabled>Select a location</option>
+                  @for (l of locations(); track l.id) {
+                    <option [ngValue]="l.id">{{ l.virtualName }}</option>
+                  }
+                </select>
+                @if (form.get('locationId')?.invalid && form.get('locationId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('locationId') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="as-tag" class="field-label">Asset Tag <span class="required-star">*</span></label>
+                <input id="as-tag" class="field-input" formControlName="assetTag" placeholder="e.g., AST-0001" autocomplete="off"
+                  [class.field-input--error]="form.get('assetTag')?.invalid && form.get('assetTag')?.touched" />
+                @if (form.get('assetTag')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (form.get('assetTag')?.invalid && form.get('assetTag')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('assetTag') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="as-serial" class="field-label">Serial Number</label>
+                <input id="as-serial" class="field-input" formControlName="serialNumber" placeholder="Manufacturer's serial number" />
+              </div>
+
+              <div class="field-group">
+                <label for="as-value" class="field-label">Purchase Value</label>
+                <input id="as-value" type="number" step="0.01" min="0" class="field-input" formControlName="purchaseValue" />
+              </div>
+
+              <div class="field-group">
+                <label for="as-date" class="field-label">Purchase Date</label>
+                <input id="as-date" type="date" class="field-input" formControlName="purchaseDate" />
+              </div>
+
+              <div class="field-group">
+                <label for="as-life" class="field-label">Useful Life (months)</label>
+                <input id="as-life" type="number" step="1" min="1" class="field-input" formControlName="usefulLifeMonths" />
+              </div>
+
+              <div class="field-group">
+                <label for="as-salvage" class="field-label">Salvage Value</label>
+                <input id="as-salvage" type="number" step="0.01" min="0" class="field-input" formControlName="salvageValue" />
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="as-notes" class="field-label">Notes</label>
+              <textarea id="as-notes" class="field-textarea" formControlName="notes" rows="3"></textarea>
+            </div>
+
+            <div class="entry-form-card__footer">
+              <a routerLink="/inventory/asset/assets" class="btn-secondary">Cancel</a>
+              <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+                @if (saving()) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                }
+                {{ isEditMode() ? 'Save Changes' : 'Register Asset' }}
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+    </div>
+  }
+
+</div>
