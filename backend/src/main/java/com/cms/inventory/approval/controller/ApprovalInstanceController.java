@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.inventory.approval.dto.ApprovalActionBypassRequest;
 import com.cms.inventory.approval.dto.ApprovalActionResolutionRequest;
 import com.cms.inventory.approval.dto.ApprovalInstanceResponse;
 import com.cms.inventory.approval.dto.ApprovalInstanceStartRequest;
@@ -71,6 +72,14 @@ public class ApprovalInstanceController {
             @PathVariable Long id, @PathVariable Long actionId,
             @Valid @RequestBody(required = false) ApprovalActionResolutionRequest request, @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(instanceService.rejectAction(id, actionId, request, username(jwt)));
+    }
+
+    @PostMapping("/{id}/actions/{actionId}/bypass")
+    @PreAuthorize("@perm.has('INVENTORY_APPROVAL_BYPASS')")
+    public ResponseEntity<ApprovalInstanceResponse> bypassAction(
+            @PathVariable Long id, @PathVariable Long actionId,
+            @Valid @RequestBody ApprovalActionBypassRequest request, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(instanceService.bypassAction(id, actionId, request, username(jwt)));
     }
 
     private String username(Jwt jwt) {

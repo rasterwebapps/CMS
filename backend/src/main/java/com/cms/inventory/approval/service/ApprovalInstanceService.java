@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.config.PermSecurityBean;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.inventory.approval.dto.ApprovalActionBypassRequest;
 import com.cms.inventory.approval.dto.ApprovalActionResolutionRequest;
 import com.cms.inventory.approval.dto.ApprovalActionResponse;
 import com.cms.inventory.approval.dto.ApprovalInstanceResponse;
@@ -24,6 +25,7 @@ import com.cms.inventory.approval.model.ApprovalWorkflow;
 import com.cms.inventory.approval.model.ApprovalWorkflowStep;
 import com.cms.inventory.approval.model.enums.ApprovalActionStatus;
 import com.cms.inventory.approval.model.enums.ApprovalDocumentType;
+import com.cms.inventory.approval.model.enums.ApprovalExceptionReason;
 import com.cms.inventory.approval.model.enums.ApprovalInstanceStatus;
 import com.cms.inventory.approval.repository.ApprovalActionRepository;
 import com.cms.inventory.approval.repository.ApprovalInstanceRepository;
@@ -161,11 +163,33 @@ public class ApprovalInstanceService {
         ApprovalInstance instance = requireInstance(instanceId);
         ApprovalAction action = requireAction(instance, actionId);
         requireActionable(instance, action);
+        return markApprovedAndAdvance(instance, action, trim(request != null ? request.notes() : null), null, actor);
+    }
 
+    /**
+     * Bypasses a step with a structured exception reason (Phase 6's "Exception handling" slice)
+     * instead of an ordinary approval — gated by {@code INVENTORY_APPROVAL_BYPASS}, not the
+     * step's own referenced permission, since a bypass is deliberately exercised by someone with
+     * exception-granting authority overriding the normal approver requirement, not a substitute
+     * way for an ordinary step-permission holder to approve. Counts as approving the step for
+     * routing purposes (the stage/instance advances exactly as an ordinary approval would) but is
+     * recorded distinctly via {@code exceptionReason} so the audit trail always shows it was an
+     * exception, not a normal sign-off. See the "Exception handling slice" decision-log entry.
+     */
+    @Transactional
+    public ApprovalInstanceResponse bypassAction(Long instanceId, Long actionId, ApprovalActionBypassRequest request, String actor) {
+        ApprovalInstance instance = requireInstance(instanceId);
+        ApprovalAction action = requireAction(instance, actionId);
+        requireBypassable(instance, action);
+        return markApprovedAndAdvance(instance, action, trim(request.notes()), parseExceptionReason(request.reason()), actor);
+    }
+
+    private ApprovalInstanceResponse markApprovedAndAdvance(ApprovalInstance instance, ApprovalAction action, String notes, ApprovalExceptionReason exceptionReason, String actor) {
         action.setStatus(ApprovalActionStatus.APPROVED);
         action.setActedBy(actor);
         action.setActedAt(Instant.now());
-        action.setNotes(trim(request != null ? request.notes() : null));
+        action.setNotes(notes);
+        action.setExceptionReason(exceptionReason);
         actionRepository.save(action);
 
         boolean stageComplete = !actionRepository.existsByInstanceIdAndWorkflowStep_StepOrderAndStatus(
@@ -229,6 +253,22 @@ public class ApprovalInstanceService {
         }
     }
 
+    /** Same stage/status checks as {@link #requireActionable}, but gated by INVENTORY_APPROVAL_BYPASS instead of the step's own permission. */
+    private void requireBypassable(ApprovalInstance instance, ApprovalAction action) {
+        if (instance.getStatus() != ApprovalInstanceStatus.IN_PROGRESS) {
+            throw new IllegalArgumentException("This approval is already " + instance.getStatus().name().toLowerCase(Locale.ROOT));
+        }
+        if (!action.getWorkflowStep().getStepOrder().equals(instance.getCurrentStepOrder())) {
+            throw new IllegalArgumentException("This step is not yet at its stage — the approval is currently at step order " + instance.getCurrentStepOrder());
+        }
+        if (action.getStatus() != ApprovalActionStatus.PENDING) {
+            throw new IllegalArgumentException("This step has already been resolved");
+        }
+        if (!perm.has("INVENTORY_APPROVAL_BYPASS")) {
+            throw new IllegalArgumentException("You do not hold permission to bypass an approval step");
+        }
+    }
+
     private ApprovalInstance requireInstance(Long id) {
         return instanceRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Approval instance not found with id: " + id));
@@ -248,6 +288,14 @@ public class ApprovalInstanceService {
             return ApprovalDocumentType.valueOf(value.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid document type '" + value + "'");
+        }
+    }
+
+    private ApprovalExceptionReason parseExceptionReason(String value) {
+        try {
+            return ApprovalExceptionReason.valueOf(value.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid exception reason '" + value + "'");
         }
     }
 
@@ -280,13 +328,16 @@ public class ApprovalInstanceService {
 
     private ApprovalActionResponse toActionResponse(ApprovalAction action, ApprovalInstance instance) {
         ApprovalWorkflowStep step = action.getWorkflowStep();
-        boolean actionable = instance.getStatus() == ApprovalInstanceStatus.IN_PROGRESS
+        boolean isCurrentPendingStage = instance.getStatus() == ApprovalInstanceStatus.IN_PROGRESS
             && action.getStatus() == ApprovalActionStatus.PENDING
-            && step.getStepOrder().equals(instance.getCurrentStepOrder())
-            && perm.has(step.getPermission().getCode());
+            && step.getStepOrder().equals(instance.getCurrentStepOrder());
+        boolean actionable = isCurrentPendingStage && perm.has(step.getPermission().getCode());
+        boolean bypassable = isCurrentPendingStage && perm.has("INVENTORY_APPROVAL_BYPASS");
         return new ApprovalActionResponse(
             action.getId(), step.getStepOrder(), step.getStepName(),
             step.getPermission().getCode(), step.getPermission().getDisplayName(),
-            action.getStatus().name(), action.getActedBy(), action.getActedAt(), action.getNotes(), actionable);
+            action.getStatus().name(), action.getActedBy(), action.getActedAt(), action.getNotes(),
+            action.getExceptionReason() != null ? action.getExceptionReason().name() : null,
+            actionable, bypassable);
     }
 }

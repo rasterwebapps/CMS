@@ -39,9 +39,9 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-215** (OC-214 was the last used, Multi-level approval routing —
-   OC-206 was skipped, see its checklist item above). Increment per slice.
-5. **Next Flyway migration number: V462** (V461 was the last used). Increment per file;
+4. **Next OC ticket number: OC-216** (OC-215 was the last used, Exception handling with
+   documented reasons — OC-206 was skipped, see its checklist item above). Increment per slice.
+5. **Next Flyway migration number: V464** (V463 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -181,10 +181,11 @@
       PurchaseRequisitionService/PurchaseOrderService's own state machines to hard-block on it;
       see the decision-log entry's own "Scope boundary" section for why that's a deliberate
       line, not a shortfall.
-- [ ] **Exception handling with documented reasons** (OC-215). Structured reason codes
-      (urgent purchase, single-supplier situation, etc. — mirrors `WantedListRejectionReason`
-      's structured-enum-plus-notes shape already shipped) usable when an approval step is
-      bypassed.
+- [x] **Exception handling with documented reasons** (OC-215, shipped 2026-09-08). Structured
+      reason codes (urgent purchase, single-supplier situation, etc. — mirrors
+      `WantedListRejectionReason`'s structured-enum-plus-notes shape already shipped) usable
+      when an approval step is bypassed via a new, dedicated `INVENTORY_APPROVAL_BYPASS`
+      permission rather than the step's own required permission. **This closes Phase 6.**
 
 ## Phase 7 — Gate Pass, Vendor-Owned Stock & Service Requests
 
@@ -335,3 +336,13 @@ broken/half-done, and any judgment call made that a future session should sanity
   line for this slice, not a shortfall, and what a lower-risk follow-on to actually wire it in
   as a submit-time gate would look like. Migrations V460/V461. Next: Exception handling with
   documented reasons (OC-215), the last Phase 6 slice.
+- **2026-09-08, same session, after OC-215:** Exception handling shipped — **closing Phase 6
+  in full**. Added `ApprovalExceptionReason` enum + `exception_reason` column on
+  `approval_actions` (V462), a new dedicated `INVENTORY_APPROVAL_BYPASS` permission (V463,
+  seeded to DEV_ADMIN/SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN with the catch-all sync block) so
+  bypassing a step never reuses that step's own required permission, and a new bypass endpoint/
+  service method with the same stage/status gating as an ordinary approve/reject. Frontend adds
+  a "Bypass (Exception)" control (shown only to `INVENTORY_APPROVAL_BYPASS` holders) and an
+  exception-reason chip on the resolved-action row. `./gradlew compileJava` and
+  `npx tsc --noEmit` both passed clean. Next: Phase 7 (Gate Pass, Vendor-Owned Stock & Service
+  Requests) — Outward/inward gate pass (OC-216) is next up.

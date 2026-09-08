@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments';
 import {
+  ApprovalActionBypassRequest,
   ApprovalActionResolutionRequest,
   ApprovalInstance,
   ApprovalInstanceStartRequest,
@@ -35,5 +36,9 @@ export class ApprovalInstanceService {
 
   rejectAction(instanceId: number, actionId: number, request: ApprovalActionResolutionRequest): Observable<ApprovalInstance> {
     return this.http.post<ApprovalInstance>(`${this.baseUrl}/${instanceId}/actions/${actionId}/reject`, request);
+  }
+
+  bypassAction(instanceId: number, actionId: number, request: ApprovalActionBypassRequest): Observable<ApprovalInstance> {
+    return this.http.post<ApprovalInstance>(`${this.baseUrl}/${instanceId}/actions/${actionId}/bypass`, request);
   }
 }

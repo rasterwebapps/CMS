@@ -53,18 +53,26 @@
                 <td>{{ action.requiredPermissionDisplayName }}</td>
                 <td class="cell-align-center"><cms-status-badge [status]="action.status" /></td>
                 <td>
-                  @if (action.actionableByCurrentUser) {
+                  @if (action.actionableByCurrentUser || action.bypassableByCurrentUser) {
                     <div class="ai-resolution-row">
-                      <input class="field-input ai-notes-input" [(ngModel)]="notesByAction[action.id]" placeholder="Note (optional)" aria-label="Resolution note" />
-                      <button class="ai-approve-btn" [disabled]="busy()" (click)="approveAction(action)">Approve</button>
-                      <button class="ai-reject-btn" [disabled]="busy()" (click)="rejectAction(action)">Reject</button>
+                      @if (action.actionableByCurrentUser) {
+                        <input class="field-input ai-notes-input" [(ngModel)]="notesByAction[action.id]" placeholder="Note (optional)" aria-label="Resolution note" />
+                        <button class="ai-approve-btn" [disabled]="busy()" (click)="approveAction(action)">Approve</button>
+                        <button class="ai-reject-btn" [disabled]="busy()" (click)="rejectAction(action)">Reject</button>
+                      }
+                      @if (action.bypassableByCurrentUser) {
+                        <button class="ai-bypass-btn" [disabled]="busy()" (click)="openBypassDialog(action)">Bypass (Exception)</button>
+                      }
                     </div>
                   } @else if (action.status === 'PENDING' && action.stepOrder === i.currentStepOrder) {
                     <span class="ai-muted">Awaiting a holder of this permission</span>
                   } @else if (action.status === 'PENDING') {
                     <span class="ai-muted">Not yet at this stage</span>
                   } @else if (action.actedBy) {
-                    <span class="ai-muted">{{ action.actedBy }} · {{ action.actedAt | date: 'short' }}{{ action.notes ? ' — ' + action.notes : '' }}</span>
+                    <span class="ai-muted">
+                      {{ action.actedBy }} · {{ action.actedAt | date: 'short' }}{{ action.notes ? ' — ' + action.notes : '' }}
+                      @if (action.exceptionReason) { <span class="ai-exception-chip">{{ action.exceptionReason }}</span> }
+                    </span>
                   } @else {
                     <span class="ai-muted">—</span>
                   }

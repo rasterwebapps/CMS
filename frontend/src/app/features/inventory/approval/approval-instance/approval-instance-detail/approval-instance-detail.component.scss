@@ -116,3 +116,38 @@
     color: #fff;
   }
 }
+
+.ai-bypass-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--cms-warning);
+  border: 1px solid var(--cms-warning);
+  background: var(--cms-warning-light);
+
+  &:hover:not(:disabled) {
+    background: var(--cms-warning);
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.ai-exception-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--cms-warning);
+  background: var(--cms-warning-light);
+}

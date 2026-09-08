@@ -2,9 +2,11 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ApprovalInstanceService } from '../approval-instance.service';
 import { ApprovalAction, ApprovalInstance } from '../approval-instance.model';
+import { ApprovalActionBypassDialogComponent } from '../approval-action-bypass-dialog/approval-action-bypass-dialog.component';
 import { CmsStatusBadgeComponent } from '../../../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../../../core/toast/toast.service';
 
@@ -15,6 +17,7 @@ import { ToastService } from '../../../../../core/toast/toast.service';
     RouterLink,
     FormsModule,
     DatePipe,
+    MatDialogModule,
     MatProgressSpinnerModule,
     CmsStatusBadgeComponent,
   ],
@@ -26,6 +29,7 @@ export class ApprovalInstanceDetailComponent implements OnInit {
   private readonly router          = inject(Router);
   private readonly instanceService = inject(ApprovalInstanceService);
   private readonly toast           = inject(ToastService);
+  private readonly dialog          = inject(MatDialog);
 
   protected readonly loading  = signal(false);
   protected readonly busy     = signal(false);
@@ -61,6 +65,19 @@ export class ApprovalInstanceDetailComponent implements OnInit {
     this.instanceService.rejectAction(this.instanceId, action.id, { notes: this.notesByAction[action.id]?.trim() || undefined }).subscribe({
       next: () => { this.toast.success('Approval rejected'); this.busy.set(false); this.load(); },
       error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to reject step'); this.busy.set(false); },
+    });
+  }
+
+  protected openBypassDialog(action: ApprovalAction): void {
+    this.dialog.open(ApprovalActionBypassDialogComponent, {
+      data: { stepName: action.stepName },
+    }).afterClosed().subscribe((result) => {
+      if (!result) return;
+      this.busy.set(true);
+      this.instanceService.bypassAction(this.instanceId, action.id, result).subscribe({
+        next: () => { this.toast.success('Step bypassed'); this.busy.set(false); this.load(); },
+        error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to bypass step'); this.busy.set(false); },
+      });
     });
   }
 

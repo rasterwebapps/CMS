@@ -3,6 +3,7 @@ package com.cms.inventory.approval.model;
 import java.time.Instant;
 
 import com.cms.inventory.approval.model.enums.ApprovalActionStatus;
+import com.cms.inventory.approval.model.enums.ApprovalExceptionReason;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -22,7 +23,11 @@ import jakarta.persistence.Table;
  * chain progresses) — all {@code PENDING}, but only actionable once the instance's own {@code
  * currentStepOrder} reaches this action's step's {@code stepOrder} (enforced in {@code
  * ApprovalInstanceService}, not by hiding rows, so the whole chain's shape is visible up front).
- * See the "Multi-level approval routing slice" decision-log entry.
+ * {@code exceptionReason} is set only when the step was resolved via a bypass (Phase 6's
+ * "Exception handling" slice) rather than an ordinary approval — a structured reason distinct
+ * from the free-text {@code notes} every resolution already carries, mirroring {@code
+ * WantedListRejectionReason}'s fixed-taxonomy-plus-notes shape. See the "Multi-level approval
+ * routing slice" and "Exception handling slice" decision-log entries.
  */
 @Entity
 @Table(name = "approval_actions")
@@ -53,6 +58,10 @@ public class ApprovalAction {
     @Column(length = 500)
     private String notes;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "exception_reason", length = 40)
+    private ApprovalExceptionReason exceptionReason;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -73,4 +82,7 @@ public class ApprovalAction {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public ApprovalExceptionReason getExceptionReason() { return exceptionReason; }
+    public void setExceptionReason(ApprovalExceptionReason exceptionReason) { this.exceptionReason = exceptionReason; }
 }

@@ -21,6 +21,21 @@ export interface ApprovalActionResolutionRequest {
   notes?: string;
 }
 
+export type ApprovalExceptionReason = 'URGENT_PURCHASE' | 'SINGLE_SUPPLIER_SITUATION' | 'EMERGENCY' | 'APPROVER_UNAVAILABLE' | 'OTHER';
+
+export const APPROVAL_EXCEPTION_REASONS: { value: ApprovalExceptionReason; label: string }[] = [
+  { value: 'URGENT_PURCHASE', label: 'Urgent Purchase' },
+  { value: 'SINGLE_SUPPLIER_SITUATION', label: 'Single-Supplier Situation' },
+  { value: 'EMERGENCY', label: 'Emergency' },
+  { value: 'APPROVER_UNAVAILABLE', label: 'Approver Unavailable' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+export interface ApprovalActionBypassRequest {
+  reason: ApprovalExceptionReason;
+  notes?: string;
+}
+
 export interface ApprovalAction {
   id: number;
   stepOrder: number;
@@ -31,7 +46,9 @@ export interface ApprovalAction {
   actedBy: string | null;
   actedAt: string | null;
   notes: string | null;
+  exceptionReason: ApprovalExceptionReason | null;
   actionableByCurrentUser: boolean;
+  bypassableByCurrentUser: boolean;
 }
 
 export interface ApprovalInstance {

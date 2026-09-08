@@ -821,4 +821,47 @@ updated in the same change. `./gradlew compileJava` and `npx tsc -p tsconfig.app
 both run clean before committing — first attempt, no fix-up round needed despite this being the
 largest slice of the whole session.
 
+## 2026-09-08 — Exception handling slice (OC-215)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+Adds Phase 6's third and final slice: a documented, permission-gated way to bypass an approval
+step's normal sign-off, closing Phase 6 ("Budgets & Approvals") in full.
+
+1. **Bypass requires its own dedicated permission (`INVENTORY_APPROVAL_BYPASS`), never the
+   step's own required permission** — per this module's standing operation-wise permission
+   mapping rule, "approve this step the normal way" and "override this step as an exception"
+   are genuinely different operations even though they land the step in the same `APPROVED`
+   state. A person who happens to hold the step's own permission gets no bypass affordance from
+   that alone; a person holding `INVENTORY_APPROVAL_BYPASS` can bypass *any* step regardless of
+   whose permission it names, which is the correct shape for an exception-handling capability
+   (it exists precisely for when the normal approver is unavailable or the situation is urgent
+   enough to not wait for them).
+2. **Reason codes are a fixed enum (`ApprovalExceptionReason`: `URGENT_PURCHASE`,
+   `SINGLE_SUPPLIER_SITUATION`, `EMERGENCY`, `APPROVER_UNAVAILABLE`, `OTHER`) plus a free-text
+   notes field**, deliberately mirroring `WantedListRejectionReason`'s already-shipped
+   structured-enum-plus-notes shape rather than inventing a new pattern — a bypass reason is
+   the same kind of "why did a human override the normal path" audit fact the module already
+   has a proven UI/validation pattern for.
+3. **Bypass follows the exact same stage/status gating as an ordinary approve/reject**
+   (`requireBypassable` mirrors `requireActionable`'s instance-`IN_PROGRESS`/action-`PENDING`/
+   `stepOrder == currentStepOrder` checks, swapping only which permission is checked) — a
+   bypass is not a way to skip ahead to a future stage or redo an already-resolved one, it only
+   changes *who* may resolve the current stage and *how* that resolution is labeled.
+4. **`approveAction` was refactored to share a new private `markApprovedAndAdvance` helper with
+   `bypassAction`** rather than duplicating the advance-to-next-stage/complete-instance logic —
+   the only difference between an ordinary approval and a bypass is which permission gated the
+   call and whether an `exceptionReason` is stamped on the resulting `ApprovalAction` row.
+5. **The reason is required and server-validated against the enum** (rejected with a clear
+   message if blank or not a recognized code) — an exception bypass always leaves a real,
+   structured reason on the audit trail, consistent with the module's "computed/validated
+   server-side, never trust the client" posture used throughout.
+
+**Impact:** new column `exception_reason` on `approval_actions` (V462); new permission
+`INVENTORY_APPROVAL_BYPASS` seeded to DEV_ADMIN/SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN with the
+catch-all sync block (V463). `MILESTONES.md` and `RELEASE_3_MILESTONES.md` updated in the same
+change — this closes Phase 6 end-to-end (Budget allocation, Multi-level approval routing,
+Exception handling). `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both
+run clean before committing.
+
 *Next entry goes here — do not insert above this line.*
