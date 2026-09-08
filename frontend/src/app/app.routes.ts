@@ -252,6 +252,15 @@ export const routes: Routes = [
         (m) => m.PriceComparisonReportComponent
       ),
   },
+  // Phase 8 "Reporting & Dashboards" — Budget vs. Actual Report (sixth and final slice).
+  {
+    path: 'inventory/reporting/budget-vs-actual',
+    canActivate: withPermission('INVENTORY_BUDGET_VIEW', 'INVENTORY_BUDGET_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/reporting/budget-vs-actual/budget-vs-actual.component').then(
+        (m) => m.BudgetVsActualReportComponent
+      ),
+  },
   {
     path: 'inventory/stock/balances',
     canActivate: withPermission('INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'),

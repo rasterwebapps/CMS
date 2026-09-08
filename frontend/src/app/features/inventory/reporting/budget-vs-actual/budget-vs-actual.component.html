@@ -1,0 +1,67 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="bva-pg-title">Budget vs. <em>Actual</em></h1>
+      </div>
+      <p class="bva-pg-sub">
+        Allocated vs. consumed spend rolled up by location, across every currently-active budget.
+        @if (report(); as r) { <span class="bva-generated">Updated {{ r.generatedAt | date: 'short' }}</span> }
+      </p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="bva-loading"><mat-spinner diameter="40"></mat-spinner></div>
+  } @else if (report(); as r) {
+    @if (r.locations.length === 0) {
+      <cms-empty-state
+        icon="account_balance_wallet"
+        title="No active budgets yet"
+        subtitle="Once a budget is allocated to a location, its spend will appear here."
+      ></cms-empty-state>
+    } @else {
+      <div class="content-card mlp-table-card">
+        <div class="table-wrapper">
+        <table class="bva-table">
+          <thead>
+            <tr>
+              <th>Location</th>
+              <th class="cell-align-right">Budgets</th>
+              <th class="cell-align-right">Allocated</th>
+              <th class="cell-align-right">Consumed</th>
+              <th class="cell-align-right">Remaining</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of r.locations; track row.locationId) {
+              <tr [class.bva-over-row]="row.overAllocated">
+                <td>
+                  {{ row.locationName }}
+                  @if (row.overAllocated) { <span class="bva-over-chip">Over</span> }
+                </td>
+                <td class="cell-align-right">{{ row.budgetCount }}</td>
+                <td class="cell-align-right">{{ row.allocatedAmount | number: '1.2-2' }}</td>
+                <td class="cell-align-right">{{ row.consumedAmount | number: '1.2-2' }}</td>
+                <td class="cell-align-right">{{ row.remainingAmount | number: '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="bva-total-row">
+              <td>Grand Total</td>
+              <td class="cell-align-right">{{ r.grandTotalBudgetCount }}</td>
+              <td class="cell-align-right">{{ r.grandTotalAllocatedAmount | number: '1.2-2' }}</td>
+              <td class="cell-align-right">{{ r.grandTotalConsumedAmount | number: '1.2-2' }}</td>
+              <td class="cell-align-right">{{ r.grandTotalRemainingAmount | number: '1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+        </div>
+      </div>
+    }
+  }
+
+</div>

@@ -26,7 +26,7 @@ Inventory Management is a new, standalone module being built for the platform �
 | 5 | Equipment &amp; Asset Management | ✅ Done |
 | 6 | Budgets &amp; Approvals | ✅ Done |
 | 7 | Gate Pass, Vendor-Owned Stock &amp; Service Requests | ✅ Done |
-| 8 | Reporting &amp; Dashboards | 🟡 In Progress |
+| 8 | Reporting &amp; Dashboards | ✅ Done |
 
 **Status legend:** ⬜ Not Started · 🟡 In Progress · ✅ Done
 
@@ -162,11 +162,11 @@ Inventory Management is a new, standalone module being built for the platform �
 
 ## Phase 8 — Reporting & Dashboards
 
-**Status: 🟡 In Progress**
+**Status: ✅ Done** — all six report/dashboard slices identified in this phase's own breakdown are shipped; see each one's own scope note below for what "done" means (mostly live rollups of data the module already computes; a few real caveats are called out rather than silently assumed away, e.g. Budget vs. Actual's "summed across concurrent budgets, not period-aware").
 
 **Covers:** The dashboards and reports that pull together everything from the phases above — stock positions, spending, price comparisons, and turnaround times — for day-to-day use and management review.
 
-**Doing now:** A single Inventory Dashboard gives an at-a-glance overview across the whole module — open purchase orders, pending requisitions/wanted-list items, active approvals, overdue gate passes/loans, open service tickets, over-allocated budgets, outstanding consignment liability, and assets under maintenance — every figure computed live, nothing precomputed or stored. A Stock Valuation Report shows total on-hand value grouped by category (with a location filter), the standard ERP "inventory valuation summary." A Purchase Order Aging Report groups every still-open order into the standard 0–30/31–60/61–90/90+ day buckets. An Asset Depreciation Summary shows purchase value, accumulated depreciation, and current book value by category, reusing the same depreciation figure the Asset Register already shows for each asset. A Price Comparison screen shows every active supplier's rate for a chosen product side by side, cheapest first.
+**Shipped:** A single Inventory Dashboard gives an at-a-glance overview across the whole module — open purchase orders, pending requisitions/wanted-list items, active approvals, overdue gate passes/loans, open service tickets, over-allocated budgets, outstanding consignment liability, and assets under maintenance — every figure computed live, nothing precomputed or stored. A Stock Valuation Report shows total on-hand value grouped by category (with a location filter), the standard ERP "inventory valuation summary." A Purchase Order Aging Report groups every still-open order into the standard 0–30/31–60/61–90/90+ day buckets. An Asset Depreciation Summary shows purchase value, accumulated depreciation, and current book value by category, reusing the same depreciation figure the Asset Register already shows for each asset. A Price Comparison screen shows every active supplier's rate for a chosen product side by side, cheapest first. A Budget vs. Actual screen rolls up allocated vs. consumed spend by location across every active budget (summed across concurrent budgets regardless of period — a documented simplification, not a period-aware trend view).
 
 **Todo:**
 - Inventory Dashboard (at-a-glance overview) — ✅ done
@@ -174,7 +174,7 @@ Inventory Management is a new, standalone module being built for the platform �
 - Purchase order aging report (standard day-bucket scheme) — ✅ done
 - Asset depreciation summary report (by category) — ✅ done
 - Price comparison report (across suppliers/rate contracts) — ✅ done
-- Budget vs. actual spend report
+- Budget vs. actual spend report (by location) — ✅ done
 
 ---
 

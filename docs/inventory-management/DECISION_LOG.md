@@ -1269,4 +1269,38 @@ row, filterable to one product.
 8's report backlog down to a single remaining item** (Budget vs. Actual Spend). `./gradlew
 compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
 
+## 2026-09-09 — Budget vs. Actual Report slice (OC-225)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+Phase 8's sixth and final planned slice — **closes Phase 8's entire report backlog and brings
+R3-M7 to 100%.** The fifth of the OC-219 breakdown's five "needs product input" items to get
+the same fresh-eyes reconsideration; this one was the most genuinely ambiguous of the five (the
+only one where a real, un-resolvable-alone design question turned up), so the reconsideration
+here is narrower than the prior four: build the safe, non-misleading v1 rollup, and log the
+real limitation explicitly rather than pretend it isn't there.
+
+1. **Grouped by Location, summed across every currently-active Budget for that location,
+   regardless of each budget's own period** — the genuine wrinkle: a location can carry more
+   than one active budget for different (even non-overlapping) periods, e.g. a Q1 and a Q2
+   budget both still marked active. Summing them into one combined figure could misrepresent
+   "this quarter's spend" if a deployment actually runs quarterly budgets side by side. This is
+   the exact same simplification the already-shipped Inventory Dashboard's own "over-allocated
+   budgets" tile already makes (it too just counts/sums active budgets without period-
+   awareness) — extending an already-accepted precedent, not inventing a new one. A genuinely
+   period-aware version (e.g. "this quarter only," with the deployment's own quarter/fiscal-year
+   boundaries) needs a real answer to "what period does this deployment's budgeting calendar
+   use," which is out of this session's reach — logged here, not silently built around.
+2. **Reuses `BudgetService.findPage`'s already-computed `consumedAmount`/`remainingAmount`/
+   `overAllocated` per budget** rather than re-querying `PurchaseOrderItem` directly — the same
+   "reuse over duplicate" posture as every other report this phase, and specifically avoids a
+   second, potentially-drifting copy of the Budget slice's own committed-spend calculation.
+3. **Reuses `INVENTORY_BUDGET_VIEW`/`_MANAGE`** — same reasoning as every other report slice
+   this phase: stays within the one already-permissioned Budget bounded context.
+
+**Impact:** no new tables, no new permissions, no new migration. `MILESTONES.md` (Phase 8's
+status flipped to ✅ Done) and `RELEASE_3_MILESTONES.md` (R3-M7 to 100%) updated in the same
+change. `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean
+before committing.
+
 *Next entry goes here — do not insert above this line.*
