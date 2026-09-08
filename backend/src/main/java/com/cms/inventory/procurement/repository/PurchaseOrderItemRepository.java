@@ -6,8 +6,10 @@ import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.cms.inventory.procurement.model.PurchaseOrderAgingProjection;
 import com.cms.inventory.procurement.model.PurchaseOrderItem;
 import com.cms.inventory.procurement.model.enums.PurchaseOrderStatus;
 
@@ -28,4 +30,20 @@ public interface PurchaseOrderItemRepository extends JpaRepository<PurchaseOrder
         + "AND i.purchaseOrder.status <> :excludedStatus")
     BigDecimal sumCommittedSpendForLocationAndDateRange(
         Long locationId, LocalDate startDate, LocalDate endDate, PurchaseOrderStatus excludedStatus);
+
+    /**
+     * Every still-open (not {@code COMPLETED}/{@code FORCE_CLOSED}) Purchase Order's total
+     * value, one row per order — the PO Aging Report's raw input, bucketed by {@code poDate}
+     * age in the service. See {@link PurchaseOrderAgingProjection}.
+     */
+    @Query("""
+        SELECT po.id AS id, s.supplierName AS supplierName, po.poDate AS poDate, po.status AS status,
+               COALESCE(SUM(i.lineTotal), 0) AS totalValue
+        FROM PurchaseOrderItem i
+        JOIN i.purchaseOrder po
+        JOIN po.supplier s
+        WHERE po.status IN :openStatuses
+        GROUP BY po.id, s.supplierName, po.poDate, po.status
+        """)
+    List<PurchaseOrderAgingProjection> findOpenOrdersForAging(@Param("openStatuses") List<PurchaseOrderStatus> openStatuses);
 }

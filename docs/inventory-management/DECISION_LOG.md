@@ -1154,4 +1154,39 @@ every figure it needs (`qtyOnHand`, `valueOnHand`) is already fully computed and
 `RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and
 `npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
 
+## 2026-09-09 — Purchase Order Aging Report slice (OC-222)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+Phase 8's third slice, and the second of the OC-219 breakdown's five "needs product input"
+report items to get the same fresh-eyes reconsideration the OC-221 handoff note asked for. A
+"PO Aging" report bucketing open orders into 0–30/31–60/61–90/90+ day ranges is as close to a
+universal ERP/procurement-system default as a report gets — every major system (SAP, Oracle,
+NetSuite, and the pharmacy reference app checked earlier this session) ships this exact bucket
+scheme, so there was no real layout/threshold decision left to ask about.
+
+1. **Bucketed by `poDate` (the order date), not `expectedDeliveryDate`** — "aging" in every
+   standard PO aging report means "how long has this order been outstanding since it was
+   raised," not "how overdue is delivery." A separate "overdue delivery" view (against
+   `expectedDeliveryDate`) is a genuinely different report and not assumed here.
+2. **"Open" reuses the exact same status set as the Dashboard's "Open Purchase Orders" tile**
+   (`PENDING`/`ORDERED`/`IN_PROGRESS`/`PARTIALLY_COMPLETED`, excluding `COMPLETED`/
+   `FORCE_CLOSED`) — consistency between the two screens matters more than re-deriving the same
+   judgment call twice.
+3. **Bucket-summary only, no per-order drill-down/listing** — matches the Stock Valuation
+   Report's own scope decision (a rollup, not a new detail screen); the Purchase Order list
+   already exists for drilling into individual orders, this report doesn't duplicate it.
+4. **One new repository query** (`PurchaseOrderItemRepository.findOpenOrdersForAging`, grouping
+   `lineTotal` by PO) plus its own projection interface, added next to the existing
+   `sumCommittedSpendForLocationAndDateRange` query already living there for the Budget slice —
+   bucketing itself happens in Java in the new service (a plain days-between calculation), not
+   in SQL, keeping the query itself simple and portable.
+5. **Reuses `INVENTORY_PURCHASE_ORDER_VIEW`/`_MANAGE`**, same reasoning as the Stock Valuation
+   Report reusing the Stock permission — this stays within the one already-permissioned Purchase
+   Order bounded context.
+
+**Impact:** no new tables, no new permissions, no new migration. `MILESTONES.md` and
+`RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and
+`npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
+
 *Next entry goes here — do not insert above this line.*

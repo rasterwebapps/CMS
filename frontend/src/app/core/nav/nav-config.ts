@@ -226,6 +226,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Purchase Requisitions', icon: 'assignment', route: '/inventory/procurement/purchase-requisitions', permissions: ['INVENTORY_PURCHASE_REQUISITION_VIEW', 'INVENTORY_PURCHASE_REQUISITION_MANAGE', 'INVENTORY_PURCHASE_REQUISITION_APPROVE'] },
       { label: 'Wanted List',       icon: 'inventory_2', route: '/inventory/procurement/wanted-list',     permissions: ['INVENTORY_WANTED_LIST_VIEW', 'INVENTORY_WANTED_LIST_MANAGE', 'INVENTORY_WANTED_LIST_CONVERT', 'INVENTORY_WANTED_LIST_RUN'] },
       { label: 'Purchase Orders',   icon: 'receipt_long', route: '/inventory/procurement/purchase-orders', permissions: ['INVENTORY_PURCHASE_ORDER_VIEW', 'INVENTORY_PURCHASE_ORDER_MANAGE', 'INVENTORY_PURCHASE_ORDER_FORCE_CLOSE'] },
+      { label: 'PO Aging Report',   icon: 'schedule',    route: '/inventory/reporting/purchase-order-aging', permissions: ['INVENTORY_PURCHASE_ORDER_VIEW', 'INVENTORY_PURCHASE_ORDER_MANAGE'] },
       { label: 'Tax Rules',         icon: 'percent',     route: '/inventory/procurement/tax-rules',      permissions: ['INVENTORY_TAX_RULE_VIEW', 'INVENTORY_TAX_RULE_MANAGE'] },
     ],
   },

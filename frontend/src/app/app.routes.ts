@@ -225,6 +225,15 @@ export const routes: Routes = [
         (m) => m.StockValuationReportComponent
       ),
   },
+  // Phase 8 "Reporting & Dashboards" — Purchase Order Aging Report (third slice).
+  {
+    path: 'inventory/reporting/purchase-order-aging',
+    canActivate: withPermission('INVENTORY_PURCHASE_ORDER_VIEW', 'INVENTORY_PURCHASE_ORDER_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/reporting/po-aging/po-aging.component').then(
+        (m) => m.PurchaseOrderAgingReportComponent
+      ),
+  },
   {
     path: 'inventory/stock/balances',
     canActivate: withPermission('INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'),

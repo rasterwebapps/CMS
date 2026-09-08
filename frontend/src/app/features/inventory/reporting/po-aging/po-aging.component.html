@@ -1,0 +1,63 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="poa-pg-title">Purchase Order <em>Aging</em></h1>
+      </div>
+      <p class="poa-pg-sub">
+        Every still-open purchase order, grouped by how long it's been outstanding since it was raised.
+        @if (report(); as r) { <span class="poa-generated">Updated {{ r.generatedAt | date: 'short' }}</span> }
+      </p>
+    </div>
+    <div class="mlp-hdr-actions">
+      <button class="btn-secondary" (click)="goToPurchaseOrders()" aria-label="Go to purchase orders">
+        View Purchase Orders
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="poa-loading"><mat-spinner diameter="40"></mat-spinner></div>
+  } @else if (report(); as r) {
+    @if (r.grandTotalOrderCount === 0) {
+      <cms-empty-state
+        icon="fact_check"
+        title="No open purchase orders"
+        subtitle="Every purchase order is fully received or force-closed — nothing is currently outstanding."
+      ></cms-empty-state>
+    } @else {
+      <div class="content-card mlp-table-card">
+        <div class="table-wrapper">
+        <table class="poa-table">
+          <thead>
+            <tr>
+              <th>Age</th>
+              <th class="cell-align-right">Orders</th>
+              <th class="cell-align-right">Total Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (bucket of r.buckets; track bucket.bucketLabel) {
+              <tr [class.poa-overdue-row]="isOverdueBucket(bucket.bucketLabel) && bucket.orderCount > 0">
+                <td>{{ bucket.bucketLabel }}</td>
+                <td class="cell-align-right">{{ bucket.orderCount }}</td>
+                <td class="cell-align-right">{{ bucket.totalValue | number: '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="poa-total-row">
+              <td>Grand Total</td>
+              <td class="cell-align-right">{{ r.grandTotalOrderCount }}</td>
+              <td class="cell-align-right">{{ r.grandTotalValue | number: '1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+        </div>
+      </div>
+    }
+  }
+
+</div>
