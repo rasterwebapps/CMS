@@ -1,0 +1,107 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/procurement/purchase-orders" aria-label="Back to purchase orders">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">New Purchase <em>Order</em></h1>
+      </div>
+      <p class="page-subtitle">Lines are picked up from approved requisitions on the next screen, once the order is started.</p>
+    </div>
+  </div>
+
+  <div class="mv-standalone-layout">
+
+    <div class="entry-form-card entry-form-card--sectioned">
+      <div class="entry-form-card__hdr">
+        <div class="entry-form-card__hdr-ico">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div>
+          <div class="entry-form-card__hdr-title">Order Details</div>
+          <div class="entry-form-card__hdr-sub">Which supplier, which location, and when</div>
+        </div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="entry-form-card__body">
+
+          <div class="po-new-grid">
+            <div class="field-group">
+              <label for="po-supplier" class="field-label">Supplier <span class="required-star">*</span></label>
+              <select id="po-supplier" class="field-select" formControlName="supplierId"
+                [class.field-select--error]="form.get('supplierId')?.invalid && form.get('supplierId')?.touched">
+                <option [ngValue]="null" disabled>Select a supplier</option>
+                @for (s of suppliers(); track s.id) {
+                  <option [ngValue]="s.id">{{ s.supplierName }}</option>
+                }
+              </select>
+              @if (form.get('supplierId')?.invalid && form.get('supplierId')?.touched) {
+                <p class="field-error">{{ getErrorMessage('supplierId') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="po-location" class="field-label">Delivery Location <span class="required-star">*</span></label>
+              <select id="po-location" class="field-select" formControlName="locationId"
+                [class.field-select--error]="form.get('locationId')?.invalid && form.get('locationId')?.touched">
+                <option [ngValue]="null" disabled>Select a location</option>
+                @for (l of locations(); track l.id) {
+                  <option [ngValue]="l.id">{{ l.virtualName }}</option>
+                }
+              </select>
+              @if (form.get('locationId')?.invalid && form.get('locationId')?.touched) {
+                <p class="field-error">{{ getErrorMessage('locationId') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="po-date" class="field-label">Order Date <span class="required-star">*</span></label>
+              <input id="po-date" type="date" class="field-input" formControlName="poDate"
+                [class.field-input--error]="form.get('poDate')?.invalid && form.get('poDate')?.touched" />
+              @if (form.get('poDate')?.invalid && form.get('poDate')?.touched) {
+                <p class="field-error">{{ getErrorMessage('poDate') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="po-expected" class="field-label">Expected Delivery</label>
+              <input id="po-expected" type="date" class="field-input" formControlName="expectedDeliveryDate" />
+            </div>
+
+            <div class="field-group">
+              <label for="po-currency" class="field-label">Currency</label>
+              <input id="po-currency" type="text" class="field-input" formControlName="currencyCode" maxlength="10" placeholder="INR" />
+            </div>
+
+            <div class="field-group">
+              <label for="po-exchange" class="field-label">Exchange Rate</label>
+              <input id="po-exchange" type="number" step="0.000001" min="0" class="field-input" formControlName="exchangeRate" placeholder="Only for a foreign-currency order" />
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="po-notes" class="field-label">Notes</label>
+            <textarea id="po-notes" class="field-textarea" formControlName="notes" placeholder="Optional reason/reference for this order" rows="3"></textarea>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <a routerLink="/inventory/procurement/purchase-orders" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+              @if (saving()) {
+                <mat-spinner diameter="16"></mat-spinner>
+              }
+              Start Order
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+</div>

@@ -20,6 +20,13 @@ public interface PurchaseRequisitionItemRepository extends JpaRepository<Purchas
     boolean existsByPurchaseRequisitionIdAndStatus(Long purchaseRequisitionId, PurchaseRequisitionItemStatus status);
 
     /**
+     * {@code APPROVED} lines for a location, not yet picked into a Purchase Order — the pool the
+     * Purchase Order line picker chooses from. See the "Purchase Order slice" decision-log entry.
+     */
+    List<PurchaseRequisitionItem> findByStatusAndPurchaseRequisition_Location_IdOrderByIdAsc(
+        PurchaseRequisitionItemStatus status, Long locationId);
+
+    /**
      * Quantity already "in the pipeline" per (product, location) — an MRP-standard netting term,
      * adapted here since Purchase Order doesn't exist yet: an item counts as open once its
      * requisition has been submitted (APPROVED lines always sit under a SUBMITTED/COMPLETED

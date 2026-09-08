@@ -20,7 +20,7 @@ Inventory Management is a new, standalone module being built for the platform �
 |---|---|---|
 | 0 | Discovery &amp; Design | 🟡 In Progress |
 | 1 | Foundation — Catalog, Stock Tracking &amp; Locations | 🟡 In Progress |
-| 2 | Purchasing &amp; Suppliers | 🟡 In Progress |
+| 2 | Purchasing &amp; Suppliers | ✅ Done |
 | 3 | Receiving &amp; Stock Movement | ⬜ Not Started |
 | 4 | Requests, Issues &amp; Returns | ⬜ Not Started |
 | 5 | Equipment &amp; Asset Management | ⬜ Not Started |
@@ -69,14 +69,14 @@ Inventory Management is a new, standalone module being built for the platform �
 
 ## Phase 2 — Purchasing & Suppliers
 
-**Status: 🟡 In Progress**
+**Status: ✅ Done**
 
 **Covers:** Raising a request for items, getting and comparing quotes, issuing purchase orders, and registering and managing the suppliers those orders go to (including their approved rates and any standing rate agreements).
 
-**Doing now:** Suppliers can now be registered, approved, and managed, with a standing rate agreement (Rate Contract) tracked per supplier, a small named-tax-rate list (Tax Rule) purchase orders will use later, a product can now be linked to a supplier with its own rate (Vendor Product Rate) — optionally overridden by a negotiated per-product rate line on that supplier's Rate Contract while it's active — a location can now submit a Purchase Requisition (a request to buy specific products), reviewed and approved or rejected per product, and a Wanted List now auto-flags products that have fallen below their configured reorder level (checked nightly, or on demand), already accounting for anything already requested so the same shortage isn't flagged twice — one or several flagged products can be picked up together into a Purchase Requisition in one step. Next up: the actual Purchase Order screen an approved requisition line feeds into.
+**Shipped:** Suppliers can be registered, approved, and managed, with a standing rate agreement (Rate Contract) tracked per supplier, a small named-tax-rate list (Tax Rule), a product linked to a supplier with its own rate (Vendor Product Rate) — optionally overridden by a negotiated per-product rate line on that supplier's Rate Contract while it's active — a location can submit a Purchase Requisition (a request to buy specific products), reviewed and approved or rejected per product, a Wanted List auto-flags products that have fallen below their configured reorder level (checked nightly, or on demand), already accounting for anything already requested so the same shortage isn't flagged twice, and a Purchase Order can now be raised against a supplier by picking up one or more approved requisition lines — sent to the supplier, with an optional early Force Close and a running total including tax. Receiving against a Purchase Order (matching quantities, updating stock) is Phase 3's job, not this phase's.
 
 **Todo:**
-- Purchase request → purchase order flow — Purchase Requisition and the reorder-triggered Wanted List are both done; Purchase Order itself still to come
+- Purchase request → purchase order flow — ✅ done (Wanted List, Purchase Requisition, and Purchase Order all shipped)
 - Supplier registration, approval, and rate management — ✅ done (Suppliers and Rate Contracts, each with their own screen; approving a supplier is a distinct step from editing one)
 - Price comparison and rate-contract support — ✅ done for this phase's scope (a product's rate per supplier is now visible via Vendor Product Rates, with a Rate Contract's negotiated rate overriding it while active; this stays a simple rate lookup rather than a dedicated compare-quotes tool)
 

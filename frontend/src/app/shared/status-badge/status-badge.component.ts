@@ -76,6 +76,8 @@ export class CmsStatusBadgeComponent {
       case 'SABBATICAL':
       case 'ON_HOLD':
       case 'PENDING_REVIEW':
+      case 'DEFERRED':
+      case 'PARTIALLY_COMPLETED':
         return 'status-warning';
 
       // ── Neutral / pending states ─────────────────────────────────────────
@@ -90,6 +92,7 @@ export class CmsStatusBadgeComponent {
       case 'PLANNED':
       case 'NOT_PLANNED':
       case 'PENDING_COUNT':
+      case 'ORDERED':
         return 'status-pending';
 
       // ── Negative / terminal failure states ───────────────────────────────
@@ -114,6 +117,7 @@ export class CmsStatusBadgeComponent {
       case 'DAMAGED':
       case 'DISPOSED':
       case 'OUT_OF_ORDER':
+      case 'FORCE_CLOSED':
         return 'status-inactive';
 
       // ── Returned / handed-back documents ────────────────────────────────
@@ -124,6 +128,7 @@ export class CmsStatusBadgeComponent {
       case 'GRADUATED':
       case 'COMPLETED':
       case 'FULFILLED':
+      case 'CONVERTED':
         return 'status-graduated';
 
       // ── Maintenance / info states ────────────────────────────────────────

@@ -253,4 +253,56 @@ This is the running, chronological record of every scope/architecture decision m
 
 ---
 
+## 2026-09-08 — Purchase Order slice: closes Phase 2, made autonomously overnight
+
+**Made autonomously overnight — flag for morning review if this reads wrong.** Prompted by the
+user authorizing an unattended, no-confirmation overnight/next-day build session (see
+`AUTONOMOUS_OVERNIGHT_PLAN.md`) to use up remaining token budget without waiting for the usual
+per-slice specialist-question rounds. This entry follows the same judgment-call discipline those
+rounds would have applied — established precedent first, ERP-standard default otherwise — rather
+than inventing new patterns.
+**Decisions:**
+1. **Status lifecycle exactly as pre-recorded** in the "Purchase Requisition slice" entry's
+   decision 5: `PENDING → ORDERED → IN_PROGRESS → PARTIALLY_COMPLETED → COMPLETED` +
+   `FORCE_CLOSED`, no approval gate. `IN_PROGRESS`/`PARTIALLY_COMPLETED`/`COMPLETED` are not yet
+   driven by anything in this slice — they activate once Phase 3's Goods Receipt slice starts
+   posting against the already-added `PurchaseOrderItem.receivedQty` column; until then a PO only
+   ever reaches `ORDERED` or `FORCE_CLOSED` from `PurchaseOrderService`.
+2. **`FORCE_CLOSED` reachable from `PENDING` too** (an order never sent to the supplier), not only
+   from `ORDERED`/`IN_PROGRESS`/`PARTIALLY_COMPLETED` — this lifecycle has no separate "cancel a
+   not-yet-sent order" state of its own, and adding one would deviate from the exact enum set
+   already recorded in the earlier entry without a real need.
+3. **Lines are picked up from `APPROVED` `PurchaseRequisitionItem` rows for the order's own
+   location** — mirrors `WantedListService.convert`'s "collective conversion" shape (pick several,
+   commit together) rather than duplicating its code, since the source entity differs enough that
+   direct reuse wasn't practical. A picked-up line moves the requisition line to a new terminal
+   `ORDERED` status (widening `chk_purchase_requisition_items_status` via a new forward migration,
+   V438 — not editing the already-shipped V434, per this repo's hard gate) so the same approved
+   line can't be double-booked into two orders; removing a PO line before the order is sent
+   reverts the requisition line back to `APPROVED`.
+4. **Unit price defaults from `VendorProductMappingService`'s existing contract-aware effective-
+   rate resolution** (a new `resolveEffectiveRate` method extracted from that service's own
+   `toResponse` logic, not duplicated) — required to be supplied manually if no active mapping
+   exists for that (supplier, product) pair, rather than silently defaulting to zero.
+5. **`TaxRule` applied per line, tax amount and line total computed and stored at line-creation
+   time** (not recomputed live) — same snapshot spirit as `CycleCountLine.systemQtySnapshot`, so a
+   line stays self-explanatory even if the referenced `TaxRule`'s rate changes later.
+6. **`currencyCode`/`exchangeRate` stay plain fields, no conversion engine** — same posture already
+   flagged (not objected to) for `VendorProductMapping.currencyCode` in the "Phase 2 kickoff" entry.
+7. **Permissions:** `INVENTORY_PURCHASE_ORDER_VIEW`/`_MANAGE`/`_FORCE_CLOSE` — force-close is its
+   own permission per the operation-wise mapping rule, same pattern as Cycle Count's/Purchase
+   Requisition's approve/manage splits, seeded to DEV_ADMIN/SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN plus
+   the DEV_ADMIN/SUPPORT_ADMIN catch-all sync (V439).
+8. **No backend unit test class added**, matching the established precedent for every other
+   Inventory Management slice so far (`Supplier`, `RateContract`, `VendorProductMapping`,
+   `PurchaseRequisition`, `WantedList` all shipped with manual test cases only, no
+   `backend/src/test/java/com/cms/inventory/**` classes exist) — not a new decision, just followed
+   consistently. Both `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` were run
+   clean before committing, per this plan's own standing rules.
+**Impact:** new tables `purchase_orders`, `purchase_order_items` (V438, which also widens
+`purchase_requisition_items`'s status check constraint); new permissions (V439). **This closes
+Phase 2 ("Purchasing & Suppliers") in full** — `MILESTONES.md` and `RELEASE_3_MILESTONES.md`
+updated in the same change. See `AUTONOMOUS_OVERNIGHT_PLAN.md` for what's next (Phase 3 —
+Receiving & Stock Movement).
+
 *Next entry goes here — do not insert above this line.*

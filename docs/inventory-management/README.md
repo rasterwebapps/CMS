@@ -21,6 +21,8 @@ This folder is the single home for everything documenting the Inventory Manageme
 | [../manual-test-cases/inventory-procurement-vendor-product-mappings.md](../manual-test-cases/inventory-procurement-vendor-product-mappings.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside VendorProductMapping/RateContractLine | 2026-09-08 |
 | [../manual-test-cases/inventory-procurement-purchase-requisition.md](../manual-test-cases/inventory-procurement-purchase-requisition.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside PurchaseRequisition/PurchaseRequisitionItem | 2026-09-08 |
 | [../manual-test-cases/inventory-procurement-wanted-list.md](../manual-test-cases/inventory-procurement-wanted-list.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside WantedListItem | 2026-09-08 |
+| [../manual-test-cases/inventory-procurement-purchase-order.md](../manual-test-cases/inventory-procurement-purchase-order.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside PurchaseOrder/PurchaseOrderItem | 2026-09-08 |
+| [AUTONOMOUS_OVERNIGHT_PLAN.md](AUTONOMOUS_OVERNIGHT_PLAN.md) | Checklist + standing rules for the unattended, no-confirmation build session the user authorized on 2026-09-08 (through ~2026-09-09 15:00 IST) — single source of truth for what's shipped vs. left, so any session can resume it | Living document, in active use | 2026-09-08 |
 
 ## Conventions for This Folder
 

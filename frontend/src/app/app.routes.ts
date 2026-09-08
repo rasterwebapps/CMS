@@ -1,9 +1,13 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { requiresPermission } from './core/permissions/permission.guard';
+import { requiresEnabledModule } from './core/modules/module.guard';
 
-const withAuth = [authGuard];
-const withPermission = (...codes: string[]) => [authGuard, requiresPermission(...codes)];
+// requiresEnabledModule() is applied here once, rather than on each of the ~250 individual route
+// entries below — it resolves its own module(s) per-URL from nav-config.ts (see
+// core/modules/module-route-index.ts), so every route gets module gating "for free".
+const withAuth = [authGuard, requiresEnabledModule()];
+const withPermission = (...codes: string[]) => [authGuard, requiresEnabledModule(), requiresPermission(...codes)];
 
 export const routes: Routes = [
   {
@@ -373,6 +377,31 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/inventory/procurement/wanted-list/wanted-list-list/wanted-list-list.component').then(
         (m) => m.WantedListListComponent
+      ),
+  },
+  // Phase 2 "Purchasing & Suppliers" — Purchase Order (sixth and final slice, closes Phase 2).
+  {
+    path: 'inventory/procurement/purchase-orders',
+    canActivate: withPermission('INVENTORY_PURCHASE_ORDER_VIEW', 'INVENTORY_PURCHASE_ORDER_MANAGE', 'INVENTORY_PURCHASE_ORDER_FORCE_CLOSE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/purchase-order/purchase-order-list/purchase-order-list.component').then(
+        (m) => m.PurchaseOrderListComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/purchase-orders/new',
+    canActivate: withPermission('INVENTORY_PURCHASE_ORDER_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/purchase-order/purchase-order-new/purchase-order-new.component').then(
+        (m) => m.PurchaseOrderNewComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/purchase-orders/:id',
+    canActivate: withPermission('INVENTORY_PURCHASE_ORDER_VIEW', 'INVENTORY_PURCHASE_ORDER_MANAGE', 'INVENTORY_PURCHASE_ORDER_FORCE_CLOSE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/purchase-order/purchase-order-detail/purchase-order-detail.component').then(
+        (m) => m.PurchaseOrderDetailComponent
       ),
   },
   {

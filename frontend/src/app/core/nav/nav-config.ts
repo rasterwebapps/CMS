@@ -4,6 +4,14 @@ export interface NavItem {
   route: string;
   /** DB permission codes — show only if user holds at least one. Empty/absent = visible to all. */
   permissions?: string[];
+  /**
+   * Feature-module codes (see core/modules/module.service.ts) — show only if this deployment
+   * has enabled at least one. Empty/absent = "core", always visible regardless of module
+   * enablement (matching the backend's PermSecurityBean treatment of unmapped permission codes).
+   * Module gate is ANDed with the permission check above and always wins: a disabled module
+   * hides an item even for a user who holds the underlying permission.
+   */
+  modules?: string[];
 }
 
 export interface NavGroup {
@@ -12,6 +20,8 @@ export interface NavGroup {
   items: NavItem[];
   /** DB permission codes — show only if user holds at least one. Empty/absent = visible to all. */
   permissions?: string[];
+  /** Feature-module codes — see {@link NavItem.modules}. Gates the whole group at once. */
+  modules?: string[];
 }
 
 export type NavEntry = NavItem | NavGroup;
@@ -25,22 +35,30 @@ export function isNavGroup(entry: NavEntry): entry is NavGroup {
  * Also the single source of truth for "menu order" used to order permission
  * groupings on the Permission Tiers and Roles & Permissions screens —
  * see core/permissions/menu-order.util.ts.
+ *
+ * Every group/item that belongs to a toggleable feature module (see
+ * docs/module-architecture/MODULE_REGISTRY.md for the full table) carries a `modules` tag.
+ * Preferences deliberately stays ONE top-level group (its items are masters that belong to many
+ * different modules) rather than being split apart into each owning module's own group — its
+ * items are clustered by owning module below, each individually tagged, so module-disabled
+ * masters still disappear correctly even though the group itself is never module-gated.
  */
 export const NAV_ENTRIES: NavEntry[] = [
-  // 1. Overview — primary landmarks
+  // 1. Overview — primary landmarks, always visible (core)
   {
     label: 'Overview',
     icon: 'home',
     items: [
       { label: 'Dashboard',  icon: 'dashboard', route: '/dashboard' },
       { label: 'My Profile', icon: 'id_card',   route: '/profile' },
-      { label: 'My Timetable', icon: 'event_note', route: '/my-timetable', permissions: ['TIMETABLE_VIEW'] },
+      { label: 'My Timetable', icon: 'event_note', route: '/my-timetable', permissions: ['TIMETABLE_VIEW'], modules: ['ACADEMICS'] },
     ],
   },
   // 2. Admission Management
   {
     label: 'Admission Management',
     icon: 'how_to_reg',
+    modules: ['ADMISSIONS'],
     items: [
       { label: 'Enquiries',          icon: 'contact_mail',         route: '/enquiries',                      permissions: ['ENQUIRY_VIEW', 'ENQUIRY_CREATE', 'ENQUIRY_EDIT', 'ENQUIRY_DELETE', 'ENQUIRY_EXPORT'] },
       { label: 'Finalize Fee',       icon: 'lock',                 route: '/student-fees/finalize',          permissions: ['FEE_FINALIZE'] },
@@ -56,6 +74,7 @@ export const NAV_ENTRIES: NavEntry[] = [
   {
     label: 'Student Management',
     icon: 'person',
+    modules: ['STUDENT_MGMT'],
     items: [
       { label: 'Student Explorer',         icon: 'person_search', route: '/students',                 permissions: ['STUDENT_VIEW', 'STUDENT_CREATE', 'STUDENT_EDIT', 'STUDENT_DELETE', 'STUDENT_EXPORT'] },
       { label: 'Assign Roll Numbers',      icon: 'tag',           route: '/students/roll-numbers',    permissions: ['ROLL_NUMBER_ASSIGN'] },
@@ -67,6 +86,7 @@ export const NAV_ENTRIES: NavEntry[] = [
   {
     label: 'Finance',
     icon: 'wallet',
+    modules: ['FINANCE'],
     items: [
       { label: 'Fee Explorer', icon: 'account_balance_wallet', route: '/student-fees',        permissions: ['STUDENT_FEE_VIEW', 'STUDENT_FEE_CREATE', 'STUDENT_FEE_EDIT', 'STUDENT_FEE_DELETE', 'STUDENT_FEE_EXPORT', 'STUDENT_FEE_MANAGE'] },
       { label: 'Receipts',     icon: 'receipt_long',           route: '/receipts',            permissions: ['RECEIPT_VIEW', 'RECEIPT_EXPORT'] },
@@ -78,6 +98,7 @@ export const NAV_ENTRIES: NavEntry[] = [
   {
     label: 'Academics',
     icon: 'auto_stories',
+    modules: ['ACADEMICS'],
     items: [
       // -- Curriculum setup -- (Curriculum Versions first: Syllabus/Attendance-Threshold rows and
       // Elective Groups are children of a curriculum version; Experiments hang off Subject and CO/PO
@@ -131,6 +152,7 @@ export const NAV_ENTRIES: NavEntry[] = [
   {
     label: 'Library',
     icon: 'local_library',
+    modules: ['LIBRARY'],
     items: [
       { label: 'Issue Books',      icon: 'add_circle_outline', route: '/library/issues/new',     permissions: ['LIBRARY_QUICK_ISSUE'] },
       { label: 'Issue Explorer',   icon: 'book_online',        route: '/library/issues',         permissions: ['LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_DELETE', 'LIBRARY_ISSUE_EXPORT', 'LIBRARY_ISSUE_MANAGE'] },
@@ -148,6 +170,7 @@ export const NAV_ENTRIES: NavEntry[] = [
   {
     label: 'Core Infrastructure',
     icon: 'location_city',
+    modules: ['CORE_INFRA'],
     items: [
       { label: 'Campus Infrastructure',   icon: 'apartment',    route: '/campus-infrastructure',   permissions: ['CAMPUS_INFRASTRUCTURE_VIEW', 'CAMPUS_INFRASTRUCTURE_MANAGE', 'HOSTEL_ROOM_VIEW', 'HOSTEL_ROOM_MANAGE'] },
       { label: 'Room Purpose Categories', icon: 'category',     route: '/room-purpose-categories', permissions: ['ROOM_PURPOSE_CATEGORY_VIEW', 'ROOM_PURPOSE_CATEGORY_MANAGE'] },
@@ -158,10 +181,12 @@ export const NAV_ENTRIES: NavEntry[] = [
   },
   // 8. Inventory Management — physical asset/equipment tracking (legacy lab-consumables feature;
   // stays as-is until its own migration onto Stock Management below is scheduled — see
-  // docs/inventory-management/DECISION_LOG.md)
+  // docs/inventory-management/DECISION_LOG.md). Unified with Stock Management and Purchasing &
+  // Suppliers below under the one toggleable INVENTORY module — see docs/module-architecture/.
   {
     label: 'Inventory Management',
     icon: 'construction',
+    modules: ['INVENTORY'],
     items: [
       { label: 'Inventory',   icon: 'inventory_2', route: '/inventory',   permissions: ['INVENTORY_VIEW', 'INVENTORY_CREATE', 'INVENTORY_EDIT', 'INVENTORY_DELETE', 'INVENTORY_EXPORT', 'INVENTORY_MANAGE'] },
       { label: 'Maintenance', icon: 'build',       route: '/maintenance', permissions: ['MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_EDIT', 'MAINTENANCE_DELETE', 'MAINTENANCE_EXPORT', 'MAINTENANCE_MANAGE'] },
@@ -170,10 +195,11 @@ export const NAV_ENTRIES: NavEntry[] = [
   // 8b. Stock Management — the new Release 3 Inventory Management module (Catalog, Stock,
   // Procurement, Assets, …, built out phase by phase). Deliberately a separate top-level group
   // from "Inventory Management" above rather than folding in — that label already belongs to the
-  // legacy feature this module eventually retires. See docs/inventory-management/.
+  // legacy feature this module eventually retires. Both share the one toggleable INVENTORY module.
   {
     label: 'Stock Management',
     icon: 'warehouse',
+    modules: ['INVENTORY'],
     items: [
       { label: 'Stock Balance',     icon: 'inventory',   route: '/inventory/stock/balances', permissions: ['INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'] },
       { label: 'Cycle Counts',      icon: 'fact_check',  route: '/inventory/stock/cycle-counts', permissions: ['INVENTORY_CYCLE_COUNT_VIEW', 'INVENTORY_CYCLE_COUNT_MANAGE', 'INVENTORY_CYCLE_COUNT_APPROVE'] },
@@ -186,15 +212,18 @@ export const NAV_ENTRIES: NavEntry[] = [
   // 8c. Purchasing & Suppliers — Phase 2 of the Inventory Management module. Its own top-level
   // group, per the same "new Inventory nav/menus get their own entry" convention Stock Management
   // above followed. See docs/inventory-management/DECISION_LOG.md's "Phase 2 kickoff" entry.
+  // Also shares the one toggleable INVENTORY module.
   {
     label: 'Purchasing & Suppliers',
     icon: 'shopping_cart',
+    modules: ['INVENTORY'],
     items: [
       { label: 'Suppliers',         icon: 'storefront',  route: '/inventory/procurement/suppliers',      permissions: ['INVENTORY_SUPPLIER_VIEW', 'INVENTORY_SUPPLIER_MANAGE', 'INVENTORY_SUPPLIER_APPROVE'] },
       { label: 'Rate Contracts',    icon: 'handshake',   route: '/inventory/procurement/rate-contracts', permissions: ['INVENTORY_RATE_CONTRACT_VIEW', 'INVENTORY_RATE_CONTRACT_MANAGE'] },
       { label: 'Vendor Product Rates', icon: 'local_shipping', route: '/inventory/procurement/vendor-product-mappings', permissions: ['INVENTORY_VENDOR_PRODUCT_MAPPING_VIEW', 'INVENTORY_VENDOR_PRODUCT_MAPPING_MANAGE'] },
       { label: 'Purchase Requisitions', icon: 'assignment', route: '/inventory/procurement/purchase-requisitions', permissions: ['INVENTORY_PURCHASE_REQUISITION_VIEW', 'INVENTORY_PURCHASE_REQUISITION_MANAGE', 'INVENTORY_PURCHASE_REQUISITION_APPROVE'] },
       { label: 'Wanted List',       icon: 'inventory_2', route: '/inventory/procurement/wanted-list',     permissions: ['INVENTORY_WANTED_LIST_VIEW', 'INVENTORY_WANTED_LIST_MANAGE', 'INVENTORY_WANTED_LIST_CONVERT', 'INVENTORY_WANTED_LIST_RUN'] },
+      { label: 'Purchase Orders',   icon: 'receipt_long', route: '/inventory/procurement/purchase-orders', permissions: ['INVENTORY_PURCHASE_ORDER_VIEW', 'INVENTORY_PURCHASE_ORDER_MANAGE', 'INVENTORY_PURCHASE_ORDER_FORCE_CLOSE'] },
       { label: 'Tax Rules',         icon: 'percent',     route: '/inventory/procurement/tax-rules',      permissions: ['INVENTORY_TAX_RULE_VIEW', 'INVENTORY_TAX_RULE_MANAGE'] },
     ],
   },
@@ -202,6 +231,7 @@ export const NAV_ENTRIES: NavEntry[] = [
   {
     label: 'Hostel Management',
     icon: 'bed',
+    modules: ['HOSTEL'],
     items: [
       { label: 'Hostel Room Types', icon: 'bed',      route: '/hostel-room-types', permissions: ['HOSTEL_ROOM_TYPE_VIEW', 'HOSTEL_ROOM_TYPE_MANAGE'] },
       { label: 'Room Preferences',  icon: 'star',     route: '/room-preferences',  permissions: ['HOSTEL_ROOM_PREFERENCE_VIEW', 'HOSTEL_ROOM_PREFERENCE_MANAGE'] },
@@ -212,45 +242,56 @@ export const NAV_ENTRIES: NavEntry[] = [
   {
     label: 'Reports & Analytics',
     icon: 'analytics',
+    modules: ['REPORTS'],
     items: [
       { label: 'General Reports', icon: 'assessment',    route: '/reports',     permissions: ['REPORT_VIEW', 'REPORT_EXPORT'] },
       { label: 'Fee Reports',     icon: 'request_quote', route: '/fee-reports', permissions: ['FEE_REPORT_VIEW', 'FEE_REPORT_EXPORT'] },
     ],
   },
-  // 11. Preferences
+  // 11. Preferences — masters/configuration for every module. Deliberately kept as ONE nav group
+  // (not split apart into each owning module's own group) — see docs/module-architecture/
+  // DECISION_LOG.md. Items are clustered by owning module below, each individually tagged with
+  // `modules`, so a disabled module's masters still disappear even though the group as a whole
+  // is never module-gated (some items here are core/shared and carry no module tag at all).
   {
     label: 'Preferences',
     icon: 'tune',
     items: [
-      { label: 'Academic Calendar',  icon: 'event_note',        route: '/academic-calendar',       permissions: ['ACADEMIC_CALENDAR_VIEW', 'ACADEMIC_CALENDAR_MANAGE'] },
-      { label: 'Academic Years',     icon: 'calendar_month',    route: '/academic-years',          permissions: ['ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_CREATE', 'ACADEMIC_YEAR_EDIT', 'ACADEMIC_YEAR_DELETE', 'ACADEMIC_YEAR_EXPORT', 'ACADEMIC_YEAR_MANAGE', 'SEMESTER_MANAGE'] },
-      { label: 'Agents',             icon: 'support_agent',     route: '/agents',                  permissions: ['AGENT_VIEW', 'AGENT_CREATE', 'AGENT_EDIT', 'AGENT_DELETE', 'AGENT_EXPORT', 'AGENT_MANAGE'] },
-      { label: 'Blood Groups',       icon: 'bloodtype',         route: '/blood-groups',            permissions: ['BLOOD_GROUP_VIEW', 'BLOOD_GROUP_CREATE', 'BLOOD_GROUP_EDIT', 'BLOOD_GROUP_DELETE', 'BLOOD_GROUP_EXPORT', 'BLOOD_GROUP_MANAGE'] },
-      { label: 'Classrooms',         icon: 'meeting_room',      route: '/classrooms',              permissions: ['CLASSROOM_VIEW', 'CLASSROOM_MANAGE'] },
-      { label: 'Clinical Venues',    icon: 'local_hospital',    route: '/clinical-venues',         permissions: ['CLINICAL_VENUE_VIEW', 'CLINICAL_VENUE_MANAGE'] },
-      { label: 'Communities',        icon: 'people',            route: '/communities',             permissions: ['COMMUNITY_VIEW', 'COMMUNITY_CREATE', 'COMMUNITY_EDIT', 'COMMUNITY_DELETE', 'COMMUNITY_EXPORT', 'COMMUNITY_MANAGE'] },
-      { label: 'Courses',            icon: 'menu_book',         route: '/courses',                 permissions: ['COURSE_VIEW', 'COURSE_CREATE', 'COURSE_EDIT', 'COURSE_DELETE', 'COURSE_EXPORT', 'COURSE_MANAGE'] },
+      // -- Admission Management masters --
+      { label: 'Agents',             icon: 'support_agent',     route: '/agents',                  permissions: ['AGENT_VIEW', 'AGENT_CREATE', 'AGENT_EDIT', 'AGENT_DELETE', 'AGENT_EXPORT', 'AGENT_MANAGE'], modules: ['ADMISSIONS'] },
+      { label: 'Institutions',       icon: 'corporate_fare',    route: '/institutions',            permissions: ['INSTITUTION_VIEW', 'INSTITUTION_CREATE', 'INSTITUTION_EDIT', 'INSTITUTION_DELETE', 'INSTITUTION_MANAGE'], modules: ['ADMISSIONS'] },
+      { label: 'Referral Types',     icon: 'share',             route: '/referral-types',          permissions: ['REFERRAL_TYPE_VIEW', 'REFERRAL_TYPE_CREATE', 'REFERRAL_TYPE_EDIT', 'REFERRAL_TYPE_DELETE', 'REFERRAL_TYPE_EXPORT', 'REFERRAL_TYPE_MANAGE'], modules: ['ADMISSIONS'] },
+      { label: 'Staff Referrers',    icon: 'badge',             route: '/staff-referrers',         permissions: ['STAFF_REFERRER_VIEW', 'STAFF_REFERRER_CREATE', 'STAFF_REFERRER_EDIT', 'STAFF_REFERRER_DELETE', 'STAFF_REFERRER_EXPORT', 'STAFF_REFERRER_MANAGE'], modules: ['ADMISSIONS'] },
+      // -- Student Management masters --
+      { label: 'Blood Groups',       icon: 'bloodtype',         route: '/blood-groups',            permissions: ['BLOOD_GROUP_VIEW', 'BLOOD_GROUP_CREATE', 'BLOOD_GROUP_EDIT', 'BLOOD_GROUP_DELETE', 'BLOOD_GROUP_EXPORT', 'BLOOD_GROUP_MANAGE'], modules: ['STUDENT_MGMT'] },
+      { label: 'Communities',        icon: 'people',            route: '/communities',             permissions: ['COMMUNITY_VIEW', 'COMMUNITY_CREATE', 'COMMUNITY_EDIT', 'COMMUNITY_DELETE', 'COMMUNITY_EXPORT', 'COMMUNITY_MANAGE'], modules: ['STUDENT_MGMT'] },
+      { label: 'Scholarship Types',  icon: 'workspace_premium', route: '/scholarships',            permissions: ['SCHOLARSHIP_VIEW', 'SCHOLARSHIP_CREATE', 'SCHOLARSHIP_EDIT', 'SCHOLARSHIP_DELETE', 'SCHOLARSHIP_EXPORT', 'SCHOLARSHIP_MANAGE'], modules: ['STUDENT_MGMT'] },
+      // -- Finance masters --
+      { label: 'Fee Structures',     icon: 'account_balance',   route: '/fee-structures',          permissions: ['FEE_STRUCTURE_VIEW', 'FEE_STRUCTURE_CREATE', 'FEE_STRUCTURE_EDIT', 'FEE_STRUCTURE_DELETE', 'FEE_STRUCTURE_EXPORT', 'FEE_STRUCTURE_MANAGE'], modules: ['FINANCE'] },
+      // -- Academics masters --
+      { label: 'Academic Calendar',  icon: 'event_note',        route: '/academic-calendar',       permissions: ['ACADEMIC_CALENDAR_VIEW', 'ACADEMIC_CALENDAR_MANAGE'], modules: ['ACADEMICS'] },
+      { label: 'Academic Years',     icon: 'calendar_month',    route: '/academic-years',          permissions: ['ACADEMIC_YEAR_VIEW', 'ACADEMIC_YEAR_CREATE', 'ACADEMIC_YEAR_EDIT', 'ACADEMIC_YEAR_DELETE', 'ACADEMIC_YEAR_EXPORT', 'ACADEMIC_YEAR_MANAGE', 'SEMESTER_MANAGE'], modules: ['ACADEMICS'] },
+      { label: 'Classrooms',         icon: 'meeting_room',      route: '/classrooms',              permissions: ['CLASSROOM_VIEW', 'CLASSROOM_MANAGE'], modules: ['ACADEMICS'] },
+      { label: 'Clinical Venues',    icon: 'local_hospital',    route: '/clinical-venues',         permissions: ['CLINICAL_VENUE_VIEW', 'CLINICAL_VENUE_MANAGE'], modules: ['ACADEMICS'] },
+      { label: 'Courses',            icon: 'menu_book',         route: '/courses',                 permissions: ['COURSE_VIEW', 'COURSE_CREATE', 'COURSE_EDIT', 'COURSE_DELETE', 'COURSE_EXPORT', 'COURSE_MANAGE'], modules: ['ACADEMICS'] },
+      { label: 'Faculty',            icon: 'groups',            route: '/faculty',                 permissions: ['FACULTY_VIEW', 'FACULTY_CREATE', 'FACULTY_EDIT', 'FACULTY_DELETE', 'FACULTY_EXPORT', 'FACULTY_MANAGE'], modules: ['ACADEMICS'] },
+      { label: 'Faculty Doc Config', icon: 'rule',              route: '/faculty/document-config', permissions: ['FACULTY_DOC_CONFIG_VIEW', 'FACULTY_DOC_CONFIG_MANAGE'], modules: ['ACADEMICS'] },
+      { label: 'Holiday Templates',  icon: 'event_repeat',      route: '/holiday-templates',       permissions: ['HOLIDAY_TEMPLATE_VIEW', 'HOLIDAY_TEMPLATE_MANAGE'], modules: ['ACADEMICS'] },
+      { label: 'Labs',               icon: 'science',           route: '/labs',                    permissions: ['LAB_VIEW', 'LAB_CREATE', 'LAB_EDIT', 'LAB_DELETE', 'LAB_EXPORT', 'LAB_MANAGE'], modules: ['ACADEMICS'] },
+      { label: 'Periods',            icon: 'schedule',          route: '/periods',                 permissions: ['PERIOD_VIEW', 'PERIOD_MANAGE'], modules: ['ACADEMICS'] },
+      { label: 'Programs',           icon: 'school',            route: '/programs',                permissions: ['PROGRAM_VIEW', 'PROGRAM_CREATE', 'PROGRAM_EDIT', 'PROGRAM_DELETE', 'PROGRAM_EXPORT', 'PROGRAM_MANAGE'], modules: ['ACADEMICS'] },
+      { label: 'Specialities',       icon: 'business',          route: '/specialities',            permissions: ['DEPT_VIEW', 'DEPT_CREATE', 'DEPT_EDIT', 'DEPT_DELETE', 'DEPT_EXPORT', 'DEPT_MANAGE'], modules: ['ACADEMICS'] },
+      { label: 'Subjects',           icon: 'menu_book',         route: '/subjects',                permissions: ['SUBJECT_VIEW', 'SUBJECT_MANAGE'], modules: ['ACADEMICS'] },
+      // -- Inventory Management masters --
+      { label: 'Equipment',          icon: 'devices',           route: '/equipment',               permissions: ['EQUIPMENT_VIEW', 'EQUIPMENT_CREATE', 'EQUIPMENT_EDIT', 'EQUIPMENT_DELETE', 'EQUIPMENT_EXPORT', 'EQUIPMENT_MANAGE'], modules: ['INVENTORY'] },
+      // -- Core / shared masters (no module tag — always visible regardless of enabled modules) --
       { label: 'Designations',       icon: 'badge',             route: '/designations',            permissions: ['DESIGNATION_VIEW', 'DESIGNATION_CREATE', 'DESIGNATION_EDIT', 'DESIGNATION_DELETE', 'DESIGNATION_EXPORT', 'DESIGNATION_MANAGE'] },
-      { label: 'Equipment',          icon: 'devices',           route: '/equipment',               permissions: ['EQUIPMENT_VIEW', 'EQUIPMENT_CREATE', 'EQUIPMENT_EDIT', 'EQUIPMENT_DELETE', 'EQUIPMENT_EXPORT', 'EQUIPMENT_MANAGE'] },
-      { label: 'Faculty',            icon: 'groups',            route: '/faculty',                 permissions: ['FACULTY_VIEW', 'FACULTY_CREATE', 'FACULTY_EDIT', 'FACULTY_DELETE', 'FACULTY_EXPORT', 'FACULTY_MANAGE'] },
-      { label: 'Faculty Doc Config', icon: 'rule',              route: '/faculty/document-config', permissions: ['FACULTY_DOC_CONFIG_VIEW', 'FACULTY_DOC_CONFIG_MANAGE'] },
-      { label: 'Fee Structures',     icon: 'account_balance',   route: '/fee-structures',          permissions: ['FEE_STRUCTURE_VIEW', 'FEE_STRUCTURE_CREATE', 'FEE_STRUCTURE_EDIT', 'FEE_STRUCTURE_DELETE', 'FEE_STRUCTURE_EXPORT', 'FEE_STRUCTURE_MANAGE'] },
-      { label: 'Holiday Templates',  icon: 'event_repeat',      route: '/holiday-templates',       permissions: ['HOLIDAY_TEMPLATE_VIEW', 'HOLIDAY_TEMPLATE_MANAGE'] },
-      { label: 'Institutions',       icon: 'corporate_fare',    route: '/institutions',            permissions: ['INSTITUTION_VIEW', 'INSTITUTION_CREATE', 'INSTITUTION_EDIT', 'INSTITUTION_DELETE', 'INSTITUTION_MANAGE'] },
-      { label: 'Labs',               icon: 'science',           route: '/labs',                    permissions: ['LAB_VIEW', 'LAB_CREATE', 'LAB_EDIT', 'LAB_DELETE', 'LAB_EXPORT', 'LAB_MANAGE'] },
       { label: 'Location Master',    icon: 'public',            route: '/india-locations',         permissions: ['INDIA_LOCATION_VIEW', 'INDIA_LOCATION_CREATE', 'INDIA_LOCATION_EDIT', 'INDIA_LOCATION_DELETE', 'INDIA_LOCATION_EXPORT', 'INDIA_LOCATION_MANAGE'] },
       { label: 'Number Sequences',   icon: 'pin',               route: '/number-sequences',        permissions: ['NUMBER_SEQUENCE_VIEW', 'NUMBER_SERIES_VIEW', 'NUMBER_SERIES_MANAGE'] },
-      { label: 'Periods',            icon: 'schedule',          route: '/periods',                 permissions: ['PERIOD_VIEW', 'PERIOD_MANAGE'] },
-      { label: 'Programs',           icon: 'school',            route: '/programs',                permissions: ['PROGRAM_VIEW', 'PROGRAM_CREATE', 'PROGRAM_EDIT', 'PROGRAM_DELETE', 'PROGRAM_EXPORT', 'PROGRAM_MANAGE'] },
-      { label: 'Referral Types',     icon: 'share',             route: '/referral-types',          permissions: ['REFERRAL_TYPE_VIEW', 'REFERRAL_TYPE_CREATE', 'REFERRAL_TYPE_EDIT', 'REFERRAL_TYPE_DELETE', 'REFERRAL_TYPE_EXPORT', 'REFERRAL_TYPE_MANAGE'] },
-      { label: 'Scholarship Types',  icon: 'workspace_premium', route: '/scholarships',            permissions: ['SCHOLARSHIP_VIEW', 'SCHOLARSHIP_CREATE', 'SCHOLARSHIP_EDIT', 'SCHOLARSHIP_DELETE', 'SCHOLARSHIP_EXPORT', 'SCHOLARSHIP_MANAGE'] },
       { label: 'Settings',           icon: 'settings',          route: '/settings',                permissions: ['SETTINGS_VIEW', 'SETTINGS_CREATE', 'SETTINGS_EDIT', 'SETTINGS_DELETE', 'SETTINGS_MANAGE'] },
-      { label: 'Specialities',       icon: 'business',          route: '/specialities',            permissions: ['DEPT_VIEW', 'DEPT_CREATE', 'DEPT_EDIT', 'DEPT_DELETE', 'DEPT_EXPORT', 'DEPT_MANAGE'] },
-      { label: 'Staff Referrers',    icon: 'badge',             route: '/staff-referrers',         permissions: ['STAFF_REFERRER_VIEW', 'STAFF_REFERRER_CREATE', 'STAFF_REFERRER_EDIT', 'STAFF_REFERRER_DELETE', 'STAFF_REFERRER_EXPORT', 'STAFF_REFERRER_MANAGE'] },
-      { label: 'Subjects',           icon: 'menu_book',         route: '/subjects',                permissions: ['SUBJECT_VIEW', 'SUBJECT_MANAGE'] },
     ],
   },
-  // 12. User Management
+  // 12. User Management — always visible (core)
   {
     label: 'User Management',
     icon: 'manage_accounts',

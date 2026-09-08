@@ -107,6 +107,33 @@ public class VendorProductMappingService {
         return new ActiveStatusUpdateResponse(saved.getId(), saved.getIsActive(), saved.getUpdatedAt());
     }
 
+    /**
+     * The effective (contract-aware) rate for a (supplier, product) pair, or {@code null} if no
+     * active mapping exists — used by {@code PurchaseOrderService} to default a new line's price.
+     * Same resolution logic {@link #toResponse} already applies, extracted so Purchase Order
+     * doesn't duplicate the contract-override rule.
+     */
+    public EffectiveRate resolveEffectiveRate(Long supplierId, Long productId) {
+        return mappingRepository.findBySupplierIdAndProductIdAndIsActiveTrue(supplierId, productId)
+            .map(m -> {
+                BigDecimal price = m.getUnitPrice();
+                RateContract contract = m.getRateContract();
+                if (contract != null && isWithinActiveWindow(contract)) {
+                    for (RateContractLine line : contract.getLines()) {
+                        if (line.getProduct().getId().equals(productId)) {
+                            price = line.getNegotiatedRate();
+                            break;
+                        }
+                    }
+                }
+                return new EffectiveRate(price, m.getCurrencyCode(), m.getUom() != null ? m.getUom().getId() : null);
+            })
+            .orElse(null);
+    }
+
+    /** @param uomId the mapping's own UOM override, or {@code null} to mean "product's base UOM". */
+    public record EffectiveRate(BigDecimal unitPrice, String currencyCode, Long uomId) {}
+
     public boolean pairExists(Long supplierId, Long productId, Long excludeId) {
         if (supplierId == null || productId == null) return false;
         return excludeId != null
