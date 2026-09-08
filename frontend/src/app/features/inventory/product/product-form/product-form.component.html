@@ -265,6 +265,14 @@
             }
           </div>
         </cms-preview-card>
+
+        @if (savedProductId(); as pid) {
+          <div class="entry-form-card entry-form-card--sectioned prod-images-card">
+            <div class="entry-form-card__body">
+              <app-product-images [productId]="pid" />
+            </div>
+          </div>
+        }
       </aside>
 
     </div>

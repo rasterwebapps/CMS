@@ -39,9 +39,9 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-220** (OC-219 was the last used, Inventory Dashboard —
+4. **Next OC ticket number: OC-221** (OC-220 was the last used, Product Image —
    OC-206 was skipped, see its checklist item above). Increment per slice.
-5. **Next Flyway migration number: V471** (V470 was the last used). Increment per file;
+5. **Next Flyway migration number: V473** (V472 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -234,11 +234,18 @@
 ## Also outstanding (not phase-numbered, pick up opportunistically)
 
 - [ ] `InventoryItem` (legacy lab-consumables) migration — still deferred per standing
-      decision; the `labs WHERE room_id IS NULL` precondition (7/7 on local data as of
-      2026-09-07) must be re-checked and backfilled before this is attempted. Do not start
-      without re-reading `DECISION_LOG.md`'s full thread on this first.
-- [ ] Product photo upload (`ProductImage` + MinIO plumbing) — deferred, real scoped work,
-      follow the `FloorPlanService`/`MinioStorageService` precedent when picked up.
+      decision. **Re-checked 2026-09-08: still 7/7 labs with `room_id IS NULL`, unchanged from
+      2026-09-07.** This is real institutional data (which physical room each lab occupies) no
+      ERP-standard default can supply — do not attempt a backfill without asking the user first;
+      re-read `DECISION_LOG.md`'s full thread on this before touching it again.
+- [x] **Product photo upload** (OC-220, shipped 2026-09-08) — `ProductImage` + MinIO plumbing,
+      following the `FloorPlanService`/`MinioStorageService` precedent exactly. First photo
+      uploaded auto-becomes primary; deleting the primary auto-promotes the oldest remaining
+      one. Dedicated `INVENTORY_PRODUCT_IMAGE_MANAGE` permission (grounded in the
+      `FacultyDocumentController` precedent of a dedicated document-manage permission distinct
+      from the parent entity's own manage permission). Embedded into the existing
+      `ProductFormComponent` as an additive, edit-mode-only side-panel card — Component Touch
+      Rule applied (reviewed via code, no existing logic touched, theme tokens only).
 
 ---
 
@@ -433,3 +440,24 @@ broken/half-done, and any judgment call made that a future session should sanity
   verification/scoping pass before they're safe to start blind, this is a natural, deliberate
   stopping point for autonomous work under this plan's Standing Rules — not a slice left
   half-finished.
+- **2026-09-08, same session, after OC-219, picking up "Also outstanding" work:** re-read the
+  `InventoryItem` migration's full decision-log thread as instructed, re-ran its precondition
+  query fresh against the local dev DB (`SELECT count(*) FILTER (WHERE room_id IS NULL) FROM
+  labs`) — **still 7 of 7, unchanged from 2026-09-07.** This needs real institutional knowledge
+  (which room each lab occupies) no ERP default can supply, and the user's own words on this
+  migration make it deliberately their call — left explicitly skipped, not attempted, per
+  Standing Rule 7. Picked up the other "Also outstanding" item instead: **Product Image
+  (OC-220)**, shipped — new `ProductImage` entity (`storage_key` into MinIO, following
+  `FloorPlanService`/`MinioStorageService` exactly), first-upload-becomes-primary /
+  delete-promotes-next invariants enforced in the service, a dedicated
+  `INVENTORY_PRODUCT_IMAGE_MANAGE` permission (grounded in the `FacultyDocumentController`
+  precedent), migrations V471/V472. Frontend: a new self-contained `ProductImagesComponent`
+  gallery/upload widget embedded into the existing `ProductFormComponent`'s side panel
+  (edit-mode only) — an additive-only change to that existing component (Component Touch Rule
+  applied: reviewed for light/dark-safe theme-token usage and permission-gating, no existing
+  form logic touched). `./gradlew compileJava` and `npx tsc --noEmit` both passed clean.
+  **Both "Also outstanding" items are now resolved** (one shipped, one re-verified-and-still-
+  correctly-skipped) and Phase 8's only product-input-free slice is done — remaining work under
+  this plan (the five Phase 8 report slices, and eventually the `InventoryItem` migration once
+  someone can supply real room assignments) all explicitly need a human decision this session
+  cannot make. This is a clean, deliberate stopping point, not a slice left half-finished.

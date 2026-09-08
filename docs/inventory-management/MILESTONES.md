@@ -60,7 +60,7 @@ Inventory Management is a new, standalone module being built for the platform �
 **Doing now:** The item catalog, the core stock-tracking record, and physical stock counts are all in place — items can be received, adjusted, or written off at a named stock location, with a running record of what's on hand and its value, and that record can now be checked against a physical count with variances reviewed before they're posted. Only the lab-inventory migration is left before this phase is fully done.
 
 **Todo:**
-- Item catalog with configurable categories (so different kinds of items — a lab chemical, a library book, an IT asset — can each carry the details relevant to them) — ✅ done (categories, units of measure, and the product catalog itself, each with its own screen; a photo/image per product is intentionally not included yet — see "Not yet scheduled" below)
+- Item catalog with configurable categories (so different kinds of items — a lab chemical, a library book, an IT asset — can each carry the details relevant to them) — ✅ done (categories, units of measure, and the product catalog itself, each with its own screen; a product can now also carry one or more photos, one marked as the primary one)
 - Core stock-tracking record (what's on hand, where, in what batch, at what value) — ✅ done (stock locations tied to existing campus rooms, a Stock Balance report, and a way to record receipts/adjustments/write-offs; issuing stock to a requester and moving stock between locations wait on the workflows those depend on, which come in later phases)
 - Physical stock counts / reconciliation — ✅ done (a blind count against a location — the counter doesn't see the system's expected quantity — with any variance reviewed and either approved, which updates stock, or rejected as a counting error)
 - Migrate the existing simple lab-inventory feature onto the new system — confirmed deferred until the rest of the Foundation phase is in place; see "Not yet scheduled" note below
@@ -184,7 +184,7 @@ A couple of items are confirmed as part of the plan but not yet assigned to a sp
 
 - **Bringing the existing library feature onto this system.** Deliberately deferred — the library feature keeps working as it is today until this is scheduled.
 - **Packaging a stand-alone version of this module** (just Inventory plus the location structure, for a deployment that doesn't need the rest of the platform). The design accounts for this being possible later, but exactly how it gets built and packaged is still an open question.
-- **Photos on a product's catalog entry.** The product catalog itself (name, code, category, units, alternate names, custom per-category details) is done, but attaching a photo to a product isn't yet — it needs its own upload capability, which is a real piece of work in its own right rather than an extra field.
+- ~~**Photos on a product's catalog entry.**~~ ✅ Done (2026-09-08) — a product can now have any number of photos uploaded, with one marked primary; picked up as its own piece of work, following the same MinIO upload approach the app already uses for floor plans.
 
 ---
 

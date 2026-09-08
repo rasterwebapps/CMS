@@ -1055,4 +1055,62 @@ SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN with the catch-all sync block (V470). `MILESTO
 `RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and
 `npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
 
+## 2026-09-08 — Product Image slice (OC-220)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+Picks up the "Also outstanding" checklist item for `ProductImage`, deferred at the original
+Product/CategoryAttribute slice specifically so it could be built properly against the
+`FloorPlanService`/`MinioStorageService` precedent rather than half-built alongside the catalog
+migration.
+
+1. **Re-checked the *other* "Also outstanding" item first** (`InventoryItem` legacy migration)
+   before picking this one, per the plan's own instruction to re-read this thread before
+   starting either. Ran the precondition query fresh against the local dev database:
+   `SELECT count(*) FILTER (WHERE room_id IS NULL) FROM labs` still returns **7 of 7**, unchanged
+   from the 2026-09-07 check. This is a real, un-guessable data gap — which physical room each
+   of the 7 real `Lab` rows belongs to is institutional knowledge no ERP-standard default or
+   in-repo precedent can supply, and the user's own words on this migration ("we will think of
+   migrating the existing data/records" later) make clear this is deliberately their call to
+   make, not this session's. **Left explicitly skipped, unstarted, per Standing Rule 7** — do
+   not attempt a backfill without asking first.
+2. **Followed the `FloorPlan`/`MinioStorageService` precedent exactly**: a `storage_key`
+   reference into MinIO plus original filename/content-type on the new `ProductImage` row, the
+   binary itself never touching Postgres. Reused the existing generic `StorageService`
+   interface/`MinioStorageService` bean rather than building a second storage layer.
+3. **Not modelled as a child collection wholesale-replaced on `Product`'s own save** (the
+   pattern `aliases`/`attributeValues` already use) — a product's photos are managed
+   independently (upload one, delete one, change which is primary) rather than as a single
+   all-or-nothing list submitted with the rest of the product form, so `ProductImage` only holds
+   a `ManyToOne` back to `Product`, queried on its own.
+4. **A dedicated `INVENTORY_PRODUCT_IMAGE_MANAGE` permission, distinct from
+   `INVENTORY_PRODUCT_MANAGE`** — grounded in an existing in-repo precedent found while deciding
+   this (`FacultyDocumentController` already uses its own dedicated
+   `FACULTY_DOC_CONFIG_MANAGE` rather than reusing Faculty's own manage permission for document
+   upload), not just an abstract reading of the operation-wise permission mapping rule. Viewing
+   images reuses the existing `INVENTORY_PRODUCT_VIEW`/`_MANAGE` (any product viewer sees its
+   photos) plus this new permission, so a photo-only manager can view without a separate
+   view-only permission being needed.
+5. **The first photo ever uploaded for a product automatically becomes primary**, and deleting
+   the primary photo auto-promotes the oldest remaining one — a product with at least one photo
+   is never left with zero primary photos, and a caller never has to remember to flag the first
+   upload explicitly. This is enforced in the service (not a DB constraint), matching how other
+   single-row invariants are enforced elsewhere in this module.
+6. **Embedded into the existing `ProductFormComponent` as a new, self-contained side-panel
+   card**, shown only in edit mode (a product must exist before it can have photos) — the
+   Component Touch Rule applies since an existing, already-shipped component was touched; the
+   change is purely additive (one new signal, one new assignment line, one new conditional
+   template block, one new SCSS rule) with no existing field, validator, or submit-path logic
+   modified. Verified via careful code review (this session has no live browser to click
+   through) that the addition uses only existing `--cms-*` theme tokens (so light/dark mode
+   inherit correctly with no explicit override needed) and is itself internally permission-gated
+   (`canManage()`), so a view-only user sees a read-only gallery rather than broken/disabled
+   controls.
+
+**Impact:** new table `product_images` (V471); new permission `INVENTORY_PRODUCT_IMAGE_MANAGE`
+seeded to DEV_ADMIN/SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN with the catch-all sync block (V472).
+`MILESTONES.md` (Phase 1's Todo and the "Not yet scheduled" note both updated) and
+`RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and
+`npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
+
 *Next entry goes here — do not insert above this line.*

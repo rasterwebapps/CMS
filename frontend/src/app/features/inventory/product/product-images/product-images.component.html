@@ -1,0 +1,41 @@
+<div class="pimg-wrap">
+  <div class="pimg-hdr">
+    <span class="pimg-hdr-title">Photos</span>
+    @if (canManage()) {
+      <label class="btn-secondary pimg-upload-btn" [class.pimg-upload-btn--disabled]="uploading()">
+        @if (uploading()) { <mat-spinner diameter="14" /> } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        }
+        Upload Photo
+        <input type="file" accept="image/*" [disabled]="uploading()" (change)="onFileSelected($event)" hidden />
+      </label>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="pimg-loading"><mat-spinner diameter="24" /></div>
+  } @else if (images().length === 0) {
+    <p class="pimg-empty">No photos yet.</p>
+  } @else {
+    <div class="pimg-grid">
+      @for (image of images(); track image.id) {
+        <div class="pimg-tile" [class.pimg-tile--primary]="image.isPrimary">
+          @if (image.objectUrl) {
+            <img [src]="image.objectUrl" [alt]="image.originalFileName || 'Product photo'" class="pimg-thumb" />
+          } @else {
+            <div class="pimg-thumb pimg-thumb--placeholder"></div>
+          }
+          @if (image.isPrimary) { <span class="pimg-primary-chip">Primary</span> }
+          @if (canManage()) {
+            <div class="pimg-actions">
+              @if (!image.isPrimary) {
+                <button type="button" class="pimg-action-btn" (click)="setPrimary(image)" title="Set as primary">★</button>
+              }
+              <button type="button" class="pimg-action-btn pimg-action-btn--danger" (click)="deleteImage(image)" title="Delete">✕</button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

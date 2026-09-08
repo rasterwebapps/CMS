@@ -7,6 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CmsPreviewCardComponent } from '../../../../shared/preview-card/preview-card.component';
+import { ProductImagesComponent } from '../product-images/product-images.component';
 import { ProductService } from '../product.service';
 import { Product, ProductAttributeValueRequest, ProductRequest } from '../product.model';
 import { CategoryService } from '../../category/category.service';
@@ -31,6 +32,7 @@ import { uniqueFieldValidator } from '../../../../shared/validators/unique-field
     MatIconModule,
     MatProgressSpinnerModule,
     CmsPreviewCardComponent,
+    ProductImagesComponent,
   ],
   templateUrl: './product-form.component.html',
   styleUrl: './product-form.component.scss',
@@ -61,6 +63,9 @@ export class ProductFormComponent implements OnInit {
   protected readonly previewCategoryName = signal('');
 
   private productId: number | null = null;
+  // Exposed only so the template can pass it to <app-product-images> in edit mode — a product
+  // must already exist before it can have photos, so this stays null in create mode.
+  protected readonly savedProductId = signal<number | null>(null);
   // Attribute values keyed by attributeId, carried across category switches so re-selecting the
   // original category (or loading an existing product) doesn't lose already-entered values.
   private knownAttributeValues = new Map<number, string>();
@@ -109,6 +114,7 @@ export class ProductFormComponent implements OnInit {
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.productId = Number(idParam);
+      this.savedProductId.set(this.productId);
       this.isEditMode.set(true);
       this.pageTitle.set('Edit Product');
       this.loadProduct();
