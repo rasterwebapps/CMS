@@ -1,0 +1,17 @@
+// Same reasoning as purchase-requisition-new.component.scss — a transient creation action, not
+// an entity worth a preview side-panel, so this centers the standalone .entry-form-card directly.
+.mv-standalone-layout {
+  display: flex;
+  justify-content: center;
+}
+
+.li-new-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-bottom: 4px;
+}
+
+.li-new-full {
+  grid-column: 1 / -1;
+}

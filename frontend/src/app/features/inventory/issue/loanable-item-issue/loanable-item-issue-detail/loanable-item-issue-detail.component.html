@@ -1,0 +1,83 @@
+@if (loading()) {
+  <div class="li-detail-loading"><mat-spinner diameter="32"></mat-spinner></div>
+} @else if (issue(); as i) {
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/issue/loanable-item-issues" aria-label="Back to loanable item issues">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ i.productName }} <em>Loan</em></h1>
+        <cms-status-badge [status]="i.status" />
+        @if (i.overdue) { <span class="li-overdue-chip">Overdue</span> }
+      </div>
+      <p class="page-subtitle">{{ i.productCode }} · {{ i.locationVirtualName }} — borrowed by {{ i.borrowerName }}</p>
+    </div>
+  </div>
+
+  <div class="li-detail-layout">
+
+    <div class="entry-form-card entry-form-card--sectioned li-summary-card">
+      <div class="entry-form-card__body li-summary-grid">
+        <div class="li-summary-item">
+          <span class="li-summary-label">Borrower</span>
+          <span class="li-summary-value">{{ i.borrowerName }}{{ i.borrowerContact ? ' · ' + i.borrowerContact : '' }}</span>
+        </div>
+        <div class="li-summary-item">
+          <span class="li-summary-label">Issued</span>
+          <span class="li-summary-value">{{ i.issuedBy || '—' }} · {{ i.issuedAt | date: 'medium' }}</span>
+        </div>
+        <div class="li-summary-item">
+          <span class="li-summary-label">Issue Date</span>
+          <span class="li-summary-value">{{ i.issueDate | date: 'mediumDate' }}</span>
+        </div>
+        <div class="li-summary-item">
+          <span class="li-summary-label">Expected Return</span>
+          <span class="li-summary-value" [class.li-summary-value--warn]="i.overdue">{{ i.expectedReturnDate | date: 'mediumDate' }}</span>
+        </div>
+        @if (i.actualReturnDate) {
+          <div class="li-summary-item">
+            <span class="li-summary-label">Actual Return</span>
+            <span class="li-summary-value">{{ i.returnedBy || '—' }} · {{ i.actualReturnDate | date: 'mediumDate' }}</span>
+          </div>
+        }
+        @if (i.conditionOnIssue) {
+          <div class="li-summary-item li-summary-item--full">
+            <span class="li-summary-label">Condition on Issue</span>
+            <span class="li-summary-value">{{ i.conditionOnIssue }}</span>
+          </div>
+        }
+        @if (i.conditionOnReturn) {
+          <div class="li-summary-item li-summary-item--full">
+            <span class="li-summary-label">Condition on Return</span>
+            <span class="li-summary-value">{{ i.conditionOnReturn }}</span>
+          </div>
+        }
+        @if (i.notes) {
+          <div class="li-summary-item li-summary-item--full">
+            <span class="li-summary-label">Notes</span>
+            <span class="li-summary-value">{{ i.notes }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (i.status === 'ISSUED') {
+      <div class="entry-form-card entry-form-card--sectioned li-return-card">
+        <div class="entry-form-card__body li-return-row">
+          <input class="field-input li-return-input" [(ngModel)]="conditionOnReturn" placeholder="Condition on return (optional)" />
+          <button class="btn-primary" [disabled]="busy()" (click)="markReturned()">
+            @if (busy()) { <mat-spinner diameter="16"></mat-spinner> }
+            Mark Returned
+          </button>
+        </div>
+      </div>
+    }
+
+  </div>
+
+</div>
+}

@@ -22,7 +22,7 @@ Inventory Management is a new, standalone module being built for the platform �
 | 1 | Foundation — Catalog, Stock Tracking &amp; Locations | 🟡 In Progress |
 | 2 | Purchasing &amp; Suppliers | ✅ Done |
 | 3 | Receiving &amp; Stock Movement | ✅ Done |
-| 4 | Requests, Issues &amp; Returns | 🟡 In Progress |
+| 4 | Requests, Issues &amp; Returns | 🟡 In Progress (auto-restocking deliberately deferred — needs real product-policy input) |
 | 5 | Equipment &amp; Asset Management | ⬜ Not Started |
 | 6 | Budgets &amp; Approvals | ⬜ Not Started |
 | 7 | Gate Pass, Vendor-Owned Stock &amp; Service Requests | ⬜ Not Started |
@@ -104,13 +104,13 @@ Inventory Management is a new, standalone module being built for the platform �
 
 **Covers:** A department or location requesting items from stock, issuing them out, and handling returns — plus a general "borrow and return" capability for equipment that gets loaned out and is expected back (sports equipment, hostel items, and similar), rather than consumed.
 
-**Doing now:** A location can request on-hand stock be issued from another location (typically a central store) — reviewed and approved or rejected per product, with approval immediately posting a real stock movement out of the issuing location (distinct from Phase 2's Purchase Requisition, which requests *buying* from a supplier rather than issuing from stock already on hand).
+**Doing now:** A location can request on-hand stock be issued from another location (typically a central store) — reviewed and approved or rejected per product, with approval immediately posting a real stock movement out of the issuing location (distinct from Phase 2's Purchase Requisition, which requests *buying* from a supplier rather than issuing from stock already on hand). Previously-issued stock can be returned back to the issuing location. A loanable product (equipment expected back, not consumed) can be issued to a named borrower with an expected-return date and marked returned with a condition note — overdue is shown live, computed from today's date rather than a background job.
 
 **Todo:**
 - Requisition (request-and-issue) workflow — ✅ done
-- Auto-restocking when items run low — still to come
+- Auto-restocking when items run low — deliberately deferred; the original plan for this didn't hold up to business scrutiny (see the decision log) and needs real deployment-policy input before it can be designed properly
 - Internal returns — ✅ done (return previously-issued stock back to the issuing location from an approved request line)
-- Generic loan/return tracking for borrowed equipment — still to come
+- Generic loan/return tracking for borrowed equipment — ✅ done
 
 ---
 

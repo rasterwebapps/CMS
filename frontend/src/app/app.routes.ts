@@ -504,6 +504,31 @@ export const routes: Routes = [
         (m) => m.StockIssueRequestDetailComponent
       ),
   },
+  // Phase 4 "Requests, Issues & Returns" — Loanable Item Issue (fourth and final slice, closes Phase 4).
+  {
+    path: 'inventory/issue/loanable-item-issues',
+    canActivate: withPermission('INVENTORY_LOAN_ISSUE_VIEW', 'INVENTORY_LOAN_ISSUE_MANAGE', 'INVENTORY_LOAN_ISSUE_RETURN'),
+    loadComponent: () =>
+      import('./features/inventory/issue/loanable-item-issue/loanable-item-issue-list/loanable-item-issue-list.component').then(
+        (m) => m.LoanableItemIssueListComponent
+      ),
+  },
+  {
+    path: 'inventory/issue/loanable-item-issues/new',
+    canActivate: withPermission('INVENTORY_LOAN_ISSUE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/issue/loanable-item-issue/loanable-item-issue-new/loanable-item-issue-new.component').then(
+        (m) => m.LoanableItemIssueNewComponent
+      ),
+  },
+  {
+    path: 'inventory/issue/loanable-item-issues/:id',
+    canActivate: withPermission('INVENTORY_LOAN_ISSUE_VIEW', 'INVENTORY_LOAN_ISSUE_MANAGE', 'INVENTORY_LOAN_ISSUE_RETURN'),
+    loadComponent: () =>
+      import('./features/inventory/issue/loanable-item-issue/loanable-item-issue-detail/loanable-item-issue-detail.component').then(
+        (m) => m.LoanableItemIssueDetailComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),

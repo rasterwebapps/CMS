@@ -1,0 +1,114 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/issue/loanable-item-issues" aria-label="Back to loanable item issues">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">Issue <em>Item</em></h1>
+      </div>
+      <p class="page-subtitle">Only products flagged as loanable can be issued here.</p>
+    </div>
+  </div>
+
+  <div class="mv-standalone-layout">
+
+    <div class="entry-form-card entry-form-card--sectioned">
+      <div class="entry-form-card__hdr">
+        <div class="entry-form-card__hdr-ico">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div>
+          <div class="entry-form-card__hdr-title">Issue Details</div>
+          <div class="entry-form-card__hdr-sub">What's being loaned, to whom, and when it's expected back</div>
+        </div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="entry-form-card__body">
+
+          <div class="li-new-grid">
+            <div class="field-group li-new-full">
+              <cms-product-picker
+                label="Product"
+                [selectedProductId]="form.value.productId"
+                (selectedProductIdChange)="form.get('productId')?.setValue($event)"
+              />
+              @if (form.get('productId')?.invalid && form.get('productId')?.touched) {
+                <p class="field-error">{{ getErrorMessage('productId') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="li-location" class="field-label">Location <span class="required-star">*</span></label>
+              <select id="li-location" class="field-select" formControlName="locationId"
+                [class.field-select--error]="form.get('locationId')?.invalid && form.get('locationId')?.touched">
+                <option [ngValue]="null" disabled>Select a location</option>
+                @for (l of locations(); track l.id) {
+                  <option [ngValue]="l.id">{{ l.virtualName }}</option>
+                }
+              </select>
+              @if (form.get('locationId')?.invalid && form.get('locationId')?.touched) {
+                <p class="field-error">{{ getErrorMessage('locationId') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="li-borrower" class="field-label">Borrower Name <span class="required-star">*</span></label>
+              <input id="li-borrower" type="text" class="field-input" formControlName="borrowerName"
+                [class.field-input--error]="form.get('borrowerName')?.invalid && form.get('borrowerName')?.touched" />
+              @if (form.get('borrowerName')?.invalid && form.get('borrowerName')?.touched) {
+                <p class="field-error">{{ getErrorMessage('borrowerName') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="li-contact" class="field-label">Borrower Contact</label>
+              <input id="li-contact" type="text" class="field-input" formControlName="borrowerContact" placeholder="Phone or email" />
+            </div>
+
+            <div class="field-group">
+              <label for="li-issue-date" class="field-label">Issue Date <span class="required-star">*</span></label>
+              <input id="li-issue-date" type="date" class="field-input" formControlName="issueDate"
+                [class.field-input--error]="form.get('issueDate')?.invalid && form.get('issueDate')?.touched" />
+            </div>
+
+            <div class="field-group">
+              <label for="li-expected" class="field-label">Expected Return Date <span class="required-star">*</span></label>
+              <input id="li-expected" type="date" class="field-input" formControlName="expectedReturnDate"
+                [class.field-input--error]="form.get('expectedReturnDate')?.invalid && form.get('expectedReturnDate')?.touched" />
+              @if (form.get('expectedReturnDate')?.invalid && form.get('expectedReturnDate')?.touched) {
+                <p class="field-error">{{ getErrorMessage('expectedReturnDate') }}</p>
+              }
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="li-condition" class="field-label">Condition on Issue</label>
+            <textarea id="li-condition" class="field-textarea" formControlName="conditionOnIssue" placeholder="Optional note on the item's condition when handed out" rows="2"></textarea>
+          </div>
+
+          <div class="field-group">
+            <label for="li-notes" class="field-label">Notes</label>
+            <textarea id="li-notes" class="field-textarea" formControlName="notes" placeholder="Optional reason/reference for this loan" rows="2"></textarea>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <a routerLink="/inventory/issue/loanable-item-issues" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+              @if (saving()) {
+                <mat-spinner diameter="16"></mat-spinner>
+              }
+              Issue Item
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+</div>

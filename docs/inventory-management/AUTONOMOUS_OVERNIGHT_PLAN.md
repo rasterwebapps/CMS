@@ -39,9 +39,9 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-208** (OC-207 was the last used, Internal Return — OC-206 was
-   skipped, see its checklist item above). Increment per slice.
-5. **Next Flyway migration number: V450** (V449 was the last used). Increment per file;
+4. **Next OC ticket number: OC-209** (OC-208 was the last used, Loanable Item Issue — OC-206
+   was skipped, see its checklist item above). Increment per slice.
+5. **Next Flyway migration number: V452** (V451 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -134,7 +134,7 @@
 - [x] **Internal returns** (OC-207, shipped 2026-09-08). A location returns previously-issued stock back to the
       issuing location; posts the mirrored increase/decrease using the existing `RETURN`
       movement type, linked back to the originating `StockIssueRequest` line for traceability.
-- [ ] **Generic loan/return tracking for borrowable equipment** (OC-208). `LoanableItemIssue`
+- [x] **Generic loan/return tracking for borrowable equipment** (OC-208, shipped 2026-09-08). `LoanableItemIssue`
       per the concept already flagged in `DECISION_LOG.md`'s Phase 2 kickoff entry (`Product
       .isLoanable` reserved flag) — issue a loanable product to a borrower with an expected-
       return date, mark returned (and optionally condition/damage notes) on return, overdue
@@ -257,4 +257,11 @@ broken/half-done, and any judgment call made that a future session should sanity
   instead: widened `StockMovementService`'s `RETURN` to be direction-based (was decrease-only),
   added a `returnedQty` running total to `StockIssueRequestItem`, new
   `INVENTORY_ISSUE_REQUEST_RETURN` permission, migrations V448/V449. Compile/typecheck both
-  clean, committed locally. Next: Loanable Item Issue (OC-208), the last Phase 4 slice.
+  clean, committed locally.
+- **2026-09-08, same session, after OC-208:** Loanable Item Issue shipped — standalone
+  borrow/return tracking (deliberately not integrated with the stock ledger; see the decision
+  log), new nav item, migrations V450/V451, compile/typecheck both clean, committed locally.
+  **Phase 4 is now otherwise complete** — only Auto-restocking (OC-206) remains, and it's
+  deliberately deferred (needs real product-policy input, not guessed at). Next: Phase 5
+  (Equipment & Asset Management) — the largest remaining phase, five slices (Asset register,
+  Maintenance/Service Contracts, Depreciation, Disposal). Start with Asset register (OC-209).

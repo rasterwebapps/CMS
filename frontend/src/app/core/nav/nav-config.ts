@@ -249,6 +249,7 @@ export const NAV_ENTRIES: NavEntry[] = [
     modules: ['INVENTORY'],
     items: [
       { label: 'Stock Issue Requests', icon: 'outbound', route: '/inventory/issue/stock-issue-requests', permissions: ['INVENTORY_ISSUE_REQUEST_VIEW', 'INVENTORY_ISSUE_REQUEST_MANAGE', 'INVENTORY_ISSUE_REQUEST_APPROVE'] },
+      { label: 'Loanable Item Issues', icon: 'assignment_return', route: '/inventory/issue/loanable-item-issues', permissions: ['INVENTORY_LOAN_ISSUE_VIEW', 'INVENTORY_LOAN_ISSUE_MANAGE', 'INVENTORY_LOAN_ISSUE_RETURN'] },
     ],
   },
   // 9. Hostel Management — hostel-only operational screens (building/room masters live under Core Infrastructure)

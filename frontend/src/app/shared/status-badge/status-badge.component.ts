@@ -140,6 +140,7 @@ export class CmsStatusBadgeComponent {
       case 'CURRENT':
       case 'ONGOING':
       case 'OPEN':
+      case 'ISSUED':
         return 'status-current';
 
       // ── Past / closed-cycle states ────────────────────────────────────────

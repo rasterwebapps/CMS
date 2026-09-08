@@ -530,4 +530,39 @@ branch); `SupplierReturnService` updated to pass explicit direction; new columns
 `RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and `npx tsc -p
 tsconfig.app.json --noEmit` both run clean before committing.
 
+## 2026-09-08 — Loanable Item Issue slice: made autonomously overnight, Phase 4 otherwise complete
+
+**Made autonomously overnight — flag for morning review if this reads wrong.** Continues the same
+unattended, no-confirmation build session as the entries above.
+**Decisions:**
+1. **Deliberately not integrated with `StockLedger`/`StockBalance`.** A loanable item (sports
+   equipment, hostel items) isn't consumed — it's expected back. Modeling a loan as an `ISSUE`/
+   `RETURN` stock movement pair would be wrong: either it permanently removes the item from
+   on-hand stock (incorrect — it's coming back), or it requires inventing a proper "on-loan
+   quantity" concept alongside on-hand quantity in `StockBalance` — real, separately-scoped
+   design work, not something to half-build inside this slice. `LoanableItemIssue` is a
+   standalone tracking record instead: who has it, since when, expected back when, condition at
+   each end.
+2. **No borrower entity** — captured as plain text (`borrowerName` + optional `borrowerContact`),
+   per the standing "no vertical branding" rule: a college's students and a hospital's staff are
+   both just "a borrower" to this generic core, and building a real borrower-lookup entity would
+   be premature without a concrete need.
+3. **"Overdue" computed at read time, never stored** — derived from `expectedReturnDate` vs.
+   today in the response mapper (and as a query predicate for the "overdue only" list filter), so
+   it's never stale and needs no background job to keep in sync.
+4. **Issue and return are each a single direct action** — no DRAFT/submit workflow, since there's
+   nothing to build up first (unlike `StockIssueRequest`'s multi-line sheet).
+5. **A product must be flagged `isLoanable`** (the reserved flag from the "Phase 2 kickoff" entry,
+   unused until now) to be issued this way — enforced at create time with a clear error.
+6. **Three permissions** (`INVENTORY_LOAN_ISSUE_VIEW`/`_MANAGE`/`_RETURN`) — return is its own
+   permission per the operation-wise mapping rule, marking an item returned (with a condition
+   assessment) being a distinct action from issuing it.
+**Impact:** new table `loanable_item_issues` (V450); new permissions (V451); `status-badge
+.component.ts` extended for `ISSUED` (`RETURNED` already existed). `MILESTONES.md` and
+`RELEASE_3_MILESTONES.md` updated in the same change. **Phase 4 ("Requests, Issues & Returns")
+is now otherwise complete** — its one remaining item, Auto-restocking (OC-206), is deliberately
+deferred pending real product-policy input rather than shipped in a guessed form; see that
+entry above. `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean
+before committing.
+
 *Next entry goes here — do not insert above this line.*
