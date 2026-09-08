@@ -1233,4 +1233,40 @@ own screen was not otherwise modified). `MILESTONES.md` and `RELEASE_3_MILESTONE
 in the same change. `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run
 clean before committing.
 
+## 2026-09-09 — Price Comparison Report slice (OC-224)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+Phase 8's fifth slice, and the fourth of the OC-219 breakdown's five "needs product input" items
+to get the same fresh-eyes reconsideration. This one turned out to need **zero new backend
+code**: while scoping it, `VendorProductMappingController`'s existing `/page?productId=`
+endpoint was found to already return exactly what a price-comparison screen needs —
+`effectivePrice` and `priceSource` (the contract-override resolution
+`VendorProductMappingService` already computes for the Vendor Product Rates list) per supplier
+row, filterable to one product.
+
+1. **Built as a pure frontend addition** — a new `PriceComparisonReportComponent` calling the
+   already-existing `VendorProductMappingService.getPage({ productId, activeOnly: true })`
+   directly (reusing its existing model/service files as-is, not copying them), sorted
+   client-side by `effectivePrice` ascending with the cheapest row visually marked. No new DTO,
+   no new controller, no new permission — this is squarely "a different read-only presentation
+   of data the module already fully computes," the same category of slice as the Dashboard and
+   the other three report slices, just with the unusual property that literally nothing on the
+   backend needed to change.
+2. **Gated by the exact same `INVENTORY_VENDOR_PRODUCT_MAPPING_VIEW`/`_MANAGE` that already
+   gates the underlying endpoint** — not a new permission, since no new capability or data
+   exposure is introduced; a user who could already see a product's vendor rates on the Vendor
+   Product Rates screen can see the same rates here, just laid out for comparison.
+3. **No currency-conversion logic** — each row shows its own `currencyCode` as-is, with no
+   attempt to convert across currencies for a true side-by-side numeric comparison. This
+   matches the module's existing, already-logged posture on multi-currency (`PurchaseOrder`'s
+   own plain `currencyCode`/`exchangeRate` fields, `VendorProductMapping`'s own per-row
+   currency) — flagged, not solved, consistent rather than a new one-off decision for this
+   screen alone.
+
+**Impact:** no new tables, no new permissions, no new migration, no new backend files at all.
+`MILESTONES.md` and `RELEASE_3_MILESTONES.md` updated in the same change — **this closes Phase
+8's report backlog down to a single remaining item** (Budget vs. Actual Spend). `./gradlew
+compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
+
 *Next entry goes here — do not insert above this line.*

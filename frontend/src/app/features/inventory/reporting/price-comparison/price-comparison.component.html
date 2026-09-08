@@ -1,0 +1,74 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="pc-pg-title">Price <em>Comparison</em></h1>
+      </div>
+      <p class="pc-pg-sub">Compare every active supplier's rate for a product, cheapest first.</p>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1 pc-toolbar">
+    <div class="pc-picker-wrap">
+      <cms-product-picker
+        label="Product"
+        [selectedProductId]="selectedProductId()"
+        (selectedProductIdChange)="onProductChange($event)"
+      />
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="pc-loading"><mat-spinner diameter="40"></mat-spinner></div>
+  } @else if (!hasSearched()) {
+    <cms-empty-state
+      icon="paid"
+      title="Choose a product to compare"
+      subtitle="Select a product above to see every active supplier's rate side by side."
+    ></cms-empty-state>
+  } @else if (rows().length === 0) {
+    <cms-empty-state
+      icon="paid"
+      title="No active supplier rates"
+      subtitle="This product has no active Vendor Product Mapping from any supplier yet."
+    ></cms-empty-state>
+  } @else {
+    <div class="content-card mlp-table-card">
+      <div class="table-wrapper">
+      <table class="pc-table">
+        <thead>
+          <tr>
+            <th>Supplier</th>
+            <th class="cell-align-right">List Price</th>
+            <th class="cell-align-right">Effective Price</th>
+            <th>Source</th>
+            <th>Currency</th>
+            <th class="cell-align-right">Lead Time</th>
+            <th class="cell-align-center">Preferred</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr [class.pc-cheapest-row]="isCheapest(row)">
+              <td>
+                {{ row.supplierName }}
+                @if (isCheapest(row)) { <span class="pc-cheapest-chip">Cheapest</span> }
+              </td>
+              <td class="cell-align-right">{{ row.unitPrice | number: '1.2-2' }}</td>
+              <td class="cell-align-right">{{ row.effectivePrice | number: '1.2-2' }}</td>
+              <td>{{ row.priceSource === 'CONTRACT' ? 'Rate Contract' : 'Standard' }}</td>
+              <td>{{ row.currencyCode }}</td>
+              <td class="cell-align-right">{{ row.leadTimeDays ?? '—' }}</td>
+              <td class="cell-align-center">{{ row.isPreferred ? 'Yes' : '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      </div>
+    </div>
+  }
+
+</div>

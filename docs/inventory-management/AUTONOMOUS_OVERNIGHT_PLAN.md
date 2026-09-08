@@ -39,9 +39,9 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-224** (OC-223 was the last used, Asset Depreciation Summary
-   Report — OC-206 was skipped, see its checklist item above). Increment per slice.
-5. **Next Flyway migration number: V473** (V472 was the last used — none of OC-221/222/223
+4. **Next OC ticket number: OC-225** (OC-224 was the last used, Price Comparison Report —
+   OC-206 was skipped, see its checklist item above). Increment per slice.
+5. **Next Flyway migration number: V473** (V472 was the last used — none of OC-221/222/223/224
    needed a new migration, same as Depreciation/OC-211). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
@@ -229,8 +229,12 @@
       "needs product input" call, same as Stock Valuation. Cycle-time (a separate concept —
       how long from PO raised to fully received, only computable for already-completed orders)
       was not attempted here; if wanted later it's a distinct report, not folded into this one.
-- [ ] **Price Comparison report** (across suppliers/rate contracts for the same product) —
-      needs a real product-input decision on layout/columns — do not build without asking.
+- [x] **Price Comparison report** (OC-224, shipped 2026-09-09) — every active supplier's rate
+      for one chosen product, side by side, cheapest first. Turned out to need **zero new
+      backend code** — the existing `VendorProductMappingController`'s `/page?productId=`
+      endpoint already returns `effectivePrice`/`priceSource` per row. Frontend-only, reuses
+      the existing `VendorProductMappingService`/model and `INVENTORY_VENDOR_PRODUCT_MAPPING_
+      VIEW`/`_MANAGE` as-is.
 - [x] **Asset Depreciation Summary report** (OC-223, shipped 2026-09-09) — purchase value/
       accumulated depreciation/current book value grouped by category, "as of today" (no
       period/monthly time-series — same scope decision as Stock Valuation), disposed assets

@@ -243,6 +243,15 @@ export const routes: Routes = [
         (m) => m.AssetDepreciationSummaryReportComponent
       ),
   },
+  // Phase 8 "Reporting & Dashboards" — Price Comparison Report (fifth slice, no new backend).
+  {
+    path: 'inventory/reporting/price-comparison',
+    canActivate: withPermission('INVENTORY_VENDOR_PRODUCT_MAPPING_VIEW', 'INVENTORY_VENDOR_PRODUCT_MAPPING_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/reporting/price-comparison/price-comparison.component').then(
+        (m) => m.PriceComparisonReportComponent
+      ),
+  },
   {
     path: 'inventory/stock/balances',
     canActivate: withPermission('INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'),
