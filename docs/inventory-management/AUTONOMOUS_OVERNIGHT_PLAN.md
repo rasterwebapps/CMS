@@ -39,9 +39,9 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-219** (OC-218 was the last used, Internal Service Ticketing —
+4. **Next OC ticket number: OC-220** (OC-219 was the last used, Inventory Dashboard —
    OC-206 was skipped, see its checklist item above). Increment per slice.
-5. **Next Flyway migration number: V470** (V469 was the last used). Increment per file;
+5. **Next Flyway migration number: V471** (V470 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -207,9 +207,27 @@
 
 ## Phase 8 — Reporting & Dashboards
 
-- [ ] Depends on Phases above being in place; break down into concrete report/dashboard
-      slices once Phase 3–7 land enough real data shapes to report on. Do not start this
-      phase's checklist items speculatively ahead of its dependencies.
+- [x] **Concrete breakdown done** (2026-09-08, now that Phases 3–7 have all landed) — recorded
+      as `MILESTONES.md`'s Phase 8 Todo list: Inventory Dashboard (shipped, OC-219), Stock
+      Valuation report, PO Aging/Cycle-Time report, Price Comparison report, Asset Depreciation
+      Summary report, Budget vs. Actual report.
+- [x] **Inventory Dashboard** (OC-219, shipped 2026-09-08) — a single at-a-glance overview
+      screen, eleven metrics computed live across every phase already shipped (open POs,
+      pending requisitions/wanted-list items, active approvals, overdue gate passes/loans, open
+      service tickets, over-allocated budgets, outstanding consignment liability, assets under
+      maintenance). No new table.
+- [ ] **Stock Valuation report** — on-hand qty × weighted-average value, grouped by product/
+      location/category. Needs a real product-input decision on grouping/filter/export shape —
+      do not build without asking first.
+- [ ] **Purchase Order Aging / Cycle-Time report** — needs a real product-input decision on
+      what "aging" buckets/thresholds mean for this deployment — do not build without asking.
+- [ ] **Price Comparison report** (across suppliers/rate contracts for the same product) —
+      needs a real product-input decision on layout/columns — do not build without asking.
+- [ ] **Asset Depreciation Summary report** — needs a real product-input decision on
+      period/grouping (monthly? by category?) — do not build without asking.
+- [ ] **Budget vs. Actual Spend report** — needs a real product-input decision on
+      period/grouping and whether it differs meaningfully from the Budgets list's own
+      allocated-vs-consumed columns — do not build without asking.
 
 ---
 
@@ -394,3 +412,24 @@ broken/half-done, and any judgment call made that a future session should sanity
   dependencies") — that breakdown, or picking up one of the "Also outstanding" items
   (`InventoryItem` migration re-check, Product photo upload), is the next unit of work for
   whichever session picks this up.
+- **2026-09-08, same session, after OC-219:** Phase 8's checklist item was itself the "break
+  this phase down into concrete slices" instruction — did that first (now recorded as
+  `MILESTONES.md`'s Phase 8 Todo list, six named report/dashboard slices), then shipped the
+  first and only one of them that needed zero product-input judgment call: the **Inventory
+  Dashboard**, a single at-a-glance overview screen. New `com.cms.inventory.reporting` package
+  (a `dto`+`service`+`controller` only — no entity, no table, every figure computed live via
+  `JpaSpecificationExecutor#count` against entities already shipped across every prior phase,
+  plus one small new aggregate query added to the existing `ConsignmentStockLineRepository`).
+  New `INVENTORY_DASHBOARD_VIEW` permission, no `_MANAGE` counterpart (nothing to manage on a
+  pure overview screen). Migration V470 only (no schema change). Frontend: a new
+  `stat-grid`/`stat-card` dashboard reusing the app's existing global stat-card styles, added
+  as the first item in the "Stock Management" nav group. `./gradlew compileJava` and
+  `npx tsc --noEmit` both passed clean. **The remaining five Phase 8 report slices (Stock
+  Valuation, PO Aging, Price Comparison, Depreciation Summary, Budget vs. Actual) are all
+  explicitly flagged as needing real product input on layout/grouping/filter shape — do not
+  build any of them without asking first**, per the plan's own escape-valve rule (Standing Rule
+  7). With Phase 8's zero-product-input slice now shipped and every other Phase 8 item requiring
+  a real stakeholder decision, and the "Also outstanding" items each needing their own re-
+  verification/scoping pass before they're safe to start blind, this is a natural, deliberate
+  stopping point for autonomous work under this plan's Standing Rules — not a slice left
+  half-finished.

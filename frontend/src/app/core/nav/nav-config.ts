@@ -201,6 +201,7 @@ export const NAV_ENTRIES: NavEntry[] = [
     icon: 'warehouse',
     modules: ['INVENTORY'],
     items: [
+      { label: 'Dashboard',         icon: 'dashboard',   route: '/inventory/dashboard', permissions: ['INVENTORY_DASHBOARD_VIEW'] },
       { label: 'Stock Balance',     icon: 'inventory',   route: '/inventory/stock/balances', permissions: ['INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'] },
       { label: 'Cycle Counts',      icon: 'fact_check',  route: '/inventory/stock/cycle-counts', permissions: ['INVENTORY_CYCLE_COUNT_VIEW', 'INVENTORY_CYCLE_COUNT_MANAGE', 'INVENTORY_CYCLE_COUNT_APPROVE'] },
       { label: 'Products',          icon: 'inventory_2', route: '/inventory/products',   permissions: ['INVENTORY_PRODUCT_VIEW', 'INVENTORY_PRODUCT_MANAGE'] },

@@ -207,6 +207,15 @@ export const routes: Routes = [
         (m) => m.LocationFormComponent
       ),
   },
+  // Phase 8 "Reporting & Dashboards" — Inventory Dashboard (first slice).
+  {
+    path: 'inventory/dashboard',
+    canActivate: withPermission('INVENTORY_DASHBOARD_VIEW'),
+    loadComponent: () =>
+      import('./features/inventory/reporting/dashboard/dashboard.component').then(
+        (m) => m.InventoryDashboardComponent
+      ),
+  },
   {
     path: 'inventory/stock/balances',
     canActivate: withPermission('INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'),

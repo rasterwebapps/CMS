@@ -1012,4 +1012,47 @@ the catch-all sync block (V469). `MILESTONES.md` and `RELEASE_3_MILESTONES.md` u
 same change — this closes Phase 7 end-to-end and brings R3-M6 to 100%. `./gradlew compileJava`
 and `npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
 
+## 2026-09-08 — Inventory Dashboard slice (OC-219)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+Phase 8's ("Reporting & Dashboards") first slice. Its own checklist item explicitly required a
+concrete breakdown before any implementation ("do not start speculatively ahead of
+dependencies") — with Phases 3–7 now fully landed, that breakdown was done first (recorded as
+`MILESTONES.md`'s new Phase 8 Todo list), then this slice — the most foundational, lowest-risk
+item on it — was built.
+
+1. **A single at-a-glance overview screen, not yet a "reports" module** — eleven metrics
+   spanning every phase already shipped (procurement, approvals, gate pass, loanable items,
+   service tickets, budgets, consignment, assets), each computed live via
+   `JpaSpecificationExecutor#count`/a small aggregate query against the real entities — no new
+   table, no stored snapshot, the same "computed live, never stored" discipline used everywhere
+   else in this module (overdue flags, depreciation, budget consumption). This was picked as the
+   first Phase 8 slice specifically because it needed no product-input judgment call — every
+   metric is a direct, obvious "what needs attention right now" figure already fully defined by
+   an entity/status this module already built, not a new report requiring layout/filter/export
+   decisions that would need real user input.
+2. **The other five Phase 8 items identified in the breakdown** (stock valuation, PO aging/
+   cycle-time, price comparison, asset depreciation summary, budget vs. actual) **are left
+   unbuilt and unchecked** — each is a genuine report with real design questions (what columns,
+   what date-range/grouping controls, export format) that go beyond what an ERP-standard default
+   can safely settle alone; deliberately left for a session with real reporting requirements
+   rather than guessed at here.
+3. **One new query method added to the already-shipped `ConsignmentStockLineRepository`**
+   (`sumOutstandingLiabilityValue`, a JPQL sum) rather than a new repository/service — a single
+   aggregate query is a minor, additive change to an existing repository, not a new bounded
+   context, and this dashboard's own package (`com.cms.inventory.reporting`) is reserved for
+   dashboard/report-specific code rather than duplicating logic that already lives elsewhere
+   (also reused `BudgetService.findPage`'s already-computed `overAllocated` flag directly rather
+   than re-deriving budget-consumption logic a second time).
+4. **One dedicated `INVENTORY_DASHBOARD_VIEW` permission, no `_MANAGE` counterpart** — this
+   screen has nothing to manage, only view, so per the operation-wise permission mapping rule a
+   single permission is the correct, complete set (not an omission).
+
+**Impact:** no new tables. New permission `INVENTORY_DASHBOARD_VIEW` seeded to DEV_ADMIN/
+SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN with the catch-all sync block (V470). `MILESTONES.md` (Phase
+8's Todo list is now the concrete breakdown this phase's own checklist item asked for) and
+`RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and
+`npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
+
 *Next entry goes here — do not insert above this line.*

@@ -26,7 +26,7 @@ Inventory Management is a new, standalone module being built for the platform �
 | 5 | Equipment &amp; Asset Management | ✅ Done |
 | 6 | Budgets &amp; Approvals | ✅ Done |
 | 7 | Gate Pass, Vendor-Owned Stock &amp; Service Requests | ✅ Done |
-| 8 | Reporting &amp; Dashboards | ⬜ Not Started |
+| 8 | Reporting &amp; Dashboards | 🟡 In Progress |
 
 **Status legend:** ⬜ Not Started · 🟡 In Progress · ✅ Done
 
@@ -162,12 +162,19 @@ Inventory Management is a new, standalone module being built for the platform �
 
 ## Phase 8 — Reporting & Dashboards
 
-**Status: ⬜ Not Started**
+**Status: 🟡 In Progress**
 
 **Covers:** The dashboards and reports that pull together everything from the phases above — stock positions, spending, price comparisons, and turnaround times — for day-to-day use and management review.
 
+**Doing now:** A single Inventory Dashboard gives an at-a-glance overview across the whole module — open purchase orders, pending requisitions/wanted-list items, active approvals, overdue gate passes/loans, open service tickets, over-allocated budgets, outstanding consignment liability, and assets under maintenance — every figure computed live, nothing precomputed or stored.
+
 **Todo:**
-- Everything in this phase depends on the phases above being in place first
+- Inventory Dashboard (at-a-glance overview) — ✅ done
+- Stock valuation report (by product/location/category)
+- Purchase order aging / cycle-time report
+- Price comparison report (across suppliers/rate contracts)
+- Asset depreciation summary report
+- Budget vs. actual spend report
 
 ---
 

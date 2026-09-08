@@ -1,0 +1,45 @@
+.idb-pg-title {
+  margin: 0 0 2px;
+  font-family: var(--cms-font-display);
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+
+  em {
+    font-style: italic;
+    color: var(--cms-primary);
+  }
+}
+
+.idb-pg-sub {
+  margin: 0 0 6px;
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+.idb-generated {
+  margin-left: 6px;
+  color: var(--cms-text-muted);
+}
+
+.idb-loading {
+  display: flex;
+  justify-content: center;
+  padding: 80px 0;
+}
+
+.idb-grid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.idb-tile {
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    border-color: var(--cms-primary);
+    transform: translateY(-1px);
+  }
+}
